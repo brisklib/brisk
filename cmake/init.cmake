@@ -107,7 +107,13 @@ if ("${VCPKG_TARGET_TRIPLET}" MATCHES "windows-static$")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif ()
 
+if ("${VCPKG_TARGET_TRIPLET}" MATCHES "^arm64-linux")
+    set(CMAKE_CXX_COMPILER_TARGET aarch64-linux-gnueabihf CACHE STRING "")
+    set(CMAKE_C_COMPILER_TARGET aarch64-linux-gnueabihf CACHE STRING "")
+endif ()
+
 set(SUPPORTED_TRIPLETS
+    "arm64-linux"
     "x64-linux"
     "x64-osx"
     "arm64-osx"

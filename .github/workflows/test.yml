@@ -22,7 +22,7 @@ jobs:
   deps-linux:
     strategy:
       matrix:
-        triplet: ["x64-linux"]
+        triplet: ["x64-linux", "arm64-linux"]
     runs-on: ubuntu-latest
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
@@ -124,7 +124,7 @@ jobs:
   build-linux:
     strategy:
       matrix:
-        triplet: ["x64-linux"]
+        triplet: ["x64-linux", "arm64-linux"]
     runs-on: ubuntu-latest
     needs: deps-linux
     env:
