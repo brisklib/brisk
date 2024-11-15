@@ -22,7 +22,6 @@ add_library(
     brisk-widgets STATIC
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Widgets.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/TextEditor.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Paragraph.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Viewport.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Spinner.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Progress.hpp
@@ -60,7 +59,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/DialogComponent.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Graphene.hpp
     ${PROJECT_SOURCE_DIR}/src/widgets/TextEditor.cpp
-    ${PROJECT_SOURCE_DIR}/src/widgets/Paragraph.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Viewport.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Spinner.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Progress.cpp

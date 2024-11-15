@@ -907,7 +907,7 @@ void FontManager::testRender(RC<Image> image, const PrerenderedText& prerendered
     auto w = image->mapWrite<ImageFormat::Greyscale_U8Gamma>();
     if (flags && TestRenderFlags::TextBounds) {
         RectangleF rect;
-        rect = prerendered.bounds();
+        rect = prerendered.bounds(GlyphRunBounds::Text);
         rect = rect.withOffset(origin);
         for (int32_t y = std::floor(rect.y1); y < std::ceil(rect.y2); ++y) {
             if (y < 0 || y >= w.height())
@@ -1003,10 +1003,11 @@ PrerenderedText FontManager::doPrerender(const Font& font, const TextWithOptions
     return std::move(shaped).prerender(font, width);
 }
 
-RectangleF FontManager::bounds(const Font& font, const TextWithOptions& text) const {
+RectangleF FontManager::bounds(const Font& font, const TextWithOptions& text,
+                               GlyphRunBounds boundsType) const {
     lock_quard_cond lk(m_lock);
     PrerenderedText run = doPrerender(font, text);
-    return run.bounds();
+    return run.bounds(boundsType);
 }
 
 void FontManager::garbageCollectCache() {
@@ -1035,14 +1036,14 @@ optional<GlyphData> Glyph::load(const GlyphRun& run) const {
 
 void PrerenderedText::align(RectangleF rect, float alignment_x, float alignment_y) {
     BRISK_ASSERT(state == ShapedRunsState::Visual);
-    RectangleF bounds = this->bounds();
+    RectangleF bounds = this->bounds(GlyphRunBounds::Text);
     RectangleF r      = rect.alignedRect(bounds.size(), { alignment_x, alignment_y });
     applyOffset(r.p1 - bounds.p1);
 }
 
 void PrerenderedText::align(PointF pos, float alignment_x, float alignment_y) {
     BRISK_ASSERT(state == ShapedRunsState::Visual);
-    RectangleF bounds = this->bounds();
+    RectangleF bounds = this->bounds(GlyphRunBounds::Text);
     RectangleF r      = pos.alignedRect(bounds.size(), { alignment_x, alignment_y });
     applyOffset(r.p1 - bounds.p1);
 }
@@ -1063,7 +1064,7 @@ void PrerenderedText::alignLines(RectangleF rect, float alignment_x, float align
     BRISK_ASSERT(state == ShapedRunsState::Visual);
     if (runs.empty())
         return;
-    const RectangleF bounds = this->bounds();
+    const RectangleF bounds = this->bounds(GlyphRunBounds::Text);
     const int lastLine      = runs.back().line;
     for (int line = 0; line <= lastLine; line++) {
         auto rng = std::equal_range(runs.begin(), runs.end(), line, LineCmp{});
@@ -1083,7 +1084,7 @@ void PrerenderedText::alignLines(PointF pos, float alignment_x, float alignment_
     BRISK_ASSERT(state == ShapedRunsState::Visual);
     if (runs.empty())
         return;
-    const RectangleF bounds = this->bounds();
+    const RectangleF bounds = this->bounds(GlyphRunBounds::Text);
     const int lastLine      = runs.back().line;
     for (int line = 0; line <= lastLine; line++) {
         auto rng = std::equal_range(runs.begin(), runs.end(), line, LineCmp{});
@@ -1285,7 +1286,7 @@ size_t ShapedRuns::extractLine(GlyphRuns& output, GlyphRuns& input, float maxWid
         if (isInf || run.printableHRange.max <= remainingWidth) {
             // The run fits on the current line
             if (!isInf)
-                remainingWidth -= run.size().width;
+                remainingWidth -= run.size(GlyphRunBounds::Text).width;
             BRISK_ASSERT(!run.glyphs.empty());
             output.push_back(std::move(run));
             input.erase(input.begin());
@@ -1302,7 +1303,7 @@ size_t ShapedRuns::extractLine(GlyphRuns& output, GlyphRuns& input, float maxWid
             if (partial.glyphs.empty()) {
                 return outputNum;
             } else {
-                remainingWidth -= partial.size().width;
+                remainingWidth -= partial.size(GlyphRunBounds::Text).width;
                 BRISK_ASSERT(!partial.glyphs.empty());
                 output.push_back(std::move(partial));
                 ++outputNum;
@@ -1344,7 +1345,7 @@ void ShapedRuns::formatLine(std::span<GlyphRun> input, float y, int lineNum, flo
             run.invalidateRanges();
         } else {
             run.position = caret.pt() + PointF{ xOffset, y - run.verticalAlign };
-            caret.x += run.bounds().width();
+            caret.x += run.bounds(GlyphRunBounds::Text).width();
         }
     }
 }
@@ -1363,7 +1364,7 @@ PrerenderedText ShapedRuns::prerender(const Font& font, float maxWidth) && {
             size_t nb = extractLine(result.runs, runs, maxWidth);
             if (nb) {
                 auto line             = std::span{ result.runs }.subspan(result.runs.size() - nb, nb);
-                RectangleF lineBounds = bounds(line);
+                RectangleF lineBounds = bounds(line, GlyphRunBounds::Text);
                 formatLine(line, y, lineNum, font.tabWidth);
                 lineNum++;
                 y += lineBounds.height() * font.lineHeight;

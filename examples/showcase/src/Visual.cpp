@@ -44,22 +44,30 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
             new Text{ "Multi-line\ntext" },
             new Text{ "Text with color = Palette::Standard::fuchsia, fontWeight = FontWeight::Bold",
                       color = Palette::Standard::fuchsia, fontWeight = FontWeight::Bold },
-            new Text{ "Text with textAutoSize = TextAutoSize::FitWidth (Resize the window to make the text "
+            new Text{ "Text with textAutoSize = TextAutoSize::FitWidth (Resize the window to make the text"
                       "size fit the width)",
                       height = 50_apx, textAutoSize = TextAutoSize::FitWidth },
         },
 
-        new Text{ "Paragraph (widgets/Paragraph.hpp)", classes = { "section-header" } },
+        new Text{ "wordWrap = true", classes = { "section-header" } },
 
         new VLayout{
-            new Paragraph{ loremIpsumShort, textAlign = Value{ &m_textAlign }, marginBottom = 20_apx,
-                           fontSize = 200_perc, fontFamily = Lato },
+            new HLayout{
+                new Text{ "Text alignment: " },
+                new ComboBox{
+                    Value{ &m_textAlign },
+                    notManaged(&textAlignList),
+                    width = 110_apx,
+                },
+                new Text{ "Font size: " },
 
-            new ComboBox{
-                Value{ &m_textAlign },
-                notManaged(&textAlignList),
-                width = 110_apx,
+                new Slider{ value = Value{ &m_fontSize }, minimum = 0.25f, maximum = 4.f, width = 300_apx },
             },
+            new Text{ loremIpsumShort, wordWrap = true, textAlign = Value{ &m_textAlign }, marginTop = 10_apx,
+                      fontSize = Value{ &m_fontSize }.transform([](float v) {
+                          return v * 100_perc;
+                      }),
+                      fontFamily = Lato },
         },
 
         new Text{ "Viewport (widgets/Viewport.hpp)", classes = { "section-header" } },

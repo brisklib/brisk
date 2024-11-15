@@ -244,10 +244,10 @@ TEST_CASE("FontManager") {
     fmt::println("breaks: {}",
                  fmt::join(textBreakPositions(utf8ToUtf32(helloWorld[57]), TextBreakMode::Line), ", "));
 
-    RectangleF bounds          = fontManager->bounds(font, U"Hello, world!"s);
-    bounds                     = fontManager->bounds(font, U"  Hello, world!"s);
-    bounds                     = fontManager->bounds(font, U"  Hello, world!  "s);
-    bounds                     = fontManager->bounds(font, U"Hello, world!  "s);
+    RectangleF bounds          = fontManager->bounds(font, U"Hello, world!"s, GlyphRunBounds::Text);
+    bounds                     = fontManager->bounds(font, U"  Hello, world!"s, GlyphRunBounds::Text);
+    bounds                     = fontManager->bounds(font, U"  Hello, world!  "s, GlyphRunBounds::Text);
+    bounds                     = fontManager->bounds(font, U"Hello, world!  "s, GlyphRunBounds::Text);
 
     [[maybe_unused]] Size size = { 512, 64 };
 

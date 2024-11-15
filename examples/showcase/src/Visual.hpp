@@ -17,6 +17,7 @@ private:
     float m_progress      = 0.f;
     bool m_hintActive     = true;
     TextAlign m_textAlign = TextAlign::Start;
+    float m_fontSize      = 2.f;
 
     struct Row {
         std::string firstName;

@@ -355,8 +355,8 @@ struct CacheWithInvalidation {
      * @param key The new key to check.
      * @return True if the cache was invalidated, otherwise false.
      */
-    bool invalidate(const Key& key) {
-        if (m_key != key) {
+    bool invalidate(const Key& key, bool force = false) {
+        if (force || m_key != key) {
             m_key   = key;
             m_value = std::nullopt;
             return true;

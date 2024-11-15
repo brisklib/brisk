@@ -350,8 +350,8 @@ struct GlyphRun {
     float verticalAlign;
     int line = 0;
     PointF position;
-    RectangleF bounds(GlyphRunBounds boundsType = GlyphRunBounds::Text) const;
-    SizeF size(GlyphRunBounds boundsType = GlyphRunBounds::Text) const;
+    RectangleF bounds(GlyphRunBounds boundsType) const;
+    SizeF size(GlyphRunBounds boundsType) const;
     void invalidateRanges();
     void updateRanges() const;
     GlyphRun breakAt(float width, bool allowEmpty) &;
@@ -374,7 +374,7 @@ struct ShapedRuns {
     GlyphRuns runs;
     ShapedRunsState state = ShapedRunsState::Logical;
     LayoutOptions options = LayoutOptions::Default;
-    RectangleF bounds(GlyphRunBounds boundsType = GlyphRunBounds::Text) const;
+    RectangleF bounds(GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
     PrerenderedText prerender(const Font& font, float maxWidth) &&;
     PrerenderedText prerender(const Font& font, float maxWidth) const&;
 
@@ -387,8 +387,7 @@ struct ShapedRuns {
 private:
     static size_t extractLine(GlyphRuns& output, GlyphRuns& input, float maxWidth);
     static void formatLine(std::span<GlyphRun> input, float y, int lineNum, float tabWidth);
-    static RectangleF bounds(std::span<const GlyphRun> runs,
-                             GlyphRunBounds boundsType = GlyphRunBounds::Text);
+    static RectangleF bounds(std::span<const GlyphRun> runs, GlyphRunBounds boundsType);
 };
 
 using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
@@ -513,7 +512,8 @@ public:
     bool hasCodepoint(const Font& font, char32_t codepoint) const;
     ShapedRuns shape(const Font& font, const TextWithOptions& text) const;
     PrerenderedText prerender(const Font& font, const TextWithOptions& text, float width = HUGE_VALF) const;
-    RectangleF bounds(const Font& font, const TextWithOptions& text) const;
+    RectangleF bounds(const Font& font, const TextWithOptions& text,
+                      GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
 
     using FontKey = std::tuple<FontFamily, FontStyle, FontWeight>;
 

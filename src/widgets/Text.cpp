@@ -34,20 +34,23 @@ Widget::Ptr Text::cloneThis() {
 }
 
 void Text::onLayoutUpdated() {
-    if (m_textAutoSize != TextAutoSize::None) {
+    if (m_textAutoSize != TextAutoSize::None || m_wordWrap) {
         onChanged();
     }
 }
 
 void Text::onChanged() {
     Font font = this->font();
-    if (m_textAutoSize != TextAutoSize::None && !m_text.empty()) {
+    if (!m_wordWrap && m_textAutoSize != TextAutoSize::None && !m_text.empty()) {
         font.fontSize = font.fontSize = calcFontSizeFor(m_text);
     }
     if (m_cache.invalidate(CacheKey{ font, m_text })) {
-        if (m_textAutoSize == TextAutoSize::None) {
+        if (m_wordWrap || m_textAutoSize == TextAutoSize::None) {
             requestUpdateLayout();
         }
+        m_cache2.invalidate({ m_clientRect.width() }, true);
+    } else if (m_wordWrap) {
+        m_cache2.invalidate({ m_clientRect.width() });
     }
 }
 
@@ -81,15 +84,29 @@ float Text::calcFontSizeFor(const std::string& m_text) const {
     return fontSize;
 }
 
+static RectangleF alignInflate(RectangleF rect) {
+    rect.x1 = std::floor(rect.x1);
+    rect.y1 = std::floor(rect.y1);
+    rect.x2 = std::ceil(rect.x2);
+    rect.y2 = std::ceil(rect.y2);
+    return rect;
+}
+
 SizeF Text::measure(AvailableSize size) const {
-    if (m_textAutoSize != TextAutoSize::None) {
+    if (!m_wordWrap && m_textAutoSize != TextAutoSize::None) {
         return SizeF{ 1.f, 1.f };
     }
-    SizeF result = m_cache->textSize;
-    if (toOrientation(m_rotation) == Orientation::Vertical) {
-        result = result.flipped();
+    if (!m_wordWrap) {
+        SizeF result = m_cache2->textSize;
+        if (toOrientation(m_rotation) == Orientation::Vertical) {
+            result = result.flipped();
+        }
+        return result;
+    } else {
+        uint32_t width              = size.x.valueOr(16777216.f);
+        PrerenderedText prerendered = m_cache->shaped.prerender(m_cache.key().font, width);
+        return alignInflate(prerendered.bounds()).size();
     }
-    return result;
 }
 
 void Text::paint(Canvas& canvas) const {
@@ -102,7 +119,7 @@ void Text::paint(Canvas& canvas) const {
             state.intersectScissors(m_rect);
         RectangleF inner = m_clientRect;
         ColorF color     = m_color.current.multiplyAlpha(m_opacity);
-        auto prerendered = m_cache->prerendered;
+        auto prerendered = m_cache2->prerendered;
 
         if (m_rotation != Rotation::NoRotation) {
             RectangleF rotated = RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
@@ -134,9 +151,15 @@ void Text::onFontChanged() {
 }
 
 Text::Cached Text::updateCache(const CacheKey& key) {
-    auto prerendered = fonts->prerender(key.font, key.text);
+    ShapedRuns shaped = fonts->shape(key.font, key.text);
+    return { std::move(shaped) };
+}
+
+Text::Cached2 Text::updateCache2(const CacheKey2& key) {
+    m_cache.update();
+    auto prerendered = m_cache->shaped.prerender(m_cache.key().font, m_wordWrap ? key.width : 16777216.f);
     SizeF textSize   = prerendered.bounds().size();
-    textSize         = max(textSize, SizeF{ 0, fonts->metrics(key.font).vertBounds() });
+    textSize         = max(textSize, SizeF{ 0, fonts->metrics(m_cache.key().font).vertBounds() });
     return { textSize, std::move(prerendered) };
 }
 
@@ -145,7 +168,7 @@ void BackStrikedText::paint(Canvas& canvas) const {
                           font(), m_color.current);
     const int p         = 10_idp;
     const float x_align = toFloatAlign(m_textAlign);
-    const int tw        = m_cache->textSize.x;
+    const int tw        = m_cache2->textSize.x;
     const Point c       = m_rect.withPadding(tw / 2, 0).at(x_align, 0.5f);
     Rectangle r1{ m_rect.x1 + p, c.y, c.x - tw / 2 - p, c.y + 1_idp };
     Rectangle r2{ c.x + tw / 2 + p, c.y, m_rect.x2 - p, c.y + 1_idp };

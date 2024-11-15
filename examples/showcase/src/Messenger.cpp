@@ -11,7 +11,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
         RC<Widget> content;
         std::visit(Overload{
                        [&](std::string textContent) {
-                           content = rcnew Paragraph{ std::move(textContent) };
+                           content = rcnew Text{ std::move(textContent), wordWrap = true };
                        },
                        [&](RC<Image> imageContent) {
                            float imageAspect =

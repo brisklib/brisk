@@ -6,7 +6,6 @@
 #include <brisk/core/App.hpp>
 #include <brisk/widgets/ComboBox.hpp>
 #include <brisk/widgets/ImageView.hpp>
-#include <brisk/widgets/Paragraph.hpp>
 #include <brisk/widgets/Table.hpp>
 #include <brisk/widgets/TextEditor.hpp>
 #include <brisk/widgets/Viewport.hpp>
@@ -134,81 +133,6 @@ RC<Widget> ShowcaseComponent::build() {
         },
         rcnew NotificationContainer(notifications),
     };
-
-#if 0
-
-    return rcnew VLayout{
-        stylesheet = Graphene::stylesheet(),
-        Graphene::darkColors(),
-        new Pages{
-            Value{ &m_activePage },
-            flexGrow = 1,
-            layout   = Layout::Horizontal,
-            new Tabs{
-                layout = Layout::Vertical,
-                // tab placeholder...
-            },
-            new Page{
-                "Windows",
-                new VLayout{
-                    flexGrow = 1,
-
-                    new Button{
-                        new Text{ "call sync" },
-                        onClick = m_lifetime |
-                                  [this] {
-                                      auto f = randomNumber();
-                                      m_text += std::to_string(f.getSync()) + " from future\n";
-                                      bindings->notify(&m_text);
-                                  },
-                    },
-                    new Button{
-                        new Text{ "call async" },
-                        onClick = m_lifetime |
-                                  [this] {
-                                      auto f = randomNumber();
-                                      f.getInCallback(
-                                          uiThread,
-                                          [this](int val) {
-                                              m_text += std::to_string(val) + " from callback\n";
-                                              bindings->notify(&m_text);
-                                          },
-                                          [this](std::exception_ptr exc) {
-                                              m_text += "exception from callback\n";
-                                              bindings->notify(&m_text);
-                                          });
-                                  },
-                    },
-
-                    new Spinner{ dimensions = { 120, 120 } },
-
-                    depends = Value{ &m_text },
-                    SingleBuilder{
-                        [this]() -> Widget* {
-                            return new Text{ m_text };
-                        },
-                    },
-                },
-            },
-            new Page{
-                "binding",
-                new VLayout{
-                    new Text{ "first", visible = Value{ &m_index } == 0 },
-                    new Text{ "second", visible = Value{ &m_index } == 1 },
-                    new Text{ "third", visible = Value{ &m_index } == 2 },
-                    new ComboBox{
-                        value = Value{ &m_index },
-                        new ItemList{
-                            new Text{ "First" },
-                            new Text{ "Second" },
-                            new Text{ "Third" },
-                        },
-                    },
-                },
-            },
-        },
-    };
-#endif
 }
 
 ShowcaseComponent::ShowcaseComponent() {}

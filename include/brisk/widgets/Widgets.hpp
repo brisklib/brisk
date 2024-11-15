@@ -41,7 +41,6 @@
 #include "Item.hpp"
 #include "Notifications.hpp"
 #include "Pages.hpp"
-#include "Paragraph.hpp"
 #include "PopupBox.hpp"
 #include "PopupButton.hpp"
 #include "PopupDialog.hpp"

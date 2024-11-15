@@ -46,9 +46,10 @@ public:
 
 protected:
     std::string m_text;
-    TextAutoSize m_textAutoSize = TextAutoSize::None;
-    Range<float> m_textAutoSizeRange{ 6.f, 96.f };
-    Rotation m_rotation = Rotation::NoRotation;
+    TextAutoSize m_textAutoSize      = TextAutoSize::None;
+    Range<float> m_textAutoSizeRange = { 6.f, 96.f };
+    Rotation m_rotation              = Rotation::NoRotation;
+    bool m_wordWrap                  = false;
 
     struct CacheKey {
         Font font;
@@ -57,12 +58,23 @@ protected:
     };
 
     struct Cached {
+        ShapedRuns shaped;
+    };
+
+    struct CacheKey2 {
+        int width;
+        bool operator==(const CacheKey2&) const noexcept = default;
+    };
+
+    struct Cached2 {
         SizeF textSize;
-        ShapedRuns prerendered;
+        PrerenderedText prerendered;
     };
 
     Cached updateCache(const CacheKey&);
+    Cached2 updateCache2(const CacheKey2&);
     CacheWithInvalidation<Cached, CacheKey, Text, &Text::updateCache> m_cache{ this };
+    CacheWithInvalidation<Cached2, CacheKey2, Text, &Text::updateCache2> m_cache2{ this };
 
     void paint(Canvas& canvas) const override;
     optional<std::string> textContent() const override;
@@ -80,6 +92,8 @@ public:
     BRISK_PROPERTIES_BEGIN
     Property<Text, std::string, &Text::m_text, nullptr, nullptr, &Text::onChanged> //
         text;
+    Property<Text, bool, &Text::m_wordWrap, nullptr, nullptr, &Text::onChanged> //
+        wordWrap;
     Property<Text, Rotation, &Text::m_rotation, nullptr, nullptr, &Text::onChanged> //
         rotation;
     Property<Text, TextAutoSize, &Text::m_textAutoSize, nullptr, nullptr, &Text::onChanged> //
@@ -94,6 +108,7 @@ constexpr inline Argument<Tag::PropArg<decltype(Text::text)>> text{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::rotation)>> rotation{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSize)>> textAutoSize{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSizeRange)>> textAutoSizeRange{};
+constexpr inline Argument<Tag::PropArg<decltype(Text::wordWrap)>> wordWrap{};
 } // namespace Arg
 
 class WIDGET BackStrikedText final : public Text {
