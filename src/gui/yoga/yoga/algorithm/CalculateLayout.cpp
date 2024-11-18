@@ -43,7 +43,8 @@ static void constrainMaxSizeForMode(
     /*in_out*/ float* size) {
   const FloatOptional maxSize =
       node->style().maxDimension(dimension(axis)).resolve(ownerAxisSize) +
-      FloatOptional(node->style().computeMarginForAxis(axis, ownerWidth)); // content-box: add paddingAndBorder for axis
+      FloatOptional(node->style().computeMarginForAxis(
+          axis, ownerWidth)); // content-box: add paddingAndBorder for axis
   switch (*mode) {
     case SizingMode::StretchFit:
     case SizingMode::FitContent:
@@ -427,14 +428,16 @@ static float calculateAvailableInnerDimension(
         node->style().minDimension(dimension).resolve(ownerDim);
     const float minInnerDim = minDimensionOptional.isUndefined()
         ? 0.0f
-        : minDimensionOptional.unwrap() - paddingAndBorder; // content-box: don't subtract paddingAndBorder
+        : minDimensionOptional.unwrap() -
+            paddingAndBorder; // content-box: don't subtract paddingAndBorder
 
     const FloatOptional maxDimensionOptional =
         node->style().maxDimension(dimension).resolve(ownerDim);
 
     const float maxInnerDim = maxDimensionOptional.isUndefined()
         ? FLT_MAX
-        : maxDimensionOptional.unwrap() - paddingAndBorder; // content-box: don't subtract paddingAndBorder
+        : maxDimensionOptional.unwrap() -
+            paddingAndBorder; // content-box: don't subtract paddingAndBorder
     availableInnerDim = yoga::maxOrDefined(
         yoga::minOrDefined(availableInnerDim, maxInnerDim), minInnerDim);
   }
@@ -933,7 +936,9 @@ static void justifyMainAxis(
       const float minAvailableMainDim = style.minDimension(dimension(mainAxis))
                                             .resolve(mainAxisownerSize)
                                             .unwrap() -
-          leadingPaddingAndBorderMain - trailingPaddingAndBorderMain; // content-box: don't subtract paddingAndBorder
+          leadingPaddingAndBorderMain -
+          trailingPaddingAndBorderMain; // content-box: don't subtract
+                                        // paddingAndBorder
       const float occupiedSpaceByChildNodes =
           availableInnerMainDim - flexLine.layout.remainingFreeSpace;
       flexLine.layout.remainingFreeSpace = yoga::maxOrDefined(
@@ -1405,16 +1410,20 @@ static void calculateLayoutImpl(
       const auto& style = node->style();
       const float minInnerWidth =
           style.minDimension(Dimension::Width).resolve(ownerWidth).unwrap() -
-          paddingAndBorderAxisRow; // content-box: don't subtract paddingAndBorder
+          paddingAndBorderAxisRow; // content-box: don't subtract
+                                   // paddingAndBorder
       const float maxInnerWidth =
           style.maxDimension(Dimension::Width).resolve(ownerWidth).unwrap() -
-          paddingAndBorderAxisRow; // content-box: don't subtract paddingAndBorder
+          paddingAndBorderAxisRow; // content-box: don't subtract
+                                   // paddingAndBorder
       const float minInnerHeight =
           style.minDimension(Dimension::Height).resolve(ownerHeight).unwrap() -
-          paddingAndBorderAxisColumn; // content-box: don't subtract paddingAndBorder
+          paddingAndBorderAxisColumn; // content-box: don't subtract
+                                      // paddingAndBorder
       const float maxInnerHeight =
           style.maxDimension(Dimension::Height).resolve(ownerHeight).unwrap() -
-          paddingAndBorderAxisColumn; // content-box: don't subtract paddingAndBorder
+          paddingAndBorderAxisColumn; // content-box: don't subtract
+                                      // paddingAndBorder
 
       const float minInnerMainDim =
           isMainAxisRow ? minInnerWidth : minInnerHeight;
@@ -1701,7 +1710,7 @@ static void calculateLayoutImpl(
         ? node->getResolvedDimension(dimension(crossAxis))
               .resolve(crossAxisownerSize)
               .unwrap() // content-box: add paddingAndBorder for axis
-        : totalLineCrossDim + paddingAndBorderAxisCross; 
+        : totalLineCrossDim + paddingAndBorderAxisCross;
 
     const float innerCrossDim =
         boundAxis(node, crossAxis, unclampedCrossDim, ownerHeight, ownerWidth) -
@@ -1990,20 +1999,20 @@ static void calculateLayoutImpl(
             .unwrapOrDefault(0.f),
         dimension(crossAxis));
   }
-    // if (scrollCross) {
-    //   node->setLayoutMeasuredDimension(
-    //       boundAxisWithinMinAndMax(
-    //           node, crossAxis, FloatOptional(0.f), crossAxisownerSize)
-    //           .unwrapOrDefault(0.f),
-    //       dimension(crossAxis));
-    // }
-    // if (scrollMain) {
-    //   node->setLayoutMeasuredDimension(
-    //       boundAxisWithinMinAndMax(
-    //           node, mainAxis, FloatOptional(0.f), mainAxisownerSize)
-    //           .unwrapOrDefault(0.f),
-    //       dimension(mainAxis));
-    // }
+  // if (scrollCross) {
+  //   node->setLayoutMeasuredDimension(
+  //       boundAxisWithinMinAndMax(
+  //           node, crossAxis, FloatOptional(0.f), crossAxisownerSize)
+  //           .unwrapOrDefault(0.f),
+  //       dimension(crossAxis));
+  // }
+  // if (scrollMain) {
+  //   node->setLayoutMeasuredDimension(
+  //       boundAxisWithinMinAndMax(
+  //           node, mainAxis, FloatOptional(0.f), mainAxisownerSize)
+  //           .unwrapOrDefault(0.f),
+  //       dimension(mainAxis));
+  // }
 
   // As we only wrapped in normal direction yet, we need to reverse the
   // positions on wrap-reverse.
@@ -2263,12 +2272,16 @@ bool calculateLayout(
         (node->getResolvedDimension(dimension(FlexDirection::Row))
              .resolve(ownerWidth)
              .unwrap() +
-         node->style().computeMarginForAxis(FlexDirection::Row, ownerWidth)); // content-box: add paddingAndBorder for axis
+         node->style().computeMarginForAxis(
+             FlexDirection::Row,
+             ownerWidth)); // content-box: add paddingAndBorder for axis
     widthSizingMode = SizingMode::StretchFit;
   } else if (style.maxDimension(Dimension::Width)
                  .resolve(ownerWidth)
                  .isDefined()) {
-    width = style.maxDimension(Dimension::Width).resolve(ownerWidth).unwrap(); // content-box: add paddingAndBorder for axis
+    width = style.maxDimension(Dimension::Width)
+                .resolve(ownerWidth)
+                .unwrap(); // content-box: add paddingAndBorder for axis
     widthSizingMode = SizingMode::FitContent;
   } else {
     width = ownerWidth;
@@ -2283,13 +2296,16 @@ bool calculateLayout(
         (node->getResolvedDimension(dimension(FlexDirection::Column))
              .resolve(ownerHeight)
              .unwrap() +
-         node->style().computeMarginForAxis(FlexDirection::Column, ownerWidth)); // content-box: add paddingAndBorder for axis
+         node->style().computeMarginForAxis(
+             FlexDirection::Column,
+             ownerWidth)); // content-box: add paddingAndBorder for axis
     heightSizingMode = SizingMode::StretchFit;
   } else if (style.maxDimension(Dimension::Height)
                  .resolve(ownerHeight)
                  .isDefined()) {
-    height =
-        style.maxDimension(Dimension::Height).resolve(ownerHeight).unwrap(); // content-box: add paddingAndBorder for axis
+    height = style.maxDimension(Dimension::Height)
+                 .resolve(ownerHeight)
+                 .unwrap(); // content-box: add paddingAndBorder for axis
     heightSizingMode = SizingMode::FitContent;
   } else {
     height = ownerHeight;
