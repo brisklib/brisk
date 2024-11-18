@@ -153,6 +153,10 @@ TEST_CASE("textBreakPositions") {
 
     CHECK(textBreakPositions(U"A B C D E F", TextBreakMode::Line) ==
           std::vector<int32_t>{ 0, 2, 4, 6, 8, 10, 11 });
+
+    if (icuAvailable) {
+        CHECK(textBreakPositions(U"a\u00ADb", TextBreakMode::Line) == std::vector<int32_t>{ 0, 2, 3 });
+    }
 }
 
 TEST_CASE("splitTextRuns") {
@@ -162,6 +166,7 @@ TEST_CASE("splitTextRuns") {
                   .direction = TextDirection::LTR, .begin = 0, .end = 7, .visualOrder = 0, .face = nullptr },
           });
     if (icuAvailable) {
+        fmt::println("ICU is available");
         CHECK(Internal::splitTextRuns(U"𠀀𠀁𠀂 \U0000200F123\U0000200E 𠀀𠀁𠀂", TextDirection::LTR, true) ==
               std::vector<Internal::TextRun>{
                   Internal::TextRun{ .direction   = TextDirection::LTR,
@@ -185,6 +190,8 @@ TEST_CASE("splitTextRuns") {
                                      .visualOrder = 11,
                                      .face        = nullptr },
               });
+    } else {
+        fmt::println("ICU is not available, skipping some tests");
     }
 }
 
