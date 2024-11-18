@@ -62,6 +62,7 @@ public:
 
     void updateAndPaint(Canvas& canvas);
     void requestLayer(Drawable drawable);
+    void disableTransitions();
 
     Callbacks<Widget*> onAttached;
     Callbacks<Widget*> onDetached;
@@ -74,6 +75,7 @@ private:
     void requestAnimationFrame(std::weak_ptr<Widget> widget);
     void requestRebuild(std::weak_ptr<Widget> widget);
     void requestUpdateGeometry();
+    bool transitionsAllowed();
     void attach(Widget* widget);
     void detach(Widget* widget);
     void addGroup(WidgetGroup* group);
@@ -84,6 +86,7 @@ private:
     std::vector<Drawable> m_layer;
     uint32_t m_layoutCounter       = 0;
     double m_refreshTime           = 0;
+    bool m_disableTransitions      = false;
     bool m_updateGeometryRequested = false;
     std::set<WidgetGroup*> m_groups;
 };

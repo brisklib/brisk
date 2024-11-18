@@ -1522,7 +1522,7 @@ void Widget::onHidden() {}
 void Widget::onVisible() {}
 
 bool Widget::transitionAllowed() {
-    return !m_inConstruction;
+    return !m_inConstruction && (!m_tree || m_tree->transitionsAllowed());
 }
 
 float Widget::resolveFontHeight() const {

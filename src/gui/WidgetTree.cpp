@@ -137,6 +137,7 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
     inputQueue->processEvents();
 
     m_root->restyleIfRequested();
+    m_disableTransitions = false;
 
     for (WidgetGroup* g : m_groups) {
         g->beforeLayout(m_root->isLayoutDirty());
@@ -188,4 +189,11 @@ void WidgetTree::addGroup(WidgetGroup* group) {
     m_groups.insert(group);
 }
 
+bool WidgetTree::transitionsAllowed() {
+    return !m_disableTransitions;
+}
+
+void WidgetTree::disableTransitions() {
+    m_disableTransitions = true;
+}
 } // namespace Brisk
