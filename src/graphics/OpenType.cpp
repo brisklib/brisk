@@ -23,11 +23,23 @@
 
 namespace Brisk {
 
+std::string openTypeFeatureToString(OpenTypeFeature feat) {
+    uint32_t val =
+        static_cast<uint32_t>(openTypeFeatures[static_cast<std::underlying_type_t<OpenTypeFeature>>(feat)]);
+    char tag[4]{
+        static_cast<char>((val >> 24) & 0xFF),
+        static_cast<char>((val >> 16) & 0xFF),
+        static_cast<char>((val >> 8) & 0xFF),
+        static_cast<char>((val >> 0) & 0xFF),
+    };
+    return std::string(tag, 4);
+}
+
 constexpr hb_tag_t hb_tag(const char (&str)[5]) noexcept {
     return HB_TAG(str[0], str[1], str[2], str[3]);
 }
 
-const uint32_t fontFeatures[241] = {
+const uint32_t openTypeFeatures[241] = {
     hb_tag("aalt"), hb_tag("abvf"), hb_tag("abvm"), hb_tag("abvs"), hb_tag("afrc"), hb_tag("akhn"),
     hb_tag("blwf"), hb_tag("blwm"), hb_tag("blws"), hb_tag("calt"), hb_tag("case"), hb_tag("ccmp"),
     hb_tag("cfar"), hb_tag("chws"), hb_tag("cjct"), hb_tag("clig"), hb_tag("cpct"), hb_tag("cpsp"),

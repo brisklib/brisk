@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <fmt/format.h>
 
 namespace Brisk {
 
@@ -8,7 +9,7 @@ namespace Brisk {
  * @enum OpenTypeFeature
  * @brief Enumerates various OpenType font features.
  *
- * @note Use fontFeatures to map to uint32_t.
+ * @note Use openTypeFeatures to map to uint32_t.
  */
 enum class OpenTypeFeature : uint8_t {
     aalt,  /**< Access All Alternates */
@@ -258,6 +259,16 @@ enum class OpenTypeFeature : uint8_t {
     zero  /**< Slashed Zero */
 };
 
-extern const uint32_t fontFeatures[241];
+extern const uint32_t openTypeFeatures[241];
+
+std::string openTypeFeatureToString(OpenTypeFeature feat);
 
 } // namespace Brisk
+
+template <typename Char>
+struct fmt::formatter<Brisk::OpenTypeFeature, Char> : fmt::formatter<std::basic_string<Char>, Char> {
+    template <typename FormatContext>
+    auto format(const Brisk::OpenTypeFeature& val, FormatContext& ctx) const {
+        return formatter<std::basic_string<Char>, Char>::format(Brisk::openTypeFeatureToString(val), ctx);
+    }
+};

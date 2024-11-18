@@ -774,7 +774,7 @@ ShapedRuns FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
                 kernSet = true;
             }
             features.push_back(hb_feature_t{
-                fontFeatures[+feat.feature],
+                openTypeFeatures[+feat.feature],
                 feat.enabled ? 1u : 0u,
                 HB_FEATURE_GLOBAL_START,
                 HB_FEATURE_GLOBAL_END,
@@ -786,7 +786,7 @@ ShapedRuns FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
         }
         if (!kernSet && (flags && FontFlags::DisableKerning)) {
             features.push_back(hb_feature_t{
-                fontFeatures[+OpenTypeFeature::kern],
+                openTypeFeatures[+OpenTypeFeature::kern],
                 0u,
                 HB_FEATURE_GLOBAL_START,
                 HB_FEATURE_GLOBAL_END,
@@ -796,7 +796,7 @@ ShapedRuns FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
             using enum OpenTypeFeature;
             for (OpenTypeFeature feature : { liga, clig, kern }) {
                 features.push_back(hb_feature_t{
-                    fontFeatures[+feature],
+                    openTypeFeatures[+feature],
                     0u,
                     HB_FEATURE_GLOBAL_START,
                     HB_FEATURE_GLOBAL_END,
