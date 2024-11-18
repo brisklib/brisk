@@ -98,19 +98,19 @@ void knobPainter(Canvas& canvas_, const Widget& widget_) {
     RawCanvas& canvas      = canvas_.raw();
     RectangleF rect        = widget.rect();
 
-    ColorF mainColor       = widget.getStyleVar<ColorF>(windowColor.id).value_or(Palette::Standard::indigo);
-    ColorF selectColor     = widget.getStyleVar<ColorF>(selectedColor.id).value_or(Palette::Standard::indigo);
+    ColorF selectColor     = widget.borderColor.current();
+    ColorF backColor       = selectColor.multiplyAlpha(0.33f);
     constexpr float spread = 0.75f * std::numbers::pi_v<float>;
     const PointF center    = rect.center().round();
     const float side       = rect.shortestSide() * 0.5f;
 
-    canvas.drawArc(center, side, 0.f, 0.0f, 2 * std::numbers::pi_v<float>, fillColor = Palette::black,
-                   strokeWidth = 0.0f);
+    float innerRadius      = 0.6f;
+    float gap              = 0.f;
 
-    canvas.drawArc(center, side * 0.56f, 0.f, 0.0f, 2 * std::numbers::pi_v<float>, fillColor = mainColor,
-                   strokeWidth = 0.0f);
+    canvas.drawArc(center, side, side * innerRadius, 0.0f, 2 * std::numbers::pi_v<float>,
+                   fillColor = backColor, strokeWidth = 0.0f);
 
-    canvas.drawArc(center, side * 0.9f, side * 0.667f, -spread,
+    canvas.drawArc(center, side * (1.f - gap), side * (innerRadius + gap), -spread,
                    -spread + 2 * (widget.normalizedValue * 0.98f + 0.02f) * spread, fillColor = selectColor,
                    strokeWidth = 0.0f);
 }

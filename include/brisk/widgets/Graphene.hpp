@@ -34,6 +34,8 @@ constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 2>> editor
 constexpr inline Argument<StyleVariableTag<float, styleVarCustomID + 3>> boxRadius{};
 constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 4>> menuColor{};
 constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 5>> boxBorderColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 6>> shadeColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 7>> deepColor{};
 
 RC<const Stylesheet> stylesheet();
 Rules lightColors();

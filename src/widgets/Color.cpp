@@ -61,37 +61,41 @@ ColorSliders::ColorSliders(Construction construction, ColorF color, bool alpha,
     m_layout = Layout::Vertical;
 
     apply(new Slider{
-        Arg::value         = colorSubvalue<ColorComp::R>(Value{ &value }),
-        Arg::minDimensions = { 100, 16 },
-        Arg::borderColor   = 0xd80000_rgb,
-        Arg::flexGrow      = 1,
-        Arg::minimum       = 0,
-        Arg::maximum       = 1,
+        Arg::value           = colorSubvalue<ColorComp::R>(Value{ &value }),
+        Arg::minDimensions   = { 100, 16 },
+        Arg::borderColor     = 0xd80000_rgb,
+        Arg::backgroundColor = 0xd80000_rgb,
+        Arg::flexGrow        = 1,
+        Arg::minimum         = 0,
+        Arg::maximum         = 1,
     });
     apply(new Slider{
-        Arg::value         = colorSubvalue<ColorComp::G>(Value{ &value }),
-        Arg::minDimensions = { 100, 16 },
-        Arg::borderColor   = 0x00b600_rgb,
-        Arg::flexGrow      = 1,
-        Arg::minimum       = 0,
-        Arg::maximum       = 1,
+        Arg::value           = colorSubvalue<ColorComp::G>(Value{ &value }),
+        Arg::minDimensions   = { 100, 16 },
+        Arg::borderColor     = 0x00b600_rgb,
+        Arg::backgroundColor = 0x00b600_rgb,
+        Arg::flexGrow        = 1,
+        Arg::minimum         = 0,
+        Arg::maximum         = 1,
     });
     apply(new Slider{
-        Arg::value         = colorSubvalue<ColorComp::B>(Value{ &value }),
-        Arg::minDimensions = { 100, 16 },
-        Arg::borderColor   = 0x0000e8_rgb,
-        Arg::flexGrow      = 1,
-        Arg::minimum       = 0,
-        Arg::maximum       = 1,
+        Arg::value           = colorSubvalue<ColorComp::B>(Value{ &value }),
+        Arg::minDimensions   = { 100, 16 },
+        Arg::borderColor     = 0x0000e8_rgb,
+        Arg::backgroundColor = 0x0000e8_rgb,
+        Arg::flexGrow        = 1,
+        Arg::minimum         = 0,
+        Arg::maximum         = 1,
     });
     if (alpha) {
         apply(new Slider{
-            Arg::value         = colorSubvalue<ColorComp::A>(Value{ &value }),
-            Arg::minDimensions = { 100, 16 },
-            Arg::borderColor   = 0xF3F3F3_rgb,
-            Arg::flexGrow      = 1,
-            Arg::minimum       = 0,
-            Arg::maximum       = 1,
+            Arg::value           = colorSubvalue<ColorComp::A>(Value{ &value }),
+            Arg::minDimensions   = { 100, 16 },
+            Arg::borderColor     = 0xF3F3F3_rgb,
+            Arg::backgroundColor = 0xF3F3F3_rgb,
+            Arg::flexGrow        = 1,
+            Arg::minimum         = 0,
+            Arg::maximum         = 1,
         });
     }
 }

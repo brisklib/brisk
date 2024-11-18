@@ -33,7 +33,7 @@ void Slider::onChanged() {
 }
 
 void Slider::updateSliderGeometry() {
-    const bool horizontal = m_rect.width() >= m_rect.height();
+    const bool horizontal = orientation() == Orientation::Horizontal;
     m_trackRect           = horizontal ? m_rect.alignedRect(m_rect.width(), idp(trackThickness), 0.5f, 0.5f)
                                        : m_rect.alignedRect(idp(trackThickness), m_rect.height(), 0.5f, 0.5f);
 
@@ -53,9 +53,18 @@ void sliderPainter(Canvas& canvas_, const Widget& widget_) {
     const bool hover     = widget.isHovered();
     const bool pressed   = widget.isPressed();
 
-    canvas.drawRectangle(widget.trackRect(), 0.f, 0.f, fillColor = Palette::black, strokeWidth = 0);
+    ColorF backColor     = widget.backgroundColor.current();
 
-    canvas.drawEllipse(widget.thumbRect(), 0.f,
+    PointF pt      = widget.orientation() == Orientation::Horizontal ? PointF{ +1, 0 } : PointF{ 0, -1 };
+
+    auto trackRect = widget.trackRect();
+    auto thumbRect = widget.thumbRect();
+
+    canvas.drawRectangle(trackRect, 0.f, 0.f, fillColors = { backColor, backColor.multiplyAlpha(0.33f) },
+                         linearGradient = { thumbRect.center() - pt, thumbRect.center() + pt },
+                         strokeWidth    = 0);
+
+    canvas.drawEllipse(thumbRect, 0.f,
                        fillColor   = widget.borderColor.current().lighter(pressed ? -8
                                                                           : hover ? +8
                                                                                   : 0),
@@ -126,5 +135,9 @@ RectangleF Slider::thumbRect() const noexcept {
 
 Rectangle Slider::trackRect() const noexcept {
     return m_trackRect;
+}
+
+Orientation Slider::orientation() const noexcept {
+    return m_rect.width() > m_rect.height() ? Orientation::Horizontal : Orientation::Vertical;
 }
 } // namespace Brisk

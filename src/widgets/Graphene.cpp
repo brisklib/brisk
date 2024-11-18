@@ -26,19 +26,37 @@ namespace Brisk {
 
 namespace Graphene {
 
+constexpr inline double defaultShadowSize = 25;
+
 Rules darkColors() {
     return Rules{
-        buttonColor = 0x292E38_rgb, windowColor = 0x131419_rgb, selectedColor = 0x1976E8_rgb,
-        linkColor = 0x378AFF_rgb,   editorColor = 0xFDFDFD_rgb, boxRadius = -5.f,
-        menuColor = 0xFDFDFD_rgb,   animationSpeed = 1.f,       boxBorderColor = 0x000000'A0_rgba,
+        buttonColor    = 0x292E38_rgb,
+        windowColor    = 0x131419_rgb,
+        selectedColor  = ColorF(0x1976E8_rgb).adjust(0),
+        linkColor      = 0x378AFF_rgb,
+        editorColor    = 0xFDFDFD_rgb,
+        boxRadius      = -5.f,
+        menuColor      = 0xFDFDFD_rgb,
+        animationSpeed = 1.f,
+        boxBorderColor = 0x000000'A0_rgba,
+        shadeColor     = 0x000000'58_rgba,
+        deepColor      = 0x000000_rgb,
     };
 }
 
 Rules lightColors() {
     return {
-        buttonColor = 0xEDF1F7_rgb, windowColor = 0xFAFAFA_rgb, selectedColor = 0x1976E8_rgb,
-        linkColor = 0x004DB8_rgb,   editorColor = 0xFDFDFD_rgb, boxRadius = -5.f,
-        menuColor = 0xFDFDFD_rgb,   animationSpeed = 1.f,       boxBorderColor = 0x000000'15_rgba,
+        buttonColor    = 0xEDF1F7_rgb,
+        windowColor    = 0xFAFAFA_rgb,
+        selectedColor  = ColorF(0x1976E8_rgb).adjust(8),
+        linkColor      = 0x004DB8_rgb,
+        editorColor    = 0xFDFDFD_rgb,
+        boxRadius      = -5.f,
+        menuColor      = 0xFDFDFD_rgb,
+        animationSpeed = 1.f,
+        boxBorderColor = 0x000000'1F_rgba,
+        shadeColor     = 0x000000'34_rgba,
+        deepColor      = 0x8D8D8D_rgb,
     };
 }
 
@@ -88,7 +106,8 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ Switch::widgetType },
             {
-                paddingLeft = 28_apx,
+                paddingLeft   = 28_apx,
+                minDimensions = { 40_apx, 20_apx },
             },
         },
         Style{
@@ -116,6 +135,7 @@ RC<const Stylesheet> stylesheet() {
                 padding         = { 0, 4_apx },
                 backgroundColor = styleVar<menuColor>,
                 shadowSize      = defaultShadowSize,
+                shadowColor     = styleVar<shadeColor>,
                 borderRadius    = styleVar<boxRadius>,
                 alignItems      = AlignItems::Stretch,
                 color           = textColorFor(styleVar<menuColor>, textLightColor, textDarkColor),
@@ -136,8 +156,10 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ Knob::widgetType },
             {
-                minDimensions = { 22_apx, 22_apx },
-                borderRadius  = 50_apx,
+                minDimensions   = { 22_apx, 22_apx },
+                borderRadius    = 50_apx,
+                backgroundColor = styleVar<deepColor>,
+                borderColor     = styleVar<selectedColor>,
             },
         },
         Style{
@@ -283,6 +305,7 @@ RC<const Stylesheet> stylesheet() {
             {
                 backgroundColor  = adjustColor(styleVar<windowColor>, +20 * 0.2f),
                 shadowSize       = defaultShadowSize,
+                shadowColor      = styleVar<shadeColor>,
                 borderRadius     = 5_px,
                 minHeight        = 32_apx,
                 mouseInteraction = MouseInteraction::Enable,
@@ -297,8 +320,9 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ Slider::widgetType },
             {
-                borderColor   = styleVar<selectedColor>,
-                minDimensions = { 15_apx, 15_apx },
+                borderColor     = styleVar<selectedColor>,
+                backgroundColor = transparency(styleVar<selectedColor>, 0.65f),
+                minDimensions   = { 15_apx, 15_apx },
             },
         },
         Style{
@@ -324,6 +348,7 @@ RC<const Stylesheet> stylesheet() {
                 absolutePosition = { 0, 100_perc },
                 anchor           = { 0, 0 },
                 shadowSize       = defaultShadowSize,
+                shadowColor      = styleVar<shadeColor>,
                 color            = textColorFor(styleVar<windowColor>, textLightColor, textDarkColor),
                 layout           = Layout::Vertical,
             },
@@ -337,6 +362,7 @@ RC<const Stylesheet> stylesheet() {
                 absolutePosition = { 0, 100_perc },
                 anchor           = { 0, 0 },
                 shadowSize       = defaultShadowSize,
+                shadowColor      = styleVar<shadeColor>,
                 color            = textColorFor(styleVar<menuColor>, textLightColor, textDarkColor),
             },
         },
@@ -364,6 +390,7 @@ RC<const Stylesheet> stylesheet() {
             {
                 borderRadius     = styleVar<boxRadius>,
                 shadowSize       = defaultShadowSize,
+                shadowColor      = styleVar<shadeColor>,
                 absolutePosition = { 50_perc, 50_perc },
                 anchor           = { 100_perc, 0 },
                 fontSize         = FontSize::Bigger,
@@ -397,6 +424,7 @@ RC<const Stylesheet> stylesheet() {
             Class{ "dialog" },
             {
                 shadowSize      = defaultShadowSize,
+                shadowColor     = styleVar<shadeColor>,
                 backgroundColor = styleVar<windowColor>,
                 borderRadius    = styleVar<boxRadius>,
                 borderColor     = styleVar<buttonColor>,

@@ -23,14 +23,14 @@
 namespace Brisk {
 
 static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorF color, bool checked) {
-    canvas.drawRectangle(markRect.withPadding(1_dp), 2_dp, 0.f, strokeColor = color.multiplyAlpha(0.25f),
-                         fillColor = Palette::transparent, strokeWidth = 0.5_dp);
+    canvas.drawRectangle(markRect.withPadding(1_dp), 2_dp, 0.f, strokeColor = color.multiplyAlpha(0.35f),
+                         fillColor = Palette::transparent, strokeWidth = 1._dp);
     if (checked) {
         PointF p1 = markRect.at(20 / 24.f, 6 / 24.f);
         PointF p2 = markRect.at(9 / 24.f, 17 / 24.f);
         PointF p3 = markRect.at(4 / 24.f, 12 / 24.f);
-        canvas.drawLine(p1, p2, 1_dp, color, LineEnd::Round);
-        canvas.drawLine(p2, p3, 1_dp, color, LineEnd::Round);
+        canvas.drawLine(p1, p2, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
+        canvas.drawLine(p2, p3, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
     }
 }
 

@@ -24,11 +24,11 @@ namespace Brisk {
 
 static void radioMark(RawCanvas& canvas, RectangleF markRect, ColorF color, bool checked) {
     float side = markRect.shortestSide();
-    canvas.drawEllipse(markRect.withPadding(1_dp), 0.f, strokeColor = color.multiplyAlpha(0.25f),
-                       fillColor = Palette::transparent, strokeWidth = 0.5_dp);
+    canvas.drawEllipse(markRect.withPadding(1_dp), 0.f, strokeColor = color.multiplyAlpha(0.35f),
+                       fillColor = Palette::transparent, strokeWidth = 1._dp);
     if (checked) {
         canvas.drawEllipse(markRect.alignedRect(side * 0.5f, side * 0.5f, 0.5f, 0.5f), 0.f, strokeWidth = 0.f,
-                           fillColor = color);
+                           fillColor = color.multiplyAlpha(0.75f));
     }
 }
 

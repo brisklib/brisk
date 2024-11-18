@@ -67,16 +67,15 @@ void switchPainter(Canvas& canvas_, const Widget& widget_) {
         else
             animatedValue = std::max(*animatedValue - 0.2f, 0.f);
     }
-    Rectangle outerRect            = widget.rect().alignedRect({ idp(24), idp(14) }, { 0.0f, 0.5f });
-    Rectangle outerRectWithPadding = outerRect.withPadding(idp(2));
-    Rectangle innerRect            = outerRectWithPadding.alignedRect(
+    RectangleF outerRect = widget.rect().alignedRect({ idp(24), idp(14) }, { 0.0f, 0.5f }).withPadding(dp(1));
+    RectangleF outerRectWithPadding = outerRect.withPadding(dp(2));
+    RectangleF innerRect            = outerRectWithPadding.alignedRect(
         outerRectWithPadding.height(), outerRectWithPadding.height(), *animatedValue, 0.5f);
     canvas.drawRectangle(outerRect, outerRect.shortestSide() * 0.5f, 0.f,
                          fillColor = mix(*animatedValue, ColorF(0.f, 0.f), widget.backgroundColor.current()),
-                         strokeWidth = widget.computedBorderWidth().x1,
-                         strokeColor = widget.borderColor.current());
-    canvas.drawRectangle(innerRect, innerRect.shortestSide() * 0.5f, 0.f, fillColor = Palette::white,
-                         strokeWidth = 0.f);
+                         strokeWidth = 1._dp, strokeColor = widget.color.current().multiplyAlpha(0.35f));
+    canvas.drawRectangle(innerRect, innerRect.shortestSide() * 0.5f, 0.f,
+                         fillColor = widget.color.current().multiplyAlpha(0.75f), strokeWidth = 0.f);
 }
 
 void Switch::paint(Canvas& canvas_) const {

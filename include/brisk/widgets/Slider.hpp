@@ -37,6 +37,8 @@ public:
     Rectangle trackRect() const noexcept;
     RectangleF thumbRect() const noexcept;
 
+    Orientation orientation() const noexcept;
+
 protected:
     void paint(Canvas& canvas) const override;
     bool isHorizontal() const;

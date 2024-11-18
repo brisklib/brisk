@@ -66,9 +66,6 @@ class Widget;
 void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect);
 void boxPainter(Canvas& canvas, const Widget& widget);
 
-constexpr inline double defaultUIDelay    = 0.1;
-constexpr inline double defaultShadowSize = 40;
-
 namespace Internal {
 extern std::atomic_bool debugRelayoutAndRegenerate;
 extern std::atomic_bool debugBoundaries;
