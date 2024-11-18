@@ -122,7 +122,7 @@ struct webp_deleter {
         return unexpected(ImageIOError::InvalidFormat);
     RC<Image> img = rcnew Image(Size{ width, height }, format);
     auto wr       = img->mapWrite();
-    wr.readFrom({ pixels.get(), size_t(width * height) });
+    wr.readFrom({ pixels.get(), size_t(width * height * 4) });
     return img;
 }
 
