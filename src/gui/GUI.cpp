@@ -1135,7 +1135,11 @@ void Widget::paintHint(Canvas& canvas_) const {
             }
 
             ColorF color = 0xFFE9AD_rgb;
-            canvas.drawShadow(hintRect, 4._dp, 0.f, contourSize = 10._dp, contourColor = 0x000000'BB_rgba);
+            ColorF shadowColor =
+                getStyleVar<ColorF>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
+                    ? 0x000000'55_rgba
+                    : 0x000000'AA_rgba;
+            canvas.drawShadow(hintRect, 4._dp, 0.f, contourSize = 10._dp, contourColor = shadowColor);
             canvas.drawRectangle(hintRect, -5._dp, 0.f, fillColor = color, strokeWidth = 0.f);
             canvas.drawText(hintRect, 0.5f, 0.5f, hint, font, Palette::black);
         });
@@ -2507,6 +2511,9 @@ template void instantiateProp<decltype(Widget::opacity)>();
 template void instantiateProp<decltype(Widget::overflow)>();
 template void instantiateProp<decltype(Widget::placement)>();
 template void instantiateProp<decltype(Widget::shadowSize)>();
+template void instantiateProp<decltype(Widget::shadowColor)>();
+template void instantiateProp<decltype(Widget::shadowColorTransition)>();
+template void instantiateProp<decltype(Widget::shadowColorEasing)>();
 template void instantiateProp<decltype(Widget::tabSize)>();
 template void instantiateProp<decltype(Widget::textAlign)>();
 template void instantiateProp<decltype(Widget::textVerticalAlign)>();
@@ -2536,12 +2543,10 @@ template void instantiateProp<decltype(Widget::zorder)>();
 template void instantiateProp<decltype(Widget::stylesheet)>();
 template void instantiateProp<decltype(Widget::painter)>();
 template void instantiateProp<decltype(Widget::isHintExclusive)>();
-
 template void instantiateProp<decltype(Widget::borderRadiusTopLeft)>();
 template void instantiateProp<decltype(Widget::borderRadiusTopRight)>();
 template void instantiateProp<decltype(Widget::borderRadiusBottomLeft)>();
 template void instantiateProp<decltype(Widget::borderRadiusBottomRight)>();
-
 template void instantiateProp<decltype(Widget::width)>();
 template void instantiateProp<decltype(Widget::height)>();
 template void instantiateProp<decltype(Widget::maxWidth)>();
@@ -2608,6 +2613,9 @@ const Argument<Tag::PropArg<decltype(Widget::overflow)>> overflow{};
 const Argument<Tag::PropArg<decltype(Widget::padding)>> padding{};
 const Argument<Tag::PropArg<decltype(Widget::placement)>> placement{};
 const Argument<Tag::PropArg<decltype(Widget::shadowSize)>> shadowSize{};
+const Argument<Tag::PropArg<decltype(Widget::shadowColor)>> shadowColor{};
+const Argument<Tag::PropArg<decltype(Widget::shadowColorTransition)>> shadowColorTransition{};
+const Argument<Tag::PropArg<decltype(Widget::shadowColorEasing)>> shadowColorEasing{};
 const Argument<Tag::PropArg<decltype(Widget::tabSize)>> tabSize{};
 const Argument<Tag::PropArg<decltype(Widget::textAlign)>> textAlign{};
 const Argument<Tag::PropArg<decltype(Widget::textVerticalAlign)>> textVerticalAlign{};
@@ -2637,32 +2645,26 @@ const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder{};
 const Argument<Tag::PropArg<decltype(Widget::stylesheet)>> stylesheet{};
 const Argument<Tag::PropArg<decltype(Widget::painter)>> painter{};
 const Argument<Tag::PropArg<decltype(Widget::isHintExclusive)>> isHintExclusive{};
-
 const Argument<Tag::PropArg<decltype(Widget::width)>> width{};
 const Argument<Tag::PropArg<decltype(Widget::height)>> height{};
 const Argument<Tag::PropArg<decltype(Widget::maxWidth)>> maxWidth{};
 const Argument<Tag::PropArg<decltype(Widget::maxHeight)>> maxHeight{};
 const Argument<Tag::PropArg<decltype(Widget::minWidth)>> minWidth{};
 const Argument<Tag::PropArg<decltype(Widget::minHeight)>> minHeight{};
-
 const Argument<Tag::PropArg<decltype(Widget::gapColumn)>> gapColumn{};
 const Argument<Tag::PropArg<decltype(Widget::gapRow)>> gapRow{};
-
 const Argument<Tag::PropArg<decltype(Widget::borderWidthLeft)>> borderWidthLeft{};
 const Argument<Tag::PropArg<decltype(Widget::borderWidthTop)>> borderWidthTop{};
 const Argument<Tag::PropArg<decltype(Widget::borderWidthRight)>> borderWidthRight{};
 const Argument<Tag::PropArg<decltype(Widget::borderWidthBottom)>> borderWidthBottom{};
-
 const Argument<Tag::PropArg<decltype(Widget::borderRadiusTopLeft)>> borderRadiusTopLeft{};
 const Argument<Tag::PropArg<decltype(Widget::borderRadiusTopRight)>> borderRadiusTopRight{};
 const Argument<Tag::PropArg<decltype(Widget::borderRadiusBottomLeft)>> borderRadiusBottomLeft{};
 const Argument<Tag::PropArg<decltype(Widget::borderRadiusBottomRight)>> borderRadiusBottomRight{};
-
 const Argument<Tag::PropArg<decltype(Widget::marginLeft)>> marginLeft{};
 const Argument<Tag::PropArg<decltype(Widget::marginTop)>> marginTop{};
 const Argument<Tag::PropArg<decltype(Widget::marginRight)>> marginRight{};
 const Argument<Tag::PropArg<decltype(Widget::marginBottom)>> marginBottom{};
-
 const Argument<Tag::PropArg<decltype(Widget::paddingLeft)>> paddingLeft{};
 const Argument<Tag::PropArg<decltype(Widget::paddingTop)>> paddingTop{};
 const Argument<Tag::PropArg<decltype(Widget::paddingRight)>> paddingRight{};
