@@ -117,6 +117,17 @@ if (BRISK_WEBGPU)
     endif ()
 endif ()
 
+if (TARGET ICU::uc)
+    set(ICU_DT icudt74l.dat)
+    file(SIZE "${PROJECT_SOURCE_DIR}/resources/icu/${ICU_DT}" ICUDT_SIZE)
+    brisk_target_link_resource(
+        brisk-graphics PRIVATE icudt
+        INPUT "${PROJECT_SOURCE_DIR}/resources/icu/${ICU_DT}"
+        BROTLI)
+    set_source_files_properties(${PROJECT_SOURCE_DIR}/src/graphics/ICU.cpp PROPERTIES COMPILE_DEFINITIONS
+                                                                                      ICUDT_SIZE=${ICUDT_SIZE})
+endif ()
+
 set_target_properties(brisk-graphics PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_ARGS}")
 
 if (APPLE)
