@@ -42,6 +42,13 @@ static Builder iconsBuilder() {
 
 const std::string pangram = "The quick brown fox jumps over the lazy dog 0123456789";
 
+static const NameValueOrderedList<TextDecoration> textDecorationList{
+    { "None", TextDecoration::None },
+    { "Underline", TextDecoration::Underline },
+    { "Overline", TextDecoration::Overline },
+    { "LineThrough", TextDecoration::LineThrough },
+};
+
 RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
@@ -73,6 +80,42 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                     }
                 }),
             },
+        },
+
+        new Text{ "Font properties", classes = { "section-header" } },
+
+        new VLayout{
+            new Text{
+                "gΥφ fi fl3.14 1/3 LT",
+                fontSize       = 40,
+                fontFamily     = Lato,
+                fontFeatures   = Value{ &m_fontFeatures },
+                letterSpacing  = Value{ &m_letterSpacing }.implicitConversion<Length>(),
+                wordSpacing    = Value{ &m_wordSpacing }.implicitConversion<Length>(),
+                textDecoration = Value{ &m_textDecoration },
+            },
+            new HLayout{
+                Builder{
+                    [this](Widget* target) {
+                        for (int i = 0; i < m_fontFeatures.size(); ++i) {
+                            target->apply(new VLayout{
+                                new Text{ fmt::to_string(m_fontFeatures[i].feature) },
+                                new Switch{ value = Value{ &m_fontFeatures[i].enabled } },
+                            });
+                        }
+                    },
+                },
+            },
+            new Text{ "Text decoration" },
+            new ComboBox{
+                Value{ &m_textDecoration },
+                notManaged(&textDecorationList),
+                width = 200_apx,
+            },
+            new Text{ "Letter spacing" },
+            new Slider{ value = Value{ &m_letterSpacing }, minimum = 0.f, maximum = 10.f, width = 200_apx },
+            new Text{ "Word spacing" },
+            new Slider{ value = Value{ &m_wordSpacing }, minimum = 0.f, maximum = 10.f, width = 200_apx },
         },
 
         new Text{ "Icons (gui/Icons.hpp)", classes = { "section-header" } },

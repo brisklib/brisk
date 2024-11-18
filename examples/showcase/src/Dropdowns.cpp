@@ -120,9 +120,9 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
                 new Widget{
                     dimensions      = { 200_apx, 100_apx },
                     backgroundColor = 0x777777_rgb,
-                    new Text{ "Right-click for context menu", alignSelf = AlignSelf::Center,
-                              textAlign = TextAlign::Center, mouseInteraction = MouseInteraction::Disable,
-                              flexGrow = 1 },
+                    new Text{ "Right-click for context menu", wordWrap = true, alignSelf = AlignSelf::Center,
+                              color = 0xFFFFFF_rgb, textAlign = TextAlign::Center, fontSize = 200_perc,
+                              mouseInteraction = MouseInteraction::Disable, flexGrow = 1 },
 
                     new ContextPopup{
                         role     = "context",

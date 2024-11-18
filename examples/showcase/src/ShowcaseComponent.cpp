@@ -73,6 +73,24 @@ static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
             paddingBottom = 2_apx,
         },
     },
+    Style{
+        Selectors::Type{ "imageview" } && !Selectors::Class{ "zoom" },
+        Rules{
+            placement  = Placement::Normal,
+            dimensions = { auto_, auto_ },
+            zorder     = ZOrder::Normal,
+        },
+    },
+    Style{
+        Selectors::Type{ "imageview" } && Selectors::Class{ "zoom" },
+        Rules{
+            placement        = Placement::Window,
+            dimensions       = { 100_perc, 100_perc },
+            absolutePosition = { 0, 0 },
+            anchor           = { 0, 0 },
+            zorder           = ZOrder::TopMost,
+        },
+    },
 };
 
 RC<Widget> ShowcaseComponent::build() {
@@ -111,6 +129,7 @@ RC<Widget> ShowcaseComponent::build() {
                 onClick     = m_lifetime |
                           [this]() {
                               m_lightTheme = !m_lightTheme;
+                              this->tree().disableTransitions();
                               if (m_lightTheme)
                                   this->tree().root()->apply(Graphene::lightColors());
                               else

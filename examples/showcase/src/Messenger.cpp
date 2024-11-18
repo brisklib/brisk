@@ -1,9 +1,22 @@
 #include "Messenger.hpp"
 #include <resources/hot_air_balloons.hpp>
+#include <resources/wp1.hpp>
 #include <brisk/gui/Icons.hpp>
 #include <fmt/chrono.h>
 
 namespace Brisk {
+
+static void backgroundPainter(Canvas& canvas, const Widget& widget) {
+    static auto img = imageDecode(wp1(), ImageFormat::RGBA).value();
+    float x         = static_cast<float>(img->width()) / widget.rect().width(),
+          y         = static_cast<float>(img->height()) / widget.rect().height();
+    float m         = std::min(x, y);
+    x /= m;
+    y /= m;
+    canvas.raw().drawTexture(widget.rect(), img,
+                             Matrix2D::scaling(x, y).translate(0.5f * (1 - x) * widget.rect().width(),
+                                                               0.5f * (1 - y) * widget.rect().height()));
+}
 
 void ShowcaseMessenger::messagesBuilder(Widget* target) {
     for (const Message& msg : m_messages) {
@@ -17,10 +30,19 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
                            float imageAspect =
                                static_cast<float>(imageContent->width()) / imageContent->height();
                            content = rcnew ImageView{
-                               std::move(imageContent),
-                               width  = auto_,
-                               height = auto_,
-                               aspect = imageAspect,
+                               imageContent,
+                               aspect  = imageAspect,
+                               classes = Value{ &m_zoomImage }.transform([imageContent](RC<Image> img) {
+                                   return img == imageContent ? Classes{ "zoom" } : Classes{};
+                               }),
+
+                               onClick = m_lifetime |
+                                         [this, imageContent]() {
+                                             if (m_zoomImage)
+                                                 bindings->assign(m_zoomImage, nullptr);
+                                             else
+                                                 bindings->assign(m_zoomImage, imageContent);
+                                         },
                            };
                        },
                    },
@@ -32,7 +54,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
             new Text{ fmt::format("{:%H:%M}   {}", msg.date, statusIcon), marginTop = 4_apx,
                       textAlign = TextAlign::End, opacity = 0.5f },
             width           = 360_apx,
-            backgroundColor = 0x454545_rgb,
+            backgroundColor = 0xe5f7df'F0_rgba,
             borderWidth     = 1_apx,
             borderRadius    = -12,
         });
@@ -41,9 +63,15 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
 
 RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
     return rcnew VLayout{
-        flexGrow  = 1,
-        padding   = 16_apx,
-        alignSelf = AlignSelf::Stretch,
+        flexGrow      = 1,
+        padding       = 16_apx,
+        alignSelf     = AlignSelf::Stretch,
+
+        color         = 0x080808_rgb,
+
+        selectedColor = 0x32a852_rgb,
+
+        painter       = Painter(&backgroundPainter),
 
         new VLayout{
             flexGrow  = 1,

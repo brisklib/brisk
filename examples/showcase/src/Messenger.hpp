@@ -29,5 +29,6 @@ private:
     std::vector<Message> m_messages;
     Trigger<> m_messagesChanged;
     std::string m_chatMessage;
+    RC<Image> m_zoomImage;
 };
 } // namespace Brisk

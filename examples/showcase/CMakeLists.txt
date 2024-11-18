@@ -57,10 +57,9 @@ brisk_target_link_resource(
     showcase PRIVATE cat
     INPUT "${PROJECT_SOURCE_DIR}/resources/cat.svg"
     BROTLI)
-brisk_target_link_resource(
-    showcase PRIVATE hot_air_balloons
-    INPUT "${PROJECT_SOURCE_DIR}/resources/hot-air-balloons.jpg"
-    BROTLI)
+brisk_target_link_resource(showcase PRIVATE hot_air_balloons
+                           INPUT "${PROJECT_SOURCE_DIR}/resources/hot-air-balloons.jpg")
+brisk_target_link_resource(showcase PRIVATE wp1 INPUT "${PROJECT_SOURCE_DIR}/resources/wp1.webp")
 brisk_target_link_resource(
     showcase PRIVATE countries_json
     INPUT "${PROJECT_SOURCE_DIR}/resources/countries.json"
