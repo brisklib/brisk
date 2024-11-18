@@ -206,7 +206,7 @@ RawCanvas& RawCanvas::drawTexture(RectangleF rect, const ImageHandle& tex, const
     prepareStateInplace(style);
     style.imageHandle    = tex;
     style.texture_matrix = (Matrix2D::scaling(rect.width() / tex->width(), rect.height() / tex->height()) *
-                            Matrix2D::translation(rect.x1, rect.y1) * matrix)
+                            matrix * Matrix2D::translation(rect.x1, rect.y1))
                                .invert()
                                .value_or(Matrix2D{});
     m_context.command(std::move(style), one(GeometryRectangle{ rect, 0.f, 0.f, 0.f, 0.f }));
