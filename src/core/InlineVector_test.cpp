@@ -64,4 +64,17 @@ TEST_CASE("inline_vector") {
         CHECK(a.size() == 4);
     }
 }
+
+TEST_CASE("inline_vector_comparison") {
+    inline_vector<uint8_t, 3> a{};
+    inline_vector<uint8_t, 3> b{ 1, 2, 3 };
+
+    CHECK(a != b);
+    a.push_back(1);
+    CHECK(a != b);
+    a.push_back(2);
+    CHECK(a != b);
+    a.push_back(3);
+    CHECK(a == b);
+}
 } // namespace Brisk

@@ -191,7 +191,7 @@ struct inline_vector {
     }
 
     constexpr bool operator==(const inline_vector& other) const {
-        return std::equal(begin(), end(), other.begin());
+        return size() == other.size() && std::equal(begin(), end(), other.begin());
     }
 
     constexpr bool operator!=(const inline_vector& other) const {
