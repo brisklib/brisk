@@ -1331,7 +1331,8 @@ void Widget::processVisibility(bool isVisible) {
             onVisible();
         } else {
             onHidden();
-            setState(m_state & WidgetState::Disabled);
+            setState(m_state & ~(WidgetState::Hover | WidgetState::Pressed | WidgetState::Focused |
+                                 WidgetState::KeyFocused));
         }
     }
 }
