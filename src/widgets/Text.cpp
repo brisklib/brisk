@@ -42,7 +42,7 @@ void Text::onLayoutUpdated() {
 void Text::onChanged() {
     Font font = this->font();
     if (!m_wordWrap && m_textAutoSize != TextAutoSize::None && !m_text.empty()) {
-        font.fontSize = font.fontSize = calcFontSizeFor(m_text);
+        font.fontSize = font.fontSize = calcFontSizeFor(font, m_text);
     }
     if (m_cache.invalidate(CacheKey{ font, m_text })) {
         if (m_wordWrap || m_textAutoSize == TextAutoSize::None) {
@@ -54,10 +54,10 @@ void Text::onChanged() {
     }
 }
 
-float Text::calcFontSizeFor(const std::string& m_text) const {
+float Text::calcFontSizeFor(const Font& font, const std::string& m_text) const {
     float fontSize          = m_fontSize.resolved;
     const float refFontSize = 32.f;
-    Font refFont            = font();
+    Font refFont            = font;
     refFont.fontSize        = refFontSize;
     SizeF sz                = fonts->bounds(refFont, utf8ToUtf32(m_text))
                    .size()

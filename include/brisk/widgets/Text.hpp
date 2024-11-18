@@ -86,7 +86,7 @@ protected:
     explicit Text(Construction construction, std::string text, ArgumentsView<Text> args);
 
 private:
-    float calcFontSizeFor(const std::string& m_text) const;
+    float calcFontSizeFor(const Font& font, const std::string& m_text) const;
 
 public:
     BRISK_PROPERTIES_BEGIN
