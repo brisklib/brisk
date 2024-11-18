@@ -319,7 +319,7 @@ template <typename Callable, typename R, typename... Args>
 concept invocable_r = std::is_invocable_r_v<R, Callable, Args...>;
 
 namespace Internal {
-constexpr inline size_t numProperties = 100;
+constexpr inline size_t numProperties = 101;
 extern const std::string_view propNames[numProperties];
 } // namespace Internal
 
@@ -1012,6 +1012,7 @@ protected:
     FontFamily m_fontFamily             = DefaultFont;
     FontStyle m_fontStyle               = FontStyle::Normal;
     FontWeight m_fontWeight             = FontWeight::Regular;
+    OpenTypeFeatureFlags m_fontFeatures = {};
     TextDecoration m_textDecoration     = TextDecoration::None;
     AlignSelf m_alignSelf               = AlignSelf::Auto;
     Justify m_justifyContent            = Justify::FlexStart;
@@ -1349,6 +1350,8 @@ public:
     GUIPropertyCompound<99, EdgesL, &This::m_padding, decltype(paddingLeft), decltype(paddingTop),
                         decltype(paddingRight), decltype(paddingBottom)>
         padding;
+    GUIProperty<100, OpenTypeFeatureFlags, AffectLayout | AffectFont | Inheritable, &This::m_fontFeatures>
+        fontFeatures;
     Property<This, bool, &This::m_state, &This::isDisabled, &This::setDisabled> disabled;
     BRISK_PROPERTIES_END
 };
@@ -1464,6 +1467,8 @@ extern const Argument<Tag::PropArg<decltype(Widget::gapColumn)>> gapColumn;
 extern const Argument<Tag::PropArg<decltype(Widget::gapRow)>> gapRow;
 
 extern const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled;
+
+extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures;
 
 } // namespace Arg
 

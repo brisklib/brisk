@@ -1517,6 +1517,7 @@ Font Widget::font() const {
         m_fontFamily, m_fontSize.resolved,      m_fontStyle,
         m_fontWeight, m_textDecoration,         1.2f,
         8.f,          m_letterSpacing.resolved, m_wordSpacing.resolved,
+        0.f,          m_fontFeatures,
     };
 }
 
@@ -1613,6 +1614,9 @@ void Widget::resolveProperties(PropFlags flags) {
         }
         if (getPropState(textDecoration.index) && PropState::Inherited) {
             m_textDecoration = getFallback(m_parent, &Widget::m_textDecoration, TextDecoration::None);
+        }
+        if (getPropState(fontFeatures.index) && PropState::Inherited) {
+            m_fontFeatures = getFallback(m_parent, &Widget::m_fontFeatures, {});
         }
     }
     if (getPropState(color.index) && PropState::Inherited) {
@@ -1726,6 +1730,7 @@ Widget::Widget(Construction construction) : m_layoutEngine{ this } {
     setPropState(wordSpacing.index, PropState::Inherited);
     setPropState(textAlign.index, PropState::Inherited);
     setPropState(color.index, PropState::Inherited);
+    setPropState(fontFeatures.index, PropState::Inherited);
 
     beginConstruction();
     m_type = construction.type;
@@ -2444,6 +2449,7 @@ const std::string_view propNames[numProperties]{
     /*97*/ "maxDimensions",
     /*98*/ "minDimensions",
     /*99*/ "padding",
+    /*100*/ "fontFeatures",
 };
 
 } // namespace Internal
@@ -2568,6 +2574,7 @@ template void instantiateProp<decltype(Widget::paddingLeft)>();
 template void instantiateProp<decltype(Widget::paddingTop)>();
 template void instantiateProp<decltype(Widget::paddingRight)>();
 template void instantiateProp<decltype(Widget::paddingBottom)>();
+template void instantiateProp<decltype(Widget::fontFeatures)>();
 
 inline namespace Arg {
 
@@ -2670,6 +2677,7 @@ const Argument<Tag::PropArg<decltype(Widget::paddingLeft)>> paddingLeft{};
 const Argument<Tag::PropArg<decltype(Widget::paddingTop)>> paddingTop{};
 const Argument<Tag::PropArg<decltype(Widget::paddingRight)>> paddingRight{};
 const Argument<Tag::PropArg<decltype(Widget::paddingBottom)>> paddingBottom{};
+const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures{};
 
 const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled{};
 
