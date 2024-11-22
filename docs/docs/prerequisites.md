@@ -52,5 +52,5 @@ sudo apt-get install build-essential ninja-build cmake git
 To install all system dependencies needed to build Brisk from source on Ubuntu, use this command:
 
 ```bash
-sudo apt-get install ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev
+sudo apt-get install ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
 ```

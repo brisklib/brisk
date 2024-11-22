@@ -30,7 +30,7 @@ jobs:
     steps:
     - name: Install prerequisites
       run: |
-        sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev
+        sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
     - name: Checkout
       uses: actions/checkout@v4
     - name: Vcpkg
@@ -133,7 +133,7 @@ jobs:
     steps:
     - name: Install prerequisites
       run: |
-        sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev
+        sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
         wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s - 19
     - name: Checkout
       uses: actions/checkout@v4
@@ -215,7 +215,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Install prerequisites
       run: |
-        sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev
+        sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
         wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s - 19
     - name: Acquire dependencies
       run: |
@@ -241,7 +241,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Install prerequisites
       run: |
-        sudo apt-get update && sudo apt-get install -y gcc-14 g++-14 ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev
+        sudo apt-get update && sudo apt-get install -y gcc-14 g++-14 ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake

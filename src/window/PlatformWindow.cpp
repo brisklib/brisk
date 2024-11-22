@@ -206,15 +206,9 @@ void PlatformWindow::wheelEvent(float x, float y) {
     });
 }
 
-void PlatformWindow::windowStateEvent(WindowState state) {
-    // uiThread.execute([window = m_window, state] {
-    // });
-}
+void PlatformWindow::windowStateEvent(WindowState state) {}
 
 void PlatformWindow::windowResized(Size windowSize, Size framebufferSize) {
-    if (!isVisible()) {
-        return;
-    }
     updateSize();
 }
 
@@ -252,4 +246,7 @@ void PlatformWindow::windowStateChanged(bool isIconified, bool isMaximized) {
     });
 }
 
+PointF PlatformWindow::mapFramebuffer(PointF pos) {
+    return pos * SizeF(m_framebufferSize) / SizeF(m_windowSize);
+}
 } // namespace Brisk

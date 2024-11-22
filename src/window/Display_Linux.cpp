@@ -22,15 +22,18 @@
 #include <brisk/core/Utilities.hpp>
 
 #include <shared_mutex>
-#include "X11.hpp"
+
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_X11 1
+#define GLFW_EXPOSE_NATIVE_WAYLAND 1
+#include <GLFW/glfw3native.h>
+#undef None
 
 namespace Brisk {
 
-namespace X11 {
 void pollDisplays();
-}
 
-class DisplayX11 final : public Display {
+class DisplayLinux final : public Display {
 public:
     Point position() const {
         std::shared_lock lk(m_mutex);
@@ -86,7 +89,7 @@ public:
 
     float contentScale() const {
         // no need to lock because contentScaleX/contentScaleY don't change
-        return SizeF(X11::contentScaleX, X11::contentScaleY).longestSide();
+        return SizeF(m_contentScaleX, m_contentScaleY).longestSide();
     }
 
     Point desktopToMonitor(Point pt) const {
@@ -113,11 +116,10 @@ public:
         return 1;
     }
 
-    DisplayX11(RROutput output, RRCrtc crtc, Size physSize);
+    DisplayLinux(GLFWmonitor* monitor);
 
 private:
-    RROutput m_output;
-    RRCrtc m_crtc;
+    GLFWmonitor* m_monitor;
     mutable std::shared_mutex m_mutex;
     std::string m_adapterName;
     std::string m_adapterId;
@@ -130,129 +132,62 @@ private:
     Size m_physSize;
     Size m_resolution;
     int m_counter = 0;
-    friend void X11::pollDisplays();
+    static float m_contentScaleX;
+    static float m_contentScaleY;
+    friend void pollDisplays();
 };
+
+float DisplayLinux::m_contentScaleX = 1.f;
+float DisplayLinux::m_contentScaleY = 1.f;
 
 std::shared_mutex displayMutex;
 
-namespace X11 {
-
-// Check whether the display mode should be included in enumeration
-//
-static bool modeIsGood(const XRRModeInfo* mi) {
-    return (mi->modeFlags & RR_Interlace) == 0;
-}
-
-// Calculates the refresh rate, in Hz, from the specified RandR mode info
-//
-static int calculateRefreshRate(const XRRModeInfo* mi) {
-    if (mi->hTotal && mi->vTotal)
-        return (int)std::round((double)mi->dotClock / ((double)mi->hTotal * (double)mi->vTotal));
-    else
-        return 0;
-}
-
-// Returns the mode info for a RandR mode XID
-//
-static const XRRModeInfo* getModeInfo(const XRRScreenResources* sr, RRMode id) {
-    for (int i = 0; i < sr->nmode; i++) {
-        if (sr->modes[i].id == id)
-            return sr->modes + i;
-    }
-
-    return nullptr;
-}
-
-static std::map<RROutput, RC<DisplayX11>> displays;
-RC<DisplayX11> primaryDisplay;
+static std::map<RROutput, RC<DisplayLinux>> displays;
+RC<DisplayLinux> primaryDisplay;
 
 void pollDisplays() {
-    initializeX11();
-    SCOPE_EXIT {
-        terminateX11();
-    };
+    glfwInit();
 
-    XRRScreenResources* sr      = XRRGetScreenResourcesCurrent(display, root);
-    RROutput primary            = XRRGetOutputPrimary(display, root);
-    int screenCount             = 0;
-    XineramaScreenInfo* screens = XineramaQueryScreens(display, &screenCount);
+    int mcount             = 0;
 
-    for (int i = 0; i < sr->noutput; i++) {
-        XRROutputInfo* oi = XRRGetOutputInfo(display, sr, sr->outputs[i]);
-        if (oi->connection != RR_Connected || oi->crtc == None) {
-            XRRFreeOutputInfo(oi);
-            continue;
-        }
-        SCOPE_EXIT {
-            XRRFreeOutputInfo(oi);
-        };
+    GLFWmonitor** monitors = glfwGetMonitors(&mcount);
+    for (int i = 0; i < mcount; ++i) {
 
-        XRRCrtcInfo* ci = XRRGetCrtcInfo(display, sr, oi->crtc);
-        SCOPE_EXIT {
-            XRRFreeCrtcInfo(ci);
-        };
-        int widthMM, heightMM;
-        if (ci->rotation == RR_Rotate_90 || ci->rotation == RR_Rotate_270) {
-            widthMM  = oi->mm_height;
-            heightMM = oi->mm_width;
-        } else {
-            widthMM  = oi->mm_width;
-            heightMM = oi->mm_height;
-        }
+        RROutput rrout            = glfwGetX11Monitor(monitors[i]);
 
-        if (widthMM <= 0 || heightMM <= 0) {
-            // HACK: If RandR does not provide a physical size, assume the
-            //       X11 default 96 DPI and calculate from the CRTC viewport
-            // NOTE: These members are affected by rotation, unlike the mode
-            //       info and output info members
-            widthMM  = (int)(ci->width * 25.4f / 96.f);
-            heightMM = (int)(ci->height * 25.4f / 96.f);
-        }
-        RROutput output         = sr->outputs[i];
-        RRCrtc crtc             = oi->crtc;
-
-        RC<DisplayX11>& monitor = displays[output];
+        RC<DisplayLinux>& monitor = displays[rrout];
 
         if (!monitor)
-            monitor = rcnew DisplayX11(output, crtc, Size(widthMM, heightMM));
-        monitor->m_resolution = Size(ci->width, ci->height);
-        monitor->m_rect       = Rectangle(Point(ci->x, ci->y), monitor->m_resolution);
-        monitor->m_id         = std::to_string(output);
-        monitor->m_adapterId  = monitor->m_id;
-        monitor->m_name       = oi->name;
-        const XRRModeInfo* mi = getModeInfo(sr, ci->mode);
+            monitor = rcnew DisplayLinux(monitors[i]);
+        const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+        monitor->m_resolution   = Size(mode->width, mode->height);
+        Point pos;
+        glfwGetMonitorPos(monitors[i], &pos.x, &pos.y);
+        monitor->m_rect      = Rectangle(pos, monitor->m_resolution);
+        monitor->m_id        = std::to_string(rrout);
+        monitor->m_adapterId = monitor->m_id;
+        monitor->m_name      = glfwGetMonitorName(monitors[i]);
 
-        Size area;
+        Rectangle area;
+        glfwGetMonitorWorkarea(monitors[i], &area.x1, &area.y1, &area.x2, &area.y2);
+        area.p2 += area.p1;
 
-        if (ci->rotation == RR_Rotate_90 || ci->rotation == RR_Rotate_270) {
-            area.width  = mi->height;
-            area.height = mi->width;
-        } else {
-            area.width  = mi->width;
-            area.height = mi->height;
-        }
+        monitor->m_refreshRate = mode->refreshRate;
 
-        if (mi->hTotal && mi->vTotal)
-            monitor->m_refreshRate = (double)mi->dotClock / ((double)mi->hTotal * (double)mi->vTotal);
-        else
-            monitor->m_refreshRate = 0;
-
-        if (output == primary) {
+        if (i == 0) {
             monitor->m_flags |= DisplayFlags::Primary;
+            primaryDisplay = monitor;
         }
-        primaryDisplay      = monitor;
 
-        monitor->m_workarea = Rectangle(Point(ci->x, ci->y), area);
+        monitor->m_workarea = area;
         ++monitor->m_counter;
     }
 }
 
-} // namespace X11
-
 std::vector<RC<Display>> Display::all() {
     std::shared_lock lk(displayMutex);
     std::vector<RC<Display>> result;
-    for (const auto& a : X11::displays) {
+    for (const auto& a : displays) {
         result.push_back(a.second);
     }
     return result;
@@ -260,15 +195,14 @@ std::vector<RC<Display>> Display::all() {
 
 /*static*/ RC<Display> Display::primary() {
     std::shared_lock lk(displayMutex);
-    return X11::primaryDisplay;
+    return primaryDisplay;
 }
 
 void Internal::updateDisplays() {
     std::unique_lock lk(displayMutex);
-    X11::pollDisplays();
+    pollDisplays();
 }
 
-DisplayX11::DisplayX11(RROutput output, RRCrtc crtc, Size physSize)
-    : m_output(output), m_crtc(crtc), m_physSize(physSize) {}
+DisplayLinux::DisplayLinux(GLFWmonitor* monitor) : m_monitor(monitor) {}
 
 } // namespace Brisk

@@ -19,8 +19,10 @@ execute_process(COMMAND ${PYTHON3} tools/fetch_dawn_dependencies.py
     WORKING_DIRECTORY ${SOURCE_PATH})
 
 set(DESKTOP_GL OFF)
+set(USE_WAYLAND OFF)
 if (VCPKG_TARGET_IS_LINUX)
     set(DESKTOP_GL ON)
+    set(USE_WAYLAND ON)
 endif ()
 
 vcpkg_cmake_configure(
@@ -38,6 +40,7 @@ vcpkg_cmake_configure(
         -DDAWN_ENABLE_D3D11=OFF
         -DDAWN_ENABLE_NULL=OFF
         -DDAWN_ENABLE_DESKTOP_GL=${DESKTOP_GL}
+        -DDAWN_USE_WAYLAND=${USE_WAYLAND}
         -DDAWN_ENABLE_OPENGLES=OFF
         -DTINT_BUILD_GLSL_VALIDATOR=OFF
         -DTINT_BUILD_SPV_READER=OFF
