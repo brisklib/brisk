@@ -213,7 +213,7 @@ struct ContourFlags {
 };
 
 struct CoordMatrix {
-    using Type = Matrix2D;
+    using Type = Matrix;
     static void apply(const Type& value, RenderStateEx& state);
 };
 
@@ -280,7 +280,7 @@ public:
     float scissors_borderRadius = 0.f;                    ///<
     int scissors_corners        = 0;                      ///<
 
-    Matrix2D coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
+    Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     int sprite_oversampling    = 1;
     SubpixelMode subpixel_mode = SubpixelMode::Off;
 
@@ -299,9 +299,9 @@ public:
     int textureChannel    = 0;  ///<
     int clipInScreenspace = 0;
 
-    Matrix2D texture_matrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
-    SamplerMode samplerMode = SamplerMode::Clamp;            ///<
-    float blurRadius        = 0.f;                           ///<
+    Matrix texture_matrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
+    SamplerMode samplerMode = SamplerMode::Clamp;          ///<
+    float blurRadius        = 0.f;                         ///<
 
 public:
     // ---------------- rectangles, arcs [6] ----------------

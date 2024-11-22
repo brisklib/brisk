@@ -14,8 +14,8 @@ static void backgroundPainter(Canvas& canvas, const Widget& widget) {
     x /= m;
     y /= m;
     canvas.raw().drawTexture(widget.rect(), img,
-                             Matrix2D::scaling(x, y).translate(0.5f * (1 - x) * widget.rect().width(),
-                                                               0.5f * (1 - y) * widget.rect().height()));
+                             Matrix::scaling(x, y).translate(0.5f * (1 - x) * widget.rect().width(),
+                                                             0.5f * (1 - y) * widget.rect().height()));
 }
 
 void ShowcaseMessenger::messagesBuilder(Widget* target) {

@@ -90,7 +90,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 RectangleF frect   = rect;
                 static float angle = 0.f;
                 angle += 0.2f;
-                canvas.transform(Matrix2D{}.rotate(angle, frect.at(0.5f, 0.5f)));
+                canvas.transform(Matrix{}.rotate(angle, frect.at(0.5f, 0.5f)));
 
                 // Set the fill color to red and draw a small ellipse centered at 0.25f, 0.25f of the
                 // rectangle's size, aligning to the center with dimensions of 12 pixels.

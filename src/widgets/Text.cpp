@@ -124,14 +124,14 @@ void Text::paint(Canvas& canvas) const {
         if (m_rotation != Rotation::NoRotation) {
             RectangleF rotated = RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
                 toOrientation(m_rotation) == Orientation::Vertical);
-            Matrix2D m = Matrix2D()
-                             .translate(-rotated.center().x, -rotated.center().y)
-                             .rotate90(static_cast<int>(m_rotation))
-                             .translate(inner.center().x, inner.center().y);
-            Matrix2D invm = Matrix2D()
-                                .translate(-inner.center().x, -inner.center().y)
-                                .rotate90(-static_cast<int>(m_rotation))
-                                .translate(rotated.center().x, rotated.center().y);
+            Matrix m = Matrix()
+                           .translate(-rotated.center().x, -rotated.center().y)
+                           .rotate90(static_cast<int>(m_rotation))
+                           .translate(inner.center().x, inner.center().y);
+            Matrix invm = Matrix()
+                              .translate(-inner.center().x, -inner.center().y)
+                              .rotate90(-static_cast<int>(m_rotation))
+                              .translate(rotated.center().x, rotated.center().y);
             prerendered.alignLines(rotated, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
             state->scissors = invm.transform(state->scissors);
             canvas.raw().drawText(prerendered, fillColor = color, coordMatrix = m);

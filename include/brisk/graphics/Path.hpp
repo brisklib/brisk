@@ -264,20 +264,20 @@ struct Path {
      * @param path The path to add.
      * @param m The transformation matrix to apply.
      */
-    void addPath(const Path& path, const Matrix2D& m);
+    void addPath(const Path& path, const Matrix& m);
 
     /**
      * @brief Transforms the path using a transformation matrix.
      * @param m The transformation matrix to apply to the path.
      */
-    void transform(const Matrix2D& m);
+    void transform(const Matrix& m);
 
     /**
      * @brief Returns a new path that is a transformed version of this path.
      * @param m The transformation matrix to apply.
      * @return Path The transformed path.
      */
-    Path transformed(const Matrix2D& m) const;
+    Path transformed(const Matrix& m) const;
 
     /**
      * @brief Calculates the length of the path.

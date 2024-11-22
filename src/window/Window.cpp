@@ -340,7 +340,7 @@ void Window::doPaint() {
         m_encoder->setVisualSettings(VisualSettings{});
         RenderPipeline pipeline2(m_encoder, m_target);
         RawCanvas canvas(pipeline2);
-        canvas.drawTexture(RectangleF(PointF(0, 0), m_target->size()), m_capturedFrame, Matrix2D{});
+        canvas.drawTexture(RectangleF(PointF(0, 0), m_target->size()), m_capturedFrame, Matrix{});
     }
 
     // region Print Performance Counters

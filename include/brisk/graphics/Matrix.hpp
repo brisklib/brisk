@@ -14,8 +14,8 @@ namespace Brisk {
  * @tparam T The type of floating-point values (e.g., float or double).
  */
 template <typename T>
-struct Matrix2DOf {
-    static_assert(std::is_floating_point_v<T>, "Matrix2DOf requires a floating-point type.");
+struct MatrixOf {
+    static_assert(std::is_floating_point_v<T>, "MatrixOf requires a floating-point type.");
     using vec_subtype = SIMD<T, 2>;
     using vec_type    = std::array<vec_subtype, 3>;
 
@@ -30,7 +30,7 @@ struct Matrix2DOf {
     /**
      * @brief Constructs an identity matrix.
      */
-    constexpr Matrix2DOf() : Matrix2DOf(1, 0, 0, 1, 0, 0) {}
+    constexpr MatrixOf() : MatrixOf(1, 0, 0, 1, 0, 0) {}
 
     /**
      * @brief Constructs a matrix with specified coefficients.
@@ -42,7 +42,7 @@ struct Matrix2DOf {
      * @param e Matrix translation component along the x-axis.
      * @param f Matrix translation component along the y-axis.
      */
-    constexpr Matrix2DOf(T a, T b, T c, T d, T e, T f) : v{ SIMD{ a, b }, SIMD{ c, d }, SIMD{ e, f } } {}
+    constexpr MatrixOf(T a, T b, T c, T d, T e, T f) : v{ SIMD{ a, b }, SIMD{ c, d }, SIMD{ e, f } } {}
 
     /**
      * @brief Returns the matrix coefficients as an array.
@@ -58,18 +58,18 @@ struct Matrix2DOf {
      *
      * @param v The vector type representing the matrix.
      */
-    constexpr explicit Matrix2DOf(const vec_type& v) : v(v) {}
+    constexpr explicit MatrixOf(const vec_type& v) : v(v) {}
 
     /**
      * @brief Translates the matrix by a given point offset.
      *
      * @param offset The point by which to translate.
-     * @return Matrix2DOf The translated matrix.
+     * @return MatrixOf The translated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf translate(PointOf<T> offset) const {
+    [[nodiscard]] constexpr MatrixOf translate(PointOf<T> offset) const {
         vec_type m = v;
         m[2] += offset.v;
-        return Matrix2DOf(m);
+        return MatrixOf(m);
     }
 
     /**
@@ -77,9 +77,9 @@ struct Matrix2DOf {
      *
      * @param x The x-axis translation.
      * @param y The y-axis translation.
-     * @return Matrix2DOf The translated matrix.
+     * @return MatrixOf The translated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf translate(T x, T y) const {
+    [[nodiscard]] constexpr MatrixOf translate(T x, T y) const {
         return translate({ x, y });
     }
 
@@ -88,14 +88,14 @@ struct Matrix2DOf {
      *
      * @param x The x-axis scaling factor.
      * @param y The y-axis scaling factor.
-     * @return Matrix2DOf The scaled matrix.
+     * @return MatrixOf The scaled matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf scale(T x, T y) const {
+    [[nodiscard]] constexpr MatrixOf scale(T x, T y) const {
         vec_type m = v;
         m[0] *= SIMD{ x, y };
         m[1] *= SIMD{ x, y };
         m[2] *= SIMD{ x, y };
-        return Matrix2DOf(m);
+        return MatrixOf(m);
     }
 
     /**
@@ -104,9 +104,9 @@ struct Matrix2DOf {
      * @param x The x-axis scaling factor.
      * @param y The y-axis scaling factor.
      * @param origin The origin point.
-     * @return Matrix2DOf The scaled matrix.
+     * @return MatrixOf The scaled matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf scale(T x, T y, PointOf<T> origin) const {
+    [[nodiscard]] constexpr MatrixOf scale(T x, T y, PointOf<T> origin) const {
         return translate(-origin).scale(x, y).translate(origin);
     }
 
@@ -117,9 +117,9 @@ struct Matrix2DOf {
      * @param y The y-axis scaling factor.
      * @param originx The x-coordinate of the origin.
      * @param originy The y-coordinate of the origin.
-     * @return Matrix2DOf The scaled matrix.
+     * @return MatrixOf The scaled matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf scale(T x, T y, T originx, T originy) const {
+    [[nodiscard]] constexpr MatrixOf scale(T x, T y, T originx, T originy) const {
         return scale(x, y, { originx, originy });
     }
 
@@ -128,14 +128,14 @@ struct Matrix2DOf {
      *
      * @param x The x-axis skew coefficient.
      * @param y The y-axis skew coefficient.
-     * @return Matrix2DOf The skewed matrix.
+     * @return MatrixOf The skewed matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf skew(T x, T y) const {
+    [[nodiscard]] constexpr MatrixOf skew(T x, T y) const {
         vec_type m;
         m[0] = SIMD{ v[0][0] + v[0][1] * x, v[0][0] * y + v[0][1] };
         m[1] = SIMD{ v[1][0] + v[1][1] * x, v[1][0] * y + v[1][1] };
         m[2] = SIMD{ v[2][0] + v[2][1] * x, v[2][0] * y + v[2][1] };
-        return Matrix2DOf(m);
+        return MatrixOf(m);
     }
 
     /**
@@ -144,9 +144,9 @@ struct Matrix2DOf {
      * @param x The x-axis skew coefficient.
      * @param y The y-axis skew coefficient.
      * @param origin The origin point.
-     * @return Matrix2DOf The skewed matrix.
+     * @return MatrixOf The skewed matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf skew(T x, T y, PointOf<T> origin) const {
+    [[nodiscard]] constexpr MatrixOf skew(T x, T y, PointOf<T> origin) const {
         return translate(-origin).skew(x, y).translate(origin);
     }
 
@@ -157,9 +157,9 @@ struct Matrix2DOf {
      * @param y The y-axis skew coefficient.
      * @param originx The x-coordinate of the origin.
      * @param originy The y-coordinate of the origin.
-     * @return Matrix2DOf The skewed matrix.
+     * @return MatrixOf The skewed matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf skew(T x, T y, T originx, T originy) const {
+    [[nodiscard]] constexpr MatrixOf skew(T x, T y, T originx, T originy) const {
         return skew(x, y, { originx, originy });
     }
 
@@ -167,16 +167,16 @@ struct Matrix2DOf {
      * @brief Rotates the matrix by the given angle (in degrees).
      *
      * @param angle The angle in degrees.
-     * @return Matrix2DOf The rotated matrix.
+     * @return MatrixOf The rotated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf rotate(T angle) const {
+    [[nodiscard]] constexpr MatrixOf rotate(T angle) const {
         vec_type m     = v;
         vec_subtype sc = sincos(vec_subtype(deg2rad<T> * angle));
         vec_subtype cs = swapAdjacent(sc) * SIMD{ T(1), T(-1) };
         m[0]           = SIMD{ dot(m[0], cs), dot(m[0], sc) };
         m[1]           = SIMD{ dot(m[1], cs), dot(m[1], sc) };
         m[2]           = SIMD{ dot(m[2], cs), dot(m[2], sc) };
-        return Matrix2DOf(m);
+        return MatrixOf(m);
     }
 
     /**
@@ -184,9 +184,9 @@ struct Matrix2DOf {
      *
      * @param angle The angle in degrees.
      * @param origin The origin point for rotation.
-     * @return Matrix2DOf The rotated matrix.
+     * @return MatrixOf The rotated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf rotate(T angle, PointOf<T> origin) const {
+    [[nodiscard]] constexpr MatrixOf rotate(T angle, PointOf<T> origin) const {
         return translate(-origin).rotate(angle).translate(origin);
     }
 
@@ -196,9 +196,9 @@ struct Matrix2DOf {
      * @param angle The angle in degrees.
      * @param originx The x-coordinate of the origin.
      * @param originy The y-coordinate of the origin.
-     * @return Matrix2DOf The rotated matrix.
+     * @return MatrixOf The rotated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf rotate(T angle, T originx, T originy) const {
+    [[nodiscard]] constexpr MatrixOf rotate(T angle, T originx, T originy) const {
         return rotate(angle, { originx, originy });
     }
 
@@ -206,10 +206,10 @@ struct Matrix2DOf {
      * @brief Rotates the matrix by a multiple of 90 degrees.
      *
      * @param angle The multiple of 90 degrees to rotate (e.g., 90, 180, 270).
-     * @return Matrix2DOf The rotated matrix.
+     * @return MatrixOf The rotated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf rotate90(int angle) const {
-        Matrix2DOf result = *this;
+    [[nodiscard]] constexpr MatrixOf rotate90(int angle) const {
+        MatrixOf result = *this;
         switch (unsigned(angle) % 4) {
         case 0:
         default:
@@ -232,9 +232,9 @@ struct Matrix2DOf {
      *
      * @param angle The multiple of 90 degrees to rotate (e.g., 90, 180, 270).
      * @param origin The origin point for rotation.
-     * @return Matrix2DOf The rotated matrix.
+     * @return MatrixOf The rotated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf rotate90(int angle, PointOf<T> origin) const {
+    [[nodiscard]] constexpr MatrixOf rotate90(int angle, PointOf<T> origin) const {
         return translate(-origin).rotate90(angle).translate(origin);
     }
 
@@ -244,9 +244,9 @@ struct Matrix2DOf {
      * @param angle The multiple of 90 degrees to rotate (e.g., 90, 180, 270).
      * @param originx The x-coordinate of the origin.
      * @param originy The y-coordinate of the origin.
-     * @return Matrix2DOf The rotated matrix.
+     * @return MatrixOf The rotated matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf rotate90(int angle, T originx, T originy) const {
+    [[nodiscard]] constexpr MatrixOf rotate90(int angle, T originx, T originy) const {
         return rotate90(angle, { originx, originy });
     }
 
@@ -254,9 +254,9 @@ struct Matrix2DOf {
      * @brief Reflects the matrix over the specified axis.
      *
      * @param axis The axis of reflection (X, Y, or Both).
-     * @return Matrix2DOf The reflected matrix.
+     * @return MatrixOf The reflected matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf reflect(FlipAxis axis) const {
+    [[nodiscard]] constexpr MatrixOf reflect(FlipAxis axis) const {
         switch (axis) {
         case FlipAxis::X:
             return scale(-1, 1);
@@ -272,9 +272,9 @@ struct Matrix2DOf {
      *
      * @param axis The axis of reflection (X, Y, or Both).
      * @param origin The origin point for the reflection.
-     * @return Matrix2DOf The reflected matrix.
+     * @return MatrixOf The reflected matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf reflect(FlipAxis axis, PointOf<T> origin) const {
+    [[nodiscard]] constexpr MatrixOf reflect(FlipAxis axis, PointOf<T> origin) const {
         return translate(-origin).reflect(axis).translate(origin);
     }
 
@@ -284,9 +284,9 @@ struct Matrix2DOf {
      * @param axis The axis of reflection (X, Y, or Both).
      * @param originx The x-coordinate of the origin.
      * @param originy The y-coordinate of the origin.
-     * @return Matrix2DOf The reflected matrix.
+     * @return MatrixOf The reflected matrix.
      */
-    [[nodiscard]] constexpr Matrix2DOf reflect(FlipAxis axis, T originx, T originy) const {
+    [[nodiscard]] constexpr MatrixOf reflect(FlipAxis axis, T originx, T originy) const {
         return reflect(axis, { originx, originy });
     }
 
@@ -295,10 +295,10 @@ struct Matrix2DOf {
      *
      * @param x Translation along the x-axis.
      * @param y Translation along the y-axis.
-     * @return Matrix2DOf The translation matrix.
+     * @return MatrixOf The translation matrix.
      */
-    [[nodiscard]] static constexpr Matrix2DOf translation(T x, T y) {
-        return Matrix2DOf{ 1, 0, 0, 1, x, y };
+    [[nodiscard]] static constexpr MatrixOf translation(T x, T y) {
+        return MatrixOf{ 1, 0, 0, 1, x, y };
     }
 
     /**
@@ -306,31 +306,31 @@ struct Matrix2DOf {
      *
      * @param x Scaling factor along the x-axis.
      * @param y Scaling factor along the y-axis.
-     * @return Matrix2DOf The scaling matrix.
+     * @return MatrixOf The scaling matrix.
      */
-    [[nodiscard]] static constexpr Matrix2DOf scaling(T x, T y) {
-        return Matrix2DOf{ x, 0, 0, y, 0, 0 };
+    [[nodiscard]] static constexpr MatrixOf scaling(T x, T y) {
+        return MatrixOf{ x, 0, 0, y, 0, 0 };
     }
 
     /**
      * @brief Creates a rotation matrix.
      *
      * @param angle The rotation angle in degrees.
-     * @return Matrix2DOf The rotation matrix.
+     * @return MatrixOf The rotation matrix.
      */
-    [[nodiscard]] static constexpr Matrix2DOf rotation(T angle) {
+    [[nodiscard]] static constexpr MatrixOf rotation(T angle) {
         vec_subtype sc = sincos(vec_subtype(deg2rad<T> * angle));
-        return Matrix2DOf{ sc[1], sc[0], -sc[0], sc[1], 0, 0 };
+        return MatrixOf{ sc[1], sc[0], -sc[0], sc[1], 0, 0 };
     }
 
     /**
      * @brief Creates a 90-degree rotation matrix.
      *
      * @param angle The multiple of 90 degrees (0, 90, 180, or 270).
-     * @return Matrix2DOf The 90-degree rotation matrix.
+     * @return MatrixOf The 90-degree rotation matrix.
      */
-    [[nodiscard]] static constexpr Matrix2DOf rotation90(int angle) {
-        constexpr Matrix2DOf<T> m[4] = {
+    [[nodiscard]] static constexpr MatrixOf rotation90(int angle) {
+        constexpr MatrixOf<T> m[4] = {
             { 1, 0, 0, 1, 0, 0 },
             { 0, 1, -1, 0, 0, 0 },
             { -1, 0, 0, -1, 0, 0 },
@@ -343,9 +343,9 @@ struct Matrix2DOf {
      * @brief Creates a reflection matrix over the specified axis.
      *
      * @param axis The axis of reflection (X, Y, or Both).
-     * @return Matrix2DOf The reflection matrix.
+     * @return MatrixOf The reflection matrix.
      */
-    [[nodiscard]] static constexpr Matrix2DOf reflection(FlipAxis axis) {
+    [[nodiscard]] static constexpr MatrixOf reflection(FlipAxis axis) {
         switch (axis) {
         case FlipAxis::X:
             return scaling(-1, 1);
@@ -361,10 +361,10 @@ struct Matrix2DOf {
      *
      * @param x The x-axis skew factor.
      * @param y The y-axis skew factor.
-     * @return Matrix2DOf The skewness matrix.
+     * @return MatrixOf The skewness matrix.
      */
-    [[nodiscard]] static constexpr Matrix2DOf skewness(T x, T y) {
-        return Matrix2DOf{ 1, y, x, 1, 0, 0 };
+    [[nodiscard]] static constexpr MatrixOf skewness(T x, T y) {
+        return MatrixOf{ 1, y, x, 1, 0, 0 };
     }
 
     /**
@@ -372,9 +372,9 @@ struct Matrix2DOf {
      *
      * @param m The first matrix.
      * @param n The second matrix.
-     * @return Matrix2DOf The resulting matrix.
+     * @return MatrixOf The resulting matrix.
      */
-    constexpr friend Matrix2DOf<T> operator*(const Matrix2DOf<T>& m, const Matrix2DOf<T>& n) {
+    constexpr friend MatrixOf<T> operator*(const MatrixOf<T>& m, const MatrixOf<T>& n) {
         using v2             = SIMD<T, 2>;
         using v3             = SIMD<T, 3>;
         using v4             = SIMD<T, 4>;
@@ -409,7 +409,7 @@ struct Matrix2DOf {
      * @param m The transformation matrix.
      * @return PointOf<T> The transformed point.
      */
-    constexpr friend PointOf<T> operator*(const PointOf<T>& pt, const Matrix2DOf<T>& m) {
+    constexpr friend PointOf<T> operator*(const PointOf<T>& pt, const MatrixOf<T>& m) {
         return m.transform(pt);
     }
 
@@ -430,7 +430,7 @@ struct Matrix2DOf {
      * @param m The matrix to compare with.
      * @return true if the matrices are equal, false otherwise.
      */
-    constexpr bool operator==(const Matrix2DOf<T>& m) const {
+    constexpr bool operator==(const MatrixOf<T>& m) const {
         return horizontalRMS(flatten() - m.flatten()) < 0.0001f;
     }
 
@@ -440,7 +440,7 @@ struct Matrix2DOf {
      * @param m The matrix to compare with.
      * @return true if the matrices are not equal, false otherwise.
      */
-    constexpr bool operator!=(const Matrix2DOf<T>& m) const {
+    constexpr bool operator!=(const MatrixOf<T>& m) const {
         return !operator==(m);
     }
 
@@ -521,17 +521,17 @@ struct Matrix2DOf {
     /**
      * @brief Inverts the matrix, if possible.
      *
-     * @return std::optional<Matrix2DOf> The inverse of the matrix if it is invertible, or `std::nullopt` if
+     * @return std::optional<MatrixOf> The inverse of the matrix if it is invertible, or `std::nullopt` if
      * the matrix is singular (non-invertible).
      */
-    std::optional<Matrix2DOf> invert() const {
+    std::optional<MatrixOf> invert() const {
         T det = a * d - b * c; // determinant
 
         if (det < std::numeric_limits<T>::epsilon()) {
             return std::nullopt; // Matrix is not invertible
         }
 
-        Matrix2DOf result;
+        MatrixOf result;
         // Calculate the inverse of the matrix
         result.a = d / det;
         result.b = -b / det;
@@ -543,5 +543,5 @@ struct Matrix2DOf {
     }
 };
 
-using Matrix2D = Matrix2DOf<float>;
+using Matrix = MatrixOf<float>;
 } // namespace Brisk

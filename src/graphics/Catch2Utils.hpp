@@ -23,9 +23,9 @@
 #include <brisk/core/Reflection.hpp>
 
 template <typename T>
-struct fmt::formatter<Brisk::Matrix2DOf<T>> : fmt::formatter<std::string> {
+struct fmt::formatter<Brisk::MatrixOf<T>> : fmt::formatter<std::string> {
     template <typename FormatContext>
-    auto format(const Brisk::Matrix2DOf<T>& value, FormatContext& ctx) const {
+    auto format(const Brisk::MatrixOf<T>& value, FormatContext& ctx) const {
         return fmt::formatter<std::string>::format(fmt::format("{{ {}, {},   {}, {},   {}, {} }}", //
                                                                value.v[0][0],
                                                                value.v[0][1], //

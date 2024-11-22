@@ -53,7 +53,7 @@ const ColorStopArray& Gradient::colorStops() const {
 
 const Canvas::State Canvas::defaultState{
     noClipRect,             /* clipRect */
-    Matrix2D{},             /* transform */
+    Matrix{},               /* transform */
     ColorF(Palette::black), /* strokePaint */
     ColorF(Palette::white), /* fillPaint */
     DashArray{},            /* dashArray */
@@ -256,16 +256,16 @@ void Canvas::restoreNoPop() {
     m_state = m_stack.back();
 }
 
-Matrix2D Canvas::getTransform() const {
-    return Matrix2D(m_state.transform);
+Matrix Canvas::getTransform() const {
+    return Matrix(m_state.transform);
 }
 
-void Canvas::setTransform(const Matrix2D& matrix) {
+void Canvas::setTransform(const Matrix& matrix) {
     m_state.transform = matrix;
 }
 
-void Canvas::transform(const Matrix2D& matrix) {
-    m_state.transform = Matrix2D(m_state.transform) * matrix;
+void Canvas::transform(const Matrix& matrix) {
+    m_state.transform = Matrix(m_state.transform) * matrix;
 }
 
 optional<Rectangle> Canvas::getClipRect() const {
@@ -293,8 +293,8 @@ void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
         if (gradient.m_colorStops.empty()) {
             break;
         }
-        renderState.gradient_point1 = Matrix2D(m_state.transform).transform(gradient.m_startPoint);
-        renderState.gradient_point2 = Matrix2D(m_state.transform).transform(gradient.m_endPoint);
+        renderState.gradient_point1 = Matrix(m_state.transform).transform(gradient.m_startPoint);
+        renderState.gradient_point2 = Matrix(m_state.transform).transform(gradient.m_endPoint);
         renderState.gradient        = gradient.m_type;
         renderState.opacity         = m_state.opacity;
         if (gradient.m_colorStops.size() == 1) {
@@ -310,7 +310,7 @@ void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
     }
     case 2: { // Texture
         const Texture& texture     = std::get<Texture>(paint);
-        renderState.texture_matrix = texture.matrix.invert().value_or(Matrix2D{});
+        renderState.texture_matrix = texture.matrix.invert().value_or(Matrix{});
         renderState.imageHandle    = texture.image;
         renderState.samplerMode    = texture.mode;
         break;
@@ -331,18 +331,18 @@ void Canvas::drawPath(const RasterizedPath& path, const Paint& paint) {
 Rectangle Canvas::transformedClipRect() const {
     return m_state.clipRect == noClipRect
                ? noClipRect
-               : Rectangle(Matrix2D(m_state.transform).transform(RectangleF(m_state.clipRect)));
+               : Rectangle(Matrix(m_state.transform).transform(RectangleF(m_state.clipRect)));
 }
 
 void Canvas::strokePath(Path path) {
     if (!m_state.dashArray.empty()) {
         path = path.dashed(m_state.dashArray, m_state.dashOffset);
     }
-    if (Matrix2D(m_state.transform) != Matrix2D()) {
+    if (Matrix(m_state.transform) != Matrix()) {
         path = path.transformed(m_state.transform);
     }
 
-    float scale = Matrix2D(m_state.transform).estimateScale();
+    float scale = Matrix(m_state.transform).estimateScale();
 
     drawPath(path.rasterize(
                  StrokeParams{
@@ -356,18 +356,18 @@ void Canvas::strokePath(Path path) {
 }
 
 void Canvas::fillPath(Path path) {
-    if (Matrix2D(m_state.transform) != Matrix2D()) {
+    if (Matrix(m_state.transform) != Matrix()) {
         path = path.transformed(m_state.transform);
     }
     drawPath(path.rasterize(FillParams{ m_state.fillRule }, transformedClipRect()), m_state.fillPaint);
 }
 
-static void applier(RenderState* target, Matrix2D* matrix) {
+static void applier(RenderState* target, Matrix* matrix) {
     target->coordMatrix       = *matrix;
     target->clipInScreenspace = 1;
 }
 
-void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix2D matrix, SamplerMode samplerMode) {
+void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix matrix, SamplerMode samplerMode) {
     drawTexture(rect, image, matrix, &m_state.transform, Arg::samplerMode = samplerMode);
 }
 

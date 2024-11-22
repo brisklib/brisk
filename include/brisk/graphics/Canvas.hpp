@@ -28,7 +28,7 @@ using DashArray = inline_vector<float, 7>;
  */
 struct Texture {
     RC<Image> image;                      ///< The image used as the texture.
-    Matrix2D matrix;                      ///< The transformation matrix applied to the texture.
+    Matrix matrix;                        ///< The transformation matrix applied to the texture.
     SamplerMode mode = SamplerMode::Wrap; ///< The sampler mode.
 };
 
@@ -360,29 +360,29 @@ public:
      * @param image The Image to draw.
      * @param matrix The transformation matrix to apply to the image. Defaults to the identity matrix.
      */
-    void drawImage(RectangleF rect, RC<Image> image, Matrix2D matrix = {},
+    void drawImage(RectangleF rect, RC<Image> image, Matrix matrix = {},
                    SamplerMode samplerMode = SamplerMode::Clamp);
 
     /**
      * @brief Retrieves the current transformation matrix.
      *
-     * @return The current transformation Matrix2D struct.
+     * @return The current transformation Matrix struct.
      */
-    Matrix2D getTransform() const;
+    Matrix getTransform() const;
 
     /**
      * @brief Sets the transformation matrix.
      *
-     * @param matrix The Matrix2D struct representing the transformation.
+     * @param matrix The Matrix struct representing the transformation.
      */
-    void setTransform(const Matrix2D& matrix);
+    void setTransform(const Matrix& matrix);
 
     /**
      * @brief Applies an additional transformation to the current matrix.
      *
-     * @param matrix The Matrix2D struct representing the transformation to apply.
+     * @param matrix The Matrix struct representing the transformation to apply.
      */
-    void transform(const Matrix2D& matrix);
+    void transform(const Matrix& matrix);
 
     /**
      * @brief Retrieves the current clipping rectangle.
@@ -431,7 +431,7 @@ public:
 private:
     struct State {
         Rectangle clipRect;
-        Matrix2D transform;
+        Matrix transform;
         Paint strokePaint;
         Paint fillPaint;
         DashArray dashArray;

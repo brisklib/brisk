@@ -195,7 +195,7 @@ void Path::addPath(const Path& path) {
     v(this)->addPath(*v(&path));
 }
 
-void Path::addPath(const Path& path, const Matrix2D& m) {
+void Path::addPath(const Path& path, const Matrix& m) {
     size_t numPoints = v(this)->points().size();
     v(this)->addPath(*v(&path));
     auto& points = v(this)->writablePoints();
@@ -205,7 +205,7 @@ void Path::addPath(const Path& path, const Matrix2D& m) {
     }
 }
 
-void Path::transform(const Matrix2D& m) {
+void Path::transform(const Matrix& m) {
     auto& points = v(this)->writablePoints();
     m.transform(std::span<PointF>{ reinterpret_cast<PointF*>(points.data()), points.size() });
 }
@@ -216,7 +216,7 @@ Path Path::clone() const {
     return *reinterpret_cast<Path*>(&c);
 }
 
-Path Path::transformed(const Matrix2D& m) const {
+Path Path::transformed(const Matrix& m) const {
     Path copy = clone();
     copy.transform(m);
     return copy;

@@ -424,7 +424,7 @@ TEST_CASE("TextureFill", "[gpu]") {
         Canvas canvas(context);
         canvas.setFillPaint(Texture{ checkerboard });
         canvas.fillRect(RectangleF{ 0, 0, 400, 200 });
-        canvas.setFillPaint(Texture{ checkerboard, Matrix2D::rotation(45.f) });
+        canvas.setFillPaint(Texture{ checkerboard, Matrix::rotation(45.f) });
         canvas.fillRect(RectangleF{ 0, 200, 400, 400 });
     });
 }
@@ -436,7 +436,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
-        canvas.drawImage({ 100, 100, 200, 200 }, *image, Matrix2D{}.rotate(15, 50.f, 50.f));
+        canvas.drawImage({ 100, 100, 200, 200 }, *image, Matrix{}.rotate(15, 50.f, 50.f));
     });
     renderTest("rotate-texture-rect", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -444,7 +444,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
-        canvas.setTransform(Matrix2D{}.rotate(15, 150.f, 150.f));
+        canvas.setTransform(Matrix{}.rotate(15, 150.f, 150.f));
         canvas.drawImage({ 100, 100, 200, 200 }, *image);
     });
     renderTest("rotate-rect", Size{ 300, 300 }, [](RenderContext& context) {
@@ -453,7 +453,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
-        canvas.setTransform(Matrix2D{}.rotate(15, 150.f, 150.f));
+        canvas.setTransform(Matrix{}.rotate(15, 150.f, 150.f));
         canvas.setFillColor(Palette::Standard::green);
         canvas.fillRect({ 100, 100, 200, 200 });
     });

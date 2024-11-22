@@ -53,84 +53,83 @@ TEST_CASE("matrix") {
 
     constexpr float sqrt05 = std::numbers::sqrt2_v<float> / 2;
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::translation(100, -1000) ==
-          Matrix2D{ 1, 2, 3, 4, 105, -994 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.translate(100, -1000) == Matrix2D{ 1, 2, 3, 4, 105, -994 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::translation(100, -1000) == Matrix{ 1, 2, 3, 4, 105, -994 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.translate(100, -1000) == Matrix{ 1, 2, 3, 4, 105, -994 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::scaling(10, 100) == Matrix2D{ 10, 200, 30, 400, 50, 600 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.scale(10, 100) == Matrix2D{ 10, 200, 30, 400, 50, 600 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::scaling(10, 100) == Matrix{ 10, 200, 30, 400, 50, 600 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.scale(10, 100) == Matrix{ 10, 200, 30, 400, 50, 600 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::skewness(1, -1) == Matrix2D{ 3, 1, 7, 1, 11, 1 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.skew(1, -1) == Matrix2D{ 3, 1, 7, 1, 11, 1 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::skewness(1, -1) == Matrix{ 3, 1, 7, 1, 11, 1 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.skew(1, -1) == Matrix{ 3, 1, 7, 1, 11, 1 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::skewness(0, -1) == Matrix2D{ 1, 1, 3, 1, 5, 1 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.skew(0, -1) == Matrix2D{ 1, 1, 3, 1, 5, 1 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::skewness(0, -1) == Matrix{ 1, 1, 3, 1, 5, 1 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.skew(0, -1) == Matrix{ 1, 1, 3, 1, 5, 1 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::rotation(180) == Matrix2D{ -1, -2, -3, -4, -5, -6 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.rotate(180) == Matrix2D{ -1, -2, -3, -4, -5, -6 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::rotation(180) == Matrix{ -1, -2, -3, -4, -5, -6 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate(180) == Matrix{ -1, -2, -3, -4, -5, -6 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::rotation90(2) == Matrix2D{ -1, -2, -3, -4, -5, -6 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.rotate90(2) == Matrix2D{ -1, -2, -3, -4, -5, -6 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::rotation90(2) == Matrix{ -1, -2, -3, -4, -5, -6 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate90(2) == Matrix{ -1, -2, -3, -4, -5, -6 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::rotation(180 / 2) == Matrix2D{ -2, 1, -4, 3, -6, 5 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.rotate(180 / 2) == Matrix2D{ -2, 1, -4, 3, -6, 5 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::rotation(180 / 2) == Matrix{ -2, 1, -4, 3, -6, 5 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate(180 / 2) == Matrix{ -2, 1, -4, 3, -6, 5 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::rotation90(1) == Matrix2D{ -2, 1, -4, 3, -6, 5 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.rotate90(1) == Matrix2D{ -2, 1, -4, 3, -6, 5 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::rotation90(1) == Matrix{ -2, 1, -4, 3, -6, 5 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate90(1) == Matrix{ -2, 1, -4, 3, -6, 5 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::rotation90(3) == Matrix2D{ 2, -1, 4, -3, 6, -5 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.rotate90(3) == Matrix2D{ 2, -1, 4, -3, 6, -5 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::rotation90(3) == Matrix{ 2, -1, 4, -3, 6, -5 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate90(3) == Matrix{ 2, -1, 4, -3, 6, -5 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D::rotation(180 / 4) ==
-          Matrix2D{ -sqrt05, 3 * sqrt05, -sqrt05, 7 * sqrt05, -sqrt05, 11 * sqrt05 });
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 }.rotate(180 / 4) ==
-          Matrix2D{ -sqrt05, 3 * sqrt05, -sqrt05, 7 * sqrt05, -sqrt05, 11 * sqrt05 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix::rotation(180 / 4) ==
+          Matrix{ -sqrt05, 3 * sqrt05, -sqrt05, 7 * sqrt05, -sqrt05, 11 * sqrt05 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate(180 / 4) ==
+          Matrix{ -sqrt05, 3 * sqrt05, -sqrt05, 7 * sqrt05, -sqrt05, 11 * sqrt05 });
 
-    CHECK(Matrix2D{ 1, 2, 3, 4, 5, 6 } * Matrix2D{ 10, 20, 30, 40, 50, 60 } ==
-          Matrix2D{ 70, 100, 150, 220, 280, 400 });
-    CHECK(Matrix2D{ 10, 20, 30, 40, 50, 60 } * Matrix2D{ 1, 2, 3, 4, 5, 6 } ==
-          Matrix2D{ 70, 100, 150, 220, 235, 346 });
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 } * Matrix{ 10, 20, 30, 40, 50, 60 } ==
+          Matrix{ 70, 100, 150, 220, 280, 400 });
+    CHECK(Matrix{ 10, 20, 30, 40, 50, 60 } * Matrix{ 1, 2, 3, 4, 5, 6 } ==
+          Matrix{ 70, 100, 150, 220, 235, 346 });
 
-    CHECK(PointF{ 12.f, 34.f } * Matrix2D() == PointF{ 12.f, 34.f });
-    CHECK(PointF{ 12.f, 34.f } * Matrix2D::translation(100.f, -1.f) == PointF{ 112.f, 33.f });
-    CHECK(PointF{ 12.f, 34.f } * Matrix2D::scaling(2.f, 0.5f) == PointF{ 24.f, 17.f });
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation(180 * 0 / 2),
+    CHECK(PointF{ 12.f, 34.f } * Matrix() == PointF{ 12.f, 34.f });
+    CHECK(PointF{ 12.f, 34.f } * Matrix::translation(100.f, -1.f) == PointF{ 112.f, 33.f });
+    CHECK(PointF{ 12.f, 34.f } * Matrix::scaling(2.f, 0.5f) == PointF{ 24.f, 17.f });
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation(180 * 0 / 2),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 12, 34 }, 0.001));
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation(180 * 1 / 2),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation(180 * 1 / 2),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ -34, 12 }, 0.001));
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation(180 * 2 / 2),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation(180 * 2 / 2),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ -12, -34 }, 0.001));
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation(180 * 3 / 2),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation(180 * 3 / 2),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 34, -12 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation90(0),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation90(0),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 12, 34 }, 0.001));
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation90(1),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation90(1),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ -34, 12 }, 0.001));
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation90(2),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation90(2),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ -12, -34 }, 0.001));
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::rotation90(3),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::rotation90(3),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 34, -12 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * (Matrix2D::rotation90(1) * Matrix2D::translation(10.f, -1.f)),
+    CHECK_THAT(PointF(12.f, 34.f) * (Matrix::rotation90(1) * Matrix::translation(10.f, -1.f)),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ -24, 11 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * (Matrix2D::translation(10.f, -1.f) * Matrix2D::rotation90(1)),
+    CHECK_THAT(PointF(12.f, 34.f) * (Matrix::translation(10.f, -1.f) * Matrix::rotation90(1)),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ -33, 22 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * (Matrix2D::translation(10.f, -1.f) * Matrix2D::scaling(2, 2)),
+    CHECK_THAT(PointF(12.f, 34.f) * (Matrix::translation(10.f, -1.f) * Matrix::scaling(2, 2)),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 44, 66 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * (Matrix2D::scaling(2, 2) * Matrix2D::translation(10.f, -1.f)),
+    CHECK_THAT(PointF(12.f, 34.f) * (Matrix::scaling(2, 2) * Matrix::translation(10.f, -1.f)),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 34, 67 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * (Matrix2D::rotation(180 / 4) * Matrix2D::rotation(180 / 4)),
+    CHECK_THAT(PointF(12.f, 34.f) * (Matrix::rotation(180 / 4) * Matrix::rotation(180 / 4)),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ -34, 12 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::skewness(1, 0),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::skewness(1, 0),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 46, 34 }, 0.001));
 
-    CHECK_THAT(PointF(12.f, 34.f) * Matrix2D::skewness(0, 1),
+    CHECK_THAT(PointF(12.f, 34.f) * Matrix::skewness(0, 1),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 12, 46 }, 0.001));
 
     std::array<PointF, 31> pts;
@@ -141,7 +140,7 @@ TEST_CASE("matrix") {
         pts[i].y = u(rnd);
     }
     auto original_pts = pts;
-    Matrix2D m        = Matrix2D{}.scale(1.1f, 0.9f).rotate(1.9f).skew(-0.5f, 0.1f).translate(-10.f, +4.f);
+    Matrix m          = Matrix{}.scale(1.1f, 0.9f).rotate(1.9f).skew(-0.5f, 0.1f).translate(-10.f, +4.f);
     m.transform(pts);
     for (size_t i = 0; i < pts.size(); ++i) {
         INFO(i);

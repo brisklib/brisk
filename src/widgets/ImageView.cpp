@@ -27,7 +27,7 @@ void ImageView::paint(Canvas& canvas) const {
     Size size;
     if (m_texture && m_rect.area() > 0) {
         size = m_texture->size();
-        canvas.raw().drawTexture(m_rect, m_texture, Matrix2D{}, strokeWidth = 0.f,
+        canvas.raw().drawTexture(m_rect, m_texture, Matrix{}, strokeWidth = 0.f,
                                  samplerMode = SamplerMode::Clamp);
     }
 }
@@ -42,7 +42,7 @@ void SVGImageView::paint(Canvas& canvas) const {
     }
     if (m_image) {
         size = m_image->size();
-        canvas.raw().drawTexture(m_rect, m_image, Matrix2D{}, strokeWidth = 0.f,
+        canvas.raw().drawTexture(m_rect, m_image, Matrix{}, strokeWidth = 0.f,
                                  samplerMode = SamplerMode::Clamp);
     }
 }
