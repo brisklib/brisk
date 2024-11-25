@@ -70,7 +70,7 @@
             "name": "libpng"
         }
     ],
-    "builtin-baseline": "898b728edc5e0d12b50015f9cd18247c4257a3eb",
+    "builtin-baseline": "f176b58f35a75f9f8f54099cd9df97d2e2793a2e",
     "overrides": [
         {
             "name": "vcpkg-tool-meson",
