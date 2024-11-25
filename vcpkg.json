@@ -68,6 +68,13 @@
         },
         {
             "name": "libpng"
+        },
+        {
+            "name": "glfw3",
+            "platform": "linux",
+            "features": [
+                "wayland"
+            ]
         }
     ],
     "builtin-baseline": "f176b58f35a75f9f8f54099cd9df97d2e2793a2e",
@@ -83,7 +90,9 @@
             "port-version": 0
         }
     ],
-    "default-features": ["webgpu"],
+    "default-features": [
+        "webgpu"
+    ],
     "features": {
         "webgpu": {
             "description": "WebGPU backend",

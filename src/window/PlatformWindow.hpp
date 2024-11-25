@@ -105,6 +105,8 @@ public:
     Size m_framebufferSize{ dontCare, dontCare };
     Point m_position{ dontCare, dontCare };
 
+    PointF mapFramebuffer(PointF pos);
+
     Bytes placement() const;
     void setPlacement(bytes_view data);
     explicit PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style);

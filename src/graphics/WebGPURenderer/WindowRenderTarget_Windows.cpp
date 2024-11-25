@@ -26,7 +26,7 @@
 namespace Brisk {
 
 void WindowRenderTargetWebGPU::createSurface(const OSWindow* window) {
-    OSWindowHandle handle;
+    OSWindowHandle handle{};
     window->getHandle(handle);
 
     wgpu::SurfaceDescriptor surfaceDesc;

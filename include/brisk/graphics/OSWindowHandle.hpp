@@ -16,6 +16,8 @@
 #ifdef BRISK_LINUX
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
+#include <wayland-client.h>
+#undef None
 #endif
 
 namespace Brisk {
@@ -40,8 +42,11 @@ struct OSWindowHandle {
 #endif
 #ifdef BRISK_LINUX
 struct OSWindowHandle {
-    ::Display* display;
-    ::Window window;
+    bool wayland;
+    ::Display* x11Display;
+    ::Window x11Window;
+    ::wl_display* wlDisplay;
+    ::wl_surface* wlWindow;
 };
 #endif
 

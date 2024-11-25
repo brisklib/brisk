@@ -28,7 +28,7 @@ namespace Brisk {
 
 void WindowRenderTargetWebGPU::createSurface(const OSWindow* window) {
     @autoreleasepool {
-        OSWindowHandle handle;
+        OSWindowHandle handle{};
         window->getHandle(handle);
         NSWindow* nsWindow = handle.window;
         NSView* view       = [nsWindow contentView];

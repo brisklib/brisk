@@ -18,27 +18,44 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include "brisk/core/Threading.hpp"
 #include <brisk/window/Clipboard.hpp>
 #include <brisk/core/Encoding.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/Log.hpp>
+
+#include <GLFW/glfw3.h>
 
 namespace Brisk {
 
 ClipboardFormat textFormat = {};
 
 bool setClipboardContent(const ClipboardContent& content) {
-    LOG_WARN(clipboard, "Not implemented");
+    if (content.text) {
+        mainScheduler->dispatch([text = content.text]() {
+            glfwSetClipboardString(nullptr, text->c_str());
+        });
+        return true;
+    }
     return false;
 }
 
 ClipboardContent getClipboardContent(std::initializer_list<ClipboardFormat> formats) {
-    LOG_WARN(clipboard, "Not implemented");
-    return {};
+    ClipboardContent content;
+
+    content.text = mainScheduler->dispatchAndWait([]() -> std::optional<std::string> {
+        if (const char* str = glfwGetClipboardString(nullptr)) {
+            return str;
+        }
+        return std::nullopt;
+    });
+    return content;
 }
 
 bool clipboardHasFormat(ClipboardFormat format) {
-    LOG_WARN(clipboard, "Not implemented");
+    if (format == textFormat) {
+        return glfwGetClipboardString(nullptr) != nullptr;
+    }
     return false;
 }
 
