@@ -212,7 +212,7 @@ void InputQueue::handleFocusEvents(Event& e) {
         Widget::Ptr previousFocused = focused.lock();
         std::vector<Widget::Ptr> tabList;
         for (const std::weak_ptr<Widget>& w : this->tabList) {
-            if (auto sh = w.lock())
+            if (auto sh = w.lock(); sh && !sh->isDisabled())
                 tabList.push_back(std::move(sh));
         }
 
@@ -239,7 +239,7 @@ void InputQueue::handleFocusEvents(Event& e) {
         if (kp->key == KeyCode::Tab) {
             match_group = false;
             changeFocus = true;
-            if (e.as<EventKey>()->mods == KeyModifiers::Shift) {
+            if (kp->mods && KeyModifiers::Shift) {
                 begin = tabList.size() - 1;
                 end   = -1;
             } else {
