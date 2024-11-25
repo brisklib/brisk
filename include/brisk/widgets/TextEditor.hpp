@@ -72,14 +72,10 @@ protected:
 
     std::u32string m_cachedText;
 
-    std::vector<float> m_carets;
-    std::vector<Range<float>> m_ranges;
-    std::vector<int> m_graphemes; // grapheme boundaries (graphemes+1)
+    PreparedText m_preparedText;
     Font m_cachedFont{};
 
     int moveCursor(int cursor, int graphemes) const;
-    int charToGrapheme(int charIndex) const;
-    int graphemeToChar(int graphemeIndex) const;
     double m_blinkTime      = 0.0;
     int startCursorDragging = 0;
     void updateGraphemes();

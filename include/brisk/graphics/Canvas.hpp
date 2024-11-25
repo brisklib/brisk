@@ -341,9 +341,9 @@ public:
     /**
      * @brief Fills pre-rendered text.
      *
-     * @param text The PrerenderedText struct to render.
+     * @param text The PreparedText struct to render.
      */
-    void fillText(const PrerenderedText& text);
+    void fillText(const PreparedText& text);
 
     /**
      * @brief Strokes a line between two points.

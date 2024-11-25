@@ -28,6 +28,7 @@
 #include <brisk/core/IO.hpp>
 #include <brisk/core/Text.hpp>
 
+#include <numeric>
 #include <utf8proc.h>
 
 #include <harfbuzz/hb.h>
@@ -319,11 +320,10 @@ struct FontFace {
 
 struct Caret {
     LayoutOptions options;
-    float lineHeight = 1.f;
-    float tabStep    = 1.f;
-    float x          = 0;
-    float y          = 0;
-    int t            = 0;
+    float tabStep = 1.f;
+    float x       = 0;
+    float y       = 0;
+    int t         = 0;
 
     PointF pt() const {
         return { x, y };
@@ -333,15 +333,6 @@ struct Caret {
         switch (ch) {
         case U'\t':
             x = std::max(x, ++t * tabStep);
-            break;
-        case U'\n':
-            if (!(options && LayoutOptions::SingleLine)) {
-                x = 0;
-                y += lineHeight;
-                t = 0;
-            }
-            break;
-        case U'\r':
             break;
         default:
             if (g) {
@@ -720,11 +711,12 @@ static bool isPrintable(char32_t ch) {
     }
 }
 
-ShapedRuns FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
-                                  const std::vector<TextRun>& textRuns) const {
-    ShapedRuns shaped;
-    shaped.options = text.options;
-    std::vector<int32_t> textBreaks;
+PreparedText FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
+                                    const std::vector<TextRun>& textRuns) const {
+    PreparedText shaped;
+    shaped.options            = text.options;
+    shaped.graphemeBoundaries = textBreakPositions(text.text, TextBreakMode::Grapheme);
+    std::vector<uint32_t> textBreaks;
     if (!(text.options && LayoutOptions::SingleLine))
         textBreaks = textBreakPositions(text.text, TextBreakMode::Line);
 
@@ -736,6 +728,8 @@ ShapedRuns FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
         GlyphRun run;
         run.face          = t.face;
         run.fontSize      = font.fontSize;
+        run.tabWidth      = font.tabWidth;
+        run.lineHeight    = font.lineHeight;
         run.visualOrder   = t.visualOrder;
         run.decoration    = font.textDecoration;
         run.direction     = t.direction;
@@ -754,6 +748,8 @@ ShapedRuns FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
                 run.glyphs.push_back(std::move(g));
             }
             shaped.runs.push_back(std::move(run));
+            shaped.visualOrder.push_back(shaped.visualOrder.size());
+            run = {};
             continue;
         }
         if (t.face == nullptr)
@@ -885,29 +881,26 @@ ShapedRuns FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
 
         BRISK_ASSERT(!run.glyphs.empty());
         shaped.runs.push_back(std::move(run));
+        shaped.visualOrder.push_back(shaped.visualOrder.size());
+        run = {};
     }
 
     return shaped;
 }
 
-PrerenderedText FontManager::prerender(const Font& font, const TextWithOptions& text, float width) const {
+PreparedText FontManager::prepare(const Font& font, const TextWithOptions& text, float width) const {
     lock_quard_cond lk(m_lock);
-    return doPrerender(font, text, width);
+    return doPrepare(font, text, width);
 }
 
-ShapedRuns FontManager::shape(const Font& font, const TextWithOptions& text) const {
-    lock_quard_cond lk(m_lock);
-    return doShapeCached(font, text);
-}
-
-void FontManager::testRender(RC<Image> image, const PrerenderedText& prerendered, Point origin,
+void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Point origin,
                              TestRenderFlags flags, std::initializer_list<int> xlines,
                              std::initializer_list<int> ylines) const {
     lock_quard_cond lk(m_lock);
     auto w = image->mapWrite<ImageFormat::Greyscale_U8Gamma>();
     if (flags && TestRenderFlags::TextBounds) {
         RectangleF rect;
-        rect = prerendered.bounds(GlyphRunBounds::Text);
+        rect = prepared.bounds(GlyphRunBounds::Text);
         rect = rect.withOffset(origin);
         for (int32_t y = std::floor(rect.y1); y < std::ceil(rect.y2); ++y) {
             if (y < 0 || y >= w.height())
@@ -929,7 +922,8 @@ void FontManager::testRender(RC<Image> image, const PrerenderedText& prerendered
         std::fill_n(l, w.width(), PixelGreyscale8{ 128 });
     }
 
-    for (const GlyphRun& run : prerendered.runs) {
+    for (uint32_t ri = 0; ri < prepared.runs.size(); ++ri) {
+        const GlyphRun& run = prepared.runVisual(ri);
 
         for (size_t i = 0; i < run.glyphs.size(); ++i) {
             const Glyph& g           = run.glyphs[i];
@@ -964,7 +958,7 @@ void FontManager::testRender(RC<Image> image, const PrerenderedText& prerendered
 const size_t shapeCacheSizeLow  = 190;
 const size_t shapeCacheSizeHigh = 210;
 
-ShapedRuns FontManager::doShapeCached(const Font& font, const TextWithOptions& text) const {
+PreparedText FontManager::doShapeCached(const Font& font, const TextWithOptions& text) const {
 #if 0
     return doShape(font, text);
 #else
@@ -984,29 +978,29 @@ ShapedRuns FontManager::doShapeCached(const Font& font, const TextWithOptions& t
             }
         }
 
-        ShapedRuns shaped = doShape(font, text);
+        PreparedText shaped = doShape(font, text);
         m_shapeCache.insert(it, std::make_pair(key, ShapeCacheEntry{ shaped, m_cacheCounter }));
         return shaped;
     }
 #endif
 }
 
-ShapedRuns FontManager::doShape(const Font& font, const TextWithOptions& text) const {
+PreparedText FontManager::doShape(const Font& font, const TextWithOptions& text) const {
     std::vector<TextRun> textRuns = splitTextRuns(text.text, text.defaultDirection, false);
     textRuns                      = assignFontsToTextRuns(font, text.text, textRuns);
     textRuns                      = splitControls(text.text, textRuns);
     return shapeRuns(font, text, textRuns);
 }
 
-PrerenderedText FontManager::doPrerender(const Font& font, const TextWithOptions& text, float width) const {
-    ShapedRuns shaped = doShapeCached(font, text);
-    return std::move(shaped).prerender(font, width);
+PreparedText FontManager::doPrepare(const Font& font, const TextWithOptions& text, float width) const {
+    PreparedText shaped = doShapeCached(font, text);
+    return std::move(shaped).wrap(width);
 }
 
 RectangleF FontManager::bounds(const Font& font, const TextWithOptions& text,
                                GlyphRunBounds boundsType) const {
     lock_quard_cond lk(m_lock);
-    PrerenderedText run = doPrerender(font, text);
+    PreparedText run = doPrepare(font, text);
     return run.bounds(boundsType);
 }
 
@@ -1034,15 +1028,13 @@ optional<GlyphData> Glyph::load(const GlyphRun& run) const {
 
 } // namespace Internal
 
-void PrerenderedText::align(RectangleF rect, float alignment_x, float alignment_y) {
-    BRISK_ASSERT(state == ShapedRunsState::Visual);
+void PreparedText::align(RectangleF rect, float alignment_x, float alignment_y) {
     RectangleF bounds = this->bounds(GlyphRunBounds::Text);
     RectangleF r      = rect.alignedRect(bounds.size(), { alignment_x, alignment_y });
     applyOffset(r.p1 - bounds.p1);
 }
 
-void PrerenderedText::align(PointF pos, float alignment_x, float alignment_y) {
-    BRISK_ASSERT(state == ShapedRunsState::Visual);
+void PreparedText::align(PointF pos, float alignment_x, float alignment_y) {
     RectangleF bounds = this->bounds(GlyphRunBounds::Text);
     RectangleF r      = pos.alignedRect(bounds.size(), { alignment_x, alignment_y });
     applyOffset(r.p1 - bounds.p1);
@@ -1060,17 +1052,23 @@ struct LineCmp {
 };
 } // namespace
 
-void PrerenderedText::alignLines(RectangleF rect, float alignment_x, float alignment_y) {
-    BRISK_ASSERT(state == ShapedRunsState::Visual);
+static RectangleF spanBounds(std::span<const GlyphRun> runs, GlyphRunBounds boundsType) {
+    RectangleF result{ HUGE_VALF, HUGE_VALF, -HUGE_VALF, -HUGE_VALF };
+    for (const GlyphRun& r : runs) {
+        result = result.union_(r.bounds(boundsType));
+    }
+    return result;
+}
+
+void PreparedText::alignLines(RectangleF rect, float alignment_x, float alignment_y) {
     if (runs.empty())
         return;
     const RectangleF bounds = this->bounds(GlyphRunBounds::Text);
-    const int lastLine      = runs.back().line;
-    for (int line = 0; line <= lastLine; line++) {
+    for (int line = 0; line <= runs.back().line; line++) {
         auto rng = std::equal_range(runs.begin(), runs.end(), line, LineCmp{});
         if (rng.first != rng.second) {
             auto lineSpan         = std::span<GlyphRun>{ rng.first, rng.second };
-            RectangleF lineBounds = this->bounds(lineSpan, GlyphRunBounds::Alignment);
+            RectangleF lineBounds = spanBounds(lineSpan, GlyphRunBounds::Alignment);
             for (GlyphRun& run : lineSpan) {
                 run.position +=
                     PointF(rect.x1 - (lineBounds.width() - rect.width()) * alignment_x - lineBounds.x1,
@@ -1080,8 +1078,7 @@ void PrerenderedText::alignLines(RectangleF rect, float alignment_x, float align
     }
 }
 
-void PrerenderedText::alignLines(PointF pos, float alignment_x, float alignment_y) {
-    BRISK_ASSERT(state == ShapedRunsState::Visual);
+void PreparedText::alignLines(PointF pos, float alignment_x, float alignment_y) {
     if (runs.empty())
         return;
     const RectangleF bounds = this->bounds(GlyphRunBounds::Text);
@@ -1090,7 +1087,7 @@ void PrerenderedText::alignLines(PointF pos, float alignment_x, float alignment_
         auto rng = std::equal_range(runs.begin(), runs.end(), line, LineCmp{});
         if (rng.first != rng.second) {
             auto lineSpan         = std::span<GlyphRun>{ rng.first, rng.second };
-            RectangleF lineBounds = this->bounds(lineSpan, GlyphRunBounds::Alignment);
+            RectangleF lineBounds = spanBounds(lineSpan, GlyphRunBounds::Alignment);
             for (GlyphRun& run : lineSpan) {
                 run.position += PointF(pos.x - lineBounds.width() * alignment_x - lineBounds.x1,
                                        pos.y - bounds.height() * alignment_y - bounds.y1);
@@ -1099,11 +1096,43 @@ void PrerenderedText::alignLines(PointF pos, float alignment_x, float alignment_
     }
 }
 
-void PrerenderedText::applyOffset(PointF offset) {
-    BRISK_ASSERT(state == ShapedRunsState::Visual);
+void PreparedText::applyOffset(PointF offset) {
     for (GlyphRun& r : runs) {
         r.position += PointF(offset.x, offset.y);
     }
+}
+
+RectangleF GlyphRun::bounds(GlyphRunBounds boundsType) const {
+    updateRanges();
+    const Range<float> textVRange = { -metrics.ascender, -metrics.descender };
+    Range<float> range;
+    switch (boundsType) {
+    case GlyphRunBounds::Text:
+        range = textHRange;
+        break;
+    case GlyphRunBounds::Alignment:
+        range = alignmentHRange;
+        break;
+    case GlyphRunBounds::Printable:
+        range = printableHRange;
+        break;
+    default:
+        BRISK_UNREACHABLE();
+    }
+    return RectangleF{ range.min, textVRange.min, range.max, textVRange.max }.withOffset(position);
+}
+
+SizeF GlyphRun::size(GlyphRunBounds boundsType) const {
+    return bounds(boundsType).size();
+}
+
+Range<uint32_t> GlyphRun::charRange() const {
+    if (glyphs.empty())
+        return { UINT32_MAX, UINT32_MAX };
+    return Range<uint32_t>{
+        std::min(glyphs.front().begin_char, glyphs.back().begin_char),
+        std::max(glyphs.front().end_char, glyphs.back().end_char),
+    };
 }
 
 GlyphFlags GlyphRun::flags() const {
@@ -1270,7 +1299,31 @@ void GlyphRun::updateRanges() const {
     rangesValid = true;
 }
 
-size_t ShapedRuns::extractLine(GlyphRuns& output, GlyphRuns& input, float maxWidth) {
+Font Font::operator()(FontWeight weight) const {
+    Font result   = *this;
+    result.weight = weight;
+    return result;
+}
+
+Font Font::operator()(FontStyle style) const {
+    Font result  = *this;
+    result.style = style;
+    return result;
+}
+
+Font Font::operator()(float fontSize) const {
+    Font result     = *this;
+    result.fontSize = fontSize;
+    return result;
+}
+
+Font Font::operator()(FontFamily fontFamily) const {
+    Font result       = *this;
+    result.fontFamily = fontFamily;
+    return result;
+}
+
+static size_t extractLine(GlyphRuns& output, GlyphRuns& input, float maxWidth) {
     float remainingWidth = maxWidth;
     bool isInf           = std::isinf(maxWidth);
 
@@ -1315,24 +1368,19 @@ size_t ShapedRuns::extractLine(GlyphRuns& output, GlyphRuns& input, float maxWid
     return outputNum;
 }
 
-void ShapedRuns::formatLine(std::span<GlyphRun> input, float y, int lineNum, float tabWidth) {
+static void formatLine(std::span<uint32_t> input, std::span<GlyphRun> runs, float y, int lineNum) {
     if (input.empty())
         return;
+    auto& first    = runs[input.front()];
+    float tabWidth = first.tabWidth;
+    Caret caret{ .options = LayoutOptions::SingleLine,
+                 .tabStep = tabWidth * runs[input.front()].metrics.spaceAdvanceX };
 
-    Caret caret{ .options    = LayoutOptions::SingleLine,
-                 .lineHeight = input.front().metrics.height,
-                 .tabStep    = tabWidth * input.front().metrics.spaceAdvanceX };
+    float xOffset = first.bounds(GlyphRunBounds::Text).x1 - first.bounds(GlyphRunBounds::Alignment).x1;
 
-    // Runs are stored in logical order, sort in visual order
-    std::stable_sort(input.begin(), input.end(), [](const GlyphRun& a, const GlyphRun& b) {
-        return a.visualOrder < b.visualOrder;
-    });
-
-    float xOffset =
-        input.front().bounds(GlyphRunBounds::Text).x1 - input.front().bounds(GlyphRunBounds::Alignment).x1;
-
-    for (Brisk::GlyphRun& run : input) {
-        run.line = lineNum;
+    for (uint32_t ri : input) {
+        GlyphRun& run = runs[ri];
+        run.line      = lineNum;
         if (run.glyphs.front().flags && GlyphFlags::IsControl) {
             // control-only runs
             run.position = caret.pt() + PointF(xOffset, y);
@@ -1350,70 +1398,122 @@ void ShapedRuns::formatLine(std::span<GlyphRun> input, float y, int lineNum, flo
     }
 }
 
-PrerenderedText ShapedRuns::prerender(const Font& font, float maxWidth) && {
-    BRISK_ASSERT(state == ShapedRunsState::Logical);
-    PrerenderedText result;
-    result.state = ShapedRunsState::Visual;
-    if (options && LayoutOptions::SingleLine) {
+static void sortVisualOrder(std::span<uint32_t> indices, std::span<const GlyphRun> runs) {
+    std::stable_sort(indices.begin(), indices.end(), [runs](uint32_t a, uint32_t b) {
+        return runs[a].visualOrder < runs[b].visualOrder;
+    });
+}
+
+static bool hasControlRuns(std::span<const GlyphRun> runs) {
+    for (const GlyphRun& gr : runs) {
+        if (gr.flags() && GlyphFlags::IsControl) {
+            return true;
+        }
+    }
+    return false;
+}
+
+PreparedText PreparedText::wrap(float maxWidth) && {
+    PreparedText result;
+    BRISK_ASSERT(visualOrder.size() == runs.size());
+    result.graphemeBoundaries = std::move(graphemeBoundaries);
+    if (options && LayoutOptions::SingleLine || std::isinf(maxWidth) && !hasControlRuns(runs)) {
         result.runs = std::move(runs);
-        formatLine(result.runs, 0, 0, font.tabWidth);
+        result.visualOrder.resize(result.runs.size());
+        std::iota(result.visualOrder.begin(), result.visualOrder.end(), 0u);
+        sortVisualOrder(result.visualOrder, result.runs);
+        formatLine(result.visualOrder, result.runs, 0, 0);
     } else {
         float y     = 0;
         int lineNum = 0;
         while (!runs.empty()) {
             size_t nb = extractLine(result.runs, runs, maxWidth);
             if (nb) {
-                auto line             = std::span{ result.runs }.subspan(result.runs.size() - nb, nb);
-                RectangleF lineBounds = bounds(line, GlyphRunBounds::Text);
-                formatLine(line, y, lineNum, font.tabWidth);
+                result.visualOrder.resize(result.visualOrder.size() + nb);
+                std::iota(result.visualOrder.end() - nb, result.visualOrder.end(),
+                          result.visualOrder.size() - nb);
+
+                size_t start                  = result.runs.size() - nb;
+                std::span<GlyphRun> line      = std::span{ result.runs }.subspan(start, nb);
+                std::span<uint32_t> lineOrder = std::span{ result.visualOrder }.subspan(start, nb);
+                RectangleF lineBounds         = spanBounds(line, GlyphRunBounds::Text);
+                sortVisualOrder(lineOrder, result.runs);
+                formatLine(lineOrder, result.runs, y, lineNum);
                 lineNum++;
-                y += lineBounds.height() * font.lineHeight;
+                y += lineBounds.height() * line.front().lineHeight;
             }
         }
     }
     return result;
 }
 
-PrerenderedText ShapedRuns::prerender(const Font& font, float maxWidth) const& {
-    BRISK_ASSERT(state == ShapedRunsState::Logical);
-    return ShapedRuns(*this).prerender(font, maxWidth);
+PreparedText PreparedText::wrap(float maxWidth) const& {
+    return PreparedText(*this).wrap(maxWidth);
 }
 
-RectangleF ShapedRuns::bounds(std::span<const GlyphRun> runs, GlyphRunBounds boundsType) {
-    RectangleF result{ HUGE_VALF, HUGE_VALF, -HUGE_VALF, -HUGE_VALF };
-    for (const GlyphRun& r : runs) {
-        result = result.union_(r.bounds(boundsType));
+RectangleF PreparedText::bounds(GlyphRunBounds boundsType) const {
+    return spanBounds(runs, boundsType);
+}
+
+void PreparedText::updateCaretData() {
+    carets.clear();
+    ranges.clear();
+    carets.resize(graphemeBoundaries.size(), 0);
+    ranges.resize(graphemeBoundaries.size() - 1, { 0.f, 0.f });
+
+    for (int i = 0; i < graphemeBoundaries.size() - 1; ++i) {
+        uint32_t ch = graphemeBoundaries[i];
+        for (auto& run : runs) {
+            for (int j = 0; j < run.glyphs.size(); ++j) {
+                if (ch >= run.glyphs[j].begin_char && ch < run.glyphs[j].end_char) {
+                    int begin_gr = characterToGrapheme(run.glyphs[j].begin_char);
+                    int end_gr   = characterToGrapheme(run.glyphs[j].end_char - 1);
+                    if (end_gr > begin_gr) // ligature
+                    {
+                        int num              = end_gr - begin_gr + 1;
+                        float left_fraction  = static_cast<float>(i - begin_gr) / num;
+                        float right_fraction = static_cast<float>(i - begin_gr + 1) / num;
+                        carets[i + 1]        = mix(right_fraction, run.glyphs[j].caretForDirection(true),
+                                                   run.glyphs[j].caretForDirection(false));
+                        ranges[i].min =
+                            mix(left_fraction, run.glyphs[j].left_caret, run.glyphs[j].right_caret);
+                        ranges[i].max =
+                            mix(right_fraction, run.glyphs[j].left_caret, run.glyphs[j].right_caret);
+                    } else {
+                        carets[i + 1] = run.glyphs[j].caretForDirection(false);
+                        ranges[i].min = run.glyphs[j].left_caret;
+                        ranges[i].max = run.glyphs[j].right_caret;
+                    }
+                    carets[i + 1] += run.position.x;
+                    ranges[i] += run.position.x;
+                    break;
+                }
+            }
+        }
     }
-    return result;
 }
 
-RectangleF ShapedRuns::bounds(GlyphRunBounds boundsType) const {
-    BRISK_ASSERT(state == ShapedRunsState::Visual);
-    return bounds(runs, boundsType);
+GlyphRun& PreparedText::runVisual(uint32_t index) {
+    return runs[visualOrder[index]];
 }
 
-RectangleF GlyphRun::bounds(GlyphRunBounds boundsType) const {
-    updateRanges();
-    const Range<float> textVRange = { -metrics.ascender, -metrics.descender };
-    Range<float> range;
-    switch (boundsType) {
-    case GlyphRunBounds::Text:
-        range = textHRange;
-        break;
-    case GlyphRunBounds::Alignment:
-        range = alignmentHRange;
-        break;
-    case GlyphRunBounds::Printable:
-        range = printableHRange;
-        break;
-    default:
-        BRISK_UNREACHABLE();
-    }
-    return RectangleF{ range.min, textVRange.min, range.max, textVRange.max }.withOffset(position);
+const GlyphRun& PreparedText::runVisual(uint32_t index) const {
+    return runs[visualOrder[index]];
 }
 
-SizeF GlyphRun::size(GlyphRunBounds boundsType) const {
-    return bounds(boundsType).size();
+Range<uint32_t> PreparedText::graphemeToCharacters(uint32_t graphemeIndex) const {
+    return { graphemeToCharacter(graphemeIndex), graphemeToCharacter(graphemeIndex + 1) };
+}
+
+uint32_t PreparedText::graphemeToCharacter(uint32_t graphemeIndex) const {
+    return graphemeBoundaries[std::min(graphemeIndex, (uint32_t)graphemeBoundaries.size() - 1u)];
+}
+
+uint32_t PreparedText::characterToGrapheme(uint32_t charIndex) const {
+    if (charIndex == 0)
+        return 0;
+    return std::upper_bound(graphemeBoundaries.begin(), graphemeBoundaries.end(), charIndex) -
+           graphemeBoundaries.begin() - 1;
 }
 
 float FontMetrics::linegap() const noexcept {
@@ -1437,6 +1537,7 @@ float FontMetrics::vertBounds() const noexcept {
 }
 
 std::recursive_mutex fontMutex;
+
 std::optional<FontManager> fonts(std::in_place, &fontMutex, 3, 5000);
 
 } // namespace Brisk

@@ -47,14 +47,16 @@ static int32_t findOrAdd(SpriteResources& container, RC<SpriteResource> value) {
     return static_cast<int32_t>(n);
 }
 
-static GeometryGlyphs glyphLayout(SpriteResources& sprites, const PrerenderedText& prerendered) {
+static GeometryGlyphs glyphLayout(SpriteResources& sprites, const PreparedText& prepared,
+                                  PointF offset = { 0, 0 }) {
     GeometryGlyphs result;
-    for (const GlyphRun& run : prerendered.runs) {
+    for (uint32_t ri = 0; ri < prepared.runs.size(); ++ri) {
+        const GlyphRun& run = prepared.runVisual(ri);
         for (const Internal::Glyph& g : run.glyphs) {
             optional<Internal::GlyphData> data = g.load(run);
             if (data && data->sprite) {
                 GeometryGlyph glyphDesc;
-                PointF pos = g.pos + run.position;
+                PointF pos = g.pos + run.position + offset;
                 glyphDesc.rect.p1 =
                     PointF(pos.x, std::lround(pos.y)) + PointF(data->offset_x, -data->offset_y);
                 glyphDesc.rect.p2 =
@@ -85,15 +87,14 @@ GeometryGlyphs pathLayout(SpriteResources& sprites, const RasterizedPath& path) 
 
 RawCanvas& RawCanvas::drawText(PointF pos, const TextWithOptions& text, const Font& font,
                                const ColorF& textColor) {
-    PrerenderedText run = fonts->prerender(font, text);
-    run.applyOffset(pos);
-    drawText(run, fillColor = textColor);
+    PreparedText run = fonts->prepare(font, text);
+    drawText(pos, run, fillColor = textColor);
     return *this;
 }
 
 RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
                                const Font& font, const ColorF& textColor) {
-    PrerenderedText run = fonts->prerender(font, text);
+    PreparedText run = fonts->prepare(font, text);
     run.alignLines(pos, x_alignment, y_alignment);
     drawText(run, fillColor = textColor);
     return *this;
@@ -101,7 +102,7 @@ RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment,
 
 RawCanvas& RawCanvas::drawText(RectangleF rect, float x_alignment, float y_alignment,
                                const TextWithOptions& text, const Font& font, const ColorF& textColor) {
-    PrerenderedText run = fonts->prerender(font, text);
+    PreparedText run = fonts->prepare(font, text);
     run.alignLines(rect, x_alignment, y_alignment);
     drawText(run, fillColor = textColor);
     return *this;
@@ -155,11 +156,12 @@ RawCanvas& RawCanvas::drawRectangle(RectangleF rect, float borderRadius, float a
     return *this;
 }
 
-RawCanvas& RawCanvas::drawText(const PrerenderedText& run, RenderStateExArgs args) {
+RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, RenderStateExArgs args) {
     SpriteResources sprites;
-    GeometryGlyphs g = glyphLayout(sprites, run);
+    GeometryGlyphs g = glyphLayout(sprites, prepared, pos);
     drawText(std::move(sprites), g, args);
-    for (const GlyphRun& run : run.runs) {
+    for (uint32_t ri = 0; ri < prepared.runs.size(); ++ri) {
+        const GlyphRun& run = prepared.runVisual(ri);
         if (run.decoration != TextDecoration::None) {
             run.updateRanges();
             PointF p1{ run.textHRange.min + run.position.x, run.position.y };
@@ -180,6 +182,10 @@ RawCanvas& RawCanvas::drawText(const PrerenderedText& run, RenderStateExArgs arg
         }
     }
     return *this;
+}
+
+RawCanvas& RawCanvas::drawText(const PreparedText& prepared, RenderStateExArgs args) {
+    return drawText(PointF{ 0, 0 }, prepared, args);
 }
 
 RawCanvas& RawCanvas::drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args) {

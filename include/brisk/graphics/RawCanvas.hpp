@@ -142,7 +142,8 @@ public:
     PointF align(PointF v) const;
 
     RawCanvas& drawLine(PointF p1, PointF p2, float thickness, LineEnd end, RenderStateExArgs args);
-    RawCanvas& drawText(const PrerenderedText& run, RenderStateExArgs args);
+    RawCanvas& drawText(const PreparedText& run, RenderStateExArgs args);
+    RawCanvas& drawText(PointF pos, const PreparedText& run, RenderStateExArgs args);
     RawCanvas& drawRectangle(RectangleF rect, float borderRadius, float angle, RenderStateExArgs args);
     RawCanvas& drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args);
     RawCanvas& drawShadow(RectangleF rect, float borderRadius, float angle, RenderStateExArgs args);
@@ -194,8 +195,13 @@ public:
     }
 
     template <typename... Args>
-    RawCanvas& drawText(const PrerenderedText& run, const Args&... args) {
+    RawCanvas& drawText(const PreparedText& run, const Args&... args) {
         return drawText(run, RenderStateExArgs{ std::make_tuple(args...) });
+    }
+
+    template <typename... Args>
+    RawCanvas& drawText(PointF pos, const PreparedText& run, const Args&... args) {
+        return drawText(pos, run, RenderStateExArgs{ std::make_tuple(args...) });
     }
 
     /// Draw text at the given point

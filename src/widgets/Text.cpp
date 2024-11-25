@@ -103,9 +103,9 @@ SizeF Text::measure(AvailableSize size) const {
         }
         return result;
     } else {
-        uint32_t width              = size.x.valueOr(16777216.f);
-        PrerenderedText prerendered = m_cache->shaped.prerender(m_cache.key().font, width);
-        return alignInflate(prerendered.bounds()).size();
+        uint32_t width        = size.x.valueOr(16777216.f);
+        PreparedText prepared = m_cache->shaped.wrap(width);
+        return alignInflate(prepared.bounds()).size();
     }
 }
 
@@ -119,7 +119,7 @@ void Text::paint(Canvas& canvas) const {
             state.intersectScissors(m_rect);
         RectangleF inner = m_clientRect;
         ColorF color     = m_color.current.multiplyAlpha(m_opacity);
-        auto prerendered = m_cache2->prerendered;
+        auto prepared    = m_cache2->prepared;
 
         if (m_rotation != Rotation::NoRotation) {
             RectangleF rotated = RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
@@ -132,12 +132,12 @@ void Text::paint(Canvas& canvas) const {
                               .translate(-inner.center().x, -inner.center().y)
                               .rotate90(-static_cast<int>(m_rotation))
                               .translate(rotated.center().x, rotated.center().y);
-            prerendered.alignLines(rotated, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
+            prepared.alignLines(rotated, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
             state->scissors = invm.transform(state->scissors);
-            canvas.raw().drawText(prerendered, fillColor = color, coordMatrix = m);
+            canvas.raw().drawText(prepared, fillColor = color, coordMatrix = m);
         } else {
-            prerendered.alignLines(inner, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            canvas.raw().drawText(prerendered, fillColor = color);
+            prepared.alignLines(inner, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
+            canvas.raw().drawText(prepared, fillColor = color);
         }
     }
 }
@@ -151,16 +151,16 @@ void Text::onFontChanged() {
 }
 
 Text::Cached Text::updateCache(const CacheKey& key) {
-    ShapedRuns shaped = fonts->shape(key.font, key.text);
+    PreparedText shaped = fonts->prepare(key.font, key.text);
     return { std::move(shaped) };
 }
 
 Text::Cached2 Text::updateCache2(const CacheKey2& key) {
     m_cache.update();
-    auto prerendered = m_cache->shaped.prerender(m_cache.key().font, m_wordWrap ? key.width : 16777216.f);
-    SizeF textSize   = prerendered.bounds().size();
-    textSize         = max(textSize, SizeF{ 0, fonts->metrics(m_cache.key().font).vertBounds() });
-    return { textSize, std::move(prerendered) };
+    auto prepared  = m_cache->shaped.wrap(m_wordWrap ? key.width : 16777216.f);
+    SizeF textSize = prepared.bounds().size();
+    textSize       = max(textSize, SizeF{ 0, fonts->metrics(m_cache.key().font).vertBounds() });
+    return { textSize, std::move(prepared) };
 }
 
 void BackStrikedText::paint(Canvas& canvas) const {

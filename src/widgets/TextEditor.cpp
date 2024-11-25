@@ -109,7 +109,7 @@ std::pair<int, int> TextEditor::selection() const {
 }
 
 int TextEditor::moveCursor(int cursor, int graphemes) const {
-    return graphemeToChar(charToGrapheme(cursor) + graphemes);
+    return m_preparedText.graphemeToCharacter(m_preparedText.characterToGrapheme(cursor) + graphemes);
 }
 
 void TextEditor::paint(Canvas& canvas) const {
@@ -117,9 +117,8 @@ void TextEditor::paint(Canvas& canvas) const {
     Font font                  = this->font();
     FontMetrics metrics        = fonts->metrics(font);
 
-    std::u32string displayText = utf8ToUtf32(m_text);
     std::u32string placeholder = utf8ToUtf32(this->m_placeholder);
-    bool isPlaceholder         = displayText.empty();
+    bool isPlaceholder         = m_text.empty();
 
     {
         const Rectangle textRect = m_clientRect;
@@ -131,12 +130,12 @@ void TextEditor::paint(Canvas& canvas) const {
         selection.second              = std::clamp(selection.second, 0, (int)m_cachedText.size());
 
         if (selection.first != selection.second) {
-            std::vector<bool> bits(m_graphemes.size() - 1, false);
+            std::vector<bool> bits(m_preparedText.graphemeBoundaries.size() - 1, false);
             for (int i = selection.first; i < selection.second; ++i) {
-                int gr = charToGrapheme(i);
+                int gr = m_preparedText.characterToGrapheme(i);
                 if (bits[gr])
                     continue;
-                Range<float> range = m_ranges[gr];
+                Range<float> range = m_preparedText.ranges[gr];
                 canvas.raw().drawRectangle(
                     Rectangle{ int(textRect.x1 + range.min - visibleOffset), textRect.y1,
                                int(textRect.x1 + range.max - visibleOffset), textRect.y2 },
@@ -148,17 +147,20 @@ void TextEditor::paint(Canvas& canvas) const {
         }
 
         ColorF textColor = m_color.current;
-        canvas.raw().drawText(
-            textRect.at(0, 1) +
-                Point{ -visibleOffset, int(metrics.descender - (textRect.height() - metrics.height) * 0.5f) },
-            isPlaceholder ? TextWithOptions{ placeholder, LayoutOptions::SingleLine }
-                          : TextWithOptions{ m_cachedText, LayoutOptions::SingleLine },
-            font, isPlaceholder ? textColor.multiplyAlpha(0.5f) : textColor);
+        int yoffset      = metrics.descender - (textRect.height() - metrics.height) * 0.5f;
+        if (isPlaceholder) {
+            canvas.raw().drawText(textRect.at(0, 1) + Point{ 0, yoffset },
+                                  TextWithOptions{ placeholder, LayoutOptions::SingleLine }, font,
+                                  textColor.multiplyAlpha(0.5f));
+        } else {
+            canvas.raw().drawText(textRect.at(0, 1) + Point{ -visibleOffset, yoffset }, m_preparedText,
+                                  fillColor = textColor);
+        }
 
         if (isFocused() && std::fmod(frameStartTime - m_blinkTime, 1.0) < 0.5) {
             canvas.raw().drawRectangle(
                 Rectangle{ Point{ int(textRect.x1 +
-                                      m_carets[charToGrapheme(
+                                      m_preparedText.carets[m_preparedText.characterToGrapheme(
                                           std::max(0, std::min(cursor, int(m_cachedText.size()))))] -
                                       visibleOffset),
                                   textRect.y1 },
@@ -175,16 +177,17 @@ void TextEditor::normalizeCursor(int textLen) {
 
 void TextEditor::normalizeVisibleOffset() {
     const int availWidth = m_clientRect.width();
-    if (m_carets.empty() || m_carets.back() < availWidth)
+    if (m_preparedText.carets.empty() || m_preparedText.carets.back() < availWidth)
         visibleOffset = 0;
     else
-        visibleOffset = std::max(0, std::min(visibleOffset, static_cast<int>(m_carets.back() - availWidth)));
+        visibleOffset =
+            std::max(0, std::min(visibleOffset, static_cast<int>(m_preparedText.carets.back() - availWidth)));
 }
 
 void TextEditor::makeCursorVisible(int textLen) {
     const int availWidth = m_clientRect.width();
     const int cursor     = std::max(0, std::min(this->cursor, textLen));
-    const int cursorPos  = m_carets[charToGrapheme(cursor)];
+    const int cursorPos  = m_preparedText.carets[m_preparedText.characterToGrapheme(cursor)];
     if (cursorPos < visibleOffset)
         visibleOffset = cursorPos - 2_idp;
     else if (cursorPos > visibleOffset + availWidth)
@@ -193,19 +196,19 @@ void TextEditor::makeCursorVisible(int textLen) {
 }
 
 int TextEditor::offsetToPosition(float x) const {
-    if (m_carets.size() <= 1) {
+    if (m_preparedText.carets.size() <= 1) {
         return 0;
     }
     int nearest    = 0;
-    float distance = std::abs(m_carets.front() - x);
-    for (size_t i = 1; i < m_carets.size(); ++i) {
-        float new_distance = std::abs(m_carets[i] - x);
+    float distance = std::abs(m_preparedText.carets.front() - x);
+    for (size_t i = 1; i < m_preparedText.carets.size(); ++i) {
+        float new_distance = std::abs(m_preparedText.carets[i] - x);
         if (new_distance < distance) {
             distance = new_distance;
             nearest  = i;
         }
     }
-    return graphemeToChar(nearest);
+    return m_preparedText.graphemeToCharacter(nearest);
 }
 
 static bool char_is_alphanum(char32_t ch) {
@@ -502,57 +505,9 @@ void TextEditor::cutToClipboard(std::u32string& text) {
     }
 }
 
-int TextEditor::charToGrapheme(int charIndex) const {
-    if (charIndex <= 0)
-        return 0;
-    return std::upper_bound(m_graphemes.begin(), m_graphemes.end(), charIndex) - m_graphemes.begin() - 1;
-}
-
-int TextEditor::graphemeToChar(int graphemeIndex) const {
-    return m_graphemes[std::clamp(graphemeIndex, 0, (int)m_graphemes.size() - 1)];
-}
-
 void TextEditor::updateGraphemes() {
-
-    m_graphemes = textBreakPositions(m_cachedText, TextBreakMode::Grapheme);
-
-    m_carets.clear();
-    m_ranges.clear();
-    m_carets.resize(m_graphemes.size(), 0);
-    m_ranges.resize(m_graphemes.size() - 1, { 0.f, 0.f });
-    PrerenderedText prerendered =
-        fonts->prerender(m_cachedFont, TextWithOptions{ m_cachedText, LayoutOptions::SingleLine });
-
-    for (int i = 0; i < m_graphemes.size() - 1; ++i) {
-        int ch = m_graphemes[i];
-        for (auto& run : prerendered.runs) {
-            for (int j = 0; j < run.glyphs.size(); ++j) {
-                if (ch >= run.glyphs[j].begin_char && ch < run.glyphs[j].end_char) {
-                    int begin_gr = charToGrapheme(run.glyphs[j].begin_char);
-                    int end_gr   = charToGrapheme(run.glyphs[j].end_char - 1);
-                    if (end_gr > begin_gr) // ligature
-                    {
-                        int num              = end_gr - begin_gr + 1;
-                        float left_fraction  = static_cast<float>(i - begin_gr) / num;
-                        float right_fraction = static_cast<float>(i - begin_gr + 1) / num;
-                        m_carets[i + 1]      = mix(right_fraction, run.glyphs[j].caretForDirection(true),
-                                                   run.glyphs[j].caretForDirection(false));
-                        m_ranges[i].min =
-                            mix(left_fraction, run.glyphs[j].left_caret, run.glyphs[j].right_caret);
-                        m_ranges[i].max =
-                            mix(right_fraction, run.glyphs[j].left_caret, run.glyphs[j].right_caret);
-                    } else {
-                        m_carets[i + 1] = run.glyphs[j].caretForDirection(false);
-                        m_ranges[i].min = run.glyphs[j].left_caret;
-                        m_ranges[i].max = run.glyphs[j].right_caret;
-                    }
-                    m_carets[i + 1] += run.position.x;
-                    m_ranges[i] += run.position.x;
-                    break;
-                }
-            }
-        }
-    }
+    m_preparedText = fonts->prepare(m_cachedFont, TextWithOptions{ m_cachedText, LayoutOptions::SingleLine });
+    m_preparedText.updateCaretData();
 }
 
 Value<std::string> TextEditor::text() {

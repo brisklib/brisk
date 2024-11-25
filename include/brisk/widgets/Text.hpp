@@ -58,7 +58,7 @@ protected:
     };
 
     struct Cached {
-        ShapedRuns shaped;
+        PreparedText shaped;
     };
 
     struct CacheKey2 {
@@ -68,7 +68,7 @@ protected:
 
     struct Cached2 {
         SizeF textSize;
-        PrerenderedText prerendered;
+        PreparedText prepared;
     };
 
     Cached updateCache(const CacheKey&);

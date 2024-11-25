@@ -638,6 +638,13 @@ struct Range {
      * @return `true` if both `min` and `max` values are equal; otherwise, `false`.
      */
     constexpr bool operator==(const Range& b) const noexcept = default;
+
+    template <typename U>
+    operator Range<U>() const noexcept
+        requires std::is_convertible_v<T, U>
+    {
+        return { static_cast<U>(min), static_cast<U>(max) };
+    }
 };
 
 #define BRISK_FLAGS(TYPE)                                                                                    \
