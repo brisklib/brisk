@@ -632,8 +632,9 @@ static bool isControlCode(char32_t code) {
 // Split at control characters
 std::vector<Internal::TextRun> FontManager::splitControls(
     std::u32string_view text, const std::vector<Internal::TextRun>& textRuns) const {
+    uint32_t counter = 0;
     return Internal::splitRuns(text, textRuns, [&](char32_t ch) -> char32_t {
-        return isControlCode(ch) ? ch : 0;
+        return isControlCode(ch) ? ++counter : 0;
     });
 }
 
@@ -900,7 +901,7 @@ void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Poin
     auto w = image->mapWrite<ImageFormat::Greyscale_U8Gamma>();
     if (flags && TestRenderFlags::TextBounds) {
         RectangleF rect;
-        rect = prepared.bounds(GlyphRunBounds::Text);
+        rect = prepared.bounds(GlyphRunBounds::Alignment);
         rect = rect.withOffset(origin);
         for (int32_t y = std::floor(rect.y1); y < std::ceil(rect.y2); ++y) {
             if (y < 0 || y >= w.height())
@@ -1052,6 +1053,14 @@ struct LineCmp {
 };
 } // namespace
 
+static AscenderDescender spanAscDesc(std::span<const GlyphRun> runs) {
+    AscenderDescender result{ 0, 0 };
+    for (const GlyphRun& r : runs) {
+        result = max(result, r.ascDesc());
+    }
+    return result;
+}
+
 static RectangleF spanBounds(std::span<const GlyphRun> runs, GlyphRunBounds boundsType) {
     RectangleF result{ HUGE_VALF, HUGE_VALF, -HUGE_VALF, -HUGE_VALF };
     for (const GlyphRun& r : runs) {
@@ -1060,20 +1069,66 @@ static RectangleF spanBounds(std::span<const GlyphRun> runs, GlyphRunBounds boun
     return result;
 }
 
+template <typename T>
+static bool isSubspanOf(std::span<T> subspan, std::span<T> origSpan) {
+    return subspan.data() >= origSpan.data() &&
+           subspan.data() + subspan.size() <= origSpan.data() + origSpan.size();
+}
+
+std::span<GlyphRun> PreparedText::firstLine() {
+    auto end = std::upper_bound(runs.begin(), runs.end(), 0, LineCmp{});
+    return std::span<GlyphRun>{ runs.begin(), end };
+}
+
+std::span<GlyphRun> PreparedText::nextLine(std::span<GlyphRun> line) {
+    if (line.empty()) {
+        return {};
+    }
+    BRISK_ASSERT(isSubspanOf(line, std::span{ runs }));
+    auto begin = runs.begin() + (line.data() + line.size() - runs.data());
+    if (begin == runs.end()) {
+        return {};
+    }
+    auto end = std::upper_bound(begin, runs.end(), begin->line, LineCmp{});
+    return std::span<GlyphRun>{ begin, end };
+}
+
+std::span<const GlyphRun> PreparedText::firstLine() const {
+    auto end = std::upper_bound(runs.begin(), runs.end(), 0, LineCmp{});
+    return std::span<const GlyphRun>{ runs.begin(), end };
+}
+
+std::span<const GlyphRun> PreparedText::nextLine(std::span<const GlyphRun> line) const {
+    if (line.empty()) {
+        return {};
+    }
+    BRISK_ASSERT(isSubspanOf(line, std::span{ runs }));
+    auto begin = runs.begin() + (line.data() + line.size() - runs.data());
+    if (begin == runs.end()) {
+        return {};
+    }
+    auto end = std::upper_bound(begin, runs.end(), begin->line, LineCmp{});
+    return std::span<const GlyphRun>{ begin, end };
+}
+
+uint32_t PreparedText::caretToGrapheme(PointF pt) const {
+    return {};
+}
+
+PointF PreparedText::graphemeToCaret(uint32_t grapheme) const {
+    return {};
+}
+
 void PreparedText::alignLines(RectangleF rect, float alignment_x, float alignment_y) {
     if (runs.empty())
         return;
     const RectangleF bounds = this->bounds(GlyphRunBounds::Text);
-    for (int line = 0; line <= runs.back().line; line++) {
-        auto rng = std::equal_range(runs.begin(), runs.end(), line, LineCmp{});
-        if (rng.first != rng.second) {
-            auto lineSpan         = std::span<GlyphRun>{ rng.first, rng.second };
-            RectangleF lineBounds = spanBounds(lineSpan, GlyphRunBounds::Alignment);
-            for (GlyphRun& run : lineSpan) {
-                run.position +=
-                    PointF(rect.x1 - (lineBounds.width() - rect.width()) * alignment_x - lineBounds.x1,
-                           rect.y1 - (bounds.height() - rect.height()) * alignment_y - bounds.y1);
-            }
+    for (std::span lineSpan = firstLine(); !lineSpan.empty(); lineSpan = nextLine(lineSpan)) {
+        RectangleF lineBounds = spanBounds(lineSpan, GlyphRunBounds::Alignment);
+        for (GlyphRun& run : lineSpan) {
+            run.position +=
+                PointF(rect.x1 - (lineBounds.width() - rect.width()) * alignment_x - lineBounds.x1,
+                       rect.y1 - (bounds.height() - rect.height()) * alignment_y - bounds.y1);
         }
     }
 }
@@ -1082,16 +1137,11 @@ void PreparedText::alignLines(PointF pos, float alignment_x, float alignment_y) 
     if (runs.empty())
         return;
     const RectangleF bounds = this->bounds(GlyphRunBounds::Text);
-    const int lastLine      = runs.back().line;
-    for (int line = 0; line <= lastLine; line++) {
-        auto rng = std::equal_range(runs.begin(), runs.end(), line, LineCmp{});
-        if (rng.first != rng.second) {
-            auto lineSpan         = std::span<GlyphRun>{ rng.first, rng.second };
-            RectangleF lineBounds = spanBounds(lineSpan, GlyphRunBounds::Alignment);
-            for (GlyphRun& run : lineSpan) {
-                run.position += PointF(pos.x - lineBounds.width() * alignment_x - lineBounds.x1,
-                                       pos.y - bounds.height() * alignment_y - bounds.y1);
-            }
+    for (std::span lineSpan = firstLine(); !lineSpan.empty(); lineSpan = nextLine(lineSpan)) {
+        RectangleF lineBounds = spanBounds(lineSpan, GlyphRunBounds::Alignment);
+        for (GlyphRun& run : lineSpan) {
+            run.position += PointF(pos.x - lineBounds.width() * alignment_x - lineBounds.x1,
+                                   pos.y - bounds.height() * alignment_y - bounds.y1);
         }
     }
 }
@@ -1102,9 +1152,22 @@ void PreparedText::applyOffset(PointF offset) {
     }
 }
 
+Range<float> GlyphRun::textVRange() const {
+    return { -metrics.ascender, -metrics.descender };
+}
+
+AscenderDescender GlyphRun::ascDesc() const {
+#if 1
+    const float halfGap = (metrics.height * lineHeight - metrics.ascender + metrics.descender) * 0.5f;
+    return { metrics.ascender + halfGap, -metrics.descender + halfGap };
+#else
+    return { metrics.ascender * lineHeight, -metrics.descender * lineHeight };
+#endif
+}
+
 RectangleF GlyphRun::bounds(GlyphRunBounds boundsType) const {
     updateRanges();
-    const Range<float> textVRange = { -metrics.ascender, -metrics.descender };
+    const Range<float> vRange = this->textVRange();
     Range<float> range;
     switch (boundsType) {
     case GlyphRunBounds::Text:
@@ -1119,7 +1182,7 @@ RectangleF GlyphRun::bounds(GlyphRunBounds boundsType) const {
     default:
         BRISK_UNREACHABLE();
     }
-    return RectangleF{ range.min, textVRange.min, range.max, textVRange.max }.withOffset(position);
+    return RectangleF{ range.min, vRange.min, range.max, vRange.max }.withOffset(position);
 }
 
 SizeF GlyphRun::size(GlyphRunBounds boundsType) const {
@@ -1128,7 +1191,7 @@ SizeF GlyphRun::size(GlyphRunBounds boundsType) const {
 
 Range<uint32_t> GlyphRun::charRange() const {
     if (glyphs.empty())
-        return { UINT32_MAX, UINT32_MAX };
+        return { UINT32_MAX, 0 };
     return Range<uint32_t>{
         std::min(glyphs.front().begin_char, glyphs.back().begin_char),
         std::max(glyphs.front().end_char, glyphs.back().end_char),
@@ -1323,16 +1386,18 @@ Font Font::operator()(FontFamily fontFamily) const {
     return result;
 }
 
-static size_t extractLine(GlyphRuns& output, GlyphRuns& input, float maxWidth) {
+static void extractLine(AscenderDescender& ascDesc, GlyphRuns& output, GlyphRuns& input, float maxWidth) {
     float remainingWidth = maxWidth;
     bool isInf           = std::isinf(maxWidth);
 
-    size_t outputNum     = 0;
+    bool allowEmpty      = false;
     while (!input.empty()) {
         GlyphRun& run = input.front();
+        ascDesc       = max(ascDesc, run.ascDesc());
+
         if (run.glyphs.front().codepoint == U'\n') {
             input.erase(input.begin());
-            return outputNum;
+            return;
         }
         run.updateRanges();
 
@@ -1343,29 +1408,29 @@ static size_t extractLine(GlyphRuns& output, GlyphRuns& input, float maxWidth) {
             BRISK_ASSERT(!run.glyphs.empty());
             output.push_back(std::move(run));
             input.erase(input.begin());
-            ++outputNum;
+            allowEmpty = true;
             if (remainingWidth <= 0)
-                return outputNum;
+                return;
         } else {
             // The run doesn't fit on the current line
             // Try to split run
-            GlyphRun partial = run.breakAt(remainingWidth, outputNum > 0);
+            GlyphRun partial = run.breakAt(remainingWidth, allowEmpty);
             if (run.glyphs.empty()) {
                 input.erase(input.begin());
             }
             if (partial.glyphs.empty()) {
-                return outputNum;
+                return;
             } else {
                 remainingWidth -= partial.size(GlyphRunBounds::Text).width;
                 BRISK_ASSERT(!partial.glyphs.empty());
                 output.push_back(std::move(partial));
-                ++outputNum;
+                allowEmpty = true;
                 if (remainingWidth <= 0)
-                    return outputNum;
+                    return;
             }
         }
     }
-    return outputNum;
+    return;
 }
 
 static void formatLine(std::span<uint32_t> input, std::span<GlyphRun> runs, float y, int lineNum) {
@@ -1423,27 +1488,33 @@ PreparedText PreparedText::wrap(float maxWidth) && {
         std::iota(result.visualOrder.begin(), result.visualOrder.end(), 0u);
         sortVisualOrder(result.visualOrder, result.runs);
         formatLine(result.visualOrder, result.runs, 0, 0);
+        GlyphLine glyphLine{};
+        glyphLine.runRange = Range<size_t>{ 0, result.runs.size() };
+        glyphLine.baseline = 0.f;
+        glyphLine.ascDesc  = spanAscDesc(result.runs);
+        result.lines       = { glyphLine };
     } else {
-        float y     = 0;
-        int lineNum = 0;
+        float y = 0;
         while (!runs.empty()) {
-            size_t nb = extractLine(result.runs, runs, maxWidth);
-            if (nb) {
-                result.visualOrder.resize(result.visualOrder.size() + nb);
-                std::iota(result.visualOrder.end() - nb, result.visualOrder.end(),
-                          result.visualOrder.size() - nb);
+            size_t oldSize = result.runs.size();
+            GlyphLine glyphLine{};
+            extractLine(glyphLine.ascDesc, result.runs, runs, maxWidth);
+            glyphLine.runRange = Range<size_t>{ oldSize, result.runs.size() };
+            glyphLine.baseline = y;
+            if (result.runs.size() > oldSize) {
+                result.visualOrder.resize(result.runs.size());
+                std::iota(result.visualOrder.begin() + oldSize, result.visualOrder.end(), oldSize);
 
-                size_t start                  = result.runs.size() - nb;
-                std::span<GlyphRun> line      = std::span{ result.runs }.subspan(start, nb);
-                std::span<uint32_t> lineOrder = std::span{ result.visualOrder }.subspan(start, nb);
-                RectangleF lineBounds         = spanBounds(line, GlyphRunBounds::Text);
+                std::span<GlyphRun> line      = std::span{ result.runs }.subspan(oldSize);
+                std::span<uint32_t> lineOrder = std::span{ result.visualOrder }.subspan(oldSize);
                 sortVisualOrder(lineOrder, result.runs);
-                formatLine(lineOrder, result.runs, y, lineNum);
-                lineNum++;
-                y += lineBounds.height() * line.front().lineHeight;
+                formatLine(lineOrder, result.runs, y, result.lines.size());
             }
+            y += glyphLine.ascDesc.ascender + glyphLine.ascDesc.descender;
+            result.lines.push_back(glyphLine);
         }
     }
+
     return result;
 }
 
@@ -1456,35 +1527,37 @@ RectangleF PreparedText::bounds(GlyphRunBounds boundsType) const {
 }
 
 void PreparedText::updateCaretData() {
+    BRISK_ASSERT(graphemeBoundaries.size() >= 1);
     carets.clear();
     ranges.clear();
-    carets.resize(graphemeBoundaries.size(), 0);
+    carets.resize(graphemeBoundaries.size(), PointF{});
     ranges.resize(graphemeBoundaries.size() - 1, { 0.f, 0.f });
 
-    for (int i = 0; i < graphemeBoundaries.size() - 1; ++i) {
+    for (uint32_t i = 0; i < graphemeBoundaries.size() - 1; ++i) {
         uint32_t ch = graphemeBoundaries[i];
         for (auto& run : runs) {
-            for (int j = 0; j < run.glyphs.size(); ++j) {
+            for (uint32_t j = 0; j < run.glyphs.size(); ++j) {
                 if (ch >= run.glyphs[j].begin_char && ch < run.glyphs[j].end_char) {
-                    int begin_gr = characterToGrapheme(run.glyphs[j].begin_char);
-                    int end_gr   = characterToGrapheme(run.glyphs[j].end_char - 1);
+                    uint32_t begin_gr = characterToGrapheme(run.glyphs[j].begin_char);
+                    uint32_t end_gr   = characterToGrapheme(run.glyphs[j].end_char - 1);
                     if (end_gr > begin_gr) // ligature
                     {
-                        int num              = end_gr - begin_gr + 1;
+                        uint32_t num         = end_gr - begin_gr + 1;
                         float left_fraction  = static_cast<float>(i - begin_gr) / num;
                         float right_fraction = static_cast<float>(i - begin_gr + 1) / num;
-                        carets[i + 1]        = mix(right_fraction, run.glyphs[j].caretForDirection(true),
+                        carets[i + 1].x      = mix(right_fraction, run.glyphs[j].caretForDirection(true),
                                                    run.glyphs[j].caretForDirection(false));
                         ranges[i].min =
                             mix(left_fraction, run.glyphs[j].left_caret, run.glyphs[j].right_caret);
                         ranges[i].max =
                             mix(right_fraction, run.glyphs[j].left_caret, run.glyphs[j].right_caret);
                     } else {
-                        carets[i + 1] = run.glyphs[j].caretForDirection(false);
-                        ranges[i].min = run.glyphs[j].left_caret;
-                        ranges[i].max = run.glyphs[j].right_caret;
+                        carets[i + 1].x = run.glyphs[j].caretForDirection(false);
+                        ranges[i].min   = run.glyphs[j].left_caret;
+                        ranges[i].max   = run.glyphs[j].right_caret;
                     }
-                    carets[i + 1] += run.position.x;
+                    carets[i + 1].x += run.position.x;
+                    carets[i + 1].y = run.position.y;
                     ranges[i] += run.position.x;
                     break;
                 }

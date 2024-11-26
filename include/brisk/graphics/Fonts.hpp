@@ -185,21 +185,55 @@ constexpr std::underlying_type_t<FontFamily> operator+(FontFamily ff) {
 
 class FontManager;
 
+/**
+ * @struct FontMetrics
+ * @brief Represents metrics for a font, providing details about its dimensions and spacing.
+ */
 struct FontMetrics {
-    float size;
-    float ascender;
-    float descender;
-    float height;
-    float spaceAdvanceX;
-    float lineThickness;
-    float xHeight;
-    float capitalHeight;
+    float size;          ///< The size of the font in points.
+    float ascender;      ///< The ascender height, always positive and points upwards.
+    float descender;     ///< The descender height, always negative and points downwards.
+    float height;        ///< The total height of the font, including ascender, descender, and line gap.
+    float spaceAdvanceX; ///< The horizontal advance width for a space character.
+    float lineThickness; ///< The thickness of lines, such as for underline or strikethrough.
+    float xHeight;       ///< The height of the lowercase 'x' character.
+    float capitalHeight; ///< The height of uppercase characters.
+
+    /**
+     * @brief Computes the line gap, the vertical space between lines of text.
+     * @return The line gap value.
+     */
     float linegap() const noexcept;
+
+    /**
+     * @brief Computes the vertical bounds of the font.
+     * @return The total vertical bounds (ascender - descender).
+     */
     float vertBounds() const noexcept;
+
+    /**
+     * @brief Computes the offset for an underline relative to the baseline.
+     * @return The underline offset.
+     */
     float underlineOffset() const noexcept;
+
+    /**
+     * @brief Computes the offset for an overline relative to the baseline.
+     * @return The overline offset.
+     */
     float overlineOffset() const noexcept;
+
+    /**
+     * @brief Computes the offset for a line through the text.
+     * @return The line-through offset.
+     */
     float lineThroughOffset() const noexcept;
 
+    /**
+     * @brief Compares two FontMetrics objects for equality.
+     * @param b The FontMetrics object to compare against.
+     * @return True if the objects are equal, false otherwise.
+     */
     bool operator==(const FontMetrics& b) const noexcept = default;
 
     inline static const std::tuple Reflection            = {
@@ -476,6 +510,15 @@ enum class GlyphRunBounds {
     Printable,
 };
 
+struct AscenderDescender {
+    float ascender;  // always positive
+    float descender; // always positive
+
+    friend AscenderDescender max(AscenderDescender a, AscenderDescender b) noexcept {
+        return { std::max(a.ascender, b.ascender), std::max(a.descender, b.descender) };
+    }
+};
+
 /**
  * @brief Represents a sequence of glyphs along with their associated properties.
  *
@@ -484,7 +527,7 @@ enum class GlyphRunBounds {
  */
 struct GlyphRun {
     /**
-     * @brief List of glyphs contained in this run.
+     * @brief List of glyphs contained in this run in visual order (left-to-right).
      */
     Internal::GlyphList glyphs;
 
@@ -555,6 +598,10 @@ struct GlyphRun {
      * @brief Position of the left-most point of the glyph run at the text baseline.
      */
     PointF position;
+
+    Range<float> textVRange() const;
+
+    AscenderDescender ascDesc() const;
 
     /**
      * @brief Returns the bounds of the glyph run.
@@ -651,7 +698,7 @@ struct PreparedText {
      *
      * This vector is populated by `updateCaretData` and contains one entry per grapheme boundary.
      */
-    std::vector<float> carets;
+    std::vector<PointF> carets;
 
     /**
      * @brief The ranges of horizontal positions for each grapheme.
@@ -660,6 +707,18 @@ struct PreparedText {
      */
     std::vector<Range<float>> ranges;
 
+    struct GlyphLine {
+        Range<uint32_t> runRange{ UINT32_MAX, 0 };
+        AscenderDescender ascDesc{ 0, 0 };
+        float baseline = 0.f;
+
+        bool empty() const noexcept {
+            return runRange.empty();
+        }
+    };
+
+    std::vector<GlyphLine> lines;
+
     /**
      * @brief Updates the caret positions and horizontal ranges for graphemes.
      *
@@ -667,6 +726,14 @@ struct PreparedText {
      * properties.
      */
     void updateCaretData();
+
+    std::span<GlyphRun> firstLine();
+    std::span<GlyphRun> nextLine(std::span<GlyphRun> line);
+    std::span<const GlyphRun> firstLine() const;
+    std::span<const GlyphRun> nextLine(std::span<const GlyphRun> line) const;
+
+    uint32_t caretToGrapheme(PointF pt) const;
+    PointF graphemeToCaret(uint32_t) const;
 
     /**
      * @brief Retrieves a glyph run in visual order.

@@ -325,6 +325,27 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         auto run = fontManager->prepare(font, U"  a");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
+    visualTestMono("bounds-text4", { 128, 64 }, [&](RC<Image> image) {
+        Font font{ lato, 36.f };
+        auto run = fontManager->prepare(font, U"    a");
+        fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
+    });
+    visualTestMono("bounds-text5", { 128, 64 }, [&](RC<Image> image) {
+        Font font{ lato, 36.f };
+        auto run = fontManager->prepare(font, U"    aa");
+        fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
+    });
+    visualTestMono("bounds-text6", { 128, 64 }, [&](RC<Image> image) {
+        Font font{ lato, 36.f };
+        auto run = fontManager->prepare(font, U"    a|");
+        fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
+    });
+
+    visualTestMono("empty-lines", { 128, 256 }, [&](RC<Image> image) {
+        Font font{ lato, 24.f };
+        auto run = fontManager->prepare(font, U"a\nb\n\nd\ne");
+        fontManager->testRender(image, run, { 5, 32 }, TestRenderFlags::TextBounds);
+    });
 
     visualTestMono("lineHeight1", { 64, 64 }, [&](RC<Image> image) {
         Font font{ lato, 16.f };

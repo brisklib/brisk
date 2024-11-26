@@ -64,7 +64,7 @@ TEST_CASE("Renderer Info", "[gpu]") {
 
 template <typename Fn>
 static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn,
-                       ColorF backColor = Palette::transparent, float minimumPSNR = 40.f) {
+                       ColorF backColor = Palette::transparent, float maximumDiff = 0.04f) {
 
     for (RendererBackend bk : rendererBackends) {
         INFO(fmt::to_string(bk));
@@ -96,7 +96,7 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
                 RC<Image> out = target->image();
                 image->copyFrom(out);
             },
-            minimumPSNR);
+            maximumDiff);
     }
 }
 

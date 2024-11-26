@@ -160,8 +160,10 @@ void TextEditor::paint(Canvas& canvas) const {
         if (isFocused() && std::fmod(frameStartTime - m_blinkTime, 1.0) < 0.5) {
             canvas.raw().drawRectangle(
                 Rectangle{ Point{ int(textRect.x1 +
-                                      m_preparedText.carets[m_preparedText.characterToGrapheme(
-                                          std::max(0, std::min(cursor, int(m_cachedText.size()))))] -
+                                      m_preparedText
+                                          .carets[m_preparedText.characterToGrapheme(
+                                              std::max(0, std::min(cursor, int(m_cachedText.size()))))]
+                                          .x -
                                       visibleOffset),
                                   textRect.y1 },
                            Size{ 2_idp, textRect.height() } },
@@ -177,17 +179,17 @@ void TextEditor::normalizeCursor(int textLen) {
 
 void TextEditor::normalizeVisibleOffset() {
     const int availWidth = m_clientRect.width();
-    if (m_preparedText.carets.empty() || m_preparedText.carets.back() < availWidth)
+    if (m_preparedText.carets.empty() || m_preparedText.carets.back().x < availWidth)
         visibleOffset = 0;
     else
-        visibleOffset =
-            std::max(0, std::min(visibleOffset, static_cast<int>(m_preparedText.carets.back() - availWidth)));
+        visibleOffset = std::max(
+            0, std::min(visibleOffset, static_cast<int>(m_preparedText.carets.back().x - availWidth)));
 }
 
 void TextEditor::makeCursorVisible(int textLen) {
     const int availWidth = m_clientRect.width();
     const int cursor     = std::max(0, std::min(this->cursor, textLen));
-    const int cursorPos  = m_preparedText.carets[m_preparedText.characterToGrapheme(cursor)];
+    const int cursorPos  = m_preparedText.carets[m_preparedText.characterToGrapheme(cursor)].x;
     if (cursorPos < visibleOffset)
         visibleOffset = cursorPos - 2_idp;
     else if (cursorPos > visibleOffset + availWidth)
@@ -200,9 +202,9 @@ int TextEditor::offsetToPosition(float x) const {
         return 0;
     }
     int nearest    = 0;
-    float distance = std::abs(m_preparedText.carets.front() - x);
+    float distance = std::abs(m_preparedText.carets.front().x - x);
     for (size_t i = 1; i < m_preparedText.carets.size(); ++i) {
-        float new_distance = std::abs(m_preparedText.carets[i] - x);
+        float new_distance = std::abs(m_preparedText.carets[i].x - x);
         if (new_distance < distance) {
             distance = new_distance;
             nearest  = i;

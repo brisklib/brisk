@@ -27,7 +27,7 @@
 
 namespace Brisk {
 
-[[maybe_unused]] static float imagePSNR(RC<Image> img, RC<Image> ref) {
+[[maybe_unused]] inline float imagePSNR(RC<Image> img, RC<Image> ref) {
     auto rimg = img->mapRead<ImageFormat::Unknown_U8Gamma>();
     auto rref = ref->mapRead<ImageFormat::Unknown_U8Gamma>();
     REQUIRE(rimg.components() == rref.components());
@@ -45,8 +45,24 @@ namespace Brisk {
     return psnr;
 }
 
+[[maybe_unused]] inline float imageMaxDiff(RC<Image> img, RC<Image> ref) {
+    auto rimg = img->mapRead<ImageFormat::Unknown_U8Gamma>();
+    auto rref = ref->mapRead<ImageFormat::Unknown_U8Gamma>();
+    REQUIRE(rimg.components() == rref.components());
+    REQUIRE(rimg.width() == rref.width());
+    REQUIRE(rimg.height() == rref.height());
+    double maxDiff = 0;
+    for (int y = 0; y < rimg.height(); ++y) {
+        for (int x = 0; x < rimg.memoryWidth(); ++x) {
+            maxDiff = std::max(maxDiff, std::abs(double(rimg.line(y)[x]) - double(rref.line(y)[x])));
+        }
+    }
+    return maxDiff / 255.0;
+}
+
 template <PixelFormat Format = PixelFormat::RGBA, typename Fn>
-static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn, float minimumPSNR = 40.f) {
+static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn, float maximumDiff = 0.02f) {
+    BRISK_ASSERT(maximumDiff < 1.f);
     INFO(referenceImageName);
     RC<Image> testImage =
         rcnew Image(size, imageFormat(PixelType::U8Gamma, Format), Color(255, 255, 255, 255));
@@ -72,16 +88,16 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
         REQUIRE((*decodedRefImg)->size() == size);
         REQUIRE((*decodedRefImg)->pixelFormat() == Format);
         RC<Image> decodedRefImgT = (*decodedRefImg);
-        float testPSNR           = imagePSNR(testImage, decodedRefImgT);
-        CHECK(testPSNR > minimumPSNR);
-        testOk = testPSNR > minimumPSNR;
+        float testDiff           = imageMaxDiff(testImage, decodedRefImgT);
+        CHECK(testDiff < maximumDiff);
+        testOk = testDiff < maximumDiff;
     }
 }
 
 template <typename Fn>
 static void visualTestMono(const std::string& referenceImageName, Size size, Fn&& fn,
-                           float minimumPSNR = 40.f) {
-    visualTest<PixelFormat::Greyscale>(referenceImageName, size, std::forward<Fn>(fn), minimumPSNR);
+                           float maximumDiff = 0.02f) {
+    visualTest<PixelFormat::Greyscale>(referenceImageName, size, std::forward<Fn>(fn), maximumDiff);
 }
 
 } // namespace Brisk
