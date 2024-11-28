@@ -323,3 +323,9 @@ struct std::hash<Brisk::FixedBytes<N>> {
         return static_cast<std::size_t>(fastHash(value));
     }
 };
+
+namespace fmt {
+template <size_t Size, typename Char>
+struct range_format_kind<Brisk::FixedBytes<Size>, Char>
+    : std::integral_constant<range_format, range_format::disabled> {};
+} // namespace fmt
