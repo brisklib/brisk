@@ -32,15 +32,19 @@ private:
 public:
     constexpr static std::string_view widgetType = "texteditor";
 
-    using Base::apply;
-
     template <WidgetArgument... Args>
-    explicit TextEditor(Value<std::string> text, const Args&... args)
-        : TextEditor(Construction{ widgetType }, std::move(text), std::tuple{ args... }) {
+    explicit TextEditor(const Args&... args) : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
         endConstruction();
     }
 
-    std::pair<int, int> selection() const;
+    template <WidgetArgument... Args>
+    explicit TextEditor(Value<std::string> text, const Args&... args)
+        : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        bindings->connectBidir(Internal::asValue(this->text), std::move(text));
+        endConstruction();
+    }
+
+    Range<int32_t> selection() const;
 
     int offsetToPosition(float x) const;
 
@@ -52,18 +56,16 @@ public:
     void copyToClipboard();
     void cutToClipboard();
 
-    int visibleOffset   = 0; // in pixels, positive means first letters hidden
-    int cursor          = 0;
-    int selectedLength  = 0;
-    bool mouseSelection = false;
-
-    Value<std::string> text();
+    int cursor         = 0;
+    int selectedLength = 0;
 
 protected:
     std::string m_text;
     char32_t m_passwordChar = 0;
     std::string m_placeholder;
     Trigger<> m_onEnter;
+    int m_visibleOffset   = 0; // in pixels, positive means first letters hidden
+    bool m_mouseSelection = false;
     void onEvent(Event& event) override;
     void paint(Canvas& canvas) const override;
     void onLayoutUpdated() override;
@@ -76,8 +78,8 @@ protected:
     Font m_cachedFont{};
 
     int moveCursor(int cursor, int graphemes) const;
-    double m_blinkTime      = 0.0;
-    int startCursorDragging = 0;
+    double m_blinkTime        = 0.0;
+    int m_startCursorDragging = 0;
     void updateGraphemes();
     void makeCursorVisible(int textLen);
 
@@ -87,16 +89,16 @@ protected:
     void copyToClipboard(const std::u32string& text);
     void cutToClipboard(std::u32string& text);
 
-    explicit TextEditor(Construction, Value<std::string> text, ArgumentsView<TextEditor> args);
+    explicit TextEditor(Construction, ArgumentsView<TextEditor> args);
 
 private:
     void normalizeCursor(int textLen);
     void normalizeVisibleOffset();
-
     void createContextMenu();
 
 public:
     BRISK_PROPERTIES_BEGIN
+    Property<TextEditor, std::string, &TextEditor::m_text, nullptr, nullptr, &TextEditor::updateState> text;
     Property<TextEditor, Trigger<>, &TextEditor::m_onEnter> onEnter;
     Property<TextEditor, std::string, &TextEditor::m_placeholder> placeholder;
     Property<TextEditor, char32_t, &TextEditor::m_passwordChar, nullptr, nullptr, &TextEditor::updateState>
@@ -104,7 +106,16 @@ public:
     BRISK_PROPERTIES_END
 };
 
+template <typename T>
+void applier(TextEditor* target, ArgVal<Tag::Named<"text">, T> value) {
+    target->text = value.value;
+}
+
 inline namespace Arg {
+#ifndef BRISK__TEXT_ARG_DEFINED
+#define BRISK__TEXT_ARG_DEFINED
+constexpr inline Argument<Tag::Named<"text">> text{};
+#endif
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::onEnter)>> onEnter{};
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::placeholder)>> placeholder{};
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::passwordChar)>> passwordChar{};
@@ -117,14 +128,20 @@ public:
     using Base = TextEditor;
 
     template <WidgetArgument... Args>
+    explicit PasswordEditor(const Args&... args)
+        : PasswordEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        endConstruction();
+    }
+
+    template <WidgetArgument... Args>
     explicit PasswordEditor(Value<std::string> text, const Args&... args)
-        : PasswordEditor(Construction{ widgetType }, std::move(text), std::tuple{ args... }) {
+        : PasswordEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        bindings->connectBidir(Internal::asValue(this->text), std::move(text));
         endConstruction();
     }
 
 protected:
-    explicit PasswordEditor(Construction construction, Value<std::string> text,
-                            ArgumentsView<PasswordEditor> args);
+    explicit PasswordEditor(Construction construction, ArgumentsView<PasswordEditor> args);
 
     Ptr cloneThis() override;
 };

@@ -95,16 +95,16 @@ RawCanvas& RawCanvas::drawText(PointF pos, const TextWithOptions& text, const Fo
 RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
                                const Font& font, const ColorF& textColor) {
     PreparedText run = fonts->prepare(font, text);
-    run.alignLines(pos, x_alignment, y_alignment);
-    drawText(run, fillColor = textColor);
+    PointF offset    = run.alignLines(x_alignment, y_alignment);
+    drawText(pos + offset, run, fillColor = textColor);
     return *this;
 }
 
 RawCanvas& RawCanvas::drawText(RectangleF rect, float x_alignment, float y_alignment,
                                const TextWithOptions& text, const Font& font, const ColorF& textColor) {
     PreparedText run = fonts->prepare(font, text);
-    run.alignLines(rect, x_alignment, y_alignment);
-    drawText(run, fillColor = textColor);
+    PointF offset    = run.alignLines(x_alignment, y_alignment);
+    drawText(rect.at(x_alignment, y_alignment) + offset, run, fillColor = textColor);
     return *this;
 }
 

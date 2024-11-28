@@ -35,15 +35,13 @@ static std::u32string normalizeCompose(std::u32string str) {
     return str;
 }
 
-TextEditor::TextEditor(Construction construction, Value<std::string> text, ArgumentsView<TextEditor> args)
+TextEditor::TextEditor(Construction construction, ArgumentsView<TextEditor> args)
     : Base(construction, nullptr) {
     m_tabStop       = true;
     m_processClicks = false;
     m_boxSizing     = BoxSizingPerAxis::ContentBoxY;
     args.apply(this);
     createContextMenu();
-
-    bindings->connectBidir(this->text(), std::move(text));
 }
 
 void TextEditor::createContextMenu() {
@@ -104,7 +102,7 @@ void TextEditor::createContextMenu() {
     });
 }
 
-std::pair<int, int> TextEditor::selection() const {
+Range<int32_t> TextEditor::selection() const {
     return { std::min(cursor, cursor + selectedLength), std::max(cursor, cursor + selectedLength) };
 }
 
@@ -125,20 +123,20 @@ void TextEditor::paint(Canvas& canvas) const {
         auto&& state             = canvas.raw().save();
         state.intersectScissors(m_rect.withPadding(1_idp));
 
-        std::pair<int, int> selection = this->selection();
-        selection.first               = std::clamp(selection.first, 0, (int)m_cachedText.size());
-        selection.second              = std::clamp(selection.second, 0, (int)m_cachedText.size());
+        Range<int32_t> selection = this->selection();
+        selection.min            = std::clamp(selection.min, 0, (int)m_cachedText.size());
+        selection.max            = std::clamp(selection.max, 0, (int)m_cachedText.size());
 
-        if (selection.first != selection.second) {
+        if (selection.distance() != 0) {
             std::vector<bool> bits(m_preparedText.graphemeBoundaries.size() - 1, false);
-            for (int i = selection.first; i < selection.second; ++i) {
+            for (int i : selection) {
                 int gr = m_preparedText.characterToGrapheme(i);
                 if (bits[gr])
                     continue;
                 Range<float> range = m_preparedText.ranges[gr];
                 canvas.raw().drawRectangle(
-                    Rectangle{ int(textRect.x1 + range.min - visibleOffset), textRect.y1,
-                               int(textRect.x1 + range.max - visibleOffset), textRect.y2 },
+                    Rectangle{ int(textRect.x1 + range.min - m_visibleOffset), textRect.y1,
+                               int(textRect.x1 + range.max - m_visibleOffset), textRect.y2 },
                     0.f, 0.f,
                     fillColor   = ColorF(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f),
                     strokeWidth = 0);
@@ -153,18 +151,16 @@ void TextEditor::paint(Canvas& canvas) const {
                                   TextWithOptions{ placeholder, LayoutOptions::SingleLine }, font,
                                   textColor.multiplyAlpha(0.5f));
         } else {
-            canvas.raw().drawText(textRect.at(0, 1) + Point{ -visibleOffset, yoffset }, m_preparedText,
+            canvas.raw().drawText(textRect.at(0, 1) + Point{ -m_visibleOffset, yoffset }, m_preparedText,
                                   fillColor = textColor);
         }
 
         if (isFocused() && std::fmod(frameStartTime - m_blinkTime, 1.0) < 0.5) {
             canvas.raw().drawRectangle(
                 Rectangle{ Point{ int(textRect.x1 +
-                                      m_preparedText
-                                          .carets[m_preparedText.characterToGrapheme(
-                                              std::max(0, std::min(cursor, int(m_cachedText.size()))))]
-                                          .x -
-                                      visibleOffset),
+                                      m_preparedText.carets[m_preparedText.characterToGrapheme(
+                                          std::max(0, std::min(cursor, int(m_cachedText.size()))))] -
+                                      m_visibleOffset),
                                   textRect.y1 },
                            Size{ 2_idp, textRect.height() } },
                 0.f, 0.f, fillColor = textColor, strokeWidth = 0);
@@ -179,21 +175,21 @@ void TextEditor::normalizeCursor(int textLen) {
 
 void TextEditor::normalizeVisibleOffset() {
     const int availWidth = m_clientRect.width();
-    if (m_preparedText.carets.empty() || m_preparedText.carets.back().x < availWidth)
-        visibleOffset = 0;
+    if (m_preparedText.carets.empty() || m_preparedText.carets.back() < availWidth)
+        m_visibleOffset = 0;
     else
-        visibleOffset = std::max(
-            0, std::min(visibleOffset, static_cast<int>(m_preparedText.carets.back().x - availWidth)));
+        m_visibleOffset = std::max(
+            0, std::min(m_visibleOffset, static_cast<int>(m_preparedText.carets.back() - availWidth)));
 }
 
 void TextEditor::makeCursorVisible(int textLen) {
     const int availWidth = m_clientRect.width();
     const int cursor     = std::max(0, std::min(this->cursor, textLen));
-    const int cursorPos  = m_preparedText.carets[m_preparedText.characterToGrapheme(cursor)].x;
-    if (cursorPos < visibleOffset)
-        visibleOffset = cursorPos - 2_idp;
-    else if (cursorPos > visibleOffset + availWidth)
-        visibleOffset = cursorPos - availWidth + 2_idp;
+    const int cursorPos  = m_preparedText.carets[m_preparedText.characterToGrapheme(cursor)];
+    if (cursorPos < m_visibleOffset)
+        m_visibleOffset = cursorPos - 2_idp;
+    else if (cursorPos > m_visibleOffset + availWidth)
+        m_visibleOffset = cursorPos - availWidth + 2_idp;
     normalizeVisibleOffset();
 }
 
@@ -202,9 +198,9 @@ int TextEditor::offsetToPosition(float x) const {
         return 0;
     }
     int nearest    = 0;
-    float distance = std::abs(m_preparedText.carets.front().x - x);
+    float distance = std::abs(m_preparedText.carets.front() - x);
     for (size_t i = 1; i < m_preparedText.carets.size(); ++i) {
-        float new_distance = std::abs(m_preparedText.carets[i].x - x);
+        float new_distance = std::abs(m_preparedText.carets[i] - x);
         if (new_distance < distance) {
             distance = new_distance;
             nearest  = i;
@@ -254,24 +250,25 @@ void TextEditor::onEvent(Event& event) {
             selectAll();
         }
     }
-    switch (const auto [flag, offset, mods] = event.dragged(mouseSelection); flag) {
+    switch (const auto [flag, offset, mods] = event.dragged(m_mouseSelection); flag) {
     case DragEvent::Started: {
         text        = utf8ToUtf32(m_text);
         m_blinkTime = frameStartTime;
         focus();
-        cursor         = offsetToPosition(event.as<EventMouse>()->downPoint->x - textRect.x1 + visibleOffset);
+        cursor = offsetToPosition(event.as<EventMouse>()->downPoint->x - textRect.x1 + m_visibleOffset);
         selectedLength = 0;
         normalizeCursor(text.size());
-        startCursorDragging =
-            offsetToPosition(event.as<EventMouse>()->downPoint->x - textRect.x1 + visibleOffset);
+        m_startCursorDragging =
+            offsetToPosition(event.as<EventMouse>()->downPoint->x - textRect.x1 + m_visibleOffset);
         event.stopPropagation();
     } break;
     case DragEvent::Dragging: {
-        text                = utf8ToUtf32(m_text);
-        m_blinkTime         = frameStartTime;
-        const int endCursor = offsetToPosition(event.as<EventMouse>()->point.x - textRect.x1 + visibleOffset);
-        selectedLength      = startCursorDragging - endCursor;
-        cursor              = endCursor;
+        text        = utf8ToUtf32(m_text);
+        m_blinkTime = frameStartTime;
+        const int endCursor =
+            offsetToPosition(event.as<EventMouse>()->point.x - textRect.x1 + m_visibleOffset);
+        selectedLength = m_startCursorDragging - endCursor;
+        cursor         = endCursor;
         normalizeCursor(text.size());
         event.stopPropagation();
     } break;
@@ -330,7 +327,7 @@ void TextEditor::onEvent(Event& event) {
                         selectedLength += oldCursor - cursor;
                     } else if ((e->mods & KeyModifiers::Regular) == KeyModifiers::None) {
                         if (selectedLength) {
-                            cursor         = selection().first;
+                            cursor         = selection().min;
                             selectedLength = 0;
                         } else {
                             cursor = moveCursor(cursor, -1);
@@ -348,7 +345,7 @@ void TextEditor::onEvent(Event& event) {
                         selectedLength += oldCursor - cursor;
                     } else if ((e->mods & KeyModifiers::Regular) == KeyModifiers::None) {
                         if (selectedLength) {
-                            cursor         = selection().second;
+                            cursor         = selection().min;
                             selectedLength = 0;
                         } else {
                             cursor = moveCursor(cursor, +1);
@@ -470,9 +467,9 @@ void TextEditor::selectAll(const std::u32string& text) {
 
 void TextEditor::deleteSelection(std::u32string& text) {
     if (selectedLength) {
-        const std::pair<int, int> selection = this->selection();
-        text.erase(selection.first, selection.second - selection.first);
-        cursor         = selection.first;
+        const Range<int32_t> selection = this->selection();
+        text.erase(selection.min, selection.distance());
+        cursor         = selection.min;
         selectedLength = 0;
     }
 }
@@ -490,19 +487,19 @@ void TextEditor::pasteFromClipboard(std::u32string& text) {
 
 void TextEditor::copyToClipboard(const std::u32string& text) {
     if (selectedLength) {
-        const std::pair<int, int> selection = this->selection();
+        const Range<int32_t> selection = this->selection();
         if (m_passwordChar == 0)
-            copyTextToClipboard(utf32ToUtf8(newLinesToNative(
-                normalizeCompose(text.substr(selection.first, selection.second - selection.first)))));
+            copyTextToClipboard(utf32ToUtf8(
+                newLinesToNative(normalizeCompose(text.substr(selection.min, selection.distance())))));
     }
 }
 
 void TextEditor::cutToClipboard(std::u32string& text) {
     if (selectedLength) {
-        const std::pair<int, int> selection = this->selection();
+        const Range<int32_t> selection = this->selection();
         if (m_passwordChar == 0)
-            copyTextToClipboard(utf32ToUtf8(newLinesToNative(
-                normalizeCompose(text.substr(selection.first, selection.second - selection.first)))));
+            copyTextToClipboard(utf32ToUtf8(
+                newLinesToNative(normalizeCompose(text.substr(selection.min, selection.distance())))));
         deleteSelection(text);
     }
 }
@@ -510,14 +507,6 @@ void TextEditor::cutToClipboard(std::u32string& text) {
 void TextEditor::updateGraphemes() {
     m_preparedText = fonts->prepare(m_cachedFont, TextWithOptions{ m_cachedText, LayoutOptions::SingleLine });
     m_preparedText.updateCaretData();
-}
-
-Value<std::string> TextEditor::text() {
-    return Value<std::string>{
-        &m_text,
-        this,
-        &TextEditor::updateState,
-    };
 }
 
 void TextEditor::updateState() {
@@ -546,9 +535,8 @@ void TextEditor::onLayoutUpdated() {
     updateState();
 }
 
-PasswordEditor::PasswordEditor(Construction construction, Value<std::string> text,
-                               ArgumentsView<PasswordEditor> args)
-    : TextEditor{ construction, std::move(text), nullptr } {
+PasswordEditor::PasswordEditor(Construction construction, ArgumentsView<PasswordEditor> args)
+    : TextEditor{ construction, nullptr } {
     m_passwordChar = defaultPasswordChar;
     args.apply(this);
 }

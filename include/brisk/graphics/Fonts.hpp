@@ -412,19 +412,28 @@ struct Glyph {
     uint32_t begin_char = UINT32_MAX;
 
     /**
-     * @brief The index of the last character in the cluster associated with the glyph.
+     * @brief The index of the first character after the cluster associated with the glyph.
+     * This marks the position immediately following the last character in the cluster.
      */
     uint32_t end_char   = UINT32_MAX;
+
+    Range<uint32_t> charRange() const {
+        return { begin_char, end_char };
+    }
+
+    Range<float> caretRange() const {
+        return { left_caret, right_caret };
+    }
 
     /**
      * @brief The text direction for this glyph (e.g., left-to-right or right-to-left).
      */
-    TextDirection dir   = TextDirection::LTR;
+    TextDirection dir = TextDirection::LTR;
 
     /**
      * @brief Flags providing additional properties or states of the glyph.
      */
-    GlyphFlags flags    = GlyphFlags::None;
+    GlyphFlags flags  = GlyphFlags::None;
 
     /**
      * @brief Computes the caret position for the glyph based on the text direction.
@@ -590,11 +599,6 @@ struct GlyphRun {
     float verticalAlign;
 
     /**
-     * @brief Line number where the glyph run is located.
-     */
-    int line = 0;
-
-    /**
      * @brief Position of the left-most point of the glyph run at the text baseline.
      */
     PointF position;
@@ -602,6 +606,10 @@ struct GlyphRun {
     Range<float> textVRange() const;
 
     AscenderDescender ascDesc() const;
+
+    float firstCaret() const noexcept;
+
+    float lastCaret() const noexcept;
 
     /**
      * @brief Returns the bounds of the glyph run.
@@ -641,7 +649,7 @@ struct GlyphRun {
      * @param allowEmpty A boolean flag that determines whether an empty glyph run is allowed as a result.
      * @return GlyphRun The widest glyph run that fits within the specified width.
      */
-    GlyphRun breakAt(float width, bool allowEmpty) &;
+    GlyphRun breakAt(float width, bool allowEmpty, bool wrapAnywhere) &;
 
     /**
      * @brief Retrieves the glyph flags associated with the glyph run.
@@ -698,7 +706,7 @@ struct PreparedText {
      *
      * This vector is populated by `updateCaretData` and contains one entry per grapheme boundary.
      */
-    std::vector<PointF> carets;
+    std::vector<float> carets;
 
     /**
      * @brief The ranges of horizontal positions for each grapheme.
@@ -707,16 +715,53 @@ struct PreparedText {
      */
     std::vector<Range<float>> ranges;
 
+    /**
+     * @brief Represents a line of glyphs, including its range and metrics.
+     */
     struct GlyphLine {
+        /**
+         * @brief Range of runs (sequence of glyphs sharing the same style) in the line.
+         *
+         * This range is empty if the line contains no runs.
+         */
         Range<uint32_t> runRange{ UINT32_MAX, 0 };
+
+        /**
+         * @brief Range of graphemes (user-perceived characters) in the line.
+         *
+         * This range is always non-empty, even if the line contains no visible content.
+         */
+        Range<uint32_t> graphemeRange{ UINT32_MAX, 0 };
+
+        /**
+         * @brief The ascender and descender metrics for the line.
+         *
+         * Contains the maximum ascender and descender values for the glyphs in the line.
+         */
         AscenderDescender ascDesc{ 0, 0 };
+
+        /**
+         * @brief The baseline position for the line.
+         *
+         * Represents the vertical offset between this line's baseline and the baseline of the first line.
+         */
         float baseline = 0.f;
 
+        /**
+         * @brief Checks if the line is empty.
+         *
+         * A line is considered empty if it contains no runs.
+         *
+         * @return `true` if the line is empty, `false` otherwise.
+         */
         bool empty() const noexcept {
             return runRange.empty();
         }
     };
 
+    /**
+     * @brief A collection of GlyphLine objects, representing multiple lines of text.
+     */
     std::vector<GlyphLine> lines;
 
     /**
@@ -727,13 +772,35 @@ struct PreparedText {
      */
     void updateCaretData();
 
-    std::span<GlyphRun> firstLine();
-    std::span<GlyphRun> nextLine(std::span<GlyphRun> line);
-    std::span<const GlyphRun> firstLine() const;
-    std::span<const GlyphRun> nextLine(std::span<const GlyphRun> line) const;
-
+    /**
+     * @brief Maps a point to the nearest grapheme boundary.
+     *
+     * Determines the grapheme boundary index corresponding to the provided point in text layout space.
+     *
+     * @param pt The point in text layout space.
+     * @return uint32_t The index of the nearest grapheme boundary.
+     */
     uint32_t caretToGrapheme(PointF pt) const;
-    PointF graphemeToCaret(uint32_t) const;
+
+    /**
+     * @brief Maps a grapheme boundary index to its caret position.
+     *
+     * Calculates the position of the caret corresponding to the given grapheme boundary in text layout space.
+     *
+     * @param graphemeIndex The index of the grapheme boundary.
+     * @return PointF The caret position for the specified grapheme.
+     */
+    PointF graphemeToCaret(uint32_t graphemeIndex) const;
+
+    /**
+     * @brief Maps a vertical position to the nearest text line.
+     *
+     * Determines the line index corresponding to the given vertical position in text layout space.
+     *
+     * @param y The vertical position in text layout space.
+     * @return int32_t The index of the nearest line, or -1 if the position is outside the layout.
+     */
+    int32_t yToLine(float y) const;
 
     /**
      * @brief Retrieves a glyph run in visual order.
@@ -762,61 +829,41 @@ struct PreparedText {
     /**
      * @brief Wraps text to fit within the given width, modifying the current object.
      *
+     * Wraps lines of text to fit within the specified `maxWidth`. If `wrapAnywhere` is true,
+     * the text can break between any graphemes. Otherwise, breaks occur at word boundaries.
+     *
      * @param maxWidth Maximum allowed width for the text.
+     * @param wrapAnywhere If true, allows breaking between any graphemes; otherwise, breaks at word
+     * boundaries.
      * @return PreparedText The modified object with wrapped lines.
      */
-    PreparedText wrap(float maxWidth) &&;
+    PreparedText wrap(float maxWidth, bool wrapAnywhere = false) &&;
 
     /**
      * @brief Wraps text to fit within the given width, returning a copy.
      *
+     * Wraps lines of text so that they fit within the specified `maxWidth`. If `wrapAnywhere` is true,
+     * the text can break between any graphemes. Otherwise, breaks occur at word boundaries.
+     *
      * @param maxWidth Maximum allowed width for the text.
+     * @param wrapAnywhere If true, allows breaking between any graphemes; otherwise, breaks at word
+     * boundaries.
      * @return PreparedText A copy with wrapped lines.
      */
-    PreparedText wrap(float maxWidth) const&;
+    PreparedText wrap(float maxWidth, bool wrapAnywhere = false) const&;
 
     /**
-     * @brief Applies an offset to all glyph positions in the text.
+     * @brief Aligns text lines horizontally and vertically.
      *
-     * @param offset The offset to apply.
-     */
-    void applyOffset(PointF offset);
-
-    /**
-     * @brief Aligns the text to a specific position.
+     * Adjusts the horizontal offsets of each line based on `alignment_x` and returns a PointF with overall
+     * horizontal and vertical offsets. Apply the returned offset when painting PreparedText for proper
+     * vertical alignment.
      *
-     * @param pos The position to align to.
-     * @param alignment_x Horizontal alignment factor (0 for left, 0.5 for center, 1 for right).
-     * @param alignment_y Vertical alignment factor (0 for top, 0.5 for center, 1 for bottom).
+     * @param alignment_x Horizontal alignment factor (0: left, 0.5: center, 1: right).
+     * @param alignment_y Vertical alignment factor (0: top, 0.5: center, 1: bottom).
+     * @return PointF Offsets for alignment.
      */
-    void align(PointF pos, float alignment_x, float alignment_y);
-
-    /**
-     * @brief Aligns the text within a rectangle.
-     *
-     * @param rect The rectangle to align within.
-     * @param alignment_x Horizontal alignment factor (0 for left, 0.5 for center, 1 for right).
-     * @param alignment_y Vertical alignment factor (0 for top, 0.5 for center, 1 for bottom).
-     */
-    void align(RectangleF rect, float alignment_x, float alignment_y);
-
-    /**
-     * @brief Aligns text lines to a specific position.
-     *
-     * @param pos The position to align to.
-     * @param alignment_x Horizontal alignment factor for lines (0 for left, 0.5 for center, 1 for right).
-     * @param alignment_y Vertical alignment factor for lines (0 for top, 0.5 for center, 1 for bottom).
-     */
-    void alignLines(PointF pos, float alignment_x, float alignment_y);
-
-    /**
-     * @brief Aligns text lines within a rectangle.
-     *
-     * @param rect The rectangle to align lines within.
-     * @param alignment_x Horizontal alignment factor for lines (0 for left, 0.5 for center, 1 for right).
-     * @param alignment_y Vertical alignment factor for lines (0 for top, 0.5 for center, 1 for bottom).
-     */
-    void alignLines(RectangleF rect, float alignment_x, float alignment_y);
+    PointF alignLines(float alignment_x, float alignment_y = 0.f);
 
     /**
      * @brief Converts a character index to its corresponding grapheme index.
@@ -982,7 +1029,8 @@ public:
 
     FontMetrics metrics(const Font& font) const;
     bool hasCodepoint(const Font& font, char32_t codepoint) const;
-    PreparedText prepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF) const;
+    PreparedText prepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF,
+                         bool wrapAnywhere = false) const;
     RectangleF bounds(const Font& font, const TextWithOptions& text,
                       GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
 
@@ -1029,7 +1077,8 @@ private:
         const Font& font, std::u32string_view text, const std::vector<Internal::TextRun>& textRuns) const;
     std::vector<Internal::TextRun> splitControls(std::u32string_view text,
                                                  const std::vector<Internal::TextRun>& textRuns) const;
-    PreparedText doPrepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF) const;
+    PreparedText doPrepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF,
+                           bool wrapAnywhere = false) const;
     PreparedText doShapeCached(const Font& font, const TextWithOptions& text) const;
     PreparedText doShape(const Font& font, const TextWithOptions& text) const;
 };

@@ -132,12 +132,16 @@ void Text::paint(Canvas& canvas) const {
                               .translate(-inner.center().x, -inner.center().y)
                               .rotate90(-static_cast<int>(m_rotation))
                               .translate(rotated.center().x, rotated.center().y);
-            prepared.alignLines(rotated, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
+            PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
             state->scissors = invm.transform(state->scissors);
-            canvas.raw().drawText(prepared, fillColor = color, coordMatrix = m);
+            canvas.raw().drawText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) +
+                                      offset,
+                                  prepared, fillColor = color, coordMatrix = m);
         } else {
-            prepared.alignLines(inner, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            canvas.raw().drawText(prepared, fillColor = color);
+            PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
+            prepared.updateCaretData();
+            offset += inner.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
+            canvas.raw().drawText(offset, prepared, fillColor = color);
         }
     }
 }

@@ -145,6 +145,10 @@ TEST_CASE("textBreakPositions") {
     CHECK(textBreakPositions(U"á", TextBreakMode::Grapheme) == std::vector<uint32_t>{ 0, 2 });
     CHECK(textBreakPositions(U"á̈", TextBreakMode::Grapheme) == std::vector<uint32_t>{ 0, 3 });
 
+    CHECK(textBreakPositions(U"a\nb\nc", TextBreakMode::Grapheme) ==
+          std::vector<uint32_t>{ 0, 1, 2, 3, 4, 5 });
+    CHECK(textBreakPositions(U"a\n\nb", TextBreakMode::Grapheme) == std::vector<uint32_t>{ 0, 1, 2, 3, 4 });
+
     CHECK(textBreakPositions(U"abc", TextBreakMode::Word) == std::vector<uint32_t>{ 0, 3 });
     CHECK(textBreakPositions(U"abc def", TextBreakMode::Word) == std::vector<uint32_t>{ 0, 3, 4, 7 });
 
@@ -224,32 +228,238 @@ TEST_CASE("FontManager") {
     CHECK(metrics == FontMetrics{ 10, 10, -3, 12, 2.531250, 0.750, 5.080, 7.180 });
 
     PreparedText run;
-    run = fontManager->prepare(font, U"Hello, world!"s);
-    fmt::print("{}\n\n", run);
 
-    run = fontManager->prepare(font, U"world!"s);
-    fmt::print("{}\n\n", run);
+    run = fontManager->prepare(font, U"abc"s);
+    REQUIRE(run.runs.size() == 1);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 3u });
+    CHECK(run.runs[0].glyphs.size() == 3);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[0].glyphs[0].codepoint == U'a');
+    CHECK(run.runs[0].glyphs[1].codepoint == U'b');
+    CHECK(run.runs[0].glyphs[2].codepoint == U'c');
+    CHECK(run.runs[0].glyphs[1].pos.x > run.runs[0].glyphs[0].pos.x);
+    CHECK(run.runs[0].glyphs[2].pos.x > run.runs[0].glyphs[1].pos.x);
+    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 0u, 1u }); // ltr
+    CHECK(run.runs[0].glyphs[1].charRange() == Range{ 1u, 2u }); // ltr
+    CHECK(run.runs[0].glyphs[2].charRange() == Range{ 2u, 3u }); // ltr
+    CHECK(run.runs[0].glyphs[1].left_caret > run.runs[0].glyphs[0].left_caret);
+    CHECK(run.runs[0].glyphs[2].left_caret > run.runs[0].glyphs[1].left_caret);
+    CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
+    CHECK(run.lines.size() == 1);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 4);
+    REQUIRE(run.ranges.size() == 3);
+    CHECK(run.carets[1] > run.carets[0]);
+    CHECK(run.carets[2] > run.carets[1]);
+    CHECK(run.carets[3] > run.carets[2]);
+    CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
+    CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
+    CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
+    CHECK(run.graphemeToCaret(3) == PointF{ run.runs[0].glyphs[2].right_caret, 0 });
 
-    run = fontManager->prepare(font, U"A B C D E F"s);
-    fmt::print("{}\n\n", run);
+    run = fontManager->prepare(font, U"ǎb"s);
+    REQUIRE(run.runs.size() == 1);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 3u });
+    CHECK(run.runs[0].glyphs.size() == 2);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[0].glyphs[0].codepoint == U'a'); // ǎ represented by combined glyph
+    CHECK(run.runs[0].glyphs[1].codepoint == U'b');
+    CHECK(run.runs[0].glyphs[1].pos.x > run.runs[0].glyphs[0].pos.x);
+    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 0u, 2u }); // ltr
+    CHECK(run.runs[0].glyphs[1].charRange() == Range{ 2u, 3u }); // ltr
+    CHECK(run.runs[0].glyphs[1].left_caret > run.runs[0].glyphs[0].left_caret);
+    CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
+    REQUIRE(run.lines.size() == 1);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 3);
+    REQUIRE(run.ranges.size() == 2);
+    CHECK(run.carets[1] > run.carets[0]);
+    CHECK(run.carets[2] > run.carets[1]);
+    CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
+    CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
+    CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
 
-    run = fontManager->prepare(font, U"A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"s);
-    fmt::print("{}\n\n", run);
+    run = fontManager->prepare(font, U"a\nb"s);
+    REQUIRE(run.runs.size() == 2);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 1u });
+    CHECK(run.runs[0].glyphs.size() == 1);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[0].glyphs[0].codepoint == U'a');
+    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 0u, 1u });
+    CHECK(run.runs[1].charRange() == Range{ 2u, 3u });
+    CHECK(run.runs[1].glyphs.size() == 1);
+    CHECK(run.runs[1].direction == TextDirection::LTR);
+    CHECK(run.runs[1].glyphs[0].codepoint == U'b');
+    CHECK(run.runs[1].glyphs[0].charRange() == Range{ 2u, 3u });
+    CHECK(run.lines.size() == 2);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
+    CHECK(run.lines[1].runRange == Range{ 1u, 2u });
+    CHECK(run.lines[1].graphemeRange == Range{ 2u, 3u });
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 4);
+    REQUIRE(run.ranges.size() == 3);
+    CHECK(run.carets[0] == 0);
+    CHECK(run.carets[1] > 0);
+    CHECK(run.carets[2] == 0);
+    CHECK(run.carets[3] > 0);
+    CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
+    CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
+    CHECK(run.graphemeToCaret(2) == PointF{ 0, 12 });
+    CHECK(run.graphemeToCaret(3) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
 
-    run = fontManager->prepare(font, utf8ToUtf32(helloWorld[7]));
-    fmt::print("{}\n\n", run);
+    run = fontManager->prepare(font, U"a\n\nb"s);
+    REQUIRE(run.runs.size() == 2);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 1u });
+    CHECK(run.runs[0].glyphs.size() == 1);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[0].glyphs[0].codepoint == U'a');
+    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 0u, 1u });
+    CHECK(run.runs[1].charRange() == Range{ 3u, 4u });
+    CHECK(run.runs[1].glyphs.size() == 1);
+    CHECK(run.runs[1].direction == TextDirection::LTR);
+    CHECK(run.runs[1].glyphs[0].codepoint == U'b');
+    CHECK(run.runs[1].glyphs[0].charRange() == Range{ 3u, 4u });
+    CHECK(run.lines.size() == 3);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
+    CHECK(run.lines[1].runRange == Range{ 1u, 1u });
+    CHECK(run.lines[1].graphemeRange == Range{ 2u, 3u });
+    CHECK(run.lines[2].runRange == Range{ 1u, 2u });
+    CHECK(run.lines[2].graphemeRange == Range{ 3u, 4u });
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 5);
+    REQUIRE(run.ranges.size() == 4);
+    CHECK(run.carets[0] == 0);
+    CHECK(run.carets[1] > 0);
+    CHECK(run.carets[2] == 0);
+    CHECK(run.carets[3] == 0);
+    CHECK(run.carets[4] > 0);
+    // CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
+    // CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
+    // CHECK(run.graphemeToCaret(2) == PointF{ 0, 12 });
+    // CHECK(run.graphemeToCaret(3) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
 
-    run = fontManager->prepare(font, utf8ToUtf32(helloWorld[11]));
-    fmt::print("{}\n\n", run);
+    run = fontManager->prepare(font, U"ab"s, 1.f, true);
+    REQUIRE(run.runs.size() == 2);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 1u });
+    CHECK(run.runs[0].glyphs.size() == 1);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[0].glyphs[0].codepoint == U'a');
+    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 0u, 1u });
+    CHECK(run.runs[1].charRange() == Range{ 1u, 2u });
+    CHECK(run.runs[1].glyphs.size() == 1);
+    CHECK(run.runs[1].direction == TextDirection::LTR);
+    CHECK(run.runs[1].glyphs[0].codepoint == U'b');
+    CHECK(run.runs[1].glyphs[0].charRange() == Range{ 1u, 2u });
+    CHECK(run.lines.size() == 2);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 1u });
+    CHECK(run.lines[1].runRange == Range{ 1u, 2u });
+    CHECK(run.lines[1].graphemeRange == Range{ 1u, 2u });
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 3);
+    REQUIRE(run.ranges.size() == 2);
+    CHECK(run.carets[0] == 0);
+    CHECK(run.carets[1] == 0);
+    CHECK(run.carets[2] > 0);
+    CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
+    CHECK(run.graphemeToCaret(1) == PointF{ 0, 12 });
+    CHECK(run.graphemeToCaret(2) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
 
-    run = fontManager->prepare(font, utf8ToUtf32(helloWorld[53]));
-    fmt::print("{}\n\n", run);
+    run = fontManager->prepare(font, U"ابت"s);
+    REQUIRE(run.runs.size() == 1);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 3u });
+    CHECK(run.runs[0].glyphs.size() == 3);
+    CHECK(run.runs[0].direction == TextDirection::RTL);
+    CHECK(run.runs[0].glyphs[0].codepoint == U'ت');
+    CHECK(run.runs[0].glyphs[1].codepoint == U'ب');
+    CHECK(run.runs[0].glyphs[2].codepoint == U'ا');
+    CHECK(run.runs[0].glyphs[1].pos.x > run.runs[0].glyphs[0].pos.x);
+    CHECK(run.runs[0].glyphs[2].pos.x > run.runs[0].glyphs[1].pos.x);
+    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 2u, 3u }); // rtl
+    CHECK(run.runs[0].glyphs[1].charRange() == Range{ 1u, 2u }); // rtl
+    CHECK(run.runs[0].glyphs[2].charRange() == Range{ 0u, 1u }); // rtl
+    CHECK(run.runs[0].glyphs[1].left_caret > run.runs[0].glyphs[0].left_caret);
+    CHECK(run.runs[0].glyphs[2].left_caret > run.runs[0].glyphs[1].left_caret);
+    CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
+    CHECK(run.lines.size() == 1);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 4);
+    REQUIRE(run.ranges.size() == 3);
+    CHECK(run.carets[1] < run.carets[0]); // rtl
+    CHECK(run.carets[2] < run.carets[1]); // rtl
+    CHECK(run.carets[3] < run.carets[2]); // rtl
+    CHECK(run.graphemeToCaret(0) == PointF{ run.runs[0].glyphs[2].right_caret, 0 });
+    CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
+    CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
+    CHECK(run.graphemeToCaret(3) == PointF{ run.runs[0].glyphs[0].left_caret, 0 });
 
-    run = fontManager->prepare(font, utf8ToUtf32(helloWorld[57]));
-    fmt::print("{}\n\n", run);
+    run = fontManager->prepare(font, U"abאבcd"s);
+    REQUIRE(run.runs.size() == 3);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
+    CHECK(run.runs[0].glyphs.size() == 2);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[1].charRange() == Range{ 2u, 4u });
+    CHECK(run.runs[1].glyphs.size() == 2);
+    CHECK(run.runs[1].direction == TextDirection::RTL);
+    CHECK(run.runs[2].charRange() == Range{ 4u, 6u });
+    CHECK(run.runs[2].glyphs.size() == 2);
+    CHECK(run.runs[2].direction == TextDirection::LTR);
+    CHECK(run.lines.size() == 1);
+    CHECK(run.lines[0].runRange == Range{ 0u, 3u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 6u });
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 7);
+    REQUIRE(run.ranges.size() == 6);
+    CHECK(run.carets[0] == 0);
+    CHECK(run.carets[1] > run.carets[0]);
+    CHECK(run.carets[2] > run.carets[1]);
+    CHECK(run.carets[3] > run.carets[2]);
+    CHECK(run.carets[4] < run.carets[3]);
+    CHECK(run.carets[4] == run.carets[2]);
+    CHECK(run.carets[5] > run.carets[3]);
+    CHECK(run.carets[6] > run.carets[5]);
 
-    fmt::println("breaks: {}",
-                 fmt::join(textBreakPositions(utf8ToUtf32(helloWorld[57]), TextBreakMode::Line), ", "));
+    run = fontManager->prepare(font, U"abאבcd"s, 22, true);
+    REQUIRE(run.runs.size() == 4);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
+    CHECK(run.runs[0].glyphs.size() == 2);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[1].charRange() == Range{ 2u, 3u });
+    CHECK(run.runs[1].glyphs.size() == 1);
+    CHECK(run.runs[1].direction == TextDirection::RTL);
+    CHECK(run.runs[2].charRange() == Range{ 3u, 4u });
+    CHECK(run.runs[2].glyphs.size() == 1);
+    CHECK(run.runs[2].direction == TextDirection::RTL);
+    CHECK(run.runs[3].charRange() == Range{ 4u, 6u });
+    CHECK(run.runs[3].glyphs.size() == 2);
+    CHECK(run.runs[3].direction == TextDirection::LTR);
+    REQUIRE(run.lines.size() == 2);
+    CHECK(run.lines[0].runRange == Range{ 0u, 2u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
+    CHECK(run.lines[1].runRange == Range{ 2u, 4u });
+    CHECK(run.lines[1].graphemeRange == Range{ 3u, 6u });
+
+    run = fontManager->prepare(font, U"fi"s);
+    REQUIRE(run.runs.size() == 1);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
+    CHECK(run.runs[0].glyphs.size() == 1);
+    run.updateCaretData();
+    REQUIRE(run.carets.size() == 3);
+    CHECK(run.carets[0] == 0);
+    CHECK(run.carets[1] > run.carets[0]);
+    CHECK(run.carets[2] > run.carets[1]);
+    CHECK(!std::isnan(run.carets[2]));
+    REQUIRE(run.lines.size() == 1);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
 
     RectangleF bounds          = fontManager->bounds(font, U"Hello, world!"s, GlyphRunBounds::Text);
     bounds                     = fontManager->bounds(font, U"  Hello, world!"s, GlyphRunBounds::Text);
@@ -421,10 +631,11 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
     if (icuAvailable) {
         visualTestMono("wrapped-rtl4", { 128, 128 }, [&](RC<Image> image) {
             Font font{ noto, 16.f };
-            auto t   = U"א          ב ג ד ה ו ז ח ט י";
-            auto run = fontManager->prepare(font, t, 24);
-            run.alignLines(PointF{ 24, 0 }, 1.f, 0.f);
-            fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::None, { 3, 3 + 24 }, { 20 });
+            auto t        = U"א          ב ג ד ה ו ז ח ט י";
+            auto run      = fontManager->prepare(font, t, 24);
+            PointF offset = run.alignLines(1.f);
+            fontManager->testRender(image, run, PointF{ 24, 0 } + PointF{ 3, 20 } + offset,
+                                    TestRenderFlags::None, { 3, 3 + 24 }, { 20 });
         });
     }
     visualTestMono("wrapped-abc0", { 128, 128 }, [&](RC<Image> image) {
@@ -454,9 +665,11 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
             // clang-format off
         auto t = U"يولد جميع الناس أحرارًا متساوين في الكرامة والحقوق. وقد وهبوا عقلاً وضميرًا وعليهم أن يعامل بعضهم بعضًا بروح الإخاء.";
             // clang-format on
-            auto run = fontManager->prepare(font, t, 360);
-            run.alignLines({ 0, 0, 360, 384 }, 1.f, 0.f);
-            fontManager->testRender(image, run, { 23, 36 }, TestRenderFlags::None, { 23, 23 + 360 }, { 36 });
+            auto run      = fontManager->prepare(font, t, 360);
+            PointF offset = run.alignLines(1.f);
+            fontManager->testRender(image, run,
+                                    RectangleF{ 0, 0, 360, 384 }.at(1, 0.f) + PointF{ 23, 36 } + offset,
+                                    TestRenderFlags::None, { 23, 23 + 360 }, { 36 });
         });
     }
     visualTestMono("letter-spacing", { 640, 64 }, [&](RC<Image> image) {
@@ -506,18 +719,22 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
 
     visualTestMono("alignment-ltr", { 256, 64 }, [&](RC<Image> image) {
         Font font{ noto, 32.f };
-        auto t   = U"Hello, world!";
-        auto run = fontManager->prepare(font, t);
-        run.align(RectangleF(PointF(0, 0), image->size()).withPadding(2, 2), 0.f, 0.5f);
-        fontManager->testRender(image, run, { 0, 0 }, TestRenderFlags::TextBounds);
+        auto t        = U"Hello, world!";
+        auto run      = fontManager->prepare(font, t);
+        PointF offset = run.alignLines(0.f, 0.5f);
+        fontManager->testRender(image, run,
+                                RectangleF(image->bounds().withPadding(2, 2)).at(0, 0.5f) + offset,
+                                TestRenderFlags::TextBounds);
     });
     if (icuAvailable) {
         visualTestMono("alignment-rtl", { 256, 64 }, [&](RC<Image> image) {
             Font font{ noto, 32.f };
-            auto t   = U"مرحبا بالعالم!";
-            auto run = fontManager->prepare(font, t);
-            run.align(RectangleF(PointF(0, 0), image->size()).withPadding(2, 2), 1.f, 0.5f);
-            fontManager->testRender(image, run, { 0, 0 }, TestRenderFlags::TextBounds);
+            auto t        = U"مرحبا بالعالم!";
+            auto run      = fontManager->prepare(font, t);
+            PointF offset = run.alignLines(1.f, 0.5f);
+            fontManager->testRender(image, run,
+                                    RectangleF(image->bounds().withPadding(2, 2)).at(1, 0.5f) + offset,
+                                    TestRenderFlags::TextBounds);
         });
     }
 
@@ -525,39 +742,49 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         Font font{ noto, 22.f };
         auto t = U"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla scelerisque posuere urna "
                  U"sit amet luctus.";
-        auto run = fontManager->prepare(font, t, image->width() - 4);
-        run.alignLines(RectangleF(PointF(0, 0), image->size()).withPadding(2, 2), 0.f, 0.5f);
-        fontManager->testRender(image, run, { 0, 0 }, TestRenderFlags::TextBounds);
+        auto run      = fontManager->prepare(font, t, image->width() - 4);
+        PointF offset = run.alignLines(0.f, 0.5f);
+        fontManager->testRender(image, run,
+                                RectangleF(image->bounds().withPadding(2, 2)).at(0, 0.5f) + offset,
+                                TestRenderFlags::TextBounds);
     });
     visualTestMono("wrapped-align-center", { 256, 256 }, [&](RC<Image> image) {
         Font font{ noto, 22.f };
         auto t = U"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla scelerisque posuere urna "
                  U"sit amet luctus.";
-        auto run = fontManager->prepare(font, t, image->width() - 4);
-        run.alignLines(RectangleF(PointF(0, 0), image->size()).withPadding(2, 2), 0.5f, 0.5f);
-        fontManager->testRender(image, run, { 0, 0 }, TestRenderFlags::TextBounds);
+        auto run      = fontManager->prepare(font, t, image->width() - 4);
+        PointF offset = run.alignLines(0.5f, 0.5f);
+        fontManager->testRender(image, run,
+                                RectangleF(image->bounds().withPadding(2, 2)).at(0.5f, 0.5f) + offset,
+                                TestRenderFlags::TextBounds);
     });
     visualTestMono("wrapped-align-right", { 256, 256 }, [&](RC<Image> image) {
         Font font{ noto, 22.f };
         auto t = U"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla scelerisque posuere urna "
                  U"sit amet luctus.";
-        auto run = fontManager->prepare(font, t, image->width() - 4);
-        run.alignLines(RectangleF(PointF(0, 0), image->size()).withPadding(2, 2), 1.f, 0.5f);
-        fontManager->testRender(image, run, { 0, 0 }, TestRenderFlags::TextBounds);
+        auto run      = fontManager->prepare(font, t, image->width() - 4);
+        PointF offset = run.alignLines(1.f, 0.5f);
+        fontManager->testRender(image, run,
+                                RectangleF(image->bounds().withPadding(2, 2)).at(1, 0.5f) + offset,
+                                TestRenderFlags::TextBounds);
     });
     visualTestMono("indented-left", { 256, 256 }, [&](RC<Image> image) {
         Font font{ noto, 22.f };
-        auto t   = U"0\n  2\n    4\n  2\n   3\n0";
-        auto run = fontManager->prepare(font, t, image->width() - 4);
-        run.alignLines(RectangleF(PointF(0, 0), image->size()).withPadding(2, 2), 0.f, 0.5f);
-        fontManager->testRender(image, run, { 0, 0 }, TestRenderFlags::TextBounds);
+        auto t        = U"0\n  2\n    4\n  2\n   3\n0";
+        auto run      = fontManager->prepare(font, t, image->width() - 4);
+        PointF offset = run.alignLines(0, 0.5f);
+        fontManager->testRender(image, run,
+                                RectangleF(image->bounds().withPadding(2, 2)).at(0, 0.5f) + offset,
+                                TestRenderFlags::TextBounds);
     });
     visualTestMono("indented-right", { 256, 256 }, [&](RC<Image> image) {
         Font font{ noto, 22.f };
-        auto t   = U"0\n  2\n    4\n  2\n   3\n0";
-        auto run = fontManager->prepare(font, t, image->width() - 4);
-        run.alignLines(RectangleF(PointF(0, 0), image->size()).withPadding(2, 2), 1.f, 0.5f);
-        fontManager->testRender(image, run, { 0, 0 }, TestRenderFlags::TextBounds);
+        auto t        = U"0\n  2\n    4\n  2\n   3\n0";
+        auto run      = fontManager->prepare(font, t, image->width() - 4);
+        PointF offset = run.alignLines(1, 0.5f);
+        fontManager->testRender(image, run,
+                                RectangleF(image->bounds().withPadding(2, 2)).at(1, 0.5f) + offset,
+                                TestRenderFlags::TextBounds);
     });
 
     fontManager.reset();

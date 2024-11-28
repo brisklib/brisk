@@ -371,20 +371,27 @@ void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix matrix, SamplerM
     drawTexture(rect, image, matrix, &m_state.transform, Arg::samplerMode = samplerMode);
 }
 
-void Canvas::fillText(const PreparedText& text) {
-    drawText(text, std::pair{ this, &m_state.fillPaint }, &m_state.transform);
+void Canvas::fillText(PointF position, const PreparedText& text) {
+    fillText(position, { 0, 0 }, text);
+}
+
+void Canvas::fillText(PointF position, PointF alignment, const PreparedText& text) {
+    if (alignment != PointF{}) {
+        position -= text.bounds().size() * alignment;
+    }
+    drawText(position, text, std::pair{ this, &m_state.fillPaint }, &m_state.transform);
 }
 
 void Canvas::fillText(std::string_view text, PointF position, PointF alignment) {
     PreparedText prepared = fonts->prepare(m_state.font, text);
-    prepared.applyOffset(position);
-    return fillText(prepared);
+    PointF offset         = prepared.alignLines(alignment.x, alignment.y);
+    return fillText(position + offset, prepared);
 }
 
 void Canvas::fillText(std::string_view text, RectangleF position, PointF alignment) {
     PreparedText prepared = fonts->prepare(m_state.font, text);
-    prepared.align(position, alignment.x, alignment.y);
-    return fillText(prepared);
+    PointF offset         = prepared.alignLines(alignment.x, alignment.y);
+    return fillText(position.at(alignment) + offset, prepared);
 }
 
 void applier(RenderStateEx* target, const std::pair<Canvas*, Paint*> canvasAndPaint) {
