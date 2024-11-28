@@ -32,6 +32,7 @@
 #include "internal/Constants.hpp"
 #include <bit>
 #include "Reflection.hpp"
+#include <fmt/ranges.h>
 
 namespace Brisk {
 
@@ -517,6 +518,11 @@ struct Range {
     T min; ///< The minimum value of the range.
     T max; ///< The maximum value of the range.
 
+    constexpr static std::tuple Reflection{
+        ReflectionField{ "min", &Range::min },
+        ReflectionField{ "max", &Range::max },
+    };
+
     /**
      * @brief Computes the distance between the minimum and maximum values of the range.
      *
@@ -851,10 +857,9 @@ Overload(Ts&&...) -> Overload<Ts...>;
 
 } // namespace Brisk
 
+namespace fmt {
 template <typename T, typename Char>
-struct fmt::formatter<Brisk::Range<T>, Char> : fmt::formatter<std::basic_string<Char>, Char> {
-    template <typename FormatContext>
-    auto format(const Brisk::Range<T>& val, FormatContext& ctx) const {
-        return fmt::format_to(ctx.out(), "{}..{}", val.min, val.max);
-    }
-};
+struct range_format_kind<Brisk::Range<T>, Char>
+    : std::integral_constant<range_format, range_format::disabled> {};
+
+} // namespace fmt

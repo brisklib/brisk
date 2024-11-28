@@ -22,6 +22,7 @@
 #include <brisk/core/internal/Expected.hpp>
 #include <fmt/format.h>
 #include <brisk/core/Bytes.hpp>
+#include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/IO.hpp>
 
 inline std::string unicodeChar(char32_t value) {
@@ -50,9 +51,17 @@ struct StringMaker<Brisk::expected<T, E>> {
 };
 
 template <typename T>
-struct StringMaker<
-    T, std::enable_if_t<fmt::is_formattable<T>::value && !std::is_array_v<T> &&
-                        !(::Catch::is_range<T>::value && !::Catch::Detail::IsStreamInsertable<T>::value)>> {
+struct StringMaker<Brisk::Range<T>> {
+    static std::string convert(const Brisk::Range<T>& value) {
+        return fmt::format("{}..{}", value.min, value.max);
+    }
+};
+
+template <typename T>
+    requires(!std::is_array_v<T> &&
+             !(::Catch::is_range<T>::value && !::Catch::Detail::IsStreamInsertable<T>::value) &&
+             fmt::has_formatter<T, fmt::format_context>::value)
+struct StringMaker<T> {
     static std::string convert(const T& value) {
         return fmt::to_string(value);
     }
