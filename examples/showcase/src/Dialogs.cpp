@@ -94,6 +94,16 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         },
 
         new Text{ "OS dialogs (window/OSDialogs.hpp)", classes = { "section-header" } },
+        osDialogButton(
+            "Open URL", m_lifetime |
+                            []() {
+                                openURLInBrowser("https://www.brisklib.com/");
+                            }),
+        osDialogButton(
+            "Open folder", m_lifetime |
+                               []() {
+                                   openFolder(defaultFolder(DefaultFolder::Documents));
+                               }),
 
         osDialogButton(
             "Message box (Info)", m_lifetime |

@@ -59,6 +59,16 @@ enum class DialogButtons {
     YesNoCancel = Yes | No | Cancel, ///< Combination of "Yes", "No", and "Cancel" buttons.
 };
 
+template <>
+inline constexpr std::initializer_list<NameValuePair<DialogButtons>> defaultNames<DialogButtons>{
+    { "OK", DialogButtons::OK },         //
+    { "Yes", DialogButtons::Yes },       //
+    { "Cancel", DialogButtons::Cancel }, //
+    { "No", DialogButtons::No },         //
+    { "Close", DialogButtons::Close },   //
+    { "Retry", DialogButtons::Retry },   //
+};
+
 /**
  * @brief Macro to enable bitwise operations for the DialogButtons enum.
  *
