@@ -71,21 +71,17 @@ string wordWrap(string text, size_t columns) {
     }
 }
 
-static bool catIsSpace(utf8proc_category_t c) {
-    return c >= UTF8PROC_CATEGORY_ZS && c <= UTF8PROC_CATEGORY_ZP;
-}
-
 std::string ltrim(std::string s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) BRISK_INLINE_LAMBDA {
-                return !catIsSpace(utf8proc_category(ch));
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned ch) BRISK_INLINE_LAMBDA {
+                return ch > 32;
             }));
     return s;
 }
 
 std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(),
-                         [](int ch) BRISK_INLINE_LAMBDA {
-                             return !catIsSpace(utf8proc_category(ch));
+                         [](unsigned ch) BRISK_INLINE_LAMBDA {
+                             return ch > 32;
                          })
                 .base(),
             s.end());
