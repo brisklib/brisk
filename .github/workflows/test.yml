@@ -229,6 +229,14 @@ jobs:
     - name: Test
       run: |
         WGPU_LONG_TIMEOUT=1 ctest --test-dir build --output-on-failure -E "window_autotests"
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.job}}
+        path: |
+          build/*.png
+          build/*.log
 
   ubuntu-make-gcc-x86_64:
     runs-on: ubuntu-24.04
@@ -254,6 +262,14 @@ jobs:
     - name: Test
       run: |
         WGPU_LONG_TIMEOUT=1 ctest --test-dir build --output-on-failure -E "window_autotests"
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.job}}
+        path: |
+          build/*.png
+          build/*.log
 
   windows-ninja-clang-x86-64:
     runs-on: windows-latest
@@ -282,6 +298,14 @@ jobs:
     - name: Test
       run: |
         ctest --test-dir build --output-on-failure
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.job}}
+        path: |
+          build/*.png
+          build/*.log
 
   windows-vs-x86:
     runs-on: windows-latest
@@ -305,6 +329,14 @@ jobs:
     - name: Test
       run: |
         ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.job}}
+        path: |
+          build/*.png
+          build/*.log
 
   windows-vs-clangcl-x86_64:
     runs-on: windows-latest
@@ -328,6 +360,14 @@ jobs:
     - name: Test
       run: |
         ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.job}}
+        path: |
+          build/*.png
+          build/*.log
 
   macos-ninja-clang-arm64:
     runs-on: macos-latest
@@ -357,6 +397,14 @@ jobs:
     - name: Test
       run: |
         ctest --test-dir build --output-on-failure
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.job}}
+        path: |
+          build/*.png
+          build/*.log
 
   macos-ninja-clang-x86_64:
     runs-on: macos-13
@@ -382,6 +430,14 @@ jobs:
     - name: Test
       run: |
         ctest --test-dir build --output-on-failure
+    - name: Upload test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{github.job}}
+        path: |
+          build/*.png
+          build/*.log
 
   upload-release:
     if: startsWith(github.ref, 'refs/tags/')
