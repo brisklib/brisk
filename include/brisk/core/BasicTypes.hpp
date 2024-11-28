@@ -711,6 +711,9 @@ struct Range {
     }
 };
 
+template <typename T>
+Range(T, T) -> Range<T>;
+
 #define BRISK_FLAGS(TYPE)                                                                                    \
     constexpr std::underlying_type_t<TYPE> operator+(TYPE x) noexcept {                                      \
         return static_cast<std::underlying_type_t<TYPE>>(x);                                                 \
