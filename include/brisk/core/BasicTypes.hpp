@@ -645,6 +645,70 @@ struct Range {
     {
         return { static_cast<U>(min), static_cast<U>(max) };
     }
+
+    /**
+     * @brief A nested iterator class for the Range.
+     */
+    struct RangeIterator {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type        = T;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = const T*;
+        using reference         = const T&;
+
+        explicit RangeIterator(T current) : m_current(current) {}
+
+        reference operator*() const {
+            return m_current;
+        }
+
+        pointer operator->() const {
+            return &m_current;
+        }
+
+        RangeIterator& operator++() {
+            ++m_current;
+            return *this;
+        }
+
+        RangeIterator operator++(int) {
+            RangeIterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+        bool operator==(const RangeIterator& other) const {
+            return m_current == other.m_current;
+        }
+
+        bool operator!=(const RangeIterator& other) const {
+            return !(*this == other);
+        }
+
+    private:
+        T m_current;
+    };
+
+    /**
+     * @brief Returns an iterator to the beginning of the range.
+     *
+     * @return An iterator pointing to the minimum value.
+     */
+    RangeIterator begin() const noexcept {
+        return RangeIterator(min);
+    }
+
+    /**
+     * @brief Returns an iterator to the end of the range.
+     *
+     * The end iterator points just past the maximum value.
+     *
+     * @return An iterator pointing just past the maximum value.
+     */
+    RangeIterator end() const noexcept {
+        return RangeIterator(max);
+    }
 };
 
 #define BRISK_FLAGS(TYPE)                                                                                    \
@@ -783,3 +847,11 @@ template <typename... Ts>
 Overload(Ts&&...) -> Overload<Ts...>;
 
 } // namespace Brisk
+
+template <typename T, typename Char>
+struct fmt::formatter<Brisk::Range<T>, Char> : fmt::formatter<std::basic_string<Char>, Char> {
+    template <typename FormatContext>
+    auto format(const Brisk::Range<T>& val, FormatContext& ctx) const {
+        return fmt::format_to(ctx.out(), "{}..{}", val.min, val.max);
+    }
+};
