@@ -47,6 +47,13 @@ static int32_t findOrAdd(SpriteResources& container, RC<SpriteResource> value) {
     return static_cast<int32_t>(n);
 }
 
+static PointF quantize(PointF pt, unsigned value) {
+    return PointF{
+        std::round(pt.x * value) / value,
+        std::round(pt.y),
+    };
+}
+
 static GeometryGlyphs glyphLayout(SpriteResources& sprites, const PreparedText& prepared,
                                   PointF offset = { 0, 0 }) {
     GeometryGlyphs result;
@@ -56,9 +63,8 @@ static GeometryGlyphs glyphLayout(SpriteResources& sprites, const PreparedText& 
             optional<Internal::GlyphData> data = g.load(run);
             if (data && data->sprite) {
                 GeometryGlyph glyphDesc;
-                PointF pos = g.pos + run.position + offset;
-                glyphDesc.rect.p1 =
-                    PointF(pos.x, std::lround(pos.y)) + PointF(data->offset_x, -data->offset_y);
+                PointF pos        = g.pos + run.position + offset;
+                glyphDesc.rect.p1 = quantize(pos + PointF(data->offset_x, -data->offset_y), fonts->hscale());
                 glyphDesc.rect.p2 =
                     glyphDesc.rect.p1 + PointF(float(data->size.width) / fonts->hscale(), data->size.height);
                 glyphDesc.sprite = static_cast<float>(findOrAdd(sprites, data->sprite));
@@ -76,7 +82,7 @@ GeometryGlyphs pathLayout(SpriteResources& sprites, const RasterizedPath& path) 
     GeometryGlyphs result;
     if (path.sprite) {
         result.push_back(GeometryGlyph{
-            path.bounds,
+            Rectangle(quantize(path.bounds.p1, 1), quantize(path.bounds.p2, 1)),
             path.bounds.size(),
             static_cast<float>(findOrAdd(sprites, path.sprite)),
             float(path.sprite->size.width),
