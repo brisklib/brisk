@@ -137,7 +137,7 @@ constexpr ColorSpace nextColorSpace(ColorSpace space) {
 }
 
 template <ColorSpace Space, typename T>
-constexpr Range<SIMD<T, 3>> colorRange() {
+constexpr Range<SIMD<T, 3>, true> colorRange() {
     if constexpr (Space == ColorSpace::CIEXYZ)
         return {
             SIMD<T, 3>{ T(0), T(0), T(0) },

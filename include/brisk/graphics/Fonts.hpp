@@ -421,7 +421,7 @@ struct Glyph {
         return { begin_char, end_char };
     }
 
-    Range<float> caretRange() const {
+    InclusiveRange<float> caretRange() const {
         return { left_caret, right_caret };
     }
 
@@ -523,9 +523,15 @@ struct AscenderDescender {
     float ascender;  // always positive
     float descender; // always positive
 
+    float height() const noexcept {
+        return ascender + descender;
+    }
+
     friend AscenderDescender max(AscenderDescender a, AscenderDescender b) noexcept {
         return { std::max(a.ascender, b.ascender), std::max(a.descender, b.descender) };
     }
+
+    bool operator==(const AscenderDescender&) const noexcept = default;
 };
 
 /**
@@ -576,17 +582,17 @@ struct GlyphRun {
     /**
      * @brief Horizontal range of all glyphs in the run.
      */
-    mutable Range<float> textHRange;
+    mutable InclusiveRange<float> textHRange;
 
     /**
      * @brief Horizontal range of glyphs, excluding whitespace at line breaks.
      */
-    mutable Range<float> alignmentHRange;
+    mutable InclusiveRange<float> alignmentHRange;
 
     /**
      * @brief Horizontal range of printable glyphs in the run.
      */
-    mutable Range<float> printableHRange;
+    mutable InclusiveRange<float> printableHRange;
 
     /**
      * @brief Visual order of the glyph run within the text.
@@ -603,7 +609,7 @@ struct GlyphRun {
      */
     PointF position;
 
-    Range<float> textVRange() const;
+    InclusiveRange<float> textVRange() const;
 
     AscenderDescender ascDesc() const;
 
@@ -695,25 +701,27 @@ struct PreparedText {
     LayoutOptions options = LayoutOptions::Default;
 
     /**
-     * @brief Grapheme boundaries within the text.
+     * @brief Caret offsets (grapheme boundaries) within the text.
      *
-     * Each entry indicates the start of a grapheme, providing a mapping between graphemes and characters.
+     * Each entry indicates the a grapheme boundary, providing a mapping between graphemes and characters.
      */
     std::vector<uint32_t> graphemeBoundaries;
 
     /**
-     * @brief The caret positions for each grapheme.
+     * @brief The caret positions for each grapheme boundary.
      *
      * This vector is populated by `updateCaretData` and contains one entry per grapheme boundary.
      */
-    std::vector<float> carets;
+    std::vector<float> caretPositions;
 
     /**
      * @brief The ranges of horizontal positions for each grapheme.
      *
      * This vector is populated by `updateCaretData` and contains one entry per grapheme.
      */
-    std::vector<Range<float>> ranges;
+    std::vector<InclusiveRange<float>> ranges;
+
+    bool hasCaretData() const noexcept;
 
     /**
      * @brief Represents a line of glyphs, including its range and metrics.
@@ -727,7 +735,7 @@ struct PreparedText {
         Range<uint32_t> runRange{ UINT32_MAX, 0 };
 
         /**
-         * @brief Range of graphemes (user-perceived characters) in the line.
+         * @brief Range of grapheme boundaries (caret positions) in the line.
          *
          * This range is always non-empty, even if the line contains no visible content.
          */
@@ -767,7 +775,7 @@ struct PreparedText {
     /**
      * @brief Updates the caret positions and horizontal ranges for graphemes.
      *
-     * This function calculates and fills the `carets` and `ranges` fields based on the current text
+     * This function calculates and fills the `caretPositions` and `ranges` fields based on the current text
      * properties.
      */
     void updateCaretData();
@@ -781,6 +789,8 @@ struct PreparedText {
      * @return uint32_t The index of the nearest grapheme boundary.
      */
     uint32_t caretToGrapheme(PointF pt) const;
+    
+    uint32_t caretToGrapheme(uint32_t line, float x) const;
 
     /**
      * @brief Maps a grapheme boundary index to its caret position.
@@ -791,6 +801,8 @@ struct PreparedText {
      * @return PointF The caret position for the specified grapheme.
      */
     PointF graphemeToCaret(uint32_t graphemeIndex) const;
+
+    uint32_t graphemeToLine(uint32_t graphemeIndex) const;
 
     /**
      * @brief Maps a vertical position to the nearest text line.
@@ -864,6 +876,8 @@ struct PreparedText {
      * @return PointF Offsets for alignment.
      */
     PointF alignLines(float alignment_x, float alignment_y = 0.f);
+
+    PointF alignLines(PointF alignment);
 
     /**
      * @brief Converts a character index to its corresponding grapheme index.

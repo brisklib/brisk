@@ -233,8 +233,8 @@ static bool isSplit(char32_t previous, char32_t current, TextBreakMode mode) {
     }
 }
 
-std::vector<int32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode) {
-    std::vector<int32_t> result;
+std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode) {
+    std::vector<uint32_t> result;
     result.push_back(0);
     if (text.empty())
         return result;

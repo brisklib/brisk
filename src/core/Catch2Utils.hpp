@@ -50,9 +50,9 @@ struct StringMaker<Brisk::expected<T, E>> {
     }
 };
 
-template <typename T>
-struct StringMaker<Brisk::Range<T>> {
-    static std::string convert(const Brisk::Range<T>& value) {
+template <typename T, bool inclusive>
+struct StringMaker<Brisk::Range<T, inclusive>> {
+    static std::string convert(const Brisk::Range<T, inclusive>& value) {
         return fmt::format("{}..{}", value.min, value.max);
     }
 };

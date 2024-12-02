@@ -58,6 +58,15 @@ struct fmt::formatter<Brisk::FontFamily> : fmt::formatter<std::string> {
 };
 
 template <>
+struct fmt::formatter<Brisk::AscenderDescender> : fmt::formatter<std::string> {
+    template <typename FormatContext>
+    auto format(const Brisk::AscenderDescender& value, FormatContext& ctx) const {
+        return fmt::formatter<std::string>::format(fmt::format("{}/{}", value.ascender, value.descender),
+                                                   ctx);
+    }
+};
+
+template <>
 struct fmt::formatter<Brisk::FontManager::FontKey> : fmt::formatter<std::string> {
     template <typename FormatContext>
     auto format(const Brisk::FontManager::FontKey& value, FormatContext& ctx) const {
@@ -229,8 +238,20 @@ TEST_CASE("FontManager") {
 
     PreparedText run;
 
+    run = fontManager->prepare(font, U""s);
+    REQUIRE(run.runs.size() == 0);
+    REQUIRE(run.graphemeBoundaries.size() == 1);
+    REQUIRE(run.lines.size() == 1);
+    CHECK(run.lines[0].runRange == Range{ 0u, 0u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 1u });
+    run.updateCaretData();
+    REQUIRE(run.caretPositions.size() == 1);
+    REQUIRE(run.ranges.size() == 0);
+    CHECK(run.caretPositions[0] == 0);
+
     run = fontManager->prepare(font, U"abc"s);
     REQUIRE(run.runs.size() == 1);
+    REQUIRE(run.graphemeBoundaries.size() == 4);
     CHECK(run.runs[0].charRange() == Range{ 0u, 3u });
     CHECK(run.runs[0].glyphs.size() == 3);
     CHECK(run.runs[0].direction == TextDirection::LTR);
@@ -245,15 +266,15 @@ TEST_CASE("FontManager") {
     CHECK(run.runs[0].glyphs[1].left_caret > run.runs[0].glyphs[0].left_caret);
     CHECK(run.runs[0].glyphs[2].left_caret > run.runs[0].glyphs[1].left_caret);
     CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
-    CHECK(run.lines.size() == 1);
+    REQUIRE(run.lines.size() == 1);
     CHECK(run.lines[0].runRange == Range{ 0u, 1u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 4u });
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 4);
+    REQUIRE(run.caretPositions.size() == 4);
     REQUIRE(run.ranges.size() == 3);
-    CHECK(run.carets[1] > run.carets[0]);
-    CHECK(run.carets[2] > run.carets[1]);
-    CHECK(run.carets[3] > run.carets[2]);
+    CHECK(run.caretPositions[1] > run.caretPositions[0]);
+    CHECK(run.caretPositions[2] > run.caretPositions[1]);
+    CHECK(run.caretPositions[3] > run.caretPositions[2]);
     CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
     CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
     CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
@@ -273,12 +294,12 @@ TEST_CASE("FontManager") {
     CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
     REQUIRE(run.lines.size() == 1);
     CHECK(run.lines[0].runRange == Range{ 0u, 1u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 3);
+    REQUIRE(run.caretPositions.size() == 3);
     REQUIRE(run.ranges.size() == 2);
-    CHECK(run.carets[1] > run.carets[0]);
-    CHECK(run.carets[2] > run.carets[1]);
+    CHECK(run.caretPositions[1] > run.caretPositions[0]);
+    CHECK(run.caretPositions[2] > run.caretPositions[1]);
     CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
     CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
     CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
@@ -295,22 +316,35 @@ TEST_CASE("FontManager") {
     CHECK(run.runs[1].direction == TextDirection::LTR);
     CHECK(run.runs[1].glyphs[0].codepoint == U'b');
     CHECK(run.runs[1].glyphs[0].charRange() == Range{ 2u, 3u });
-    CHECK(run.lines.size() == 2);
+    REQUIRE(run.lines.size() == 2);
     CHECK(run.lines[0].runRange == Range{ 0u, 1u });
     CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
     CHECK(run.lines[1].runRange == Range{ 1u, 2u });
-    CHECK(run.lines[1].graphemeRange == Range{ 2u, 3u });
+    CHECK(run.lines[1].graphemeRange == Range{ 2u, 4u });
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 4);
+    REQUIRE(run.caretPositions.size() == 4);
     REQUIRE(run.ranges.size() == 3);
-    CHECK(run.carets[0] == 0);
-    CHECK(run.carets[1] > 0);
-    CHECK(run.carets[2] == 0);
-    CHECK(run.carets[3] > 0);
+    CHECK(run.caretPositions[0] == 0);
+    CHECK(run.caretPositions[1] > 0);
+    CHECK(run.caretPositions[2] == 0);
+    CHECK(run.caretPositions[3] > 0);
     CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
     CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
     CHECK(run.graphemeToCaret(2) == PointF{ 0, 12 });
     CHECK(run.graphemeToCaret(3) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
+
+    run = fontManager->prepare(font, U"a\n"s);
+    REQUIRE(run.runs.size() == 1);
+    CHECK(run.runs[0].charRange() == Range{ 0u, 1u });
+    CHECK(run.runs[0].glyphs.size() == 1);
+    CHECK(run.runs[0].direction == TextDirection::LTR);
+    CHECK(run.runs[0].glyphs[0].codepoint == U'a');
+    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 0u, 1u });
+    REQUIRE(run.lines.size() == 2);
+    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
+    CHECK(run.lines[1].runRange == Range{ 1u, 1u });
+    CHECK(run.lines[1].graphemeRange == Range{ 2u, 3u });
 
     run = fontManager->prepare(font, U"a\n\nb"s);
     REQUIRE(run.runs.size() == 2);
@@ -324,21 +358,21 @@ TEST_CASE("FontManager") {
     CHECK(run.runs[1].direction == TextDirection::LTR);
     CHECK(run.runs[1].glyphs[0].codepoint == U'b');
     CHECK(run.runs[1].glyphs[0].charRange() == Range{ 3u, 4u });
-    CHECK(run.lines.size() == 3);
+    REQUIRE(run.lines.size() == 3);
     CHECK(run.lines[0].runRange == Range{ 0u, 1u });
     CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
     CHECK(run.lines[1].runRange == Range{ 1u, 1u });
     CHECK(run.lines[1].graphemeRange == Range{ 2u, 3u });
     CHECK(run.lines[2].runRange == Range{ 1u, 2u });
-    CHECK(run.lines[2].graphemeRange == Range{ 3u, 4u });
+    CHECK(run.lines[2].graphemeRange == Range{ 3u, 5u });
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 5);
+    REQUIRE(run.caretPositions.size() == 5);
     REQUIRE(run.ranges.size() == 4);
-    CHECK(run.carets[0] == 0);
-    CHECK(run.carets[1] > 0);
-    CHECK(run.carets[2] == 0);
-    CHECK(run.carets[3] == 0);
-    CHECK(run.carets[4] > 0);
+    CHECK(run.caretPositions[0] == 0);
+    CHECK(run.caretPositions[1] > 0);
+    CHECK(run.caretPositions[2] == 0);
+    CHECK(run.caretPositions[3] == 0);
+    CHECK(run.caretPositions[4] > 0);
     // CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
     // CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
     // CHECK(run.graphemeToCaret(2) == PointF{ 0, 12 });
@@ -356,17 +390,17 @@ TEST_CASE("FontManager") {
     CHECK(run.runs[1].direction == TextDirection::LTR);
     CHECK(run.runs[1].glyphs[0].codepoint == U'b');
     CHECK(run.runs[1].glyphs[0].charRange() == Range{ 1u, 2u });
-    CHECK(run.lines.size() == 2);
+    REQUIRE(run.lines.size() == 2);
     CHECK(run.lines[0].runRange == Range{ 0u, 1u });
     CHECK(run.lines[0].graphemeRange == Range{ 0u, 1u });
     CHECK(run.lines[1].runRange == Range{ 1u, 2u });
-    CHECK(run.lines[1].graphemeRange == Range{ 1u, 2u });
+    CHECK(run.lines[1].graphemeRange == Range{ 1u, 3u });
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 3);
+    REQUIRE(run.caretPositions.size() == 3);
     REQUIRE(run.ranges.size() == 2);
-    CHECK(run.carets[0] == 0);
-    CHECK(run.carets[1] == 0);
-    CHECK(run.carets[2] > 0);
+    CHECK(run.caretPositions[0] == 0);
+    CHECK(run.caretPositions[1] == 0);
+    CHECK(run.caretPositions[2] > 0);
     CHECK(run.graphemeToCaret(0) == PointF{ 0, 0 });
     CHECK(run.graphemeToCaret(1) == PointF{ 0, 12 });
     CHECK(run.graphemeToCaret(2) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
@@ -387,15 +421,15 @@ TEST_CASE("FontManager") {
     CHECK(run.runs[0].glyphs[1].left_caret > run.runs[0].glyphs[0].left_caret);
     CHECK(run.runs[0].glyphs[2].left_caret > run.runs[0].glyphs[1].left_caret);
     CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
-    CHECK(run.lines.size() == 1);
+    REQUIRE(run.lines.size() == 1);
     CHECK(run.lines[0].runRange == Range{ 0u, 1u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 4u });
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 4);
+    REQUIRE(run.caretPositions.size() == 4);
     REQUIRE(run.ranges.size() == 3);
-    CHECK(run.carets[1] < run.carets[0]); // rtl
-    CHECK(run.carets[2] < run.carets[1]); // rtl
-    CHECK(run.carets[3] < run.carets[2]); // rtl
+    CHECK(run.caretPositions[1] < run.caretPositions[0]); // rtl
+    CHECK(run.caretPositions[2] < run.caretPositions[1]); // rtl
+    CHECK(run.caretPositions[3] < run.caretPositions[2]); // rtl
     CHECK(run.graphemeToCaret(0) == PointF{ run.runs[0].glyphs[2].right_caret, 0 });
     CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
     CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
@@ -412,20 +446,20 @@ TEST_CASE("FontManager") {
     CHECK(run.runs[2].charRange() == Range{ 4u, 6u });
     CHECK(run.runs[2].glyphs.size() == 2);
     CHECK(run.runs[2].direction == TextDirection::LTR);
-    CHECK(run.lines.size() == 1);
+    REQUIRE(run.lines.size() == 1);
     CHECK(run.lines[0].runRange == Range{ 0u, 3u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 6u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 7u });
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 7);
+    REQUIRE(run.caretPositions.size() == 7);
     REQUIRE(run.ranges.size() == 6);
-    CHECK(run.carets[0] == 0);
-    CHECK(run.carets[1] > run.carets[0]);
-    CHECK(run.carets[2] > run.carets[1]);
-    CHECK(run.carets[3] > run.carets[2]);
-    CHECK(run.carets[4] < run.carets[3]);
-    CHECK(run.carets[4] == run.carets[2]);
-    CHECK(run.carets[5] > run.carets[3]);
-    CHECK(run.carets[6] > run.carets[5]);
+    CHECK(run.caretPositions[0] == 0);
+    CHECK(run.caretPositions[1] > run.caretPositions[0]);
+    CHECK(run.caretPositions[2] > run.caretPositions[1]);
+    CHECK(run.caretPositions[3] > run.caretPositions[2]);
+    CHECK(run.caretPositions[4] < run.caretPositions[3]);
+    CHECK(run.caretPositions[4] == run.caretPositions[2]);
+    CHECK(run.caretPositions[5] > run.caretPositions[3]);
+    CHECK(run.caretPositions[6] > run.caretPositions[5]);
 
     run = fontManager->prepare(font, U"abאבcd"s, 22, true);
     REQUIRE(run.runs.size() == 4);
@@ -445,21 +479,62 @@ TEST_CASE("FontManager") {
     CHECK(run.lines[0].runRange == Range{ 0u, 2u });
     CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
     CHECK(run.lines[1].runRange == Range{ 2u, 4u });
-    CHECK(run.lines[1].graphemeRange == Range{ 3u, 6u });
+    CHECK(run.lines[1].graphemeRange == Range{ 3u, 7u });
 
     run = fontManager->prepare(font, U"fi"s);
     REQUIRE(run.runs.size() == 1);
     CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
     CHECK(run.runs[0].glyphs.size() == 1);
     run.updateCaretData();
-    REQUIRE(run.carets.size() == 3);
-    CHECK(run.carets[0] == 0);
-    CHECK(run.carets[1] > run.carets[0]);
-    CHECK(run.carets[2] > run.carets[1]);
-    CHECK(!std::isnan(run.carets[2]));
+    REQUIRE(run.caretPositions.size() == 3);
+    CHECK(run.caretPositions[0] == 0);
+    CHECK(run.caretPositions[1] > run.caretPositions[0]);
+    CHECK(run.caretPositions[2] > run.caretPositions[1]);
+    CHECK(!std::isnan(run.caretPositions[2]));
     REQUIRE(run.lines.size() == 1);
     CHECK(run.lines[0].runRange == Range{ 0u, 1u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 2u });
+    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
+
+    run = fontManager->prepare(font, U"a"s);
+    REQUIRE(run.lines.size() == 1);
+    REQUIRE(run.lines[0].baseline == 0);
+    run.updateCaretData();
+    CHECK(run.graphemeToCaret(0).y == 0);
+    CHECK(run.graphemeToCaret(1).y == 0);
+    CHECK(run.bounds().height() == 12);
+
+    run = fontManager->prepare(font, U"a\n"s);
+    REQUIRE(run.lines.size() == 2);
+    REQUIRE(run.lines[0].baseline == 0);
+    REQUIRE(run.lines[1].baseline == 12);
+    CHECK(run.lines[1].ascDesc == run.lines[0].ascDesc);
+    run.updateCaretData();
+    CHECK(run.graphemeToCaret(0).y == 0);
+    CHECK(run.graphemeToCaret(1).y == 0);
+    CHECK(run.graphemeToCaret(2).y == 12);
+    CHECK(run.bounds().height() == 24);
+
+    run = fontManager->prepare(font, U"a\nb"s);
+    REQUIRE(run.lines.size() == 2);
+    REQUIRE(run.lines[0].baseline == 0);
+    REQUIRE(run.lines[1].baseline == 12);
+    run.updateCaretData();
+    CHECK(run.graphemeToCaret(0).y == 0);
+    CHECK(run.graphemeToCaret(1).y == 0);
+    CHECK(run.graphemeToCaret(2).y == 12);
+    CHECK(run.bounds().height() == 24);
+
+    run = fontManager->prepare(font, U"a\n\n"s);
+    REQUIRE(run.lines.size() == 3);
+    REQUIRE(run.lines[0].baseline == 0);
+    REQUIRE(run.lines[1].baseline == 12);
+    REQUIRE(run.lines[2].baseline == 24);
+    run.updateCaretData();
+    CHECK(run.graphemeToCaret(0).y == 0);
+    CHECK(run.graphemeToCaret(1).y == 0);
+    CHECK(run.graphemeToCaret(2).y == 12);
+    CHECK(run.graphemeToCaret(3).y == 24);
+    CHECK(run.bounds().height() == 36);
 
     RectangleF bounds          = fontManager->bounds(font, U"Hello, world!"s, GlyphRunBounds::Text);
     bounds                     = fontManager->bounds(font, U"  Hello, world!"s, GlyphRunBounds::Text);

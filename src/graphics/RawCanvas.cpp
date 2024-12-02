@@ -162,7 +162,26 @@ RawCanvas& RawCanvas::drawRectangle(RectangleF rect, float borderRadius, float a
     return *this;
 }
 
-RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, RenderStateExArgs args) {
+RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<uint32_t> selection,
+                               RenderStateExArgs args) {
+
+    if (selection.distance() != 0) {
+        RenderStateEx tempState{ ShaderType::Text, args };
+
+        selection.min = prepared.characterToGrapheme(selection.min);
+        selection.max = prepared.characterToGrapheme(selection.max);
+        for (uint32_t gr : selection) {
+            uint32_t lineIndex = prepared.graphemeToLine(gr);
+            if (lineIndex == UINT32_MAX)
+                continue;
+            auto range       = prepared.ranges[gr];
+            const auto& line = prepared.lines[lineIndex];
+            drawRectangle(Rectangle(pos + PointF(range.min, line.baseline - line.ascDesc.ascender),
+                                    pos + PointF(range.max, line.baseline + line.ascDesc.descender)),
+                          0.f, 0.f, fillColor = tempState.stroke_color1, strokeWidth = 0);
+        }
+    }
+
     SpriteResources sprites;
     GeometryGlyphs g = glyphLayout(sprites, prepared, pos);
     drawText(std::move(sprites), g, args);
@@ -187,11 +206,8 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, RenderS
                          LineEnd::Butt, strokeWidth = 0.f, args);
         }
     }
-    return *this;
-}
 
-RawCanvas& RawCanvas::drawText(const PreparedText& prepared, RenderStateExArgs args) {
-    return drawText(PointF{ 0, 0 }, prepared, args);
+    return *this;
 }
 
 RawCanvas& RawCanvas::drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args) {

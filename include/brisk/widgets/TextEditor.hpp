@@ -44,9 +44,9 @@ public:
         endConstruction();
     }
 
-    Range<int32_t> selection() const;
+    Range<uint32_t> selection() const;
 
-    int offsetToPosition(float x) const;
+    uint32_t caretToOffset(PointF pt) const;
 
     void selectWordAtCursor();
 
@@ -56,15 +56,29 @@ public:
     void copyToClipboard();
     void cutToClipboard();
 
-    int cursor         = 0;
-    int selectedLength = 0;
+    uint32_t cursor        = 0;
+    int32_t selectedLength = 0; // May be negative
+
+    enum class MoveCursor {
+        Up,
+        Down,
+        Right,
+        Left,
+        LineBeginning,
+        LineEnd,
+        TextBeginning,
+        TextEnd,
+    };
+
+    void moveCursor(MoveCursor move, bool select = false);
 
 protected:
     std::string m_text;
     char32_t m_passwordChar = 0;
     std::string m_placeholder;
     Trigger<> m_onEnter;
-    int m_visibleOffset   = 0; // in pixels, positive means first letters hidden
+    Point m_visibleOffset{ 0, 0 };
+    mutable Point m_alignmentOffset{ 0, 0 };
     bool m_mouseSelection = false;
     void onEvent(Event& event) override;
     void paint(Canvas& canvas) const override;
@@ -72,16 +86,18 @@ protected:
     void updateState();
     void setTextInternal(std::string text);
 
+    void typeCharacter(std::u32string& text, char32_t character);
+
     std::u32string m_cachedText;
 
-    PreparedText m_preparedText;
+    mutable PreparedText m_preparedText;
     Font m_cachedFont{};
 
-    int moveCursor(int cursor, int graphemes) const;
-    double m_blinkTime        = 0.0;
-    int m_startCursorDragging = 0;
+    double m_blinkTime            = 0.0;
+    int32_t m_startCursorDragging = 0;
+    bool m_multiline              = false;
     void updateGraphemes();
-    void makeCursorVisible(int textLen);
+    void makeCursorVisible(uint32_t textLen);
 
     void selectAll(const std::u32string& text);
     void deleteSelection(std::u32string& text);
@@ -92,8 +108,7 @@ protected:
     explicit TextEditor(Construction, ArgumentsView<TextEditor> args);
 
 private:
-    void normalizeCursor(int textLen);
-    void normalizeVisibleOffset();
+    void normalizeCursor(uint32_t textLen);
     void createContextMenu();
 
 public:
@@ -103,6 +118,8 @@ public:
     Property<TextEditor, std::string, &TextEditor::m_placeholder> placeholder;
     Property<TextEditor, char32_t, &TextEditor::m_passwordChar, nullptr, nullptr, &TextEditor::updateState>
         passwordChar;
+    Property<TextEditor, bool, &TextEditor::m_multiline, nullptr, nullptr, &TextEditor::updateState>
+        multiline;
     BRISK_PROPERTIES_END
 };
 
@@ -117,6 +134,7 @@ inline namespace Arg {
 constexpr inline Argument<Tag::Named<"text">> text{};
 #endif
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::onEnter)>> onEnter{};
+constexpr inline Argument<Tag::PropArg<decltype(TextEditor::multiline)>> multiline{};
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::placeholder)>> placeholder{};
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::passwordChar)>> passwordChar{};
 } // namespace Arg

@@ -47,7 +47,7 @@ public:
 protected:
     std::string m_text;
     TextAutoSize m_textAutoSize      = TextAutoSize::None;
-    Range<float> m_textAutoSizeRange = { 6.f, 96.f };
+    InclusiveRange<float> m_textAutoSizeRange = { 6.f, 96.f };
     Rotation m_rotation              = Rotation::NoRotation;
     bool m_wordWrap                  = false;
 
