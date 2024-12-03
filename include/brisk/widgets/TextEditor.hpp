@@ -32,17 +32,21 @@ private:
 public:
     constexpr static std::string_view widgetType = "texteditor";
 
-    using Base::apply;
-
     template <WidgetArgument... Args>
-    explicit TextEditor(Value<std::string> text, const Args&... args)
-        : TextEditor(Construction{ widgetType }, std::move(text), std::tuple{ args... }) {
+    explicit TextEditor(const Args&... args) : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
         endConstruction();
     }
 
-    std::pair<int, int> selection() const;
+    template <WidgetArgument... Args>
+    explicit TextEditor(Value<std::string> text, const Args&... args)
+        : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        bindings->connectBidir(Internal::asValue(this->text), std::move(text));
+        endConstruction();
+    }
 
-    int offsetToPosition(float x) const;
+    Range<uint32_t> selection() const;
+
+    uint32_t caretToOffset(PointF pt) const;
 
     void selectWordAtCursor();
 
@@ -52,38 +56,48 @@ public:
     void copyToClipboard();
     void cutToClipboard();
 
-    int visibleOffset   = 0; // in pixels, positive means first letters hidden
-    int cursor          = 0;
-    int selectedLength  = 0;
-    bool mouseSelection = false;
+    uint32_t cursor        = 0;
+    int32_t selectedLength = 0; // May be negative
 
-    Value<std::string> text();
+    enum class MoveCursor {
+        Up,
+        Down,
+        Right,
+        Left,
+        LineBeginning,
+        LineEnd,
+        TextBeginning,
+        TextEnd,
+    };
+
+    void moveCursor(MoveCursor move, bool select = false);
 
 protected:
     std::string m_text;
     char32_t m_passwordChar = 0;
     std::string m_placeholder;
     Trigger<> m_onEnter;
+    Point m_visibleOffset{ 0, 0 };
+    mutable Point m_alignmentOffset{ 0, 0 };
+    bool m_mouseSelection = false;
     void onEvent(Event& event) override;
     void paint(Canvas& canvas) const override;
     void onLayoutUpdated() override;
     void updateState();
     void setTextInternal(std::string text);
 
+    void typeCharacter(std::u32string& text, char32_t character);
+
     std::u32string m_cachedText;
 
-    std::vector<float> m_carets;
-    std::vector<Range<float>> m_ranges;
-    std::vector<int> m_graphemes; // grapheme boundaries (graphemes+1)
+    mutable PreparedText m_preparedText;
     Font m_cachedFont{};
 
-    int moveCursor(int cursor, int graphemes) const;
-    int charToGrapheme(int charIndex) const;
-    int graphemeToChar(int graphemeIndex) const;
-    double m_blinkTime      = 0.0;
-    int startCursorDragging = 0;
+    double m_blinkTime            = 0.0;
+    int32_t m_startCursorDragging = 0;
+    bool m_multiline              = false;
     void updateGraphemes();
-    void makeCursorVisible(int textLen);
+    void makeCursorVisible(uint32_t textLen);
 
     void selectAll(const std::u32string& text);
     void deleteSelection(std::u32string& text);
@@ -91,25 +105,36 @@ protected:
     void copyToClipboard(const std::u32string& text);
     void cutToClipboard(std::u32string& text);
 
-    explicit TextEditor(Construction, Value<std::string> text, ArgumentsView<TextEditor> args);
+    explicit TextEditor(Construction, ArgumentsView<TextEditor> args);
 
 private:
-    void normalizeCursor(int textLen);
-    void normalizeVisibleOffset();
-
+    void normalizeCursor(uint32_t textLen);
     void createContextMenu();
 
 public:
     BRISK_PROPERTIES_BEGIN
+    Property<TextEditor, std::string, &TextEditor::m_text, nullptr, nullptr, &TextEditor::updateState> text;
     Property<TextEditor, Trigger<>, &TextEditor::m_onEnter> onEnter;
     Property<TextEditor, std::string, &TextEditor::m_placeholder> placeholder;
     Property<TextEditor, char32_t, &TextEditor::m_passwordChar, nullptr, nullptr, &TextEditor::updateState>
         passwordChar;
+    Property<TextEditor, bool, &TextEditor::m_multiline, nullptr, nullptr, &TextEditor::updateState>
+        multiline;
     BRISK_PROPERTIES_END
 };
 
+template <typename T>
+void applier(TextEditor* target, ArgVal<Tag::Named<"text">, T> value) {
+    target->text = value.value;
+}
+
 inline namespace Arg {
+#ifndef BRISK__TEXT_ARG_DEFINED
+#define BRISK__TEXT_ARG_DEFINED
+constexpr inline Argument<Tag::Named<"text">> text{};
+#endif
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::onEnter)>> onEnter{};
+constexpr inline Argument<Tag::PropArg<decltype(TextEditor::multiline)>> multiline{};
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::placeholder)>> placeholder{};
 constexpr inline Argument<Tag::PropArg<decltype(TextEditor::passwordChar)>> passwordChar{};
 } // namespace Arg
@@ -121,14 +146,20 @@ public:
     using Base = TextEditor;
 
     template <WidgetArgument... Args>
+    explicit PasswordEditor(const Args&... args)
+        : PasswordEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        endConstruction();
+    }
+
+    template <WidgetArgument... Args>
     explicit PasswordEditor(Value<std::string> text, const Args&... args)
-        : PasswordEditor(Construction{ widgetType }, std::move(text), std::tuple{ args... }) {
+        : PasswordEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        bindings->connectBidir(Internal::asValue(this->text), std::move(text));
         endConstruction();
     }
 
 protected:
-    explicit PasswordEditor(Construction construction, Value<std::string> text,
-                            ArgumentsView<PasswordEditor> args);
+    explicit PasswordEditor(Construction construction, ArgumentsView<PasswordEditor> args);
 
     Ptr cloneThis() override;
 };

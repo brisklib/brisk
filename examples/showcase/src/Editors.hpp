@@ -14,9 +14,10 @@ private:
     float m_value = 50.f;
     float m_y     = 50.f;
     std::string m_text;
-    ColorF m_color         = Palette::Standard::indigo;
-    std::string m_password = "";
-    bool m_hidePassword    = true;
+    std::string m_multilineText = "abc\ndef\nghijklmnopqrstuvwxyz";
+    ColorF m_color              = Palette::Standard::indigo;
+    std::string m_password      = "";
+    bool m_hidePassword         = true;
 };
 
 } // namespace Brisk

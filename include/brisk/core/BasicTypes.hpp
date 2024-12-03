@@ -32,6 +32,7 @@
 #include "internal/Constants.hpp"
 #include <bit>
 #include "Reflection.hpp"
+#include <fmt/ranges.h>
 
 namespace Brisk {
 
@@ -512,10 +513,15 @@ inline std::string_view safeCharPtr(const char* s) {
  *
  * @tparam T The type of the values in the range. It must support arithmetic operations.
  */
-template <typename T>
+template <typename T, bool inclusive = false>
 struct Range {
     T min; ///< The minimum value of the range.
     T max; ///< The maximum value of the range.
+
+    constexpr static std::tuple Reflection{
+        ReflectionField{ "min", &Range::min },
+        ReflectionField{ "max", &Range::max },
+    };
 
     /**
      * @brief Computes the distance between the minimum and maximum values of the range.
@@ -561,7 +567,10 @@ struct Range {
      *         otherwise, `false`.
      */
     constexpr bool contains(T value) const noexcept {
-        return value >= min && value < max;
+        if constexpr (inclusive)
+            return value >= min && value <= max;
+        else
+            return value >= min && value < max;
     }
 
     /**
@@ -572,7 +581,10 @@ struct Range {
      * @return `true` if `max` is less than or equal to `min`; otherwise, `false`.
      */
     constexpr bool empty() const noexcept {
-        return max <= min;
+        if constexpr (inclusive)
+            return max < min;
+        else
+            return max <= min;
     }
 
     /**
@@ -638,7 +650,88 @@ struct Range {
      * @return `true` if both `min` and `max` values are equal; otherwise, `false`.
      */
     constexpr bool operator==(const Range& b) const noexcept = default;
+
+    template <typename U>
+    operator Range<U, inclusive>() const noexcept
+        requires std::is_convertible_v<T, U>
+    {
+        return { static_cast<U>(min), static_cast<U>(max) };
+    }
+
+    /**
+     * @brief A nested iterator class for the Range.
+     */
+    struct RangeIterator {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type        = T;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = const T*;
+        using reference         = const T&;
+
+        explicit RangeIterator(T current) : m_current(current) {}
+
+        reference operator*() const {
+            return m_current;
+        }
+
+        pointer operator->() const {
+            return &m_current;
+        }
+
+        RangeIterator& operator++() {
+            ++m_current;
+            return *this;
+        }
+
+        RangeIterator operator++(int) {
+            RangeIterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+        bool operator==(const RangeIterator& other) const {
+            return m_current == other.m_current;
+        }
+
+        bool operator!=(const RangeIterator& other) const {
+            return !(*this == other);
+        }
+
+    private:
+        T m_current;
+    };
+
+    /**
+     * @brief Returns an iterator to the beginning of the range.
+     *
+     * @return An iterator pointing to the minimum value.
+     */
+    RangeIterator begin() const noexcept
+        requires(!inclusive)
+    {
+        return RangeIterator(min);
+    }
+
+    /**
+     * @brief Returns an iterator to the end of the range.
+     *
+     * The end iterator points just past the maximum value.
+     *
+     * @return An iterator pointing just past the maximum value.
+     */
+    RangeIterator end() const noexcept
+        requires(!inclusive)
+    {
+        return RangeIterator(max);
+    }
 };
+
+template <typename T>
+Range(T, T) -> Range<T, false>;
+
+template <typename T>
+using InclusiveRange = Range<T>;
 
 #define BRISK_FLAGS(TYPE)                                                                                    \
     constexpr std::underlying_type_t<TYPE> operator+(TYPE x) noexcept {                                      \
@@ -776,3 +869,10 @@ template <typename... Ts>
 Overload(Ts&&...) -> Overload<Ts...>;
 
 } // namespace Brisk
+
+namespace fmt {
+template <typename T, bool inclusive, typename Char>
+struct range_format_kind<Brisk::Range<T, inclusive>, Char>
+    : std::integral_constant<range_format, range_format::disabled> {};
+
+} // namespace fmt

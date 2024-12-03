@@ -85,13 +85,14 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                     new Viewport{
                         [](Canvas& canvas, Rectangle rect) {
                             canvas.setFillColor(Palette::Standard::amber);
-                            PrerenderedText text = fonts->prerender(Font{ FontFamily::Default, dp(18) },
-                                                                    "This text is rendered dynamically.");
-                            float x              = fract(currentTime() * 0.1) * text.bounds().width();
-                            text.align({ -x, float(rect.center().y) }, 0.f, 0.5f);
-                            canvas.fillText(text);
-                            text.applyOffset({ text.bounds().width(), 0.f });
-                            canvas.fillText(text);
+                            PreparedText text = fonts->prepare(Font{ FontFamily::Default, dp(18) },
+                                                               "This text is rendered dynamically.");
+                            float x           = fract(currentTime() * 0.1) * text.bounds().width();
+                            PointF offset     = text.alignLines(0.f, 0.5f);
+                            canvas.fillText(PointF{ -x, float(rect.center().y) } + offset, text);
+                            canvas.fillText(PointF{ -x, float(rect.center().y) } + offset +
+                                                PointF{ text.bounds().width(), 0.f },
+                                            text);
                         },
                         dimensions = { 70_apx, 25_apx },
                     },

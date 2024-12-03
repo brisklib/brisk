@@ -47,7 +47,7 @@ public:
 protected:
     std::string m_text;
     TextAutoSize m_textAutoSize      = TextAutoSize::None;
-    Range<float> m_textAutoSizeRange = { 6.f, 96.f };
+    InclusiveRange<float> m_textAutoSizeRange = { 6.f, 96.f };
     Rotation m_rotation              = Rotation::NoRotation;
     bool m_wordWrap                  = false;
 
@@ -58,7 +58,7 @@ protected:
     };
 
     struct Cached {
-        ShapedRuns shaped;
+        PreparedText shaped;
     };
 
     struct CacheKey2 {
@@ -68,7 +68,7 @@ protected:
 
     struct Cached2 {
         SizeF textSize;
-        PrerenderedText prerendered;
+        PreparedText prepared;
     };
 
     Cached updateCache(const CacheKey&);
@@ -103,8 +103,16 @@ public:
     BRISK_PROPERTIES_END
 };
 
+template <typename T>
+void applier(Text* target, ArgVal<Tag::Named<"text">, T> value) {
+    target->text = value.value;
+}
+
 inline namespace Arg {
-constexpr inline Argument<Tag::PropArg<decltype(Text::text)>> text{};
+#ifndef BRISK__TEXT_ARG_DEFINED
+#define BRISK__TEXT_ARG_DEFINED
+constexpr inline Argument<Tag::Named<"text">> text{};
+#endif
 constexpr inline Argument<Tag::PropArg<decltype(Text::rotation)>> rotation{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSize)>> textAutoSize{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSizeRange)>> textAutoSizeRange{};

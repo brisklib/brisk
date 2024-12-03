@@ -85,7 +85,7 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
 
         new HLayout{
             new Widget{
-                new TextEditor(Value{ &m_text }, width = 100_perc),
+                new TextEditor(Value{ &m_text }, fontSize = 150_perc, width = 100_perc),
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -93,6 +93,15 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
                 text = Value{ &m_text }.transform([](std::string s) {
                     return fmt::format("Text: \"{}\"", s);
                 }),
+            },
+        },
+
+        new Text{ "multiline = true", classes = { "section-header" } },
+
+        new HLayout{
+            new Widget{
+                new TextEditor(Value{ &m_multilineText }, fontSize = 150_perc, height = 5_em,
+                               multiline = true, textVerticalAlign = TextAlign::Start, width = 100_perc),
             },
         },
 
