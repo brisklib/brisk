@@ -346,14 +346,18 @@ TEST_CASE("Atlas overflow", "[gpu]") {
 template <typename Fn>
 static void blendingTest(std::string s, Size size, Fn&& fn) {
     linearColor = false;
-    renderTest(s + "_sRGB", size, fn);
+    SECTION("sRGB") {
+        renderTest(s + "_sRGB", size, fn, Palette::transparent, 0.06f);
+    }
     linearColor = true;
-    renderTest(s + "_Linear", size, fn);
+    SECTION("Linear") {
+        renderTest(s + "_Linear", size, fn, Palette::transparent, 0.06f);
+    }
     linearColor = false;
 }
 
 TEST_CASE("Blending", "[gpu]") {
-    constexpr Size canvasSize{ 1000, 1000 };
+    constexpr Size canvasSize{ 1200, 1200 };
     constexpr int rowHeight = 100;
     blendingTest("blending1", canvasSize, [&](RenderContext& context) {
         RawCanvas canvas(context);
@@ -385,6 +389,10 @@ TEST_CASE("Blending", "[gpu]") {
         bands(5, 50, Palette::red, Palette::green);
         gradient(6, Palette::red, Palette::transparent, Palette::green);
         gradient(7, Palette::red, Palette::red, Palette::green);
+        bands(8, 10, Palette::cyan, Palette::red);
+        bands(9, 50, Palette::cyan, Palette::red);
+        gradient(10, Palette::cyan, Palette::transparent, Palette::red);
+        gradient(11, Palette::cyan, Palette::cyan, Palette::red);
     });
 }
 

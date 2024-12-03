@@ -22,6 +22,7 @@
 #include "Catch2Utils.hpp"
 #include <brisk/graphics/ColorSpace.hpp>
 #include <brisk/core/Reflection.hpp>
+#include "VisualTests.hpp"
 #include <random>
 
 namespace Catch {
@@ -123,6 +124,73 @@ TEST_CASE("ColorSpaces") {
     CHECK_THAT(convertColorSpace<ColorSpace::sRGBGamma>(ColorOKLCH{ 67.42, 39.1, 73.97 },
                                                         ColorConversionMode::Nearest),
                Catch::Matchers::ColorWithinMatcher(ColorSRGBGamma{ 0.79200876, 0.52818274, 0 }));
+}
+
+TEST_CASE("Colorspace Gradients") {
+    visualTest("oklch-radient", { 512, 512 }, [&](RC<Image> image) {
+        auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
+        for (size_t y = 0; y < wr.height(); ++y) {
+            auto line = wr.line(y);
+            for (size_t x = 0; x < wr.width(); ++x) {
+                ColorF color = convertColorSpace<ColorSpace::sRGBLinear>(
+                    ColorOKLCH{
+                        100.f * (1.f - float(y) / (wr.height() - 1)),
+                        10.f,
+                        360.f * (float(x) / (wr.width() - 1) - 0.5f),
+                    },
+                    ColorConversionMode::Nearest);
+                colorToPixel(line[x], color);
+            }
+        }
+    });
+    visualTest("cielab-radient", { 512, 512 }, [&](RC<Image> image) {
+        auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
+        for (size_t y = 0; y < wr.height(); ++y) {
+            auto line = wr.line(y);
+            for (size_t x = 0; x < wr.width(); ++x) {
+                ColorF color = convertColorSpace<ColorSpace::sRGBLinear>(
+                    ColorCIELAB{
+                        50.f,
+                        200.f * (float(x) / (wr.width() - 1) - 0.5f),
+                        200.f * (float(y) / (wr.height() - 1) - 0.5f),
+                    },
+                    ColorConversionMode::Nearest);
+                colorToPixel(line[x], color);
+            }
+        }
+    });
+    visualTest("lms-radient0", { 512, 512 }, [&](RC<Image> image) {
+        auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
+        for (size_t y = 0; y < wr.height(); ++y) {
+            auto line = wr.line(y);
+            for (size_t x = 0; x < wr.width(); ++x) {
+                ColorF color = convertColorSpace<ColorSpace::sRGBLinear>(
+                    ColorLMS{
+                        0.f,
+                        float(x) / (wr.width() - 1),
+                        float(y) / (wr.height() - 1),
+                    },
+                    ColorConversionMode::Nearest);
+                colorToPixel(line[x], color);
+            }
+        }
+    });
+    visualTest("lms-radient1", { 512, 512 }, [&](RC<Image> image) {
+        auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
+        for (size_t y = 0; y < wr.height(); ++y) {
+            auto line = wr.line(y);
+            for (size_t x = 0; x < wr.width(); ++x) {
+                ColorF color = convertColorSpace<ColorSpace::sRGBLinear>(
+                    ColorLMS{
+                        1.f,
+                        float(x) / (wr.width() - 1),
+                        float(y) / (wr.height() - 1),
+                    },
+                    ColorConversionMode::Nearest);
+                colorToPixel(line[x], color);
+            }
+        }
+    });
 }
 
 } // namespace Brisk
