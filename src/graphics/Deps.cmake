@@ -39,9 +39,11 @@ target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} freetype)
 # /freetype
 
 # >icu
-find_package(ICU COMPONENTS uc)
-if (TARGET ICU::uc)
-    target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} ICU::uc)
+if (BRISK_ICU)
+    find_package(ICU COMPONENTS uc)
+    if (TARGET ICU::uc)
+        target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} ICU::uc)
+    endif ()
 endif ()
 # /icu
 

@@ -54,6 +54,7 @@ else ()
     set(ENABLE_WEBGPU OFF)
 endif ()
 option(BRISK_WEBGPU "Enable WebGPU" ${ENABLE_WEBGPU})
+option(BRISK_ICU "Enable full Unicode support" ON)
 option(BRISK_GONOTO "Include GoNoto font" OFF)
 option(BRISK_LOG_TO_STDERR "Write log output to stderr (Windows-specific)" OFF)
 
