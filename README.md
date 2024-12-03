@@ -4,7 +4,7 @@ Brisk is a modern, cross-platform C++ GUI toolkit focused on building responsive
 
 🚧 The Brisk library is currently under active development and will remain in the Alpha stage for the next few releases. After that, it will transition to Beta. During this period, there may be breaking changes, and the documentation may not always be up to date.
 
-![Build](https://img.shields.io/github/actions/workflow/status/brisklib/brisk/test.yml?style=flat-square&label=Build) 
+![Build](https://img.shields.io/github/actions/workflow/status/brisklib/brisk/test.yml?style=flat-square&label=Build)
 ![License](https://img.shields.io/badge/License-GPL2%2FCommercial-blue.svg?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-alpha-blue.svg?style=flat-square)
 
@@ -15,10 +15,13 @@ Brisk is a modern, cross-platform C++ GUI toolkit focused on building responsive
 ![Xcode 14.3+](https://img.shields.io/badge/Xcode-14.3%2B-green.svg?style=flat-square)
 
 ### Key Features 🌟
-- **Stateful & Stateless Widgets**: Supports both modes with flexible binding for efficient state management.
+
+- **Declarative GUI**: Enables the creation of complex GUIs in C++ using a flexible declarative syntax.
+- **Stateful & Stateless Widgets**: Supports both modes, with powerful binding for efficient state management.
+- **Stylesheets**: Offers declarative styles to easily modify the application's look and feel.
 - **Hardware-Accelerated Graphics**: Backends include D3D11, D3D12, Vulkan, OpenGL, Metal, and WebGPU.
-- **Color Processing**: Supports linear color and gamma-naïve processing for wide compatibility.
-- **Unicode Support**: Full UTF-8/16/32 support, including RTL text rendering and basic localization.
+- **Color Processing**: Supports various color spaces and linear color blending for physically accurate rendering.
+- **Unicode Support**: Full Unicode support, including RTL text rendering and basic localization features.
 - **Modular Architecture**: Core, Graphics, Window, GUI, and Widgets modules for versatile application development.
 
 ### Code Example
@@ -149,7 +152,7 @@ private:
 |---------------------|---------|-------|-------|
 | Core Functionality  | Beta    | Beta  | Beta  |
 | Graphics            | Beta    | Beta  | Beta  |
-| Window System       | Alpha   | Alpha | Alpha |
+| Window System       | Beta    | Beta  | Beta  |
 | Widgets             | Beta    | Beta  | Beta  |
 | Application Support | Alpha   | Alpha | N/A   |
 
@@ -171,9 +174,19 @@ private:
 
 ### Example Projects
 
-The `examples` directory contains projects that showcase how to use the Brisk library. 
+The `examples` directory contains projects that showcase how to use the Brisk library.
 
 For a minimal example, check out the [brisk-helloworld](https://github.com/brisklib/brisk-helloworld) repository.
+
+Example Project Binary Size:
+
+| OS          | Static Build, Release (Full Unicode Support)  |
+|-------------|-----------------------------------------------|
+| Windows x64 | **10.1 MB** (D3D11)                           |
+| Linux x64   | **18.2 MB** (WebGPU: Vulkan/OpenGL), stripped |
+| macOS x64   | **16.5 MB** (WebGPU: Metal), stripped         |
+
+These sizes do not include embedded resources (such as fonts).
 
 ### Development 💻
 
