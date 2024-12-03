@@ -258,7 +258,7 @@ jobs:
         cmake -G"Unix Makefiles" -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DBRISK_LOG_TO_STDERR=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_C_COMPILER=gcc-14
     - name: Build
       run: |
-        cmake --build build
+        cmake --build build --parallel
     - name: Test
       run: |
         WGPU_LONG_TIMEOUT=1 ctest --test-dir build --output-on-failure -E "window_autotests"
@@ -325,7 +325,7 @@ jobs:
         cmake -G"Visual Studio 17 2022" -A Win32 -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON
     - name: Build
       run: |
-        cmake --build build --config RelWithDebInfo
+        cmake --build build --config RelWithDebInfo --parallel
     - name: Test
       run: |
         ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
@@ -356,7 +356,7 @@ jobs:
         cmake -G"Visual Studio 17 2022" -A x64 -T ClangCL -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON
     - name: Build
       run: |
-        cmake --build build --config RelWithDebInfo
+        cmake --build build --config RelWithDebInfo --parallel
     - name: Test
       run: |
         ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
