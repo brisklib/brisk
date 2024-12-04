@@ -23,55 +23,38 @@
 
 namespace Brisk {
 
-std::shared_ptr<Text> SpinBox::text() const {
-    return find<Text>(MatchAny{});
-}
-
-std::shared_ptr<UpDownButtons> SpinBox::buttons() const {
-    return find<UpDownButtons>(MatchAny{});
-}
-
 void SpinBox::onChildAdded(Widget* w) {
     ValueWidget::onChildAdded(w);
-    if (Text* text = dynamic_cast<Text*>(w)) {
-        text->role     = "display";
+    if (auto* text = display.matchesType(w)) {
         text->flexGrow = 1;
         text->text     = Value{ &this->value }.transform([this](double value) -> std::string {
             return m_valueFormatter(value);
         });
     }
-    if (UpDownButtons* btns = dynamic_cast<UpDownButtons*>(w)) {
-        btns->role     = "btns";
+    if (auto* btns = buttons.matchesType(w)) {
         btns->flexGrow = 0;
-
         ArgumentsView<Button>{
             std::tuple{ Arg::onClick = listener(
                             [this]() {
                                 increment();
                             },
                             this) }
-        }.apply(btns->btnUp().get());
+        }.apply(UpDownButtons::up.get(btns).get());
         ArgumentsView<Button>{
             std::tuple{ Arg::onClick = listener(
                             [this]() {
                                 decrement();
                             },
                             this) }
-        }.apply(btns->btnDn().get());
+        }.apply(UpDownButtons::down.get(btns).get());
     }
 }
 
 void SpinBox::onConstructed() {
     m_layout = Layout::Horizontal;
 
-    if (auto text = this->text()) {
-    } else {
-        apply(new Text{ "", Arg::role = "display" });
-    }
-    if (auto buttons = this->buttons()) {
-    } else {
-        apply(new UpDownButtons{ Arg::role = "btns" });
-    }
+    display.create(this);
+    buttons.create(this);
     ValueWidget::onConstructed();
 }
 
@@ -108,22 +91,14 @@ UpDownButtons::UpDownButtons(Construction construction, ArgumentsView<UpDownButt
     args.apply(this);
 }
 
-std::shared_ptr<Button> UpDownButtons::btnDn() const {
-    return find<Button>(MatchNth{ 1 });
-}
-
-std::shared_ptr<Button> UpDownButtons::btnUp() const {
-    return find<Button>(MatchNth{ 0 });
-}
-
 void UpDownButtons::onChildAdded(Widget* w) {
     Widget::onChildAdded(w);
 
     if (Button* btn = dynamic_cast<Button*>(w)) {
-        if (!btnUp()) {
-            btn->role = "up";
+        if (!up.get(this)) {
+            btn->role = up.role();
         } else {
-            btn->role = "down";
+            btn->role = down.role();
         }
         btn->tabStop        = false;
         btn->flexGrow       = 1;
@@ -134,13 +109,9 @@ void UpDownButtons::onChildAdded(Widget* w) {
 }
 
 void UpDownButtons::onConstructed() {
-    if (auto text = this->btnUp()) {
-    } else {
-        apply(new Button{ new Text{ ICON_chevron_up }, Arg::role = "up" });
-    }
-    if (auto buttons = this->btnDn()) {
-    } else {
-        apply(new Button{ new Text{ ICON_chevron_down }, Arg::role = "down" });
+    if (!down.get(this) && !up.get(this)) {
+        apply(new Button{ new Text{ ICON_chevron_up } });
+        apply(new Button{ new Text{ ICON_chevron_down } });
     }
     Widget::onConstructed();
 }
