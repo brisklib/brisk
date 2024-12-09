@@ -24,12 +24,10 @@
 namespace Brisk {
 
 void SpinBox::onChildAdded(Widget* w) {
-    ValueWidget::onChildAdded(w);
+    Base::onChildAdded(w);
     if (auto* text = display.matchesType(w)) {
         text->flexGrow = 1;
-        text->text     = Value{ &this->value }.transform([this](double value) -> std::string {
-            return m_valueFormatter(value);
-        });
+        text->text     = Value{ &this->value }.transform(m_valueFormatter);
     }
     if (auto* btns = buttons.matchesType(w)) {
         btns->flexGrow = 0;
@@ -55,11 +53,11 @@ void SpinBox::onConstructed() {
 
     display.create(this);
     buttons.create(this);
-    ValueWidget::onConstructed();
+    Base::onConstructed();
 }
 
 void SpinBox::onEvent(Event& event) {
-    ValueWidget::onEvent(event);
+    Base::onEvent(event);
     if (float delta = event.wheelScrolled(m_rect, m_wheelModifiers)) {
         value = m_value + delta;
         event.stopPropagation();
@@ -74,8 +72,7 @@ void SpinBox::onEvent(Event& event) {
     }
 }
 
-SpinBox::SpinBox(Construction construction, ArgumentsView<SpinBox> args)
-    : ValueWidget(construction, nullptr) {
+SpinBox::SpinBox(Construction construction, ArgumentsView<SpinBox> args) : Base(construction, nullptr) {
     layout  = Layout::Horizontal;
     tabStop = true;
     args.apply(this);
@@ -86,13 +83,13 @@ Widget::Ptr SpinBox::cloneThis() {
 }
 
 UpDownButtons::UpDownButtons(Construction construction, ArgumentsView<UpDownButtons> args)
-    : Widget(construction, nullptr) {
+    : Base(construction, nullptr) {
     layout = Layout::Vertical;
     args.apply(this);
 }
 
 void UpDownButtons::onChildAdded(Widget* w) {
-    Widget::onChildAdded(w);
+    Base::onChildAdded(w);
 
     if (Button* btn = dynamic_cast<Button*>(w)) {
         if (!up.get(this)) {
@@ -113,7 +110,7 @@ void UpDownButtons::onConstructed() {
         apply(new Button{ new Text{ ICON_chevron_up } });
         apply(new Button{ new Text{ ICON_chevron_down } });
     }
-    Widget::onConstructed();
+    Base::onConstructed();
 }
 
 Widget::Ptr UpDownButtons::cloneThis() {
