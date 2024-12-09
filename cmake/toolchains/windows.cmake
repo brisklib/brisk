@@ -3,6 +3,9 @@ if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
 
     include($ENV{VCPKG_ROOT}/scripts/toolchains/windows.cmake)
 
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Zc:inline")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Zc:inline")
+
     string(REPLACE "/Z7" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
     string(REPLACE "/Z7" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 
@@ -17,8 +20,8 @@ if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
         string(REPLACE "/MP" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
         string(REPLACE "/MP" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-        string(REPLACE "/Z7" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-        string(REPLACE "/Z7" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+        string(REPLACE "/Z7" "-gline-tables-only" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+        string(REPLACE "/Z7" "-gline-tables-only" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 
         if (CMAKE_SYSTEM_PROCESSOR STREQUAL x86)
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")

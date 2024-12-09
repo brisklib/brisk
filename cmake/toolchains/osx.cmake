@@ -7,8 +7,8 @@ if (NOT _VCPKG_OSX_TOOLCHAIN_OVERRIDE)
         include(${_VCPKG_ROOT_DIR}/scripts/toolchains/osx.cmake)
     endif()
 
-    string(APPEND CMAKE_C_FLAGS_RELEASE_INIT " -gline-tables-only -DNDEBUG -O3 ")
-    string(APPEND CMAKE_CXX_FLAGS_RELEASE_INIT " -gline-tables-only -DNDEBUG -O3 ")
+    string(APPEND CMAKE_C_FLAGS_RELEASE_INIT " -g0 -DNDEBUG -O3 ")
+    string(APPEND CMAKE_CXX_FLAGS_RELEASE_INIT " -g0 -DNDEBUG -O3 ")
     string(APPEND CMAKE_C_FLAGS_DEBUG_INIT " -gline-tables-only -O1 ")
     string(APPEND CMAKE_CXX_FLAGS_DEBUG_INIT " -gline-tables-only -O1 ")
 
