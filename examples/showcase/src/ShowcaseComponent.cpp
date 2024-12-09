@@ -29,35 +29,6 @@
 
 namespace Brisk {
 
-inline AsyncValue<int> randomNumber() {
-    AsyncOperation<int> op;
-    std::thread([op]() mutable {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-        static int counter = 0;
-        op.execute([&]() -> int {
-            if (counter == 10)
-                throw std::range_error("counter reached 10");
-            return ++counter;
-        });
-    }).detach();
-    return op.value();
-}
-
-[[maybe_unused]] static void debugPanel(RawCanvas& canvas, Rectangle rect) {
-    auto w = inputQueue->focused.lock();
-    if (w) {
-        auto&& saved = canvas.save();
-
-        canvas.drawRectangle(w->rect(), 0.f, 0.f, strokeWidth = 0.1,
-                             fillColor = ColorF(Palette::Standard::yellow).multiplyAlpha(0.5f));
-        Widget* ww = w.get();
-        canvas.drawText(rect, 0.5f, 0.5f,
-                        fmt::format("{} v:{} iv:{} tree:{}", typeid(*ww).name(), w->visible.get(),
-                                    w->isVisible(), (void*)w->tree()),
-                        Font{ Monospace, 14_dp }, Palette::white);
-    }
-}
-
 static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
     Graphene::stylesheet(),
     Style{
@@ -138,8 +109,12 @@ RC<Widget> ShowcaseComponent::build() {
             },
         },
         new Pages{
-            Value{ &m_activePage },
-            new Tabs{},
+            value  = Value{ &m_activePage },
+            layout = Layout::Horizontal,
+            Pages::tabs =
+                new Tabs{
+                    layout = Layout::Vertical,
+                },
             new Page{ "Buttons", new VScrollBox{ flexGrow = 1, m_buttons->build(notifications) } },
             new Page{ "Dropdowns", new VScrollBox{ flexGrow = 1, m_dropdowns->build(notifications) } },
             new Page{ "Editors", new VScrollBox{ flexGrow = 1, m_editors->build(notifications) } },
@@ -150,6 +125,7 @@ RC<Widget> ShowcaseComponent::build() {
             new Page{ "Messenger", new VScrollBox{ flexGrow = 1, m_messenger->build(notifications) } },
             flexGrow = 1,
         },
+        flexGrow = 1,
         rcnew NotificationContainer(notifications),
     };
 }

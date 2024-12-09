@@ -98,12 +98,8 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
 
         new Text{ "multiline = true", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new TextEditor(Value{ &m_multilineText }, fontSize = 150_perc, height = 5_em,
-                               multiline = true, textVerticalAlign = TextAlign::Start, width = 100_perc),
-            },
-        },
+        new TextEditor(Value{ &m_multilineText }, fontSize = 150_perc, height = 5_em, multiline = true,
+                       textVerticalAlign = TextAlign::Start, width = auto_),
 
         new Text{ "PasswordEditor (widgets/TextEditor.hpp)", classes = { "section-header" } },
 
