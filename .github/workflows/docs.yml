@@ -32,10 +32,12 @@ jobs:
         run: |
           docker build -t cxxdox:latest cxxdox
       - name: Build documentation
+        env: 
+          MKDOCS_MAIN: ${{secrets.MKDOCS_MAIN}}
         run: |
           mkdir "$(pwd)/out"
           mkdir "$(pwd)/data"
-          echo $MKDOCS_MAIN >> brisk/docs/custom/main.html
+          echo "$MKDOCS_MAIN" >> brisk/docs/custom/main.html
           docker run --rm -v "$(pwd)/brisk:/src" -v "$(pwd)/out":/out -v "$(pwd)/data":/data cxxdox:latest docs
       - name: Setup Pages
         uses: actions/configure-pages@v5
