@@ -47,7 +47,7 @@ Widget::Ptr VScrollBox::cloneThis() {
 void ScrollBox::createScrollBar() {
     bool h                  = m_orientation == Orientation::Horizontal;
     RC<ScrollBar> scrollBar = rcnew ScrollBar{
-        Arg::value            = Value<float>{ &m_position, this, &ScrollBox::updateOffsets },
+        Arg::value            = Value{ &scrollPosition },
         Arg::placement        = Placement::Absolute,
         Arg::absolutePosition = PointL{ 100_perc, 0 }.flippedIf(h),
         Arg::anchor           = PointL{ 100_perc, 0 }.flippedIf(h),
@@ -68,7 +68,7 @@ constexpr float scrollPixels = 140.f;
 #endif
 
 bool ScrollBox::setScrollOffset(float value) {
-    if (bindings->assign(m_position, value)) {
+    if (bindings->assign(m_scrollPosition, value)) {
         updateOffsets();
         return true;
     }
@@ -79,7 +79,7 @@ void ScrollBox::updateOffsets() {
     PointF p{ 0.f, 0.f };
 
     if (scrollable())
-        p[+m_orientation] = -m_position;
+        p[+m_orientation] = -m_scrollPosition;
     else
         p[+m_orientation] = 0;
     setChildrenOffset(p);
@@ -99,7 +99,7 @@ void ScrollBox::onLayoutUpdated() {
         scrollBar()->pageStep = 0;
         scrollBar()->maximum  = 0;
         m_scrollSize          = 0;
-        bindings->assign(m_position, 0);
+        bindings->assign(m_scrollPosition, 0);
     }
     updateOffsets();
 }
@@ -109,8 +109,8 @@ void ScrollBox::onEvent(Event& event) {
     if (float d = event.wheelScrolled(m_orientation == Orientation::Vertical ? WheelOrientation::Y
                                                                              : WheelOrientation::X)) {
         if (scrollable()) {
-            if (setScrollOffset(
-                    std::clamp(m_position - d * dp(scrollPixels), 0.f, static_cast<float>(m_scrollSize)))) {
+            if (setScrollOffset(std::clamp(m_scrollPosition - d * dp(scrollPixels), 0.f,
+                                           static_cast<float>(m_scrollSize)))) {
                 event.stopPropagation();
             }
         }
@@ -127,11 +127,11 @@ void ScrollBox::revealChild(Widget* child) {
         Rectangle childRect     = child->rect();
         int32_t offset          = childRect.p1[+m_orientation] - containerRect.p1[+m_orientation];
         if (offset < 0) {
-            setScrollOffset(std::clamp(m_position + offset, 0.f, static_cast<float>(m_scrollSize)));
+            setScrollOffset(std::clamp(m_scrollPosition + offset, 0.f, static_cast<float>(m_scrollSize)));
         } else {
             offset = childRect.p2[+m_orientation] - containerRect.p2[+m_orientation];
             if (offset > 0) {
-                setScrollOffset(std::clamp(m_position + offset, 0.f, static_cast<float>(m_scrollSize)));
+                setScrollOffset(std::clamp(m_scrollPosition + offset, 0.f, static_cast<float>(m_scrollSize)));
             }
         }
     }
