@@ -35,6 +35,7 @@ jobs:
         run: |
           mkdir "$(pwd)/out"
           mkdir "$(pwd)/data"
+          echo $MKDOCS_MAIN >> brisk/docs/custom/main.html
           docker run --rm -v "$(pwd)/brisk:/src" -v "$(pwd)/out":/out -v "$(pwd)/data":/data cxxdox:latest docs
       - name: Setup Pages
         uses: actions/configure-pages@v5

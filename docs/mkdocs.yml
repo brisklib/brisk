@@ -1,6 +1,7 @@
 site_name: Brisk
 theme:
   name: "material"
+  custom_dir: custom/
   font:
     text: Open Sans
   features:
