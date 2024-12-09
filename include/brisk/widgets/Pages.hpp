@@ -41,6 +41,9 @@ protected:
     explicit TabButton(Construction construction, ArgumentsView<TabButton> args);
 };
 
+class Pages;
+class Page;
+
 class WIDGET Tabs : public Widget {
 public:
     using Base                                   = Widget;
@@ -52,11 +55,12 @@ public:
     }
 
 protected:
+    friend class Pages;
+    virtual void clearTabs();
+    virtual void createTab(Value<bool> visible, Page* page);
     Ptr cloneThis() override;
     explicit Tabs(Construction construction, ArgumentsView<Tabs> args);
 };
-
-class Pages;
 
 class WIDGET Page : public Widget {
 public:
@@ -75,6 +79,11 @@ protected:
     Ptr cloneThis() override;
 
     explicit Page(Construction construction, std::string title, ArgumentsView<Page> args);
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<Page, std::string, &Page::m_title> title;
+    BRISK_PROPERTIES_END
 };
 
 class WIDGET Pages : public Widget {
@@ -88,17 +97,14 @@ public:
     };
 
     template <WidgetArgument... Args>
-    explicit Pages(Value<int> index, const Args&... args)
-        : Pages(Construction{ widgetType }, std::move(index), std::tuple{ args... }) {
+    explicit Pages(const Args&... args) : Pages(Construction{ widgetType }, std::tuple{ args... }) {
         endConstruction();
     }
 
-    std::shared_ptr<Tabs> tabs() const;
-
-    Value<int> index();
+    constexpr static WidgetRole<Tabs, "tabs"> tabs{};
 
 protected:
-    int m_index = 0;
+    int m_value = 0;
     void updateTabs();
     void childrenAdded() override;
 
@@ -108,6 +114,24 @@ protected:
 
     Ptr cloneThis() override;
 
-    explicit Pages(Construction construction, Value<int> index, ArgumentsView<Pages> args);
+    explicit Pages(Construction construction, ArgumentsView<Pages> args);
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<Pages, int, &Pages::m_value, nullptr, nullptr, &Pages::onChanged> value;
+    BRISK_PROPERTIES_END
 };
+
+template <typename T>
+void applier(Pages* target, ArgVal<Tag::Named<"value">, T> value) {
+    target->value = value.value;
+}
+
+inline namespace Arg {
+#ifndef BRISK__VALUE_ARG_DEFINED
+#define BRISK__VALUE_ARG_DEFINED
+constexpr inline Argument<Tag::Named<"value">> value{};
+#endif
+} // namespace Arg
+
 } // namespace Brisk
