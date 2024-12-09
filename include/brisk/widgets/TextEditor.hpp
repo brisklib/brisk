@@ -40,7 +40,7 @@ public:
     template <WidgetArgument... Args>
     explicit TextEditor(Value<std::string> text, const Args&... args)
         : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
-        bindings->connectBidir(Internal::asValue(this->text), std::move(text));
+        bindings->connectBidir(Value{ &this->text }, std::move(text));
         endConstruction();
     }
 
@@ -154,7 +154,7 @@ public:
     template <WidgetArgument... Args>
     explicit PasswordEditor(Value<std::string> text, const Args&... args)
         : PasswordEditor(Construction{ widgetType }, std::tuple{ args... }) {
-        bindings->connectBidir(Internal::asValue(this->text), std::move(text));
+        bindings->connectBidir(Value{ &this->text }, std::move(text));
         endConstruction();
     }
 
