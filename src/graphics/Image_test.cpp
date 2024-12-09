@@ -26,37 +26,37 @@
 
 namespace Brisk {
 TEST_CASE("Image") {
-    InplacePtr<Image> image(Size{ 16, 9 }, ImageFormat::Greyscale_U8Gamma);
+    Image image(Size{ 16, 9 }, ImageFormat::Greyscale_U8Gamma);
 
-    REQUIRE(image->size() == Size{ 16, 9 });
+    REQUIRE(image.size() == Size{ 16, 9 });
 
     {
-        auto w   = image->mapWrite<ImageFormat::Unknown_U8Gamma>();
+        auto w   = image.mapWrite<ImageFormat::Unknown_U8Gamma>();
         w(0, 0)  = 255;
         w(15, 8) = 1;
     }
     {
-        auto r = image->mapRead<ImageFormat::Greyscale_U8Gamma>();
+        auto r = image.mapRead<ImageFormat::Greyscale_U8Gamma>();
         CHECK(r(0, 0) == PixelGreyscale8{ 255 });
         CHECK(r(15, 8) == PixelGreyscale8{ 1 });
     }
 
-    InplacePtr<Image> image2(Size{ 16, 9 }, ImageFormat::Greyscale_U8Gamma);
-    image2->clear(Color(100));
+    Image image2(Size{ 16, 9 }, ImageFormat::Greyscale_U8Gamma);
+    image2.clear(Color(100));
     {
-        auto r = image2->mapRead<ImageFormat::Greyscale_U8Gamma>();
+        auto r = image2.mapRead<ImageFormat::Greyscale_U8Gamma>();
         CHECK(r(0, 0) == PixelGreyscale8{ 100 });
         CHECK(r(15, 8) == PixelGreyscale8{ 100 });
     }
 
-    image2->copyFrom(image);
+    image2.copyFrom(notManaged(&image));
     {
-        auto r = image2->mapRead<ImageFormat::Greyscale_U8Gamma>();
+        auto r = image2.mapRead<ImageFormat::Greyscale_U8Gamma>();
         CHECK(r(0, 0) == PixelGreyscale8{ 255 });
         CHECK(r(15, 8) == PixelGreyscale8{ 1 });
     }
     {
-        auto w = image2->mapWrite<ImageFormat::Greyscale_U8Gamma>();
+        auto w = image2.mapWrite<ImageFormat::Greyscale_U8Gamma>();
         for (int y = 0; y < w.height(); ++y) {
             for (int x = 0; x < w.width(); ++x) {
                 w(x, y) = static_cast<uint8_t>(255.f * x * y / (w.width() - 1) / (w.height() - 1));
