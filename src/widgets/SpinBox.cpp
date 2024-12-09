@@ -23,60 +23,41 @@
 
 namespace Brisk {
 
-std::shared_ptr<Text> SpinBox::text() const {
-    return find<Text>(MatchAny{});
-}
-
-std::shared_ptr<UpDownButtons> SpinBox::buttons() const {
-    return find<UpDownButtons>(MatchAny{});
-}
-
 void SpinBox::onChildAdded(Widget* w) {
-    ValueWidget::onChildAdded(w);
-    if (Text* text = dynamic_cast<Text*>(w)) {
-        text->role     = "display";
+    Base::onChildAdded(w);
+    if (auto* text = display.matchesType(w)) {
         text->flexGrow = 1;
-        text->text     = Value{ &this->value }.transform([this](double value) -> std::string {
-            return m_valueFormatter(value);
-        });
+        text->text     = Value{ &this->value }.transform(m_valueFormatter);
     }
-    if (UpDownButtons* btns = dynamic_cast<UpDownButtons*>(w)) {
-        btns->role     = "btns";
+    if (auto* btns = buttons.matchesType(w)) {
         btns->flexGrow = 0;
-
         ArgumentsView<Button>{
             std::tuple{ Arg::onClick = listener(
                             [this]() {
                                 increment();
                             },
                             this) }
-        }.apply(btns->btnUp().get());
+        }.apply(UpDownButtons::up.get(btns).get());
         ArgumentsView<Button>{
             std::tuple{ Arg::onClick = listener(
                             [this]() {
                                 decrement();
                             },
                             this) }
-        }.apply(btns->btnDn().get());
+        }.apply(UpDownButtons::down.get(btns).get());
     }
 }
 
 void SpinBox::onConstructed() {
     m_layout = Layout::Horizontal;
 
-    if (auto text = this->text()) {
-    } else {
-        apply(new Text{ "", Arg::role = "display" });
-    }
-    if (auto buttons = this->buttons()) {
-    } else {
-        apply(new UpDownButtons{ Arg::role = "btns" });
-    }
-    ValueWidget::onConstructed();
+    display.create(this);
+    buttons.create(this);
+    Base::onConstructed();
 }
 
 void SpinBox::onEvent(Event& event) {
-    ValueWidget::onEvent(event);
+    Base::onEvent(event);
     if (float delta = event.wheelScrolled(m_rect, m_wheelModifiers)) {
         value = m_value + delta;
         event.stopPropagation();
@@ -91,8 +72,7 @@ void SpinBox::onEvent(Event& event) {
     }
 }
 
-SpinBox::SpinBox(Construction construction, ArgumentsView<SpinBox> args)
-    : ValueWidget(construction, nullptr) {
+SpinBox::SpinBox(Construction construction, ArgumentsView<SpinBox> args) : Base(construction, nullptr) {
     layout  = Layout::Horizontal;
     tabStop = true;
     args.apply(this);
@@ -103,27 +83,19 @@ Widget::Ptr SpinBox::cloneThis() {
 }
 
 UpDownButtons::UpDownButtons(Construction construction, ArgumentsView<UpDownButtons> args)
-    : Widget(construction, nullptr) {
+    : Base(construction, nullptr) {
     layout = Layout::Vertical;
     args.apply(this);
 }
 
-std::shared_ptr<Button> UpDownButtons::btnDn() const {
-    return find<Button>(MatchNth{ 1 });
-}
-
-std::shared_ptr<Button> UpDownButtons::btnUp() const {
-    return find<Button>(MatchNth{ 0 });
-}
-
 void UpDownButtons::onChildAdded(Widget* w) {
-    Widget::onChildAdded(w);
+    Base::onChildAdded(w);
 
     if (Button* btn = dynamic_cast<Button*>(w)) {
-        if (!btnUp()) {
-            btn->role = "up";
+        if (!up.get(this)) {
+            btn->role = up.role();
         } else {
-            btn->role = "down";
+            btn->role = down.role();
         }
         btn->tabStop        = false;
         btn->flexGrow       = 1;
@@ -134,15 +106,11 @@ void UpDownButtons::onChildAdded(Widget* w) {
 }
 
 void UpDownButtons::onConstructed() {
-    if (auto text = this->btnUp()) {
-    } else {
-        apply(new Button{ new Text{ ICON_chevron_up }, Arg::role = "up" });
+    if (!down.get(this) && !up.get(this)) {
+        apply(new Button{ new Text{ ICON_chevron_up } });
+        apply(new Button{ new Text{ ICON_chevron_down } });
     }
-    if (auto buttons = this->btnDn()) {
-    } else {
-        apply(new Button{ new Text{ ICON_chevron_down }, Arg::role = "down" });
-    }
-    Widget::onConstructed();
+    Base::onConstructed();
 }
 
 Widget::Ptr UpDownButtons::cloneThis() {

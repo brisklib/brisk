@@ -36,8 +36,8 @@ public:
         endConstruction();
     }
 
-    std::shared_ptr<Button> btnUp() const;
-    std::shared_ptr<Button> btnDn() const;
+    constexpr static WidgetRole<Button, "up"> up{};
+    constexpr static WidgetRole<Button, "down"> down{};
 
 protected:
     void onConstructed() override;
@@ -56,11 +56,12 @@ public:
         endConstruction();
     }
 
+    constexpr static WidgetRole<Text, "display"> display{};
+    constexpr static WidgetRole<UpDownButtons, "buttons"> buttons{};
+
 protected:
     ValueFormatter m_valueFormatter;
 
-    std::shared_ptr<Text> text() const;
-    std::shared_ptr<UpDownButtons> buttons() const;
     void onConstructed() override;
     void onChildAdded(Widget* w) override;
     void onEvent(Event& event) override;

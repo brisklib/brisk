@@ -25,43 +25,28 @@
 
 namespace Brisk {
 
-std::shared_ptr<Item> ComboBox::selectedItem() const {
-    return find<Item>(MatchAny{});
-}
-
-std::shared_ptr<ToggleButton> ComboBox::unroll() const {
-    return find<ToggleButton>(MatchAny{});
-}
-
-std::shared_ptr<ItemList> ComboBox::menu() const {
-    return find<ItemList>(MatchAny{});
-}
-
 void ComboBox::onChildAdded(Widget* w) {
     Base::onChildAdded(w);
-    if (ItemList* menu = dynamic_cast<ItemList*>(w)) {
-        menu->role        = "itemlist";
-        menu->onItemClick = [this](size_t index) BRISK_INLINE_LAMBDA {
+    if (ItemList* itemlist = this->itemlist.matchesType(w)) {
+        itemlist->onItemClick = [this](size_t index) BRISK_INLINE_LAMBDA {
             value = index;
         };
-        menu->onBecameVisible = [this]() BRISK_INLINE_LAMBDA {
+        itemlist->onBecameVisible = [this]() BRISK_INLINE_LAMBDA {
             if (auto item = findSelected()) {
                 item->focus();
             }
         };
-        menu->visible          = false;
-        menu->absolutePosition = { 0, 100_perc };
-        menu->anchor           = { 0_px, 0_px };
-        menu->tabGroup         = true;
+        itemlist->visible          = false;
+        itemlist->absolutePosition = { 0, 100_perc };
+        itemlist->anchor           = { 0_px, 0_px };
+        itemlist->tabGroup         = true;
     }
-    if (Item* selectedItem = dynamic_cast<Item*>(w)) {
-        selectedItem->role             = "selecteditem";
+    if (Item* selectedItem = this->selecteditem.matchesType(w)) {
         selectedItem->flexGrow         = 1;
         selectedItem->tabStop          = false;
         selectedItem->mouseInteraction = MouseInteraction::Disable;
     }
-    if (ToggleButton* unroll = dynamic_cast<ToggleButton*>(w)) {
-        unroll->role             = "unroll";
+    if (ToggleButton* unroll = this->unroll.matchesType(w)) {
         unroll->tabStop          = false;
         unroll->mouseInteraction = MouseInteraction::Disable;
         unroll->borderWidth      = 0;
@@ -72,18 +57,13 @@ void ComboBox::onChildAdded(Widget* w) {
 void ComboBox::onConstructed() {
     m_layout = Layout::Horizontal;
 
-    if (auto menu = this->menu()) {
-    } else {
-        apply(new ItemList{});
-    }
-    if (auto selectedItem = this->selectedItem()) {
-    } else {
-        apply(new Item{ Arg::role = "selecteditem" });
-    }
-    if (auto unroll = this->unroll()) {
-    } else {
-        apply(new ToggleButton{ Arg::value = Value{ &menu()->visible }, new Text{ ICON_chevron_down },
-                                new Text{ ICON_chevron_up }, Arg::twoState = true });
+    itemlist.create(this);
+    selecteditem.create(this);
+
+    if (!unroll.get(this)) {
+        apply(new ToggleButton{ Arg::value = Value{ &itemlist.get(this)->visible },
+                                new Text{ ICON_chevron_down }, new Text{ ICON_chevron_up },
+                                Arg::role = unroll.role(), Arg::twoState = true });
     }
     Base::onConstructed();
 }
@@ -91,7 +71,7 @@ void ComboBox::onConstructed() {
 std::shared_ptr<Item> ComboBox::findSelected() const {
     if (!m_constructed)
         return nullptr;
-    auto menu     = this->menu();
+    auto menu     = this->itemlist.get(this);
     auto& widgets = menu->widgets();
     int value     = std::round(m_value);
     if (value < 0 || value >= widgets.size())
@@ -100,7 +80,7 @@ std::shared_ptr<Item> ComboBox::findSelected() const {
 }
 
 void ComboBox::onEvent(Event& event) {
-    auto menu = this->menu();
+    auto menu = this->itemlist.get(this);
     Base::onEvent(event);
     if (float delta = event.wheelScrolled(m_rect, m_wheelModifiers)) {
         int val = std::clamp(int(m_value - delta), 0, int(menu->widgets().size() - 1));
@@ -139,10 +119,10 @@ void ComboBox::onChanged() {
     } else {
         cloned = std::shared_ptr<Item>(new Item{});
     }
-    cloned->role     = "selecteditem";
+    cloned->role     = selecteditem.role();
     cloned->flexGrow = 1;
     cloned->tabStop  = false;
-    bool replaced    = replace(selectedItem(), cloned, false);
+    bool replaced    = replace(selecteditem.get(this), cloned, false);
     BRISK_ASSERT(replaced);
 }
 

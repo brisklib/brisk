@@ -27,7 +27,6 @@ namespace Brisk {
 class WIDGET ToggleButton : public Button {
 public:
     using Base = Button;
-    using Base::apply;
     using Base::widgetType;
 
     template <WidgetArgument... Args>

@@ -52,10 +52,9 @@ public:
         value = fromList(std::move(prop), list);
     }
 
-    // roles
-    std::shared_ptr<Item> selectedItem() const;
-    std::shared_ptr<ToggleButton> unroll() const;
-    std::shared_ptr<ItemList> menu() const;
+    constexpr static WidgetRole<Item, "selecteditem"> selecteditem{};
+    constexpr static WidgetRole<ToggleButton, "unroll"> unroll{};
+    constexpr static WidgetRole<ItemList, "itemlist"> itemlist{};
 
 protected:
     void onEvent(Event& event) override;

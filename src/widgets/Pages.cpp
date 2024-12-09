@@ -22,51 +22,45 @@
 
 namespace Brisk {
 
+void Tabs::clearTabs() {
+    clear();
+}
+
+void Tabs::createTab(Value<bool> visible, Page* page) {
+    apply(new TabButton(Arg::value = std::move(visible), new Text{ Arg::text = page->title }));
+}
+
 void Pages::updateTabs() {
-    std::shared_ptr<Tabs> tabs = this->tabs();
+    std::shared_ptr<Tabs> tabs = this->tabs.get(this);
     if (!tabs)
         return;
-    tabs->clear();
+    tabs->clearTabs();
     int index = 0;
     for (Widget::Ptr w : *this) {
         if (Page* p = dynamic_cast<Page*>(w.get())) {
-            auto prop = this->index() == index;
-            tabs->apply(new TabButton(Arg::value = std::move(prop), new Text{ p->m_title }));
+            auto prop = Value{ &this->value } == index;
+            tabs->createTab(prop, p);
             ++index;
         }
     }
     onChanged();
 }
 
-std::shared_ptr<Tabs> Pages::tabs() const {
-    auto tabs = this->find<Tabs>(MatchAny{});
-    return tabs;
-}
-
 void Pages::childrenAdded() {
-    Widget::childrenAdded();
+    Base::childrenAdded();
     updateTabs();
 }
 
-Value<int> Pages::index() {
-    return Value<int>{
-        &m_index,
-        [this]() {
-            onChanged();
-        },
-    };
-}
-
 void Pages::onChanged() {
-    if (m_index == Horizontal) {
+    if (m_value == Horizontal) {
         layout = Layout::Horizontal;
-    } else if (m_index == Vertical) {
+    } else if (m_value == Vertical) {
         layout = Layout::Vertical;
     }
     int index = 0;
     for (Widget::Ptr w : *this) {
         if (Page* p = dynamic_cast<Page*>(w.get())) {
-            p->visible = m_index < 0 || m_index == index;
+            p->visible = m_value < 0 || m_value == index;
             ++index;
         }
     }
@@ -93,30 +87,27 @@ Widget::Ptr Tabs::cloneThis() {
 }
 
 Tabs::Tabs(Construction construction, ArgumentsView<Tabs> args)
-    : Widget{ construction, std::tuple{ Arg::tabGroup = true } } {
+    : Base{ construction, std::tuple{ Arg::tabGroup = true } } {
     args.apply(this);
 }
 
 Page::Page(Construction construction, std::string title, ArgumentsView<Page> args)
-    : Widget(construction, std::tuple{ Arg::layout = Layout::Horizontal, Arg::flexGrow = true,
-                                       Arg::alignItems = AlignItems::Stretch }),
+    : Base(construction, std::tuple{ Arg::layout = Layout::Horizontal, Arg::flexGrow = true,
+                                     Arg::alignItems = AlignItems::Stretch }),
       m_title(std::move(title)) {
     args.apply(this);
 }
 
-Pages::Pages(Construction construction, Value<int> index, ArgumentsView<Pages> args)
-    : Widget(construction,
-             std::tuple{ Arg::layout = Layout::Vertical, Arg::alignItems = AlignItems::Stretch }) {
+Pages::Pages(Construction construction, ArgumentsView<Pages> args)
+    : Base(construction,
+           std::tuple{ Arg::layout = Layout::Vertical, Arg::alignItems = AlignItems::Stretch }) {
     args.apply(this);
-    bindings->connectBidir(this->index(), std::move(index));
     updateTabs();
 }
 
 void Pages::onConstructed() {
-    Widget::onConstructed();
-    if (auto tabs = this->tabs()) {
-    } else {
-        apply(new Tabs{});
-    }
+    Base::onConstructed();
+    tabs.create(this);
 }
+
 } // namespace Brisk

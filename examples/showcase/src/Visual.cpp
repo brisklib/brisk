@@ -63,6 +63,8 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 new Slider{ value = Value{ &m_fontSize }, minimum = 0.25f, maximum = 4.f, width = 300_apx },
             },
+            // Overflow::ScrollX prevents this widget from stretching because of Text
+            overflow = Overflow::ScrollX,
             new Text{ loremIpsumShort, wordWrap = true, textAlign = Value{ &m_textAlign }, marginTop = 10_apx,
                       fontSize = Value{ &m_fontSize }.transform([](float v) {
                           return v * 100_perc;
@@ -239,7 +241,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                         target->apply(new TableRow{
                             new TableCell{ cell, new Text{ row.firstName } },
                             new TableCell{ cell, new Text{ row.lastName } },
-                            new TableCell{ cell, new ComboBox{ value = Value{ &row.index },
+                            new TableCell{ cell, new ComboBox{ value = Value{ &row.index }, width = 100_perc,
                                                                new ItemList{
                                                                    new Text{ "UX/UI Designer" },
                                                                    new Text{ "Project Manager" },

@@ -194,7 +194,7 @@ struct MatchAny {
 };
 
 struct MatchNth {
-    int requiredIndex;
+    const int requiredIndex;
 
     constexpr MatchNth(int requiredIndex) : requiredIndex(requiredIndex) {}
 
@@ -219,6 +219,15 @@ struct MatchId {
     template <std::derived_from<Widget> WidgetClass>
     constexpr bool operator()(const std::shared_ptr<WidgetClass>& w) const noexcept {
         return w->id.get() == id;
+    }
+};
+
+struct MatchRole {
+    const std::string_view role;
+
+    template <std::derived_from<Widget> WidgetClass>
+    constexpr bool operator()(const std::shared_ptr<WidgetClass>& w) const noexcept {
+        return w->role.get() == role;
     }
 };
 
@@ -296,8 +305,8 @@ struct WidgetArgumentAccept {
     void operator()(const Rules&);
     void operator()(WidgetGroup*);
 
-    template <typename T, typename U>
-    void operator()(ArgVal<T, U>);
+    template <typename T, typename U, ArgumentOp op>
+    void operator()(ArgVal<T, U, op>);
 };
 
 } // namespace Internal
@@ -522,6 +531,7 @@ struct PropArg<GUIPropertyCompound<index_, Type_, field, Properties...>> : Prope
 template <std::derived_from<Widget> Target, typename PropertyType, typename... Args>
 inline void applier(Target* target,
                     const ArgVal<Tag::PropArg<PropertyType>, Value<Trigger<Args...>>>& value) {
+    BRISK_ASSERT(target);
     PropertyType prop{ target };
     bindings->connect(value.value, Internal::asValue(prop), BindType::Immediate, false);
 }
@@ -1468,6 +1478,68 @@ extern const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled;
 extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures;
 
 } // namespace Arg
+
+namespace Tag {
+template <std::derived_from<Widget> WidgetType, Internal::FixedString Name>
+struct WithRole {
+    using Type = RC<WidgetType>;
+};
+} // namespace Tag
+
+template <std::derived_from<Widget> WidgetType, Internal::FixedString Name>
+struct Argument<Tag::WithRole<WidgetType, Name>> {
+    using ValueType = typename Tag::WithRole<WidgetType, Name>::Type;
+
+    constexpr ArgVal<Tag::WithRole<WidgetType, Name>> operator=(WidgetType* value) const {
+        value->role.set(Name.string());
+        return { RC<WidgetType>(value) };
+    }
+
+    ArgVal<Tag::WithRole<WidgetType, Name>> operator=(RC<WidgetType> value) const {
+        value->role.set(Name.string());
+        return { std::move(value) };
+    }
+
+    static WidgetType* matchesType(Widget* widget) {
+        if (WidgetType* typed = dynamic_cast<WidgetType*>(widget)) {
+            typed->role.set(Name.string());
+            return typed;
+        }
+        return nullptr;
+    }
+
+    static WidgetType* matchesRole(Widget* widget) {
+        if (WidgetType* typed = dynamic_cast<WidgetType*>(widget);
+            typed && typed->role.get() == Name.string()) {
+            return typed;
+        }
+        return nullptr;
+    }
+
+    static RC<WidgetType> get(const Widget* parent) {
+        return parent->template find<WidgetType>(MatchRole{ Name.string() });
+    }
+
+    static std::string_view role() {
+        return Name.string();
+    }
+
+    static void create(Widget* parent) {
+        static_assert(std::constructible_from<WidgetType>,
+                      "WidgetType must be constructible from empty argument list");
+        if (!get(parent)) {
+            parent->apply(new WidgetType{ Arg::role = Name.string() });
+        }
+    }
+};
+
+template <std::derived_from<Widget> WidgetType, Internal::FixedString Name>
+using WidgetRole = Argument<Tag::WithRole<WidgetType, Name>>;
+
+template <std::derived_from<Widget> WidgetType, Internal::FixedString Name>
+void applier(Widget* target, ArgVal<Tag::WithRole<WidgetType, Name>> value) {
+    target->apply(std::move(value.value));
+}
 
 int shufflePalette(int x);
 

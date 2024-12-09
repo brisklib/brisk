@@ -8,6 +8,7 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
         flexGrow = 1,
         padding  = 16_apx,
         gapRow   = 8_apx,
+        overflow = Overflow::ScrollX,
 
         new Text{ "flexWrap = Wrap::Wrap", classes = { "section-header" } },
         new HLayout{
@@ -17,6 +18,7 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
             backgroundColor = 0x000000_rgb,
             flexWrap        = Wrap::Wrap,
             fontSize        = 28,
+            minWidth        = 400_apx,
 
             Builder([](Widget* target) {
                 for (int i = 0; i < 24; ++i) {

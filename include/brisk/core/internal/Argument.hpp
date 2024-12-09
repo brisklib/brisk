@@ -22,6 +22,7 @@
 
 #include "../Brisk.h"
 #include <brisk/core/internal/FixedString.hpp>
+#include <brisk/core/internal/Debug.hpp>
 #include <utility>
 #include <cstdint>
 #include <variant>
@@ -70,6 +71,7 @@ public:
     }
 
     BRISK_INLINE void apply(Target* target) const {
+        BRISK_ASSERT(target);
         if (applyFn)
             applyFn(args, target);
     }

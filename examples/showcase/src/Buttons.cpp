@@ -201,13 +201,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                 },
                 gapColumn = 6_apx,
                 new RadioButton{
-                    value = Value{ &m_toggled }.transform(
-                        [](bool v) {
-                            return !v;
-                        },
-                        [](bool v) {
-                            return !v;
-                        }),
+                    value = Value{ &m_toggled }.transform(std::logical_not<>{}, std::logical_not<>{}),
                     new Text{ "Off" },
                 },
                 &m_group,

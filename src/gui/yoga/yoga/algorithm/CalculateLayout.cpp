@@ -147,14 +147,14 @@ static void computeFlexBasisForChild(
 
     // The W3C spec doesn't say anything about the 'overflow' property, but all
     // major browsers appear to implement the following logic.
-    if ((!isMainAxisRow && scrollRow) || !scrollRow) {
+    if (!scrollRow) {
       if (yoga::isUndefined(childWidth) && yoga::isDefined(width)) {
         childWidth = width;
         childWidthSizingMode = SizingMode::FitContent;
       }
     }
 
-    if ((isMainAxisRow && scrollColumn) || !scrollColumn) {
+    if (!scrollColumn) {
       if (yoga::isUndefined(childHeight) && yoga::isDefined(height)) {
         childHeight = height;
         childHeightSizingMode = SizingMode::FitContent;

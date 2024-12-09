@@ -41,19 +41,30 @@ public:
 
 protected:
     Orientation m_orientation;
-    float m_position           = 0;
+    float m_scrollPosition     = 0;
     mutable float m_scrollSize = 0;
+
     void onEvent(Event& event) override;
     void onLayoutUpdated() override;
     bool setScrollOffset(float value);
     void updateOffsets();
     void createScrollBar();
     void revealChild(Widget* child) override;
-
     Ptr cloneThis() override;
-
     explicit ScrollBox(Construction construction, Orientation orientation, ArgumentsView<ScrollBox> args);
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<ScrollBox, float, &ScrollBox::m_scrollPosition, nullptr, nullptr, &ScrollBox::updateOffsets>
+        scrollPosition;
+    Property<ScrollBox, float, &ScrollBox::m_scrollSize> scrollSize;
+    BRISK_PROPERTIES_END
 };
+
+inline namespace Arg {
+constexpr inline Argument<Tag::PropArg<decltype(ScrollBox::scrollPosition)>> scrollPosition{};
+constexpr inline Argument<Tag::PropArg<decltype(ScrollBox::scrollSize)>> scrollSize{};
+} // namespace Arg
 
 class WIDGET VScrollBox final : public ScrollBox {
 public:

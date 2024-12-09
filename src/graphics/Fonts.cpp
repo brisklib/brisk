@@ -804,7 +804,7 @@ PreparedText FontManager::shapeRuns(const Font& font, const TextWithOptions& tex
         }
         if ((flags && FontFlags::DisableLigatures)) {
             using enum OpenTypeFeature;
-            for (OpenTypeFeature feature : { liga, clig, kern }) {
+            for (OpenTypeFeature feature : { liga, clig, dlig }) {
                 features.push_back(hb_feature_t{
                     openTypeFeatures[+feature],
                     0u,

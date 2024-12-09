@@ -49,18 +49,18 @@ template <PixelFormat Format>
 static void testImageSample(std::string sample, Size size) {
     auto raw = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src" / "graphics" / "testdata" / (sample + ".raw"));
     REQUIRE(!!raw);
-    InplacePtr<Image> reference(raw->data(), size, size.width * pixelComponents(Format),
-                                imageFormat(PixelType::U8Gamma, Format));
+    Image reference(raw->data(), size, size.width * pixelComponents(Format),
+                    imageFormat(PixelType::U8Gamma, Format));
 
     // SECTION("bmp") {
     //     testImageCodec(sample, reference, ImageCodec::BMP, "bmp");
     // }
     SECTION("png") {
-        testImageCodec(sample, reference, ImageCodec::PNG, "png");
+        testImageCodec(sample, notManaged(&reference), ImageCodec::PNG, "png");
     }
     if constexpr (Format != PixelFormat::RGBA) {
         SECTION("jpg") {
-            testImageCodec(sample, reference, ImageCodec::JPEG, "jpg");
+            testImageCodec(sample, notManaged(&reference), ImageCodec::JPEG, "jpg");
         }
     }
 }
