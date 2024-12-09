@@ -146,20 +146,23 @@
 #define BRISK_CLANG_PRAGMA(...)
 #endif
 
-#ifdef __cplusplus
+#ifdef NDEBUG
 #ifdef BRISK_GNU_ATTR
 #define BRISK_INLINE __attribute__((__always_inline__))
-#define BRISK_INLINE_LAMBDA BRISK_INLINE
 #else
 #define BRISK_INLINE __forceinline
+#endif
+#else
+#define BRISK_INLINE
+#endif
+
+#ifdef __cplusplus
+#ifdef BRISK_GNU_ATTR
+#define BRISK_INLINE_LAMBDA BRISK_INLINE
+#else
 #define BRISK_INLINE_LAMBDA [[msvc::forceinline]]
 #endif
 #else
-#ifdef BRISK_GNU_ATTR
-#define BRISK_INLINE __attribute__((__always_inline__))
-#else
-#define BRISK_INLINE __forceinline
-#endif
 #endif
 
 #ifdef BRISK_X86
