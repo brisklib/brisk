@@ -17,8 +17,13 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
+cmake_minimum_required(VERSION 3.16)
 
 project(calc)
+
+if (NOT _BRISK_INCLUDE_DIR)
+    find_package(Brisk CONFIG REQUIRED)
+endif ()
 
 add_subdirectory(decNumber)
 

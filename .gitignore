@@ -10,4 +10,5 @@ vcpkg_cache
 vcpkg_exported
 dist
 deps-*
+Brisk-Prebuilt-*
 Brisk-Dependencies-*

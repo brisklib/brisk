@@ -23,7 +23,8 @@ endif ()
 include(${ROOT}/dep-hash.cmake)
 
 # Check if the archive exists on S3
-execute_process(COMMAND aws s3 ls s3://gh-bin/brisk-deps/${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.7z RESULT_VARIABLE RESULT)
+execute_process(COMMAND aws s3 ls s3://gh-bin/brisk-deps/${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.tar.xz
+                RESULT_VARIABLE RESULT)
 
 if (RESULT EQUAL 0) # aws s3 ls was successfull, file exists
     message("Archive does exist on S3, skipping build")
@@ -39,15 +40,23 @@ else ()
         message(FATAL_ERROR "vcpkg install failed with exit code ${RESULT}")
     endif ()
 
-    # Export the package to a .7z archive
-    execute_process(COMMAND vcpkg export --7zip --output-dir=${TEMP_DIR} --output=${VCPKG_TARGET_TRIPLET}-${DEP_HASH}
+    # Export the package to a .tar.xz archive
+    execute_process(COMMAND vcpkg export --raw --output-dir=${TEMP_DIR} --output=${VCPKG_TARGET_TRIPLET}-${DEP_HASH}
                             COMMAND_ECHO STDOUT RESULT_VARIABLE RESULT)
     if (NOT RESULT EQUAL 0)
         message(FATAL_ERROR "vcpkg export failed with exit code ${RESULT}")
     endif ()
 
+    execute_process(
+        COMMAND cmake -E tar cJf ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.tar.xz .
+        WORKING_DIRECTORY ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH} COMMAND_ECHO STDOUT
+        RESULT_VARIABLE RESULT)
+    if (NOT RESULT EQUAL 0)
+        message(FATAL_ERROR "tar failed with exit code ${RESULT}")
+    endif ()
+
     # Upload the archive to S3
-    execute_process(COMMAND aws s3 cp --acl public-read ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.7z
+    execute_process(COMMAND aws s3 cp --acl public-read ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.tar.xz
                             s3://gh-bin/brisk-deps/ COMMAND_ECHO STDOUT RESULT_VARIABLE RESULT)
     if (NOT RESULT EQUAL 0)
         message(FATAL_ERROR "aws s3 cp failed with exit code ${RESULT}")

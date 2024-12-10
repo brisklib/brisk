@@ -1,6 +1,6 @@
 set(ROOT ${CMAKE_CURRENT_LIST_DIR})
 
-set(URL https://download.brisklib.com/brisk-deps/{TRIPLET}-{DEP_HASH}.7z)
+set(URL https://download.brisklib.com/brisk-deps/{TRIPLET}-{DEP_HASH}.tar.xz)
 
 if (DEFINED ENV{VCPKG_TARGET_TRIPLET})
     set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_TARGET_TRIPLET})
@@ -17,7 +17,7 @@ include(${ROOT}/dep-hash.cmake)
 # Define the URL and destination file for download
 string(REPLACE "{DEP_HASH}" "${DEP_HASH}" URL "${URL}")
 string(REPLACE "{TRIPLET}" "${VCPKG_TARGET_TRIPLET}" URL "${URL}")
-set(DEST_FILE ${ROOT}/Brisk-Dependencies-${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.7z)
+set(DEST_FILE ${ROOT}/Brisk-Dependencies-${DEP_HASH}-${VCPKG_TARGET_TRIPLET}.tar.xz)
 
 if (NOT EXISTS ${DEST_FILE})
 
@@ -66,13 +66,6 @@ if (NOT EXISTS ${ROOT}/vcpkg_exported)
     if (NOT RESULT EQUAL 0)
         message(FATAL_ERROR "cmake -E tar failed with exit code ${RESULT}")
     endif ()
-
-    # Move all contents of extracted folder to the root of vcpkg_exported
-    file(GLOB EXTRACTED_CONTENTS "${ROOT}/vcpkg_exported/*/*")
-    foreach (FILE IN LISTS EXTRACTED_CONTENTS)
-        get_filename_component(ONLY_NAME ${FILE} NAME)
-        file(RENAME ${FILE} ${ROOT}/vcpkg_exported/${ONLY_NAME})
-    endforeach ()
 
     file(GLOB VCPKG_INSTALLED_CONTENTS ${ROOT}/vcpkg_installed/*)
     if (NOT VCPKG_INSTALLED_CONTENTS STREQUAL "")

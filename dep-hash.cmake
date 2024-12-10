@@ -28,6 +28,9 @@ if (NOT DEFINED DEP_HASH_SILENT)
 endif ()
 
 string(SHA256 DEP_HASH "${HASHES}")
+
+string(SUBSTRING "${DEP_HASH}" 0 8 DEP_HASH)
+
 if (NOT DEFINED DEP_HASH_SILENT)
     message(STATUS ${DEP_HASH})
 endif ()

@@ -1,0 +1,11 @@
+# Brisk Package
+
+## Dependencies
+
+This package is built with the `@VCPKG_TARGET_TRIPLET@` vcpkg triplet.
+Ensure your application's selected triplet matches the one used to build Brisk.
+
+You can download dependencies that are required for building Brisk applications here:
+
+https://download.brisklib.com/brisk-deps/@VCPKG_TARGET_TRIPLET@-@DEP_HASH@.tar.xz
+

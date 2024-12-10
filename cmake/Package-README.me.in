@@ -1,8 +1,0 @@
-# Brisk Package
-
-## Dependencies
-
-You can download dependencies that are required for building Brisk applications here:
-
-https://download.brisklib.com/brisk-deps/@VCPKG_TARGET_TRIPLET@-@DEP_HASH@.7z
-
