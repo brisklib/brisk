@@ -135,6 +135,8 @@ template <typename... Args>
 struct Trigger {
     using Type = typename Internal::TriggerArgs<Args...>::Type;
 
+    constexpr static bool isTrigger = true;
+
     std::optional<Type> arg;
 
     operator Type() const {
@@ -183,9 +185,9 @@ using ValueArgument = typename Internal::ValueArgumentImpl<T>::Type;
  * @tparam T The type to check.
  */
 template <typename T>
-concept PropertyLike = requires(T t, const T ct, typename T::Type v) {
-    requires std::copy_constructible<typename T::Type>;
-    { ct.get() } -> std::convertible_to<typename T::Type>;
+concept PropertyLike = requires(T t, const T ct, typename T::ValueType v) {
+    requires std::copy_constructible<typename T::ValueType>;
+    { ct.get() } -> std::convertible_to<typename T::ValueType>;
     t.set(v);
     { ct.address() } -> std::convertible_to<BindingAddress>;
     { t.this_pointer = nullptr };

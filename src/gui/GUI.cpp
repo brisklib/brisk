@@ -2107,18 +2107,54 @@ static void blendValue(T& value, const T& newValue) {
 }
 
 template <typename T>
-BRISK_INLINE static const T& getterConvert(const T& value) {
+BRISK_INLINE inline const T& getterConvert(const T& value) {
     return value;
 }
 
 template <typename T>
-BRISK_INLINE static const T& getterConvert(const Internal::Resolve<T>& value) {
+BRISK_INLINE inline const T& getterConvert(const Internal::Resolve<T>& value) {
     return value.value;
 }
 
 template <typename T>
-BRISK_INLINE static const T& getterConvert(const Internal::Transition<T>& value) {
+BRISK_INLINE inline const T& getterConvert(const Internal::Transition<T>& value) {
     return value.stopValue;
+}
+
+template <bool resolved, typename U>
+U& resolveField(std::bool_constant<resolved>, U& field) noexcept {
+    return field;
+}
+
+template <typename InputT>
+typename Internal::ResolvedType<InputT>::Type& resolveField(std::bool_constant<true>,
+                                                            Internal::Resolve<InputT>& field) noexcept {
+    return field.resolved;
+}
+
+template <typename InputT>
+InputT& resolveField(std::bool_constant<false>, Internal::Resolve<InputT>& field) noexcept {
+    return field.value;
+}
+
+template <typename InputT>
+const typename Internal::ResolvedType<InputT>::Type& resolveField(
+    std::bool_constant<true>, const Internal::Resolve<InputT>& field) noexcept {
+    return field.resolved;
+}
+
+template <typename InputT>
+const InputT& resolveField(std::bool_constant<false>, const Internal::Resolve<InputT>& field) noexcept {
+    return field.value;
+}
+
+template <auto Widget::* field, int subfield, typename U, bool resolved>
+decltype(auto) subField(std::bool_constant<resolved> cresolved, U&& self) noexcept {
+    auto& f = resolveField(cresolved, self.*field);
+    if constexpr (subfield == -1)
+        return f;
+    else
+        return accessField<subfield>(f);
 }
 } // namespace Internal
 
@@ -2136,73 +2172,25 @@ float Widget::* Widget::transitionField(Internal::Transition<T> Widget::* field)
         return nullptr;
 }
 
-namespace {
-
-template <bool resolved, typename U>
-U& resolveField(std::bool_constant<resolved>, U& field) noexcept {
-    return field;
+template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
+OptConstRef<PropFieldType<T, subfield>> Widget::getter() const noexcept {
+    return Internal::getterConvert(Internal::subField<field, subfield>(std::false_type{}, *this));
 }
 
-template <typename InputT>
-ResolvedType<InputT>& resolveField(std::bool_constant<true>, Internal::Resolve<InputT>& field) noexcept {
-    return field.resolved;
+template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
+OptConstRef<ResolvedType<PropFieldType<T, subfield>>> Widget::getterResolved() const noexcept {
+    return Internal::subField<field, subfield>(std::true_type{}, *this);
 }
 
-template <typename InputT>
-InputT& resolveField(std::bool_constant<false>, Internal::Resolve<InputT>& field) noexcept {
-    return field.value;
+template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
+OptConstRef<PropFieldType<T, subfield>> Widget::getterCurrent() const noexcept {
+    return Internal::subField<field, subfield>(std::false_type{}, *this).current;
 }
 
-template <typename InputT>
-const ResolvedType<InputT>& resolveField(std::bool_constant<true>,
-                                         const Internal::Resolve<InputT>& field) noexcept {
-    return field.resolved;
-}
-
-template <typename InputT>
-const InputT& resolveField(std::bool_constant<false>, const Internal::Resolve<InputT>& field) noexcept {
-    return field.value;
-}
-
-template <auto field1, typename U, bool resolved>
-decltype(auto) subField(std::bool_constant<resolved> cresolved, U&& self) noexcept {
-    return resolveField(cresolved, self.*field1);
-}
-
-template <auto field1, auto field2, typename U>
-decltype(auto) subField(std::false_type, U&& self) noexcept {
-    return resolveField(std::false_type{}, self.*field1).*field2;
-}
-
-template <auto field1, auto field2, auto, typename U>
-decltype(auto) subField(std::false_type, U&& self) noexcept {
-    return resolveField(std::false_type{}, self.*field1).*field2;
-}
-
-template <auto field1, auto field2a, auto field2R, typename U>
-decltype(auto) subField(std::true_type, U&& self) noexcept {
-    return resolveField(std::true_type{}, self.*field1).*field2R;
-}
-} // namespace
-
-template <typename T, auto... fields>
-OptConstRef<T> Widget::getter() const noexcept {
-    return Internal::getterConvert(subField<fields...>(std::false_type{}, *this));
-}
-
-template <typename T, auto... fields>
-OptConstRef<ResolvedType<T>> Widget::getterResolved() const noexcept {
-    return subField<fields...>(std::true_type{}, *this);
-}
-
-template <typename T, auto... fields>
-OptConstRef<T> Widget::getterCurrent() const noexcept {
-    return subField<fields...>(std::false_type{}, *this).current;
-}
-
-template <typename T, size_t index, PropFlags flags, auto... fields>
-void Widget::setter(T value) {
-    auto& field = subField<fields...>(std::false_type{}, *this);
+template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field_,
+          int subfield_>
+void Widget::setter(PropFieldType<T, subfield_> value) {
+    auto& field = Internal::subField<field_, subfield_>(std::false_type{}, *this);
 
     if constexpr (index != noIndex) {
         PropState state = getPropState(index);
@@ -2223,7 +2211,7 @@ void Widget::setter(T value) {
         field = value;
     } else {
         if constexpr (flags && Transition) {
-            if (!field.set(value, transitionAllowed() ? this->*(transitionField(fields...)) : 0.f))
+            if (!field.set(value, transitionAllowed() ? this->*(transitionField(field_)) : 0.f))
                 return;
             if (field.isActive()) {
                 requestAnimationFrame();
@@ -2246,7 +2234,8 @@ void Widget::setter(T value) {
     bindings->notify(&field);
 }
 
-template <typename T, size_t index, PropFlags flags, auto... fields>
+template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
+          int subfield>
 void Widget::setter(Inherit) {
     static_assert(index != noIndex);
 
@@ -2280,69 +2269,79 @@ void Widget::setPropState(size_t index, PropState state) noexcept {
     m_propStates |= bitset_t(+state) << shift;
 }
 
-template <size_t index_, typename T, PropFlags flags_, auto... fields_>
-inline BindingAddress GUIProperty<index_, T, flags_, fields_...>::address() const noexcept {
-    return toBindingAddress(&subField<fields_...>(std::false_type{}, *this_pointer));
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field_,
+          int subfield_>
+BindingAddress GUIProperty<index_, T, flags_, field_, subfield_>::address() const noexcept {
+    return toBindingAddress(&Internal::subField<field, subfield>(std::false_type{}, *this_pointer));
 }
 
-template <size_t index_, typename T, PropFlags flags_, auto... fields_>
-inline OptConstRef<T> GUIProperty<index_, T, flags_, fields_...>::get() const noexcept {
-    return this_pointer->getter<T, fields_...>();
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field_,
+          int subfield_>
+auto GUIProperty<index_, T, flags_, field_, subfield_>::get() const noexcept -> OptConstRef<ValueType> {
+    return this_pointer->getter<T, flags_, field, subfield>();
 }
 
-template <size_t index_, typename T, PropFlags flags_, auto... fields_>
-inline OptConstRef<ResolvedType<T>> GUIProperty<index_, T, flags_, fields_...>::resolved() const noexcept
-    requires((flags_ & PropFlags::Resolvable) == PropFlags::Resolvable)
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field,
+          int subfield>
+auto GUIProperty<index_, T, flags_, field, subfield>::resolved() const noexcept
+    -> OptConstRef<ResolvedType<ValueType>>
+    requires(isResolvable(flags_))
 {
-    return this_pointer->getterResolved<T, fields_...>();
+    return this_pointer->getterResolved<T, flags_, field, subfield>();
 }
 
-template <size_t index_, typename T, PropFlags flags_, auto... fields_>
-inline OptConstRef<T> GUIProperty<index_, T, flags_, fields_...>::current() const noexcept
-    requires((flags_ & PropFlags::Transition) == PropFlags::Transition)
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field,
+          int subfield>
+auto GUIProperty<index_, T, flags_, field, subfield>::current() const noexcept -> OptConstRef<ValueType>
+    requires(isTransition(flags_))
 {
-    return this_pointer->getterCurrent<T, fields_...>();
+    return this_pointer->getterCurrent<T, flags_, field, subfield>();
 }
 
-template <size_t index_, typename T, PropFlags flags_, auto... fields_>
-inline void GUIProperty<index_, T, flags_, fields_...>::set(Type value) {
-    this_pointer->setter<T, index, flags_, fields_...>(std::move(value));
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field,
+          int subfield>
+void GUIProperty<index_, T, flags_, field, subfield>::internalSet(ValueType value) {
+    this_pointer->setter<T, index, flags_, field, subfield>(std::move(value));
 }
 
-template <size_t index_, typename T, PropFlags flags_, auto... fields_>
-inline void GUIProperty<index_, T, flags_, fields_...>::set(Inherit inherit)
-    requires((flags_ & PropFlags::Inheritable) == PropFlags::Inheritable)
-{
-    this_pointer->setter<T, index, flags_, fields_...>(inherit);
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field,
+          int subfield>
+void GUIProperty<index_, T, flags_, field, subfield>::internalSetInherit() {
+    if constexpr (isInheritable(flags_))
+        this_pointer->setter<T, index, flags_, field, subfield>(inherit);
 }
 
-template <size_t index_, typename Type_, auto Widget::* field, typename... Properties>
-inline OptConstRef<Type_> GUIPropertyCompound<index_, Type_, field, Properties...>::get() const noexcept {
+template <size_t index_, typename Type_, PropFlags flags_,
+          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
+OptConstRef<Type_> GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::get() const noexcept {
     return Internal::getterConvert(this_pointer->*field);
 }
 
-template <size_t index_, typename Type_, auto Widget::* field, typename... Properties>
-inline OptConstRef<ResolvedType<Type_>> GUIPropertyCompound<index_, Type_, field, Properties...>::resolved()
+template <size_t index_, typename Type_, PropFlags flags_,
+          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
+OptConstRef<ResolvedType<Type_>> GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::resolved()
     const noexcept
-    requires(((Properties::flags | ...) & PropFlags::Resolvable) == PropFlags::Resolvable)
+    requires(isResolvable(flags_))
 {
     return (this_pointer->*field).resolved;
 }
 
-template <size_t index_, typename Type_, auto Widget::* field, typename... Properties>
-inline void GUIPropertyCompound<index_, Type_, field, Properties...>::set(Type value) {
-    (Properties{ this_pointer }.set(Properties::sub(value)), ...);
+template <size_t index_, typename Type_, PropFlags flags_,
+          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
+void GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::internalSet(Type value) {
+    (Properties{ this_pointer }.internalSet(Properties::sub(value)), ...);
 }
 
-template <size_t index_, typename Type_, auto Widget::* field, typename... Properties>
-inline void GUIPropertyCompound<index_, Type_, field, Properties...>::set(Inherit value)
-    requires(((Properties::flags | ...) & PropFlags::Inheritable) == PropFlags::Inheritable)
-{
-    (Properties{ this_pointer }.set(inherit), ...);
+template <size_t index_, typename Type_, PropFlags flags_,
+          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
+void GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::internalSetInherit() {
+    if constexpr (isInheritable(flags_))
+        (Properties{ this_pointer }.internalSetInherit(), ...);
 }
 
-template <size_t index_, typename Type_, auto Widget::* field, typename... Properties>
-BindingAddress GUIPropertyCompound<index_, Type_, field, Properties...>::address() const noexcept {
+template <size_t index_, typename Type_, PropFlags flags_,
+          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
+BindingAddress GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::address() const noexcept {
     return toBindingAddress(&(this_pointer->*field));
 }
 
@@ -2465,12 +2464,9 @@ void instantiateProp() {
     if constexpr (Prop::flags && PropFlags::Transition) {
         fastHashAccum(hashSum, &Prop::current);
     }
-    using Type = typename Prop::Type;
-    fastHashAccum(hashSum, static_cast<void (Prop::*)(Type)>(&Prop::set));
-
-    if constexpr (Prop::flags && PropFlags::Inheritable) {
-        fastHashAccum(hashSum, static_cast<void (Prop::*)(Inherit)>(&Prop::set));
-    }
+    using Type = typename Prop::ValueType;
+    fastHashAccum(hashSum, &Prop::internalSet);
+    fastHashAccum(hashSum, &Prop::internalSetInherit);
     fastHashAccum(hashSum, &Prop::address);
 }
 

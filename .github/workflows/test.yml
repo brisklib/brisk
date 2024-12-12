@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         triplet: ["x64-linux"]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
       VCPKG_DEFAULT_HOST_TRIPLET: ${{matrix.triplet}}
@@ -112,20 +112,19 @@ jobs:
         cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}} -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug
         cmake --build build-debug   --target install
         cd dist
-        cmake -E tar cJ "${{github.workspace}}/Brisk-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
+        cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
     - name: Binaries
       uses: actions/upload-artifact@v4
       with:
         name: ${{matrix.triplet}}
         path: |
           Brisk-*.tar.xz
-          Brisk-Dependencies-*.7z
 
   build-linux:
     strategy:
       matrix:
         triplet: ["x64-linux"]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: deps-linux
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
@@ -147,14 +146,13 @@ jobs:
         cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER=clang++-19 -DCMAKE_C_COMPILER=clang-19
         cmake --build build-debug   --target install
         cd dist
-        cmake -E tar cJ "${{github.workspace}}/Brisk-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
+        cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
     - name: Binaries
       uses: actions/upload-artifact@v4
       with:
         name: ${{matrix.triplet}}
         path: |
           Brisk-*.tar.xz
-          Brisk-Dependencies-*.7z
 
   build-windows:
     strategy:
@@ -195,17 +193,16 @@ jobs:
         cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
         cmake --build build-debug   --target install
         cd dist
-        cmake -E tar cJ "${{github.workspace}}/Brisk-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
+        cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
     - name: Binaries
       uses: actions/upload-artifact@v4
       with:
         name: ${{matrix.triplet}}
         path: |
           Brisk-*.tar.xz
-          Brisk-Dependencies-*.7z
 
   ubuntu-ninja-clang-x86_64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: deps-linux
     env:
       VCPKG_DEFAULT_TRIPLET: x64-linux
@@ -417,7 +414,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Install prerequisites
       run: |
-        brew install ninja autoconf automake autoconf-archive
+        brew install ninja automake autoconf-archive
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
@@ -439,9 +436,147 @@ jobs:
           build/*.png
           build/*.log
 
+  usage-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet: ["x64-linux"]
+    runs-on: ubuntu-24.04
+    needs: build-linux
+    steps:
+    - name: Install prerequisites
+      run: >
+        sudo apt-get update && sudo apt-get install -y ninja-build wget xorg-dev
+        libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev
+        libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{matrix.triplet}}
+    - name: Extract Brisk
+      run: |
+        mkdir brisk-dist && cd brisk-dist
+        cmake -E tar xvf ../Brisk-Prebuilt-*.tar.xz
+    - name: Extract dependencies
+      run: |
+        mkdir vcpkg_exported && cd vcpkg_exported
+        cmake -E tar xvf ../Brisk-Dependencies-*.tar.xz
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: repo
+    - name: Configure
+      run: >
+        cmake -G"Unix Makefiles"
+        -S repo/examples/showcase
+        -B build
+        -DCMAKE_BUILD_TYPE=Release
+        -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
+        -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
+        -DVCPKG_INSTALLED_DIR=${{github.workspace}}/vcpkg_exported/installed
+        -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg_exported/scripts/buildsystems/vcpkg.cmake
+    - name: Build
+      run: |
+        cmake --build build
+    - name: Upload usage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: showcase-${{matrix.triplet}}
+        path: |
+          build/showcase
+
+  usage-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet: ["x64-osx", "arm64-osx"]
+    runs-on: macos-latest
+    needs: build-macos
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{matrix.triplet}}
+    - name: Extract Brisk
+      run: |
+        mkdir brisk-dist && cd brisk-dist
+        cmake -E tar xvf ../Brisk-Prebuilt-*.tar.xz
+    - name: Extract dependencies
+      run: |
+        mkdir vcpkg_exported && cd vcpkg_exported
+        cmake -E tar xvf ../Brisk-Dependencies-*.tar.xz
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: repo
+    - name: Configure
+      run: >
+        cmake -GXcode
+        -S repo/examples/showcase
+        -DCMAKE_OSX_ARCHITECTURES=${{ startsWith(matrix.triplet, 'x64') && 'x86_64' || 'arm64' }}
+        -B build
+        -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
+        -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
+        -DVCPKG_INSTALLED_DIR=${{github.workspace}}/vcpkg_exported/installed
+        -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg_exported/scripts/buildsystems/vcpkg.cmake
+    - name: Build
+      run: |
+        cmake --build build --config Release
+    - name: Upload usage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: showcase-${{matrix.triplet}}
+        path: |
+          build/Release/showcase.app
+
+  usage-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet: ["x64-windows-static-md", "x86-windows-static-md", "x64-windows-static", "x86-windows-static"]
+    runs-on: windows-latest
+    needs: build-windows
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{matrix.triplet}}
+    - name: Extract Brisk
+      run: |
+        mkdir brisk-dist && cd brisk-dist
+        cmake -E tar xvf (Get-ChildItem ../Brisk-Prebuilt-*.tar.xz).FullName
+    - name: Extract dependencies
+      run: |
+        mkdir vcpkg_exported && cd vcpkg_exported
+        cmake -E tar xvf (Get-ChildItem ../Brisk-Dependencies-*.tar.xz).FullName
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: repo
+    - name: Configure
+      run: >
+        cmake -G"Visual Studio 17 2022"
+        -A ${{ startsWith(matrix.triplet, 'x86') && 'Win32' || 'x64' }}
+        -S repo/examples/showcase
+        -B build
+        -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
+        -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
+        -DVCPKG_INSTALLED_DIR=${{github.workspace}}/vcpkg_exported/installed
+        -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg_exported/scripts/buildsystems/vcpkg.cmake
+        "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>${{ endsWith(matrix.triplet, '-md') && 'DLL' || '' }}"
+    - name: Build
+      run: |
+        cmake --build build --config Release
+    - name: Upload usage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: showcase-${{matrix.triplet}}
+        path: |
+          build/Release/showcase.exe
+
   upload-release:
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     needs: [build-windows, build-linux, build-macos]
