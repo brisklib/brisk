@@ -154,6 +154,15 @@ constexpr void forEachField(Fn&& fn) {
         reflection);
 }
 
+template <HasReflection T, size_t index>
+using FieldType =
+    std::remove_reference_t<decltype(std::declval<T>().*std::get<index>(reflectionOf<T>()).pointerToField)>;
+
+template <size_t index, HasReflection T>
+constexpr decltype(auto) accessField(T&& obj) {
+    return obj.*(std::get<index>(reflectionOf(std::forward<T>(obj))).pointerToField);
+}
+
 /**
  * @brief Returns the number of enum values based on the last enum value.
  *
