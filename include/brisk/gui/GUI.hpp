@@ -113,6 +113,18 @@ struct Builder {
     void run(Widget* w);
 };
 
+constexpr bool isInheritable(PropFlags flags) {
+    return flags && PropFlags::Inheritable;
+}
+
+constexpr bool isTransition(PropFlags flags) {
+    return flags && PropFlags::Transition;
+}
+
+constexpr bool isResolvable(PropFlags flags) {
+    return flags && PropFlags::Resolvable;
+}
+
 namespace Tag {
 struct Depends {
     using Type = Value<Trigger<>>;
@@ -327,9 +339,43 @@ concept invocable_r = std::is_invocable_r_v<R, Callable, Args...>;
 namespace Internal {
 constexpr inline size_t numProperties = 101;
 extern const std::string_view propNames[numProperties];
+
+template <typename T, int subfield = -1>
+struct PropFieldType {
+    using Type = FieldType<T, subfield>;
+};
+
+template <typename T>
+struct PropFieldType<T, -1> {
+    using Type = T;
+};
+
+template <typename T, bool Transition, bool Resolvable>
+struct PropFieldStorageType {
+    using Type = T;
+};
+
+template <typename T>
+struct PropFieldStorageType<T, true, false> {
+    using Type = Internal::Transition<T>;
+};
+
+template <typename T>
+struct PropFieldStorageType<T, false, true> {
+    using Type = Internal::Resolve<T>;
+};
+
 } // namespace Internal
 
-template <size_t index_, typename Type_, auto Widget::* field, typename... Properties>
+template <typename T, int subfield = -1>
+using PropFieldType = typename Internal::PropFieldType<T, subfield>::Type;
+
+template <typename T, PropFlags flags>
+using PropFieldStorageType = typename Internal::PropFieldStorageType<T, flags && PropFlags::Transition,
+                                                                     flags && PropFlags::Resolvable>::Type;
+
+template <size_t index_, typename Type_, PropFlags flags_,
+          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
 struct GUIPropertyCompound {
     using Type      = Type_;
     using ValueType = Type;
@@ -342,125 +388,127 @@ struct GUIPropertyCompound {
         return Internal::propNames[index_];
     }
 
+    void internalSet(ValueType value);
+    void internalSetInherit();
+
     void operator=(Type value) {
-        this->set(std::move(value));
+        this->internalSet(std::move(value));
     }
 
     void operator=(Inherit inherit)
-        requires((flags & PropFlags::Inheritable) == PropFlags::Inheritable)
+        requires(isInheritable(flags_))
     {
-        this->set(inherit);
+        this->internalSetInherit();
     }
 
     OptConstRef<Type> get() const noexcept;
     OptConstRef<ResolvedType<Type>> resolved() const noexcept
-        requires(((Properties::flags | ...) & PropFlags::Resolvable) == PropFlags::Resolvable);
+        requires(isResolvable(flags_));
 
-    void set(Type value);
+    void set(Type value) {
+        this->internalSet(std::move(value));
+    }
 
-    void set(Inherit inherit)
-        requires(((Properties::flags | ...) & PropFlags::Inheritable) == PropFlags::Inheritable);
+    void set(Inherit)
+        requires(isInheritable(flags_))
+    {
+        this->internalSetInherit();
+    }
 
     BindingAddress address() const noexcept;
 
     Widget* this_pointer;
 };
 
-namespace Internal {
-
-template <auto field1, auto field2, auto, typename U>
-inline decltype(auto) subImpl(U&& value) {
-    return value.*field2;
-}
-
-template <auto field1, auto field2, typename U>
-inline decltype(auto) subImpl(U&& value) {
-    return value.*field2;
-}
-
-template <auto field1, typename U>
-inline decltype(auto) subImpl(U&& value) {
-    return value;
-}
-} // namespace Internal
-
-template <size_t index_, typename T, PropFlags flags_, auto... fields_>
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field_,
+          int subfield_ = -1>
 struct GUIProperty {
 public:
     using Type      = T;
-    using ValueType = Type;
+    using ValueType = PropFieldType<T, subfield_>;
 
     static_assert(index_ == static_cast<size_t>(-1) || index_ < Internal::numProperties);
 
-    template <typename U>
-    static decltype(auto) sub(U&& value) {
-        return Internal::subImpl<fields_...>(std::forward<U>(value));
+    static ValueType sub(const Type& value) {
+        if constexpr (subfield == -1)
+            return value;
+        else
+            return accessField<subfield>(value);
     }
 
     static std::string_view name() noexcept {
         return Internal::propNames[index_];
     }
 
-    constexpr static size_t index = index_;
+    constexpr static size_t index    = index_;
 
-    constexpr static std::tuple fields{ fields_... };
+    constexpr static auto field      = field_;
+    constexpr static int subfield    = subfield_;
 
     constexpr static PropFlags flags = flags_;
 
-    operator T() const noexcept {
+    operator ValueType() const noexcept {
         return this->get();
     }
 
-    void operator=(T value) {
-        this->set(std::move(value));
+    void operator=(ValueType value) {
+        this->internalSet(std::move(value));
     }
 
     void operator=(Inherit inherit)
-        requires((flags_ & PropFlags::Inheritable) == PropFlags::Inheritable)
+        requires(isInheritable(flags_))
     {
-        this->set(inherit);
+        this->internalSetInherit();
     }
 
-    OptConstRef<T> get() const noexcept;
+    OptConstRef<ValueType> get() const noexcept;
 
-    OptConstRef<ResolvedType<T>> resolved() const noexcept
-        requires((flags_ & PropFlags::Resolvable) == PropFlags::Resolvable);
-    OptConstRef<T> current() const noexcept
-        requires((flags_ & PropFlags::Transition) == PropFlags::Transition);
+    OptConstRef<ResolvedType<ValueType>> resolved() const noexcept
+        requires(isResolvable(flags_));
+    OptConstRef<ValueType> current() const noexcept
+        requires(isTransition(flags_));
 
-    void set(T value);
+    void internalSet(ValueType value);
+    void internalSetInherit();
+
+    void set(ValueType value) {
+        internalSet(std::move(value));
+    }
 
     void set(Inherit inherit)
-        requires((flags_ & PropFlags::Inheritable) == PropFlags::Inheritable);
+        requires(isInheritable(flags_))
+    {
+        this->internalSetInherit();
+    }
 
     BindingAddress address() const noexcept;
 
-    void operator=(Value<T> value) {
+    void operator=(Value<ValueType> value) {
         this->set(std::move(value));
     }
 
-    void set(Value<T> value) {
+    void set(Value<ValueType> value) {
         bindings->connectBidir(Value{ this }, std::move(value));
     }
 
-    template <invocable_r<T> Fn>
+    template <invocable_r<ValueType> Fn>
     void operator=(Fn&& fn) {
-        this->set(std::forward<Fn>(fn)());
+        this->internalSet(std::forward<Fn>(fn)());
     }
 
-    template <invocable_r<T> Fn>
+    template <invocable_r<ValueType> Fn>
     void set(Fn&& fn) {
-        this->set(std::forward<Fn>(fn)());
+        this->internalSet(std::forward<Fn>(fn)());
     }
 
-    template <invocable_r<T, Widget*> Fn>
+    template <invocable_r<ValueType, Widget*> Fn>
     void operator=(Fn&& fn) {
-        this->set(std::forward<Fn>(fn)(this_pointer));
+        this->internalSet(std::forward<Fn>(fn)(this_pointer));
     }
 
-    template <invocable_r<T, Widget*> Fn>
+    template <invocable_r<ValueType, Widget*> Fn>
     void set(Fn&& fn) {
-        this->set(std::forward<Fn>(fn)(this_pointer));
+        this->internalSet(std::forward<Fn>(fn)(this_pointer));
     }
 
     Widget* this_pointer;
@@ -490,17 +538,21 @@ namespace Tag {
 
 template <typename PropertyType>
 struct PropArg : PropertyTag {
-    using Type       = typename PropertyType::Type;
+    using Type       = typename PropertyType::ValueType;
 
     using ExtraTypes = std::variant<function<Type()>, function<Type(Widget*)>, Value<Type>>;
 };
 
-template <size_t index, typename T, PropFlags flags, auto... fields>
-struct PropArg<GUIProperty<index, T, flags, fields...>> : PropertyTag {
-    using Type = T;
+template <size_t index, typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
+          int subfield>
+BRISK_IF_GNU(requires(!requires {
+    { T::isTrigger };
+}))
+struct PropArg<GUIProperty<index, T, flags, field, subfield>> : PropertyTag {
+    using Type = typename GUIProperty<index, T, flags, field, subfield>::ValueType;
 
     static std::string_view name() noexcept {
-        return GUIProperty<index, T, flags, fields...>::name();
+        return GUIProperty<index, T, flags, field, subfield>::name();
     }
 
     using ExtraTypes =
@@ -509,16 +561,17 @@ struct PropArg<GUIProperty<index, T, flags, fields...>> : PropertyTag {
                            std::variant<function<Type()>, function<Type(Widget*)>, Value<Type>>>;
 };
 
-template <size_t index, typename... Args, PropFlags flags, auto... fields>
-struct PropArg<GUIProperty<index, Trigger<Args...>, flags, fields...>> : PropertyTag {
+template <size_t index, typename... Args, PropFlags flags, Trigger<Args...> Widget::* field, int subfield>
+struct PropArg<GUIProperty<index, Trigger<Args...>, flags, field, subfield>> : PropertyTag {
     using Type = Value<Trigger<Args...>>;
 };
 
-template <size_t index_, typename Type_, auto Widget::* field, typename... Properties>
-struct PropArg<GUIPropertyCompound<index_, Type_, field, Properties...>> : PropertyTag {
+template <size_t index_, typename Type_, PropFlags flags_,
+          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
+struct PropArg<GUIPropertyCompound<index_, Type_, flags_, field, Properties...>> : PropertyTag {
 
     static std::string_view name() noexcept {
-        return GUIPropertyCompound<index_, Type_, field, Properties...>::name();
+        return GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::name();
     }
 
     using Type       = Type_;
@@ -1151,24 +1204,26 @@ protected:
 
     void resolveProperties(PropFlags flags);
     void restyleIfRequested();
+    void requestUpdates(PropFlags flags);
 
-    template <typename T, auto... fields>
-    OptConstRef<T> getter() const noexcept;
+    template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
+    OptConstRef<PropFieldType<T, subfield>> getter() const noexcept;
 
-    template <typename T, auto... fields>
-    OptConstRef<ResolvedType<T>> getterResolved() const noexcept;
-    template <typename T, auto... fields>
-    OptConstRef<T> getterCurrent() const noexcept;
+    template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
+    OptConstRef<ResolvedType<PropFieldType<T, subfield>>> getterResolved() const noexcept;
+
+    template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
+    OptConstRef<PropFieldType<T, subfield>> getterCurrent() const noexcept;
 
     template <typename T>
     float Widget::* transitionField(Internal::Transition<T> Widget::* field) const noexcept;
 
-    void requestUpdates(PropFlags flags);
+    template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
+              int subfield>
+    void setter(PropFieldType<T, subfield> value);
 
-    template <typename T, size_t index, PropFlags flags, auto... fields>
-    void setter(T value);
-
-    template <typename T, size_t index, PropFlags flags, auto... fields>
+    template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
+              int subfield>
     void setter(Inherit);
 
 private:
@@ -1222,7 +1277,8 @@ private:
 
     void setDisabled(bool);
 
-    template <size_t index, typename T, PropFlags flags, auto... fields>
+    template <size_t index, typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
+              int subfield>
     friend struct GUIProperty;
 
     using This                      = Widget;
@@ -1247,26 +1303,22 @@ public:
     GUIProperty<9, EasingFunction, None, &This::m_borderColorEasing> borderColorEasing;
     GUIProperty<10, float, None, &This::m_borderColorTransition> borderColorTransition;
     GUIProperty<11, ColorF, Transition, &This::m_borderColor> borderColor;
-    GUIProperty<12, Length, Resolvable | Inheritable, &This::m_borderRadius, &CornersL::x1y1, &CornersF::x1y1>
-        borderRadiusTopLeft;
-    GUIProperty<13, Length, Resolvable | Inheritable, &This::m_borderRadius, &CornersL::x2y1, &CornersF::x2y1>
-        borderRadiusTopRight;
-    GUIProperty<14, Length, Resolvable | Inheritable, &This::m_borderRadius, &CornersL::x1y2, &CornersF::x1y2>
-        borderRadiusBottomLeft;
-    GUIProperty<15, Length, Resolvable | Inheritable, &This::m_borderRadius, &CornersL::x2y2, &CornersF::x2y2>
-        borderRadiusBottomRight;
-    GUIProperty<16, Length, AffectLayout, &This::m_borderWidth, &EdgesL::x1, &EdgesF::x1> borderWidthLeft;
-    GUIProperty<17, Length, AffectLayout, &This::m_borderWidth, &EdgesL::y1, &EdgesF::y1> borderWidthTop;
-    GUIProperty<18, Length, AffectLayout, &This::m_borderWidth, &EdgesL::x2, &EdgesF::x2> borderWidthRight;
-    GUIProperty<19, Length, AffectLayout, &This::m_borderWidth, &EdgesL::y2, &EdgesF::y2> borderWidthBottom;
+    GUIProperty<12, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 0> borderRadiusTopLeft;
+    GUIProperty<13, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 1> borderRadiusTopRight;
+    GUIProperty<14, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 2> borderRadiusBottomLeft;
+    GUIProperty<15, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 3> borderRadiusBottomRight;
+    GUIProperty<16, EdgesL, AffectLayout, &This::m_borderWidth, 0> borderWidthLeft;
+    GUIProperty<17, EdgesL, AffectLayout, &This::m_borderWidth, 1> borderWidthTop;
+    GUIProperty<18, EdgesL, AffectLayout, &This::m_borderWidth, 2> borderWidthRight;
+    GUIProperty<19, EdgesL, AffectLayout, &This::m_borderWidth, 3> borderWidthBottom;
     GUIProperty<20, WidgetClip, None, &This::m_clip> clip;
     GUIProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
     GUIProperty<22, float, None, &This::m_colorTransition> colorTransition;
     GUIProperty<23, ColorF, Transition | Inheritable, &This::m_color> color;
     GUIProperty<24, int, None, &This::m_corners> corners;
     GUIProperty<25, Cursor, None, &This::m_cursor> cursor;
-    GUIProperty<26, Length, AffectLayout, &This::m_dimensions, &SizeL::x, &SizeF::x> width;
-    GUIProperty<27, Length, AffectLayout, &This::m_dimensions, &SizeL::y, &SizeF::y> height;
+    GUIProperty<26, SizeL, AffectLayout, &This::m_dimensions, 0> width;
+    GUIProperty<27, SizeL, AffectLayout, &This::m_dimensions, 1> height;
     GUIProperty<28, Length, AffectLayout, &This::m_flexBasis> flexBasis;
     GUIProperty<29, OptFloat, AffectLayout, &This::m_flexGrow> flexGrow;
     GUIProperty<30, OptFloat, AffectLayout, &This::m_flexShrink> flexShrink;
@@ -1278,28 +1330,28 @@ public:
         fontSize;
     GUIProperty<34, FontStyle, AffectLayout | AffectFont | Inheritable, &This::m_fontStyle> fontStyle;
     GUIProperty<35, FontWeight, AffectLayout | AffectFont | Inheritable, &This::m_fontWeight> fontWeight;
-    GUIProperty<36, Length, AffectLayout, &This::m_gap, &SizeL::x, &SizeF::x> gapColumn;
-    GUIProperty<37, Length, AffectLayout, &This::m_gap, &SizeL::y, &SizeF::y> gapRow;
+    GUIProperty<36, SizeL, AffectLayout, &This::m_gap, 0> gapColumn;
+    GUIProperty<37, SizeL, AffectLayout, &This::m_gap, 1> gapRow;
     GUIProperty<38, bool, None, &This::m_hidden> hidden;
     GUIProperty<39, Justify, AffectLayout, &This::m_justifyContent> justifyContent;
     GUIProperty<40, LayoutOrder, AffectLayout, &This::m_layoutOrder> layoutOrder;
     GUIProperty<41, Layout, AffectLayout, &This::m_layout> layout;
     GUIProperty<42, Length, AffectLayout | Resolvable | AffectFont | Inheritable, &This::m_letterSpacing>
         letterSpacing;
-    GUIProperty<43, Length, AffectLayout, &This::m_margin, &EdgesL::x1, &EdgesF::x1> marginLeft;
-    GUIProperty<44, Length, AffectLayout, &This::m_margin, &EdgesL::y1, &EdgesF::y1> marginTop;
-    GUIProperty<45, Length, AffectLayout, &This::m_margin, &EdgesL::x2, &EdgesF::x2> marginRight;
-    GUIProperty<46, Length, AffectLayout, &This::m_margin, &EdgesL::y2, &EdgesF::y2> marginBottom;
-    GUIProperty<47, Length, AffectLayout, &This::m_maxDimensions, &SizeL::x, &SizeF::x> maxWidth;
-    GUIProperty<48, Length, AffectLayout, &This::m_maxDimensions, &SizeL::y, &SizeF::y> maxHeight;
-    GUIProperty<49, Length, AffectLayout, &This::m_minDimensions, &SizeL::x, &SizeF::x> minWidth;
-    GUIProperty<50, Length, AffectLayout, &This::m_minDimensions, &SizeL::y, &SizeF::y> minHeight;
+    GUIProperty<43, EdgesL, AffectLayout, &This::m_margin, 0> marginLeft;
+    GUIProperty<44, EdgesL, AffectLayout, &This::m_margin, 1> marginTop;
+    GUIProperty<45, EdgesL, AffectLayout, &This::m_margin, 2> marginRight;
+    GUIProperty<46, EdgesL, AffectLayout, &This::m_margin, 3> marginBottom;
+    GUIProperty<47, SizeL, AffectLayout, &This::m_maxDimensions, 0> maxWidth;
+    GUIProperty<48, SizeL, AffectLayout, &This::m_maxDimensions, 1> maxHeight;
+    GUIProperty<49, SizeL, AffectLayout, &This::m_minDimensions, 0> minWidth;
+    GUIProperty<50, SizeL, AffectLayout, &This::m_minDimensions, 1> minHeight;
     GUIProperty<51, float, None, &This::m_opacity> opacity;
     GUIProperty<52, Overflow, AffectLayout, &This::m_overflow> overflow;
-    GUIProperty<53, Length, AffectLayout, &This::m_padding, &EdgesL::x1, &EdgesF::x1> paddingLeft;
-    GUIProperty<54, Length, AffectLayout, &This::m_padding, &EdgesL::y1, &EdgesF::y1> paddingTop;
-    GUIProperty<55, Length, AffectLayout, &This::m_padding, &EdgesL::x2, &EdgesF::x2> paddingRight;
-    GUIProperty<56, Length, AffectLayout, &This::m_padding, &EdgesL::y2, &EdgesF::y2> paddingBottom;
+    GUIProperty<53, EdgesL, AffectLayout, &This::m_padding, 0> paddingLeft;
+    GUIProperty<54, EdgesL, AffectLayout, &This::m_padding, 1> paddingTop;
+    GUIProperty<55, EdgesL, AffectLayout, &This::m_padding, 2> paddingRight;
+    GUIProperty<56, EdgesL, AffectLayout, &This::m_padding, 3> paddingBottom;
     GUIProperty<57, Placement, AffectLayout, &This::m_placement> placement;
     GUIProperty<58, Length, Resolvable | Inheritable, &This::m_shadowSize> shadowSize;
     GUIProperty<59, ColorF, Transition, &This::m_shadowColor> shadowColor;
@@ -1338,24 +1390,27 @@ public:
     GUIProperty<90, Painter, None, &This::m_painter> painter;
     GUIProperty<91, bool, None, &This::m_isHintExclusive> isHintExclusive;
 
-    GUIPropertyCompound<92, CornersL, &This::m_borderRadius, decltype(borderRadiusTopLeft),
-                        decltype(borderRadiusTopRight), decltype(borderRadiusBottomLeft),
-                        decltype(borderRadiusBottomRight)>
+    GUIPropertyCompound<92, CornersL, Resolvable | Inheritable, &This::m_borderRadius,
+                        decltype(borderRadiusTopLeft), decltype(borderRadiusTopRight),
+                        decltype(borderRadiusBottomLeft), decltype(borderRadiusBottomRight)>
         borderRadius;
-    GUIPropertyCompound<93, EdgesL, &This::m_borderWidth, decltype(borderWidthLeft), decltype(borderWidthTop),
-                        decltype(borderWidthRight), decltype(borderWidthBottom)>
+    GUIPropertyCompound<93, EdgesL, AffectLayout, &This::m_borderWidth, decltype(borderWidthLeft),
+                        decltype(borderWidthTop), decltype(borderWidthRight), decltype(borderWidthBottom)>
         borderWidth;
-    GUIPropertyCompound<94, SizeL, &This::m_dimensions, decltype(width), decltype(height)> dimensions;
-    GUIPropertyCompound<95, SizeL, &This::m_gap, decltype(gapColumn), decltype(gapRow)> gap;
-    GUIPropertyCompound<96, EdgesL, &This::m_margin, decltype(marginLeft), decltype(marginTop),
+    GUIPropertyCompound<94, SizeL, AffectLayout, &This::m_dimensions, decltype(width), decltype(height)>
+        dimensions;
+    GUIPropertyCompound<95, SizeL, AffectLayout, &This::m_gap, decltype(gapColumn), decltype(gapRow)> gap;
+    GUIPropertyCompound<96, EdgesL, AffectLayout, &This::m_margin, decltype(marginLeft), decltype(marginTop),
                         decltype(marginRight), decltype(marginBottom)>
         margin;
-    GUIPropertyCompound<97, SizeL, &This::m_maxDimensions, decltype(maxWidth), decltype(maxHeight)>
+    GUIPropertyCompound<97, SizeL, AffectLayout, &This::m_maxDimensions, decltype(maxWidth),
+                        decltype(maxHeight)>
         maxDimensions;
-    GUIPropertyCompound<98, SizeL, &This::m_minDimensions, decltype(minWidth), decltype(minHeight)>
+    GUIPropertyCompound<98, SizeL, AffectLayout, &This::m_minDimensions, decltype(minWidth),
+                        decltype(minHeight)>
         minDimensions;
-    GUIPropertyCompound<99, EdgesL, &This::m_padding, decltype(paddingLeft), decltype(paddingTop),
-                        decltype(paddingRight), decltype(paddingBottom)>
+    GUIPropertyCompound<99, EdgesL, AffectLayout, &This::m_padding, decltype(paddingLeft),
+                        decltype(paddingTop), decltype(paddingRight), decltype(paddingBottom)>
         padding;
     GUIProperty<100, OpenTypeFeatureFlags, AffectLayout | AffectFont | Inheritable, &This::m_fontFeatures>
         fontFeatures;
