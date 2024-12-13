@@ -28,11 +28,12 @@ jobs:
         with:
           repository: kfrlib/cxxdox
           path: cxxdox
+          ref: update
       - name: Build CxxDox
         run: |
           docker build -t cxxdox:latest cxxdox
       - name: Build documentation
-        env: 
+        env:
           MKDOCS_MAIN: ${{secrets.MKDOCS_MAIN}}
         run: |
           mkdir "$(pwd)/out"

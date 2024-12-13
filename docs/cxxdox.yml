@@ -4,6 +4,8 @@ postprocessor:
   ignore: 
     - BRISK_INLINE
 
+namespace: 'Brisk::'
+
 clang:
   arguments: 
     - '-std=c++20'
@@ -17,12 +19,4 @@ masks: ['**/*.hpp']
 
 repository: https://github.com/brisklib/brisk/blob/{TAG}/include/brisk/{FILE}#L{LINE}
 
-groups:
-  core: "Core module"
-  graphics: "Graphics module"
-  window: "Window module"
-  gui: "GUI module"
-  widgets: "Widgets module"
-  network: "Network module"
-  internal: "Internal module"
-  
+groups: auto
