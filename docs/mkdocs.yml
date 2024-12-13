@@ -3,7 +3,7 @@ theme:
   name: "material"
   custom_dir: custom/
   font:
-    text: Open Sans
+    text: Source Sans 3
   features:
     - navigation.tabs
     - navigation.top
@@ -68,19 +68,19 @@ edit_uri: edit/main/docs/
 
 nav:
   - Brisk:
-      - index.md
+    - index.md
+    - about.md
+    - Getting Started:
       - getting_started.md
       - prerequisites.md
       - prebuilt_binaries.md
-  - Modules:
-      - auto/core.md
-      - auto/graphics.md
-      - auto/window.md
-      - auto/gui.md
-      - auto/widgets.md
-      - auto/network.md
-      - auto/internal.md
+    - Core concepts:
+      - binding.md
+    - Examples:
+      - hello_world.md
+      - other_examples.md
   - Reference:
+  - Index:
       - auto/refindex.md
 
   - brisklib.com: https://brisklib.com

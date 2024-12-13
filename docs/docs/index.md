@@ -24,14 +24,7 @@ The Brisk library is in the alpha stage, so there may be breaking changes, and t
 > [!note] 
 > This section contains an auto-generated class and function reference and is not committed to the repository. Please visit https://docs.brisklib.com to view the generated documentation.
 
-* [Core module](auto/core.md)
-* [Graphics module](auto/graphics.md)
-* [Window module](auto/window.md)
-* [GUI module](auto/gui.md)
-* [Widgets module](auto/widgets.md)
-* [Network module](auto/network.md)
-* [Internal module](auto/internal.md)
-* [Reference index](auto/refindex.md)
+* [Index](auto/refindex.md)
 
 ## Documentation
 
