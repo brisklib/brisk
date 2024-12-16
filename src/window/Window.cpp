@@ -373,9 +373,12 @@ void Window::doPaint() {
     }
     if (m_capturedFrame) {
         m_encoder->wait();
-        m_captureCallback(m_capturedFrame);
-        m_captureCallback = nullptr;
-        m_capturedFrame   = nullptr;
+        auto captureCallback = std::move(m_captureCallback);
+        m_captureCallback    = nullptr;
+        auto capturedFrame   = std::move(m_capturedFrame);
+        m_capturedFrame      = nullptr;
+
+        std::move(captureCallback)(std::move(capturedFrame));
     }
     m_frameTimePredictor->markFrameTime();
     m_nextFrameTime = m_frameTimePredictor->predictNextFrameTime();
