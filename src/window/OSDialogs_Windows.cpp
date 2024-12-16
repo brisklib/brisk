@@ -127,6 +127,7 @@ static std::vector<fs::path> pathDialog(OSWindow* window, std::span<const FileDi
         std::wstring buffer;
         std::vector<COMDLG_FILTERSPEC> filt(filters.size());
         for (size_t i = 0; i < filt.size(); i++) {
+            BRISK_ASSERT(!filters[i].filters.empty());
             buffer += utf8ToWcs(filters[i].description);
             buffer.push_back(L'\0');
             buffer += utf8ToWcs(join(filters[i].filters, ";"));
@@ -140,6 +141,10 @@ static std::vector<fs::path> pathDialog(OSWindow* window, std::span<const FileDi
             offset          = buffer.find(L'\0', offset) + 1;
         }
         dialog->SetFileTypes(filt.size(), filt.data());
+        if (!filters.front().filters.empty()) {
+            std::wstring ext = utf8ToWcs(filters.front().filters.front()).substr(2);
+            dialog->SetDefaultExtension(ext.c_str());
+        }
     }
 
     ComPtr<IShellItem> defaultItem;

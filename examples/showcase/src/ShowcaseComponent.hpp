@@ -51,6 +51,8 @@ protected:
     RC<Widget> build() final;
     void unhandledEvent(Event& event) final;
     void configureWindow(RC<GUIWindow> window) final;
+    void captureScreenshot();
+    void saveScreenshot(RC<Image> image);
 
 public:
     BRISK_PROPERTIES_BEGIN

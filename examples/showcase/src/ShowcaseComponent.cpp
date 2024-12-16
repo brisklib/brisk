@@ -95,6 +95,15 @@ RC<Widget> ShowcaseComponent::build() {
             },
             new Button{
                 padding = 8_dpx,
+                new Text{ ICON_camera },
+                borderWidth = 1_dpx,
+                onClick     = m_lifetime |
+                          [this]() {
+                              captureScreenshot();
+                          },
+            },
+            new Button{
+                padding = 8_dpx,
                 new Text{ ICON_sun_moon },
                 borderWidth = 1_dpx,
                 onClick     = m_lifetime |
@@ -149,5 +158,25 @@ void ShowcaseComponent::configureWindow(RC<GUIWindow> window) {
     window->setTitle("Brisk Showcase"_tr);
     window->setSize({ 1050, 740 });
     window->setStyle(WindowStyle::Normal);
+}
+
+void ShowcaseComponent::saveScreenshot(RC<Image> image) {
+    std::vector<uint8_t> bytes = pngEncode(image);
+    if (auto file = showSaveDialog({ FileDialogFilter{ "*.png", "PNG image"_tr } },
+                                   defaultFolder(DefaultFolder::Pictures))) {
+        if (auto s = writeBytes(*file, bytes)) {
+            m_notifications.show(rcnew Text{ "Screenshot saved successfully"_tr });
+        } else {
+            showMessage(fmt::format(fmt::runtime("Unable to save screenshot to {0}: {1}"_tr), file->string(),
+                                    s.error()),
+                        MessageBoxType::Warning);
+        }
+    }
+}
+
+void ShowcaseComponent::captureScreenshot() {
+    if (auto window = this->window()) {
+        window->captureFrame(std::bind(&ShowcaseComponent::saveScreenshot, this, std::placeholders::_1));
+    }
 }
 } // namespace Brisk
