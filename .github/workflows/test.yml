@@ -3,9 +3,9 @@ name: Build and Test
 on: 
   push:
     tags:
-      - '*'
+      - '**'
     branches:
-      - '*'
+      - '**'
 
 env:
   VCPKG_OVERLAY_TRIPLETS: cmake/triplets
