@@ -1,12 +1,20 @@
 # Brisk
 
-Brisk is a modern, cross-platform C++ GUI toolkit focused on building responsive, high-performance applications with flexibility and ease.
+**Brisk** is a modern, cross-platform C++ GUI framework designed to build responsive, high-performance applications with flexibility and ease.
 
-🚧 The Brisk library is currently under active development and will remain in the Alpha stage for the next few releases. After that, it will transition to Beta. During this period, there may be breaking changes, and the documentation may not always be up to date.
+Initially developed for a graphics-intensive proprietary project with a complex and dynamic GUI.
+
+> [!Note]
+> The Brisk library is currently under active development. Breaking changes may occur, and the documentation might not always be up to date. Contributions are always welcome!
+
+Recommended reading:
+
+➡️ [Brisk Design and Feature Overview](docs/docs/about.md) ⬅️
+
+[Documentation on docs.brisklib.com](https://docs.brisklib.com)
 
 ![Build](https://img.shields.io/github/actions/workflow/status/brisklib/brisk/test.yml?style=flat-square&label=Build)
 ![License](https://img.shields.io/badge/License-GPL2%2FCommercial-blue.svg?style=flat-square)
-![Status](https://img.shields.io/badge/Status-alpha-blue.svg?style=flat-square)
 
 ![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg?style=flat-square)
 ![Clang 16+](https://img.shields.io/badge/Clang-16%2B-green.svg?style=flat-square)
