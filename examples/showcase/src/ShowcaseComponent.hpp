@@ -15,6 +15,7 @@
 #include "Messenger.hpp"
 #include "Visual.hpp"
 #include "Typography.hpp"
+#include "Binding.hpp"
 
 namespace Brisk {
 
@@ -34,6 +35,7 @@ protected:
     RC<ShowcaseVisual> m_visual         = rcnew ShowcaseVisual();
     RC<ShowcaseMessenger> m_messenger   = rcnew ShowcaseMessenger();
     RC<ShowcaseTypography> m_typography = rcnew ShowcaseTypography();
+    RC<ShowcaseBinding> m_binding       = rcnew ShowcaseBinding();
 
     int m_activePage                    = 0;
     float m_progress                    = 0.f;

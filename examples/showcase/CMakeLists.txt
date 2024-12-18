@@ -45,7 +45,9 @@ add_executable(
     src/Typography.hpp
     src/Typography.cpp
     src/Messenger.hpp
-    src/Messenger.cpp)
+    src/Messenger.cpp
+    src/Binding.hpp
+    src/Binding.cpp)
 
 target_link_libraries(showcase PRIVATE Brisk::Widgets Brisk::Executable)
 

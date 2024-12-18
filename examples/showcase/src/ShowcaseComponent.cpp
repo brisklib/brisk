@@ -62,6 +62,15 @@ static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
             zorder           = ZOrder::TopMost,
         },
     },
+    Style{
+        Selectors::Class{ "table-padding-4" } > Selectors::Type{ "tablerow" } >
+            Selectors::Type{ "tablecell" },
+        Rules{
+            padding     = 4_apx,
+            borderWidth = 1_apx,
+            borderColor = 0x808890_rgb,
+        },
+    },
 };
 
 RC<Widget> ShowcaseComponent::build() {
@@ -132,6 +141,7 @@ RC<Widget> ShowcaseComponent::build() {
             new Page{ "Dialogs", new VScrollBox{ flexGrow = 1, m_dialogs->build(notifications) } },
             new Page{ "Typography", new VScrollBox{ flexGrow = 1, m_typography->build(notifications) } },
             new Page{ "Messenger", new VScrollBox{ flexGrow = 1, m_messenger->build(notifications) } },
+            new Page{ "Binding", new VScrollBox{ flexGrow = 1, m_binding->build(notifications) } },
             flexGrow = 1,
         },
         flexGrow = 1,
