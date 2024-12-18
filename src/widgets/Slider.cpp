@@ -83,7 +83,7 @@ void Slider::onEvent(Event& event) {
         normalizedValue = val;
         event.stopPropagation();
     } else {
-        const bool horizontal = isHorizontal();
+        const bool horizontal = orientation() == Orientation::Horizontal;
 
         m_distance =
             horizontal ? m_trackRect.width() - thumbRadius * 2_dp : m_trackRect.height() - thumbRadius * 2_dp;
@@ -113,10 +113,6 @@ void Slider::onEvent(Event& event) {
             break;
         }
     }
-}
-
-bool Slider::isHorizontal() const {
-    return m_rect.width() >= m_rect.height();
 }
 
 Slider::Slider(Construction construction, ArgumentsView<Slider> args) : Base(construction, nullptr) {

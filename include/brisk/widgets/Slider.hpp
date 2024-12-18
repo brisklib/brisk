@@ -41,7 +41,6 @@ public:
 
 protected:
     void paint(Canvas& canvas) const override;
-    bool isHorizontal() const;
     void onEvent(Event& event) override;
     void onLayoutUpdated() override;
     void onChanged() override;
