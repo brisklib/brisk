@@ -488,7 +488,7 @@ public:
     }
 
     void set(Value<ValueType> value) {
-        bindings->connectBidir(Value{ this }, std::move(value));
+        bindings->connectBidir(Value<ValueType>{ this }, std::move(value));
     }
 
     template <invocable_r<ValueType> Fn>
@@ -538,9 +538,13 @@ namespace Tag {
 
 template <typename PropertyType>
 struct PropArg : PropertyTag {
-    using Type       = typename PropertyType::ValueType;
+    using Type = typename PropertyType::ValueType;
 
-    using ExtraTypes = std::variant<function<Type()>, function<Type(Widget*)>, Value<Type>>;
+    struct ExtraTypes {
+        static void accept(Value<Type>);
+        static void accept(function<Type()>);
+        static void accept(function<Type(Widget*)>);
+    };
 };
 
 template <size_t index, typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
@@ -555,10 +559,13 @@ struct PropArg<GUIProperty<index, T, flags, field, subfield>> : PropertyTag {
         return GUIProperty<index, T, flags, field, subfield>::name();
     }
 
-    using ExtraTypes =
-        std::conditional_t<flags && PropFlags::Inheritable,
-                           std::variant<Inherit, function<Type()>, function<Type(Widget*)>, Value<Type>>,
-                           std::variant<function<Type()>, function<Type(Widget*)>, Value<Type>>>;
+    struct ExtraTypes {
+        static void accept(Inherit)
+            requires(isInheritable(flags));
+        static void accept(Value<Type>);
+        static void accept(function<Type()>);
+        static void accept(function<Type(Widget*)>);
+    };
 };
 
 template <size_t index, typename... Args, PropFlags flags, Trigger<Args...> Widget::* field, int subfield>
@@ -574,9 +581,12 @@ struct PropArg<GUIPropertyCompound<index_, Type_, flags_, field, Properties...>>
         return GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::name();
     }
 
-    using Type       = Type_;
+    using Type = Type_;
 
-    using ExtraTypes = std::variant<function<Type()>, function<Type(Widget*)>>;
+    struct ExtraTypes {
+        static void accept(function<Type()>);
+        static void accept(function<Type(Widget*)>);
+    };
 };
 
 } // namespace Tag

@@ -100,16 +100,24 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Button can contain any widget" },
+            new Text{ "Button with Viewport displaying rendered content" },
         },
-        new HLayout{
-            new Widget{
-                new Button{
-                    new Text{ "Button with color applied" },
-                    Graphene::buttonColor = 0xFF4791_rgb,
-                },
-                &m_group,
+        new VLayout{
+            gapRow     = 5_apx,
+            alignItems = AlignItems::FlexStart,
+            new Button{
+                new Text{ "Button with color applied" },
+                Graphene::buttonColor = 0xFF4791_rgb,
             },
+            new Button{
+                new Text{ "Button with reduced padding" },
+                padding = 4_px,
+            },
+            new Button{
+                new Text{ "Button with flat style" },
+                classes = { "flat" },
+            },
+            &m_group,
         },
         new HLayout{
             new Widget{
@@ -132,6 +140,34 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                 text = Value{ &m_clicked }.transform([](int n) {
                     return fmt::format("Clicked {} times", n);
                 }),
+            },
+        },
+        new HLayout{
+            new Widget{
+                new Button{ new Text{ "First" }, &m_btnGroup, borderRadius = 15_px },
+                new Button{ new Text{ "Second" }, &m_btnGroup, borderRadius = 15_px },
+                new Button{ new Text{ "Third" }, &m_btnGroup, borderRadius = 15_px },
+                &m_group,
+            },
+            gapColumn = 10_apx,
+            new Text{ "Grouped buttons share borders" },
+        },
+        new HLayout{
+            new Button{
+                gapColumn = 3_apx,
+                new Text{ "This button contains" },
+                new Table{
+                    classes = { "table-padding-4" },
+                    new TableRow{
+                        new TableCell{ new Text{ "A" } },
+                        new TableCell{ new Text{ "small" } },
+                    },
+                    new TableRow{
+                        new TableCell{ new Text{ "Table" } },
+                        new TableCell{ new Text{ "widget" } },
+                    },
+                },
+                new Text{ "inside it" },
             },
         },
         new Text{ "ToggleButton (widgets/ToggleButton.hpp)", classes = { "section-header" } },

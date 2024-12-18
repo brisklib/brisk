@@ -68,7 +68,7 @@ double ValueWidget::getNormValue() const {
 }
 
 void ValueWidget::setNormValue(double normValue) {
-    m_value = normValue * (m_maximum - m_minimum) + m_minimum;
+    value = normValue * (m_maximum - m_minimum) + m_minimum;
 }
 
 void ValueWidget::pageUp(int amount) {

@@ -1,6 +1,6 @@
 # Brisk Documentation
 
-The Brisk library is in the alpha stage, so there may be breaking changes, and the documentation may not always be up to date.
+The Brisk library is in the beta stage, so there may be breaking changes, and the documentation may not always be up to date.
 
 * [About Brisk: A Modern C++ GUI Framework](about.md)
 

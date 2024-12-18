@@ -12,6 +12,7 @@ public:
 
 private:
     WidthGroup m_group;
+    HorizontalVisualGroup m_btnGroup;
     int m_clicked  = 0;
     bool m_toggled = false;
 };

@@ -31,6 +31,18 @@ public:
     constexpr static std::string_view widgetType = "text";
 
     template <WidgetArgument... Args>
+    explicit Text(std::string_view text, const Args&... args)
+        : Text{ Construction{ widgetType }, std::string(text), std::tuple{ args... } } {
+        endConstruction();
+    }
+
+    template <size_t N, WidgetArgument... Args>
+    explicit Text(const char (&text)[N], const Args&... args)
+        : Text{ Construction{ widgetType }, std::string(text), std::tuple{ args... } } {
+        endConstruction();
+    }
+
+    template <WidgetArgument... Args>
     explicit Text(std::string text, const Args&... args)
         : Text{ Construction{ widgetType }, std::move(text), std::tuple{ args... } } {
         endConstruction();
@@ -46,10 +58,10 @@ public:
 
 protected:
     std::string m_text;
-    TextAutoSize m_textAutoSize      = TextAutoSize::None;
+    TextAutoSize m_textAutoSize               = TextAutoSize::None;
     InclusiveRange<float> m_textAutoSizeRange = { 6.f, 96.f };
-    Rotation m_rotation              = Rotation::NoRotation;
-    bool m_wordWrap                  = false;
+    Rotation m_rotation                       = Rotation::NoRotation;
+    bool m_wordWrap                           = false;
 
     struct CacheKey {
         Font font;
@@ -106,6 +118,10 @@ public:
 template <typename T>
 void applier(Text* target, ArgVal<Tag::Named<"text">, T> value) {
     target->text = value.value;
+}
+
+inline Text* operator""_Text(const char* text, size_t size) {
+    return new Text{ std::string_view(text, size) };
 }
 
 inline namespace Arg {
