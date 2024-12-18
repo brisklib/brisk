@@ -133,7 +133,7 @@ struct TriggerArgs<Arg> {
 
 template <typename... Args>
 struct Trigger {
-    using Type = typename Internal::TriggerArgs<Args...>::Type;
+    using Type                      = typename Internal::TriggerArgs<Args...>::Type;
 
     constexpr static bool isTrigger = true;
 
@@ -462,7 +462,8 @@ struct Value {
                 return forward(get());
             },
             [backward = std::move(backward), set = std::move(m_set)](U newValue) {
-                set(backward(std::move(newValue)));
+                if (set)
+                    set(backward(std::move(newValue)));
             },
             std::move(m_srcAddresses),
             std::move(m_destAddress),
@@ -477,7 +478,8 @@ struct Value {
                 return forward(get());
             },
             [backward = std::move(backward), get = m_get, set = std::move(m_set)](U newValue) {
-                set(backward(get(), std::move(newValue)));
+                if (set)
+                    set(backward(get(), std::move(newValue)));
             },
             std::move(m_srcAddresses),
             std::move(m_destAddress),
@@ -520,7 +522,8 @@ struct Value {
             },
             [set = std::move(value.m_set), compare](bool newValue) {
                 if (newValue)
-                    set(compare);
+                    if (set)
+                        set(compare);
             },
             std::move(value.m_srcAddresses),
             std::move(value.m_destAddress),
