@@ -79,7 +79,7 @@ void Slider::onEvent(Event& event) {
     Base::onEvent(event);
 
     if (float delta = event.wheelScrolled(m_rect, m_wheelModifiers)) {
-        float val       = std::max(0.f, std::min(1.f, static_cast<float>(normalizedValue) + delta / 24.f));
+        float val       = std::clamp(static_cast<float>(normalizedValue) + delta / 24.f, 0.f, 1.f);
         normalizedValue = val;
         event.stopPropagation();
     } else {

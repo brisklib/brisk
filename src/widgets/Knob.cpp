@@ -28,7 +28,7 @@ void Knob::onEvent(Event& event) {
     Widget::onEvent(event);
 
     if (float delta = event.wheelScrolled(m_wheelModifiers)) {
-        m_savedValue    = std::max(0.f, std::min(1.f, (static_cast<float>(normalizedValue) + delta / 24.f)));
+        m_savedValue    = std::clamp(static_cast<float>(normalizedValue) + delta / 24.f, 0.f, 1.f);
         normalizedValue = m_savedValue;
         event.stopPropagation();
         return;
@@ -43,7 +43,7 @@ void Knob::onEvent(Event& event) {
         return;
     case DragEvent::Dragging: {
         const float unit_distance = mods && KeyModifiers::Shift ? 1500_dp : 150.0_dp;
-        normalizedValue = std::max(0.f, std::min(1.f, (offset.x - offset.y) / unit_distance + m_savedValue));
+        normalizedValue = std::clamp((offset.x - offset.y) / unit_distance + m_savedValue, 0.f, 1.f);
         startModifying();
         event.stopPropagation();
         return;
