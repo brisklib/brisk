@@ -107,8 +107,7 @@ struct ArgVal {
 };
 
 template <typename T, typename Tag>
-concept MatchesExtraTypes =
-    requires { typename Tag::ExtraTypes; } && std::convertible_to<T, typename Tag::ExtraTypes>;
+concept MatchesExtraTypes = requires(T val) { Tag::ExtraTypes::accept(val); };
 
 template <typename Tag>
 struct Argument : Tag {

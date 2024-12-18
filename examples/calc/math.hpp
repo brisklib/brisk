@@ -288,7 +288,7 @@ struct Calculator {
     }
 
     Value<std::string> valOutput() const {
-        return makeValue<std::string>(
+        return Value<std::string>(
             [this]() {
                 return output();
             },

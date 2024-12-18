@@ -101,19 +101,6 @@ using BindingAddresses                     = SmallVector<BindingAddress, 1>;
 template <typename T>
 struct Value;
 
-/**
- * @brief Creates a Value instance with the specified getter and setter functions.
- *
- * @tparam T The type of the value.
- * @param get The function to retrieve the value.
- * @param set The function to set the value.
- * @param address The BindingAddress for the value.
- * @return A Value instance representing the property.
- */
-template <typename T>
-[[nodiscard]] Value<T> makeValue(typename Value<T>::GetFn get, typename Value<T>::SetFn set,
-                                 BindingAddress address);
-
 namespace Internal {
 template <typename... Args>
 struct TriggerArgs {
@@ -198,9 +185,9 @@ struct Value;
 
 namespace Internal {
 
-template <PropertyLike Prop, typename Type = typename Prop::Type>
+template <PropertyLike Prop, typename Type = typename Prop::ValueType>
 Value<Type> asValue(const Prop& prop) {
-    return makeValue<Type>(
+    return Value<Type>(
         [prop]() -> Type {
             return prop.get();
         },
@@ -208,9 +195,9 @@ Value<Type> asValue(const Prop& prop) {
         prop.address());
 }
 
-template <PropertyLike Prop, typename Type = typename Prop::Type>
+template <PropertyLike Prop, typename Type = typename Prop::ValueType>
 Value<Type> asValue(Prop& prop) {
-    return makeValue<Type>(
+    return Value<Type>(
         [prop]() -> Type {
             return prop.get();
         },
@@ -337,7 +324,7 @@ struct Value {
 
     template <typename U>
     explicit Value(Value<U> other)
-        requires requires(U u) { static_cast<T>(u); }
+        requires(!std::is_convertible_v<U, T>) && requires(U u) { static_cast<T>(u); }
         : Value(std::move(other).template explicitConversion<T>()) {}
 
     /**
@@ -668,6 +655,10 @@ struct Value {
         return m_set;
     }
 
+    const BindingAddresses& srcAddresses() const {
+        return m_srcAddresses;
+    }
+
     BindingAddresses addresses() const {
         BindingAddresses result = m_srcAddresses;
         result.push_back(m_destAddress);
@@ -679,14 +670,14 @@ struct Value {
         : m_get(std::move(get)), m_set(std::move(set)), m_srcAddresses(std::move(srcAddresses)),
           m_destAddress(std::move(destAddress)) {}
 
+    [[nodiscard]] explicit Value(GetFn get, SetFn set, BindingAddress address)
+        : m_get(std::move(get)), m_set(std::move(set)), m_srcAddresses{ address }, m_destAddress(address) {}
+
 private:
     friend class Bindings;
 
     template <typename U>
     friend struct Value;
-
-    friend Value<T> makeValue<T>(typename Value<T>::GetFn get, typename Value<T>::SetFn set,
-                                 BindingAddress address);
 
     GetFn m_get;
     SetFn m_set;
@@ -712,6 +703,26 @@ Value(U*) -> Value<typename U::Type>;
 template <PropertyLike U>
 Value(const U*) -> Value<typename U::Type>;
 
+namespace Internal {
+inline void mergeBindingAddresses(BindingAddresses& target, BindingAddresses a) {}
+} // namespace Internal
+
+template <typename... T, std::invocable<T...> Fn>
+Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) {
+    BindingAddresses addresses;
+    (addresses.insert(addresses.end(), values.srcAddresses().begin(), values.srcAddresses().end()), ...);
+
+    return Value<std::invoke_result_t<Fn, T...>>(
+        [getterTuple = std::tuple{ values.getter()... }, fn = std::move(fn)]() {
+            return std::apply(
+                [&fn](const auto&... vals) {
+                    return fn(vals()...);
+                },
+                getterTuple);
+        },
+        nullptr, std::move(addresses), BindingAddress{});
+}
+
 template <typename... Args, typename T>
 [[nodiscard]] Value<Trigger<Args...>> listener(Callback<std::type_identity_t<Args>...> cb, T* lifetime) {
     BindingAddress address = toBindingAddress(lifetime);
@@ -726,17 +737,6 @@ template <typename... Args, typename T>
                 std::apply(cb, std::move(newValue));
             }
         },
-        { address },
-        address,
-    };
-}
-
-template <typename T>
-[[nodiscard]] Value<T> makeValue(typename Value<T>::GetFn get, typename Value<T>::SetFn set,
-                                 BindingAddress address) {
-    return Value<T>{
-        std::move(get),
-        std::move(set),
         { address },
         address,
     };
