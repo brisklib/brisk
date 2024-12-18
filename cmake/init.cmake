@@ -63,7 +63,7 @@ if (NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg.cmake" AND NOT DEFINED HAS_VCPKG)
         FetchContent_Declare(
             vcpkg
             GIT_REPOSITORY https://github.com/microsoft/vcpkg/
-            GIT_TAG 2024.07.12
+            GIT_TAG 2024.09.23
             SOURCE_DIR ${VCPKG_ROOT})
         FetchContent_MakeAvailable(vcpkg)
     endif ()
