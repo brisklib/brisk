@@ -82,6 +82,11 @@ if (WIN32 AND BRISK_GENERATE_MAP)
     add_link_options(/Map)
 endif ()
 
+if (BRISK_SAN)
+    add_compile_options(-fsanitize=${BRISK_SAN})
+    add_link_options(-fsanitize=${BRISK_SAN})
+endif ()
+
 set(DEPS_DIR
     "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}"
     CACHE STRING "DEPS_DIR")
