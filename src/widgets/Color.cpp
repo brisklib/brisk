@@ -219,21 +219,13 @@ RC<Widget> ColorPalette::addColor(const ColorF& swatch, float brightness, float 
     };
 }
 
-Widget::Ptr ColorButton::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ColorButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr ColorPalette::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ColorPalette::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr ColorSliders::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ColorSliders::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr ColorView::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ColorView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ColorView::ColorView(Construction construction, ColorF color, ArgumentsView<ColorView> args)
     : Widget(construction, nullptr), m_value(color) {
@@ -260,7 +252,7 @@ void GradientItem::paint(Canvas& canvas_) const {
         strokeWidth = 0, multigradient = gradient);
 }
 
-Widget::Ptr GradientItem::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr GradientItem::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

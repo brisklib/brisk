@@ -126,11 +126,10 @@ void ComboBox::onChanged() {
     BRISK_ASSERT(replaced);
 }
 
-Widget::Ptr ComboBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ComboBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-ComboBox::ComboBox(Construction construction, ArgumentsView<ComboBox> args) : Base(construction, nullptr) {
+ComboBox::ComboBox(Construction construction, ArgumentsView<ComboBox> args)
+    : Base(construction, nullptr) {
     m_tabStop       = true;
     m_processClicks = false;
     args.apply(this);

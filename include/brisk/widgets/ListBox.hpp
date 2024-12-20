@@ -40,7 +40,7 @@ protected:
     void onChanged() override;
     std::shared_ptr<Item> findSelected() const;
     void append(Widget::Ptr widget) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit ListBox(Construction construction, ArgumentsView<ListBox> args);
 };
 

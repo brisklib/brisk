@@ -61,7 +61,7 @@ protected:
     void onEvent(Event& event) override;
     virtual void onClicked();
     virtual void onChanged();
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit Item(Construction construction, ArgumentsView<Item> args);
 
 public:

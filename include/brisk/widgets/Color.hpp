@@ -47,7 +47,7 @@ protected:
     ColorF m_value = Palette::black;
 
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     ColorView(Construction construction, ColorF color, ArgumentsView<ColorView> args);
 
 public:
@@ -77,7 +77,7 @@ public:
 protected:
     ColorF m_value = Palette::black;
 
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit ColorSliders(Construction construction, ColorF color, bool alpha,
                           ArgumentsView<ColorSliders> args);
 
@@ -106,7 +106,7 @@ protected:
     ColorF m_value = Palette::black;
 
     RC<Widget> addColor(const ColorF& swatch, float brightness = 0.f, float chroma = 1.f);
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit ColorPalette(Construction construction, ColorF color, ArgumentsView<ColorPalette> args);
 
 public:
@@ -127,7 +127,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit ColorButton(Construction construction, Value<ColorF> prop, bool alpha,
                          ArgumentsView<ColorButton> args);
@@ -148,7 +148,7 @@ public:
 
 protected:
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 } // namespace Brisk

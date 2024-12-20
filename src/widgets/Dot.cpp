@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-Widget::Ptr Dot::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr Dot::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

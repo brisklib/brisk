@@ -789,7 +789,7 @@ struct PreparedText {
      * @return uint32_t The index of the nearest grapheme boundary.
      */
     uint32_t caretToGrapheme(PointF pt) const;
-    
+
     uint32_t caretToGrapheme(uint32_t line, float x) const;
 
     /**

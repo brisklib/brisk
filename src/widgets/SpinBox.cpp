@@ -78,9 +78,7 @@ SpinBox::SpinBox(Construction construction, ArgumentsView<SpinBox> args) : Base(
     args.apply(this);
 }
 
-Widget::Ptr SpinBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr SpinBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 UpDownButtons::UpDownButtons(Construction construction, ArgumentsView<UpDownButtons> args)
     : Base(construction, nullptr) {
@@ -113,7 +111,7 @@ void UpDownButtons::onConstructed() {
     Base::onConstructed();
 }
 
-Widget::Ptr UpDownButtons::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr UpDownButtons::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

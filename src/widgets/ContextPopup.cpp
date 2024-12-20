@@ -23,9 +23,7 @@
 
 namespace Brisk {
 
-Widget::Ptr ContextPopup::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ContextPopup::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ContextPopup::ContextPopup(Construction construction, ArgumentsView<ContextPopup> args)
     : PopupBox(construction,

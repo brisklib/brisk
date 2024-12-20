@@ -103,7 +103,7 @@ public:
     std::array<WidthGroup, 32> columns;
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit Table(Construction construction, ArgumentsView<Table> args);
 };
@@ -119,7 +119,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit TableRow(Construction construction, ArgumentsView<TableRow> args);
 };
@@ -136,7 +136,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit TableHeader(Construction construction, ArgumentsView<TableHeader> args);
 };
@@ -180,8 +180,8 @@ protected:
         }
     }
 
-    Ptr cloneThis() override {
-        BRISK_CLONE_IMPLEMENTATION;
+    Ptr cloneThis() const override {
+        BRISK_CLONE_IMPLEMENTATION
     }
 
     explicit TableRowSelectable(Construction construction, Selection<TItem>* selection, TItem item,
@@ -203,7 +203,7 @@ protected:
     friend class Table;
     bool m_widthGroupSet = false;
 
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit TableCell(Construction construction, ArgumentsView<TableCell> args);
 };

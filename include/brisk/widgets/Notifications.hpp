@@ -56,7 +56,7 @@ protected:
     double m_expireTime;
     void onEvent(Event& event) override;
 
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 class Notifications {
@@ -96,6 +96,6 @@ protected:
     RC<Notifications> m_notifications;
     void receive(RC<NotificationView> view);
     void onRefresh() override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 } // namespace Brisk

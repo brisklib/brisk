@@ -40,7 +40,7 @@ protected:
     Callback<> m_onBecameVisible;
     void onEvent(Event& event) override;
     void append(Widget::Ptr widget) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     void close(Widget* sender) override;
     void onVisible() override;
 

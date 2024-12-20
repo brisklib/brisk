@@ -42,7 +42,7 @@ protected:
     void setValue(bool newValue);
     void updateState();
     virtual void onChanged();
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit ToggleButton(Construction construction, ArgumentsView<ToggleButton> args);
 
 public:

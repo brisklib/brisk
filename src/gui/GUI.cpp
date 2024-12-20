@@ -1691,7 +1691,7 @@ const Widget::WidgetPtrs& Widget::widgets() const {
     return m_widgets;
 }
 
-Widget::Ptr Widget::clone() {
+Widget::Ptr Widget::clone() const {
     Ptr result                       = cloneThis();
 
     result->m_layoutEngine->m_widget = result.get();
@@ -1883,8 +1883,8 @@ void Widget::apply(const Attributes& arg) {
     arg.applyTo(this);
 }
 
-Widget::Ptr Widget::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr Widget::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void Widget::childrenAdded() {

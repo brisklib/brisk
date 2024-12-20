@@ -29,8 +29,8 @@ Text::Text(Construction construction, std::string text, ArgumentsView<Text> args
     enableCustomMeasure();
 }
 
-Widget::Ptr Text::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr Text::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void Text::onLayoutUpdated() {
@@ -179,8 +179,8 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Widget::paint(canvas);
 }
 
-Widget::Ptr BackStrikedText::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr BackStrikedText::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void HoveredDescription::paint(Canvas& canvas) const {
@@ -197,8 +197,8 @@ void HoveredDescription::paint(Canvas& canvas) const {
     paintHint(canvas);
 }
 
-Widget::Ptr HoveredDescription::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr HoveredDescription::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 } // namespace Brisk

@@ -64,8 +64,8 @@ ItemList::ItemList(Construction construction, ArgumentsView<ItemList> args)
     args.apply(this);
 }
 
-Widget::Ptr ItemList::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr ItemList::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void ItemList::onVisible() {

@@ -83,7 +83,7 @@ protected:
 
     void onConstructed() override;
 
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit ValueWidget(Construction construction, ArgumentsView<ValueWidget> args);
 

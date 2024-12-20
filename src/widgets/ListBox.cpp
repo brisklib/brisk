@@ -49,11 +49,10 @@ void ListBox::append(Widget::Ptr widget) {
         Base::append(rcnew Item{ std::move(widget) });
 }
 
-Widget::Ptr ListBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ListBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-ListBox::ListBox(Construction construction, ArgumentsView<ListBox> args) : Base(construction, nullptr) {
+ListBox::ListBox(Construction construction, ArgumentsView<ListBox> args)
+    : Base(construction, nullptr) {
     m_tabStop  = true;
     m_layout   = Layout::Vertical;
     m_tabGroup = true;

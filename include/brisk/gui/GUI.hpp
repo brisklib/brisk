@@ -519,17 +519,20 @@ using Fn0Type = Type (*)();
 template <typename Type>
 using Fn1Type = Type (*)(Widget*);
 
-template <std::derived_from<Widget> U>
-U* fixClone(U* ptr) noexcept {
+template <std::derived_from<Object> U>
+void fixClone(U* ptr) noexcept {
     if constexpr (requires { typename U::Base; }) {
         fixClone(static_cast<typename U::Base*>(ptr));
     }
     ptr->propInit = ptr;
-    return ptr;
 }
 
 #define BRISK_CLONE_IMPLEMENTATION                                                                           \
-    return Ptr(Internal::fixClone(new std::remove_cvref_t<decltype(*this)>(*this)));
+    {                                                                                                        \
+        auto result = rcnew std::remove_cvref_t<decltype(*this)>(*this);                                     \
+        Internal::fixClone(result.get());                                                                    \
+        return result;                                                                                       \
+    }
 
 } // namespace Internal
 
@@ -622,7 +625,7 @@ public:
     Widget& operator=(const Widget&) = delete;
     Widget& operator=(Widget&&)      = delete;
 
-    Ptr clone();
+    Ptr clone() const;
 
     constexpr static std::string_view widgetType = "widget";
 
@@ -1147,7 +1150,7 @@ protected:
 
     void enableCustomMeasure() noexcept;
 
-    virtual Ptr cloneThis();
+    virtual Ptr cloneThis() const;
 
     void requestAnimationFrame();
     void animationFrame();

@@ -94,7 +94,7 @@ protected:
     void onChanged();
     void onLayoutUpdated() override;
     SizeF measure(AvailableSize size) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit Text(Construction construction, std::string text, ArgumentsView<Text> args);
 
 private:
@@ -154,7 +154,7 @@ public:
 
 protected:
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 struct TextBuilder : IndexedBuilder {
@@ -174,7 +174,7 @@ public:
     constexpr static double hoverDelay = 0.15;
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     void paint(Canvas& canvas) const override;
 
 private:

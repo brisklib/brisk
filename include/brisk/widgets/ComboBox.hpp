@@ -76,7 +76,7 @@ protected:
     std::shared_ptr<Item> findSelected() const;
     void onConstructed() override;
     void onChildAdded(Widget* w) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit ComboBox(Construction construction, ArgumentsView<ComboBox> args);
 };
 

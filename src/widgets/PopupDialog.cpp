@@ -26,9 +26,7 @@
 
 namespace Brisk {
 
-Widget::Ptr PopupDialog::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr PopupDialog::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 PopupDialog::PopupDialog(Construction construction, Value<bool> visibleProp, ArgumentsView<Widget> args)
     : Widget{
@@ -52,9 +50,7 @@ PopupDialog::PopupDialog(Construction construction, Value<bool> visibleProp, Arg
           },
       } {}
 
-Widget::Ptr PopupOKDialog::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr PopupOKDialog::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 PopupOKDialog::PopupOKDialog(Construction construction, std::string title, Value<bool> visibleProp,
                              VoidFunc accepted, ArgumentsView<Widget> args)

@@ -70,21 +70,13 @@ TabButton::TabButton(Construction construction, ArgumentsView<TabButton> args) :
     args.apply(this);
 }
 
-Widget::Ptr TabButton::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr TabButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr Pages::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr Pages::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr Page::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr Page::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr Tabs::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr Tabs::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Tabs::Tabs(Construction construction, ArgumentsView<Tabs> args)
     : Base{ construction, std::tuple{ Arg::tabGroup = true } } {

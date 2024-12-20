@@ -37,7 +37,7 @@ public:
     optional<float>& animatedValue() const;
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     void paint(Canvas& canvas) const override;
     void onEvent(Event& event) override;
     explicit Switch(Construction construction, ArgumentsView<Switch> args);

@@ -37,8 +37,8 @@ PopupBox::PopupBox(Construction construction, ArgumentsView<PopupBox> args)
     args.apply(this);
 }
 
-Widget::Ptr PopupBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr PopupBox::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void PopupBox::onEvent(Event& event) {

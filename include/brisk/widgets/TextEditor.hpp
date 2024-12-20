@@ -161,6 +161,6 @@ public:
 protected:
     explicit PasswordEditor(Construction construction, ArgumentsView<PasswordEditor> args);
 
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 } // namespace Brisk
