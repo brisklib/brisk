@@ -25,11 +25,11 @@ Brisk eliminates the need for markup languages in defining user interfaces. Inst
 For example:
 ```c++
 // Label with text defined at creation
-Widget* makeLabel(std::string text) {
-    return new Widget{
+RC<Widget> makeLabel(std::string text) {
+    return rcnew Widget{
         padding = 4_apx,
         classes = { "label" },
-        new Text{ std::move(text) },
+        rcnew Text{ std::move(text) },
     };
 }
 ```
@@ -40,9 +40,9 @@ Here’s an example of creating a `Slider` widget, accompanied by a `Text` widge
 
 ```c++
 // Slider with a dynamic value display
-Widget* makeSlider(float& value) {
-    return new HLayout{
-        new Slider{
+RC<Widget> makeSlider(float& value) {
+    return rcnew HLayout{
+        rcnew Slider{
             // Bind the value of the slider to the provided 'value' variable.
             value         = Value{ &value },
             minimum       = 0.f,
@@ -58,7 +58,7 @@ Widget* makeSlider(float& value) {
         gapColumn = 10_px,
 
         // Create a Text widget to display the value of the slider.
-        new Text{
+        rcnew Text{
             // The text is dynamically generated based on the slider value.
             text = Value{ &value }.transform([](float v) {
                 return fmt::format("Value: {:.1f}", v);
@@ -82,8 +82,8 @@ In the example below, the `Text` widget binds its `text` property to a `temperat
 // Temperature widget with dynamic text and color
 float temperature = 16.f;
 
-Widget* makeTemperatureWidget() {
-    return new Text{
+RC<Widget> makeTemperatureWidget() {
+    return rcnew Text{
         text = Value{ &temperature }.transform([](float t){
             return fmt::format("{:.1f}°C", t);
         }),
@@ -109,18 +109,18 @@ In addition to supporting dynamic widget properties, Brisk allows the entire wid
 // Dynamically created widget tree
 static int count = 1;
 
-Widget* makeTree() {
-    return new VLayout{
-        new Text{ "Squares:" },
+RC<Widget> makeTree() {
+    return rcnew VLayout{
+        rcnew Text{ "Squares:" },
         Builder{ [](Widget* target){
             for (int i = 1; i <= count; ++i) {
-                target->apply(new Text{ fmt::format("{}^2 = {}", i, i * i) });
+                target->apply(rcnew Text{ fmt::format("{}^2 = {}", i, i * i) });
             }
         }},
         depends = Value{ &count },
 
-        new Button{
-            new Text{ "Next" },
+        rcnew Button{
+            rcnew Text{ "Next" },
             onClick = [](){
                 bindings->assign(count, count + 1);
             },
@@ -170,7 +170,7 @@ For example, the `Text` widget is highly configurable with respect to font featu
 
 ```c++
 // Configuring text with OpenType features
-new Text{
+rcnew Text{
     text           = Value{ &m_text },
     fontSize       = 40,
     fontFamily     = Lato,
@@ -200,21 +200,21 @@ public:
         // rcnew Widget{...} is equivalent to std::shared_ptr<Widget>(new Widget{...})
         return rcnew Widget{
             layout = Layout::Vertical,
-            new Text{
+            rcnew Text{
                 "Switch (widgets/Switch.hpp)",
                 classes = { "section-header" }, // Widgets can be styled using stylesheets
             },
 
-            new HLayout{
-                new Widget{
-                    new Switch{
+            rcnew HLayout{
+                rcnew Widget{
+                    rcnew Switch{
                         // Bind the switch value to the m_toggled variable (bidirectional)
                         value = Value{ &m_toggled },
-                        new Text{ "Switch" },
+                        rcnew Text{ "Switch" },
                     },
                 },
                 gapColumn = 10_apx, // CSS Flex-like properties
-                new Text{
+                rcnew Text{
                     text = Value{ &m_label }, // Text may be dynamic
                     visible =
                         Value{ &m_toggled }, // The Switch widget controls the visibility of this text widget
@@ -222,8 +222,8 @@ public:
             },
 
             // Button widget
-            new Button{
-                new Text{ "Click" },
+            rcnew Button{
+                rcnew Text{ "Click" },
                 // Using m_lifetime ensures that callbacks will be detached once the Component is deleted
                 onClick = m_lifetime |
                           [this]() {
@@ -233,7 +233,7 @@ public:
             },
 
             // ComboBox widget
-            new ComboBox{
+            rcnew ComboBox{
                 Value{ &m_textAlignment },  // Bind ComboBox value to an enumeration
                 notManaged(&textAlignList), // Pass the list of name-value pairs to populate the ComboBox
             },
@@ -241,7 +241,7 @@ public:
             // The Builder creates widgets dynamically whenever needed
             Builder([this](Widget* target) {
                 for (int i = 0; i < m_number; ++i) {
-                    target->apply(new Widget{
+                    target->apply(rcnew Widget{
                         dimensions = { 40_apx, 40_apx },
                     });
                 }

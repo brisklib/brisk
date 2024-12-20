@@ -43,11 +43,11 @@ public:
                       std::shared_ptr<const NameValueOrderedList<std::type_identity_t<T>>> list,
                       const Args&... args)
         : ComboBox(Construction{ widgetType }, std::tuple{ args... }) {
-        std::unique_ptr<ItemList> menu(new ItemList());
+        RC<ItemList> menu = rcnew ItemList();
         for (const KeyValue<std::string, T>& item : *list) {
-            menu->apply(new Item(new Text{ item.first }));
+            menu->apply(rcnew Item(rcnew Text{ item.first }));
         }
-        apply(menu.release());
+        apply(std::move(menu));
         endConstruction();
         value = fromList(std::move(prop), list);
     }

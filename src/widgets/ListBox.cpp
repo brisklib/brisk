@@ -46,7 +46,7 @@ void ListBox::append(Widget::Ptr widget) {
     if (dynamic_cast<Item*>(widget.get()))
         Base::append(std::move(widget));
     else
-        Base::append(new Item{ std::move(widget) });
+        Base::append(rcnew Item{ std::move(widget) });
 }
 
 Widget::Ptr ListBox::cloneThis() {

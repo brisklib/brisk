@@ -120,8 +120,8 @@ void applier(Text* target, ArgVal<Tag::Named<"text">, T> value) {
     target->text = value.value;
 }
 
-inline Text* operator""_Text(const char* text, size_t size) {
-    return new Text{ std::string_view(text, size) };
+inline RC<Text> operator""_Text(const char* text, size_t size) {
+    return rcnew Text{ std::string_view(text, size) };
 }
 
 inline namespace Arg {
@@ -161,8 +161,8 @@ struct TextBuilder : IndexedBuilder {
     template <WidgetArgument... Args>
     explicit TextBuilder(std::vector<std::string> texts, const Args&... args)
         : IndexedBuilder(
-              [saved_texts = std::move(texts), args...](size_t index) BRISK_INLINE_LAMBDA -> Widget* {
-                  return index < saved_texts.size() ? new Text{ saved_texts[index], args... } : nullptr;
+              [saved_texts = std::move(texts), args...](size_t index) BRISK_INLINE_LAMBDA -> RC<Widget> {
+                  return index < saved_texts.size() ? rcnew Text{ saved_texts[index], args... } : nullptr;
               }) {}
 };
 

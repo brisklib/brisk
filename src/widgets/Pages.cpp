@@ -27,7 +27,7 @@ void Tabs::clearTabs() {
 }
 
 void Tabs::createTab(Value<bool> visible, Page* page) {
-    apply(new TabButton(Arg::value = std::move(visible), new Text{ Arg::text = page->title }));
+    apply(rcnew TabButton(Arg::value = std::move(visible), rcnew Text{ Arg::text = page->title }));
 }
 
 void Pages::updateTabs() {

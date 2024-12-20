@@ -105,7 +105,7 @@ public:
 protected:
     ColorF m_value = Palette::black;
 
-    Widget* addColor(const ColorF& swatch, float brightness = 0.f, float chroma = 1.f);
+    RC<Widget> addColor(const ColorF& swatch, float brightness = 0.f, float chroma = 1.f);
     Ptr cloneThis() override;
     explicit ColorPalette(Construction construction, ColorF color, ArgumentsView<ColorPalette> args);
 

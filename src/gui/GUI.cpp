@@ -605,10 +605,10 @@ IndexedBuilder::IndexedBuilder(IndexedBuilder::func builder)
     : Builder([builder = std::move(builder)](Widget* target) BRISK_INLINE_LAMBDA -> void {
           size_t index = 0;
           for (;;) {
-              Widget* w = builder(index);
+              RC<Widget> w = builder(index);
               if (!w)
                   return;
-              target->apply(w);
+              target->apply(std::move(w));
               ++index;
           }
       }) {}
@@ -1682,18 +1682,9 @@ void Widget::remove(Widget* widget) {
     removeChild(it);
 }
 
-void Widget::append(Widget* widget) {
-    append(Widget::Ptr(widget));
-}
-
 void Widget::apply(Widget::Ptr widget) {
     if (widget)
         append(std::move(widget));
-}
-
-void Widget::apply(Widget* widget) {
-    if (widget)
-        append(Widget::Ptr(widget));
 }
 
 const Widget::WidgetPtrs& Widget::widgets() const {

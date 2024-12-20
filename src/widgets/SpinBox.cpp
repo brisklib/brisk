@@ -107,8 +107,8 @@ void UpDownButtons::onChildAdded(Widget* w) {
 
 void UpDownButtons::onConstructed() {
     if (!down.get(this) && !up.get(this)) {
-        apply(new Button{ new Text{ ICON_chevron_up } });
-        apply(new Button{ new Text{ ICON_chevron_down } });
+        apply(rcnew Button{ rcnew Text{ ICON_chevron_up } });
+        apply(rcnew Button{ rcnew Text{ ICON_chevron_down } });
     }
     Base::onConstructed();
 }

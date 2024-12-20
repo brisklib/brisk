@@ -143,22 +143,22 @@ constexpr inline Argument<Tag::Depends> depends{};
 }
 
 struct SingleBuilder : Builder {
-    using func = function<Widget*()>;
+    using func = function<RC<Widget>()>;
 
     explicit SingleBuilder(func builder);
 };
 
 struct IndexedBuilder : Builder {
-    using func = function<Widget*(size_t index)>;
+    using func = function<RC<Widget>(size_t index)>;
 
     explicit IndexedBuilder(func builder);
 };
 
 template <typename T>
 struct ListBuilder : IndexedBuilder {
-    explicit ListBuilder(std::vector<T> list, function<Widget*(const std::type_identity_t<T>&)> fn)
+    explicit ListBuilder(std::vector<T> list, function<RC<Widget>(const std::type_identity_t<T>&)> fn)
         : IndexedBuilder([list = std::move(list), fn = std::move(fn)](size_t index)
-                             BRISK_INLINE_LAMBDA -> Widget* {
+                             BRISK_INLINE_LAMBDA -> RC<Widget> {
                                  return index < list.size() ? fn(list[index]) : nullptr;
                              }) {}
 };
@@ -311,7 +311,6 @@ class LayoutEngine;
 
 struct WidgetArgumentAccept {
     void operator()(std::shared_ptr<Widget>);
-    void operator()(Widget*);
     void operator()(Builder);
     void operator()(const Attributes&);
     void operator()(const Rules&);
@@ -950,9 +949,7 @@ public:
     void remove(Widget* widget);
     void clear();
 
-    void append(Widget* widget);
     virtual void append(Widget::Ptr widget);
-    void apply(Widget* widget);
     void apply(Widget::Ptr widget);
 
     virtual void onParentChanged();
@@ -963,6 +960,8 @@ public:
     /// @param deep in subtree
     /// @returns false if oldWidget wasn't found
     bool replace(Ptr oldWidget, Ptr newWidget, bool deep);
+
+    void apply(std::nullptr_t) = delete;
 
     void apply(WidgetGroup* group);
 
@@ -1593,7 +1592,7 @@ struct Argument<Tag::WithRole<WidgetType, Name>> {
         static_assert(std::constructible_from<WidgetType>,
                       "WidgetType must be constructible from empty argument list");
         if (!get(parent)) {
-            parent->apply(new WidgetType{ Arg::role = Name.string() });
+            parent->apply(rcnew WidgetType{ Arg::role = Name.string() });
         }
     }
 };

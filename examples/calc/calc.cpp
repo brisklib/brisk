@@ -28,7 +28,7 @@ struct CalcBtn : public Button {
     template <WidgetArgument... Args>
     CalcBtn(std::string text, const Args&... args)
         : Button{
-              new Text{
+              rcnew Text{
                   std::move(text),
                   Arg::textAlign = TextAlign::Center,
               },
@@ -107,7 +107,7 @@ public:
             animationSpeed        = 0.5,
             Graphene::buttonColor = 0x555B6E_rgb,
             alignItems            = AlignItems::Stretch,
-            new Text{
+            rcnew Text{
                 text              = calc.valOutput(),
                 textAlign         = TextAlign::End,
                 fontFamily        = Monospace,
@@ -119,8 +119,8 @@ public:
                 textAutoSize      = TextAutoSize::FitWidth,
                 textAutoSizeRange = { 12.f, 50.f },
             },
-            new CalcRow{
-                new CalcBtn{
+            rcnew CalcRow{
+                rcnew CalcBtn{
                     "CE",
                     Graphene::buttonColor = 0x9A202A_rgb,
                     onClick               = m_lifetime |
@@ -128,21 +128,21 @@ public:
                                   calc.clear();
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "C",
                     onClick = m_lifetime |
                               [this] {
                                   calc.clear();
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ICON_pi, // "π",
                     onClick = m_lifetime |
                               [this] {
                                   calc.constant(Number::parse("3.1415926535897932384626433832795"));
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "←",
                     onClick = m_lifetime |
                               [this] {
@@ -150,29 +150,29 @@ public:
                               },
                 },
             },
-            new CalcRow{
-                new CalcBtn{
+            rcnew CalcRow{
+                rcnew CalcBtn{
                     "1/x",
                     onClick = m_lifetime |
                               [this] {
                                   calc.operation(UnaryOperator::Reciprocal);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "x²",
                     onClick = m_lifetime |
                               [this] {
                                   calc.operation(UnaryOperator::Square);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ICON_radical, // "√x",
                     onClick = m_lifetime |
                               [this] {
                                   calc.operation(UnaryOperator::SquareRoot);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ICON_divide, // "÷",
                     Graphene::buttonColor = 0x6B7183_rgb,
                     onClick               = m_lifetime |
@@ -181,29 +181,29 @@ public:
                               },
                 },
             },
-            new CalcRow{
-                new CalcBtn{
+            rcnew CalcRow{
+                rcnew CalcBtn{
                     "7",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(7);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "8",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(8);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "9",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(9);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ICON_x, // "×",
                     Graphene::buttonColor = 0x6B7183_rgb,
                     onClick               = m_lifetime |
@@ -212,29 +212,29 @@ public:
                               },
                 },
             },
-            new CalcRow{
-                new CalcBtn{
+            rcnew CalcRow{
+                rcnew CalcBtn{
                     "4",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(4);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "5",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(5);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "6",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(6);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ICON_minus, //  "−",
                     Graphene::buttonColor = 0x6B7183_rgb,
                     onClick               = m_lifetime |
@@ -243,29 +243,29 @@ public:
                               },
                 },
             },
-            new CalcRow{
-                new CalcBtn{
+            rcnew CalcRow{
+                rcnew CalcBtn{
                     "1",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(1);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "2",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(2);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "3",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(3);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ICON_plus, //    "+",
                     Graphene::buttonColor = 0x6B7183_rgb,
                     onClick               = m_lifetime |
@@ -274,29 +274,29 @@ public:
                               },
                 },
             },
-            new CalcRow{
-                new CalcBtn{
+            rcnew CalcRow{
+                rcnew CalcBtn{
                     "±",
                     onClick = m_lifetime |
                               [this] {
                                   calc.changeSign();
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     "0",
                     onClick = m_lifetime |
                               [this] {
                                   calc.digit(0);
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ".",
                     onClick = m_lifetime |
                               [this] {
                                   calc.decimalSep();
                               },
                 },
-                new CalcBtn{
+                rcnew CalcBtn{
                     ICON_equal, //  "=",
                     Graphene::buttonColor = 0x297227_rgb,
                     onClick               = m_lifetime |

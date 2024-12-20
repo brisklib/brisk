@@ -41,14 +41,14 @@ PopupDialog::PopupDialog(Construction construction, Value<bool> visibleProp, Arg
               Arg::absolutePosition = { 0, 0 },
               Arg::anchor           = { 0, 0 },
               Arg::zorder           = ZOrder::TopMost,
-              new Spacer{},
-              new Widget{
+              rcnew Spacer{},
+              rcnew Widget{
                   Arg::classes   = { "dialog" },
                   Arg::layout    = Layout::Vertical,
                   Arg::alignSelf = AlignSelf::Center,
                   asAttributes(args),
               },
-              new Spacer{},
+              rcnew Spacer{},
           },
       } {}
 
@@ -62,21 +62,21 @@ PopupOKDialog::PopupOKDialog(Construction construction, std::string title, Value
           construction,
           visibleProp,
           std::tuple{
-              new Text{
+              rcnew Text{
                   std::move(title),
                   Arg::classes = { "dialog-title" },
               },
-              new VLayout{
+              rcnew VLayout{
                   Arg::classes = { "dialog-body" },
                   asAttributes(args),
-                  new Button{ new Text{ "OK" }, Arg::classes = { "dialog-button" },
-                              Arg::alignSelf = AlignSelf::Center,
-                              Arg::onClick   = listener(
-                                  [accepted = std::move(accepted), visibleProp]() {
-                                      visibleProp.set(false);
-                                      accepted();
-                                  },
-                                  this) },
+                  rcnew Button{ rcnew Text{ "OK" }, Arg::classes = { "dialog-button" },
+                                Arg::alignSelf = AlignSelf::Center,
+                                Arg::onClick   = listener(
+                                    [accepted = std::move(accepted), visibleProp]() {
+                                        visibleProp.set(false);
+                                        accepted();
+                                    },
+                                    this) },
               },
           },
       } {}

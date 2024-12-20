@@ -60,7 +60,7 @@ ColorSliders::ColorSliders(Construction construction, ColorF color, bool alpha,
     args.apply(this);
     m_layout = Layout::Vertical;
 
-    apply(new Slider{
+    apply(rcnew Slider{
         Arg::value           = colorSubvalue<ColorComp::R>(Value{ &value }),
         Arg::minDimensions   = { 100, 16 },
         Arg::borderColor     = 0xd80000_rgb,
@@ -69,7 +69,7 @@ ColorSliders::ColorSliders(Construction construction, ColorF color, bool alpha,
         Arg::minimum         = 0,
         Arg::maximum         = 1,
     });
-    apply(new Slider{
+    apply(rcnew Slider{
         Arg::value           = colorSubvalue<ColorComp::G>(Value{ &value }),
         Arg::minDimensions   = { 100, 16 },
         Arg::borderColor     = 0x00b600_rgb,
@@ -78,7 +78,7 @@ ColorSliders::ColorSliders(Construction construction, ColorF color, bool alpha,
         Arg::minimum         = 0,
         Arg::maximum         = 1,
     });
-    apply(new Slider{
+    apply(rcnew Slider{
         Arg::value           = colorSubvalue<ColorComp::B>(Value{ &value }),
         Arg::minDimensions   = { 100, 16 },
         Arg::borderColor     = 0x0000e8_rgb,
@@ -88,7 +88,7 @@ ColorSliders::ColorSliders(Construction construction, ColorF color, bool alpha,
         Arg::maximum         = 1,
     });
     if (alpha) {
-        apply(new Slider{
+        apply(rcnew Slider{
             Arg::value           = colorSubvalue<ColorComp::A>(Value{ &value }),
             Arg::minDimensions   = { 100, 16 },
             Arg::borderColor     = 0xF3F3F3_rgb,
@@ -173,7 +173,7 @@ ColorPalette::ColorPalette(Construction construction, ColorF color, ArgumentsVie
          }) {
         const float v = p.first;
         const float c = p.second;
-        apply(new HLayout{
+        apply(rcnew HLayout{
             addColor(ColorOf<float, ColorGamma::sRGB>(i++ / 6.f)), //
             addColor(Palette::Standard::red, v, c), addColor(Palette::Standard::orange, v, c),
             addColor(Palette::Standard::amber, v, c), addColor(Palette::Standard::yellow, v, c),
@@ -200,11 +200,11 @@ static ColorF adjustSwatch(ColorF color, float lightnessOffset, float chromaMult
     return ColorF(lab, color.alpha);
 }
 
-Widget* ColorPalette::addColor(const ColorF& swatch, float brightness, float chroma) {
+RC<Widget> ColorPalette::addColor(const ColorF& swatch, float brightness, float chroma) {
     ColorF c = adjustSwatch(swatch, brightness, chroma);
-    return new Button{
-        new Widget{
-            new ColorView{
+    return rcnew Button{
+        rcnew Widget{
+            rcnew ColorView{
                 c,
             },
         },
@@ -246,10 +246,10 @@ ColorButton::ColorButton(Construction construction, Value<ColorF> prop, bool alp
     args.apply(this);
     m_layout = Layout::Vertical;
 
-    apply(new ColorView{ prop });
-    apply(new PopupBox{ new HLayout{ new ColorView{ prop, Arg::classes = { "large" } },
-                                     new ColorSliders{ prop, alpha, Arg::flexGrow = 1 } },
-                        new ColorPalette(prop) });
+    apply(rcnew ColorView{ prop });
+    apply(rcnew PopupBox{ rcnew HLayout{ rcnew ColorView{ prop, Arg::classes = { "large" } },
+                                         rcnew ColorSliders{ prop, alpha, Arg::flexGrow = 1 } },
+                          rcnew ColorPalette(prop) });
 }
 
 void GradientItem::paint(Canvas& canvas_) const {

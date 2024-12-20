@@ -37,7 +37,7 @@ public:
               std::tuple{
                   Arg::layout = Layout::Vertical,
                   makeCloseButton(),
-                  new VLayout{
+                  rcnew VLayout{
                       Arg::classes = { "notification-body" },
                       args...,
                   },
@@ -52,7 +52,7 @@ public:
     void expireNow();
 
 protected:
-    Widget* makeCloseButton();
+    RC<Widget> makeCloseButton();
     double m_expireTime;
     void onEvent(Event& event) override;
 

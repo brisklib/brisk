@@ -51,7 +51,7 @@ void ItemList::append(Widget::Ptr widget) {
         it->dynamicFocus = true;
         Base::append(std::move(widget));
     } else {
-        Base::append(new Item{ std::move(widget), dynamicFocus = true });
+        Base::append(rcnew Item{ std::move(widget), dynamicFocus = true });
     }
 }
 

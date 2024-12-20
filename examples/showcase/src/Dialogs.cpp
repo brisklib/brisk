@@ -6,10 +6,10 @@
 
 namespace Brisk {
 
-static Widget* osDialogButton(std::string text, Value<Trigger<>> fn) {
-    return new HLayout{
-        new Button{
-            new Text{ std::move(text) },
+static RC<Widget> osDialogButton(std::string text, Value<Trigger<>> fn) {
+    return rcnew HLayout{
+        rcnew Button{
+            rcnew Text{ std::move(text) },
             onClick = std::move(fn),
         },
     };
@@ -20,13 +20,13 @@ public:
     RC<Widget> build() final {
         return rcnew Widget{
             stylesheet = Graphene::stylesheet(),
-            new Spacer{},
-            new Text{
+            rcnew Spacer{},
+            rcnew Text{
                 "Separate window based on Brisk::Component",
                 flexGrow  = 1,
                 textAlign = TextAlign::Center,
             },
-            new Spacer{},
+            rcnew Spacer{},
         };
     }
 };
@@ -37,11 +37,11 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         padding  = 16_apx,
         gapRow   = 8_apx,
 
-        new Text{ "Multiple windows (gui/Component.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Multiple windows (gui/Component.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Button{
-                new Text{ "Open window" },
+        rcnew HLayout{
+            rcnew Button{
+                rcnew Text{ "Open window" },
                 onClick = m_lifetime |
                           [this]() {
                               RC<SmallComponent> comp = rcnew SmallComponent();
@@ -49,8 +49,8 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                           },
             },
 
-            new Button{
-                new Text{ "Open modal window" },
+            rcnew Button{
+                rcnew Text{ "Open modal window" },
                 onClick = m_lifetime |
                           [this]() {
                               RC<SmallComponent> comp = rcnew SmallComponent();
@@ -58,9 +58,9 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                           },
             },
         },
-        new HLayout{
-            new Button{
-                new Text{ "TextInputDialog" },
+        rcnew HLayout{
+            rcnew Button{
+                rcnew Text{ "TextInputDialog" },
                 onClick = m_lifetime |
                           []() {
                               RC<TextInputDialog> dialog = rcnew TextInputDialog{ "Enter name", "World" };
@@ -73,27 +73,27 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
             },
         },
 
-        new Text{ "PopupDialog (widgets/PopupDialog.hpp)", classes = { "section-header" } },
+        rcnew Text{ "PopupDialog (widgets/PopupDialog.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Button{
-                new Text{ "Open Dialog" },
+        rcnew HLayout{
+            rcnew Button{
+                rcnew Text{ "Open Dialog" },
                 onClick = m_lifetime |
                           [this]() {
                               bindings->assign(m_popupDialog, true);
                           },
             },
-            new PopupOKDialog{
+            rcnew PopupOKDialog{
                 "Dialog title",
                 Value{ &m_popupDialog },
                 [notifications]() {
-                    notifications->show(new Text{ "Dialog closed" });
+                    notifications->show(rcnew Text{ "Dialog closed" });
                 },
-                new Text{ "Dialog" },
+                rcnew Text{ "Dialog" },
             },
         },
 
-        new Text{ "OS dialogs (window/OSDialogs.hpp)", classes = { "section-header" } },
+        rcnew Text{ "OS dialogs (window/OSDialogs.hpp)", classes = { "section-header" } },
         osDialogButton(
             "Open URL", m_lifetime |
                             []() {
@@ -174,7 +174,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                                        m_text += "(nullopt)\n";
                                    bindings->notify(&m_text);
                                }),
-        new Text{
+        rcnew Text{
             text       = Value{ &m_text },
             fontFamily = Monospace,
         },

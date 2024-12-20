@@ -31,9 +31,9 @@ void NotificationView::onEvent(Event& event) {
     }
 }
 
-Widget* NotificationView::makeCloseButton() {
-    return new Button{
-        new Text{ ICON_x },
+RC<Widget> NotificationView::makeCloseButton() {
+    return rcnew Button{
+        rcnew Text{ ICON_x },
         Arg::classes          = { "flat", "slim" },
         Arg::placement        = Placement::Absolute,
         Arg::zorder           = ZOrder::TopMost,

@@ -10,8 +10,8 @@ static Builder iconsBuilder() {
         auto iconFontFamily   = GoNoto;
         int iconFontSize      = 25;
         for (int icon = ICON__first; icon < ICON__last; icon += columns) {
-            HLayout* glyphs = new HLayout{
-                new Text{
+            RC<HLayout> glyphs = rcnew HLayout{
+                rcnew Text{
                     fmt::format("{:04X}", icon),
                     textVerticalAlign = TextAlign::Center,
                     dimensions        = { 60, 50 },
@@ -20,7 +20,7 @@ static Builder iconsBuilder() {
             for (int c = 0; c < columns; c++) {
                 char32_t ch = icon + c;
                 string u8   = utf32ToUtf8(std::u32string(1, ch));
-                glyphs->apply(new Text{
+                glyphs->apply(rcnew Text{
                     u8,
                     classes           = { "icon" },
                     textAlign         = TextAlign::Center,
@@ -35,7 +35,7 @@ static Builder iconsBuilder() {
                         &staticBinding),
                 });
             }
-            target->apply(glyphs);
+            target->apply(std::move(glyphs));
         }
     });
 }
@@ -55,16 +55,16 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
         padding  = 16_apx,
         gapRow   = 8_apx,
 
-        new Text{ "Fonts", classes = { "section-header" } },
+        rcnew Text{ "Fonts", classes = { "section-header" } },
 
-        new HScrollBox{
-            new VLayout{
+        rcnew HScrollBox{
+            rcnew VLayout{
                 flexGrow = 1,
                 Builder([](Widget* target) {
                     for (int i = 0; i < 7; ++i) {
                         int size = 8 + i * 4;
                         auto row = [target, size](std::string name, FontFamily family, FontWeight weight) {
-                            target->apply(new Text{
+                            target->apply(rcnew Text{
                                 pangram + fmt::format(" [{}, {}px]", name, size),
                                 fontFamily = family,
                                 fontWeight = weight,
@@ -76,16 +76,16 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                         row("Lato Bold", Lato, FontWeight::Bold);
                         row("GoNoto", GoNoto, FontWeight::Regular);
                         row("Monospace", Monospace, FontWeight::Regular);
-                        target->apply(new Spacer{ height = 12_apx });
+                        target->apply(rcnew Spacer{ height = 12_apx });
                     }
                 }),
             },
         },
 
-        new Text{ "Font properties", classes = { "section-header" } },
+        rcnew Text{ "Font properties", classes = { "section-header" } },
 
-        new VLayout{
-            new Text{
+        rcnew VLayout{
+            rcnew Text{
                 "gΥφ fi fl3.14 1/3 LT",
                 fontSize       = 40,
                 fontFamily     = Lato,
@@ -94,33 +94,33 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                 wordSpacing    = Value{ &m_wordSpacing }.implicitConversion<Length>(),
                 textDecoration = Value{ &m_textDecoration },
             },
-            new HLayout{
+            rcnew HLayout{
                 Builder{
                     [this](Widget* target) {
                         for (int i = 0; i < m_fontFeatures.size(); ++i) {
-                            target->apply(new VLayout{
-                                new Text{ fmt::to_string(m_fontFeatures[i].feature) },
-                                new Switch{ value = Value{ &m_fontFeatures[i].enabled } },
+                            target->apply(rcnew VLayout{
+                                rcnew Text{ fmt::to_string(m_fontFeatures[i].feature) },
+                                rcnew Switch{ value = Value{ &m_fontFeatures[i].enabled } },
                             });
                         }
                     },
                 },
             },
-            new Text{ "Text decoration" },
-            new ComboBox{
+            rcnew Text{ "Text decoration" },
+            rcnew ComboBox{
                 Value{ &m_textDecoration },
                 notManaged(&textDecorationList),
                 width = 200_apx,
             },
-            new Text{ "Letter spacing" },
-            new Slider{ value = Value{ &m_letterSpacing }, minimum = 0.f, maximum = 10.f, width = 200_apx },
-            new Text{ "Word spacing" },
-            new Slider{ value = Value{ &m_wordSpacing }, minimum = 0.f, maximum = 10.f, width = 200_apx },
+            rcnew Text{ "Letter spacing" },
+            rcnew Slider{ value = Value{ &m_letterSpacing }, minimum = 0.f, maximum = 10.f, width = 200_apx },
+            rcnew Text{ "Word spacing" },
+            rcnew Slider{ value = Value{ &m_wordSpacing }, minimum = 0.f, maximum = 10.f, width = 200_apx },
         },
 
-        new Text{ "Icons (gui/Icons.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Icons (gui/Icons.hpp)", classes = { "section-header" } },
 
-        new VLayout{
+        rcnew VLayout{
             padding = { 8_apx, 8_apx },
 
             iconsBuilder(),
