@@ -51,7 +51,7 @@ void ItemList::append(Widget::Ptr widget) {
         it->dynamicFocus = true;
         Base::append(std::move(widget));
     } else {
-        Base::append(new Item{ std::move(widget), dynamicFocus = true });
+        Base::append(rcnew Item{ std::move(widget), dynamicFocus = true });
     }
 }
 
@@ -64,8 +64,8 @@ ItemList::ItemList(Construction construction, ArgumentsView<ItemList> args)
     args.apply(this);
 }
 
-Widget::Ptr ItemList::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr ItemList::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void ItemList::onVisible() {

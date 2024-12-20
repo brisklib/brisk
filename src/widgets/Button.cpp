@@ -80,8 +80,8 @@ Button::Button(Construction construction, ArgumentsView<Button> args) : Widget{ 
     args.apply(this);
 }
 
-Widget::Ptr Button::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr Button::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 } // namespace Brisk

@@ -37,8 +37,8 @@ ValueWidget::ValueWidget(Construction construction, ArgumentsView<ValueWidget> a
     args.apply(this);
 }
 
-Widget::Ptr ValueWidget::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr ValueWidget::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void ValueWidget::onConstructed() {

@@ -10,8 +10,8 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
         gapRow   = 8_apx,
         overflow = Overflow::ScrollX,
 
-        new Text{ "flexWrap = Wrap::Wrap", classes = { "section-header" } },
-        new HLayout{
+        rcnew Text{ "flexWrap = Wrap::Wrap", classes = { "section-header" } },
+        rcnew HLayout{
             padding         = 16_apx,
             gapRow          = 16_apx,
             gapColumn       = 16_apx,
@@ -22,9 +22,9 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
 
             Builder([](Widget* target) {
                 for (int i = 0; i < 24; ++i) {
-                    target->apply(new Widget{
+                    target->apply(rcnew Widget{
                         dimensions = { 80_apx, 80_apx },
-                        new Text{
+                        rcnew Text{
                             fmt::to_string(i + 1),
                             flexGrow  = 1,
                             alignSelf = AlignSelf::Stretch,

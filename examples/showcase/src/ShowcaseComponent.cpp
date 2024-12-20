@@ -80,11 +80,11 @@ RC<Widget> ShowcaseComponent::build() {
         stylesheet = mainStylesheet,
         Graphene::darkColors(),
 
-        new HLayout{
+        rcnew HLayout{
             fontSize = 24_dpx,
-            new Button{
+            rcnew Button{
                 padding = 8_dpx,
-                new Text{ ICON_zoom_in },
+                rcnew Text{ ICON_zoom_in },
                 borderWidth = 1_dpx,
                 onClick     = m_lifetime |
                           []() {
@@ -92,9 +92,9 @@ RC<Widget> ShowcaseComponent::build() {
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 + 1) * 0.5);
                           },
             },
-            new Button{
+            rcnew Button{
                 padding = 8_dpx,
-                new Text{ ICON_zoom_out },
+                rcnew Text{ ICON_zoom_out },
                 borderWidth = 1_dpx,
                 onClick     = m_lifetime |
                           []() {
@@ -102,18 +102,18 @@ RC<Widget> ShowcaseComponent::build() {
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 - 1) * 0.5);
                           },
             },
-            new Button{
+            rcnew Button{
                 padding = 8_dpx,
-                new Text{ ICON_camera },
+                rcnew Text{ ICON_camera },
                 borderWidth = 1_dpx,
                 onClick     = m_lifetime |
                           [this]() {
                               captureScreenshot();
                           },
             },
-            new Button{
+            rcnew Button{
                 padding = 8_dpx,
-                new Text{ ICON_sun_moon },
+                rcnew Text{ ICON_sun_moon },
                 borderWidth = 1_dpx,
                 onClick     = m_lifetime |
                           [this]() {
@@ -126,22 +126,22 @@ RC<Widget> ShowcaseComponent::build() {
                           },
             },
         },
-        new Pages{
+        rcnew Pages{
             value  = Value{ &m_activePage },
             layout = Layout::Horizontal,
             Pages::tabs =
-                new Tabs{
+                rcnew Tabs{
                     layout = Layout::Vertical,
                 },
-            new Page{ "Buttons", new VScrollBox{ flexGrow = 1, m_buttons->build(notifications) } },
-            new Page{ "Dropdowns", new VScrollBox{ flexGrow = 1, m_dropdowns->build(notifications) } },
-            new Page{ "Editors", new VScrollBox{ flexGrow = 1, m_editors->build(notifications) } },
-            new Page{ "Visual", new VScrollBox{ flexGrow = 1, m_visual->build(notifications) } },
-            new Page{ "Layout", new VScrollBox{ flexGrow = 1, m_layout->build(notifications) } },
-            new Page{ "Dialogs", new VScrollBox{ flexGrow = 1, m_dialogs->build(notifications) } },
-            new Page{ "Typography", new VScrollBox{ flexGrow = 1, m_typography->build(notifications) } },
-            new Page{ "Messenger", new VScrollBox{ flexGrow = 1, m_messenger->build(notifications) } },
-            new Page{ "Binding", new VScrollBox{ flexGrow = 1, m_binding->build(notifications) } },
+            rcnew Page{ "Buttons", rcnew VScrollBox{ flexGrow = 1, m_buttons->build(notifications) } },
+            rcnew Page{ "Dropdowns", rcnew VScrollBox{ flexGrow = 1, m_dropdowns->build(notifications) } },
+            rcnew Page{ "Editors", rcnew VScrollBox{ flexGrow = 1, m_editors->build(notifications) } },
+            rcnew Page{ "Visual", rcnew VScrollBox{ flexGrow = 1, m_visual->build(notifications) } },
+            rcnew Page{ "Layout", rcnew VScrollBox{ flexGrow = 1, m_layout->build(notifications) } },
+            rcnew Page{ "Dialogs", rcnew VScrollBox{ flexGrow = 1, m_dialogs->build(notifications) } },
+            rcnew Page{ "Typography", rcnew VScrollBox{ flexGrow = 1, m_typography->build(notifications) } },
+            rcnew Page{ "Messenger", rcnew VScrollBox{ flexGrow = 1, m_messenger->build(notifications) } },
+            rcnew Page{ "Binding", rcnew VScrollBox{ flexGrow = 1, m_binding->build(notifications) } },
             flexGrow = 1,
         },
         flexGrow = 1,

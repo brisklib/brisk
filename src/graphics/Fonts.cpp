@@ -305,12 +305,14 @@ struct FontFace {
         glyph.size.y   = slot->bitmap.rows;
         glyph.sprite   = makeSprite(glyph.size);
 
-        if (slot->bitmap.pitch == glyph.size.x) {
-            memcpy(glyph.sprite->data(), slot->bitmap.buffer, glyph.size.area());
-        } else {
-            for (int i = 0; i < glyph.size.y; ++i) {
-                memcpy(glyph.sprite->data() + i * glyph.size.x, slot->bitmap.buffer + i * slot->bitmap.pitch,
-                       glyph.size.x);
+        if (!glyph.size.empty()) {
+            if (slot->bitmap.pitch == glyph.size.x) {
+                memcpy(glyph.sprite->data(), slot->bitmap.buffer, glyph.size.area());
+            } else {
+                for (int i = 0; i < glyph.size.y; ++i) {
+                    memcpy(glyph.sprite->data() + i * glyph.size.x,
+                           slot->bitmap.buffer + i * slot->bitmap.pitch, glyph.size.x);
+                }
             }
         }
         glyph.advance_x = fromFixed6(slot->advance.x) / float(manager->m_hscale);

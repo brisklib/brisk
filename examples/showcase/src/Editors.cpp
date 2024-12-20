@@ -17,139 +17,140 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
         padding  = 16_apx,
         gapRow   = 8_apx,
 
-        new Text{ "Slider (widgets/Slider.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Slider (widgets/Slider.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new Slider{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, width = 250_apx },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Slider{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, width = 250_apx },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{
+            rcnew Text{
                 text = Value{ &m_value }.transform([](float v) {
                     return fmt::format("Value: {:.1f}", v);
                 }),
             },
         },
 
-        new HLayout{
-            new Widget{
-                new Slider{ value = Value{ &m_value }, hintFormatter = "x={:.1f}", minimum = 0.f,
-                            maximum = 100.f, width = 250_apx },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Slider{ value = Value{ &m_value }, hintFormatter = "x={:.1f}", minimum = 0.f,
+                              maximum = 100.f, width = 250_apx },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Value with custom hint" },
+            rcnew Text{ "Value with custom hint" },
         },
 
-        new HLayout{
-            new Widget{
-                new Slider{ value = Value{ &m_y }, hintFormatter = "y={:.1f}", minimum = 0.f, maximum = 100.f,
-                            width = 250_apx, dimensions = { 20_apx, 80_apx } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Slider{ value = Value{ &m_y }, hintFormatter = "y={:.1f}", minimum = 0.f,
+                              maximum = 100.f, width = 250_apx, dimensions = { 20_apx, 80_apx } },
                 &m_group,
             },
             gapColumn = 10_apx,
         },
 
-        new Text{ "Knob (widgets/Knob.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Knob (widgets/Knob.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new Knob{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, dimensions = 30_apx },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Knob{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, dimensions = 30_apx },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{
+            rcnew Text{
                 text = Value{ &m_value }.transform([](float v) {
                     return fmt::format("Value: {:.1f}", v);
                 }),
             },
         },
 
-        new Text{ "SpinBox (widgets/SpinBox.hpp)", classes = { "section-header" } },
+        rcnew Text{ "SpinBox (widgets/SpinBox.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new SpinBox{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, width = 90_apx },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew SpinBox{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, width = 90_apx },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{
+            rcnew Text{
                 text = Value{ &m_value }.transform([](float v) {
                     return fmt::format("Value: {:.1f}", v);
                 }),
             },
         },
 
-        new Text{ "TextEditor (widgets/TextEditor.hpp)", classes = { "section-header" } },
+        rcnew Text{ "TextEditor (widgets/TextEditor.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new TextEditor(Value{ &m_text }, fontSize = 150_perc, width = 100_perc),
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew TextEditor(Value{ &m_text }, fontSize = 150_perc, width = 100_perc),
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{
+            rcnew Text{
                 text = Value{ &m_text }.transform([](std::string s) {
                     return fmt::format("Text: \"{}\"", s);
                 }),
             },
         },
 
-        new Text{ "multiline = true", classes = { "section-header" } },
+        rcnew Text{ "multiline = true", classes = { "section-header" } },
 
-        new TextEditor(Value{ &m_multilineText }, fontSize = 150_perc, height = 5_em, multiline = true,
-                       textVerticalAlign = TextAlign::Start, width = auto_),
+        rcnew TextEditor(Value{ &m_multilineText }, fontSize = 150_perc, height = 5_em, multiline = true,
+                         textVerticalAlign = TextAlign::Start, width = auto_),
 
-        new Text{ "PasswordEditor (widgets/TextEditor.hpp)", classes = { "section-header" } },
+        rcnew Text{ "PasswordEditor (widgets/TextEditor.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new PasswordEditor(Value{ &m_password }, width = 100_perc, fontFamily = Monospace,
-                                   passwordChar = Value{ &m_hidePassword }.transform([](bool v) -> char32_t {
-                                       return v ? '*' : 0;
-                                   })),
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew PasswordEditor(Value{ &m_password }, width = 100_perc, fontFamily = Monospace,
+                                     passwordChar =
+                                         Value{ &m_hidePassword }.transform([](bool v) -> char32_t {
+                                             return v ? '*' : 0;
+                                         })),
                 &m_group,
             },
             gapColumn = 10_apx,
-            new CheckBox{ value = Value{ &m_hidePassword }, new Text{ "Hide password" } },
+            rcnew CheckBox{ value = Value{ &m_hidePassword }, rcnew Text{ "Hide password" } },
         },
 
-        new Text{ "ColorView (widgets/Color.hpp)", classes = { "section-header" } },
+        rcnew Text{ "ColorView (widgets/Color.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new ColorView{ Palette::Standard::indigo },
-                &m_group,
-            },
-            gapColumn = 10_apx,
-        },
-
-        new Text{ "ColorSliders (widgets/Color.hpp)", classes = { "section-header" } },
-
-        new HLayout{
-            new Widget{
-                new ColorSliders{ Value{ &m_color }, false },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ColorView{ Palette::Standard::indigo },
                 &m_group,
             },
             gapColumn = 10_apx,
         },
 
-        new Text{ "ColorPalette (widgets/Color.hpp)", classes = { "section-header" } },
+        rcnew Text{ "ColorSliders (widgets/Color.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new ColorPalette{ Value{ &m_color } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ColorSliders{ Value{ &m_color }, false },
                 &m_group,
             },
             gapColumn = 10_apx,
         },
 
-        new Text{ "ColorButton (widgets/Color.hpp)", classes = { "section-header" } },
+        rcnew Text{ "ColorPalette (widgets/Color.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Widget{
-                new ColorButton{ Value{ &m_color }, false },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ColorPalette{ Value{ &m_color } },
+                &m_group,
+            },
+            gapColumn = 10_apx,
+        },
+
+        rcnew Text{ "ColorButton (widgets/Color.hpp)", classes = { "section-header" } },
+
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ColorButton{ Value{ &m_color }, false },
                 &m_group,
             },
             gapColumn = 10_apx,

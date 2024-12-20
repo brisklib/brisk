@@ -34,9 +34,7 @@ void Hyperlink::onEvent(Event& event) {
     }
 }
 
-Widget::Ptr Hyperlink::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr Hyperlink::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Hyperlink::Hyperlink(Construction construction, std::string url, ArgumentsView<Hyperlink> args)
     : Widget(construction,

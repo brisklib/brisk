@@ -121,9 +121,7 @@ Slider::Slider(Construction construction, ArgumentsView<Slider> args) : Base(con
     args.apply(this);
 }
 
-Widget::Ptr Slider::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr Slider::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 RectangleF Slider::thumbRect() const noexcept {
     return m_thumbRect;

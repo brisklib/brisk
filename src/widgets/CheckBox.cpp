@@ -44,9 +44,7 @@ void CheckBox::paint(Canvas& canvas) const {
     checkBoxPainter(canvas, *this);
 }
 
-Widget::Ptr CheckBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr CheckBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 CheckBox::CheckBox(Construction construction, ArgumentsView<CheckBox> args)
     : ToggleButton(construction, nullptr) {

@@ -36,7 +36,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit PopupDialog(Construction construction, Value<bool> visibleProp, ArgumentsView<Widget> args);
 };
@@ -53,7 +53,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit PopupOKDialog(Construction construction, std::string title, Value<bool> visibleProp,
                            VoidFunc accepted, ArgumentsView<Widget> args);

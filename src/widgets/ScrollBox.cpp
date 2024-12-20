@@ -32,16 +32,12 @@ ScrollBox::ScrollBox(Construction construction, Orientation orientation, Argumen
     createScrollBar();
 }
 
-Widget::Ptr ScrollBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ScrollBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr HScrollBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr HScrollBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr VScrollBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr VScrollBox::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void ScrollBox::createScrollBar() {

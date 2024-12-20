@@ -42,7 +42,7 @@ protected:
     bool m_dragActive     = false;
     float m_savedPosition = 0.f;
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit ScrollBar(Construction construction, ArgumentsView<ScrollBar> args);
 };
 

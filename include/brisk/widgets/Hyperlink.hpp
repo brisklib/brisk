@@ -37,7 +37,7 @@ public:
 protected:
     std::string m_url;
     void onEvent(Event& event) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit Hyperlink(Construction construction, std::string url, ArgumentsView<Hyperlink> args);
 };
 } // namespace Brisk

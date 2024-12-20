@@ -70,16 +70,14 @@ public:
         endConstruction();
     }
 
-    void apply(Widget* w) {
-        Widget::apply(w);
-        if (w)
-            w->apply(&group);
+    void append(Widget::Ptr widget) override {
+        if (widget)
+            widget->apply(&group);
+        Widget::append(std::move(widget));
     }
 
 protected:
-    Ptr cloneThis() {
-        BRISK_CLONE_IMPLEMENTATION;
-    }
+    Ptr cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
     WidgetGroup group;
 };

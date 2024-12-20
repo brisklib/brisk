@@ -59,8 +59,8 @@ PopupButton::PopupButton(Construction construction, ArgumentsView<PopupButton> a
     args.apply(this);
 }
 
-Widget::Ptr PopupButton::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr PopupButton::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 } // namespace Brisk

@@ -67,13 +67,13 @@ TEST_CASE("Rules") {
     CHECK(Rules{ shadowSize = 2 }.merge(Rules{ tabSize = 1 }) == Rules{ shadowSize = 2, tabSize = 1 });
     CHECK(Rules{}.merge(Rules{ shadowSize = 2, tabSize = 1 }) == Rules{ shadowSize = 2, tabSize = 1 });
 
-    Widget::Ptr w(new Widget{});
+    Widget::Ptr w = rcnew Widget{};
     Rules{ shadowSize = 2, tabSize = 1 }.applyTo(w.get());
     CHECK(w->tabSize.get() == 1);
     CHECK(w->shadowSize.get() == 2_px);
 }
 
-template <typename W>
+template <std::derived_from<Widget> W>
 class WidgetProtected : public W {
 public:
     using W::m_dimensions;
@@ -81,22 +81,17 @@ public:
     using W::restyleIfRequested;
     using W::setState;
     using W::toggleState;
-
-    void setType(std::string type) {
-        this->m_type = std::move(type);
-    }
+    using W::m_type;
 };
 
-template <typename W>
+template <std::derived_from<Widget> W>
 WidgetProtected<W>* unprotect(W* w)
-    requires std::is_base_of_v<Widget, W>
 {
     return reinterpret_cast<WidgetProtected<W>*>(w);
 }
 
-template <typename W>
+template <std::derived_from<Widget> W>
 WidgetProtected<W>* unprotect(std::shared_ptr<W> w)
-    requires std::is_base_of_v<Widget, W>
 {
     return unprotect(w.get());
 }
@@ -104,15 +99,15 @@ WidgetProtected<W>* unprotect(std::shared_ptr<W> w)
 TEST_CASE("Selectors") {
     using namespace Selectors;
 
-    Widget::Ptr w(new Widget{
+    Widget::Ptr w = rcnew Widget{
         id      = "primary",
         classes = { "success", "large" },
 
-        new Widget{
+        rcnew Widget{
             classes = { "text" },
         },
-    });
-    unprotect(w)->setType("button");
+    };
+    unprotect(w)->m_type = "button";
     auto child = w->widgets().front();
 
     CHECK(Type{ "button" }.matches(w.get(), MatchFlags::None));
@@ -151,7 +146,7 @@ TEST_CASE("Selectors") {
 TEST_CASE("Styles") {
     using namespace Selectors;
     using enum WidgetState;
-    RC<Stylesheet> ss(new Stylesheet{
+    RC<Stylesheet> ss = rcnew Stylesheet{
         Style{
             Type{ "button" },
             { padding = Edges{ 20 } },
@@ -185,20 +180,20 @@ TEST_CASE("Styles") {
             Id{ "secondary" },
             { shadowSize = 3 },
         },
-    });
+    };
 
-    Widget::Ptr w1(new Widget{
+    Widget::Ptr w1 = rcnew Widget{
         id = "primary",
-    });
+    };
 
     CHECK(w1->id.get() == "primary");
     CHECK(w1->shadowSize.get() == Length(0));
 
-    Widget::Ptr w2(new Widget{
+    Widget::Ptr w2 = rcnew Widget{
         stylesheet = ss,
         id         = "first",
         id         = "primary",
-    });
+    };
     unprotect(w2)->restyleIfRequested();
 
     CHECK(w2->id.get() == "primary");
@@ -299,13 +294,13 @@ TEST_CASE("resolving") {
 TEST_CASE("inherit") {
     RC<Widget> w1 = rcnew Widget{
         fontSize = 20_px,
-        new Widget{
+        rcnew Widget{
             fontSize = 200_perc,
-            new Widget{
+            rcnew Widget{
                 // fontSize = inherit
             },
         },
-        new Widget{
+        rcnew Widget{
             // fontSize = inherit
         },
     };

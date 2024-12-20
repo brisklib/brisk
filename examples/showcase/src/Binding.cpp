@@ -8,13 +8,13 @@ RC<Widget> ShowcaseBinding::build(RC<Notifications> notifications) {
         flexGrow = 1,
         padding  = 16_apx,
         gapRow   = 8_apx,
-        new HLayout{
-            new Widget{
+        rcnew HLayout{
+            rcnew Widget{
                 layout     = Layout::Vertical,
                 alignItems = AlignItems::FlexStart,
-                new ToggleButton{ value    = Value{ &m_open }, "Open hidden content"_Text, new Text{ ICON_x },
-                                  twoState = true },
-                new Widget{
+                rcnew ToggleButton{ value = Value{ &m_open }, "Open hidden content"_Text,
+                                    rcnew Text{ ICON_x }, twoState = true },
+                rcnew Widget{
                     visible         = Value{ &m_open },
                     padding         = 16_apx,
                     margin          = 1_apx,
@@ -27,40 +27,42 @@ RC<Widget> ShowcaseBinding::build(RC<Notifications> notifications) {
             "ToggleButton::value controls Widget::visible"_Text,
         },
 
-        new HLayout{
-            new Widget{
-                new Widget{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Widget{
                     gapColumn = 4_apx,
-                    new Knob{ value = Value{ &m_value1 }, minimum = 0.f, maximum = 100.f,
-                              dimensions = 30_apx },
-                    new Slider{ value = Value{ &m_value1 }, minimum = 0.f, maximum = 100.f, width = 250_apx },
+                    rcnew Knob{ value = Value{ &m_value1 }, minimum = 0.f, maximum = 100.f,
+                                dimensions = 30_apx },
+                    rcnew Slider{ value = Value{ &m_value1 }, minimum = 0.f, maximum = 100.f,
+                                  width = 250_apx },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
             "Knob::value bound to Slider::value (<->)"_Text,
         },
-        new HLayout{
-            new Widget{
-                new Widget{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Widget{
                     gapColumn = 4_apx,
-                    new Knob{ value = Value{ &m_value2 }, minimum = 0.f, maximum = 100.f,
-                              dimensions = 30_apx },
-                    new Slider{ value = Value{ &m_value2 }.readOnly(), minimum = 0.f, maximum = 100.f,
-                                width = 250_apx },
+                    rcnew Knob{ value = Value{ &m_value2 }, minimum = 0.f, maximum = 100.f,
+                                dimensions = 30_apx },
+                    rcnew Slider{ value = Value{ &m_value2 }.readOnly(), minimum = 0.f, maximum = 100.f,
+                                  width = 250_apx },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
             "Knob::value controls Slider::value (->)"_Text,
         },
-        new HLayout{
-            new Widget{
-                new Widget{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Widget{
                     gapColumn = 4_apx,
-                    new Knob{ value = Value{ &m_value3 }.readOnly(), minimum = 0.f, maximum = 100.f,
-                              dimensions = 30_apx },
-                    new Slider{ value = Value{ &m_value3 }, minimum = 0.f, maximum = 100.f, width = 250_apx },
+                    rcnew Knob{ value = Value{ &m_value3 }.readOnly(), minimum = 0.f, maximum = 100.f,
+                                dimensions = 30_apx },
+                    rcnew Slider{ value = Value{ &m_value3 }, minimum = 0.f, maximum = 100.f,
+                                  width = 250_apx },
                 },
                 &m_group,
             },
@@ -68,14 +70,14 @@ RC<Widget> ShowcaseBinding::build(RC<Notifications> notifications) {
             "Knob::value is controlled by Slider::value (<-)"_Text,
         },
 
-        new HLayout{
-            new VLayout{
-                new CheckBox{ value = Value{ &m_checkBoxes[0] }, "Monday"_Text },
-                new CheckBox{ value = Value{ &m_checkBoxes[1] }, "Tuesday"_Text },
-                new CheckBox{ value = Value{ &m_checkBoxes[2] }, "Wednesday"_Text },
-                new CheckBox{ value = Value{ &m_checkBoxes[3] }, "Thursday"_Text },
-                new CheckBox{ value = Value{ &m_checkBoxes[4] }, "Friday"_Text },
-                new Text{
+        rcnew HLayout{
+            rcnew VLayout{
+                rcnew CheckBox{ value = Value{ &m_checkBoxes[0] }, "Monday"_Text },
+                rcnew CheckBox{ value = Value{ &m_checkBoxes[1] }, "Tuesday"_Text },
+                rcnew CheckBox{ value = Value{ &m_checkBoxes[2] }, "Wednesday"_Text },
+                rcnew CheckBox{ value = Value{ &m_checkBoxes[3] }, "Thursday"_Text },
+                rcnew CheckBox{ value = Value{ &m_checkBoxes[4] }, "Friday"_Text },
+                rcnew Text{
                     "Select two weekdays",
                     visible = transform(
                         [](bool mon, bool tue, bool wed, bool thu, bool fri) {

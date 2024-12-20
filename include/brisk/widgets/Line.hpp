@@ -38,7 +38,7 @@ public:
 protected:
     Orientation m_orientation;
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit Line(Construction construction, Orientation orientation, ArgumentsView<Line> args);
 };
 
@@ -54,7 +54,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 class WIDGET VLine final : public Line {
@@ -69,7 +69,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 class WIDGET MenuLine final : public Line {
@@ -84,6 +84,6 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 } // namespace Brisk
