@@ -35,7 +35,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     void paint(Canvas& canvas) const override;
 
     CheckBox(Construction construction, ArgumentsView<CheckBox> args);

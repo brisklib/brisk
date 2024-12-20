@@ -48,7 +48,7 @@ protected:
     ImageHandle m_texture;
 
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     ImageView(Construction construction, ImageHandle texture, ArgumentsView<ImageView> args);
 };
@@ -74,7 +74,7 @@ protected:
     mutable RC<Image> m_image;
 
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
 public:
     BRISK_PROPERTIES_BEGIN

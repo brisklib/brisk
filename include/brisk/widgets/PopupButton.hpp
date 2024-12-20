@@ -44,7 +44,7 @@ protected:
     void onClicked() override;
     void onRefresh() override;
     void onChildAdded(Widget* w) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit PopupButton(Construction construction, ArgumentsView<PopupButton> args);
 };
 } // namespace Brisk

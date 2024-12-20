@@ -47,13 +47,9 @@ void SVGImageView::paint(Canvas& canvas) const {
     }
 }
 
-Widget::Ptr SVGImageView::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr SVGImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr ImageView::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ImageView::ImageView(Construction construction, ImageHandle texture, ArgumentsView<ImageView> args)
     : Widget(construction, nullptr), m_texture(std::move(texture)) {

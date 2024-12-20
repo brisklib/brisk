@@ -42,7 +42,7 @@ public:
 protected:
     void onConstructed() override;
     void onChildAdded(Widget* w) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit UpDownButtons(Construction construction, ArgumentsView<UpDownButtons> args);
 };
 
@@ -65,7 +65,7 @@ protected:
     void onConstructed() override;
     void onChildAdded(Widget* w) override;
     void onEvent(Event& event) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit SpinBox(Construction construction, ArgumentsView<SpinBox> args);
 
 public:

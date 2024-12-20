@@ -184,8 +184,7 @@ TEST_CASE("Renderer", "[gpu]") {
                 path.addRoundRect(rect, radius);
                 canvas.setStrokeWidth(strokeWidth);
                 canvas.setStrokeColor(Palette::black);
-                Gradient grad(GradientType::Linear, frameBounds.at(0.1f, 0.1f),
-                                          frameBounds.at(0.9f, 0.9f));
+                Gradient grad(GradientType::Linear, frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f));
                 grad.addStop(0.f, Palette::Standard::green);
                 grad.addStop(1.f, Palette::Standard::red);
                 canvas.setFillPaint(notManaged(&grad));

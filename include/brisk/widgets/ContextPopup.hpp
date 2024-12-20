@@ -36,7 +36,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     void append(Widget::Ptr widget) override;
     explicit ContextPopup(Construction construction, ArgumentsView<ContextPopup> args);
 };

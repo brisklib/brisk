@@ -60,7 +60,7 @@ public:
 
             if (bufferConsumed > 0) {
                 if (bufferSize > bufferConsumed)
-                    memcpy(buffer.get(), buffer.get() + bufferConsumed, bufferSize - bufferConsumed);
+                    memmove(buffer.get(), buffer.get() + bufferConsumed, bufferSize - bufferConsumed);
                 bufferSize -= bufferConsumed;
                 bufferConsumed = 0;
             }

@@ -37,6 +37,6 @@ public:
 
 protected:
     Spacer(Construction, ArgumentsView<Spacer> args);
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 } // namespace Brisk

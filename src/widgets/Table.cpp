@@ -51,31 +51,23 @@ Table::Table(Construction construction, ArgumentsView<Table> args)
     args.apply(this);
 }
 
-Widget::Ptr Table::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr Table::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 TableRow::TableRow(Construction construction, ArgumentsView<TableRow> args)
     : Widget(construction, std::tuple{ Arg::layout = Layout::Horizontal }) {
     args.apply(this);
 }
 
-Widget::Ptr TableRow::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr TableRow::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr TableHeader::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr TableHeader::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 TableHeader::TableHeader(Construction construction, ArgumentsView<TableHeader> args)
     : TableRow(construction, nullptr) {
     args.apply(this);
 }
 
-Widget::Ptr TableCell::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr TableCell::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 TableCell::TableCell(Construction construction, ArgumentsView<TableCell> args)
     : Widget(construction, std::tuple{ Arg::layout = Layout::Horizontal }) {

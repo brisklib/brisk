@@ -50,7 +50,7 @@ protected:
     void updateOffsets();
     void createScrollBar();
     void revealChild(Widget* child) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit ScrollBox(Construction construction, Orientation orientation, ArgumentsView<ScrollBox> args);
 
 public:
@@ -78,7 +78,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 class WIDGET HScrollBox final : public ScrollBox {
@@ -93,7 +93,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 } // namespace Brisk

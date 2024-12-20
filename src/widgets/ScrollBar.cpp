@@ -104,8 +104,8 @@ ScrollBar::ScrollBar(Construction construction, ArgumentsView<ScrollBar> args)
     args.apply(this);
 }
 
-Widget::Ptr ScrollBar::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr ScrollBar::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 bool ScrollBar::isDragActive() const noexcept {

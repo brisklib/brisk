@@ -37,7 +37,7 @@ public:
               std::tuple{
                   Arg::layout = Layout::Vertical,
                   makeCloseButton(),
-                  new VLayout{
+                  rcnew VLayout{
                       Arg::classes = { "notification-body" },
                       args...,
                   },
@@ -52,11 +52,11 @@ public:
     void expireNow();
 
 protected:
-    Widget* makeCloseButton();
+    RC<Widget> makeCloseButton();
     double m_expireTime;
     void onEvent(Event& event) override;
 
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 
 class Notifications {
@@ -96,6 +96,6 @@ protected:
     RC<Notifications> m_notifications;
     void receive(RC<NotificationView> view);
     void onRefresh() override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 };
 } // namespace Brisk

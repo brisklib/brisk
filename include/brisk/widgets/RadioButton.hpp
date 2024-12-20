@@ -37,7 +37,7 @@ public:
 
 protected:
     void paint(Canvas& canvas) const override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit RadioButton(Construction construction, ArgumentsView<RadioButton> args);
 };
 

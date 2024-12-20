@@ -55,7 +55,7 @@ protected:
     void onAnimationFrame() override;
     Rectangle chevronRect(LogicalDirection direction) const;
     void onEvent(Event& event) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit AutoScrollable(Construction construction, Orientation orientation,
                             ArgumentsView<AutoScrollable> args);
 };

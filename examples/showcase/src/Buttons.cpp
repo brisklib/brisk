@@ -16,41 +16,41 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
         flexGrow = 1,
         padding  = 16_apx,
         gapRow   = 8_apx,
-        new Text{ "Button (widgets/Button.hpp)", classes = { "section-header" } },
-        new HLayout{
-            new Widget{
-                new Button{
-                    new Text{ "Button 1" },
+        rcnew Text{ "Button (widgets/Button.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Button{
+                    rcnew Text{ "Button 1" },
                     onClick = m_lifetime |
                               [notifications]() {
-                                  notifications->show(new Text{ "Button 1 clicked" });
+                                  notifications->show(rcnew Text{ "Button 1 clicked" });
                               },
                 },
-                new Button{
-                    new Text{ "Disabled Button" },
+                rcnew Button{
+                    rcnew Text{ "Disabled Button" },
                     disabled = true,
                     onClick  = m_lifetime |
                               [notifications]() {
-                                  notifications->show(new Text{ "Disabled Button clicked" });
+                                  notifications->show(rcnew Text{ "Disabled Button clicked" });
                               },
                 },
                 &m_group,
             },
         },
-        new HLayout{
-            new Widget{
-                new Button{
-                    new Text{ ICON_settings "  Button with icon" },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Button{
+                    rcnew Text{ ICON_settings "  Button with icon" },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Icon from icon font" },
+            rcnew Text{ "Icon from icon font" },
         },
-        new HLayout{
-            new Widget{
-                new Button{
-                    new SVGImageView{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Button{
+                    rcnew SVGImageView{
                         R"SVG(<svg viewBox="0 -34 1092 1092" class="icon" xmlns="http://www.w3.org/2000/svg">
   <path d="m307 7-17 13a39 39 0 1 1-62 46L14 229l1044 243z" fill="#FCE875"/>
   <path d="M1092 486 0 232 230 58l3 5a33 33 0 1 0 52-39l-4-5 25-19 4 2zM28 226l996 232L307 14l-9 7a45 45 0 0 1-71 54z" fill="#541018"/>
@@ -72,17 +72,17 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                         dimensions = { 18_apx, 18_apx },
                     },
                     gapColumn = 5_apx,
-                    new Text{ "Button with icon" },
+                    rcnew Text{ "Button with icon" },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "SVG icon" },
+            rcnew Text{ "SVG icon" },
         },
-        new HLayout{
-            new Widget{
-                new Button{
-                    new Viewport{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Button{
+                    rcnew Viewport{
                         [](Canvas& canvas, Rectangle rect) {
                             canvas.setFillColor(Palette::Standard::amber);
                             PreparedText text = fonts->prepare(Font{ FontFamily::Default, dp(18) },
@@ -100,29 +100,29 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Button with Viewport displaying rendered content" },
+            rcnew Text{ "Button with Viewport displaying rendered content" },
         },
-        new VLayout{
+        rcnew VLayout{
             gapRow     = 5_apx,
             alignItems = AlignItems::FlexStart,
-            new Button{
-                new Text{ "Button with color applied" },
+            rcnew Button{
+                rcnew Text{ "Button with color applied" },
                 Graphene::buttonColor = 0xFF4791_rgb,
             },
-            new Button{
-                new Text{ "Button with reduced padding" },
+            rcnew Button{
+                rcnew Text{ "Button with reduced padding" },
                 padding = 4_px,
             },
-            new Button{
-                new Text{ "Button with flat style" },
+            rcnew Button{
+                rcnew Text{ "Button with flat style" },
                 classes = { "flat" },
             },
             &m_group,
         },
-        new HLayout{
-            new Widget{
-                new Button{
-                    new Text{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Button{
+                    rcnew Text{
                         "Hold to repeat action",
                     },
                     repeatDelay    = 0.2,
@@ -136,121 +136,121 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{
+            rcnew Text{
                 text = Value{ &m_clicked }.transform([](int n) {
                     return fmt::format("Clicked {} times", n);
                 }),
             },
         },
-        new HLayout{
-            new Widget{
-                new Button{ new Text{ "First" }, &m_btnGroup, borderRadius = 15_px },
-                new Button{ new Text{ "Second" }, &m_btnGroup, borderRadius = 15_px },
-                new Button{ new Text{ "Third" }, &m_btnGroup, borderRadius = 15_px },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Button{ rcnew Text{ "First" }, &m_btnGroup, borderRadius = 15_px },
+                rcnew Button{ rcnew Text{ "Second" }, &m_btnGroup, borderRadius = 15_px },
+                rcnew Button{ rcnew Text{ "Third" }, &m_btnGroup, borderRadius = 15_px },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Grouped buttons share borders" },
+            rcnew Text{ "Grouped buttons share borders" },
         },
-        new HLayout{
-            new Button{
+        rcnew HLayout{
+            rcnew Button{
                 gapColumn = 3_apx,
-                new Text{ "This button contains" },
-                new Table{
+                rcnew Text{ "This button contains" },
+                rcnew Table{
                     classes = { "table-padding-4" },
-                    new TableRow{
-                        new TableCell{ new Text{ "A" } },
-                        new TableCell{ new Text{ "small" } },
+                    rcnew TableRow{
+                        rcnew TableCell{ rcnew Text{ "A" } },
+                        rcnew TableCell{ rcnew Text{ "small" } },
                     },
-                    new TableRow{
-                        new TableCell{ new Text{ "Table" } },
-                        new TableCell{ new Text{ "widget" } },
+                    rcnew TableRow{
+                        rcnew TableCell{ rcnew Text{ "Table" } },
+                        rcnew TableCell{ rcnew Text{ "widget" } },
                     },
                 },
-                new Text{ "inside it" },
+                rcnew Text{ "inside it" },
             },
         },
-        new Text{ "ToggleButton (widgets/ToggleButton.hpp)", classes = { "section-header" } },
-        new HLayout{
-            new Widget{
-                new ToggleButton{
+        rcnew Text{ "ToggleButton (widgets/ToggleButton.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ToggleButton{
                     value = Value{ &m_toggled },
-                    new Text{ "ToggleButton 1" },
+                    rcnew Text{ "ToggleButton 1" },
                 },
                 &m_group,
             },
         },
-        new HLayout{
-            new Widget{
-                new ToggleButton{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ToggleButton{
                     value = Value{ &m_toggled },
-                    new Text{ "ToggleButton 2" },
+                    rcnew Text{ "ToggleButton 2" },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Shares state with ToggleButton 1" },
+            rcnew Text{ "Shares state with ToggleButton 1" },
         },
-        new HLayout{
-            new Widget{
-                new ToggleButton{
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ToggleButton{
                     value = Value{ &m_toggled },
-                    new Text{ "Off" },
-                    new Text{ "On" },
+                    rcnew Text{ "Off" },
+                    rcnew Text{ "On" },
                     twoState = true,
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Shares state with ToggleButton 1" },
+            rcnew Text{ "Shares state with ToggleButton 1" },
         },
-        new Text{ "CheckBox (widgets/CheckBox.hpp)", classes = { "section-header" } },
-        new HLayout{
-            new Widget{
-                new CheckBox{
+        rcnew Text{ "CheckBox (widgets/CheckBox.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew CheckBox{
                     value = Value{ &m_toggled },
-                    new Text{ "CheckBox" },
+                    rcnew Text{ "CheckBox" },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Shares state with ToggleButton 1" },
+            rcnew Text{ "Shares state with ToggleButton 1" },
         },
-        new Text{ "Switch (widgets/Switch.hpp)", classes = { "section-header" } },
-        new HLayout{
-            new Widget{
-                new Switch{
+        rcnew Text{ "Switch (widgets/Switch.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Switch{
                     value = Value{ &m_toggled },
-                    new Text{ "Switch" },
+                    rcnew Text{ "Switch" },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Shares state with ToggleButton 1" },
+            rcnew Text{ "Shares state with ToggleButton 1" },
         },
-        new Text{ "RadioButton (widgets/RadioButton.hpp)", classes = { "section-header" } },
-        new HLayout{
-            new Widget{
-                new RadioButton{
+        rcnew Text{ "RadioButton (widgets/RadioButton.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew RadioButton{
                     value = Value{ &m_toggled },
-                    new Text{ "On" },
+                    rcnew Text{ "On" },
                 },
                 gapColumn = 6_apx,
-                new RadioButton{
+                rcnew RadioButton{
                     value = Value{ &m_toggled }.transform(std::logical_not<>{}, std::logical_not<>{}),
-                    new Text{ "Off" },
+                    rcnew Text{ "Off" },
                 },
                 &m_group,
             },
             gapColumn = 10_apx,
-            new Text{ "Shares state with ToggleButton 1" },
+            rcnew Text{ "Shares state with ToggleButton 1" },
         },
-        new Text{ "Hyperlink (widgets/Hyperlink.hpp)", classes = { "section-header" } },
-        new HLayout{
-            new Widget{
-                new Hyperlink{
+        rcnew Text{ "Hyperlink (widgets/Hyperlink.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Hyperlink{
                     "https://brisklib.com",
-                    new Text{ "Click to visit brisklib.com" },
+                    rcnew Text{ "Click to visit brisklib.com" },
                 },
                 &m_group,
             },

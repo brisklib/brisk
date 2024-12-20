@@ -54,26 +54,26 @@ void DialogComponent::close(bool result) {
 
 RC<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okBtn, std::string cancelBtn) {
     return rcnew HLayout{ margin = { 15, 10 }, //
-                          new Spacer{},
+                          rcnew Spacer{},
                           (buttons && DialogButtons::OK)
-                              ? new Button{ new Text{ std::move(okBtn) }, id = "dialog-ok",
-                                            onClick = listener(
-                                                [this] {
-                                                    accept();
-                                                },
-                                                this),
-                                            margin = { 4, 0 } }
+                              ? rcnew Button{ rcnew Text{ std::move(okBtn) }, id = "dialog-ok",
+                                              onClick = listener(
+                                                  [this] {
+                                                      accept();
+                                                  },
+                                                  this),
+                                              margin = { 4, 0 } }
                               : nullptr,
                           (buttons && DialogButtons::Cancel)
-                              ? new Button{ new Text{ std::move(cancelBtn) }, id = "dialog-cancel",
-                                            onClick = listener(
-                                                [this] {
-                                                    reject();
-                                                },
-                                                this),
-                                            margin = { 4, 0 } }
+                              ? rcnew Button{ rcnew Text{ std::move(cancelBtn) }, id = "dialog-cancel",
+                                              onClick = listener(
+                                                  [this] {
+                                                      reject();
+                                                  },
+                                                  this),
+                                              margin = { 4, 0 } }
                               : nullptr,
-                          new Spacer{} };
+                          rcnew Spacer{} };
 }
 
 void DialogComponent::rejected() {}
@@ -104,8 +104,8 @@ RC<Widget> TextInputDialog::build() {
     return rcnew VLayout{
         stylesheet = Graphene::stylesheet(),
         Graphene::darkColors(),
-        new Text{ this->prompt, margin = { 15, 10 } },
-        new TextEditor{ Value{ &this->value }, autofocus = true, margin = { 15, 10 } },
+        rcnew Text{ this->prompt, margin = { 15, 10 } },
+        rcnew TextEditor{ Value{ &this->value }, autofocus = true, margin = { 15, 10 } },
         dialogButtons(DialogButtons::OK | DialogButtons::Cancel),
     };
 }
@@ -115,7 +115,7 @@ MessageDialog::MessageDialog(std::string text, std::string icon)
 
 RC<Widget> MessageDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),
-                          new Text{ this->text, margin = { 15, 10 } },
+                          rcnew Text{ this->text, margin = { 15, 10 } },
                           dialogButtons(DialogButtons::OK | DialogButtons::Cancel) };
 }
 
@@ -124,7 +124,7 @@ ConfirmDialog::ConfirmDialog(std::string text, std::string icon)
 
 RC<Widget> ConfirmDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),
-                          new Text{ this->text, margin = { 15, 10 } },
+                          rcnew Text{ this->text, margin = { 15, 10 } },
                           dialogButtons(DialogButtons::OK | DialogButtons::Cancel) };
 }
 } // namespace Brisk

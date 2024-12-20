@@ -61,9 +61,9 @@ void ComboBox::onConstructed() {
     selecteditem.create(this);
 
     if (!unroll.get(this)) {
-        apply(new ToggleButton{ Arg::value = Value{ &itemlist.get(this)->visible },
-                                new Text{ ICON_chevron_down }, new Text{ ICON_chevron_up },
-                                Arg::role = unroll.role(), Arg::twoState = true });
+        apply(rcnew ToggleButton{ Arg::value = Value{ &itemlist.get(this)->visible },
+                                  rcnew Text{ ICON_chevron_down }, rcnew Text{ ICON_chevron_up },
+                                  Arg::role = unroll.role(), Arg::twoState = true });
     }
     Base::onConstructed();
 }
@@ -126,11 +126,10 @@ void ComboBox::onChanged() {
     BRISK_ASSERT(replaced);
 }
 
-Widget::Ptr ComboBox::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
-}
+Widget::Ptr ComboBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-ComboBox::ComboBox(Construction construction, ArgumentsView<ComboBox> args) : Base(construction, nullptr) {
+ComboBox::ComboBox(Construction construction, ArgumentsView<ComboBox> args)
+    : Base(construction, nullptr) {
     m_tabStop       = true;
     m_processClicks = false;
     args.apply(this);

@@ -218,6 +218,9 @@ constexpr inline bool isValue<Value<T>> = true;
 template <typename T>
 concept AtomicCompatible = std::is_trivially_copyable_v<T> && std::is_copy_assignable_v<T>;
 
+template <typename... T, std::invocable<T...> Fn>
+Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values);
+
 /**
  * @brief Value class that manages a value with getter and setter functionality.
  *
@@ -279,23 +282,6 @@ struct Value {
         : Value(variable(value, [self, notify]() {
               (self->*notify)();
           })) {}
-
-    template <typename U>
-    Value<U> implicitConversion() && {
-        if constexpr (std::is_convertible_v<U, T>) {
-            return std::move(*this).transform(
-                [](T value) -> U {
-                    return static_cast<U>(value);
-                },
-                [](U value) -> T {
-                    return static_cast<T>(value);
-                });
-        } else {
-            return std::move(*this).transform([](T value) -> U {
-                return static_cast<U>(value);
-            });
-        }
-    }
 
     template <typename U>
     Value<U> explicitConversion() && {
@@ -502,31 +488,59 @@ struct Value {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward));
     }
 
-    friend inline Value<bool> operator==(Value<T> value, std::type_identity_t<T> compare) {
-        return Value<bool>{
-            [get = std::move(value.m_get), compare]() -> bool {
-                return get() == compare;
+    template <std::invocable<T, T> Fn>
+    friend Value<std::invoke_result_t<Fn, T, T>> binary(Value left, Value right, Fn&& fn) {
+        return Value<T>{
+            [fn = std::move(fn), leftGet = std::move(left.m_get), rightGet = std::move(right.m_get)]() -> T {
+                return fn(leftGet(), rightGet());
             },
-            [set = std::move(value.m_set), compare](bool newValue) {
-                if (newValue)
-                    if (set)
-                        set(compare);
-            },
-            std::move(value.m_srcAddresses),
-            std::move(value.m_destAddress),
+            nullptr,
+            mergeSmallVectors(std::move(left.m_srcAddresses), std::move(right.m_srcAddresses)),
+            std::move(left.m_destAddress),
         };
     }
 
     template <std::invocable<T, T> Fn>
-    friend Value<std::invoke_result_t<Fn, T, T>> binary(Value left, Value right, Fn&& fn) {
-        return Value{
-            [fn = std::move(fn), leftGet = std::move(left.m_get), rightGet = std::move(right.m_get)]() {
-                return fn(leftGet, rightGet);
+    friend Value<std::invoke_result_t<Fn, T, T>> binary(Value left, std::type_identity_t<T> right, Fn&& fn) {
+        return Value<T>{
+            [fn = std::move(fn), leftGet = std::move(left.m_get), right = std::move(right)]() -> T {
+                return fn(leftGet(), right);
             },
             nullptr,
-            mergeSmallVectors(std::move(left.m_srcAddresses), std::move(right.m_srcAddresses)),
-            nullptr,
+            std::move(left.m_srcAddresses),
+            std::move(left.m_destAddress),
         };
+    }
+
+    template <std::invocable<T, T> Fn>
+    friend Value<std::invoke_result_t<Fn, T, T>> binary(std::type_identity_t<T> left, Value right, Fn&& fn) {
+        return Value<T>{
+            [fn = std::move(fn), left = std::move(left), rightGet = std::move(right.m_get)]() -> T {
+                return fn(left, rightGet());
+            },
+            nullptr,
+            std::move(right.m_srcAddresses),
+            std::move(right.m_destAddress),
+        };
+    }
+
+    Value<bool> equal(std::type_identity_t<T> compare) && {
+        return Value<bool>{
+            [get = std::move(m_get), compare]() -> bool {
+                return get() == compare;
+            },
+            [set = std::move(m_set), compare](bool newValue) {
+                if (newValue)
+                    if (set)
+                        set(compare);
+            },
+            std::move(m_srcAddresses),
+            std::move(m_destAddress),
+        };
+    }
+
+    Value<bool> equal(std::type_identity_t<T> compare) const& {
+        return Value<T>{ *this }.equal(std::move(compare));
     }
 
 #define BRISK_BINDING_OP(oper, op)                                                                           \
@@ -620,23 +634,28 @@ struct Value {
         });
     }
 
-    friend inline Value<bool> operator!=(Value<T> value, std::type_identity_t<T> compare) {
-        return Value<bool>{
-            [get = std::move(value.m_get), compare]() -> bool {
-                return get() != compare;
-            },
-            nullptr,
-            std::move(value.m_srcAddresses),
-            nullptr,
-        };
-    }
+    struct Operand {
+        const Value& value;
 
-    friend inline Value<bool> operator==(std::type_identity_t<T> compare, Value<T> value) {
-        return operator==(std::move(value), std::move(compare));
-    }
+        friend Value<bool> operator==(Operand op1, Operand op2) {
+            return Brisk::transform(
+                [](T x, T y) -> bool {
+                    return x == y;
+                },
+                op1.value, op2.value);
+        }
 
-    friend inline Value<bool> operator!=(std::type_identity_t<T> compare, Value<T> value) {
-        return operator!=(std::move(value), std::move(compare));
+        friend Value<bool> operator!=(Operand op1, Operand op2) {
+            return Brisk::transform(
+                [](T x, T y) -> bool {
+                    return x != y;
+                },
+                op1.value, op2.value);
+        }
+    };
+
+    Operand operator*() const {
+        return *this;
     }
 
     const GetFn& getter() const& noexcept {
@@ -674,6 +693,22 @@ struct Value {
         : m_get(std::move(get)), m_set(std::move(set)), m_srcAddresses{ address }, m_destAddress(address) {}
 
 private:
+    template <typename U>
+    Value<U> implicitConversion() && {
+        if constexpr (std::is_convertible_v<U, T>) {
+            return std::move(*this).transform(
+                [](T value) -> U {
+                    return static_cast<U>(value);
+                },
+                [](U value) -> T {
+                    return static_cast<T>(value);
+                });
+        } else {
+            return std::move(*this).transform([](T value) -> U {
+                return static_cast<U>(value);
+            });
+        }
+    }
     friend class Bindings;
 
     template <typename U>
@@ -702,10 +737,6 @@ Value(U*) -> Value<typename U::Type>;
 
 template <PropertyLike U>
 Value(const U*) -> Value<typename U::Type>;
-
-namespace Internal {
-inline void mergeBindingAddresses(BindingAddresses& target, BindingAddresses a) {}
-} // namespace Internal
 
 template <typename... T, std::invocable<T...> Fn>
 Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) {

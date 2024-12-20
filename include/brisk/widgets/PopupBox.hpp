@@ -37,7 +37,7 @@ public:
 
 protected:
     void onEvent(Event& event) override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit PopupBox(Construction construction, ArgumentsView<PopupBox> args);
     using Base::append;
     void append(Widget::Ptr widget) override;

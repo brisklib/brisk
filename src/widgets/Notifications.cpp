@@ -31,9 +31,9 @@ void NotificationView::onEvent(Event& event) {
     }
 }
 
-Widget* NotificationView::makeCloseButton() {
-    return new Button{
-        new Text{ ICON_x },
+RC<Widget> NotificationView::makeCloseButton() {
+    return rcnew Button{
+        rcnew Text{ ICON_x },
         Arg::classes          = { "flat", "slim" },
         Arg::placement        = Placement::Absolute,
         Arg::zorder           = ZOrder::TopMost,
@@ -55,8 +55,8 @@ bool NotificationView::expired() const {
     return frameStartTime >= m_expireTime;
 }
 
-Widget::Ptr NotificationView::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr NotificationView::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void NotificationContainer::onRefresh() {
@@ -66,8 +66,8 @@ void NotificationContainer::onRefresh() {
     });
 }
 
-Widget::Ptr NotificationContainer::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr NotificationContainer::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 
 void NotificationContainer::receive(RC<NotificationView> view) {

@@ -65,7 +65,7 @@ Progress::Progress(Construction construction, ArgumentsView<Progress> args) : Ba
     m_maximum = 1;
     args.apply(this);
     if (!find<ProgressBar>(MatchAny{})) {
-        apply(new ProgressBar{});
+        apply(rcnew ProgressBar{});
     }
 }
 } // namespace Brisk

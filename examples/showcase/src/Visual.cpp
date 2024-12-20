@@ -36,45 +36,45 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
         padding  = 16_apx,
         gapRow   = 8_apx,
 
-        new Text{ "Text (widgets/Text.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Text (widgets/Text.hpp)", classes = { "section-header" } },
 
-        new VLayout{
+        rcnew VLayout{
             gapRow = 4_apx,
-            new Text{ "Simple text" },
-            new Text{ "Multi-line\ntext" },
-            new Text{ "Text with color = Palette::Standard::fuchsia, fontWeight = FontWeight::Bold",
-                      color = Palette::Standard::fuchsia, fontWeight = FontWeight::Bold },
-            new Text{ "Text with textAutoSize = TextAutoSize::FitWidth (Resize the window to make the text"
-                      "size fit the width)",
-                      height = 50_apx, textAutoSize = TextAutoSize::FitWidth },
+            rcnew Text{ "Simple text" },
+            rcnew Text{ "Multi-line\ntext" },
+            rcnew Text{ "Text with color = Palette::Standard::fuchsia, fontWeight = FontWeight::Bold",
+                        color = Palette::Standard::fuchsia, fontWeight = FontWeight::Bold },
+            rcnew Text{ "Text with textAutoSize = TextAutoSize::FitWidth (Resize the window to make the text"
+                        "size fit the width)",
+                        height = 50_apx, textAutoSize = TextAutoSize::FitWidth },
         },
 
-        new Text{ "wordWrap = true", classes = { "section-header" } },
+        rcnew Text{ "wordWrap = true", classes = { "section-header" } },
 
-        new VLayout{
-            new HLayout{
-                new Text{ "Text alignment: " },
-                new ComboBox{
+        rcnew VLayout{
+            rcnew HLayout{
+                rcnew Text{ "Text alignment: " },
+                rcnew ComboBox{
                     Value{ &m_textAlign },
                     notManaged(&textAlignList),
                     width = 110_apx,
                 },
-                new Text{ "Font size: " },
+                rcnew Text{ "Font size: " },
 
-                new Slider{ value = Value{ &m_fontSize }, minimum = 0.25f, maximum = 4.f, width = 300_apx },
+                rcnew Slider{ value = Value{ &m_fontSize }, minimum = 0.25f, maximum = 4.f, width = 300_apx },
             },
             // Overflow::ScrollX prevents this widget from stretching because of Text
             overflow = Overflow::ScrollX,
-            new Text{ loremIpsumShort, wordWrap = true, textAlign = Value{ &m_textAlign }, marginTop = 10_apx,
-                      fontSize = Value{ &m_fontSize }.transform([](float v) {
-                          return v * 100_perc;
-                      }),
-                      fontFamily = Lato },
+            rcnew Text{ loremIpsumShort, wordWrap = true, textAlign = Value{ &m_textAlign },
+                        marginTop = 10_apx, fontSize = Value{ &m_fontSize }.transform([](float v) {
+                            return v * 100_perc;
+                        }),
+                        fontFamily = Lato },
         },
 
-        new Text{ "Viewport (widgets/Viewport.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Viewport (widgets/Viewport.hpp)", classes = { "section-header" } },
 
-        new Viewport{
+        rcnew Viewport{
             [](Canvas& canvas, Rectangle rect) {
                 // Static initialization of an image rendered from an SVG representation of "cat"
                 // with a size of 256x256 pixels.
@@ -155,58 +155,59 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 canvas.setFont(Font{ Lato, 48_dp });
                 canvas.fillText("Brisk", frect.at(0.5f, 0.5f));
             },
-            nullptr,
             dimensions = { 256, 256 },
         },
 
-        new Text{ "Spinner (widgets/Spinner.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Spinner (widgets/Spinner.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Spinner{
+        rcnew HLayout{
+            rcnew Spinner{
                 dimensions = { 40_apx, 40_apx },
                 active     = Value{ &m_active },
             },
             gapColumn = 10_apx,
-            new CheckBox{ value = Value{ &m_active }, new Text{ "Active" } },
+            rcnew CheckBox{ value = Value{ &m_active }, rcnew Text{ "Active" } },
         },
 
-        new Text{ "Progress (widgets/Progress.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Progress (widgets/Progress.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new Progress{
+        rcnew HLayout{
+            rcnew Progress{
                 value      = Value{ &m_progress },
                 minimum    = 0,
                 maximum    = 100,
                 dimensions = { 400_apx, 20_apx },
             },
             gapColumn = 10_apx,
-            new CheckBox{ value = Value{ &m_progressActive }, new Text{ "Active" } },
+            rcnew CheckBox{ value = Value{ &m_progressActive }, rcnew Text{ "Active" } },
         },
 
-        new Text{ "ImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
+        rcnew Text{ "ImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new ImageView{ hot_air_balloons(), dimensions = { 180_apx, 120_apx } },
+        rcnew HLayout{
+            rcnew ImageView{ hot_air_balloons(), dimensions = { 180_apx, 120_apx } },
         },
 
-        new Text{ "SVGImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
+        rcnew Text{ "SVGImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
-        new HLayout{
-            new SVGImageView{ toStringView(cat()), dimensions = { 120_apx, 120_apx } },
+        rcnew HLayout{
+            rcnew SVGImageView{ toStringView(cat()), dimensions = { 120_apx, 120_apx } },
         },
 
-        new Text{ "Table (widgets/Table.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Table (widgets/Table.hpp)", classes = { "section-header" } },
 
-        new VScrollBox{
+        rcnew VScrollBox{
             height = 400_apx,
-            new Table{
+            rcnew Table{
                 flexGrow        = 1,
                 backgroundColor = 0xFFFFFF'10_rgba,
-                new TableHeader{
-                    new TableCell{ headerCell, new Text{ "Country" } },
-                    new TableCell{ headerCell, new Text{ "Capital" } },
-                    new TableCell{ headerCell, new Text{ "Population" }, justifyContent = Justify::FlexEnd },
-                    new TableCell{ headerCell, new Text{ "Area (km²)" }, justifyContent = Justify::FlexEnd },
+                rcnew TableHeader{
+                    rcnew TableCell{ headerCell, rcnew Text{ "Country" } },
+                    rcnew TableCell{ headerCell, rcnew Text{ "Capital" } },
+                    rcnew TableCell{ headerCell, rcnew Text{ "Population" },
+                                     justifyContent = Justify::FlexEnd },
+                    rcnew TableCell{ headerCell, rcnew Text{ "Area (km²)" },
+                                     justifyContent = Justify::FlexEnd },
                 },
                 Builder([](Widget* target) {
                     JsonArray countries = Json::fromJson(std::string(toStringView(countries_json())))
@@ -218,48 +219,52 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                     });
                     for (Json country : countries) {
                         JsonObject& obj = country.access<JsonObject>();
-                        target->apply(new TableRow{
-                            new TableCell{ cell, new Text{ obj["country"].to<std::string>().value_or("") } },
-                            new TableCell{ cell, new Text{ obj["capital"].to<std::string>().value_or("") } },
-                            new TableCell{
-                                cell, new Text{ fmt::to_string(obj["population"].to<int64_t>().value_or(0)) },
+                        target->apply(rcnew TableRow{
+                            rcnew TableCell{ cell,
+                                             rcnew Text{ obj["country"].to<std::string>().value_or("") } },
+                            rcnew TableCell{ cell,
+                                             rcnew Text{ obj["capital"].to<std::string>().value_or("") } },
+                            rcnew TableCell{
+                                cell,
+                                rcnew Text{ fmt::to_string(obj["population"].to<int64_t>().value_or(0)) },
                                 justifyContent = Justify::FlexEnd },
-                            new TableCell{ cell,
-                                           new Text{ fmt::to_string(obj["area"].to<int64_t>().value_or(0)) },
-                                           justifyContent = Justify::FlexEnd },
+                            rcnew TableCell{
+                                cell, rcnew Text{ fmt::to_string(obj["area"].to<int64_t>().value_or(0)) },
+                                justifyContent = Justify::FlexEnd },
                         });
                     }
                 }),
             },
         },
 
-        new Table{
+        rcnew Table{
             flexGrow = 1,
             Builder{
                 [this](Widget* target) {
                     for (Row& row : m_rows) {
-                        target->apply(new TableRow{
-                            new TableCell{ cell, new Text{ row.firstName } },
-                            new TableCell{ cell, new Text{ row.lastName } },
-                            new TableCell{ cell, new ComboBox{ value = Value{ &row.index }, width = 100_perc,
-                                                               new ItemList{
-                                                                   new Text{ "UX/UI Designer" },
-                                                                   new Text{ "Project Manager" },
-                                                                   new Text{ "Software Engineer" },
-                                                                   new Text{ "Software Developer" },
-                                                               } } },
-                            new TableCell{ cell, new CheckBox{ value = Value{ &row.checkBox },
-                                                               new Text{ "Full access" } } },
+                        target->apply(rcnew TableRow{
+                            rcnew TableCell{ cell, rcnew Text{ row.firstName } },
+                            rcnew TableCell{ cell, rcnew Text{ row.lastName } },
+                            rcnew TableCell{ cell,
+                                             rcnew ComboBox{ value = Value{ &row.index }, width = 100_perc,
+                                                             rcnew ItemList{
+                                                                 rcnew Text{ "UX/UI Designer" },
+                                                                 rcnew Text{ "Project Manager" },
+                                                                 rcnew Text{ "Software Engineer" },
+                                                                 rcnew Text{ "Software Developer" },
+                                                             } } },
+                            rcnew TableCell{ cell, rcnew CheckBox{ value = Value{ &row.checkBox },
+                                                                   rcnew Text{ "Full access" } } },
                         });
                     }
                 },
             },
         },
 
-        new Text{ "Hint", classes = { "section-header" } },
+        rcnew Text{ "Hint", classes = { "section-header" } },
 
-        new HLayout{
-            new Text{
+        rcnew HLayout{
+            rcnew Text{
                 "Hej, verden",
                 isHintExclusive = true,
                 hint            = Value{ &m_hintActive }.transform([](bool v) -> std::string {
@@ -267,7 +272,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 }),
             },
             gapColumn = 10_apx,
-            new CheckBox{ value = Value{ &m_hintActive }, new Text{ "Show hint" } },
+            rcnew CheckBox{ value = Value{ &m_hintActive }, rcnew Text{ "Show hint" } },
         },
 
     };

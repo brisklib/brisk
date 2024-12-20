@@ -63,7 +63,7 @@ protected:
     void onRefresh() override;
     virtual void onClicked();
     void doClick();
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit Button(Construction construction, ArgumentsView<Button> args);
 
 public:

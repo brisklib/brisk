@@ -44,7 +44,7 @@ protected:
     void onEvent(Event& event) override;
     void onLayoutUpdated() override;
     void onChanged() override;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit Slider(Construction construction, ArgumentsView<Slider> args);
 
 private:

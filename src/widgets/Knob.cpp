@@ -125,7 +125,7 @@ Knob::Knob(Construction construction, ArgumentsView<Knob> args) : Base(construct
     args.apply(this);
 }
 
-Widget::Ptr Knob::cloneThis() {
-    BRISK_CLONE_IMPLEMENTATION;
+Widget::Ptr Knob::cloneThis() const {
+    BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

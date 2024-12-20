@@ -36,7 +36,7 @@ public:
     }
 
 protected:
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit TabButton(Construction construction, ArgumentsView<TabButton> args);
 };
@@ -58,7 +58,7 @@ protected:
     friend class Pages;
     virtual void clearTabs();
     virtual void createTab(Value<bool> visible, Page* page);
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
     explicit Tabs(Construction construction, ArgumentsView<Tabs> args);
 };
 
@@ -76,7 +76,7 @@ public:
 protected:
     std::string m_title;
     friend class Pages;
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit Page(Construction construction, std::string title, ArgumentsView<Page> args);
 
@@ -112,7 +112,7 @@ protected:
 
     virtual void onChanged();
 
-    Ptr cloneThis() override;
+    Ptr cloneThis() const override;
 
     explicit Pages(Construction construction, ArgumentsView<Pages> args);
 

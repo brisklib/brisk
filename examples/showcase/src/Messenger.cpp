@@ -47,12 +47,12 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
                        },
                    },
                    msg.content);
-        target->apply(new VLayout{
+        target->apply(rcnew VLayout{
             alignSelf = AlignSelf::FlexEnd,
             padding   = { 8, 6 },
             std::move(content),
-            new Text{ fmt::format("{:%H:%M}   {}", msg.date, statusIcon), marginTop = 4_apx,
-                      textAlign = TextAlign::End, opacity = 0.5f },
+            rcnew Text{ fmt::format("{:%H:%M}   {}", msg.date, statusIcon), marginTop = 4_apx,
+                        textAlign = TextAlign::End, opacity = 0.5f },
             width           = 360_apx,
             backgroundColor = 0xe5f7df'F0_rgba,
             borderWidth     = 1_apx,
@@ -73,13 +73,13 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
 
         painter       = Painter(&backgroundPainter),
 
-        new VLayout{
+        rcnew VLayout{
             flexGrow  = 1,
             alignSelf = AlignSelf::Stretch,
-            new VScrollBox{
+            rcnew VScrollBox{
                 flexGrow  = 1,
                 alignSelf = AlignSelf::Stretch,
-                new VLayout{
+                rcnew VLayout{
                     gapRow  = 8,
                     padding = 4,
                     depends = Value{ &m_messagesChanged }, // Rebuild if triggered
@@ -91,15 +91,15 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
                     },
                 },
             },
-            new HLayout{
+            rcnew HLayout{
                 backgroundColor = Palette::white,
                 borderRadius    = -5.f,
-                new Button{
-                    new Text{ ICON_paperclip },
+                rcnew Button{
+                    rcnew Text{ ICON_paperclip },
                     classes = { "flat" },
                     color   = 0x373737_rgb,
                 },
-                new TextEditor{
+                rcnew TextEditor{
                     Value{ &m_chatMessage },
                     flexGrow        = 1,
                     padding         = 8,
@@ -110,8 +110,8 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
                                   send();
                               },
                 },
-                new Button{
-                    new Text{ ICON_send_horizontal },
+                rcnew Button{
+                    rcnew Text{ ICON_send_horizontal },
                     classes = { "flat" },
                     color   = 0x373737_rgb,
                     onClick = m_lifetime |
