@@ -83,7 +83,7 @@ public:
         } while (available_out);
         // keep unused part of input
         if (available_in > 0) {
-            memcpy(buffer.get(), next_in, available_in);
+            memmove(buffer.get(), next_in, available_in);
             bufferUsed = available_in;
         }
         if (size == available_out && finished)
