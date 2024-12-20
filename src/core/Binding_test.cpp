@@ -293,11 +293,11 @@ TEST_CASE("Binding equal Immediate") {
 
     BindingRegistration lt{ &data, nullptr };
 
-    bindings->connectBidir(Value{ &data.v0 }, Value{ &data.index } == 0, BindType::Immediate, true, "v0",
+    bindings->connectBidir(Value{ &data.v0 }, Value{ &data.index }.equal(0), BindType::Immediate, true, "v0",
                            "index==0");
-    bindings->connectBidir(Value{ &data.v1 }, Value{ &data.index } == 1, BindType::Immediate, true, "v1",
+    bindings->connectBidir(Value{ &data.v1 }, Value{ &data.index }.equal(1), BindType::Immediate, true, "v1",
                            "index==1");
-    bindings->connectBidir(Value{ &data.v2 }, Value{ &data.index } == 2, BindType::Immediate, true, "v2",
+    bindings->connectBidir(Value{ &data.v2 }, Value{ &data.index }.equal(2), BindType::Immediate, true, "v2",
                            "index==2");
     CHECK(data.v0 == true);
     CHECK(data.v1 == false);
@@ -326,11 +326,11 @@ TEST_CASE("Binding equal Deferred") {
 
     BindingRegistration lt{ &data, mainScheduler };
 
-    bindings->connectBidir(Value{ &data.v0 }, Value{ &data.index } == 0, BindType::Deferred, true, "v0",
+    bindings->connectBidir(Value{ &data.v0 }, Value{ &data.index }.equal(0), BindType::Deferred, true, "v0",
                            "index==0");
-    bindings->connectBidir(Value{ &data.v1 }, Value{ &data.index } == 1, BindType::Deferred, true, "v1",
+    bindings->connectBidir(Value{ &data.v1 }, Value{ &data.index }.equal(1), BindType::Deferred, true, "v1",
                            "index==1");
-    bindings->connectBidir(Value{ &data.v2 }, Value{ &data.index } == 2, BindType::Deferred, true, "v2",
+    bindings->connectBidir(Value{ &data.v2 }, Value{ &data.index }.equal(2), BindType::Deferred, true, "v2",
                            "index==2");
     mainScheduler->process();
     CHECK(data.v0 == true);

@@ -38,7 +38,7 @@ void Pages::updateTabs() {
     int index = 0;
     for (Widget::Ptr w : *this) {
         if (Page* p = dynamic_cast<Page*>(w.get())) {
-            auto prop = Value{ &this->value } == index;
+            auto prop = Value{ &this->value }.equal(index);
             tabs->createTab(prop, p);
             ++index;
         }

@@ -90,8 +90,8 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                 fontSize       = 40,
                 fontFamily     = Lato,
                 fontFeatures   = Value{ &m_fontFeatures },
-                letterSpacing  = Value{ &m_letterSpacing }.implicitConversion<Length>(),
-                wordSpacing    = Value{ &m_wordSpacing }.implicitConversion<Length>(),
+                letterSpacing  = Value{ &m_letterSpacing },
+                wordSpacing    = Value{ &m_wordSpacing },
                 textDecoration = Value{ &m_textDecoration },
             },
             rcnew HLayout{
