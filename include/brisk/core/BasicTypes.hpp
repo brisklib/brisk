@@ -868,6 +868,16 @@ struct Overload : Ts... {
 template <typename... Ts>
 Overload(Ts&&...) -> Overload<Ts...>;
 
+template <size_t Factor = 1, typename T>
+bool isAligned(T* pointer) {
+    constexpr size_t Alignment = sizeof(T) * Factor;
+    if constexpr (std::has_single_bit(Alignment)) {
+        return (reinterpret_cast<uintptr_t>(pointer) & (Alignment - 1)) == 0;
+    } else {
+        return false;
+    }
+}
+
 } // namespace Brisk
 
 namespace fmt {

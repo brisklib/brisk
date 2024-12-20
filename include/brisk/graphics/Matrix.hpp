@@ -505,13 +505,20 @@ struct MatrixOf {
         constexpr size_t N  = 8;
         constexpr size_t N2 = N * 2;
         size_t i            = 0;
-        SIMD<T, N2> ad      = repeat<N>(SIMD{ a, d });
-        SIMD<T, N2> cb      = repeat<N>(SIMD{ c, b });
-        SIMD<T, N2> ef      = repeat<N>(SIMD{ e, f });
-        for (; i + N - 1 < points.size(); i += N) {
-            SIMD<T, N2> xy = *reinterpret_cast<const SIMD<T, N2>*>(points.data() + i);
-            xy             = xy * ad + swapAdjacent(xy) * cb + ef;
-            *reinterpret_cast<SIMD<T, N2>*>(points.data() + i) = xy;
+
+        if (isAligned(points.data()) && points.size() >= N) {
+            SIMD<T, N2> ad = repeat<N>(SIMD{ a, d });
+            SIMD<T, N2> cb = repeat<N>(SIMD{ c, b });
+            SIMD<T, N2> ef = repeat<N>(SIMD{ e, f });
+
+            for (; i < points.size() && !isAligned<N>(points.data() + i); ++i) {
+                points[i] = transform(points[i]);
+            }
+            for (; i + N - 1 < points.size(); i += N) {
+                SIMD<T, N2> xy = *reinterpret_cast<const SIMD<T, N2>*>(points.data() + i);
+                xy             = xy * ad + swapAdjacent(xy) * cb + ef;
+                *reinterpret_cast<SIMD<T, N2>*>(points.data() + i) = xy;
+            }
         }
         for (; i < points.size(); ++i) {
             points[i] = transform(points[i]);
