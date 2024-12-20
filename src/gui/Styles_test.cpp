@@ -73,7 +73,7 @@ TEST_CASE("Rules") {
     CHECK(w->shadowSize.get() == 2_px);
 }
 
-template <typename W>
+template <std::derived_from<Widget> W>
 class WidgetProtected : public W {
 public:
     using W::m_dimensions;
@@ -81,22 +81,17 @@ public:
     using W::restyleIfRequested;
     using W::setState;
     using W::toggleState;
-
-    void setType(std::string type) {
-        this->m_type = std::move(type);
-    }
+    using W::m_type;
 };
 
-template <typename W>
+template <std::derived_from<Widget> W>
 WidgetProtected<W>* unprotect(W* w)
-    requires std::is_base_of_v<Widget, W>
 {
     return reinterpret_cast<WidgetProtected<W>*>(w);
 }
 
-template <typename W>
+template <std::derived_from<Widget> W>
 WidgetProtected<W>* unprotect(std::shared_ptr<W> w)
-    requires std::is_base_of_v<Widget, W>
 {
     return unprotect(w.get());
 }
@@ -112,7 +107,7 @@ TEST_CASE("Selectors") {
             classes = { "text" },
         },
     };
-    unprotect(w)->setType("button");
+    unprotect(w)->m_type = "button";
     auto child = w->widgets().front();
 
     CHECK(Type{ "button" }.matches(w.get(), MatchFlags::None));
