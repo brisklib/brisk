@@ -111,9 +111,20 @@ inline constexpr std::initializer_list<NameValuePair<JsonType>> defaultNames<Jso
 struct Json;
 
 template <typename T>
+bool adlToJson(Json& b, const T& v);
+
+template <typename T>
+bool adlFromJson(const Json& b, T& v);
+
+template <typename T>
 struct JsonConverter {
-    static bool toJson(Json& b, const T& v);
-    static bool fromJson(const Json& b, T& v);
+    static bool toJson(Json& b, const T& v) {
+        return adlToJson(b, v);
+    }
+
+    static bool fromJson(const Json& b, T& v) {
+        return adlFromJson(b, v);
+    }
 };
 
 /**
@@ -1015,16 +1026,6 @@ inline bool adlToJson(Json& b, const T& v) {
 template <typename T>
 inline bool adlFromJson(const Json& b, T& v) {
     return fromJson(b, v);
-}
-
-template <typename T>
-inline bool JsonConverter<T>::toJson(Json& b, const T& v) {
-    return adlToJson(b, v);
-}
-
-template <typename T>
-inline bool JsonConverter<T>::fromJson(const Json& b, T& v) {
-    return adlFromJson(b, v);
 }
 
 template <size_t N>
