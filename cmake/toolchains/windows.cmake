@@ -27,6 +27,11 @@ if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
         endif ()
+        
+        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --target=arm64-pc-windows-msvc")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=arm64-pc-windows-msvc")
+        endif ()
 
         file(TO_CMAKE_PATH $ENV{LLVM_DIR} LLVM_DIR_FIXED)
         set(CMAKE_C_COMPILER
