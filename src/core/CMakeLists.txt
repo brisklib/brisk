@@ -141,13 +141,6 @@ endif ()
 
 target_compile_definitions(brisk-core PUBLIC BRISK_CFG_$<CONFIG>=1)
 
-add_executable(bin2c bin2c.cpp)
-set_property(TARGET bin2c PROPERTY EXPORT_NAME Bin2C)
-add_executable(Brisk::Bin2C ALIAS bin2c)
-
-target_link_libraries(bin2c PRIVATE brisk-core)
-set_target_properties(bin2c PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-
 # System libraries and frameworks
 if (WIN32)
     target_link_libraries(brisk-core PUBLIC ole32 uuid)

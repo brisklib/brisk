@@ -2,6 +2,15 @@
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "dependencies": [
         {
+            "name": "bin2c",
+            "host": true
+        },
+        {
+            "name": "icowriter",
+            "host": true,
+            "platform": "windows"
+        },
+        {
             "name": "brotli"
         },
         {
@@ -41,9 +50,6 @@
         },
         {
             "name": "rapidjson"
-        },
-        {
-            "name": "readerwriterqueue"
         },
         {
             "name": "spdlog"

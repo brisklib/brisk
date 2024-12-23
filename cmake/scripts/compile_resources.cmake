@@ -26,6 +26,11 @@ set(_RESOURCES_DATA_DIR
 
 file(MAKE_DIRECTORY ${_RESOURCES_DIR}/resources ${_RESOURCES_DATA_DIR})
 
+find_program(
+    BIN2C_TOOL
+    NAMES bin2c
+    REQUIRED)
+
 function (brisk_target_link_resource TARGET MODE NAME)
     cmake_parse_arguments("EMBED" "BROTLI;GZIP;LZ4" "INPUT" "" ${ARGN})
 
@@ -43,18 +48,10 @@ function (brisk_target_link_resource TARGET MODE NAME)
 
     string(MAKE_C_IDENTIFIER ${NAME} CNAME)
 
-    get_property(
-        _BRISK_BIN2C
-        TARGET Brisk::Bin2C
-        PROPERTY ALIASED_TARGET)
-    if ("${_BRISK_BIN2C}" STREQUAL "")
-        set(_BRISK_BIN2C Brisk::Bin2C)
-    endif ()
-
     add_custom_command(
         OUTPUT ${DATA} ${HDR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMAND ${_BRISK_BIN2C} --id ${CNAME} ${FLAGS} ${DATA} ${HDR} ${EMBED_INPUT}
+        COMMAND ${BIN2C_TOOL} --id ${CNAME} ${FLAGS} ${DATA} ${HDR} ${EMBED_INPUT}
         DEPENDS ${EMBED_INPUT}
         VERBATIM)
 

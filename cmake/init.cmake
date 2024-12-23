@@ -114,7 +114,9 @@ set(SUPPORTED_TRIPLETS
     "x64-windows-static"
     "x86-windows-static"
     "x64-windows-static-md"
-    "x86-windows-static-md")
+    "x86-windows-static-md"
+    "arm64-windows-static"
+    "arm64-windows-static-md")
 
 # Check if the specified triplet is in the list of supported triplets
 if (NOT VCPKG_TARGET_TRIPLET IN_LIST SUPPORTED_TRIPLETS)

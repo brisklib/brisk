@@ -18,6 +18,11 @@
 # licensing options, please visit: https://brisklib.com
 #
 
+find_program(
+    ICOWRITER_TOOL
+    NAMES icowriter
+    REQUIRED)
+
 function (setup_executable_platform TARGET)
 
     set(ICON_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/icon)
@@ -37,17 +42,9 @@ function (setup_executable_platform TARGET)
     if (APP_ICON)
         set(OUT_ICON ${ICON_OUT_DIR}/${TARGET}.ico)
 
-        get_property(
-            _BRISK_ICOWRITER
-            TARGET Brisk::IcoWriter
-            PROPERTY ALIASED_TARGET)
-        if ("${_BRISK_ICOWRITER}" STREQUAL "")
-            set(_BRISK_ICOWRITER Brisk::IcoWriter)
-        endif ()
-
         add_custom_command(
             OUTPUT ${OUT_ICON}
-            COMMAND ${_BRISK_ICOWRITER} ${APP_ICON} ${OUT_ICON}
+            COMMAND ${ICOWRITER_TOOL} ${APP_ICON} ${OUT_ICON}
             DEPENDS ${APP_ICON}
             VERBATIM)
 

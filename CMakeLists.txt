@@ -216,9 +216,6 @@ endif ()
 if (TARGET brisk-renderer-webgpu)
     list(APPEND EXTRA_INSTALL_TARGETS brisk-renderer-webgpu)
 endif ()
-if (TARGET icowriter)
-    list(APPEND EXTRA_INSTALL_TARGETS icowriter)
-endif ()
 
 install(
     TARGETS
@@ -229,7 +226,6 @@ install(
         brisk-gui
         brisk-widgets
         brisk-executable
-        bin2c
         ${EXTRA_INSTALL_TARGETS}
     EXPORT BriskTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}$<$<CONFIG:Debug>:${BRISK_DBG_SUFFIX}>
