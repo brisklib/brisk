@@ -299,8 +299,8 @@ using EventVariant = std::variant<std::monostate,           //
                                   EventSourceDropped>;      //
 
 enum class WheelOrientation {
-    X,
-    Y,
+    X = +Orientation::Horizontal,
+    Y = +Orientation::Vertical,
 };
 
 /**

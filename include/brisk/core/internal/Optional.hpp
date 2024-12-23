@@ -55,9 +55,8 @@ struct optional_ref : public std::optional<T*> {
 
 } // namespace Brisk
 
-template <typename T, typename Char>
-struct fmt::formatter<std::optional<T>, Char, std::enable_if_t<fmt::is_formattable<T, Char>::value>>
-    : fmt::formatter<T, Char> {
+template <fmt::formattable T, typename Char>
+struct fmt::formatter<std::optional<T>, Char> : fmt::formatter<T, Char> {
     template <typename FormatContext>
     auto format(const std::optional<T>& val, FormatContext& ctx) const {
         if (val)

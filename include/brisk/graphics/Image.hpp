@@ -196,8 +196,8 @@ struct ImageData {
         : data(data), size(size), byteStride(byteStride), components(components) {}
 
     // ImageData<T> -> ImageData<const T> conversion
-    template <typename U = T, std::enable_if_t<std::is_const_v<U>>* = nullptr>
     ImageData(const ImageData<std::remove_const_t<T>>& other)
+        requires(std::is_const_v<T>)
         : data(other.data), size(other.size), byteStride(other.byteStride), components(other.components) {}
 
     template <typename U>
