@@ -25,7 +25,6 @@
 
 #include <brisk/core/internal/Lock.hpp>
 #include <concurrentqueue/concurrentqueue.h>
-#include <readerwriterqueue/readerwriterqueue.h>
 #include "uv.hpp"
 
 namespace Brisk {

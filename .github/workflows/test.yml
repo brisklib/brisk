@@ -21,6 +21,7 @@ env:
 jobs:
   deps-linux:
     strategy:
+      fail-fast: false
       matrix:
         triplet: ["x64-linux"]
     runs-on: ubuntu-24.04
@@ -39,15 +40,30 @@ jobs:
         TMPDIR: ${{runner.temp}}
       run: |
         cmake -P upload-deps.cmake
+    - name: Upload buildtrees
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vcpkg-buildtrees-${{matrix.triplet}}
+        retention-days: 10
+        path: |
+          /usr/local/share/vcpkg/buildtrees
 
   deps-windows:
     strategy:
+      fail-fast: false
       matrix:
-        triplet: ["x64-windows-static-md", "x86-windows-static-md", "x64-windows-static", "x86-windows-static"]
+        triplet:
+        - x64-windows-static-md
+        - x86-windows-static-md
+        - arm64-windows-static-md
+        - x64-windows-static
+        - x86-windows-static
+        - arm64-windows-static
     runs-on: windows-latest
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
-      VCPKG_DEFAULT_HOST_TRIPLET: ${{matrix.triplet}}
+      VCPKG_DEFAULT_HOST_TRIPLET: ${{startsWith(matrix.triplet, 'arm64-') && 'x64-windows-static-md' || matrix.triplet}}
       LLVM_DIR: "C:/Program Files/LLVM"
     steps:
     - name: Checkout
@@ -55,9 +71,18 @@ jobs:
     - name: Vcpkg
       run: |
         cmake -P upload-deps.cmake
+    - name: Upload buildtrees
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vcpkg-buildtrees-${{matrix.triplet}}
+        retention-days: 10
+        path: |
+          C:/vcpkg/buildtrees
 
   deps-macos:
     strategy:
+      fail-fast: false
       matrix:
         triplet: ["x64-osx", "arm64-osx"]
     runs-on: macos-latest
@@ -77,9 +102,18 @@ jobs:
     - name: Vcpkg
       run: |
         cmake -P upload-deps.cmake
+    - name: Upload buildtrees
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vcpkg-buildtrees-${{matrix.triplet}}
+        retention-days: 10
+        path: |
+          /Users/runner/vcpkg/buildtrees
 
   build-macos:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - triplet: "x64-osx"
@@ -123,6 +157,7 @@ jobs:
 
   build-linux:
     strategy:
+      fail-fast: false
       matrix:
         triplet: ["x64-linux"]
     runs-on: ubuntu-24.04
@@ -158,27 +193,22 @@ jobs:
 
   build-windows:
     strategy:
+      fail-fast: false
       matrix:
-        include:
-          - triplet: "x64-windows-static-md"
-            arch: x64
-            flags: ""
-          - triplet: "x86-windows-static-md"
-            arch: x86
-            flags: "-m32"
-          - triplet: "x64-windows-static"
-            arch: x64
-            flags: ""
-          - triplet: "x86-windows-static"
-            arch: x86
-            flags: "-m32"
+        triplet:
+        - x64-windows-static-md
+        - x86-windows-static-md
+        - arm64-windows-static-md
+        - x64-windows-static
+        - x86-windows-static
+        - arm64-windows-static
     runs-on: windows-latest
     needs: deps-windows
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
-      VCPKG_DEFAULT_HOST_TRIPLET: ${{matrix.triplet}}
-      CXXFLAGS: ${{matrix.flags}}
-      CFLAGS: ${{matrix.flags}}
+      VCPKG_DEFAULT_HOST_TRIPLET: ${{startsWith(matrix.triplet, 'arm64-') && 'x64-windows-static-md' || matrix.triplet}}
+      CXXFLAGS: ${{startsWith(matrix.triplet, 'arm64-') && '-target arm64-pc-windows-msvc' || (startsWith(matrix.triplet, 'x86-') && '-m32' || '')}}
+      CFLAGS: ${{startsWith(matrix.triplet, 'arm64-') && '-target arm64-pc-windows-msvc' || (startsWith(matrix.triplet, 'x86-') && '-m32' || '')}}
       LLVM_DIR: "C:/Program Files/LLVM"
     steps:
     - name: Checkout
@@ -189,10 +219,10 @@ jobs:
     - name: Build
       shell: cmd
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{matrix.arch}}
-        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{startsWith(matrix.triplet, 'arm64-') && 'x64_arm64' || (startsWith(matrix.triplet, 'x64-') && 'x64' || 'x64_x86')}}
+        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_HOST_TRIPLET=%VCPKG_DEFAULT_HOST_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
         cmake --build build-release --target install
-        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
+        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_HOST_TRIPLET=%VCPKG_DEFAULT_HOST_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
         cmake --build build-debug   --target install
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
@@ -524,7 +554,7 @@ jobs:
       run: >
         cmake -GXcode
         -S repo/examples/showcase
-        -DCMAKE_OSX_ARCHITECTURES=${{ startsWith(matrix.triplet, 'x64') && 'x86_64' || 'arm64' }}
+        -DCMAKE_OSX_ARCHITECTURES=${{ startsWith(matrix.triplet, 'x64-') && 'x86_64' || 'arm64' }}
         -B build
         -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
         -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
@@ -545,7 +575,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        triplet: ["x64-windows-static-md", "x86-windows-static-md", "x64-windows-static", "x86-windows-static"]
+        triplet:
+        - x64-windows-static-md
+        - x86-windows-static-md
+        - arm64-windows-static-md
+        - x64-windows-static
+        - x86-windows-static
+        - arm64-windows-static
     runs-on: windows-latest
     needs: build-windows
     steps:
@@ -568,10 +604,11 @@ jobs:
     - name: Configure
       run: >
         cmake -G"Visual Studio 17 2022"
-        -A ${{ startsWith(matrix.triplet, 'x86') && 'Win32' || 'x64' }}
+        -A ${{ startsWith(matrix.triplet, 'x86-') && 'Win32' || (startsWith(matrix.triplet, 'arm64-') && 'ARM64' || 'x64') }}
         -S repo/examples/showcase
         -B build
         -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
+        -DVCPKG_HOST_TRIPLET=${{startsWith(matrix.triplet, 'arm64-') && 'x64-windows-static-md' || matrix.triplet}}
         -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
         -DVCPKG_INSTALLED_DIR=${{github.workspace}}/vcpkg_exported/installed
         -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg_exported/scripts/buildsystems/vcpkg.cmake

@@ -9,13 +9,13 @@ if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
     string(REPLACE "/Z7" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
     string(REPLACE "/Z7" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 
-    string(REPLACE "/Od" "/O1" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-    string(REPLACE "/Od" "/O1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-    
-    string(REPLACE "/Ob0" "/Ob1" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-    string(REPLACE "/Ob0" "/Ob1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-
     if (DEFINED ENV{LLVM_DIR})
+    
+        string(REPLACE "/Od" "/O1" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+        string(REPLACE "/Od" "/O1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+        string(REPLACE "/Ob0" "/Ob1" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+        string(REPLACE "/Ob0" "/Ob1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 
         string(REPLACE "/MP" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
         string(REPLACE "/MP" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -26,6 +26,11 @@ if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
         if (CMAKE_SYSTEM_PROCESSOR STREQUAL x86)
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+        endif ()
+        
+        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --target=arm64-pc-windows-msvc")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=arm64-pc-windows-msvc")
         endif ()
 
         file(TO_CMAKE_PATH $ENV{LLVM_DIR} LLVM_DIR_FIXED)
