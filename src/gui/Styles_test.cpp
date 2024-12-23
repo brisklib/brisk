@@ -67,7 +67,7 @@ TEST_CASE("Rules") {
     CHECK(Rules{ shadowSize = 2 }.merge(Rules{ tabSize = 1 }) == Rules{ shadowSize = 2, tabSize = 1 });
     CHECK(Rules{}.merge(Rules{ shadowSize = 2, tabSize = 1 }) == Rules{ shadowSize = 2, tabSize = 1 });
 
-    Widget::Ptr w = rcnew Widget{};
+    RC<Widget> w = rcnew Widget{};
     Rules{ shadowSize = 2, tabSize = 1 }.applyTo(w.get());
     CHECK(w->tabSize.get() == 1);
     CHECK(w->shadowSize.get() == 2_px);
@@ -77,29 +77,27 @@ template <std::derived_from<Widget> W>
 class WidgetProtected : public W {
 public:
     using W::m_dimensions;
+    using W::m_type;
     using W::resolveProperties;
     using W::restyleIfRequested;
     using W::setState;
     using W::toggleState;
-    using W::m_type;
 };
 
 template <std::derived_from<Widget> W>
-WidgetProtected<W>* unprotect(W* w)
-{
+WidgetProtected<W>* unprotect(W* w) {
     return reinterpret_cast<WidgetProtected<W>*>(w);
 }
 
 template <std::derived_from<Widget> W>
-WidgetProtected<W>* unprotect(std::shared_ptr<W> w)
-{
+WidgetProtected<W>* unprotect(std::shared_ptr<W> w) {
     return unprotect(w.get());
 }
 
 TEST_CASE("Selectors") {
     using namespace Selectors;
 
-    Widget::Ptr w = rcnew Widget{
+    RC<Widget> w = rcnew Widget{
         id      = "primary",
         classes = { "success", "large" },
 
@@ -108,7 +106,7 @@ TEST_CASE("Selectors") {
         },
     };
     unprotect(w)->m_type = "button";
-    auto child = w->widgets().front();
+    auto child           = w->widgets().front();
 
     CHECK(Type{ "button" }.matches(w.get(), MatchFlags::None));
     CHECK(!Type{ "checkbox" }.matches(w.get(), MatchFlags::None));
@@ -182,14 +180,14 @@ TEST_CASE("Styles") {
         },
     };
 
-    Widget::Ptr w1 = rcnew Widget{
+    RC<Widget> w1 = rcnew Widget{
         id = "primary",
     };
 
     CHECK(w1->id.get() == "primary");
     CHECK(w1->shadowSize.get() == Length(0));
 
-    Widget::Ptr w2 = rcnew Widget{
+    RC<Widget> w2 = rcnew Widget{
         stylesheet = ss,
         id         = "first",
         id         = "primary",

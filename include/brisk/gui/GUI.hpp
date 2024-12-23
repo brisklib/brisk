@@ -169,8 +169,6 @@ struct Attributes {
     virtual void applyTo(Widget* target) const = 0;
 };
 
-using AttributesPtr = std::shared_ptr<const Attributes>;
-
 struct ArgumentAttributes final : public Attributes {
     ArgumentAttributes(ArgumentsView<Widget> args) noexcept : args(args) {}
 
@@ -336,7 +334,7 @@ template <typename Callable, typename R, typename... Args>
 concept invocable_r = std::is_invocable_r_v<R, Callable, Args...>;
 
 namespace Internal {
-constexpr inline size_t numProperties = 101;
+constexpr inline size_t numProperties = 104;
 extern const std::string_view propNames[numProperties];
 
 template <typename T, int subfield = -1>
@@ -528,11 +526,9 @@ void fixClone(U* ptr) noexcept {
 }
 
 #define BRISK_CLONE_IMPLEMENTATION                                                                           \
-    {                                                                                                        \
-        auto result = rcnew std::remove_cvref_t<decltype(*this)>(*this);                                     \
-        Internal::fixClone(result.get());                                                                    \
-        return result;                                                                                       \
-    }
+    auto result = rcnew std::remove_cvref_t<decltype(*this)>(*this);                                         \
+    Internal::fixClone(result.get());                                                                        \
+    return result;
 
 } // namespace Internal
 
@@ -687,7 +683,7 @@ public:
 
         void operator++();
 
-        const Widget::Ptr& operator*() const;
+        const RC<Widget>& operator*() const;
 
         bool operator!=(std::nullptr_t) const;
     };
@@ -699,7 +695,7 @@ public:
 
         void operator++();
 
-        const Widget::Ptr& operator*() const;
+        const RC<Widget>& operator*() const;
 
         bool operator!=(std::nullptr_t) const;
     };
@@ -714,7 +710,7 @@ public:
 
     template <typename Fn>
     void bubble(Fn&& fn, bool includePopup = false) {
-        Widget::Ptr current = this->shared_from_this();
+        RC<Widget> current = this->shared_from_this();
         while (current) {
             if (!fn(current.get()))
                 return;
@@ -952,8 +948,8 @@ public:
     void remove(Widget* widget);
     void clear();
 
-    virtual void append(Widget::Ptr widget);
-    void apply(Widget::Ptr widget);
+    virtual void append(RC<Widget> widget);
+    void apply(RC<Widget> widget);
 
     virtual void onParentChanged();
 
@@ -982,6 +978,14 @@ public:
     optional<PointF> mousePos() const;
 
     void reveal();
+
+    bool setScrollOffset(Point newOffset);
+    bool setScrollOffset(Orientation orientation, int newOffset);
+    Point scrollOffset() const;
+    int scrollOffset(Orientation orientation) const;
+    bool hasScrollBar(Orientation orientation) const noexcept;
+    int scrollSize(Orientation orientation) const noexcept;
+    Size scrollSize() const noexcept;
 
     using enum PropFlags;
 
@@ -1036,6 +1040,7 @@ protected:
     Internal::Transition<ColorF> m_borderColor{ Palette::transparent };
     Internal::Transition<ColorF> m_color{ Palette::white };
     Internal::Transition<ColorF> m_shadowColor{ Palette::black.multiplyAlpha(0.4f) };
+    Internal::Transition<ColorF> m_scrollBarColor{ Palette::grey };
     float m_backgroundColorTransition      = 0;
     float m_borderColorTransition          = 0;
     float m_colorTransition                = 0;
@@ -1078,6 +1083,8 @@ protected:
     Internal::Resolve<Length> m_tabSize{ 40, 40 };
     Internal::Resolve<Length> m_letterSpacing{ 0_px, 0.f };
     Internal::Resolve<Length> m_wordSpacing{ 0_px, 0.f };
+    Internal::Resolve<Length> m_scrollBarThickness{ 8_px, 8.f };
+    Internal::Resolve<Length> m_scrollBarRadius{ 0_px, 0.f };
 
     // uint8_t
     mutable WidgetState m_state         = WidgetState::None;
@@ -1095,7 +1102,7 @@ protected:
     Placement m_placement               = Placement::Normal;
     ZOrder m_zorder                     = ZOrder::Normal;
     WidgetClip m_clip                   = WidgetClip::All;
-    Overflow m_overflow                 = Overflow::Hidden;
+    Overflow m_overflow                 = Overflow::None;
     AlignContent m_alignContent         = AlignContent::FlexStart;
     Wrap m_flexWrap                     = Wrap::NoWrap;
     BoxSizingPerAxis m_boxSizing        = BoxSizingPerAxis::BorderBox;
@@ -1115,6 +1122,19 @@ protected:
     bool m_focusCapture                 = false;
     bool m_stateTriggersRestyle         = false;
     bool m_isHintExclusive              = false;
+
+    std::array<bool, 2> m_scrollBarDrag{ false, false };
+    int m_savedScrollOffset = 0;
+
+    struct ScrollBarGeometry {
+        Rectangle track;
+        Rectangle thumb;
+    };
+
+    Range<int> scrollBarRange(Orientation orientation) const noexcept;
+    ScrollBarGeometry scrollBarGeometry(Orientation orientation) const noexcept;
+
+    void updateScrollAxes();
 
     std::bitset<Internal::propStateBits * Internal::numProperties> m_propStates;
     Internal::PropState getPropState(size_t index) const noexcept;
@@ -1174,10 +1194,13 @@ protected:
     void doPaint(Canvas& canvas) const;
     virtual void paint(Canvas& canvas) const;
     virtual void postPaint(Canvas& canvas) const;
+    virtual void paintScrollBar(Canvas& canvas, Orientation orientation,
+                                const ScrollBarGeometry& geometry) const;
     void paintBackground(Canvas& canvas, Rectangle rect) const;
     void paintHint(Canvas& canvas) const;
     void paintFocusFrame(Canvas& canvas) const;
     void paintChildren(Canvas& canvas) const;
+    void paintScrollBars(Canvas& canvas) const;
 
     ///////////////////////////////////////////////////////////////////////////////
 
@@ -1426,6 +1449,11 @@ public:
         padding;
     GUIProperty<100, OpenTypeFeatureFlags, AffectLayout | AffectFont | Inheritable, &This::m_fontFeatures>
         fontFeatures;
+
+    GUIProperty<101, ColorF, Transition | Inheritable, &This::m_scrollBarColor> scrollBarColor;
+    GUIProperty<102, Length, Resolvable, &This::m_scrollBarThickness> scrollBarThickness;
+    GUIProperty<103, Length, Resolvable, &This::m_scrollBarRadius> scrollBarRadius;
+
     Property<This, bool, &This::m_state, &This::isDisabled, &This::setDisabled> disabled;
     BRISK_PROPERTIES_END
 };
@@ -1543,6 +1571,10 @@ extern const Argument<Tag::PropArg<decltype(Widget::gapRow)>> gapRow;
 extern const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled;
 
 extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures;
+
+extern const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
+extern const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThickness;
+extern const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
 
 } // namespace Arg
 

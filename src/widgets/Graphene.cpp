@@ -71,14 +71,11 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Root{},
             {
-                backgroundColor = styleVar<windowColor>,
-                color           = textColorFor(styleVar<windowColor>, textLightColor, textDarkColor),
-            },
-        },
-        Style{
-            Type{ ScrollBar::widgetType },
-            {
-                minDimensions = { 9_apx, 9_apx },
+                backgroundColor    = styleVar<windowColor>,
+                color              = textColorFor(styleVar<windowColor>, textLightColor, textDarkColor),
+                scrollBarColor     = styleVar<selectedColor>,
+                scrollBarThickness = 8_apx,
+                scrollBarRadius    = 4_px,
             },
         },
         Style{

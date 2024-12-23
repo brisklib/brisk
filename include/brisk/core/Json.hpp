@@ -110,10 +110,21 @@ inline constexpr std::initializer_list<NameValuePair<JsonType>> defaultNames<Jso
 
 struct Json;
 
-template <typename T, typename = void>
+template <typename T>
+bool adlToJson(Json& b, const T& v);
+
+template <typename T>
+bool adlFromJson(const Json& b, T& v);
+
+template <typename T>
 struct JsonConverter {
-    static bool toJson(Json& b, const T& v);
-    static bool fromJson(const Json& b, T& v);
+    static bool toJson(Json& b, const T& v) {
+        return adlToJson(b, v);
+    }
+
+    static bool fromJson(const Json& b, T& v) {
+        return adlFromJson(b, v);
+    }
 };
 
 /**
@@ -705,7 +716,8 @@ struct Json : protected JsonVariant {
 };
 
 template <typename T>
-struct JsonConverter<T, std::enable_if_t<isJsonCompoundType<T>()>> {
+    requires(isJsonCompoundType<T>())
+struct JsonConverter<T> {
     static bool toJson(Json& b, T v) {
         b = v;
         return true;
@@ -718,7 +730,8 @@ struct JsonConverter<T, std::enable_if_t<isJsonCompoundType<T>()>> {
 };
 
 template <typename T>
-struct JsonConverter<T, std::enable_if_t<std::is_arithmetic_v<T> && !isJsonCompoundType<T>()>> {
+    requires(std::is_arithmetic_v<T> && !isJsonCompoundType<T>())
+struct JsonConverter<T> {
     static bool toJson(Json& b, T v) {
         if constexpr (std::is_floating_point_v<T>)
             b = JsonFloat(v);
@@ -1015,16 +1028,6 @@ inline bool adlFromJson(const Json& b, T& v) {
     return fromJson(b, v);
 }
 
-template <typename T, typename V>
-inline bool JsonConverter<T, V>::toJson(Json& b, const T& v) {
-    return adlToJson(b, v);
-}
-
-template <typename T, typename V>
-inline bool JsonConverter<T, V>::fromJson(const Json& b, T& v) {
-    return adlFromJson(b, v);
-}
-
 template <size_t N>
 inline bool fromJson(const Json& j, FixedBytes<N>& p) {
     if (auto s = j.to<std::string>()) {
@@ -1089,8 +1092,8 @@ bool reflectFromJson(size_constants<indices...>, const Json& j, T& val,
  *
  * @tparam T The type of the object being converted to/from JSON.
  */
-template <typename T>
-struct JsonConverter<T, std::void_t<decltype(T::Reflection)>> {
+template <HasReflection T>
+struct JsonConverter<T> {
     constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
 
     /**
@@ -1124,7 +1127,8 @@ struct JsonConverter<T, std::void_t<decltype(T::Reflection)>> {
  * @tparam T The empty type being converted to/from JSON.
  */
 template <typename T>
-struct JsonConverter<T, std::enable_if_t<std::is_empty_v<T>>> {
+    requires(std::is_empty_v<T>)
+struct JsonConverter<T> {
 
     /**
      * @brief Serializes an empty object to a JSON object.

@@ -150,8 +150,7 @@ public:
     RawCanvas& drawEllipse(RectangleF rect, float angle, RenderStateExArgs args);
     RawCanvas& drawArc(PointF center, float outerRadius, float innerRadius, float startAngle, float endEngle,
                        RenderStateExArgs args);
-    RawCanvas& drawTexture(RectangleF rect, const ImageHandle& tex, const Matrix& matrix,
-                           RenderStateExArgs args);
+    RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, RenderStateExArgs args);
     RawCanvas& drawText(SpriteResources sprites, std::span<GeometryGlyph> glyphs, RenderStateExArgs args);
     RawCanvas& drawMask(SpriteResources sprites, std::span<GeometryGlyph> glyphs, RenderStateExArgs args);
 
@@ -216,16 +215,15 @@ public:
                         const Font& f, const ColorF& textColor);
 
     template <typename... Args>
-    RawCanvas& drawTexture(RectangleF rect, const ImageHandle& tex, const Matrix& matrix,
-                           const Args&... args) {
+    RawCanvas& drawTexture(RectangleF rect, const RC<Image>& tex, const Matrix& matrix, const Args&... args) {
         return drawTexture(rect, tex, matrix, RenderStateExArgs{ std::make_tuple(args...) });
     }
 
     struct State {
-        RectangleF scissors         = noScissors;
-        float scissors_borderRadius = 0.f;
-        int scissors_corners        = 15;
-        PointF offset               = PointF{};
+        RectangleF scissors        = noScissors;
+        float scissorsBorderRadius = 0.f;
+        int scissorsCorners        = 15;
+        PointF offset              = PointF{};
     };
 
     struct Save {

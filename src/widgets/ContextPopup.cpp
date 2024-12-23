@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-Widget::Ptr ContextPopup::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> ContextPopup::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ContextPopup::ContextPopup(Construction construction, ArgumentsView<ContextPopup> args)
     : PopupBox(construction,
@@ -31,7 +31,7 @@ ContextPopup::ContextPopup(Construction construction, ArgumentsView<ContextPopup
     args.apply(this);
 }
 
-void ContextPopup::append(Widget::Ptr widget) {
+void ContextPopup::append(RC<Widget> widget) {
     if (Item* it = dynamic_cast<Item*>(widget.get())) {
         it->dynamicFocus = true;
         Base::append(std::move(widget));

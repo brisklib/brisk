@@ -199,22 +199,11 @@ inline T lookupByEnum(T (&array)[N], E value, T fallback = T{}) {
 template <typename T>
 inline constexpr std::nullptr_t defaultNames{};
 
-/**
- * @brief Checks if a type `T` has default names defined.
- *
- * @tparam T The enum type.
- */
-template <typename T, typename = void>
-inline constexpr bool hasDefaultNames = false;
-
-/**
- * @brief Specialization that checks if a type `T` has default names defined.
- *
- * @tparam T The enum type.
- */
 template <typename T>
-inline constexpr bool hasDefaultNames<
-    T, std::void_t<decltype(std::begin(defaultNames<T>)), decltype(std::end(defaultNames<T>))>> = true;
+concept HasDefaultNames = requires() {
+    std::begin(defaultNames<T>);
+    std::end(defaultNames<T>);
+};
 
 /**
  * @brief Represents a name-value pair for an enum.
@@ -239,7 +228,7 @@ using NameValuePairs = std::span<NameValuePair<T>>;
  * @param value The enum value to convert.
  * @return The corresponding string name of the enum value, or "(unknown)" if not found.
  */
-template <typename T, std::enable_if_t<hasDefaultNames<T>>* = nullptr>
+template <HasDefaultNames T>
 constexpr std::string_view defaultToString(T value) {
     for (const std::pair<std::string_view, T>& kv : defaultNames<T>) {
         if (kv.second == value)
@@ -350,9 +339,8 @@ struct fmt::formatter<T, Char> : fmt::formatter<std::basic_string<Char>, Char> {
  * @tparam T The enum type.
  * @tparam Char The character type for the output format.
  */
-template <typename T, typename Char>
-struct fmt::formatter<T, Char, std::enable_if_t<Brisk::hasDefaultNames<T>>>
-    : fmt::formatter<std::string_view, Char> {
+template <Brisk::HasDefaultNames T, typename Char>
+struct fmt::formatter<T, Char> : fmt::formatter<std::string_view, Char> {
     template <typename FormatContext>
     auto format(const T& val, FormatContext& ctx) const {
         return formatter<std::string_view, Char>::format(Brisk::defaultToString(val), ctx);

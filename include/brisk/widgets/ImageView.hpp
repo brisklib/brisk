@@ -39,18 +39,18 @@ public:
     }
 
     template <WidgetArgument... Args>
-    ImageView(ImageHandle texture, const Args&... args)
-        : ImageView(Construction{ widgetType }, std::move(texture), std::tuple{ args... }) {
+    ImageView(RC<Image> image, const Args&... args)
+        : ImageView(Construction{ widgetType }, std::move(image), std::tuple{ args... }) {
         endConstruction();
     }
 
 protected:
-    ImageHandle m_texture;
+    RC<Image> m_image;
 
     void paint(Canvas& canvas) const override;
     Ptr cloneThis() const override;
 
-    ImageView(Construction construction, ImageHandle texture, ArgumentsView<ImageView> args);
+    ImageView(Construction construction, RC<Image> image, ArgumentsView<ImageView> args);
 };
 
 class WIDGET SVGImageView final : public Widget {
@@ -66,8 +66,6 @@ public:
 
     template <WidgetArgument... Args>
     SVGImageView(std::string_view svg, const Args&... args) : SVGImageView(SVGImage(svg), args...) {}
-
-    ~SVGImageView();
 
 protected:
     SVGImage m_svg;

@@ -43,7 +43,7 @@ void RadioButton::paint(Canvas& canvas) const {
     radioButtonPainter(canvas, *this);
 }
 
-Widget::Ptr RadioButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> RadioButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 RadioButton::RadioButton(Construction construction, ArgumentsView<RadioButton> args)
     : Base(construction, nullptr) {

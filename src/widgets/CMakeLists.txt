@@ -54,7 +54,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Line.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/ValueWidget.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/ScrollBox.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/widgets/ScrollBar.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/PopupDialog.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/DialogComponent.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Graphene.hpp
@@ -92,7 +91,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/widgets/Line.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/ValueWidget.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/ScrollBox.cpp
-    ${PROJECT_SOURCE_DIR}/src/widgets/ScrollBar.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/PopupDialog.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/DialogComponent.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Graphene.cpp)

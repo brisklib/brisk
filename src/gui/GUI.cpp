@@ -239,19 +239,11 @@ public:
     }
 
     yoga::Overflow overflow() const final {
-        switch (m_widget->m_overflow) {
-        case Overflow::Hidden:
-        case Overflow::Visible:
-            return yoga::Overflow::None;
-        case Overflow::ScrollY:
-            return yoga::Overflow::AllowColumn;
-        case Overflow::ScrollX:
-            return yoga::Overflow::AllowRow;
-        case Overflow::ScrollBoth:
-            return yoga::Overflow::Allow;
-        default:
-            BRISK_UNREACHABLE();
-        }
+        static_assert(static_cast<int>(Overflow::None) == static_cast<int>(yoga::Overflow::None));
+        static_assert(static_cast<int>(Overflow::ScrollX) == static_cast<int>(yoga::Overflow::AllowRow));
+        static_assert(static_cast<int>(Overflow::ScrollY) == static_cast<int>(yoga::Overflow::AllowColumn));
+        static_assert(static_cast<int>(Overflow::ScrollBoth) == static_cast<int>(yoga::Overflow::Allow));
+        return static_cast<yoga::Overflow>(m_widget->m_overflow);
     }
 
     yoga::Display display() const final {
@@ -490,11 +482,11 @@ bool Widget::IteratorEx::operator!=(std::nullptr_t) const {
     return i < w->m_widgets.size();
 }
 
-const Widget::Ptr& Widget::Iterator::operator*() const {
+const RC<Widget>& Widget::Iterator::operator*() const {
     return w->m_widgets[i];
 }
 
-const Widget::Ptr& Widget::IteratorEx::operator*() const {
+const RC<Widget>& Widget::IteratorEx::operator*() const {
     if (reverse)
         return w->m_widgets[w->m_widgets.size() - 1 - i];
     return w->m_widgets[i];
@@ -809,6 +801,8 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     if (assign(m_contentSize, Size((bottomRight - Point(rect.p1)).v))) {
         ++counter;
     }
+    if (counter)
+        updateScrollAxes();
     return counter;
 }
 
@@ -892,7 +886,7 @@ void Widget::dump(int depth) const {
             name().c_str(), m_visible, m_isVisible, m_rect.x1, m_rect.y1, m_rect.x2, m_rect.y2,
             isLayoutDirty(), fmt::to_string(m_fontSize.value).c_str(), m_fontSize.resolved,
             propState[+getPropState(fontSize.index)], m_tree);
-    for (const Widget::Ptr& w : *this) {
+    for (const RC<Widget>& w : *this) {
         w->dump(depth + 1);
     }
     fprintf(stderr, "%*s}\n", depth * 4, "");
@@ -908,7 +902,7 @@ optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** p
             *parent = this;
         return it;
     } else {
-        for (const Widget::Ptr& w : *this) {
+        for (const RC<Widget>& w : *this) {
             optional<WidgetPtrs::iterator> wit = w->findIterator(widget, parent);
             if (wit) {
                 return *wit;
@@ -918,13 +912,13 @@ optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** p
     }
 }
 
-bool Widget::replace(Widget::Ptr oldWidget, Widget::Ptr newWidget, bool deep) {
+bool Widget::replace(RC<Widget> oldWidget, RC<Widget> newWidget, bool deep) {
     auto it = std::find(m_widgets.begin(), m_widgets.end(), oldWidget);
     if (it != m_widgets.end()) {
         replaceChild(it, std::move(newWidget));
         return true;
     } else if (deep) {
-        for (const Widget::Ptr& w : *this) {
+        for (const RC<Widget>& w : *this) {
             if (w->replace(oldWidget, newWidget, true))
                 return true;
         }
@@ -1037,6 +1031,36 @@ static void show_debug_border(RawCanvas& canvas, Rectangle rect, double elapsed,
     }
 }
 
+Widget::ScrollBarGeometry Widget::scrollBarGeometry(Orientation orientation) const noexcept {
+    Range<int> range = scrollBarRange(orientation);
+    Size trackSize(m_scrollBarThickness.resolved, m_scrollBarThickness.resolved);
+    trackSize[+orientation] = m_rect.size()[+orientation];
+    Rectangle track         = m_rect.alignedRect(trackSize, { 1.f, 1.f });
+    Rectangle thumb         = track;
+    thumb.p1[+orientation]  = track.p1[+orientation] + range.min;
+    thumb.p2[+orientation]  = track.p1[+orientation] + range.max;
+    return { track, thumb };
+}
+
+void Widget::paintScrollBar(Canvas& canvas_, Orientation orientation,
+                            const ScrollBarGeometry& geometry) const {
+    RawCanvas& canvas = canvas_.raw();
+    if (isHovered())
+        canvas.drawRectangle(geometry.track, 0.f, 0.f,
+                             fillColor = m_scrollBarColor.current.multiplyAlpha(0.25f), strokeWidth = 0);
+    canvas.drawRectangle(geometry.thumb, m_scrollBarRadius.resolved, 0.f,
+                         fillColor   = m_scrollBarColor.current.multiplyAlpha(isHovered() ? 1.f : 0.5f),
+                         strokeWidth = 0);
+}
+
+void Widget::paintScrollBars(Canvas& canvas) const {
+    for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
+        if (hasScrollBar(orientation)) {
+            paintScrollBar(canvas, orientation, scrollBarGeometry(orientation));
+        }
+    }
+}
+
 void Widget::doPaint(Canvas& canvas) const {
     if (m_clip != WidgetClip::Inherit && m_clip != WidgetClip::Children) {
         auto&& state = canvas.raw().save();
@@ -1051,6 +1075,7 @@ void Widget::doPaint(Canvas& canvas) const {
             paint(canvas);
         paintChildren(canvas);
         postPaint(canvas);
+        paintScrollBars(canvas);
     } else {
         if (m_painter)
             m_painter.paint(canvas, *this);
@@ -1058,6 +1083,7 @@ void Widget::doPaint(Canvas& canvas) const {
             paint(canvas);
         paintChildren(canvas);
         postPaint(canvas);
+        paintScrollBars(canvas);
     }
 
     if (Internal::debugRelayoutAndRegenerate) {
@@ -1175,7 +1201,7 @@ void Widget::paintChildren(Canvas& canvas) const {
         newScissors = RectangleF(m_rect).intersection(newScissors);
     }
     state->scissors = newScissors;
-    for (const Widget::Ptr& w : *this) {
+    for (const RC<Widget>& w : *this) {
         if (!w->m_visible || w->m_hidden)
             continue;
         if (m_tree && w->m_zorder != ZOrder::Normal) {
@@ -1259,6 +1285,63 @@ void Widget::onEvent(Event& event) {
         }
     }
 
+#ifdef BRISK_MACOS
+    constexpr float scrollPixels = 20.f;
+#else
+    constexpr float scrollPixels = 140.f;
+#endif
+
+    for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
+        if (!hasScrollBar(orientation))
+            continue;
+        if (float d = event.wheelScrolled(static_cast<WheelOrientation>(orientation))) {
+            int offset =
+                std::clamp(static_cast<int>(std::round(scrollOffset(orientation) - d * dp(scrollPixels))), 0,
+                           scrollSize(orientation));
+
+            if (setScrollOffset(orientation, offset)) {
+                event.stopPropagation();
+            }
+        }
+        ScrollBarGeometry geometry        = scrollBarGeometry(orientation);
+
+        Rectangle beforeHandleRect        = geometry.track;
+        Rectangle afterHandleRect         = geometry.track;
+        beforeHandleRect.p2[+orientation] = geometry.thumb.p1[+orientation];
+        afterHandleRect.p1[+orientation]  = geometry.thumb.p2[+orientation];
+
+        if (event.released(beforeHandleRect)) {
+            setScrollOffset(orientation, scrollOffset(orientation) - m_rect.size()[+orientation]);
+            event.stopPropagation();
+        } else if (event.released(afterHandleRect)) {
+            setScrollOffset(orientation, scrollOffset(orientation) + m_rect.size()[+orientation]);
+            event.stopPropagation();
+        } else {
+            switch (const auto [flag, offset, mod] =
+                        event.dragged(geometry.thumb, m_scrollBarDrag[+orientation]);
+                    flag) {
+            case DragEvent::Started: {
+                m_savedScrollOffset = scrollOffset(orientation);
+                event.stopPropagation();
+                break;
+            }
+            case DragEvent::Dragging: {
+                int axisOffset = std::round(offset[+orientation] /
+                                            (geometry.track.size() - geometry.thumb.size())[+orientation] *
+                                            scrollSize()[+orientation]);
+                setScrollOffset(orientation, m_savedScrollOffset + axisOffset);
+                event.stopPropagation();
+                break;
+            }
+            case DragEvent::Dropped:
+                event.stopPropagation();
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
     if (m_delegate) {
         m_delegate->delegatedEvent(this, event);
     }
@@ -1320,6 +1403,50 @@ void Widget::updateGeometry() {
         inputQueue->setAutoFocus(self);
     }
     inputQueue->hitTest.state = std::move(saved_state);
+}
+
+bool Widget::hasScrollBar(Orientation orientation) const noexcept {
+    return scrollSize(orientation) > 0;
+}
+
+Size Widget::scrollSize() const noexcept {
+    return { scrollSize(Orientation::Horizontal), scrollSize(Orientation::Vertical) };
+}
+
+int Widget::scrollSize(Orientation orientation) const noexcept {
+    if (orientation == Orientation::Horizontal && !(overflow && Overflow::ScrollX))
+        return 0;
+    if (orientation == Orientation::Vertical && !(overflow && Overflow::ScrollY))
+        return 0;
+    if (m_contentSize[+orientation] <= 0 || m_contentSize[+orientation] <= m_rect.size()[+orientation])
+        return 0;
+
+    return m_contentSize[+orientation] - m_rect.size()[+orientation];
+}
+
+Range<int> Widget::scrollBarRange(Orientation orientation) const noexcept {
+    int offset      = scrollOffset(orientation);
+    int contentSize = m_contentSize[+orientation];
+    int boxSize     = m_rect.size()[+orientation];
+    if (contentSize == 0 || contentSize == boxSize)
+        return { -16777216, -16777216 };
+
+    float value           = std::clamp(static_cast<float>(offset) / (contentSize - boxSize), 0.f, 1.f);
+    float range           = std::clamp(static_cast<float>(boxSize) / contentSize, 0.f, 1.f);
+    float scrollBarLength = range * boxSize;
+    float min             = value * (boxSize - scrollBarLength);
+    float max             = min + scrollBarLength;
+    return Range<double>{ std::round(min), std::round(max) };
+}
+
+void Widget::updateScrollAxes() {
+    Point offset = scrollOffset();
+    for (Orientation o : { Orientation::Horizontal, Orientation::Vertical }) {
+        if (!hasScrollBar(o)) {
+            offset[+o] = 0;
+        }
+    }
+    setScrollOffset(offset);
 }
 
 void Widget::processVisibility(bool isVisible) {
@@ -1423,7 +1550,7 @@ void Widget::childAdded(Widget* w) {
     onChildAdded(w);
 }
 
-void Widget::append(Widget::Ptr widget) {
+void Widget::append(RC<Widget> widget) {
     if (widget->m_embeddable) {
         const size_t p = m_widgets.size();
         for (size_t i = 0; i < widget->m_widgets.size(); ++i) {
@@ -1546,6 +1673,12 @@ BRISK_INLINE static T getFallback(Widget* widget, Internal::Transition<T> Widget
     return widget ? (widget->*field).stopValue : fallback;
 }
 
+template <typename T>
+BRISK_INLINE static T getFallback(Widget* widget, Internal::Resolve<T> Widget::* field,
+                                  std::type_identity_t<T> fallback) {
+    return widget ? (widget->*field).value : fallback;
+}
+
 void Widget::requestUpdates(PropFlags flags) {
 
     if (flags && AffectLayout) {
@@ -1560,6 +1693,7 @@ void Widget::requestUpdates(PropFlags flags) {
 }
 
 void Widget::resolveProperties(PropFlags flags) {
+    Size viewportSize = this->viewportSize();
     if (flags && AffectFont) {
         const Internal::Resolve<Length> parentFont =
             getFallback(m_parent, &Widget::m_fontSize, { 100_perc, dp(FontSize::Normal) });
@@ -1567,7 +1701,7 @@ void Widget::resolveProperties(PropFlags flags) {
             m_fontSize = parentFont;
         } else {
             m_fontSize.resolved = resolveValue(m_fontSize.value, 0.f, parentFont.resolved,
-                                               ResolveParameters{ parentFont.resolved, viewportSize() });
+                                               ResolveParameters{ parentFont.resolved, viewportSize });
         }
     }
     float resolvedFontHeight = resolveFontHeight();
@@ -1576,31 +1710,27 @@ void Widget::resolveProperties(PropFlags flags) {
         m_shadowSize = getFallback(m_parent, &Widget::m_shadowSize, { 0_px, 0 });
     } else {
         m_shadowSize.resolved = resolveValue(m_shadowSize.value, 0.f, m_rect.shortestSide() * 0.5f,
-                                             ResolveParameters{ resolvedFontHeight, viewportSize() });
+                                             ResolveParameters{ resolvedFontHeight, viewportSize });
     }
-
-    m_borderRadius.resolved =
-        resolveValue(m_borderRadius.value, CornersF(0.f), CornersF(m_rect.shortestSide() * 0.5f),
-                     ResolveParameters{ resolvedFontHeight, viewportSize() });
 
     if (flags && AffectFont) {
         if (getPropState(letterSpacing.index) && PropState::Inherited) {
             m_letterSpacing = getFallback(m_parent, &Widget::m_letterSpacing, { 0_px, 0 });
         } else {
             m_letterSpacing.resolved = resolveValue(m_letterSpacing.value, 0.f, resolvedFontHeight,
-                                                    ResolveParameters{ resolvedFontHeight, viewportSize() });
+                                                    ResolveParameters{ resolvedFontHeight, viewportSize });
         }
         if (getPropState(wordSpacing.index) && PropState::Inherited) {
             m_wordSpacing = getFallback(m_parent, &Widget::m_wordSpacing, { 0_px, 0 });
         } else {
             m_wordSpacing.resolved = resolveValue(m_wordSpacing.value, 0.f, resolvedFontHeight,
-                                                  ResolveParameters{ resolvedFontHeight, viewportSize() });
+                                                  ResolveParameters{ resolvedFontHeight, viewportSize });
         }
         if (getPropState(tabSize.index) && PropState::Inherited) {
             m_tabSize = getFallback(m_parent, &Widget::m_tabSize, { 0_px, 0 });
         } else {
             m_tabSize.resolved = resolveValue(m_tabSize.value, 0.f, resolvedFontHeight,
-                                              ResolveParameters{ resolvedFontHeight, viewportSize() });
+                                              ResolveParameters{ resolvedFontHeight, viewportSize });
         }
 
         if (getPropState(fontFamily.index) && PropState::Inherited) {
@@ -1628,6 +1758,24 @@ void Widget::resolveProperties(PropFlags flags) {
     if (getPropState(textVerticalAlign.index) && PropState::Inherited) {
         m_textVerticalAlign = getFallback(m_parent, &Widget::m_textVerticalAlign, TextAlign::Center);
     }
+    if (getPropState(scrollBarColor.index) && PropState::Inherited) {
+        m_scrollBarColor = getFallback(m_parent, &Widget::m_scrollBarColor, Palette::grey);
+    }
+    if (getPropState(scrollBarRadius.index) && PropState::Inherited) {
+        m_scrollBarRadius = getFallback(m_parent, &Widget::m_scrollBarRadius, 0);
+    }
+    if (getPropState(scrollBarThickness.index) && PropState::Inherited) {
+        m_scrollBarThickness = getFallback(m_parent, &Widget::m_scrollBarThickness, 8_px);
+    }
+
+    m_borderRadius.resolved =
+        resolveValue(m_borderRadius.value, CornersF(0.f), CornersF(m_rect.shortestSide() * 0.5f),
+                     ResolveParameters{ resolvedFontHeight, viewportSize });
+    m_scrollBarThickness.resolved = resolveValue(m_scrollBarThickness.value, 0.f, m_rect.shortestSide(),
+                                                 ResolveParameters{ resolvedFontHeight, viewportSize });
+    m_scrollBarRadius.resolved    = resolveValue(m_scrollBarRadius.value, 0.f, m_rect.shortestSide(),
+                                                 ResolveParameters{ resolvedFontHeight, viewportSize });
+
     requestUpdates(flags);
 
     for (const Ptr& w : *this) {
@@ -1665,7 +1813,7 @@ std::string Widget::name() const {
 
 std::optional<size_t> Widget::indexOf(const Widget* widget) const {
     auto it =
-        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const Widget::Ptr& p) BRISK_INLINE_LAMBDA {
+        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const RC<Widget>& p) BRISK_INLINE_LAMBDA {
             return p.get() == widget;
         });
     if (it == m_widgets.end())
@@ -1675,14 +1823,14 @@ std::optional<size_t> Widget::indexOf(const Widget* widget) const {
 
 void Widget::remove(Widget* widget) {
     auto it =
-        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const Widget::Ptr& p) BRISK_INLINE_LAMBDA {
+        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const RC<Widget>& p) BRISK_INLINE_LAMBDA {
             return p.get() == widget;
         });
     BRISK_ASSERT(it != m_widgets.end());
     removeChild(it);
 }
 
-void Widget::apply(Widget::Ptr widget) {
+void Widget::apply(RC<Widget> widget) {
     if (widget)
         append(std::move(widget));
 }
@@ -1691,7 +1839,7 @@ const Widget::WidgetPtrs& Widget::widgets() const {
     return m_widgets;
 }
 
-Widget::Ptr Widget::clone() const {
+RC<Widget> Widget::clone() const {
     Ptr result                       = cloneThis();
 
     result->m_layoutEngine->m_widget = result.get();
@@ -1722,6 +1870,9 @@ Widget::Widget(Construction construction) : m_layoutEngine{ this } {
     setPropState(textAlign.index, PropState::Inherited);
     setPropState(color.index, PropState::Inherited);
     setPropState(fontFeatures.index, PropState::Inherited);
+    setPropState(scrollBarColor.index, PropState::Inherited);
+    setPropState(scrollBarThickness.index, PropState::Inherited);
+    setPropState(scrollBarRadius.index, PropState::Inherited);
 
     beginConstruction();
     m_type = construction.type;
@@ -1883,7 +2034,7 @@ void Widget::apply(const Attributes& arg) {
     arg.applyTo(this);
 }
 
-Widget::Ptr Widget::cloneThis() const {
+RC<Widget> Widget::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -1905,7 +2056,7 @@ struct MatchContextRole {
     }
 };
 
-Widget::Ptr Widget::getContextWidget() {
+RC<Widget> Widget::getContextWidget() {
     return find<Widget>(MatchContextRole{});
 }
 
@@ -1996,6 +2147,27 @@ void Widget::reveal() {
 }
 
 void Widget::revealChild(Widget* child) {
+    for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
+        if (hasScrollBar(orientation)) {
+            float scrollSize        = this->scrollSize(orientation);
+            Rectangle containerRect = m_rect;
+            Rectangle childRect     = child->rect();
+            int32_t offset          = childRect.p1[+orientation] - containerRect.p1[+orientation];
+            if (offset < 0) {
+                setScrollOffset(
+                    orientation,
+                    std::clamp(static_cast<float>(scrollOffset(orientation) + offset), 0.f, scrollSize));
+            } else {
+                offset = childRect.p2[+orientation] - containerRect.p2[+orientation];
+                if (offset > 0) {
+                    setScrollOffset(
+                        orientation,
+                        std::clamp(static_cast<float>(scrollOffset(orientation) + offset), 0.f, scrollSize));
+                }
+            }
+        }
+    }
+
     if (m_parent)
         m_parent->revealChild(child);
 }
@@ -2440,6 +2612,9 @@ const std::string_view propNames[numProperties]{
     /*98*/ "minDimensions",
     /*99*/ "padding",
     /*100*/ "fontFeatures",
+    /*101*/ "scrollBarColor",
+    /*102*/ "scrollBarThickness",
+    /*103*/ "scrollBarRadius",
 };
 
 } // namespace Internal
@@ -2562,6 +2737,9 @@ template void instantiateProp<decltype(Widget::paddingTop)>();
 template void instantiateProp<decltype(Widget::paddingRight)>();
 template void instantiateProp<decltype(Widget::paddingBottom)>();
 template void instantiateProp<decltype(Widget::fontFeatures)>();
+template void instantiateProp<decltype(Widget::scrollBarColor)>();
+template void instantiateProp<decltype(Widget::scrollBarThickness)>();
+template void instantiateProp<decltype(Widget::scrollBarRadius)>();
 
 inline namespace Arg {
 
@@ -2665,6 +2843,9 @@ const Argument<Tag::PropArg<decltype(Widget::paddingTop)>> paddingTop{};
 const Argument<Tag::PropArg<decltype(Widget::paddingRight)>> paddingRight{};
 const Argument<Tag::PropArg<decltype(Widget::paddingBottom)>> paddingBottom{};
 const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures{};
+const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
+const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThickness;
+const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
 
 const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled{};
 
@@ -2674,4 +2855,23 @@ void Widget::setDisabled(bool value) {
     toggleState(WidgetState::Disabled, value);
 }
 
+bool Widget::setScrollOffset(Point newOffset) {
+    newOffset = max(newOffset, Point(0));
+    newOffset = min(newOffset, Point(scrollSize()));
+    return setChildrenOffset(-newOffset);
+}
+
+bool Widget::setScrollOffset(Orientation orientation, int newOffset) {
+    Point offset         = scrollOffset();
+    offset[+orientation] = newOffset;
+    return setScrollOffset(offset);
+}
+
+Point Widget::scrollOffset() const {
+    return -m_childrenOffset;
+}
+
+int Widget::scrollOffset(Orientation orientation) const {
+    return -m_childrenOffset[+orientation];
+}
 } // namespace Brisk

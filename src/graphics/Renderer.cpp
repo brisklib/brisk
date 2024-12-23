@@ -118,7 +118,7 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
         m_encoder->device()->createImageBackend(cmd.imageHandle);
         cmd.imageBackend = Internal::getBackend(cmd.imageHandle);
         BRISK_ASSERT(cmd.imageBackend);
-        cmd.texture_id = 1; // Tell shader that texture is set (-1 if is not)
+        cmd.textureId = 1; // Tell shader that texture is set (-1 if is not)
         m_textures.push_back(cmd.imageHandle);
     }
 
@@ -150,10 +150,10 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
         }
     }
 
-    size_t offs     = m_data.size();
+    size_t offs    = m_data.size();
 
-    cmd.data_offset = offs / 4;
-    cmd.data_size   = data.size();
+    cmd.dataOffset = offs / 4;
+    cmd.dataSize   = data.size();
 
     m_commands.push_back(static_cast<const RenderState&>(cmd));
     m_data.insert(m_data.end(), data.begin(), data.end());

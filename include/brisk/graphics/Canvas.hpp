@@ -37,10 +37,10 @@ struct Texture {
  * @brief A versatile type representing various fill and stroke styles.
  *
  * Paint can hold one of several types representing
- * different kinds of paints: a solid color (ColorF), a gradient (GradientPtr),
+ * different kinds of paints: a solid color (ColorF), a gradient (RC<Gradient>),
  * or a texture (Texture).
  */
-using Paint = std::variant<ColorF, GradientPtr, Texture>;
+using Paint = std::variant<ColorF, RC<Gradient>, Texture>;
 
 void applier(RenderStateEx*, const std::pair<Canvas*, Paint*>);
 

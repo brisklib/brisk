@@ -174,9 +174,4 @@ private:
     ColorStopArray m_colorStops; ///< The color stops for the gradient.
 };
 
-/**
- * @brief A reference-counted pointer to a Gradient object.
- */
-using GradientPtr = RC<Gradient>;
-
 } // namespace Brisk

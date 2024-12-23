@@ -74,8 +74,9 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
         painter       = Painter(&backgroundPainter),
 
         rcnew VLayout{
-            flexGrow  = 1,
-            alignSelf = AlignSelf::Stretch,
+            flexGrow       = 1,
+            alignSelf      = AlignSelf::Stretch,
+            scrollBarColor = 0x32a852_rgb,
             rcnew VScrollBox{
                 flexGrow  = 1,
                 alignSelf = AlignSelf::Stretch,

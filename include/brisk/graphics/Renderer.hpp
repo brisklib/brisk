@@ -229,7 +229,7 @@ private:
     RenderResources& m_resources;        ///< Rendering resources.
     std::vector<RenderState> m_commands; ///< List of rendering commands.
     std::vector<float> m_data;           ///< Buffer for associated rendering data.
-    std::vector<ImageHandle> m_textures; ///< List of textures used in rendering.
+    std::vector<RC<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
 
     /**

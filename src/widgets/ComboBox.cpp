@@ -126,7 +126,7 @@ void ComboBox::onChanged() {
     BRISK_ASSERT(replaced);
 }
 
-Widget::Ptr ComboBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> ComboBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ComboBox::ComboBox(Construction construction, ArgumentsView<ComboBox> args)
     : Base(construction, nullptr) {

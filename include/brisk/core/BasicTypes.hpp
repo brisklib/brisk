@@ -329,10 +329,11 @@ inline bytes_view toBytesView(const wchar_t (&str)[N]) {
  * @param cont The container to convert.
  * @return A `bytes_mutable_view` representing the container's elements as a sequence of bytes.
  */
-template <typename Container, typename T = typename std::decay_t<Container>::value_type,
-          std::enable_if_t<std::is_constructible_v<std::span<T>, Container&>>* = nullptr>
-inline bytes_mutable_view toBytesMutableView(Container&& cont) {
-    std::span<T> sp(cont);
+template <typename Container>
+inline bytes_mutable_view toBytesMutableView(Container&& cont)
+    requires requires { std::span{ cont }; }
+{
+    std::span sp(cont);
     return bytes_mutable_view(reinterpret_cast<byte*>(sp.data()), sp.size_bytes());
 }
 

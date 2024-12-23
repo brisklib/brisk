@@ -82,7 +82,7 @@ void Switch::paint(Canvas& canvas_) const {
     switchPainter(canvas_, *this);
 }
 
-Widget::Ptr Switch::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> Switch::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Switch::Switch(Construction construction, ArgumentsView<Switch> args)
     : Base(construction, nullptr) {
