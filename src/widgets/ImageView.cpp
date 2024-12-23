@@ -25,14 +25,12 @@ namespace Brisk {
 void ImageView::paint(Canvas& canvas) const {
     paintBackground(canvas, m_rect);
     Size size;
-    if (m_texture && m_rect.area() > 0) {
-        size = m_texture->size();
-        canvas.raw().drawTexture(m_rect, m_texture, Matrix{}, strokeWidth = 0.f,
+    if (m_image && m_rect.area() > 0) {
+        size = m_image->size();
+        canvas.raw().drawTexture(m_rect, m_image, Matrix{}, strokeWidth = 0.f,
                                  samplerMode = SamplerMode::Clamp);
     }
 }
-
-SVGImageView::~SVGImageView() {}
 
 void SVGImageView::paint(Canvas& canvas) const {
     paintBackground(canvas, m_rect);
@@ -47,12 +45,12 @@ void SVGImageView::paint(Canvas& canvas) const {
     }
 }
 
-Widget::Ptr SVGImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> SVGImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr ImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> ImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-ImageView::ImageView(Construction construction, ImageHandle texture, ArgumentsView<ImageView> args)
-    : Widget(construction, nullptr), m_texture(std::move(texture)) {
+ImageView::ImageView(Construction construction, RC<Image> image, ArgumentsView<ImageView> args)
+    : Widget(construction, nullptr), m_image(std::move(image)) {
     args.apply(this);
 }
 } // namespace Brisk

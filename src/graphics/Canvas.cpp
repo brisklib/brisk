@@ -285,23 +285,23 @@ void Canvas::resetClipRect() {
 void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
     switch (paint.index()) {
     case 0: { // Color
-        renderState.fill_color1 = renderState.fill_color2 = ColorF(get<ColorF>(paint));
+        renderState.fillColor1 = renderState.fillColor2 = ColorF(get<ColorF>(paint));
         break;
     }
     case 1: { // Gradient
-        const Gradient& gradient = *get<GradientPtr>(paint);
+        const Gradient& gradient = *get<RC<Gradient>>(paint);
         if (gradient.m_colorStops.empty()) {
             break;
         }
-        renderState.gradient_point1 = Matrix(m_state.transform).transform(gradient.m_startPoint);
-        renderState.gradient_point2 = Matrix(m_state.transform).transform(gradient.m_endPoint);
-        renderState.gradient        = gradient.m_type;
-        renderState.opacity         = m_state.opacity;
+        renderState.gradientPoint1 = Matrix(m_state.transform).transform(gradient.m_startPoint);
+        renderState.gradientPoint2 = Matrix(m_state.transform).transform(gradient.m_endPoint);
+        renderState.gradient       = gradient.m_type;
+        renderState.opacity        = m_state.opacity;
         if (gradient.m_colorStops.size() == 1) {
-            renderState.fill_color1 = renderState.fill_color2 = ColorF(gradient.m_colorStops.front().color);
+            renderState.fillColor1 = renderState.fillColor2 = ColorF(gradient.m_colorStops.front().color);
         } else if (gradient.m_colorStops.size() == 2) {
-            renderState.fill_color1 = ColorF(gradient.m_colorStops.front().color);
-            renderState.fill_color2 = ColorF(gradient.m_colorStops.back().color);
+            renderState.fillColor1 = ColorF(gradient.m_colorStops.front().color);
+            renderState.fillColor2 = ColorF(gradient.m_colorStops.back().color);
         } else {
             renderState.gradientHandle = gradient.rasterize();
         }
@@ -309,10 +309,10 @@ void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
         break;
     }
     case 2: { // Texture
-        const Texture& texture     = std::get<Texture>(paint);
-        renderState.texture_matrix = texture.matrix.invert().value_or(Matrix{});
-        renderState.imageHandle    = texture.image;
-        renderState.samplerMode    = texture.mode;
+        const Texture& texture    = std::get<Texture>(paint);
+        renderState.textureMatrix = texture.matrix.invert().value_or(Matrix{});
+        renderState.imageHandle   = texture.image;
+        renderState.samplerMode   = texture.mode;
         break;
     }
     }

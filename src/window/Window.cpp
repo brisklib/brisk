@@ -544,7 +544,7 @@ void Window::disableKeyHandling() {
     m_keyHandling = false;
 }
 
-void Window::captureFrame(function<void(ImageHandle)> callback) {
+void Window::captureFrame(function<void(RC<Image>)> callback) {
     m_captureCallback = std::move(callback);
 }
 

@@ -34,9 +34,9 @@ void Line::paint(Canvas& canvas_) const {
                              fillColor = m_color.current.multiplyAlpha(m_opacity), strokeWidth = 0.f);
 }
 
-Widget::Ptr VLine::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> VLine::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr HLine::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> HLine::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Line::Line(Construction construction, Orientation orientation, ArgumentsView<Line> args)
     : Widget(construction,
@@ -47,9 +47,9 @@ Line::Line(Construction construction, Orientation orientation, ArgumentsView<Lin
     args.apply(this);
 }
 
-Widget::Ptr Line::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> Line::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr MenuLine::cloneThis() const {
+RC<Widget> MenuLine::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

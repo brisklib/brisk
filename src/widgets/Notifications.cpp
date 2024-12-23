@@ -55,7 +55,7 @@ bool NotificationView::expired() const {
     return frameStartTime >= m_expireTime;
 }
 
-Widget::Ptr NotificationView::cloneThis() const {
+RC<Widget> NotificationView::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -66,7 +66,7 @@ void NotificationContainer::onRefresh() {
     });
 }
 
-Widget::Ptr NotificationContainer::cloneThis() const {
+RC<Widget> NotificationContainer::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

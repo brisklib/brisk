@@ -490,11 +490,11 @@ bool Widget::IteratorEx::operator!=(std::nullptr_t) const {
     return i < w->m_widgets.size();
 }
 
-const Widget::Ptr& Widget::Iterator::operator*() const {
+const RC<Widget>& Widget::Iterator::operator*() const {
     return w->m_widgets[i];
 }
 
-const Widget::Ptr& Widget::IteratorEx::operator*() const {
+const RC<Widget>& Widget::IteratorEx::operator*() const {
     if (reverse)
         return w->m_widgets[w->m_widgets.size() - 1 - i];
     return w->m_widgets[i];
@@ -892,7 +892,7 @@ void Widget::dump(int depth) const {
             name().c_str(), m_visible, m_isVisible, m_rect.x1, m_rect.y1, m_rect.x2, m_rect.y2,
             isLayoutDirty(), fmt::to_string(m_fontSize.value).c_str(), m_fontSize.resolved,
             propState[+getPropState(fontSize.index)], m_tree);
-    for (const Widget::Ptr& w : *this) {
+    for (const RC<Widget>& w : *this) {
         w->dump(depth + 1);
     }
     fprintf(stderr, "%*s}\n", depth * 4, "");
@@ -908,7 +908,7 @@ optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** p
             *parent = this;
         return it;
     } else {
-        for (const Widget::Ptr& w : *this) {
+        for (const RC<Widget>& w : *this) {
             optional<WidgetPtrs::iterator> wit = w->findIterator(widget, parent);
             if (wit) {
                 return *wit;
@@ -918,13 +918,13 @@ optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** p
     }
 }
 
-bool Widget::replace(Widget::Ptr oldWidget, Widget::Ptr newWidget, bool deep) {
+bool Widget::replace(RC<Widget> oldWidget, RC<Widget> newWidget, bool deep) {
     auto it = std::find(m_widgets.begin(), m_widgets.end(), oldWidget);
     if (it != m_widgets.end()) {
         replaceChild(it, std::move(newWidget));
         return true;
     } else if (deep) {
-        for (const Widget::Ptr& w : *this) {
+        for (const RC<Widget>& w : *this) {
             if (w->replace(oldWidget, newWidget, true))
                 return true;
         }
@@ -1175,7 +1175,7 @@ void Widget::paintChildren(Canvas& canvas) const {
         newScissors = RectangleF(m_rect).intersection(newScissors);
     }
     state->scissors = newScissors;
-    for (const Widget::Ptr& w : *this) {
+    for (const RC<Widget>& w : *this) {
         if (!w->m_visible || w->m_hidden)
             continue;
         if (m_tree && w->m_zorder != ZOrder::Normal) {
@@ -1423,7 +1423,7 @@ void Widget::childAdded(Widget* w) {
     onChildAdded(w);
 }
 
-void Widget::append(Widget::Ptr widget) {
+void Widget::append(RC<Widget> widget) {
     if (widget->m_embeddable) {
         const size_t p = m_widgets.size();
         for (size_t i = 0; i < widget->m_widgets.size(); ++i) {
@@ -1665,7 +1665,7 @@ std::string Widget::name() const {
 
 std::optional<size_t> Widget::indexOf(const Widget* widget) const {
     auto it =
-        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const Widget::Ptr& p) BRISK_INLINE_LAMBDA {
+        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const RC<Widget>& p) BRISK_INLINE_LAMBDA {
             return p.get() == widget;
         });
     if (it == m_widgets.end())
@@ -1675,14 +1675,14 @@ std::optional<size_t> Widget::indexOf(const Widget* widget) const {
 
 void Widget::remove(Widget* widget) {
     auto it =
-        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const Widget::Ptr& p) BRISK_INLINE_LAMBDA {
+        std::find_if(m_widgets.begin(), m_widgets.end(), [widget](const RC<Widget>& p) BRISK_INLINE_LAMBDA {
             return p.get() == widget;
         });
     BRISK_ASSERT(it != m_widgets.end());
     removeChild(it);
 }
 
-void Widget::apply(Widget::Ptr widget) {
+void Widget::apply(RC<Widget> widget) {
     if (widget)
         append(std::move(widget));
 }
@@ -1691,7 +1691,7 @@ const Widget::WidgetPtrs& Widget::widgets() const {
     return m_widgets;
 }
 
-Widget::Ptr Widget::clone() const {
+RC<Widget> Widget::clone() const {
     Ptr result                       = cloneThis();
 
     result->m_layoutEngine->m_widget = result.get();
@@ -1883,7 +1883,7 @@ void Widget::apply(const Attributes& arg) {
     arg.applyTo(this);
 }
 
-Widget::Ptr Widget::cloneThis() const {
+RC<Widget> Widget::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -1905,7 +1905,7 @@ struct MatchContextRole {
     }
 };
 
-Widget::Ptr Widget::getContextWidget() {
+RC<Widget> Widget::getContextWidget() {
     return find<Widget>(MatchContextRole{});
 }
 

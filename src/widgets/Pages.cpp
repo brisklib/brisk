@@ -36,7 +36,7 @@ void Pages::updateTabs() {
         return;
     tabs->clearTabs();
     int index = 0;
-    for (Widget::Ptr w : *this) {
+    for (RC<Widget> w : *this) {
         if (Page* p = dynamic_cast<Page*>(w.get())) {
             auto prop = Value{ &this->value }.equal(index);
             tabs->createTab(prop, p);
@@ -58,7 +58,7 @@ void Pages::onChanged() {
         layout = Layout::Vertical;
     }
     int index = 0;
-    for (Widget::Ptr w : *this) {
+    for (RC<Widget> w : *this) {
         if (Page* p = dynamic_cast<Page*>(w.get())) {
             p->visible = m_value < 0 || m_value == index;
             ++index;
@@ -70,13 +70,13 @@ TabButton::TabButton(Construction construction, ArgumentsView<TabButton> args) :
     args.apply(this);
 }
 
-Widget::Ptr TabButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> TabButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr Pages::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> Pages::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr Page::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> Page::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-Widget::Ptr Tabs::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> Tabs::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Tabs::Tabs(Construction construction, ArgumentsView<Tabs> args)
     : Base{ construction, std::tuple{ Arg::tabGroup = true } } {

@@ -60,7 +60,7 @@ void Item::onEvent(Event& event) {
     }
 }
 
-Widget::Ptr Item::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> Item::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Item::Item(Construction construction, ArgumentsView<Item> args)
     : Base(construction, std::tuple{ Arg::tabStop = true }) {

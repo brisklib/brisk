@@ -250,14 +250,10 @@ constexpr inline Argument<Tag::SamplerMode> samplerMode{};
 
 } // namespace Arg
 
-constexpr float defaultGamma             = 2.2f;
-
 constexpr int multigradientColorMix      = -10;
 
 using TextureId                          = uint32_t;
 constexpr inline TextureId textureIdNone = static_cast<TextureId>(-1);
-
-using ImageHandle                        = RC<Image>;
 
 struct RenderBuffer;
 
@@ -268,28 +264,28 @@ struct RenderState {
 
 public:
     // ---------------- SPECIAL [1] ----------------
-    int data_offset = 0; ///< Offset in data4 for current operation (multiply by 4 to get offset in data1)
-    int data_size   = 0; ///< Data size in floats
-    int instances   = 1; ///< Number of quads to render
-    int unused      = 0;
+    int dataOffset = 0; ///< Offset in data4 for current operation (multiply by 4 to get offset in data1)
+    int dataSize   = 0; ///< Data size in floats
+    int instances  = 1; ///< Number of quads to render
+    int unused     = 0;
 
 public:
     // ---------------- GLOBAL [5] ----------------
-    ShaderType shader           = ShaderType::Rectangles; ///< Type of geometry to generate
-    TextureId texture_id        = textureIdNone;          ///<
-    float scissors_borderRadius = 0.f;                    ///<
-    int scissors_corners        = 0;                      ///<
+    ShaderType shader          = ShaderType::Rectangles; ///< Type of geometry to generate
+    TextureId textureId        = textureIdNone;          ///<
+    float scissorsBorderRadius = 0.f;                    ///<
+    int scissorsCorners        = 0;                      ///<
 
     Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
-    int sprite_oversampling    = 1;
-    SubpixelMode subpixel_mode = SubpixelMode::Off;
+    int spriteOversampling    = 1;
+    SubpixelMode subpixelMode = SubpixelMode::Off;
 
-    int hpattern               = 0;
-    int vpattern               = 0;
-    int pattern_scale          = 1;
-    float opacity              = 1.f; ///< Opacity. Defaults to 1
+    int hpattern              = 0;
+    int vpattern              = 0;
+    int patternScale          = 1;
+    float opacity             = 1.f; ///< Opacity. Defaults to 1
 
-    RectangleF scissor         = noScissors; ///< Clip area in screen space
+    RectangleF scissor        = noScissors; ///< Clip area in screen space
 
 public:
     // ---------------- texture [4] ----------------
@@ -299,25 +295,25 @@ public:
     int textureChannel    = 0;  ///<
     int clipInScreenspace = 0;
 
-    Matrix texture_matrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
-    SamplerMode samplerMode = SamplerMode::Clamp;          ///<
-    float blurRadius        = 0.f;                         ///<
+    Matrix textureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
+    SamplerMode samplerMode = SamplerMode::Clamp;         ///<
+    float blurRadius        = 0.f;                        ///<
 
 public:
     // ---------------- rectangles, arcs [6] ----------------
 
-    ColorF fill_color1     = Palette::white; ///< Fill (brush) color for gradient at 0%
-    ColorF fill_color2     = Palette::white; ///< Fill (brush) color for gradient at 100%
-    ColorF stroke_color1   = Palette::black; ///< Stroke (pen) color for gradient at 0%
-    ColorF stroke_color2   = Palette::black; ///< Stroke (pen) color for gradient at 100%
+    ColorF fillColor1     = Palette::white; ///< Fill (brush) color for gradient at 0%
+    ColorF fillColor2     = Palette::white; ///< Fill (brush) color for gradient at 100%
+    ColorF strokeColor1   = Palette::black; ///< Stroke (pen) color for gradient at 0%
+    ColorF strokeColor2   = Palette::black; ///< Stroke (pen) color for gradient at 100%
 
-    PointF gradient_point1 = { 0.f, 0.f };     ///< 0% Gradient point
-    PointF gradient_point2 = { 100.f, 100.f }; ///< 100% Gradient point
+    PointF gradientPoint1 = { 0.f, 0.f };     ///< 0% Gradient point
+    PointF gradientPoint2 = { 100.f, 100.f }; ///< 100% Gradient point
 
-    float strokeWidth      = 1.f; ///< Stroke or shadow width. Defaults to 1. Set to 0 to disable
-    GradientType gradient  = GradientType::Linear;
-    int shadow_flags       = 3; // 1 - inner, 2 - outer
-    float reserved_5       = 0;
+    float strokeWidth     = 1.f; ///< Stroke or shadow width. Defaults to 1. Set to 0 to disable
+    GradientType gradient = GradientType::Linear;
+    int shadowFlags       = 3; // 1 - inner, 2 - outer
+    float reserved5       = 0;
 
     Internal::ImageBackend* imageBackend = nullptr;
     uint8_t unused2[16 - sizeof(void*)]{};
@@ -356,16 +352,16 @@ struct RenderStateEx : RenderState {
         args.apply(this);
     }
 
-    ImageHandle imageHandle;
+    RC<Image> imageHandle;
     RC<GradientResource> gradientHandle;
     SpriteResources sprites;
 };
 
 template <GradientType grad_type>
 void Tag::FillGradient<grad_type>::apply(const GradientPoints& value, RenderStateEx& state) {
-    state.gradient        = grad_type;
-    state.gradient_point1 = value.point1;
-    state.gradient_point2 = value.point2;
+    state.gradient       = grad_type;
+    state.gradientPoint1 = value.point1;
+    state.gradientPoint2 = value.point2;
 }
 
 static_assert(sizeof(RenderState) % 256 == 0, "sizeof(RenderState) % 256 == 0");

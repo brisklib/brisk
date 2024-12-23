@@ -178,7 +178,7 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
             const auto& line = prepared.lines[lineIndex];
             drawRectangle(Rectangle(pos + PointF(range.min, line.baseline - line.ascDesc.ascender),
                                     pos + PointF(range.max, line.baseline + line.ascDesc.descender)),
-                          0.f, 0.f, fillColor = tempState.stroke_color1, strokeWidth = 0);
+                          0.f, 0.f, fillColor = tempState.strokeColor1, strokeWidth = 0);
         }
     }
 
@@ -228,15 +228,15 @@ RawCanvas& RawCanvas::drawEllipse(RectangleF rect, float angle, RenderStateExArg
     return *this;
 }
 
-RawCanvas& RawCanvas::drawTexture(RectangleF rect, const ImageHandle& tex, const Matrix& matrix,
+RawCanvas& RawCanvas::drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix,
                                   RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Rectangles, args);
     prepareStateInplace(style);
-    style.imageHandle    = tex;
-    style.texture_matrix = (Matrix::scaling(rect.width() / tex->width(), rect.height() / tex->height()) *
-                            matrix * Matrix::translation(rect.x1, rect.y1))
-                               .invert()
-                               .value_or(Matrix{});
+    style.textureMatrix = (Matrix::scaling(rect.width() / tex->width(), rect.height() / tex->height()) *
+                           matrix * Matrix::translation(rect.x1, rect.y1))
+                              .invert()
+                              .value_or(Matrix{});
+    style.imageHandle = std::move(tex);
     m_context.command(std::move(style), one(GeometryRectangle{ rect, 0.f, 0.f, 0.f, 0.f }));
     return *this;
 }
@@ -251,9 +251,9 @@ RawCanvas& RawCanvas::drawArc(PointF center, float outerRadius, float innerRadiu
 RawCanvas& RawCanvas::drawMask(SpriteResources sprites, std::span<GeometryGlyph> glyphs,
                                RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Mask, glyphs.size(), args);
-    style.subpixel_mode       = SubpixelMode::Off;
-    style.sprite_oversampling = 1;
-    style.sprites             = std::move(sprites);
+    style.subpixelMode       = SubpixelMode::Off;
+    style.spriteOversampling = 1;
+    style.sprites            = std::move(sprites);
     prepareStateInplace(style);
     m_context.command(std::move(style), glyphs);
     return *this;
@@ -262,9 +262,9 @@ RawCanvas& RawCanvas::drawMask(SpriteResources sprites, std::span<GeometryGlyph>
 RawCanvas& RawCanvas::drawText(SpriteResources sprites, std::span<GeometryGlyph> glyphs,
                                RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Text, glyphs.size(), args);
-    style.subpixel_mode       = SubpixelMode::RGB;
-    style.sprite_oversampling = fonts->hscale();
-    style.sprites             = std::move(sprites);
+    style.subpixelMode       = SubpixelMode::RGB;
+    style.spriteOversampling = fonts->hscale();
+    style.sprites            = std::move(sprites);
     prepareStateInplace(style);
     m_context.command(std::move(style), glyphs);
     return *this;

@@ -119,7 +119,7 @@ AutoScrollable::AutoScrollable(Construction construction, Orientation orientatio
     args.apply(this);
 }
 
-Widget::Ptr AutoScrollable::cloneThis() const {
+RC<Widget> AutoScrollable::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

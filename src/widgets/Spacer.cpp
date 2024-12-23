@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-Widget::Ptr Spacer::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> Spacer::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Spacer::Spacer(Construction construction, ArgumentsView<Spacer> args)
     : Widget{ construction, nullptr } {

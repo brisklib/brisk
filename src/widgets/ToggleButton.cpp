@@ -45,7 +45,7 @@ void ToggleButton::setValue(bool newValue) {
     value = newValue;
 }
 
-Widget::Ptr ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+RC<Widget> ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ToggleButton::ToggleButton(Construction construction, ArgumentsView<ToggleButton> args)
     : Base{ construction, nullptr } {

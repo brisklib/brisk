@@ -62,7 +62,7 @@ protected:
 
     virtual void beforeDraw(Canvas& canvas);
     virtual void afterDraw(Canvas& canvas);
-    Widget::Ptr root() const;
+    RC<Widget> root() const;
     void clearRoot();
     void rebuildRoot();
     void beforeFrame() override;

@@ -37,7 +37,7 @@ public:
 
 protected:
     Ptr cloneThis() const override;
-    void append(Widget::Ptr widget) override;
+    void append(RC<Widget> widget) override;
     explicit ContextPopup(Construction construction, ArgumentsView<ContextPopup> args);
 };
 } // namespace Brisk

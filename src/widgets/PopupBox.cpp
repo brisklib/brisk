@@ -37,7 +37,7 @@ PopupBox::PopupBox(Construction construction, ArgumentsView<PopupBox> args)
     args.apply(this);
 }
 
-Widget::Ptr PopupBox::cloneThis() const {
+RC<Widget> PopupBox::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -56,7 +56,7 @@ void PopupBox::onEvent(Event& event) {
     }
 }
 
-void PopupBox::append(Widget::Ptr widget) {
+void PopupBox::append(RC<Widget> widget) {
     if (Item* it = dynamic_cast<Item*>(widget.get())) {
         it->dynamicFocus = true;
         Base::append(std::move(widget));

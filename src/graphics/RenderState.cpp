@@ -38,34 +38,34 @@ bool RenderState::compare(const RenderState& second) const {
 }
 
 void RenderState::premultiply() {
-    fill_color1   = fill_color1.premultiply();
-    fill_color2   = fill_color2.premultiply();
-    stroke_color1 = stroke_color1.premultiply();
-    stroke_color2 = stroke_color2.premultiply();
+    fillColor1   = fillColor1.premultiply();
+    fillColor2   = fillColor2.premultiply();
+    strokeColor1 = strokeColor1.premultiply();
+    strokeColor2 = strokeColor2.premultiply();
 }
 
 void Tag::SubpixelMode::apply(const Type& value, RenderStateEx& state) {
-    state.subpixel_mode = value;
+    state.subpixelMode = value;
 }
 
 void Tag::FillColor::apply(const ColorF& value, RenderStateEx& state) {
-    state.fill_color1 = value;
-    state.fill_color2 = value;
+    state.fillColor1 = value;
+    state.fillColor2 = value;
 }
 
 void Tag::StrokeColor::apply(const ColorF& value, RenderStateEx& state) {
-    state.stroke_color1 = value;
-    state.stroke_color2 = value;
+    state.strokeColor1 = value;
+    state.strokeColor2 = value;
 }
 
 void Tag::FillColors::apply(const GradientColors& value, RenderStateEx& state) {
-    state.fill_color1 = value.color1;
-    state.fill_color2 = value.color2;
+    state.fillColor1 = value.color1;
+    state.fillColor2 = value.color2;
 }
 
 void Tag::StrokeColors::apply(const GradientColors& value, RenderStateEx& state) {
-    state.stroke_color1 = value.color1;
-    state.stroke_color2 = value.color2;
+    state.strokeColor1 = value.color1;
+    state.strokeColor2 = value.color2;
 }
 
 void Tag::PaintOpacity::apply(const Tag::PaintOpacity::Type& value, RenderStateEx& state) {
@@ -77,8 +77,8 @@ void Tag::ContourSize::apply(const Tag::ContourSize::Type& value, RenderStateEx&
 }
 
 void Tag::ContourColor::apply(const Tag::ContourColor::Type& value, RenderStateEx& state) {
-    state.fill_color1 = value;
-    state.fill_color2 = value;
+    state.fillColor1 = value;
+    state.fillColor2 = value;
 }
 
 void Tag::StrokeWidth::apply(const Tag::StrokeWidth::Type& value, RenderStateEx& state) {
@@ -94,9 +94,9 @@ void Tag::Scissor::apply(const Tag::Scissor::Type& value, RenderStateEx& state) 
 }
 
 void Tag::Patterns::apply(const Tag::Patterns::Type& value, RenderStateEx& state) {
-    state.hpattern      = value.hpattern;
-    state.vpattern      = value.vpattern;
-    state.pattern_scale = std::max(1, value.scale);
+    state.hpattern     = value.hpattern;
+    state.vpattern     = value.vpattern;
+    state.patternScale = std::max(1, value.scale);
 }
 
 void Tag::BlurRadius::apply(const Tag::BlurRadius::Type& value, RenderStateEx& state) {
@@ -112,7 +112,7 @@ void Tag::TextureChannel::apply(const Tag::TextureChannel::Type& value, RenderSt
 }
 
 void Tag::ContourFlags::apply(const Tag::ContourFlags::Type& value, RenderStateEx& state) {
-    state.shadow_flags = value;
+    state.shadowFlags = value;
 }
 
 void Tag::CoordMatrix::apply(const Tag::CoordMatrix::Type& value, RenderStateEx& state) {

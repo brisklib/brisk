@@ -169,8 +169,6 @@ struct Attributes {
     virtual void applyTo(Widget* target) const = 0;
 };
 
-using AttributesPtr = std::shared_ptr<const Attributes>;
-
 struct ArgumentAttributes final : public Attributes {
     ArgumentAttributes(ArgumentsView<Widget> args) noexcept : args(args) {}
 
@@ -528,11 +526,9 @@ void fixClone(U* ptr) noexcept {
 }
 
 #define BRISK_CLONE_IMPLEMENTATION                                                                           \
-    {                                                                                                        \
-        auto result = rcnew std::remove_cvref_t<decltype(*this)>(*this);                                     \
-        Internal::fixClone(result.get());                                                                    \
-        return result;                                                                                       \
-    }
+    auto result = rcnew std::remove_cvref_t<decltype(*this)>(*this);                                         \
+    Internal::fixClone(result.get());                                                                        \
+    return result;
 
 } // namespace Internal
 
@@ -687,7 +683,7 @@ public:
 
         void operator++();
 
-        const Widget::Ptr& operator*() const;
+        const RC<Widget>& operator*() const;
 
         bool operator!=(std::nullptr_t) const;
     };
@@ -699,7 +695,7 @@ public:
 
         void operator++();
 
-        const Widget::Ptr& operator*() const;
+        const RC<Widget>& operator*() const;
 
         bool operator!=(std::nullptr_t) const;
     };
@@ -714,7 +710,7 @@ public:
 
     template <typename Fn>
     void bubble(Fn&& fn, bool includePopup = false) {
-        Widget::Ptr current = this->shared_from_this();
+        RC<Widget> current = this->shared_from_this();
         while (current) {
             if (!fn(current.get()))
                 return;
@@ -952,8 +948,8 @@ public:
     void remove(Widget* widget);
     void clear();
 
-    virtual void append(Widget::Ptr widget);
-    void apply(Widget::Ptr widget);
+    virtual void append(RC<Widget> widget);
+    void apply(RC<Widget> widget);
 
     virtual void onParentChanged();
 

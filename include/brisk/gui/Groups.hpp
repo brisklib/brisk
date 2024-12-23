@@ -70,7 +70,7 @@ public:
         endConstruction();
     }
 
-    void append(Widget::Ptr widget) override {
+    void append(RC<Widget> widget) override {
         if (widget)
             widget->apply(&group);
         Widget::append(std::move(widget));

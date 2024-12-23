@@ -144,7 +144,7 @@ public:
     void enterModal();
     void exitModal();
 
-    void captureFrame(function<void(ImageHandle)> callback);
+    void captureFrame(function<void(RC<Image>)> callback);
 
     RC<WindowRenderTarget> target() const;
 
@@ -218,8 +218,8 @@ protected:
     // Rendering
     RC<WindowRenderTarget> m_target;
     RC<RenderEncoder> m_encoder;
-    function<void(ImageHandle)> m_captureCallback;
-    ImageHandle m_capturedFrame;
+    function<void(RC<Image>)> m_captureCallback;
+    RC<Image> m_capturedFrame;
     std::chrono::microseconds m_lastFrameRenderTime{ 0 };
     Internal::DisplaySyncPoint m_syncPoint;
     std::atomic_llong m_frameNumber{ 0 };

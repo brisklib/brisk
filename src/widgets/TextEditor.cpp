@@ -582,7 +582,7 @@ PasswordEditor::PasswordEditor(Construction construction, ArgumentsView<Password
     args.apply(this);
 }
 
-Widget::Ptr PasswordEditor::cloneThis() const {
+RC<Widget> PasswordEditor::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

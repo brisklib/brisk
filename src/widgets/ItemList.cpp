@@ -46,7 +46,7 @@ void ItemList::onEvent(Event& event) {
     }
 }
 
-void ItemList::append(Widget::Ptr widget) {
+void ItemList::append(RC<Widget> widget) {
     if (Item* it = dynamic_cast<Item*>(widget.get())) {
         it->dynamicFocus = true;
         Base::append(std::move(widget));
@@ -64,7 +64,7 @@ ItemList::ItemList(Construction construction, ArgumentsView<ItemList> args)
     args.apply(this);
 }
 
-Widget::Ptr ItemList::cloneThis() const {
+RC<Widget> ItemList::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

@@ -69,7 +69,7 @@ namespace Internal {
 template <typename T>
 using StyleFunction = function<T(Widget*)>;
 
-using StyleValuePtr = std::shared_ptr<void>;
+using StyleValuePtr = RC<void>;
 
 enum class RuleOp : uint8_t {
     Value,
@@ -79,7 +79,7 @@ enum class RuleOp : uint8_t {
 
 struct StyleProperty {
     template <typename Type>
-    static bool get(Type& value, RuleOp op, const StyleValuePtr& rule, Widget* widget) {
+    static bool get(Type& value, RuleOp op, const RC<void>& rule, Widget* widget) {
         switch (op) {
         default:
             return false;

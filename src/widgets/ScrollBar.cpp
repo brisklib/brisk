@@ -104,7 +104,7 @@ ScrollBar::ScrollBar(Construction construction, ArgumentsView<ScrollBar> args)
     args.apply(this);
 }
 
-Widget::Ptr ScrollBar::cloneThis() const {
+RC<Widget> ScrollBar::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
