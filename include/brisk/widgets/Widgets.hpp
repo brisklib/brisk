@@ -46,7 +46,6 @@
 #include "PopupDialog.hpp"
 #include "Progress.hpp"
 #include "RadioButton.hpp"
-#include "ScrollBar.hpp"
 #include "ScrollBox.hpp"
 #include "Slider.hpp"
 #include "Spacer.hpp"

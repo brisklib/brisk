@@ -356,16 +356,13 @@ constexpr auto operator+(Wrap value) noexcept {
 }
 
 enum class Overflow : uint8_t {
-    Visible,
-    Hidden,
-    ScrollX,
-    ScrollY,
-    ScrollBoth,
+    None       = 0,
+    ScrollX    = 1,
+    ScrollY    = 2,
+    ScrollBoth = 3,
 };
 
-constexpr auto operator+(Overflow value) noexcept {
-    return static_cast<std::underlying_type_t<decltype(value)>>(value);
-}
+BRISK_FLAGS(Overflow)
 
 enum class Gutter : uint8_t {
     Column,
