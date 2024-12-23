@@ -123,3 +123,9 @@ if (NOT VCPKG_TARGET_TRIPLET IN_LIST SUPPORTED_TRIPLETS)
     message(WARNING "The specified VCPKG_TARGET_TRIPLET ${VCPKG_TARGET_TRIPLET} is not supported.")
     message(WARNING "Supported triplets are: ${SUPPORTED_TRIPLETS}")
 endif ()
+
+if (CMAKE_CROSSCOMPILING)
+    set(VCPKG_USE_HOST_TOOLS
+        ON
+        CACHE BOOL "Enable host tools for find_program" FORCE)
+endif ()
