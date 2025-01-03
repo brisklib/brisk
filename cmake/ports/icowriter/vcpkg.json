@@ -1,0 +1,70 @@
+{
+  "name": "icowriter",
+  "version": "123",
+  "homepage": "https://brisklib.com",
+  "license": null,
+  "description": "Icowriter converts PNG files to MS Windows .ico format",
+  "supports": "!(windows & arm32) & !mingw",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    {
+      "name": "fmt"
+    },
+    {
+      "name": "tl-expected"
+    },
+    {
+      "name": "libpng"
+    },
+    {
+      "name": "concurrentqueue"
+    },
+    {
+      "name": "stb"
+    },
+    {
+      "name": "msgpack",
+      "default-features": false
+    },
+    {
+      "name": "lz4"
+    },
+    {
+      "name": "zlib"
+    },
+    {
+      "name": "brotli"
+    },
+    {
+      "name": "utf8proc"
+    },
+    {
+      "name": "spdlog"
+    },
+    {
+      "name": "rapidjson"
+    },
+    {
+      "name": "libuv"
+    }
+  ],
+  "overrides": [
+    {
+      "name": "vcpkg-tool-meson",
+      "version-string": "1.3.2",
+      "port-version": 8
+    },
+    {
+      "name": "msgpack",
+      "version-string": "6.1.1",
+      "port-version": 0
+    }
+  ]
+}

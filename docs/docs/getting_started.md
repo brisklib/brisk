@@ -66,12 +66,12 @@ These directories are relocatable, so you can move them to another directory or 
 
 Brisk is tested with the following triplets:
 
-|       | Linux                        | macOS                        | Windows (static runtime)              | Windows (dynamic runtime)                |
-|-------|------------------------------|------------------------------|---------------------------------------|------------------------------------------|
-| x86   | —                            | —                            | :white_check_mark: x86-windows-static | :white_check_mark: x86-windows-static-md |
-| x64   | :white_check_mark: x64-linux | :white_check_mark: x64-osx   | :white_check_mark: x64-windows-static | :white_check_mark: x64-windows-static-md |
-| arm   | :construction:               | :construction:               | :construction:                        | :construction:                           |
-| arm64 | :construction:               | :white_check_mark: arm64-osx | :construction:                        | :construction:                           |
+|       | Linux                        | macOS                        | Windows (static runtime)                | Windows (dynamic runtime)                  |
+|-------|------------------------------|------------------------------|-----------------------------------------|--------------------------------------------|
+| x86   | —                            | —                            | :white_check_mark: x86-windows-static   | :white_check_mark: x86-windows-static-md   |
+| x64   | :white_check_mark: x64-linux | :white_check_mark: x64-osx   | :white_check_mark: x64-windows-static   | :white_check_mark: x64-windows-static-md   |
+| arm   | :construction:               | :construction:               | :construction:                          | :construction:                             |
+| arm64 | :construction:               | :white_check_mark: arm64-osx | :white_check_mark: arm64-windows-static | :white_check_mark: arm64-windows-static-md |
 
 > [!warning]
 > Currently, Brisk supports only static linking of dependencies; dynamic linking for Brisk libraries will be available in a future release.

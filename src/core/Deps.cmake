@@ -12,11 +12,6 @@ target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE}
                       $<BUILD_INTERFACE:$<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>>)
 # /libuv
 
-# >readerwriterqueue
-find_path(READERWRITERQUEUE_INCLUDE_DIRS "readerwriterqueue/atomicops.h")
-target_include_directories(${_BRISK_CORE} ${_DEP_PRIVATE} ${READERWRITERQUEUE_INCLUDE_DIRS})
-# /readerwriterqueue
-
 # >concurrentqueue
 find_package(unofficial-concurrentqueue CONFIG REQUIRED)
 target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE} unofficial::concurrentqueue::concurrentqueue)
