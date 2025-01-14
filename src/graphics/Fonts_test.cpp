@@ -405,81 +405,83 @@ TEST_CASE("FontManager") {
     CHECK(run.graphemeToCaret(1) == PointF{ 0, 12 });
     CHECK(run.graphemeToCaret(2) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
 
-    run = fontManager->prepare(font, U"ابت"s);
-    REQUIRE(run.runs.size() == 1);
-    CHECK(run.runs[0].charRange() == Range{ 0u, 3u });
-    CHECK(run.runs[0].glyphs.size() == 3);
-    CHECK(run.runs[0].direction == TextDirection::RTL);
-    CHECK(run.runs[0].glyphs[0].codepoint == U'ت');
-    CHECK(run.runs[0].glyphs[1].codepoint == U'ب');
-    CHECK(run.runs[0].glyphs[2].codepoint == U'ا');
-    CHECK(run.runs[0].glyphs[1].pos.x > run.runs[0].glyphs[0].pos.x);
-    CHECK(run.runs[0].glyphs[2].pos.x > run.runs[0].glyphs[1].pos.x);
-    CHECK(run.runs[0].glyphs[0].charRange() == Range{ 2u, 3u }); // rtl
-    CHECK(run.runs[0].glyphs[1].charRange() == Range{ 1u, 2u }); // rtl
-    CHECK(run.runs[0].glyphs[2].charRange() == Range{ 0u, 1u }); // rtl
-    CHECK(run.runs[0].glyphs[1].left_caret > run.runs[0].glyphs[0].left_caret);
-    CHECK(run.runs[0].glyphs[2].left_caret > run.runs[0].glyphs[1].left_caret);
-    CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
-    REQUIRE(run.lines.size() == 1);
-    CHECK(run.lines[0].runRange == Range{ 0u, 1u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 4u });
-    run.updateCaretData();
-    REQUIRE(run.caretPositions.size() == 4);
-    REQUIRE(run.ranges.size() == 3);
-    CHECK(run.caretPositions[1] < run.caretPositions[0]); // rtl
-    CHECK(run.caretPositions[2] < run.caretPositions[1]); // rtl
-    CHECK(run.caretPositions[3] < run.caretPositions[2]); // rtl
-    CHECK(run.graphemeToCaret(0) == PointF{ run.runs[0].glyphs[2].right_caret, 0 });
-    CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
-    CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
-    CHECK(run.graphemeToCaret(3) == PointF{ run.runs[0].glyphs[0].left_caret, 0 });
+    if (icuAvailable) {
+        run = fontManager->prepare(font, U"ابت"s);
+        REQUIRE(run.runs.size() == 1);
+        CHECK(run.runs[0].charRange() == Range{ 0u, 3u });
+        CHECK(run.runs[0].glyphs.size() == 3);
+        CHECK(run.runs[0].direction == TextDirection::RTL);
+        CHECK(run.runs[0].glyphs[0].codepoint == U'ت');
+        CHECK(run.runs[0].glyphs[1].codepoint == U'ب');
+        CHECK(run.runs[0].glyphs[2].codepoint == U'ا');
+        CHECK(run.runs[0].glyphs[1].pos.x > run.runs[0].glyphs[0].pos.x);
+        CHECK(run.runs[0].glyphs[2].pos.x > run.runs[0].glyphs[1].pos.x);
+        CHECK(run.runs[0].glyphs[0].charRange() == Range{ 2u, 3u }); // rtl
+        CHECK(run.runs[0].glyphs[1].charRange() == Range{ 1u, 2u }); // rtl
+        CHECK(run.runs[0].glyphs[2].charRange() == Range{ 0u, 1u }); // rtl
+        CHECK(run.runs[0].glyphs[1].left_caret > run.runs[0].glyphs[0].left_caret);
+        CHECK(run.runs[0].glyphs[2].left_caret > run.runs[0].glyphs[1].left_caret);
+        CHECK(run.runs[0].glyphs[1].right_caret > run.runs[0].glyphs[1].left_caret);
+        REQUIRE(run.lines.size() == 1);
+        CHECK(run.lines[0].runRange == Range{ 0u, 1u });
+        CHECK(run.lines[0].graphemeRange == Range{ 0u, 4u });
+        run.updateCaretData();
+        REQUIRE(run.caretPositions.size() == 4);
+        REQUIRE(run.ranges.size() == 3);
+        CHECK(run.caretPositions[1] < run.caretPositions[0]); // rtl
+        CHECK(run.caretPositions[2] < run.caretPositions[1]); // rtl
+        CHECK(run.caretPositions[3] < run.caretPositions[2]); // rtl
+        CHECK(run.graphemeToCaret(0) == PointF{ run.runs[0].glyphs[2].right_caret, 0 });
+        CHECK(run.graphemeToCaret(1) == PointF{ run.runs[0].glyphs[1].right_caret, 0 });
+        CHECK(run.graphemeToCaret(2) == PointF{ run.runs[0].glyphs[0].right_caret, 0 });
+        CHECK(run.graphemeToCaret(3) == PointF{ run.runs[0].glyphs[0].left_caret, 0 });
 
-    run = fontManager->prepare(font, U"abאבcd"s);
-    REQUIRE(run.runs.size() == 3);
-    CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
-    CHECK(run.runs[0].glyphs.size() == 2);
-    CHECK(run.runs[0].direction == TextDirection::LTR);
-    CHECK(run.runs[1].charRange() == Range{ 2u, 4u });
-    CHECK(run.runs[1].glyphs.size() == 2);
-    CHECK(run.runs[1].direction == TextDirection::RTL);
-    CHECK(run.runs[2].charRange() == Range{ 4u, 6u });
-    CHECK(run.runs[2].glyphs.size() == 2);
-    CHECK(run.runs[2].direction == TextDirection::LTR);
-    REQUIRE(run.lines.size() == 1);
-    CHECK(run.lines[0].runRange == Range{ 0u, 3u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 7u });
-    run.updateCaretData();
-    REQUIRE(run.caretPositions.size() == 7);
-    REQUIRE(run.ranges.size() == 6);
-    CHECK(run.caretPositions[0] == 0);
-    CHECK(run.caretPositions[1] > run.caretPositions[0]);
-    CHECK(run.caretPositions[2] > run.caretPositions[1]);
-    CHECK(run.caretPositions[3] > run.caretPositions[2]);
-    CHECK(run.caretPositions[4] < run.caretPositions[3]);
-    CHECK(run.caretPositions[4] == run.caretPositions[2]);
-    CHECK(run.caretPositions[5] > run.caretPositions[3]);
-    CHECK(run.caretPositions[6] > run.caretPositions[5]);
+        run = fontManager->prepare(font, U"abאבcd"s);
+        REQUIRE(run.runs.size() == 3);
+        CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
+        CHECK(run.runs[0].glyphs.size() == 2);
+        CHECK(run.runs[0].direction == TextDirection::LTR);
+        CHECK(run.runs[1].charRange() == Range{ 2u, 4u });
+        CHECK(run.runs[1].glyphs.size() == 2);
+        CHECK(run.runs[1].direction == TextDirection::RTL);
+        CHECK(run.runs[2].charRange() == Range{ 4u, 6u });
+        CHECK(run.runs[2].glyphs.size() == 2);
+        CHECK(run.runs[2].direction == TextDirection::LTR);
+        REQUIRE(run.lines.size() == 1);
+        CHECK(run.lines[0].runRange == Range{ 0u, 3u });
+        CHECK(run.lines[0].graphemeRange == Range{ 0u, 7u });
+        run.updateCaretData();
+        REQUIRE(run.caretPositions.size() == 7);
+        REQUIRE(run.ranges.size() == 6);
+        CHECK(run.caretPositions[0] == 0);
+        CHECK(run.caretPositions[1] > run.caretPositions[0]);
+        CHECK(run.caretPositions[2] > run.caretPositions[1]);
+        CHECK(run.caretPositions[3] > run.caretPositions[2]);
+        CHECK(run.caretPositions[4] < run.caretPositions[3]);
+        CHECK(run.caretPositions[4] == run.caretPositions[2]);
+        CHECK(run.caretPositions[5] > run.caretPositions[3]);
+        CHECK(run.caretPositions[6] > run.caretPositions[5]);
 
-    run = fontManager->prepare(font, U"abאבcd"s, 22, true);
-    REQUIRE(run.runs.size() == 4);
-    CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
-    CHECK(run.runs[0].glyphs.size() == 2);
-    CHECK(run.runs[0].direction == TextDirection::LTR);
-    CHECK(run.runs[1].charRange() == Range{ 2u, 3u });
-    CHECK(run.runs[1].glyphs.size() == 1);
-    CHECK(run.runs[1].direction == TextDirection::RTL);
-    CHECK(run.runs[2].charRange() == Range{ 3u, 4u });
-    CHECK(run.runs[2].glyphs.size() == 1);
-    CHECK(run.runs[2].direction == TextDirection::RTL);
-    CHECK(run.runs[3].charRange() == Range{ 4u, 6u });
-    CHECK(run.runs[3].glyphs.size() == 2);
-    CHECK(run.runs[3].direction == TextDirection::LTR);
-    REQUIRE(run.lines.size() == 2);
-    CHECK(run.lines[0].runRange == Range{ 0u, 2u });
-    CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
-    CHECK(run.lines[1].runRange == Range{ 2u, 4u });
-    CHECK(run.lines[1].graphemeRange == Range{ 3u, 7u });
+        run = fontManager->prepare(font, U"abאבcd"s, 22, true);
+        REQUIRE(run.runs.size() == 4);
+        CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
+        CHECK(run.runs[0].glyphs.size() == 2);
+        CHECK(run.runs[0].direction == TextDirection::LTR);
+        CHECK(run.runs[1].charRange() == Range{ 2u, 3u });
+        CHECK(run.runs[1].glyphs.size() == 1);
+        CHECK(run.runs[1].direction == TextDirection::RTL);
+        CHECK(run.runs[2].charRange() == Range{ 3u, 4u });
+        CHECK(run.runs[2].glyphs.size() == 1);
+        CHECK(run.runs[2].direction == TextDirection::RTL);
+        CHECK(run.runs[3].charRange() == Range{ 4u, 6u });
+        CHECK(run.runs[3].glyphs.size() == 2);
+        CHECK(run.runs[3].direction == TextDirection::LTR);
+        REQUIRE(run.lines.size() == 2);
+        CHECK(run.lines[0].runRange == Range{ 0u, 2u });
+        CHECK(run.lines[0].graphemeRange == Range{ 0u, 3u });
+        CHECK(run.lines[1].runRange == Range{ 2u, 4u });
+        CHECK(run.lines[1].graphemeRange == Range{ 3u, 7u });
+    }
 
     run = fontManager->prepare(font, U"fi"s);
     REQUIRE(run.runs.size() == 1);

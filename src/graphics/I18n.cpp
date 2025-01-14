@@ -19,11 +19,14 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 
+#include <brisk/graphics/I18n.hpp>
 #include <brisk/core/internal/Debug.hpp>
 #include <brisk/graphics/Fonts.hpp>
 #include <utf8proc.h>
 
-#ifdef ICUDT_SIZE
+#ifndef ICUDT_SIZE
+#error ICUDT_SIZE must be defined
+#endif
 
 #include <brisk/core/Time.hpp>
 #include <brisk/core/Embed.hpp>
@@ -79,10 +82,14 @@ struct UBiDiDeleter {
     throwException(EUnicode("ICU Error: {}", safeCharPtr(u_errorName(err))));
 }
 
-static std::mutex breakIteratorMutex;
-static std::unique_ptr<icu::BreakIterator> breakIterators[3];
+struct LockableICUBreakIterator {
+    std::mutex mutex;
+    std::unique_ptr<icu::BreakIterator> iterator;
+};
 
-static std::unique_ptr<icu::BreakIterator> createBreakIterator(TextBreakMode mode) {
+static LockableICUBreakIterator cachedBreakIterators[3];
+
+static std::unique_ptr<icu::BreakIterator> createICUBreakIterator(TextBreakMode mode) {
     uncompressICUData();
     UErrorCode uerr = U_ZERO_ERROR;
     std::unique_ptr<icu::BreakIterator> iter;
@@ -106,39 +113,43 @@ static std::unique_ptr<icu::BreakIterator> createBreakIterator(TextBreakMode mod
     }
 }
 
-template <typename Fn>
-static auto withBreakIterator(TextBreakMode mode, Fn&& fn) {
-    std::unique_lock<std::mutex> lk(breakIteratorMutex, std::defer_lock_t{});
-    if (lk.try_lock()) {
-        if (!breakIterators[+mode])
-            breakIterators[+mode] = createBreakIterator(mode);
-        return fn(*breakIterators[+mode]);
-    } else {
-        std::unique_ptr<icu::BreakIterator> iter(createBreakIterator(mode));
-        return fn(*iter);
-    }
-}
+struct LockedICUBreakIterator {
+    LockableICUBreakIterator* locked;
+    icu::BreakIterator* iterator;
 
-std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode) {
-    return withBreakIterator(mode, [text](icu::BreakIterator& iter) {
-        std::vector<uint32_t> result;
-        u16string u16 = utf32ToUtf16(text);
-        icu::UnicodeString ustr(u16.data(), u16.size());
-        iter.setText(ustr);
-        size_t codepoints = 0;
-        result.clear();
-        result.push_back(0);
-        int32_t p    = iter.next();
-        int32_t oldp = 0;
-        while (p != icu::BreakIterator::DONE) {
-            codepoints +=
-                utf16Codepoints(std::u16string_view{ u16.data() + oldp, static_cast<size_t>(p - oldp) });
-            result.push_back(codepoints);
-            oldp = p;
-            p    = iter.next();
+    icu::BreakIterator* operator->() const {
+        return iterator;
+    }
+
+    LockedICUBreakIterator(const LockedICUBreakIterator&) noexcept            = delete;
+    LockedICUBreakIterator(LockedICUBreakIterator&&) noexcept                 = delete;
+    LockedICUBreakIterator& operator=(const LockedICUBreakIterator&) noexcept = delete;
+    LockedICUBreakIterator& operator=(LockedICUBreakIterator&&) noexcept      = delete;
+
+    LockedICUBreakIterator(TextBreakMode mode) {
+        if (cachedBreakIterators[+mode].mutex.try_lock()) {
+            if (!cachedBreakIterators[+mode].iterator) {
+                cachedBreakIterators[+mode].iterator = createICUBreakIterator(mode);
+            }
+            locked   = &cachedBreakIterators[+mode];
+            iterator = cachedBreakIterators[+mode].iterator.get();
+        } else {
+            locked   = nullptr;
+            iterator = createICUBreakIterator(mode).release();
         }
-        return result;
-    });
+    }
+
+    ~LockedICUBreakIterator() {
+        if (locked) {
+            locked->mutex.unlock();
+        } else {
+            delete iterator;
+        }
+    }
+};
+
+LockedICUBreakIterator acquireICUBreakIterator(TextBreakMode mode) {
+    return LockedICUBreakIterator(mode);
 }
 
 static TextDirection toDir(UBiDiDirection direction) {
@@ -207,55 +218,41 @@ std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defau
 
 } // namespace Brisk
 
-#else
-
 namespace Brisk {
 
-bool icuAvailable = false;
+Internal::TextBreakIterator::~TextBreakIterator() = default;
 
-static bool isCategoryWithin(char32_t codepoint, int32_t categoryFirst, int32_t categoryLast) {
-    const int32_t category = utf8proc_category(codepoint);
-    return category >= categoryFirst && category <= categoryLast;
-}
+namespace {
 
-static bool isSplit(char32_t previous, char32_t current, TextBreakMode mode) {
-    switch (mode) {
-    case TextBreakMode::Grapheme:
-        return utf8proc_grapheme_break(previous, current);
-    case TextBreakMode::Word:
-        return isCategoryWithin(previous, UTF8PROC_CATEGORY_LU, UTF8PROC_CATEGORY_LO) !=
-               isCategoryWithin(current, UTF8PROC_CATEGORY_LU, UTF8PROC_CATEGORY_LO);
-    case TextBreakMode::Line:
-        return isCategoryWithin(previous, UTF8PROC_CATEGORY_ZS, UTF8PROC_CATEGORY_ZP) &&
-               !isCategoryWithin(current, UTF8PROC_CATEGORY_ZS, UTF8PROC_CATEGORY_ZP);
-    default:
-        BRISK_UNREACHABLE();
+class TextBreakIteratorICU final : public Internal::TextBreakIterator {
+public:
+    LockedICUBreakIterator icu;
+    icu::UnicodeString ustr;
+    size_t codepoints = 0;
+    int32_t oldp      = 0;
+
+    TextBreakIteratorICU(std::u32string_view text, TextBreakMode mode) : icu(mode) {
+        std::u16string u16 = utf32ToUtf16(text);
+        ustr.setTo(u16.data(), u16.size());
+        icu->setText(ustr);
     }
-}
 
-std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode) {
-    std::vector<uint32_t> result;
-    result.push_back(0);
-    if (text.empty())
-        return result;
-    char32_t previous = text.front();
-    for (size_t i = 1; i < text.size(); ++i) {
-        char32_t current = text[i];
-        if (isSplit(previous, current, mode))
-            result.push_back(i);
-        previous = current;
+    ~TextBreakIteratorICU() = default;
+
+    std::optional<uint32_t> next() {
+        int32_t p = icu->next();
+        if (p == icu::BreakIterator::DONE) {
+            return std::nullopt;
+        }
+        codepoints +=
+            utf16Codepoints(std::u16string_view{ ustr.getBuffer() + oldp, static_cast<size_t>(p - oldp) });
+        oldp = p;
+        return codepoints;
     }
-    result.push_back(text.size());
-    return result;
-}
+};
+} // namespace
 
-namespace Internal {
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection) {
-    return std::vector<TextRun>{
-        TextRun{ TextDirection::LTR, 0, static_cast<int32_t>(text.size()), 0, nullptr },
-    };
+RC<Internal::TextBreakIterator> Internal::textBreakIterator(std::u32string_view text, TextBreakMode mode) {
+    return rcnew TextBreakIteratorICU(text, mode);
 }
-} // namespace Internal
-
 } // namespace Brisk
-#endif

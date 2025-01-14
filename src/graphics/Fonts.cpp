@@ -581,7 +581,6 @@ static void toVisualOrder(std::vector<TextRun>& textRuns) {
 }
 
 // Split text into runs of the same direction
-// Defined in ICU.cpp
 std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection);
 
 std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection,

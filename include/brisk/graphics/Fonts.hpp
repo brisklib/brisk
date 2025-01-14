@@ -8,6 +8,7 @@
 #include "Image.hpp"
 #include <brisk/core/IO.hpp>
 #include "internal/Sprites.hpp"
+#include "I18n.hpp"
 
 namespace Brisk {
 
@@ -21,36 +22,7 @@ public:
     using ELogic::ELogic;
 };
 
-enum class TextBreakMode {
-    Grapheme,
-    Word,
-    Line,
-};
-
-constexpr auto operator+(TextBreakMode value) noexcept {
-    return static_cast<std::underlying_type_t<decltype(value)>>(value);
-}
-
-std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode);
-
 using GlyphID = uint32_t;
-
-enum class TextDirection : uint8_t {
-    LTR,
-    RTL,
-};
-
-struct BidiText {
-    std::optional<TextDirection> direction; // nullopt means mixed
-};
-
-RC<BidiText> bidiText(std::u32string_view text, TextDirection defaultDirection);
-
-template <>
-inline constexpr std::initializer_list<NameValuePair<TextDirection>> defaultNames<TextDirection>{
-    { "LTR", TextDirection::LTR },
-    { "RTL", TextDirection::RTL },
-};
 
 enum class LayoutOptions : uint32_t {
     Default    = 0,
@@ -299,21 +271,6 @@ struct TextRun {
         ReflectionField{ "visualOrder", &TextRun::visualOrder },
     };
 };
-
-/**
- * @brief Splits a string of text into multiple `TextRun` objects based on directionality.
- *
- * This function analyzes the given text and segments it into runs of uniform properties. It takes into
- * account the specified default text direction and optionally applies visual order for bidirectional text.
- *
- * @param text The text to be split into text runs.
- * @param defaultDirection The default text direction to use if no explicit directionality is detected.
- * @param visualOrder If `true`, the resulting text runs will be reordered to match the visual order of the
- * text.
- * @return std::vector<TextRun> A vector of `TextRun` objects representing the segmented text.
- */
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection,
-                                   bool visualOrder);
 
 /**
  * @enum GlyphFlags
@@ -1098,6 +1055,32 @@ private:
 };
 
 extern std::optional<FontManager> fonts;
+
+inline std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode) {
+    std::vector<uint32_t> result(1, 0);
+    RC<Internal::TextBreakIterator> iter = Internal::textBreakIterator(text, mode);
+    while (auto p = iter->next()) {
+        result.push_back(*p);
+    }
+    return result;
+}
+
+namespace Internal {
+/**
+ * @brief Splits a string of text into multiple `TextRun` objects based on directionality.
+ *
+ * This function analyzes the given text and segments it into runs of uniform properties. It takes into
+ * account the specified default text direction and optionally applies visual order for bidirectional text.
+ *
+ * @param text The text to be split into text runs.
+ * @param defaultDirection The default text direction to use if no explicit directionality is detected.
+ * @param visualOrder If `true`, the resulting text runs will be reordered to match the visual order of the
+ * text.
+ * @return std::vector<TextRun> A vector of `TextRun` objects representing the segmented text.
+ */
+std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection,
+                                   bool visualOrder);
+} // namespace Internal
 
 /**
  * @brief Indicates whether the ICU library is available for full Unicode support.

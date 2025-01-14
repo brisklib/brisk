@@ -31,10 +31,6 @@ set(BRISK_ROOT
 
 include(${CMAKE_CURRENT_LIST_DIR}/init.cmake)
 
-if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    set(BRISK_STANDALONE TRUE)
-endif ()
-
 file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/../include/brisk/core/Version.hpp BRISK_VERSION
      REGEX "#define BRISK_VERSION_(MINOR|MAJOR|PATCH)")
 string(REGEX MATCHALL "[0-9]+" BRISK_VERSION_MATCH ${BRISK_VERSION})
@@ -43,10 +39,5 @@ string(REPLACE ";" "." BRISK_VERSION "${BRISK_VERSION_MATCH}")
 message(STATUS "BRISK ${BRISK_VERSION}, ROOT = ${BRISK_ROOT}")
 
 macro (brisk_setup)
-
-    if (NOT BRISK_STANDALONE)
-        execute_process()
-    endif ()
-
     add_subdirectory(${BRISK_ROOT} brisk-bin)
 endmacro ()
