@@ -38,6 +38,12 @@ project(
     VERSION ${BRISK_VERSION}
     LANGUAGES CXX C)
 
+    
+get_directory_property(BRISK_PARENT_DIR PARENT_DIRECTORY)
+if (NOT BRISK_PARENT_DIR)
+    set(BRISK_STANDALONE TRUE)
+endif()
+
 if (DEBUG_CMAKE)
     get_cmake_property(VARS VARIABLES)
     list(SORT VARS)
@@ -54,7 +60,7 @@ else ()
     set(ENABLE_WEBGPU OFF)
 endif ()
 option(BRISK_WEBGPU "Enable WebGPU" ${ENABLE_WEBGPU})
-option(BRISK_ICU "Enable full Unicode support" ON)
+option(BRISK_ICU "Link to ICU by default for full Unicode support" ON)
 option(BRISK_GONOTO "Include GoNoto font" OFF)
 option(BRISK_LOG_TO_STDERR "Write log output to stderr (Windows-specific)" OFF)
 
@@ -175,12 +181,13 @@ if (BRISK_TESTS)
         ${TESTS_GRAPHICS}
         LIBRARIES
         brisk-graphics
+        brisk-i18n-icu
         ${TESTS_GRAPHICS_LIBS}
         DEFINITIONS
         ${TESTS_GRAPHICS_DEFS})
-    add_autotests(window SOURCES ${TESTS_WINDOW} LIBRARIES brisk-window)
-    add_autotests(gui SOURCES ${TESTS_GUI} LIBRARIES brisk-gui)
-    add_autotests(widgets SOURCES ${TESTS_WIDGETS} LIBRARIES brisk-widgets)
+    add_autotests(window SOURCES ${TESTS_WINDOW} LIBRARIES brisk-window brisk-i18n-icu)
+    add_autotests(gui SOURCES ${TESTS_GUI} LIBRARIES brisk-gui brisk-i18n-icu)
+    add_autotests(widgets SOURCES ${TESTS_WIDGETS} LIBRARIES brisk-widgets brisk-i18n-icu)
 
 endif ()
 
@@ -226,6 +233,8 @@ install(
         brisk-gui
         brisk-widgets
         brisk-executable
+        brisk-i18n
+        brisk-i18n-icu
         ${EXTRA_INSTALL_TARGETS}
     EXPORT BriskTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}$<$<CONFIG:Debug>:${BRISK_DBG_SUFFIX}>
@@ -272,6 +281,5 @@ install(
     RENAME README.md
     DESTINATION .)
 
-install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/DEP_HASH ${CMAKE_CURRENT_BINARY_DIR}/VCPKG_TARGET_TRIPLET
-    DESTINATION ${BRISK_INSTALL_CMAKEDIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/DEP_HASH ${CMAKE_CURRENT_BINARY_DIR}/VCPKG_TARGET_TRIPLET
+        DESTINATION ${BRISK_INSTALL_CMAKEDIR})

@@ -32,7 +32,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Fonts.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Path.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Offscreen.hpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/ICU.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Gradients.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/SVG.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats_png.cpp
@@ -96,6 +95,30 @@ endif ()
 
 target_compile_definitions(brisk-graphics PRIVATE V_NAMESPACE=Brisk)
 
+add_library(brisk-i18n STATIC ${PROJECT_SOURCE_DIR}/src/graphics/I18n_fallback.cpp)
+target_link_libraries(brisk-i18n PUBLIC brisk-core)
+add_library(Brisk::I18n ALIAS brisk-i18n)
+set_property(TARGET brisk-i18n PROPERTY EXPORT_NAME I18n)
+
+set(ICU_DT icudt74l.dat)
+file(SIZE "${PROJECT_SOURCE_DIR}/resources/icu/${ICU_DT}" ICUDT_SIZE)
+
+add_library(brisk-i18n-icu STATIC ${PROJECT_SOURCE_DIR}/src/graphics/I18n.cpp)
+add_library(Brisk::I18n-ICU ALIAS brisk-i18n-icu)
+set_property(TARGET brisk-i18n-icu PROPERTY EXPORT_NAME I18n-ICU)
+target_link_libraries(brisk-i18n-icu PUBLIC brisk-core)
+target_compile_definitions(brisk-i18n-icu PRIVATE ICUDT_SIZE=${ICUDT_SIZE})
+brisk_target_link_resource(
+    brisk-i18n-icu PRIVATE icudt
+    INPUT "${PROJECT_SOURCE_DIR}/resources/icu/${ICU_DT}"
+    BROTLI)
+
+if (BRISK_ICU)
+    target_link_libraries(brisk-graphics INTERFACE $<BUILD_INTERFACE:brisk-i18n-icu>)
+else()
+    target_link_libraries(brisk-graphics INTERFACE $<BUILD_INTERFACE:brisk-i18n>)
+endif ()
+
 if (BRISK_WEBGPU)
     add_subdirectory(WebGPURenderer)
 endif ()
@@ -114,19 +137,6 @@ if (BRISK_WEBGPU)
         target_compile_definitions(brisk-graphics PRIVATE BRISK_WEBGPU=1)
     else ()
         message(FATAL_ERROR "BRISK_WEBGPU is ON but Dawn target is missing")
-    endif ()
-endif ()
-
-if (BRISK_ICU)
-    if (TARGET ICU::uc)
-        set(ICU_DT icudt74l.dat)
-        file(SIZE "${PROJECT_SOURCE_DIR}/resources/icu/${ICU_DT}" ICUDT_SIZE)
-        brisk_target_link_resource(
-            brisk-graphics PRIVATE icudt
-            INPUT "${PROJECT_SOURCE_DIR}/resources/icu/${ICU_DT}"
-            BROTLI)
-        set_source_files_properties(${PROJECT_SOURCE_DIR}/src/graphics/ICU.cpp PROPERTIES COMPILE_DEFINITIONS
-                                                                                          ICUDT_SIZE=${ICUDT_SIZE})
     endif ()
 endif ()
 

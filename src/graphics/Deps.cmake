@@ -6,6 +6,14 @@ if ("${_BRISK_GRAPHICS}" STREQUAL "")
     set(_BRISK_GRAPHICS brisk-graphics)
 endif ()
 
+get_property(
+    _BRISK_I18N_ICU
+    TARGET brisk-i18n-icu
+    PROPERTY ALIASED_TARGET)
+if ("${_BRISK_I18N_ICU}" STREQUAL "")
+    set(_BRISK_I18N_ICU brisk-i18n-icu)
+endif ()
+
 # >PNG
 find_package(PNG REQUIRED)
 target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} PNG::PNG)
@@ -39,16 +47,12 @@ target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} freetype)
 # /freetype
 
 # >icu
-if (BRISK_ICU)
-    find_package(ICU COMPONENTS uc)
-    if (TARGET ICU::uc)
-        target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} ICU::uc)
-    endif ()
-endif ()
+find_package(ICU COMPONENTS uc REQUIRED)
+target_link_libraries(${_BRISK_I18N_ICU} ${_DEP_PRIVATE} ICU::uc)
 # /icu
 
 if (BRISK_WEBGPU)
-    find_package(Dawn CONFIG)
+    find_package(Dawn CONFIG REQUIRED)
     if (TARGET Brisk::brisk-renderer-webgpu)
         target_link_libraries(Brisk::brisk-renderer-webgpu ${_DEP_PRIVATE} Dawn)
     else ()
