@@ -206,6 +206,8 @@ void Path::addPath(const Path& path, const Matrix& m) {
 }
 
 void Path::transform(const Matrix& m) {
+    if (m.isIdentity())
+        return;
     auto& points = v(this)->writablePoints();
     m.transform(std::span<PointF>{ reinterpret_cast<PointF*>(points.data()), points.size() });
 }
@@ -216,14 +218,18 @@ Path Path::clone() const {
     return *reinterpret_cast<Path*>(&c);
 }
 
-Path Path::transformed(const Matrix& m) const {
+Path Path::transformed(const Matrix& m) const& {
     Path copy = clone();
     copy.transform(m);
     return copy;
 }
 
+Path Path::transformed(const Matrix& m) && {
+    transform(m);
+    return std::move(*this);
+}
+
 Path Path::dashed(std::span<const float> pattern, float offset) const {
-    Path copy = clone();
     VDasher dasher(pattern.data(), pattern.size());
     Path result;
     *v(&result) = dasher.dashed(*v(this));

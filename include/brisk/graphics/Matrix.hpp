@@ -61,6 +61,15 @@ struct MatrixOf {
     constexpr explicit MatrixOf(const vec_type& v) : v(v) {}
 
     /**
+     * @brief Checks if the matrix is an identity matrix.
+     *
+     * @return true if the matrix is an identity matrix; false otherwise.
+     */
+    [[nodiscard]] constexpr bool isIdentity() const noexcept {
+        return *this == MatrixOf{};
+    }
+
+    /**
      * @brief Translates the matrix by a given point offset.
      *
      * @param offset The point by which to translate.

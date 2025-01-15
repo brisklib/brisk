@@ -56,14 +56,9 @@ const Canvas::State Canvas::defaultState{
     Matrix{},               /* transform */
     ColorF(Palette::black), /* strokePaint */
     ColorF(Palette::white), /* fillPaint */
-    DashArray{},            /* dashArray */
+    StrokeParams{},         /* dashArray */
     1.f,                    /* opacity */
-    1.f,                    /* strokeWidth */
-    10.f,                   /* miterLimit */
-    0.f,                    /* dashOffset */
-    FillRule::Winding,      /* fillRule */
-    JoinStyle::Bevel,       /* joinStyle */
-    CapStyle::Flat,         /* capStyle */
+    FillParams{},           /* fillRule */
 };
 
 Canvas::Canvas(RenderContext& context) : RawCanvas(context), m_state(defaultState) {}
@@ -87,11 +82,11 @@ void Canvas::setFillPaint(Paint paint) {
 }
 
 float Canvas::getStrokeWidth() const {
-    return m_state.strokeWidth;
+    return m_state.strokeParams.strokeWidth;
 }
 
 void Canvas::setStrokeWidth(float width) {
-    m_state.strokeWidth = width;
+    m_state.strokeParams.strokeWidth = width;
 }
 
 float Canvas::getOpacity() const {
@@ -123,51 +118,51 @@ void Canvas::setFillColor(ColorF color) {
 }
 
 float Canvas::getMiterLimit() const {
-    return m_state.miterLimit;
+    return m_state.strokeParams.miterLimit;
 }
 
 void Canvas::setMiterLimit(float limit) {
-    m_state.miterLimit = limit;
+    m_state.strokeParams.miterLimit = limit;
 }
 
 FillRule Canvas::getFillRule() const {
-    return m_state.fillRule;
+    return m_state.fillParams.fillRule;
 }
 
 void Canvas::setFillRule(FillRule fillRule) {
-    m_state.fillRule = fillRule;
+    m_state.fillParams.fillRule = fillRule;
 }
 
 JoinStyle Canvas::getJoinStyle() const {
-    return m_state.joinStyle;
+    return m_state.strokeParams.joinStyle;
 }
 
 void Canvas::setJoinStyle(JoinStyle joinStyle) {
-    m_state.joinStyle = joinStyle;
+    m_state.strokeParams.joinStyle = joinStyle;
 }
 
 CapStyle Canvas::getCapStyle() const {
-    return m_state.capStyle;
+    return m_state.strokeParams.capStyle;
 }
 
 void Canvas::setCapStyle(CapStyle capStyle) {
-    m_state.capStyle = capStyle;
+    m_state.strokeParams.capStyle = capStyle;
 }
 
 float Canvas::getDashOffset() const {
-    return m_state.dashOffset;
+    return m_state.strokeParams.dashOffset;
 }
 
 void Canvas::setDashOffset(float offset) {
-    m_state.dashOffset = offset;
+    m_state.strokeParams.dashOffset = offset;
 }
 
 const DashArray& Canvas::getDashArray() const {
-    return m_state.dashArray;
+    return m_state.strokeParams.dashArray;
 }
 
 void Canvas::setDashArray(const DashArray& array) {
-    m_state.dashArray = array;
+    m_state.strokeParams.dashArray = array;
 }
 
 void Canvas::strokeRect(RectangleF rect) {
@@ -293,8 +288,8 @@ void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
         if (gradient.m_colorStops.empty()) {
             break;
         }
-        renderState.gradientPoint1 = Matrix(m_state.transform).transform(gradient.m_startPoint);
-        renderState.gradientPoint2 = Matrix(m_state.transform).transform(gradient.m_endPoint);
+        renderState.gradientPoint1 = m_state.transform.transform(gradient.m_startPoint);
+        renderState.gradientPoint2 = m_state.transform.transform(gradient.m_endPoint);
         renderState.gradient       = gradient.m_type;
         renderState.opacity        = m_state.opacity;
         if (gradient.m_colorStops.size() == 1) {
@@ -328,38 +323,40 @@ void Canvas::drawPath(const RasterizedPath& path, const Paint& paint) {
     }
 }
 
-Rectangle Canvas::transformedClipRect() const {
-    return m_state.clipRect == noClipRect
-               ? noClipRect
-               : Rectangle(Matrix(m_state.transform).transform(RectangleF(m_state.clipRect)));
+Rectangle Canvas::transformedClipRect(const Matrix& matrix, RectangleF clipRect) {
+    return clipRect == noClipRect ? noClipRect : Rectangle(matrix.transform(clipRect));
 }
 
 void Canvas::strokePath(Path path) {
-    if (!m_state.dashArray.empty()) {
-        path = path.dashed(m_state.dashArray, m_state.dashOffset);
-    }
-    if (Matrix(m_state.transform) != Matrix()) {
-        path = path.transformed(m_state.transform);
-    }
-
-    float scale = Matrix(m_state.transform).estimateScale();
-
-    drawPath(path.rasterize(
-                 StrokeParams{
-                     m_state.joinStyle,
-                     m_state.capStyle,
-                     m_state.strokeWidth * scale,
-                     m_state.miterLimit * scale,
-                 },
-                 transformedClipRect()),
-             m_state.strokePaint);
+    strokePath(std::move(path), m_state.strokePaint, m_state.strokeParams, m_state.transform,
+               m_state.clipRect);
 }
 
 void Canvas::fillPath(Path path) {
-    if (Matrix(m_state.transform) != Matrix()) {
-        path = path.transformed(m_state.transform);
+    fillPath(std::move(path), m_state.fillPaint, m_state.fillParams, m_state.transform, m_state.clipRect);
+}
+
+void Canvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
+                        RectangleF clipRect) {
+    if (!params.dashArray.empty()) {
+        path = path.dashed(params.dashArray, params.dashOffset);
     }
-    drawPath(path.rasterize(FillParams{ m_state.fillRule }, transformedClipRect()), m_state.fillPaint);
+    path        = std::move(path).transformed(matrix);
+    float scale = matrix.estimateScale();
+    drawPath(path.rasterize(params.scale(scale), transformedClipRect(matrix, clipRect)), strokePaint);
+}
+
+void Canvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+                      const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                      RectangleF clipRect) {
+    fillPath(path, fillPaint, fillParams, matrix, clipRect);
+    strokePath(std::move(path), strokePaint, strokeParams, matrix, clipRect);
+}
+
+void Canvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                      RectangleF clipRect) {
+    path = std::move(path).transformed(matrix);
+    drawPath(path.rasterize(fillParams, transformedClipRect(matrix, clipRect)), fillPaint);
 }
 
 static void applier(RenderState* target, Matrix* matrix) {

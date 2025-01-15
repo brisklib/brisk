@@ -10,15 +10,6 @@ namespace Brisk {
 class Canvas;
 
 /**
- * @typedef DashArray
- * @brief A container for storing dash patterns used in stroking paths.
- *
- * DashArray holds a sequence of floats,
- * representing the lengths of dashes and gaps in a dashed line pattern.
- */
-using DashArray = inline_vector<float, 7>;
-
-/**
  * @struct Texture
  * @brief Represents a textured fill pattern for drawing operations.
  *
@@ -262,6 +253,14 @@ public:
      */
     void fillPath(Path path);
 
+    void strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
+                    RectangleF clipRect);
+    void fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                  RectangleF clipRect);
+    void drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+                  const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                  RectangleF clipRect);
+
     /**
      * @brief Strokes a rectangle with the current stroke settings.
      *
@@ -436,14 +435,9 @@ private:
         Matrix transform;
         Paint strokePaint;
         Paint fillPaint;
-        DashArray dashArray;
+        StrokeParams strokeParams;
         float opacity;
-        float strokeWidth;
-        float miterLimit;
-        float dashOffset;
-        FillRule fillRule;
-        JoinStyle joinStyle;
-        CapStyle capStyle;
+        FillParams fillParams;
         Font font;
     };
 
@@ -452,7 +446,7 @@ private:
     std::vector<State> m_stack; ///< The stack of saved Canvas states.
     void drawPath(const RasterizedPath& path, const Paint& paint);
 
-    Rectangle transformedClipRect() const;
+    static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect);
     void setPaint(RenderStateEx& renderState, const Paint& paint);
     friend void applier(RenderStateEx*, const std::pair<Canvas*, Paint*>);
 };
