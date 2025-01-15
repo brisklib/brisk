@@ -202,7 +202,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The string to hash.
  * @return The resulting hash as a `Bytes` object.
  */
-[[nodiscard]] Bytes hash(HashMethod method, string_view data);
+[[nodiscard]] Bytes hash(HashMethod method, std::string_view data);
 
 /**
  * @brief Computes the MD5 hash of a string.
@@ -210,7 +210,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The string to hash.
  * @return The resulting MD5 hash as an `MD5Hash` object.
  */
-[[nodiscard]] MD5Hash md5(string_view data);
+[[nodiscard]] MD5Hash md5(std::string_view data);
 
 /**
  * @brief Computes the SHA-1 hash of a string.
@@ -218,7 +218,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The string to hash.
  * @return The resulting SHA-1 hash as a `SHA1Hash` object.
  */
-[[nodiscard]] SHA1Hash sha1(string_view data);
+[[nodiscard]] SHA1Hash sha1(std::string_view data);
 
 /**
  * @brief Computes the SHA-256 hash of a string.
@@ -226,7 +226,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The string to hash.
  * @return The resulting SHA-256 hash as a `SHA256Hash` object.
  */
-[[nodiscard]] SHA256Hash sha256(string_view data);
+[[nodiscard]] SHA256Hash sha256(std::string_view data);
 
 /**
  * @brief Computes the SHA-512 hash of a string.
@@ -234,7 +234,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The string to hash.
  * @return The resulting SHA-512 hash as a `SHA512Hash` object.
  */
-[[nodiscard]] SHA512Hash sha512(string_view data);
+[[nodiscard]] SHA512Hash sha512(std::string_view data);
 
 /**
  * @brief Computes the SHA3-256 hash of a string.
@@ -242,7 +242,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The string to hash.
  * @return The resulting SHA3-256 hash as a `SHA3_256Hash` object.
  */
-[[nodiscard]] SHA3_256Hash sha3_256(string_view data);
+[[nodiscard]] SHA3_256Hash sha3_256(std::string_view data);
 
 /**
  * @brief Computes the SHA3-512 hash of a string.
@@ -250,7 +250,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The string to hash.
  * @return The resulting SHA3-512 hash as a `SHA3_512Hash` object.
  */
-[[nodiscard]] SHA3_512Hash sha3_512(string_view data);
+[[nodiscard]] SHA3_512Hash sha3_512(std::string_view data);
 
 /**
  * @brief Provides a common interface for hashers, enabling generic hashing functionality.

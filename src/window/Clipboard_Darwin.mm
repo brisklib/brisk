@@ -127,7 +127,7 @@ bool clipboardHasFormat(ClipboardFormat format) {
     return false;
 }
 
-ClipboardFormat registerClipboardFormat(string_view formatID) {
+ClipboardFormat registerClipboardFormat(std::string_view formatID) {
     return std::string(formatID);
 }
 

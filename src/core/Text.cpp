@@ -44,19 +44,19 @@ U32String transformCase(U32StringView str, CaseTransformation mode) {
     return utf32Transform(str, mode == CaseTransformation::Lower ? &utf8proc_tolower : &utf8proc_toupper);
 }
 
-string wordWrap(string text, size_t columns) {
+std::string wordWrap(std::string text, size_t columns) {
     // p points to the first char in line
     size_t p = 0;
 
     for (;;) {
         // find the next line feed
         size_t e = text.find('\n', p);
-        if (e == string::npos)
+        if (e == std::string::npos)
             e = text.size();
         if (e - p > columns) {
             // find the last space before line feed
             size_t s = text.rfind(' ', p + columns);
-            if (s != string::npos && s > p) {
+            if (s != std::string::npos && s > p) {
                 text.at(s) = '\n'; // replace by the line feed
                 p          = s + 1;
             } else {

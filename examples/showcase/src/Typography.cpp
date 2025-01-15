@@ -18,8 +18,8 @@ static Builder iconsBuilder() {
                 },
             };
             for (int c = 0; c < columns; c++) {
-                char32_t ch = icon + c;
-                string u8   = utf32ToUtf8(std::u32string(1, ch));
+                char32_t ch    = icon + c;
+                std::string u8 = utf32ToUtf8(std::u32string(1, ch));
                 glyphs->apply(rcnew Text{
                     u8,
                     classes           = { "icon" },

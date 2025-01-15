@@ -118,31 +118,31 @@ Bytes hash(HashMethod method, bytes_view data) {
     return result;
 }
 
-MD5Hash md5(string_view data) {
+MD5Hash md5(std::string_view data) {
     return hash<HashMethod::MD5>(toBytesView(data));
 }
 
-SHA1Hash sha1(string_view data) {
+SHA1Hash sha1(std::string_view data) {
     return hash<HashMethod::SHA1>(toBytesView(data));
 }
 
-SHA256Hash sha256(string_view data) {
+SHA256Hash sha256(std::string_view data) {
     return hash<HashMethod::SHA256>(toBytesView(data));
 }
 
-SHA512Hash sha512(string_view data) {
+SHA512Hash sha512(std::string_view data) {
     return hash<HashMethod::SHA512>(toBytesView(data));
 }
 
-SHA3_256Hash sha3_256(string_view data) {
+SHA3_256Hash sha3_256(std::string_view data) {
     return hash<HashMethod::SHA3_256>(toBytesView(data));
 }
 
-SHA3_512Hash sha3_512(string_view data) {
+SHA3_512Hash sha3_512(std::string_view data) {
     return hash<HashMethod::SHA3_512>(toBytesView(data));
 }
 
-Bytes hash(HashMethod method, string_view data) {
+Bytes hash(HashMethod method, std::string_view data) {
     Bytes result(hashBitSize(method));
     hashTo(method, toBytesView(data), result);
     return result;

@@ -202,10 +202,10 @@ std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defau
             UBiDiLevel level;
             ubidi_getLogicalRun(bidi.get(), u16chars, &u16length, &level);
             u16length -= u16chars;
-            r.direction   = toDir(level);
-            r.begin       = codepoints;
-            r.end         = codepoints + utf16Codepoints(u16string_view(u16).substr(u16chars, u16length));
-            codepoints    = r.end;
+            r.direction = toDir(level);
+            r.begin     = codepoints;
+            r.end       = codepoints + utf16Codepoints(std::u16string_view(u16).substr(u16chars, u16length));
+            codepoints  = r.end;
             r.visualOrder = ubidi_getVisualIndex(bidi.get(), u16chars, &uerr);
             HANDLE_UERROR(textRuns)
             textRuns.push_back(r);

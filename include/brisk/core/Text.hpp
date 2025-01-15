@@ -129,7 +129,7 @@ inline U32String upperCase(U32StringView str) {
  * @param columns The number of columns for wrapping.
  * @return The word-wrapped string.
  */
-string wordWrap(string text, size_t columns);
+std::string wordWrap(std::string text, size_t columns);
 
 /**
  * @brief Splits a string into a list of substrings using a delimiter.

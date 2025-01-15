@@ -259,7 +259,7 @@ static bool char_is_alphanum(char32_t ch) {
 }
 
 void TextEditor::selectWordAtCursor() {
-    u32string text = utf8ToUtf32(m_text);
+    std::u32string text = utf8ToUtf32(m_text);
     normalizeCursor(text.size());
     const int cursorPos = cursor;
     for (int i = cursorPos;; i--) {
@@ -544,7 +544,7 @@ void TextEditor::updateGraphemes() {
 }
 
 void TextEditor::updateState() {
-    u32string text32 = utf8ToUtf32(m_text);
+    std::u32string text32 = utf8ToUtf32(m_text);
 
     if (m_passwordChar) {
         std::fill(text32.begin(), text32.end(), m_passwordChar);

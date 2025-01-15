@@ -74,20 +74,6 @@ std::span<const T> one(const T& value) noexcept {
 }
 
 /**
- * @file
- * @brief Type alias definitions and utility functions for working with various string and byte types.
- */
-
-using std::string;
-using std::string_view;
-using std::u16string;
-using std::u16string_view;
-using std::u32string;
-using std::u32string_view;
-using std::wstring;
-using std::wstring_view;
-
-/**
  * @brief Type alias for a single byte (8-bit unsigned integer).
  */
 using byte               = uint8_t;

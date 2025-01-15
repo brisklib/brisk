@@ -225,7 +225,7 @@ expected<bytes, IOError> readBytes(const fs::path& file_name) {
     });
 }
 
-expected<string, IOError> readUtf8(const fs::path& file_name, bool removeBOM) {
+expected<std::string, IOError> readUtf8(const fs::path& file_name, bool removeBOM) {
     return readBytes(file_name).map([removeBOM](const bytes& b) {
         if (removeBOM)
             return std::string(utf8SkipBom(std::string(b.begin(), b.end())));
@@ -235,7 +235,7 @@ expected<string, IOError> readUtf8(const fs::path& file_name, bool removeBOM) {
 }
 
 expected<Json, IOError> readJson(const fs::path& file_name) {
-    return readUtf8(file_name).map([](const string& b) {
+    return readUtf8(file_name).map([](const std::string& b) {
         return Json::fromJson(b).value_or(JsonNull{});
     });
 }
@@ -246,10 +246,10 @@ expected<Json, IOError> readMsgpack(const fs::path& file_name) {
     });
 }
 
-expected<u8strings, IOError> readLines(const fs::path& file_name) {
-    return readUtf8(file_name).map([](const string& b) {
+expected<std::vector<std::string>, IOError> readLines(const fs::path& file_name) {
+    return readUtf8(file_name).map([](const std::string& b) {
         auto sv = split(b, "\n");
-        u8strings result(sv.begin(), sv.end());
+        std::vector<std::string> result(sv.begin(), sv.end());
         return result;
     });
 }
@@ -260,7 +260,7 @@ status<IOError> writeBytes(const fs::path& file_name, const bytes_view& b) {
     });
 }
 
-status<IOError> writeUtf8(const fs::path& file_name, string_view str, bool useBOM) {
+status<IOError> writeUtf8(const fs::path& file_name, std::string_view str, bool useBOM) {
     bytes_view bv = toBytesView(str);
     if (useBOM) {
         return openFileForWriting(file_name).and_then([bv](const RC<Stream>& w) -> status<IOError> {

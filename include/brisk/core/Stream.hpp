@@ -365,7 +365,7 @@ public:
      * @return Transferred The result of the write operation, indicating the number of bytes written or an
      * error.
      */
-    [[nodiscard]] Transferred write(string_view data);
+    [[nodiscard]] Transferred write(std::string_view data);
 };
 
 /**

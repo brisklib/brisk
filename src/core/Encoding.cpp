@@ -565,15 +565,15 @@ template std::basic_string<char16_t> utfNormalize<char16_t>(std::basic_string_vi
 template std::basic_string<char32_t> utfNormalize<char32_t>(std::basic_string_view<char32_t> text,
                                                             UTFNormalization normalization, UTFPolicy policy);
 
-string asciiTransform(string_view text, const function<char32_t(char32_t)>& fn) {
-    string result(text.size(), ' ');
+std::string asciiTransform(std::string_view text, const function<char32_t(char32_t)>& fn) {
+    std::string result(text.size(), ' ');
     for (size_t i = 0; i < text.size(); ++i) {
         result[i] = fn(text[i]);
     }
     return result;
 }
 
-bool isAscii(string_view text) {
+bool isAscii(std::string_view text) {
     for (size_t i = 0; i < text.size(); ++i) {
         if (static_cast<uint8_t>(text[i]) >= 0x80)
             return false;

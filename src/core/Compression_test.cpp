@@ -27,7 +27,7 @@
 
 namespace Brisk {
 
-void testCompression(CompressionMethod method, CompressionLevel level, const string& ext, size_t readSize,
+void testCompression(CompressionMethod method, CompressionLevel level, const std::string& ext, size_t readSize,
                      size_t writeSize, size_t batchSize) {
     INFO("method=" << fmt::to_string(method));
     INFO("readSize=" << readSize);
@@ -82,7 +82,7 @@ void testCompression(CompressionMethod method, CompressionLevel level, const str
     CHECK(readUtf8(loremIpsumUncomp) == loremIpsum);
 }
 
-void testCompression(CompressionMethod method, const string& ext) {
+void testCompression(CompressionMethod method, const std::string& ext) {
     for (CompressionLevel level : {
              CompressionLevel::Lowest,
              CompressionLevel::Normal,

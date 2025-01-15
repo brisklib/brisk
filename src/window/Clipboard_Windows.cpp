@@ -54,15 +54,15 @@ static optional<Bytes> getClipboardData(ClipboardFormat format) {
     return result;
 }
 
-static Bytes toNulTerminatedWString(string_view text) {
+static Bytes toNulTerminatedWString(std::string_view text) {
     std::wstring content = utf8ToWcs(text);
     return toBytes(std::span{ content.data(), content.data() + content.size() + 1 });
 }
 
-static string fromNulTerminatedWString(bytes_view text) {
+static std::string fromNulTerminatedWString(bytes_view text) {
     if (text.size_bytes() < 2)
         return {};
-    wstring content(text.size_bytes() / 2, ' ');
+    std::wstring content(text.size_bytes() / 2, ' ');
     memcpy(content.data(), text.data(), content.size() * 2);
     if (content.back() == 0)
         content.resize(content.size() - 1);
@@ -112,7 +112,7 @@ bool clipboardHasFormat(ClipboardFormat format) {
     return IsClipboardFormatAvailable(format);
 }
 
-ClipboardFormat registerClipboardFormat(string_view formatID) {
+ClipboardFormat registerClipboardFormat(std::string_view formatID) {
     return RegisterClipboardFormatW(utf8ToWcs(formatID).c_str());
 }
 

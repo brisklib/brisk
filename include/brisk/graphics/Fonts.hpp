@@ -39,7 +39,7 @@ struct TextSpan {
 
 struct TextWithOptions {
     using Char = char32_t;
-    u32string text;
+    std::u32string text;
     LayoutOptions options;
     TextDirection defaultDirection;
 
@@ -49,7 +49,7 @@ struct TextWithOptions {
         ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },
     };
 
-    TextWithOptions(string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::string_view text, LayoutOptions options = LayoutOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : text(utf8ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
 
@@ -63,15 +63,15 @@ struct TextWithOptions {
                     TextDirection defaultDirection = TextDirection::LTR)
         : text(text), options(options), defaultDirection(defaultDirection) {}
 
-    TextWithOptions(u16string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u16string_view text, LayoutOptions options = LayoutOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : text(utf16ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
 
-    TextWithOptions(u32string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u32string_view text, LayoutOptions options = LayoutOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : text(text), options(options), defaultDirection(defaultDirection) {}
 
-    TextWithOptions(u32string text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u32string text, LayoutOptions options = LayoutOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : text(std::move(text)), options(options), defaultDirection(defaultDirection) {}
 
