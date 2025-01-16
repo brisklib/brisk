@@ -173,14 +173,15 @@ TEST_CASE("textBreakPositions") {
 }
 
 TEST_CASE("splitTextRuns") {
-    CHECK(Internal::splitTextRuns(U"𠀀𠀁𠀂 𠀀𠀁𠀂", TextDirection::LTR, true) ==
+    CHECK(Internal::toVisualOrder(Internal::splitTextRuns(U"𠀀𠀁𠀂 𠀀𠀁𠀂", TextDirection::LTR)) ==
           std::vector<Internal::TextRun>{
               Internal::TextRun{
                   .direction = TextDirection::LTR, .begin = 0, .end = 7, .visualOrder = 0, .face = nullptr },
           });
     if (icuAvailable) {
         fmt::println("ICU is available");
-        CHECK(Internal::splitTextRuns(U"𠀀𠀁𠀂 \U0000200F123\U0000200E 𠀀𠀁𠀂", TextDirection::LTR, true) ==
+        CHECK(Internal::toVisualOrder(
+                  Internal::splitTextRuns(U"𠀀𠀁𠀂 \U0000200F123\U0000200E 𠀀𠀁𠀂", TextDirection::LTR)) ==
               std::vector<Internal::TextRun>{
                   Internal::TextRun{ .direction   = TextDirection::LTR,
                                      .begin       = 0,
@@ -216,9 +217,16 @@ TEST_CASE("FontManager") {
     REQUIRE(ttf.has_value());
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "GoNotoCurrent-Regular.ttf");
     REQUIRE(ttf2.has_value());
+    auto ttf3 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "SourceCodePro-Medium.ttf");
+    REQUIRE(ttf3.has_value());
+    auto ttf4 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf");
+    REQUIRE(ttf4.has_value());
 
-    FontFamily lato = FontFamily(0);
-    FontFamily noto = FontFamily(1);
+    FontFamily lato         = FontFamily(0);
+    FontFamily noto         = FontFamily(1);
+    FontFamily latoPlusNoto = FontFamily(2);
+    FontFamily mono         = FontFamily(3);
+    FontFamily latolight    = FontFamily(4);
 
     fontManager->addFont(lato, FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
     CHECK(fontManager->fontFamilyStyles(lato) == std::vector<FontStyleAndWeight>{ FontStyleAndWeight{
@@ -227,8 +235,10 @@ TEST_CASE("FontManager") {
                                                  } });
 
     fontManager->addFont(noto, FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::Default);
-    FontFamily latoPlusNoto = FontFamily(2);
     fontManager->addMergedFont(latoPlusNoto, { lato, noto });
+
+    fontManager->addFont(mono, FontStyle::Normal, FontWeight::Regular, *ttf3, true, FontFlags::Default);
+    fontManager->addFont(latolight, FontStyle::Normal, FontWeight::Regular, *ttf4, true, FontFlags::Default);
 
     Font font;
     font.fontFamily     = latoPlusNoto;
@@ -378,7 +388,7 @@ TEST_CASE("FontManager") {
     // CHECK(run.graphemeToCaret(2) == PointF{ 0, 12 });
     // CHECK(run.graphemeToCaret(3) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
 
-    run = fontManager->prepare(font, U"ab"s, 1.f, true);
+    run = fontManager->prepare(font, TextWithOptions{ U"ab"s, LayoutOptions::WrapAnywhere }, 1.f);
     REQUIRE(run.runs.size() == 2);
     CHECK(run.runs[0].charRange() == Range{ 0u, 1u });
     CHECK(run.runs[0].glyphs.size() == 1);
@@ -462,7 +472,7 @@ TEST_CASE("FontManager") {
         CHECK(run.caretPositions[5] > run.caretPositions[3]);
         CHECK(run.caretPositions[6] > run.caretPositions[5]);
 
-        run = fontManager->prepare(font, U"abאבcd"s, 22, true);
+        run = fontManager->prepare(font, TextWithOptions{ U"abאבcd"s, LayoutOptions::WrapAnywhere }, 22);
         REQUIRE(run.runs.size() == 4);
         CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
         CHECK(run.runs[0].glyphs.size() == 2);
@@ -862,6 +872,50 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         fontManager->testRender(image, run,
                                 RectangleF(image->bounds().withPadding(2, 2)).at(1, 0.5f) + offset,
                                 TestRenderFlags::TextBounds);
+    });
+
+    Font noto24{ noto, 24 };
+    Font noto36{ noto, 36 };
+    Font lato24{ lato, 24 };
+    Font lato26{ lato, 26 };
+    Font lato48{ lato, 48 };
+    Font latolight20{ latolight, 20.f };
+    Font mono20{ mono, 20 };
+
+    visualTestMono("richtext1", { 192, 64 }, [&](RC<Image> image) {
+        FontAndColor fonts[2]{ { noto24 }, { noto36 } };
+        uint32_t offsets[1]{ 3 };
+
+        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("ABCDEF"), LayoutOptions::Default },
+                                        fonts, offsets);
+        fontManager->testRender(image, run, { 5, 42 });
+    });
+    visualTestMono("richtext2", { 256, 64 }, [&](RC<Image> image) {
+        FontAndColor fonts[3]{ { latolight20 }, { mono20 }, { latolight20 } };
+        uint32_t offsets[2]{ 6, 11 };
+
+        auto run = fontManager->prepare(
+            TextWithOptions{ utf8ToUtf32("Press Enter to continue"), LayoutOptions::Default }, fonts,
+            offsets);
+        fontManager->testRender(image, run, { 5, 42 });
+    });
+    visualTestMono("richtext-liga", { 192, 64 }, [&](RC<Image> image) {
+        FontAndColor fonts[2]{ { lato24 }, { lato26 } };
+        uint32_t offsets[1]{ 4 };
+
+        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("fi fi fi"), LayoutOptions::Default },
+                                        fonts, offsets);
+        fontManager->testRender(image, run, { 5, 42 });
+    });
+    visualTestMono("richtext-ml", { 256, 256 }, [&](RC<Image> image) {
+        FontAndColor fonts[3]{ { lato24 }, { lato48 }, { lato24 } };
+        uint32_t offsets[2]{ 24, 25 };
+
+        auto run = fontManager->prepare(
+            TextWithOptions{ utf8ToUtf32("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
+                             LayoutOptions::Default },
+            fonts, offsets, 170);
+        fontManager->testRender(image, run, { 8, 32 });
     });
 
     fontManager.reset();

@@ -3,6 +3,7 @@
 #include <brisk/core/Stream.hpp>
 #include <brisk/core/Hash.hpp>
 #include <mutex>
+#include "Color.hpp"
 #include "brisk/core/internal/SmallVector.hpp"
 #include "internal/OpenType.hpp"
 #include "Image.hpp"
@@ -25,63 +26,18 @@ public:
 using GlyphID = uint32_t;
 
 enum class LayoutOptions : uint32_t {
-    Default    = 0,
-    SingleLine = 1,
+    Default      = 0,
+    SingleLine   = 1,
+    WrapAnywhere = 2,
+    HTML         = 4,
 };
 
 BRISK_FLAGS(LayoutOptions)
 
-struct TextSpan {
-    uint32_t start;
-    uint32_t stop;
-    uint32_t format;
-};
-
-struct TextWithOptions {
-    using Char = char32_t;
-    std::u32string text;
-    LayoutOptions options;
-    TextDirection defaultDirection;
-
-    constexpr static std::tuple Reflection{
-        ReflectionField{ "text", &TextWithOptions::text },
-        ReflectionField{ "options", &TextWithOptions::options },
-        ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },
-    };
-
-    TextWithOptions(std::string_view text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(utf8ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
-
-    template <std::convertible_to<std::string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(utf8ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
-
-    template <std::convertible_to<std::u32string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(text), options(options), defaultDirection(defaultDirection) {}
-
-    TextWithOptions(std::u16string_view text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(utf16ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
-
-    TextWithOptions(std::u32string_view text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(text), options(options), defaultDirection(defaultDirection) {}
-
-    TextWithOptions(std::u32string text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(std::move(text)), options(options), defaultDirection(defaultDirection) {}
-
-    bool operator==(const TextWithOptions& other) const noexcept = default;
-};
-
 struct OpenTypeFeatureFlag {
     OpenTypeFeature feature;
     bool enabled;
-    bool operator==(const OpenTypeFeatureFlag& b) const noexcept = default;
+    auto operator<=>(const OpenTypeFeatureFlag& b) const noexcept = default;
 };
 
 enum class FontStyle : uint8_t {
@@ -238,21 +194,23 @@ struct TextRun {
     TextDirection direction;
 
     /**
-     * @brief The starting index of the text run within the text.
+     * @brief The position of the first character of the text run.
      */
-    int32_t begin;
+    uint32_t begin;
 
     /**
-     * @brief The ending index of the text run within the text.
+     * @brief The position just beyond the last character of the text run.
      */
-    int32_t end;
+    uint32_t end;
 
     /**
      * @brief The visual order of the text run.
      *
      * This indicates the position of the run when rendered visually.
      */
-    int32_t visualOrder;
+    uint32_t visualOrder;
+
+    uint32_t fontIndex;
 
     /**
      * @brief Pointer to the font face associated with the text run.
@@ -565,6 +523,8 @@ struct GlyphRun {
      * @brief Position of the left-most point of the glyph run at the text baseline.
      */
     PointF position;
+
+    std::optional<Color> color;
 
     InclusiveRange<float> textVRange() const;
 
@@ -924,10 +884,7 @@ struct Font {
      */
     Font operator()(FontWeight weight) const;
 
-    /**
-     * @brief Compares two fonts for equality.
-     */
-    bool operator==(const Font& b) const noexcept = default;
+    auto operator<=>(const Font& b) const noexcept = default;
 };
 
 /**
@@ -941,6 +898,55 @@ struct FontStyleAndWeight {
      * @brief Compares two FontStyleAndWeight objects for equality.
      */
     bool operator==(const FontStyleAndWeight& b) const noexcept = default;
+};
+
+struct FontAndColor {
+    Font font;
+    std::optional<Color> color;
+    bool operator==(const FontAndColor&) const noexcept = default;
+};
+
+namespace Internal {
+class Html;
+}; // namespace Internal
+
+struct TextWithOptions {
+    std::u32string text;
+    LayoutOptions options;
+    TextDirection defaultDirection;
+    std::shared_ptr<Internal::Html> html;
+
+    constexpr static std::tuple Reflection{
+        ReflectionField{ "text", &TextWithOptions::text },
+        ReflectionField{ "options", &TextWithOptions::options },
+        ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },
+    };
+
+    TextWithOptions(std::string_view text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+    TextWithOptions(std::u16string_view text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+    TextWithOptions(std::u32string_view text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+    TextWithOptions(std::u32string text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+
+    template <std::convertible_to<std::string_view> T>
+    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR)
+        : TextWithOptions(std::string_view(text), options, defaultDirection) {}
+
+    template <std::convertible_to<std::u16string_view> T>
+    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR)
+        : TextWithOptions(std::u16string_view(text), options, defaultDirection) {}
+
+    template <std::convertible_to<std::u32string_view> T>
+    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR)
+        : TextWithOptions(std::u32string_view(text), options, defaultDirection) {}
+
+    bool operator==(const TextWithOptions& other) const noexcept = default;
 };
 
 constexpr inline size_t maxFontsInMergedFonts = 4;
@@ -1000,9 +1006,13 @@ public:
 
     FontMetrics metrics(const Font& font) const;
     bool hasCodepoint(const Font& font, char32_t codepoint) const;
-    PreparedText prepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF,
-                         bool wrapAnywhere = false) const;
+    PreparedText prepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF) const;
     RectangleF bounds(const Font& font, const TextWithOptions& text,
+                      GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
+    PreparedText prepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                         std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
+    RectangleF bounds(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                      std::span<const uint32_t> offsets,
                       GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
 
     using FontKey = std::tuple<FontFamily, FontStyle, FontWeight>;
@@ -1038,20 +1048,25 @@ private:
     inline_vector<FontFamily, maxFontsInMergedFonts> fontList(FontFamily ff) const;
     mutable std::vector<OSFont> m_osFonts;
     Internal::FontFace* lookup(const Font& font) const;
+    Internal::FontFace* findFontByKey(FontKey fontKey) const;
     std::pair<Internal::FontFace*, GlyphID> lookupCodepoint(const Font& font, char32_t codepoint,
                                                             bool fallbackToUndef) const;
     FontMetrics getMetrics(const Font& font) const;
     static RectangleF glyphBounds(const Internal::Glyph& g, const Internal::GlyphData& d);
-    PreparedText shapeRuns(const Font& font, const TextWithOptions& text,
+    PreparedText shapeRuns(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                           std::span<const uint32_t> offsets,
                            const std::vector<Internal::TextRun>& textRuns) const;
     std::vector<Internal::TextRun> assignFontsToTextRuns(
-        const Font& font, std::u32string_view text, const std::vector<Internal::TextRun>& textRuns) const;
+        std::u32string_view text, std::span<const FontAndColor> fonts, std::span<const uint32_t> offsets,
+        const std::vector<Internal::TextRun>& textRuns) const;
     std::vector<Internal::TextRun> splitControls(std::u32string_view text,
                                                  const std::vector<Internal::TextRun>& textRuns) const;
-    PreparedText doPrepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF,
-                           bool wrapAnywhere = false) const;
-    PreparedText doShapeCached(const Font& font, const TextWithOptions& text) const;
-    PreparedText doShape(const Font& font, const TextWithOptions& text) const;
+    PreparedText doPrepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                           std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
+    PreparedText doShapeCached(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                               std::span<const uint32_t> offsets) const;
+    PreparedText doShape(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                         std::span<const uint32_t> offsets) const;
 };
 
 extern std::optional<FontManager> fonts;
@@ -1078,8 +1093,25 @@ namespace Internal {
  * text.
  * @return std::vector<TextRun> A vector of `TextRun` objects representing the segmented text.
  */
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection,
-                                   bool visualOrder);
+std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection);
+
+inline std::vector<TextRun> toVisualOrder(std::vector<TextRun> textRuns) {
+    std::stable_sort(textRuns.begin(), textRuns.end(), [](const TextRun& a, const TextRun& b) {
+        return a.visualOrder < b.visualOrder;
+    });
+    return textRuns;
+}
+
+struct RichText {
+    std::u32string text;
+    std::vector<FontAndColor> fonts;
+    std::vector<uint32_t> offsets;
+};
+
+std::shared_ptr<Html> parseHtml(std::string_view html);
+RichText processHtml(std::shared_ptr<Html> html, const Font& defaultFont);
+std::optional<Color> parseHtmlColor(std::string_view colorText);
+
 } // namespace Internal
 
 /**

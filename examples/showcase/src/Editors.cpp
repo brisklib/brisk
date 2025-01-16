@@ -116,6 +116,20 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
             rcnew CheckBox{ value = Value{ &m_hidePassword }, rcnew Text{ "Hide password" } },
         },
 
+        rcnew Text{ "Basic HTML", classes = { "section-header" } },
+
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew TextEditor(Value{ &m_html }, fontSize = 150_perc, width = 100_perc),
+                &m_group,
+            },
+            gapColumn = 10_apx,
+            rcnew Text{
+                text          = Value{ &m_html },
+                layoutOptions = LayoutOptions::HTML,
+            },
+        },
+
         rcnew Text{ "ColorView (widgets/Color.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{

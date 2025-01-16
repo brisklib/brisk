@@ -131,6 +131,9 @@ TEST_CASE("Renderer - fonts") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
     fonts->addFont(FontFamily(44), FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
+    REQUIRE(ttf2.has_value());
+    fonts->addFont(FontFamily(44), FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
 
     renderTest(
         "rr-fonts", { 1200, 600 },
@@ -153,6 +156,17 @@ TEST_CASE("Renderer - fonts") {
             }
         },
         ColorF{ 1.f, 1.f });
+
+    renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
+        RawCanvas canvas(context);
+        canvas.drawRectangle({ 0, 0, 300, 150 }, 0.f, 0.f, fillColor = Palette::white, strokeWidth = 0);
+        canvas.drawText(
+            Rectangle{ 30, 30, 270, 120 }, 0.0f, 0.0f,
+            TextWithOptions("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
+                            "the <small>lazy</small> dog",
+                            LayoutOptions::HTML),
+            Font{ FontFamily(44), 25.f }, Palette::black);
+    });
 }
 
 TEST_CASE("Renderer", "[gpu]") {

@@ -59,3 +59,8 @@ if (BRISK_WEBGPU)
         target_link_libraries(brisk-renderer-webgpu ${_DEP_PRIVATE} Dawn)
     endif ()
 endif ()
+
+# >tinyxml2
+find_package(tinyxml2 CONFIG REQUIRED)
+target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} tinyxml2::tinyxml2)
+# >tinyxml2

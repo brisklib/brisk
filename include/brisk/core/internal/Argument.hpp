@@ -57,8 +57,10 @@ concept Applicable = requires(const Arg& arg, Target* target) {
 template <typename Target>
 struct ArgumentsView {
 public:
-    constexpr ArgumentsView(const ArgumentsView&) noexcept = default;
-    constexpr ArgumentsView(ArgumentsView&&) noexcept      = default;
+    constexpr ArgumentsView(const ArgumentsView&) noexcept            = default;
+    constexpr ArgumentsView(ArgumentsView&&) noexcept                 = default;
+    constexpr ArgumentsView& operator=(const ArgumentsView&) noexcept = default;
+    constexpr ArgumentsView& operator=(ArgumentsView&&) noexcept      = default;
 
     constexpr ArgumentsView(std::nullptr_t) noexcept : args(nullptr), applyFn(nullptr) {}
 

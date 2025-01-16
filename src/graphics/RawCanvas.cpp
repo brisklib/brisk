@@ -54,11 +54,20 @@ static PointF quantize(PointF pt, unsigned value) {
     };
 }
 
-static GeometryGlyphs glyphLayout(SpriteResources& sprites, const PreparedText& prepared,
-                                  PointF offset = { 0, 0 }) {
+static GeometryGlyphs glyphLayout(uint32_t& runIndex, std::optional<Color>& color, SpriteResources& sprites,
+                                  const PreparedText& prepared, PointF offset = { 0, 0 }) {
     GeometryGlyphs result;
-    for (uint32_t ri = 0; ri < prepared.runs.size(); ++ri) {
-        const GlyphRun& run = prepared.runVisual(ri);
+    bool first = true;
+    for (; runIndex < prepared.runs.size(); ++runIndex) {
+        const GlyphRun& run = prepared.runVisual(runIndex);
+        if (first) {
+            color = run.color;
+            first = false;
+        } else {
+            if (color != run.color)
+                return result;
+        }
+
         for (const Internal::Glyph& g : run.glyphs) {
             optional<Internal::GlyphData> data = g.load(run);
             if (data && data->sprite) {
@@ -183,27 +192,41 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
     }
 
     SpriteResources sprites;
-    GeometryGlyphs g = glyphLayout(sprites, prepared, pos);
-    drawText(std::move(sprites), g, args);
-    for (uint32_t ri = 0; ri < prepared.runs.size(); ++ri) {
-        const GlyphRun& run = prepared.runVisual(ri);
-        if (run.decoration != TextDecoration::None) {
-            run.updateRanges();
-            PointF p1{ run.textHRange.min + run.position.x, run.position.y };
-            PointF p2{ run.textHRange.max + run.position.x, run.position.y };
+    uint32_t runIndex = 0;
+    while (runIndex < prepared.runs.size()) {
+        RenderStateExArgs runArgs = args;
+        std::optional<Color> color;
+        uint32_t oldRunIndex = runIndex;
+        GeometryGlyphs g     = glyphLayout(runIndex, color, sprites, prepared, pos);
+        std::tuple argsColor{ args, fillColor = color.value_or(Color{}) };
+        if (color) {
+            runArgs = argsColor;
+        } else {
+            runArgs = args;
+        }
+        drawText(std::move(sprites), g, runArgs);
+        for (uint32_t ri = oldRunIndex; ri < runIndex; ++ri) {
+            const GlyphRun& run = prepared.runVisual(ri);
+            if (run.decoration != TextDecoration::None) {
+                run.updateRanges();
+                PointF p1{ run.textHRange.min + run.position.x, run.position.y };
+                PointF p2{ run.textHRange.max + run.position.x, run.position.y };
+                p1 += pos;
+                p2 += pos;
 
-            if (run.decoration && TextDecoration::Underline)
-                drawLine(p1 + PointF{ 0.f, run.metrics.underlineOffset() },
-                         p2 + PointF{ 0.f, run.metrics.underlineOffset() }, run.metrics.lineThickness,
-                         LineEnd::Butt, strokeWidth = 0.f, args);
-            if (run.decoration && TextDecoration::Overline)
-                drawLine(p1 + PointF{ 0.f, run.metrics.overlineOffset() },
-                         p2 + PointF{ 0.f, run.metrics.overlineOffset() }, run.metrics.lineThickness,
-                         LineEnd::Butt, strokeWidth = 0.f, args);
-            if (run.decoration && TextDecoration::LineThrough)
-                drawLine(p1 + PointF{ 0.f, run.metrics.lineThroughOffset() },
-                         p2 + PointF{ 0.f, run.metrics.lineThroughOffset() }, run.metrics.lineThickness,
-                         LineEnd::Butt, strokeWidth = 0.f, args);
+                if (run.decoration && TextDecoration::Underline)
+                    drawLine(p1 + PointF{ 0.f, run.metrics.underlineOffset() },
+                             p2 + PointF{ 0.f, run.metrics.underlineOffset() }, run.metrics.lineThickness,
+                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                if (run.decoration && TextDecoration::Overline)
+                    drawLine(p1 + PointF{ 0.f, run.metrics.overlineOffset() },
+                             p2 + PointF{ 0.f, run.metrics.overlineOffset() }, run.metrics.lineThickness,
+                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                if (run.decoration && TextDecoration::LineThrough)
+                    drawLine(p1 + PointF{ 0.f, run.metrics.lineThroughOffset() },
+                             p2 + PointF{ 0.f, run.metrics.lineThroughOffset() }, run.metrics.lineThickness,
+                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+            }
         }
     }
 

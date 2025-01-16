@@ -62,6 +62,7 @@ protected:
     InclusiveRange<float> m_textAutoSizeRange = { 6.f, 96.f };
     Rotation m_rotation                       = Rotation::NoRotation;
     bool m_wordWrap                           = false;
+    LayoutOptions m_layoutOptions             = LayoutOptions::Default;
 
     struct CacheKey {
         Font font;
@@ -112,6 +113,7 @@ public:
         textAutoSize;
     Property<Text, Range<float>, &Text::m_textAutoSizeRange, nullptr, nullptr, &Text::onChanged> //
         textAutoSizeRange;
+    Property<Text, LayoutOptions, &Text::m_layoutOptions, nullptr, nullptr, &Text::onChanged> layoutOptions;
     BRISK_PROPERTIES_END
 };
 
@@ -133,6 +135,7 @@ constexpr inline Argument<Tag::PropArg<decltype(Text::rotation)>> rotation{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSize)>> textAutoSize{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSizeRange)>> textAutoSizeRange{};
 constexpr inline Argument<Tag::PropArg<decltype(Text::wordWrap)>> wordWrap{};
+constexpr inline Argument<Tag::PropArg<decltype(Text::layoutOptions)>> layoutOptions{};
 } // namespace Arg
 
 class WIDGET BackStrikedText final : public Text {
