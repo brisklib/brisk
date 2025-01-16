@@ -25,16 +25,9 @@
 
 namespace Brisk {
 
-bool icuAvailable                                 = false;
-
-Internal::TextBreakIterator::~TextBreakIterator() = default;
+bool icuAvailable = false;
 
 namespace Internal {
-// Split text into runs of the same direction
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection) {
-    return { TextRun{ defaultDirection, 0, int32_t(text.size()), 0, nullptr } };
-}
-} // namespace Internal
 
 namespace {
 
@@ -58,7 +51,7 @@ bool isSplit(char32_t previous, char32_t current, TextBreakMode mode) {
     }
 }
 
-class TextBreakIteratorSimple final : public Internal::TextBreakIterator {
+class TextBreakIteratorSimple final : public TextBreakIterator {
 public:
     TextBreakMode mode;
     std::u32string text;
@@ -80,9 +73,36 @@ public:
         return std::nullopt;
     }
 };
+
+class BidiTextIteratorSimple final : public BidiTextIterator {
+public:
+    std::optional<TextFragment> fragment;
+
+    BidiTextIteratorSimple(std::u32string_view text, TextDirection defaultDirection) {
+        fragment = TextFragment{
+            Range{ 0u, uint32_t(text.size()) },
+            0,
+            defaultDirection,
+        };
+    }
+
+    ~BidiTextIteratorSimple() = default;
+
+    std::optional<TextFragment> next() {
+        std::optional<TextFragment> result;
+        std::swap(result, fragment);
+        return result;
+    }
+};
 } // namespace
 
-RC<Internal::TextBreakIterator> Internal::textBreakIterator(std::u32string_view text, TextBreakMode mode) {
+RC<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode) {
     return rcnew TextBreakIteratorSimple(text, mode);
 }
+
+RC<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection) {
+    return rcnew BidiTextIteratorSimple(text, defaultDirection);
+}
+
+} // namespace Internal
 } // namespace Brisk

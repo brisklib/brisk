@@ -35,7 +35,8 @@ namespace Internal {
 
 class TextBreakIterator {
 public:
-    virtual ~TextBreakIterator() = 0;
+    virtual ~TextBreakIterator() {}
+
     virtual std::optional<uint32_t> next() = 0;
 };
 
@@ -43,13 +44,11 @@ RC<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode 
 
 class BidiTextIterator {
 public:
-    virtual ~BidiTextIterator();
-    virtual bool isMixed() const = 0;
+    virtual ~BidiTextIterator() {}
 
     struct TextFragment {
         Range<uint32_t> codepointRange;
-        uint32_t visualPosition;
-        uint8_t level;
+        uint32_t visualOrder;
         TextDirection direction;
     };
 
@@ -59,6 +58,5 @@ public:
 RC<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection);
 
 } // namespace Internal
-
 
 } // namespace Brisk

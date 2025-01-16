@@ -574,20 +574,20 @@ FontMetrics FontManager::getMetrics(const Font& font) const {
 
 namespace Internal {
 
-static void toVisualOrder(std::vector<TextRun>& textRuns) {
-    std::stable_sort(textRuns.begin(), textRuns.end(), [](const TextRun& a, const TextRun& b) {
-        return a.visualOrder < b.visualOrder;
-    });
-}
-
 // Split text into runs of the same direction
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection);
-
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection,
-                                   bool visualOrder) {
-    std::vector<TextRun> textRuns = splitTextRuns(text, defaultDirection);
-    if (visualOrder) {
-        toVisualOrder(textRuns);
+std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection) {
+    std::vector<TextRun> textRuns;
+    auto bidi = bidiTextIterator(text, defaultDirection);
+    while (auto f = bidi->next()) {
+        TextRun r{
+            .direction   = f->direction,
+            .begin       = f->codepointRange.min,
+            .end         = f->codepointRange.max,
+            .visualOrder = f->visualOrder,
+            .fontIndex   = 0,
+            .face        = nullptr,
+        };
+        textRuns.push_back(r);
     }
     return textRuns;
 }
@@ -602,14 +602,15 @@ static std::vector<TextRun> splitRuns(std::u32string_view text, std::vector<Text
         if (t.end == t.begin)
             continue;
         auto value                        = fn(text[t.begin]);
-        int32_t start                     = t.begin;
+        uint32_t start                    = t.begin;
         std::vector<TextRun>::iterator it = newTextRuns.end();
 
-        for (int32_t i = t.begin + 1; i < t.end; ++i) {
+        for (uint32_t i = t.begin + 1; i < t.end; ++i) {
             auto newValue = fn(text[i]);
             if (newValue != value) {
                 // TODO: correct t.order
-                it = newTextRuns.insert(it, TextRun{ t.direction, start, i, t.visualOrder, t.face });
+                it = newTextRuns.insert(it,
+                                        TextRun{ t.direction, start, i, t.visualOrder, t.fontIndex, t.face });
                 if (t.direction == TextDirection::LTR) {
                     ++it;
                 }
@@ -618,7 +619,7 @@ static std::vector<TextRun> splitRuns(std::u32string_view text, std::vector<Text
             }
         }
         // TODO: correct t.order
-        it = newTextRuns.insert(it, TextRun{ t.direction, start, t.end, t.visualOrder, t.face });
+        it = newTextRuns.insert(it, TextRun{ t.direction, start, t.end, t.visualOrder, t.fontIndex, t.face });
     }
 
     return newTextRuns;
@@ -641,7 +642,8 @@ std::vector<Internal::TextRun> FontManager::splitControls(
 
 #if 0
 // Assign fonts to text runs
-std::vector<TextRun> FontManager::assignFontsToTextRuns(const Font& font, std::u32string_view text,
+std::vector<TextRun> FontManager::assignFontsToTextRuns(std::u32string_view text, std::span<const Font> fonts,
+                                  std::span<const uint32_t> offsets,
                                                         const std::vector<TextRun>& textRuns) const {
 
     return Internal::splitRuns(text, textRuns, [&](char32_t ch) -> Internal::FontFace* {
@@ -650,7 +652,8 @@ std::vector<TextRun> FontManager::assignFontsToTextRuns(const Font& font, std::u
 }
 #else
 // Assign fonts to text runs
-std::vector<TextRun> FontManager::assignFontsToTextRuns(const Font& font, std::u32string_view text,
+std::vector<TextRun> FontManager::assignFontsToTextRuns(std::u32string_view text, std::span<const Font> fonts,
+                                                        std::span<const uint32_t> offsets,
                                                         const std::vector<TextRun>& textRuns) const {
     std::vector<TextRun> newTextRuns;
     newTextRuns.reserve(textRuns.size());
@@ -658,16 +661,19 @@ std::vector<TextRun> FontManager::assignFontsToTextRuns(const Font& font, std::u
         if (t.end == t.begin)
             continue;
 
+        const Font& font                  = fonts[t.fontIndex];
+
         Internal::FontFace* face          = lookupCodepoint(font, text[t.begin], true).first;
-        int32_t start                     = t.begin;
+        uint32_t start                    = t.begin;
         std::vector<TextRun>::iterator it = newTextRuns.end();
 
-        for (int32_t i = t.begin + 1; i < t.end; ++i) {
+        for (uint32_t i = t.begin + 1; i < t.end; ++i) {
             char32_t codepoint          = text[i];
             Internal::FontFace* newFace = lookupCodepoint(font, codepoint, true).first;
             if (newFace != face) {
                 // TODO: correct t.visualOrder
-                it = newTextRuns.insert(it, TextRun{ t.direction, start, i, t.visualOrder, face });
+                it = newTextRuns.insert(it,
+                                        TextRun{ t.direction, start, i, t.visualOrder, t.fontIndex, face });
                 if (t.direction == TextDirection::LTR) {
                     ++it;
                 }
@@ -676,7 +682,7 @@ std::vector<TextRun> FontManager::assignFontsToTextRuns(const Font& font, std::u
             }
         }
         // TODO: correct t.visualOrder
-        it = newTextRuns.insert(it, TextRun{ t.direction, start, t.end, t.visualOrder, face });
+        it = newTextRuns.insert(it, TextRun{ t.direction, start, t.end, t.visualOrder, t.fontIndex, face });
     }
     return newTextRuns;
 }
@@ -726,7 +732,8 @@ static AscenderDescender spanAscDesc(std::span<const GlyphRun> runs) {
     return result;
 }
 
-PreparedText FontManager::shapeRuns(const Font& font, const TextWithOptions& text,
+PreparedText FontManager::shapeRuns(const TextWithOptions& text, std::span<const Font> fonts,
+                                    std::span<const uint32_t> offsets,
                                     const std::vector<TextRun>& textRuns) const {
     PreparedText shaped;
     shaped.options            = text.options;
@@ -739,6 +746,8 @@ PreparedText FontManager::shapeRuns(const Font& font, const TextWithOptions& tex
     hb_buffer.reset(hb_buffer_create());
 
     for (const TextRun& t : textRuns) {
+        const Font& font = fonts[t.fontIndex];
+
         PointF caret{ 0.f, 0.f };
         GlyphRun run;
         run.face          = t.face;
@@ -902,17 +911,24 @@ PreparedText FontManager::shapeRuns(const Font& font, const TextWithOptions& tex
     shaped.lines.push_back(PreparedText::GlyphLine{
         Range{ 0u, uint32_t(shaped.runs.size()) },
         Range{ 0u, uint32_t(shaped.graphemeBoundaries.size()) },
-        shaped.runs.empty() ? calcAscDesc(font.lineHeight, getMetrics(font)) : spanAscDesc(shaped.runs),
+        shaped.runs.empty() ? calcAscDesc(fonts.front().lineHeight, getMetrics(fonts.front()))
+                            : spanAscDesc(shaped.runs),
         0.f,
     });
 
     return shaped;
 }
 
-PreparedText FontManager::prepare(const Font& font, const TextWithOptions& text, float width,
-                                  bool wrapAnywhere) const {
+PreparedText FontManager::prepare(const Font& font, const TextWithOptions& text, float width) const {
     lock_quard_cond lk(m_lock);
-    return doPrepare(font, text, width, wrapAnywhere);
+    return doPrepare(text, one(font), {}, width);
+}
+
+PreparedText FontManager::prepare(const TextWithOptions& text, std::span<const Font> fonts,
+                                  std::span<const uint32_t> offsets, float width) const {
+    BRISK_ASSERT_MSG("The number of fonts and offsets do not match", fonts.size() == offsets.size() + 1);
+    lock_quard_cond lk(m_lock);
+    return doPrepare(text, fonts, offsets, width);
 }
 
 void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Point origin,
@@ -980,9 +996,12 @@ void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Poin
 const size_t shapeCacheSizeLow  = 190;
 const size_t shapeCacheSizeHigh = 210;
 
-PreparedText FontManager::doShapeCached(const Font& font, const TextWithOptions& text) const {
-#if 0
-    return doShape(font, text);
+PreparedText FontManager::doShapeCached(const TextWithOptions& text, std::span<const Font> fonts,
+                                        std::span<const uint32_t> offsets) const {
+    BRISK_ASSERT_MSG("The number of fonts and offsets do not match", fonts.size() == offsets.size() + 1);
+#if 1
+    // TODO: reenable cache
+    return doShape(text, fonts, offsets);
 #else
     Internal::ShapingCacheKey key{ font, text };
     ++m_cacheCounter;
@@ -1000,30 +1019,53 @@ PreparedText FontManager::doShapeCached(const Font& font, const TextWithOptions&
             }
         }
 
-        PreparedText shaped = doShape(font, text);
+        PreparedText shaped = doShape(text, fonts, offsets);
         m_shapeCache.insert(it, std::make_pair(key, ShapeCacheEntry{ shaped, m_cacheCounter }));
         return shaped;
     }
 #endif
 }
 
-PreparedText FontManager::doShape(const Font& font, const TextWithOptions& text) const {
-    std::vector<TextRun> textRuns = splitTextRuns(text.text, text.defaultDirection, false);
-    textRuns                      = assignFontsToTextRuns(font, text.text, textRuns);
-    textRuns                      = splitControls(text.text, textRuns);
-    return shapeRuns(font, text, textRuns);
+PreparedText FontManager::doShape(const TextWithOptions& text, std::span<const Font> fonts,
+                                  std::span<const uint32_t> offsets) const {
+    BRISK_ASSERT_MSG("The number of fonts and offsets do not match", fonts.size() == offsets.size() + 1);
+    std::vector<TextRun> textRuns = splitTextRuns(text.text, text.defaultDirection);
+
+    uint32_t fontIndex            = 0;
+    for (size_t i = 0; i < textRuns.size(); ++i) {
+        textRuns[i].fontIndex = fontIndex;
+        if (!offsets.empty() && offsets.front() < textRuns[i].end) {
+            if (offsets.front() > textRuns[i].begin) {
+                textRuns.insert(textRuns.begin() + i, textRuns[i]);
+                textRuns[i].end = textRuns[i + 1].begin = offsets.front();
+                ++fontIndex;
+            }
+            offsets = offsets.subspan(1);
+        }
+    }
+
+    textRuns = assignFontsToTextRuns(text.text, fonts, offsets, textRuns);
+    textRuns = splitControls(text.text, textRuns);
+    return shapeRuns(text, fonts, offsets, textRuns);
 }
 
-PreparedText FontManager::doPrepare(const Font& font, const TextWithOptions& text, float width,
-                                    bool wrapAnywhere) const {
-    PreparedText shaped = doShapeCached(font, text);
-    return std::move(shaped).wrap(width, wrapAnywhere);
+PreparedText FontManager::doPrepare(const TextWithOptions& text, std::span<const Font> fonts,
+                                    std::span<const uint32_t> offsets, float width) const {
+    BRISK_ASSERT_MSG("The number of fonts and offsets do not match", fonts.size() == offsets.size() + 1);
+    PreparedText shaped = doShapeCached(text, fonts, offsets);
+    return std::move(shaped).wrap(width, text.options && LayoutOptions::WrapAnywhere);
 }
 
 RectangleF FontManager::bounds(const Font& font, const TextWithOptions& text,
                                GlyphRunBounds boundsType) const {
+    return bounds(text, one(font), {}, boundsType);
+}
+
+RectangleF FontManager::bounds(const TextWithOptions& text, std::span<const Font> fonts,
+                               std::span<const uint32_t> offsets, GlyphRunBounds boundsType) const {
+    BRISK_ASSERT_MSG("The number of fonts and offsets do not match", fonts.size() == offsets.size() + 1);
     lock_quard_cond lk(m_lock);
-    PreparedText run = doPrepare(font, text);
+    PreparedText run = doPrepare(text, fonts, offsets);
     return run.bounds(boundsType);
 }
 
@@ -1460,7 +1502,7 @@ enum class ExtractLineResult {
     return ExtractLineResult::End;
 }
 
-static void formatLine(std::span<uint32_t> input, std::span<GlyphRun> runs, float y) {
+static void formatLine(std::span<const uint32_t> input, std::span<GlyphRun> runs, float y) {
     if (input.empty())
         return;
     auto& first    = runs[input.front()];
@@ -1519,8 +1561,9 @@ PreparedText PreparedText::wrap(float maxWidth, bool wrapAnywhere) && {
     } else {
         float y     = 0;
         bool repeat = true;
-        GlyphLine line{};
+        AscenderDescender ascDesc{ 0, 0 };
         while (repeat) {
+            GlyphLine line{};
             size_t oldSize         = result.runs.size();
             line.graphemeRange.min = runs.empty() ? result.graphemeBoundaries.size() - 1
                                                   : result.characterToGrapheme(runs.front().charRange().min);
@@ -1532,20 +1575,27 @@ PreparedText PreparedText::wrap(float maxWidth, bool wrapAnywhere) && {
             if (!repeat) {
                 ++line.graphemeRange.max;
             }
+            if (line.ascDesc.height() == 0) {
+                line.ascDesc = ascDesc;
+            }
             BRISK_ASSERT(!line.graphemeRange.empty());
+            if (!result.lines.empty())
+                y += line.ascDesc.ascender;
             line.runRange = Range<size_t>{ oldSize, result.runs.size() };
             line.baseline = y;
             if (result.runs.size() > oldSize) {
                 result.visualOrder.resize(result.runs.size());
                 std::iota(result.visualOrder.begin() + oldSize, result.visualOrder.end(), oldSize);
 
-                std::span<GlyphRun> line      = std::span{ result.runs }.subspan(oldSize);
                 std::span<uint32_t> lineOrder = std::span{ result.visualOrder }.subspan(oldSize);
                 sortVisualOrder(lineOrder, result.runs);
-                formatLine(lineOrder, result.runs, y);
+                formatLine(lineOrder, result.runs, line.baseline);
             }
-            y += line.ascDesc.ascender + line.ascDesc.descender;
             result.lines.push_back(line);
+            y += line.ascDesc.descender;
+            if (line.ascDesc.height() > 0) {
+                ascDesc = line.ascDesc;
+            }
         }
     }
 
