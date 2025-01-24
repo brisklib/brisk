@@ -54,11 +54,6 @@ BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 
 namespace Brisk {
 
-constexpr inline FontFamily Lato        = static_cast<FontFamily>(0);
-constexpr inline FontFamily Monospace   = static_cast<FontFamily>(1);
-constexpr inline FontFamily GoNoto      = static_cast<FontFamily>(2);
-constexpr inline FontFamily DefaultFont = Lato;
-
 void registerBuiltinFonts();
 
 class Widget;
@@ -1088,7 +1083,7 @@ protected:
 
     // uint8_t
     mutable WidgetState m_state         = WidgetState::None;
-    FontFamily m_fontFamily             = DefaultFont;
+    FontFamily m_fontFamily             = Fonts::DefaultPlusIconsEmoji;
     FontStyle m_fontStyle               = FontStyle::Normal;
     FontWeight m_fontWeight             = FontWeight::Regular;
     OpenTypeFeatureFlags m_fontFeatures = {};

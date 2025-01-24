@@ -35,7 +35,7 @@ static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
         Selectors::Class{ "section-header" },
         Rules{
             fontSize      = 14_px,
-            fontFamily    = Monospace,
+            fontFamily    = Fonts::Monospace,
             color         = 0x5599ff_rgb,
             margin        = { 0, 10_apx },
 

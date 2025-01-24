@@ -103,13 +103,19 @@ inline constexpr std::initializer_list<NameValuePair<TextDecoration>> defaultNam
 
 BRISK_FLAGS(TextDecoration)
 
-enum class FontFamily : uint32_t {
-    Default,
-};
+using FontFamily = std::string;
 
-constexpr std::underlying_type_t<FontFamily> operator+(FontFamily ff) {
-    return static_cast<std::underlying_type_t<FontFamily>>(ff);
-}
+namespace Fonts {
+
+const inline std::string Default               = "@default";
+const inline std::string Monospace             = "@mono";
+const inline std::string Icons                 = "@icons";
+const inline std::string Emoji                 = "@emoji";
+
+const inline std::string DefaultPlusIcons      = "@default,@icons";
+const inline std::string DefaultPlusIconsEmoji = "@default,@icons,@emoji";
+
+} // namespace Fonts
 
 class FontManager;
 
@@ -830,8 +836,8 @@ using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
  * @brief Represents font properties and settings for text rendering.
  */
 struct Font {
-    FontFamily fontFamily         = FontFamily::Default;  ///< The font family.
-    float fontSize                = 10.f;                 ///< The size of the font in points.
+    FontFamily fontFamily         = Fonts::DefaultPlusIconsEmoji; ///< The font family.
+    float fontSize                = 10.f;                         ///< The size of the font in points.
     FontStyle style               = FontStyle::Normal;    ///< The style of the font (e.g., normal, italic).
     FontWeight weight             = FontWeight::Regular;  ///< The weight of the font (e.g., regular, bold).
     TextDecoration textDecoration = TextDecoration::None; ///< Text decoration (e.g., underline, none).
@@ -994,7 +1000,7 @@ public:
     explicit FontManager(std::recursive_mutex* mutex, int hscale, uint32_t cacheTimeMs);
     ~FontManager();
 
-    void addMergedFont(FontFamily fontFamily, std::initializer_list<FontFamily> families);
+    void addFontAlias(FontFamily newFontFamily, FontFamily existingFontFamily);
     void addFont(FontFamily fontFamily, FontStyle style, FontWeight weight, bytes_view data,
                  bool makeCopy = true, FontFlags flags = FontFlags::Default);
     [[nodiscard]] bool addFontByName(FontFamily fontFamily, std::string_view fontName);
@@ -1031,8 +1037,7 @@ public:
 private:
     friend struct Internal::FontFace;
     friend struct Font;
-    std::map<FontKey, std::unique_ptr<Internal::FontFace>> m_fonts;
-    std::map<FontFamily, inline_vector<FontFamily, maxFontsInMergedFonts>> m_mergedFonts;
+    std::map<FontKey, std::shared_ptr<Internal::FontFace>> m_fonts;
     void* m_ft_library;
     mutable std::recursive_mutex* m_lock;
 
@@ -1045,7 +1050,7 @@ private:
     mutable uint64_t m_cacheCounter = 0;
     int m_hscale;
     uint32_t m_cacheTimeMs;
-    inline_vector<FontFamily, maxFontsInMergedFonts> fontList(FontFamily ff) const;
+    std::vector<std::string_view> fontList(std::string_view ff) const;
     mutable std::vector<OSFont> m_osFonts;
     Internal::FontFace* lookup(const Font& font) const;
     Internal::FontFace* findFontByKey(FontKey fontKey) const;

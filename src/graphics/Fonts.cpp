@@ -359,12 +359,9 @@ FontManager::~FontManager() {
     HANDLE_FT_ERROR(FT_Done_FreeType(static_cast<FT_Library>(m_ft_library)));
 }
 
-inline_vector<FontFamily, maxFontsInMergedFonts> FontManager::fontList(FontFamily ff) const {
-    if (auto it = m_mergedFonts.find(ff); it != m_mergedFonts.end()) {
-        return it->second;
-    }
-    // Not a merged font, use as is
-    return { ff };
+std::vector<std::string_view> FontManager::fontList(std::string_view ff) const {
+    std::vector<std::string_view> list = split(ff, ',');
+    return list;
 }
 
 FontFace* FontManager::findFontByKey(FontKey fontKey) const {
@@ -420,16 +417,26 @@ FontManager::FontKey FontManager::faceToKey(Internal::FontFace* face) const {
     return {};
 }
 
-void FontManager::addMergedFont(FontFamily font, std::initializer_list<FontFamily> families) {
+void FontManager::addFontAlias(FontFamily newFontFamily, FontFamily existingFontFamily) {
     lock_quard_cond lk(m_lock);
-    m_mergedFonts[font] = inline_vector<FontFamily, maxFontsInMergedFonts>(families);
+    SmallVector<std::pair<FontKey, RC<FontFace>>, 1> aliasesToAdd;
+    for (const auto& f : m_fonts) {
+        if (std::get<0>(f.first) == existingFontFamily) {
+            FontKey k      = f.first;
+            std::get<0>(k) = newFontFamily;
+            aliasesToAdd.push_back(std::pair{ k, f.second });
+        }
+    }
+    for (auto& f : aliasesToAdd) {
+        m_fonts.insert_or_assign(std::move(f.first), std::move(f.second));
+    }
 }
 
 void FontManager::addFont(FontFamily font, FontStyle style, FontWeight weight, bytes_view data, bool makeCopy,
                           FontFlags flags) {
     lock_quard_cond lk(m_lock);
     FontKey key{ font, style, weight };
-    m_fonts.insert_or_assign(key, std::unique_ptr<FontFace>(new FontFace(this, data, makeCopy, flags)));
+    m_fonts.insert_or_assign(key, rcnew FontFace(this, data, makeCopy, flags));
 }
 
 status<IOError> FontManager::addFontFromFile(FontFamily family, FontStyle style, FontWeight weight,
@@ -1456,7 +1463,7 @@ Font Font::operator()(float fontSize) const {
 
 Font Font::operator()(FontFamily fontFamily) const {
     Font result       = *this;
-    result.fontFamily = fontFamily;
+    result.fontFamily = std::move(fontFamily);
     return result;
 }
 

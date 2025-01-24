@@ -105,7 +105,7 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew PasswordEditor(Value{ &m_password }, width = 100_perc, fontFamily = Monospace,
+                rcnew PasswordEditor(Value{ &m_password }, width = 100_perc, fontFamily = Fonts::Monospace,
                                      passwordChar =
                                          Value{ &m_hidePassword }.transform([](bool v) -> char32_t {
                                              return v ? '*' : 0;

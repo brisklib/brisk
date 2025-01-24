@@ -130,10 +130,10 @@ TEST_CASE("Renderer devices", "[gpu]") {
 TEST_CASE("Renderer - fonts") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont(FontFamily(44), FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
     REQUIRE(ttf2.has_value());
-    fonts->addFont(FontFamily(44), FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
 
     renderTest(
         "rr-fonts", { 1200, 600 },
@@ -147,12 +147,12 @@ TEST_CASE("Renderer - fonts") {
                 rect = Rectangle{ 0, i * 60, 600, (i + 1) * 60 };
                 canvas.drawRectangle(rect, 0.f, 0.f, fillColor = c, strokeWidth = 0);
                 canvas.drawText(rect, 0.5f, 0.5f, "The quick brown fox jumps over the lazy dog",
-                                Font{ FontFamily(44), 27.f }, Palette::white);
+                                Font{ "Lato", 27.f }, Palette::white);
                 c    = ColorOf<float, ColorGamma::sRGB>(1.f - i / 9.f);
                 rect = Rectangle{ 600, i * 60, 1200, (i + 1) * 60 };
                 canvas.drawRectangle(rect, 0.f, 0.f, fillColor = c, strokeWidth = 0);
                 canvas.drawText(rect, 0.5f, 0.5f, "The quick brown fox jumps over the lazy dog",
-                                Font{ FontFamily(44), 27.f }, Palette::black);
+                                Font{ "Lato", 27.f }, Palette::black);
             }
         },
         ColorF{ 1.f, 1.f });
@@ -165,7 +165,7 @@ TEST_CASE("Renderer - fonts") {
             TextWithOptions("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
                             "the <small>lazy</small> dog",
                             LayoutOptions::HTML),
-            Font{ FontFamily(44), 25.f }, Palette::black);
+            Font{ "Lato", 25.f }, Palette::black);
     });
 }
 
@@ -321,7 +321,7 @@ total = {:.1f}ms
 rate = {:.1f}fps)",
                                             winSize.x, winSize.y, 1000 * windows[i].waitTime,
                                             1000 * sumWaitTime, 1.0 / sumWaitTime),
-                                Font{ FontFamily::Default, 40.f }, Palette::white);
+                                Font{ Fonts::Default, 40.f }, Palette::white);
                 canvas.drawRectangle(Rectangle{ Point{ frame % winSize.x, 0 }, Size{ 5, winSize.y } }, 0.f,
                                      0.f, strokeWidth = 0, fillColor = Palette::black);
             }

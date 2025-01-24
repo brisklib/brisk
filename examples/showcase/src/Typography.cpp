@@ -7,7 +7,7 @@ namespace Brisk {
 static Builder iconsBuilder() {
     return Builder([](Widget* target) {
         constexpr int columns = 16;
-        auto iconFontFamily   = GoNoto;
+        auto iconFontFamily   = Fonts::Icons;
         int iconFontSize      = 25;
         for (int icon = ICON__first; icon < ICON__last; icon += columns) {
             RC<HLayout> glyphs = rcnew HLayout{
@@ -66,16 +66,16 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                         auto row = [target, size](std::string name, FontFamily family, FontWeight weight) {
                             target->apply(rcnew Text{
                                 pangram + fmt::format(" [{}, {}px]", name, size),
-                                fontFamily = family,
+                                fontFamily = std::move(family),
                                 fontWeight = weight,
                                 fontSize   = size,
                             });
                         };
-                        row("Lato Light", Lato, FontWeight::Light);
-                        row("Lato Regular", Lato, FontWeight::Regular);
-                        row("Lato Bold", Lato, FontWeight::Bold);
-                        row("GoNoto", GoNoto, FontWeight::Regular);
-                        row("Monospace", Monospace, FontWeight::Regular);
+                        row("Lato Light", "Lato", FontWeight::Light);
+                        row("Lato Regular", "Lato", FontWeight::Regular);
+                        row("Lato Bold", "Lato", FontWeight::Bold);
+                        row("GoNoto", "Noto", FontWeight::Regular);
+                        row("Monospace", Fonts::Monospace, FontWeight::Regular);
                         target->apply(rcnew Spacer{ height = 12_apx });
                     }
                 }),
@@ -88,7 +88,7 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
             rcnew Text{
                 "gΥφ fi fl3.14 1/3 LT",
                 fontSize       = 40,
-                fontFamily     = Lato,
+                fontFamily     = "Lato",
                 fontFeatures   = Value{ &m_fontFeatures },
                 letterSpacing  = Value{ &m_letterSpacing },
                 wordSpacing    = Value{ &m_wordSpacing },

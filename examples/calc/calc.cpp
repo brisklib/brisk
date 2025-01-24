@@ -110,7 +110,7 @@ public:
             rcnew Text{
                 text              = calc.valOutput(),
                 textAlign         = TextAlign::End,
-                fontFamily        = Monospace,
+                fontFamily        = Fonts::Monospace,
                 fontSize          = 40,
                 padding           = 12,
                 color             = 0x3F3F3F_rgb,
