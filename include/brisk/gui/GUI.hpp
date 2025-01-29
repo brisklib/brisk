@@ -1083,7 +1083,7 @@ protected:
 
     // uint8_t
     mutable WidgetState m_state         = WidgetState::None;
-    FontFamily m_fontFamily             = Fonts::DefaultPlusIconsEmoji;
+    std::string m_fontFamily            = Font::DefaultPlusIconsEmoji;
     FontStyle m_fontStyle               = FontStyle::Normal;
     FontWeight m_fontWeight             = FontWeight::Regular;
     OpenTypeFeatureFlags m_fontFeatures = {};
@@ -1353,7 +1353,7 @@ public:
     GUIProperty<29, OptFloat, AffectLayout, &This::m_flexGrow> flexGrow;
     GUIProperty<30, OptFloat, AffectLayout, &This::m_flexShrink> flexShrink;
     GUIProperty<31, Wrap, AffectLayout, &This::m_flexWrap> flexWrap;
-    GUIProperty<32, FontFamily, AffectLayout | AffectFont | Inheritable, &This::m_fontFamily> fontFamily;
+    GUIProperty<32, std::string, AffectLayout | AffectFont | Inheritable, &This::m_fontFamily> fontFamily;
     GUIProperty<33, Length,
                 AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable | RelativeToParent,
                 &This::m_fontSize>

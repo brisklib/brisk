@@ -27,8 +27,8 @@
 
 namespace Brisk {
 
-void testCompression(CompressionMethod method, CompressionLevel level, const std::string& ext, size_t readSize,
-                     size_t writeSize, size_t batchSize) {
+void testCompression(CompressionMethod method, CompressionLevel level, const std::string& ext,
+                     size_t readSize, size_t writeSize, size_t batchSize) {
     INFO("method=" << fmt::to_string(method));
     INFO("readSize=" << readSize);
     INFO("writeSize=" << writeSize);

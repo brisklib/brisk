@@ -44,6 +44,13 @@
 
 namespace Brisk {
 
+const std::string Font::Default               = "@default";
+const std::string Font::Monospace             = "@mono";
+const std::string Font::Icons                 = "@icons";
+const std::string Font::Emoji                 = "@emoji";
+const std::string Font::DefaultPlusIcons      = "@default,@icons";
+const std::string Font::DefaultPlusIconsEmoji = "@default,@icons,@emoji";
+
 void uncompressICUData();
 
 static std::string_view freeTypeError(FT_Error err) {
@@ -418,7 +425,7 @@ FontManager::FontKey FontManager::faceToKey(Internal::FontFace* face) const {
     return {};
 }
 
-void FontManager::addFontAlias(FontFamily newFontFamily, FontFamily existingFontFamily) {
+void FontManager::addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily) {
     lock_quard_cond lk(m_lock);
     SmallVector<std::pair<FontKey, RC<FontFace>>, 1> aliasesToAdd;
     for (const auto& f : m_fonts) {
@@ -433,19 +440,19 @@ void FontManager::addFontAlias(FontFamily newFontFamily, FontFamily existingFont
     }
 }
 
-void FontManager::addFont(FontFamily font, FontStyle style, FontWeight weight, bytes_view data, bool makeCopy,
-                          FontFlags flags) {
+void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight weight, bytes_view data,
+                          bool makeCopy, FontFlags flags) {
     lock_quard_cond lk(m_lock);
-    FontKey key{ font, style, weight };
+    FontKey key{ std::move(fontFamily), style, weight };
     m_fonts.insert_or_assign(key, rcnew FontFace(this, data, makeCopy, flags));
 }
 
-status<IOError> FontManager::addFontFromFile(FontFamily family, FontStyle style, FontWeight weight,
+status<IOError> FontManager::addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                              const fs::path& path) {
     lock_quard_cond lk(m_lock);
     expected<bytes, IOError> b = readBytes(path);
     if (b) {
-        addFont(family, style, weight, *b);
+        addFont(std::move(fontFamily), style, weight, *b);
         return {};
     }
     return unexpected(b.error());
@@ -531,7 +538,7 @@ std::vector<OSFont> FontManager::installedFonts(bool rescan) const {
     return m_osFonts;
 }
 
-bool FontManager::addSystemFont(FontFamily fontFamily) {
+bool FontManager::addSystemFont(std::string fontFamily) {
     lock_quard_cond lk(m_lock);
     fs::path path = fontFolders().front();
 #ifdef BRISK_WINDOWS
@@ -549,7 +556,7 @@ bool FontManager::addSystemFont(FontFamily fontFamily) {
 #endif
 }
 
-bool FontManager::addFontByName(FontFamily fontFamily, std::string_view fontName) {
+bool FontManager::addFontByName(std::string fontFamily, std::string_view fontName) {
     lock_quard_cond lk(m_lock);
     std::ignore = installedFonts();
     int num     = 0;
@@ -563,7 +570,7 @@ bool FontManager::addFontByName(FontFamily fontFamily, std::string_view fontName
     return num > 0;
 }
 
-std::vector<FontStyleAndWeight> FontManager::fontFamilyStyles(FontFamily font) const {
+std::vector<FontStyleAndWeight> FontManager::fontFamilyStyles(std::string_view font) const {
     lock_quard_cond lk(m_lock);
     std::vector<FontStyleAndWeight> result;
     for (const auto& f : m_fonts) {
@@ -1462,7 +1469,7 @@ Font Font::operator()(float fontSize) const {
     return result;
 }
 
-Font Font::operator()(FontFamily fontFamily) const {
+Font Font::operator()(std::string fontFamily) const {
     Font result       = *this;
     result.fontFamily = std::move(fontFamily);
     return result;

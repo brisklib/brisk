@@ -7,7 +7,7 @@ namespace Brisk {
 static Builder iconsBuilder() {
     return Builder([](Widget* target) {
         constexpr int columns = 16;
-        auto iconFontFamily   = Fonts::Icons;
+        auto iconFontFamily   = Font::Icons;
         int iconFontSize      = 25;
         for (int icon = ICON__first; icon < ICON__last; icon += columns) {
             RC<HLayout> glyphs = rcnew HLayout{
@@ -63,7 +63,7 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                 Builder([](Widget* target) {
                     for (int i = 0; i < 7; ++i) {
                         int size = 8 + i * 4;
-                        auto row = [target, size](std::string name, FontFamily family, FontWeight weight) {
+                        auto row = [target, size](std::string name, std::string family, FontWeight weight) {
                             target->apply(rcnew Text{
                                 pangram + fmt::format(" [{}, {}px]", name, size),
                                 fontFamily = std::move(family),
@@ -75,7 +75,7 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                         row("Lato Regular", "Lato", FontWeight::Regular);
                         row("Lato Bold", "Lato", FontWeight::Bold);
                         row("GoNoto", "Noto", FontWeight::Regular);
-                        row("Monospace", Fonts::Monospace, FontWeight::Regular);
+                        row("Monospace", Font::Monospace, FontWeight::Regular);
                         target->apply(rcnew Spacer{ height = 12_apx });
                     }
                 }),

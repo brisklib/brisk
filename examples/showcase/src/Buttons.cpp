@@ -85,7 +85,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                     rcnew Viewport{
                         [](Canvas& canvas, Rectangle rect) {
                             canvas.setFillColor(Palette::Standard::amber);
-                            PreparedText text = fonts->prepare(Font{ Fonts::DefaultPlusIconsEmoji, dp(18) },
+                            PreparedText text = fonts->prepare(Font{ Font::DefaultPlusIconsEmoji, dp(18) },
                                                                "This text is rendered dynamically.");
                             float x           = fract(currentTime() * 0.1) * text.bounds().width();
                             PointF offset     = text.alignLines(0.f, 0.5f);

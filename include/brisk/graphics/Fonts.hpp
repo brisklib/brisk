@@ -124,20 +124,6 @@ inline constexpr std::initializer_list<NameValuePair<TextDecoration>> defaultNam
 
 BRISK_FLAGS(TextDecoration)
 
-using FontFamily = std::string;
-
-namespace Fonts {
-
-const inline std::string Default               = "@default";
-const inline std::string Monospace             = "@mono";
-const inline std::string Icons                 = "@icons";
-const inline std::string Emoji                 = "@emoji";
-
-const inline std::string DefaultPlusIcons      = "@default,@icons";
-const inline std::string DefaultPlusIconsEmoji = "@default,@icons,@emoji";
-
-} // namespace Fonts
-
 class FontManager;
 
 /**
@@ -857,17 +843,25 @@ using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
  * @brief Represents font properties and settings for text rendering.
  */
 struct Font {
-    FontFamily fontFamily         = Fonts::DefaultPlusIconsEmoji; ///< The font family.
-    float fontSize                = 10.f;                         ///< The size of the font in points.
-    FontStyle style               = FontStyle::Normal;    ///< The style of the font (e.g., normal, italic).
-    FontWeight weight             = FontWeight::Regular;  ///< The weight of the font (e.g., regular, bold).
-    TextDecoration textDecoration = TextDecoration::None; ///< Text decoration (e.g., underline, none).
-    float lineHeight              = 1.2f;                 ///< Line height as a multiplier.
-    float tabWidth                = 8.f;                  ///< Tab width in space units.
-    float letterSpacing           = 0.f;                  ///< Additional space between letters.
-    float wordSpacing             = 0.f;                  ///< Additional space between words.
-    float verticalAlign           = 0.f;                  ///< Vertical alignment offset.
-    OpenTypeFeatureFlags features{};                      ///< OpenType features for advanced text styling.
+    const static std::string Default;
+    const static std::string Monospace;
+    const static std::string Icons;
+    const static std::string Emoji;
+
+    const static std::string DefaultPlusIcons;
+    const static std::string DefaultPlusIconsEmoji;
+
+    std::string fontFamily        = DefaultPlusIconsEmoji; ///< The font family.
+    float fontSize                = 10.f;                  ///< The size of the font in points.
+    FontStyle style               = FontStyle::Normal;     ///< The style of the font (e.g., normal, italic).
+    FontWeight weight             = FontWeight::Regular;   ///< The weight of the font (e.g., regular, bold).
+    TextDecoration textDecoration = TextDecoration::None;  ///< Text decoration (e.g., underline, none).
+    float lineHeight              = 1.2f;                  ///< Line height as a multiplier.
+    float tabWidth                = 8.f;                   ///< Tab width in space units.
+    float letterSpacing           = 0.f;                   ///< Additional space between letters.
+    float wordSpacing             = 0.f;                   ///< Additional space between words.
+    float verticalAlign           = 0.f;                   ///< Vertical alignment offset.
+    OpenTypeFeatureFlags features{};                       ///< OpenType features for advanced text styling.
 
     inline static const std::tuple Reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
@@ -888,7 +882,7 @@ struct Font {
      * @param fontFamily The new font family.
      * @return Font A copy with the updated font family.
      */
-    Font operator()(FontFamily fontFamily) const;
+    Font operator()(std::string fontFamily) const;
 
     /**
      * @brief Creates a copy of the font with a new font size.
@@ -1051,15 +1045,15 @@ public:
     explicit FontManager(std::recursive_mutex* mutex, int hscale, uint32_t cacheTimeMs);
     ~FontManager();
 
-    void addFontAlias(FontFamily newFontFamily, FontFamily existingFontFamily);
-    void addFont(FontFamily fontFamily, FontStyle style, FontWeight weight, bytes_view data,
+    void addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily);
+    void addFont(std::string fontFamily, FontStyle style, FontWeight weight, bytes_view data,
                  bool makeCopy = true, FontFlags flags = FontFlags::Default);
-    [[nodiscard]] bool addFontByName(FontFamily fontFamily, std::string_view fontName);
-    [[nodiscard]] bool addSystemFont(FontFamily fontFamily);
-    [[nodiscard]] status<IOError> addFontFromFile(FontFamily family, FontStyle style, FontWeight weight,
+    [[nodiscard]] bool addFontByName(std::string fontFamily, std::string_view fontName);
+    [[nodiscard]] bool addSystemFont(std::string fontFamily);
+    [[nodiscard]] status<IOError> addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                                   const fs::path& path);
     [[nodiscard]] std::vector<OSFont> installedFonts(bool rescan = false) const;
-    std::vector<FontStyleAndWeight> fontFamilyStyles(FontFamily fontFamily) const;
+    std::vector<FontStyleAndWeight> fontFamilyStyles(std::string_view fontFamily) const;
 
     FontMetrics metrics(const Font& font) const;
     bool hasCodepoint(const Font& font, char32_t codepoint) const;
@@ -1072,7 +1066,7 @@ public:
                       std::span<const uint32_t> offsets,
                       GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
 
-    using FontKey = std::tuple<FontFamily, FontStyle, FontWeight>;
+    using FontKey = std::tuple<std::string, FontStyle, FontWeight>;
 
     FontKey faceToKey(Internal::FontFace* face) const;
     void testRender(RC<Image> image, const PreparedText& run, Point origin,

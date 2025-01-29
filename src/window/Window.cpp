@@ -511,7 +511,7 @@ void Window::renderDebugInfo(RawCanvas& canvas, int lane) {
                                      m_canvasPixelRatio.load(), info.api, info.device, 0, 0, 0);
 
     canvas.drawText(RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1), 0.f, 0.5f,
-                    status, Font{ Fonts::Default, dp(12) }, Palette::white);
+                    status, Font{ Font::Default, dp(12) }, Palette::white);
 }
 
 void Window::renderDebugTimeline(const std::string& title, RawCanvas& canvas,
@@ -537,7 +537,7 @@ void Window::renderDebugTimeline(const std::string& title, RawCanvas& canvas,
         ++counter;
     }
     canvas.drawText(RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1), 0.f, 0.5f,
-                    title + ": " + stat.lastReport(), Font{ Fonts::Default, dp(12) }, Palette::white);
+                    title + ": " + stat.lastReport(), Font{ Font::Default, dp(12) }, Palette::white);
 }
 
 void Window::disableKeyHandling() {

@@ -565,17 +565,17 @@ void registerBuiltinFonts() {
     fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, Lato_Medium(), false);
     fonts->addFont("Lato", FontStyle::Normal, FontWeight::Light, Lato_Light(), false);
     fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, Lato_Black(), false);
-    fonts->addFontAlias(Fonts::Default, "Lato");
+    fonts->addFontAlias(Font::Default, "Lato");
 
 #ifdef BRISK_RESOURCE_GoNotoCurrent_Regular
     fonts->addFont("Noto", FontStyle::Normal, FontWeight::Regular, GoNotoCurrent_Regular(), false);
 #endif
 
     fonts->addFont("Lucide", FontStyle::Normal, FontWeight::Regular, Lucide(), false);
-    fonts->addFontAlias(Fonts::Icons, "Lucide");
+    fonts->addFontAlias(Font::Icons, "Lucide");
 
     fonts->addFont("Source Code Pro", FontStyle::Normal, FontWeight::Regular, SourceCodePro_Medium(), false);
-    fonts->addFontAlias(Fonts::Monospace, "Source Code Pro");
+    fonts->addFontAlias(Font::Monospace, "Source Code Pro");
 
     fontsRegistered = true;
 }
@@ -1133,7 +1133,7 @@ void Widget::paintHint(Canvas& canvas_) const {
         m_tree->requestLayer([hint, this](Canvas& canvas_) {
             RawCanvas& canvas  = canvas_.raw();
 
-            Font font          = Font{ Fonts::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
+            Font font          = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
             Size textSize      = fonts->bounds(font, utf8ToUtf32(hint)).size();
             Point p            = m_rect.at(0.5f, 1.f);
             Rectangle hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
@@ -1732,7 +1732,7 @@ void Widget::resolveProperties(PropFlags flags) {
         }
 
         if (getPropState(fontFamily.index) && PropState::Inherited) {
-            m_fontFamily = getFallback(m_parent, &Widget::m_fontFamily, Fonts::DefaultPlusIconsEmoji);
+            m_fontFamily = getFallback(m_parent, &Widget::m_fontFamily, Font::DefaultPlusIconsEmoji);
         }
         if (getPropState(fontStyle.index) && PropState::Inherited) {
             m_fontStyle = getFallback(m_parent, &Widget::m_fontStyle, FontStyle::Normal);

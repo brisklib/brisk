@@ -176,7 +176,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                                }),
         rcnew Text{
             text       = Value{ &m_text },
-            fontFamily = Fonts::Monospace,
+            fontFamily = Font::Monospace,
         },
     };
 }

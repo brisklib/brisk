@@ -262,7 +262,7 @@ TEST_CASE("Renderer: window", "[gpu]") {
 
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont(FontFamily::Default, FontStyle::Normal, FontWeight::Regular, *ttf);
+    fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Regular, *ttf);
 
     expected<RC<RenderDevice>, RenderDeviceError> device = getRenderDevice();
     REQUIRE(device.has_value());
@@ -321,7 +321,7 @@ total = {:.1f}ms
 rate = {:.1f}fps)",
                                             winSize.x, winSize.y, 1000 * windows[i].waitTime,
                                             1000 * sumWaitTime, 1.0 / sumWaitTime),
-                                Font{ Fonts::Default, 40.f }, Palette::white);
+                                Font{ Font::Default, 40.f }, Palette::white);
                 canvas.drawRectangle(Rectangle{ Point{ frame % winSize.x, 0 }, Size{ 5, winSize.y } }, 0.f,
                                      0.f, strokeWidth = 0, fillColor = Palette::black);
             }
