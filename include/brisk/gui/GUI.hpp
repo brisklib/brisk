@@ -54,11 +54,6 @@ BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 
 namespace Brisk {
 
-constexpr inline FontFamily Lato        = static_cast<FontFamily>(0);
-constexpr inline FontFamily Monospace   = static_cast<FontFamily>(1);
-constexpr inline FontFamily GoNoto      = static_cast<FontFamily>(2);
-constexpr inline FontFamily DefaultFont = Lato;
-
 void registerBuiltinFonts();
 
 class Widget;
@@ -194,7 +189,8 @@ enum class WidgetState : uint8_t {
     Last       = Disabled,
 };
 
-BRISK_FLAGS(WidgetState)
+template <>
+constexpr inline bool isBitFlags<WidgetState> = true;
 
 struct MatchAny {
     template <std::derived_from<Widget> WidgetClass>
@@ -1088,7 +1084,7 @@ protected:
 
     // uint8_t
     mutable WidgetState m_state         = WidgetState::None;
-    FontFamily m_fontFamily             = DefaultFont;
+    std::string m_fontFamily            = Font::DefaultPlusIconsEmoji;
     FontStyle m_fontStyle               = FontStyle::Normal;
     FontWeight m_fontWeight             = FontWeight::Regular;
     OpenTypeFeatureFlags m_fontFeatures = {};
@@ -1358,7 +1354,7 @@ public:
     GUIProperty<29, OptFloat, AffectLayout, &This::m_flexGrow> flexGrow;
     GUIProperty<30, OptFloat, AffectLayout, &This::m_flexShrink> flexShrink;
     GUIProperty<31, Wrap, AffectLayout, &This::m_flexWrap> flexWrap;
-    GUIProperty<32, FontFamily, AffectLayout | AffectFont | Inheritable, &This::m_fontFamily> fontFamily;
+    GUIProperty<32, std::string, AffectLayout | AffectFont | Inheritable, &This::m_fontFamily> fontFamily;
     GUIProperty<33, Length,
                 AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable | RelativeToParent,
                 &This::m_fontSize>

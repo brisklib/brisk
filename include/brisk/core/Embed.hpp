@@ -35,7 +35,8 @@ enum class EmbeddedResourceFlags : uint32_t {
 #endif
 };
 
-BRISK_FLAGS(EmbeddedResourceFlags)
+template <>
+constexpr inline bool isBitFlags<EmbeddedResourceFlags> = true;
 
 template <EmbeddedResourceFlags flags>
 Bytes loadResource(bytes_view data);

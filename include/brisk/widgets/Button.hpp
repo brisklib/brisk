@@ -35,7 +35,8 @@ enum class ButtonKeyEvents {
     AcceptsSpace = 2,
 };
 
-BRISK_FLAGS(ButtonKeyEvents)
+template <>
+constexpr inline bool isBitFlags<ButtonKeyEvents> = true;
 
 class WIDGET Button : public Widget {
 public:

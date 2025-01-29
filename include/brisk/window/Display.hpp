@@ -31,7 +31,8 @@ enum class DisplayFlags {
     Primary = 1,
 };
 
-BRISK_FLAGS(DisplayFlags)
+template <>
+constexpr inline bool isBitFlags<DisplayFlags> = true;
 
 /**
  * @class Display

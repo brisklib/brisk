@@ -230,7 +230,7 @@ inline std::u16string utf32ToUtf16(U32StringView text, UTFPolicy policy = UTFPol
  * @param policy The policy to handle invalid characters.
  * @return A UTF-8 encoded string.
  */
-inline string wcsToUtf8(WStringView text, UTFPolicy policy = UTFPolicy::Default) {
+inline std::string wcsToUtf8(WStringView text, UTFPolicy policy = UTFPolicy::Default) {
     return utfToUtf<char, wchar_t>(text, policy);
 }
 
@@ -241,7 +241,7 @@ inline string wcsToUtf8(WStringView text, UTFPolicy policy = UTFPolicy::Default)
  * @param policy The policy to handle invalid characters.
  * @return A wide character string.
  */
-inline wstring utf8ToWcs(U8StringView text, UTFPolicy policy = UTFPolicy::Default) {
+inline std::wstring utf8ToWcs(U8StringView text, UTFPolicy policy = UTFPolicy::Default) {
     return utfToUtf<wchar_t, char>(text, policy);
 }
 
@@ -252,7 +252,7 @@ inline wstring utf8ToWcs(U8StringView text, UTFPolicy policy = UTFPolicy::Defaul
  * @param policy The policy to handle invalid characters.
  * @return A UTF-32 encoded string.
  */
-inline u32string wcsToUtf32(WStringView text, UTFPolicy policy = UTFPolicy::Default) {
+inline std::u32string wcsToUtf32(WStringView text, UTFPolicy policy = UTFPolicy::Default) {
     return utfToUtf<char32_t, wchar_t>(text, policy);
 }
 
@@ -263,7 +263,7 @@ inline u32string wcsToUtf32(WStringView text, UTFPolicy policy = UTFPolicy::Defa
  * @param policy The policy to handle invalid characters.
  * @return A wide character string.
  */
-inline wstring utf32ToWcs(U32StringView text, UTFPolicy policy = UTFPolicy::Default) {
+inline std::wstring utf32ToWcs(U32StringView text, UTFPolicy policy = UTFPolicy::Default) {
     return utfToUtf<wchar_t, char32_t>(text, policy);
 }
 
@@ -327,7 +327,7 @@ std::basic_string<Char> utfCleanup(std::basic_string_view<Char> text, UTFPolicy 
  * @param policy The policy to handle invalid characters.
  * @return A cleaned up UTF-8 encoded string.
  */
-inline string utf8Cleanup(U8StringView text, UTFPolicy policy = UTFPolicy::Default) {
+inline std::string utf8Cleanup(U8StringView text, UTFPolicy policy = UTFPolicy::Default) {
     return utfCleanup(text, policy);
 }
 
@@ -338,7 +338,7 @@ inline string utf8Cleanup(U8StringView text, UTFPolicy policy = UTFPolicy::Defau
  * @param policy The policy to handle invalid characters.
  * @return A cleaned up UTF-16 encoded string.
  */
-inline u16string utf16Cleanup(U16StringView text, UTFPolicy policy = UTFPolicy::Default) {
+inline std::u16string utf16Cleanup(U16StringView text, UTFPolicy policy = UTFPolicy::Default) {
     return utfCleanup(text, policy);
 }
 
@@ -349,7 +349,7 @@ inline u16string utf16Cleanup(U16StringView text, UTFPolicy policy = UTFPolicy::
  * @param policy The policy to handle invalid characters.
  * @return A cleaned up UTF-32 encoded string.
  */
-inline u32string utf32Cleanup(U32StringView text, UTFPolicy policy = UTFPolicy::Default) {
+inline std::u32string utf32Cleanup(U32StringView text, UTFPolicy policy = UTFPolicy::Default) {
     return utfCleanup(text, policy);
 }
 
@@ -440,7 +440,7 @@ std::basic_string<Char> utfTransform(std::basic_string_view<Char> text,
  * @param fn A function to transform each UTF codepoint.
  * @return A transformed ASCII string.
  */
-string asciiTransform(AsciiStringView text, const function<char32_t(char32_t)>& fn);
+std::string asciiTransform(AsciiStringView text, const function<char32_t(char32_t)>& fn);
 
 /**
  * @brief Transforms UTF-8 text using a provided function.
@@ -450,8 +450,8 @@ string asciiTransform(AsciiStringView text, const function<char32_t(char32_t)>& 
  * @param policy The policy to handle invalid characters.
  * @return A transformed UTF-8 encoded string.
  */
-inline string utf8Transform(U8StringView text, const function<char32_t(char32_t)>& fn,
-                            UTFPolicy policy = UTFPolicy::Default) {
+inline std::string utf8Transform(U8StringView text, const function<char32_t(char32_t)>& fn,
+                                 UTFPolicy policy = UTFPolicy::Default) {
     return utfTransform(text, fn, policy);
 }
 
@@ -463,8 +463,8 @@ inline string utf8Transform(U8StringView text, const function<char32_t(char32_t)
  * @param policy The policy to handle invalid characters.
  * @return A transformed UTF-16 encoded string.
  */
-inline u16string utf16Transform(U16StringView text, const function<char32_t(char32_t)>& fn,
-                                UTFPolicy policy = UTFPolicy::Default) {
+inline std::u16string utf16Transform(U16StringView text, const function<char32_t(char32_t)>& fn,
+                                     UTFPolicy policy = UTFPolicy::Default) {
     return utfTransform(text, fn, policy);
 }
 
@@ -476,8 +476,8 @@ inline u16string utf16Transform(U16StringView text, const function<char32_t(char
  * @param policy The policy to handle invalid characters.
  * @return A transformed UTF-32 encoded string.
  */
-inline u32string utf32Transform(U32StringView text, const function<char32_t(char32_t)>& fn,
-                                UTFPolicy policy = UTFPolicy::Default) {
+inline std::u32string utf32Transform(U32StringView text, const function<char32_t(char32_t)>& fn,
+                                     UTFPolicy policy = UTFPolicy::Default) {
     return utfTransform(text, fn, policy);
 }
 
@@ -552,6 +552,39 @@ void utfWrite(char32_t*& text, char32_t* end, char32_t ch);
  * @param ch The UTF codepoint to write.
  */
 void utfWrite(wchar_t*& text, wchar_t* end, char32_t ch);
+
+/**
+ * @brief Utility struct for encoding a single Unicode character to UTF-8.
+ */
+struct Utf8Character {
+    /**
+     * @brief Buffer to store the UTF-8 encoded character.
+     */
+    char buf[4];
+
+    /**
+     * @brief The length of the UTF-8 encoded character in bytes (1-4).
+     */
+    uint32_t len;
+
+    /**
+     * @brief Constructs a Utf8Character from a Unicode codepoint.
+     * @param codepoint The Unicode codepoint to encode as UTF-8.
+     */
+    explicit Utf8Character(char32_t codepoint) {
+        char* data = buf;
+        utfWrite(data, buf + std::size(buf), codepoint);
+        len = static_cast<uint32_t>(data - buf);
+    }
+
+    /**
+     * @brief Implicitly converts the Utf8Character to a string view.
+     * @return A std::string_view representing the UTF-8 encoded character.
+     */
+    operator std::string_view() const noexcept {
+        return std::string_view(buf, len);
+    }
+};
 
 /**
  * @brief Struct representing a UTF iterator for iterating over UTF text.
@@ -685,7 +718,8 @@ enum class UTFNormalization {
     NFKD      = Compat | Decompose, ///< Compatibility and Decompose normalization (alias for NFKD).
 };
 
-BRISK_FLAGS(UTFNormalization)
+template <>
+constexpr inline bool isBitFlags<UTFNormalization> = true;
 
 /**
  * @brief Normalizes UTF text according to the specified normalization type.

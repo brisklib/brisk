@@ -27,8 +27,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
         padding = { 16, 5 },
     };
     static const Rules headerCell = Rules{
-        layout = Layout::Horizontal, fontFamily = Lato,   fontWeight = FontWeight::Bold,
-        color = 0x808080_rgb,        padding = { 16, 5 },
+        layout     = Layout::Horizontal,
+        fontWeight = FontWeight::Bold,
+        color      = 0x808080_rgb,
+        padding    = { 16, 5 },
     };
 
     return rcnew VLayout{
@@ -65,11 +67,15 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
             },
             // Overflow::ScrollX prevents this widget from stretching because of Text
             overflow = Overflow::ScrollX,
-            rcnew Text{ loremIpsumShort, wordWrap = true, textAlign = Value{ &m_textAlign },
-                        marginTop = 10_apx, fontSize = Value{ &m_fontSize }.transform([](float v) {
-                            return v * 100_perc;
-                        }),
-                        fontFamily = Lato },
+            rcnew Text{
+                loremIpsumShort,
+                wordWrap  = true,
+                textAlign = Value{ &m_textAlign },
+                marginTop = 10_apx,
+                fontSize  = Value{ &m_fontSize }.transform([](float v) {
+                    return v * 100_perc;
+                }),
+            },
         },
 
         rcnew Text{ "Viewport (widgets/Viewport.hpp)", classes = { "section-header" } },
@@ -152,7 +158,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 // Set the fill color to lime green and set the font to "Lato" with a size of 48
                 // pixels. Draw the text "Brisk" centered inside the rectangle 'frect'.
                 canvas.setFillColor(Palette::Standard::lime);
-                canvas.setFont(Font{ Lato, 48_dp });
+                canvas.setFont(Font{ "Lato", 48_dp });
                 canvas.fillText("Brisk", frect.at(0.5f, 0.5f));
             },
             dimensions = { 256, 256 },

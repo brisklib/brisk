@@ -30,10 +30,6 @@
 
 namespace Brisk {
 
-static std::string_view fontFamiles[2] = {
-    "Lato",
-    "Noto",
-};
 std::string glyphRunToString(const GlyphRun& run);
 } // namespace Brisk
 
@@ -46,14 +42,6 @@ struct fmt::formatter<Brisk::FontMetrics> : fmt::formatter<std::string> {
                         value.ascender, value.descender, value.height, value.spaceAdvanceX,
                         value.lineThickness, value.xHeight, value.capitalHeight),
             ctx);
-    }
-};
-
-template <>
-struct fmt::formatter<Brisk::FontFamily> : fmt::formatter<std::string> {
-    template <typename FormatContext>
-    auto format(const Brisk::FontFamily& value, FormatContext& ctx) const {
-        return fmt::formatter<std::string>::format(fmt::format("{};", Brisk::fontFamiles[+value]), ctx);
     }
 };
 
@@ -173,14 +161,15 @@ TEST_CASE("textBreakPositions") {
 }
 
 TEST_CASE("splitTextRuns") {
-    CHECK(Internal::splitTextRuns(U"𠀀𠀁𠀂 𠀀𠀁𠀂", TextDirection::LTR, true) ==
+    CHECK(Internal::toVisualOrder(Internal::splitTextRuns(U"𠀀𠀁𠀂 𠀀𠀁𠀂", TextDirection::LTR)) ==
           std::vector<Internal::TextRun>{
               Internal::TextRun{
                   .direction = TextDirection::LTR, .begin = 0, .end = 7, .visualOrder = 0, .face = nullptr },
           });
     if (icuAvailable) {
         fmt::println("ICU is available");
-        CHECK(Internal::splitTextRuns(U"𠀀𠀁𠀂 \U0000200F123\U0000200E 𠀀𠀁𠀂", TextDirection::LTR, true) ==
+        CHECK(Internal::toVisualOrder(
+                  Internal::splitTextRuns(U"𠀀𠀁𠀂 \U0000200F123\U0000200E 𠀀𠀁𠀂", TextDirection::LTR)) ==
               std::vector<Internal::TextRun>{
                   Internal::TextRun{ .direction   = TextDirection::LTR,
                                      .begin       = 0,
@@ -216,22 +205,25 @@ TEST_CASE("FontManager") {
     REQUIRE(ttf.has_value());
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "GoNotoCurrent-Regular.ttf");
     REQUIRE(ttf2.has_value());
+    auto ttf3 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "SourceCodePro-Medium.ttf");
+    REQUIRE(ttf3.has_value());
+    auto ttf4 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf");
+    REQUIRE(ttf4.has_value());
 
-    FontFamily lato = FontFamily(0);
-    FontFamily noto = FontFamily(1);
+    fontManager->addFont("lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    CHECK(fontManager->fontFamilyStyles("lato") == std::vector<FontStyleAndWeight>{ FontStyleAndWeight{
+                                                       FontStyle::Normal,
+                                                       FontWeight::Regular,
+                                                   } });
 
-    fontManager->addFont(lato, FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
-    CHECK(fontManager->fontFamilyStyles(lato) == std::vector<FontStyleAndWeight>{ FontStyleAndWeight{
-                                                     FontStyle::Normal,
-                                                     FontWeight::Regular,
-                                                 } });
+    fontManager->addFont("noto", FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::Default);
 
-    fontManager->addFont(noto, FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::Default);
-    FontFamily latoPlusNoto = FontFamily(2);
-    fontManager->addMergedFont(latoPlusNoto, { lato, noto });
+    fontManager->addFont("mono", FontStyle::Normal, FontWeight::Regular, *ttf3, true, FontFlags::Default);
+    fontManager->addFont("latolight", FontStyle::Normal, FontWeight::Regular, *ttf4, true,
+                         FontFlags::Default);
 
     Font font;
-    font.fontFamily     = latoPlusNoto;
+    font.fontFamily     = "lato,noto";
     font.lineHeight     = 1.f;
     FontMetrics metrics = fontManager->metrics(font);
     CHECK(metrics == FontMetrics{ 10, 10, -3, 12, 2.531250, 0.750, 5.080, 7.180 });
@@ -378,7 +370,7 @@ TEST_CASE("FontManager") {
     // CHECK(run.graphemeToCaret(2) == PointF{ 0, 12 });
     // CHECK(run.graphemeToCaret(3) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
 
-    run = fontManager->prepare(font, U"ab"s, 1.f, true);
+    run = fontManager->prepare(font, TextWithOptions{ U"ab"s, LayoutOptions::WrapAnywhere }, 1.f);
     REQUIRE(run.runs.size() == 2);
     CHECK(run.runs[0].charRange() == Range{ 0u, 1u });
     CHECK(run.runs[0].glyphs.size() == 1);
@@ -462,7 +454,7 @@ TEST_CASE("FontManager") {
         CHECK(run.caretPositions[5] > run.caretPositions[3]);
         CHECK(run.caretPositions[6] > run.caretPositions[5]);
 
-        run = fontManager->prepare(font, U"abאבcd"s, 22, true);
+        run = fontManager->prepare(font, TextWithOptions{ U"abאבcd"s, LayoutOptions::WrapAnywhere }, 22);
         REQUIRE(run.runs.size() == 4);
         CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
         CHECK(run.runs[0].glyphs.size() == 2);
@@ -545,7 +537,7 @@ TEST_CASE("FontManager") {
 
     [[maybe_unused]] Size size = { 512, 64 };
 
-    Font bigFont{ latoPlusNoto, 36.f };
+    Font bigFont{ "lato,noto", 36.f };
 
     static std::set<int> requiresIcu{
         3, 25, 47, 48, 71,
@@ -555,7 +547,7 @@ TEST_CASE("FontManager") {
             continue;
         }
         visualTestMono(fmt::format("hello{}", i), { 512, 64 }, [&](RC<Image> image) {
-            Font font{ latoPlusNoto, 36.f };
+            Font font{ "lato,noto", 36.f };
             auto run = fontManager->prepare(font, helloWorld[i]);
             fontManager->testRender(image, run, { 5, 42 });
         });
@@ -581,74 +573,74 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
 )";
 
     visualTestMono("diacritics-lato", { 650, 290 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         font.tabWidth = 5.f;
         auto run      = fontManager->prepare(font, diac);
         fontManager->testRender(image, run, { 5, 42 });
     });
     visualTestMono("diacritics-noto", { 650, 290 }, [&](RC<Image> image) {
-        Font font{ noto, 36.f };
+        Font font{ "noto", 36.f };
         font.tabWidth = 5.f;
         auto run      = fontManager->prepare(font, diac);
         fontManager->testRender(image, run, { 5, 42 });
     });
     visualTestMono("bounds-text", { 128, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         auto run = fontManager->prepare(font, U"a");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
     visualTestMono("bounds-text-bar", { 128, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         auto run = fontManager->prepare(font, U"|");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
     visualTestMono("bounds-text2", { 128, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         auto run = fontManager->prepare(font, U"a  ");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
     visualTestMono("bounds-text3", { 128, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         auto run = fontManager->prepare(font, U"  a");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
     visualTestMono("bounds-text4", { 128, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         auto run = fontManager->prepare(font, U"    a");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
     visualTestMono("bounds-text5", { 128, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         auto run = fontManager->prepare(font, U"    aa");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
     visualTestMono("bounds-text6", { 128, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 36.f };
+        Font font{ "lato", 36.f };
         auto run = fontManager->prepare(font, U"    a|");
         fontManager->testRender(image, run, { 5, 42 }, TestRenderFlags::TextBounds);
     });
 
     visualTestMono("empty-lines", { 128, 256 }, [&](RC<Image> image) {
-        Font font{ lato, 24.f };
+        Font font{ "lato", 24.f };
         auto run = fontManager->prepare(font, U"a\nb\n\nd\ne");
         fontManager->testRender(image, run, { 5, 32 }, TestRenderFlags::TextBounds);
     });
 
     visualTestMono("lineHeight1", { 64, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 16.f };
+        Font font{ "lato", 16.f };
         font.lineHeight = 1.f;
         auto run        = fontManager->prepare(font, U"1st line\n2nd line");
         fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::TextBounds);
     });
     visualTestMono("lineHeight1dot5", { 64, 64 }, [&](RC<Image> image) {
-        Font font{ lato, 16.f };
+        Font font{ "lato", 16.f };
         font.lineHeight = 1.5f;
         auto run        = fontManager->prepare(font, U"1st line\n2nd line");
         fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::TextBounds);
     });
 
     visualTestMono("unicode-suppl", { 256, 64 }, [&](RC<Image> image) {
-        Font font{ noto, 36.f };
+        Font font{ "noto", 36.f };
         auto run = fontManager->prepare(
             font, U"\U00010140\U00010141\U00010142\U00010143\U00010144\U00010145\U00010146\U00010147");
         fontManager->testRender(image, run, { 5, 42 });
@@ -656,58 +648,58 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
 
     if (icuAvailable) {
         visualTestMono("mixed", { 512, 64 }, [&](RC<Image> image) {
-            Font font{ noto, 36.f };
+            Font font{ "noto", 36.f };
             auto run = fontManager->prepare(font, U"abcdef مرحبا بالعالم!");
             fontManager->testRender(image, run, { 5, 42 });
         });
 
         visualTestMono("mixed2", { 512, 64 }, [&](RC<Image> image) {
-            Font font{ noto, 36.f };
+            Font font{ "noto", 36.f };
             auto run = fontManager->prepare(font, U"123456 مرحبا بالعالم!");
             fontManager->testRender(image, run, { 5, 42 });
         });
 
         visualTestMono("mixed3", { 512, 64 }, [&](RC<Image> image) {
-            Font font{ noto, 36.f };
+            Font font{ "noto", 36.f };
             auto run = fontManager->prepare(font, U"مرحبا (بالعالم)!");
             fontManager->testRender(image, run, { 5, 42 });
         });
     }
 
     visualTestMono("wrapped-abc", { 128, 128 }, [&](RC<Image> image) {
-        Font font{ noto, 18.f };
+        Font font{ "noto", 18.f };
         auto t   = U"A B C D E F G H I J K L M N O P Q R S T U V W X Y Z";
         auto run = fontManager->prepare(font, t, 120);
         fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::None, { 3, 3 + 120 }, { 20 });
     });
     visualTestMono("wrapped-abc-big", { 4 * 128, 4 * 128 }, [&](RC<Image> image) {
-        Font font{ noto, 4 * 18.f };
+        Font font{ "noto", 4 * 18.f };
         auto t   = U"A B C D E F G H I J K L M N O P Q R S T U V W X Y Z";
         auto run = fontManager->prepare(font, t, 4 * 120);
         fontManager->testRender(image, run, { 4 * 3, 4 * 20 }, TestRenderFlags::None,
                                 { 4 * 3, 4 * 3 + 4 * 120 }, { 4 * 20 });
     });
     visualTestMono("wrapped-abc2", { 128, 128 }, [&](RC<Image> image) {
-        Font font{ noto, 18.f };
+        Font font{ "noto", 18.f };
         auto t   = U"A B C D E F G H I J K L M N O P Q R S T U V W X Y Z";
         auto run = fontManager->prepare(font, t, 110);
         fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::None, { 3, 3 + 110 }, { 20 });
     });
     visualTestMono("wrapped-abc3", { 128, 128 }, [&](RC<Image> image) {
-        Font font{ noto, 16.f };
+        Font font{ "noto", 16.f };
         auto t   = U"ABCDEFGHIJKLM N O P Q R S T U V W X Y Z";
         auto run = fontManager->prepare(font, t, 100);
         fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::None, { 3, 3 + 100 }, { 20 });
     });
     visualTestMono("wrapped-abc4", { 128, 128 }, [&](RC<Image> image) {
-        Font font{ noto, 16.f };
+        Font font{ "noto", 16.f };
         auto t   = U"A               B C D E F G H";
         auto run = fontManager->prepare(font, t, 24);
         fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::None, { 3, 3 + 24 }, { 20 });
     });
     if (icuAvailable) {
         visualTestMono("wrapped-rtl4", { 128, 128 }, [&](RC<Image> image) {
-            Font font{ noto, 16.f };
+            Font font{ "noto", 16.f };
             auto t        = U"א          ב ג ד ה ו ז ח ט י";
             auto run      = fontManager->prepare(font, t, 24);
             PointF offset = run.alignLines(1.f);
@@ -716,21 +708,21 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         });
     }
     visualTestMono("wrapped-abc0", { 128, 128 }, [&](RC<Image> image) {
-        Font font{ noto, 16.f };
+        Font font{ "noto", 16.f };
         auto t   = U"ABCDEFGHIJKLM N O P Q R S T U V W X Y Z";
         auto run = fontManager->prepare(font, t, 0);
         fontManager->testRender(image, run, { 3, 20 }, TestRenderFlags::None, { 3 }, { 20 });
     });
     if (icuAvailable) {
         visualTestMono("wrapped-cn", { 490, 384 }, [&](RC<Image> image) {
-            Font font{ noto, 32.f };
+            Font font{ "noto", 32.f };
             auto t =
                 U"人人生而自由，在尊严和权利上一律平等。他们赋有理性和良心，并应以兄弟关系的精神相对待。";
             auto run = fontManager->prepare(font, t, 460);
             fontManager->testRender(image, run, { 3, 36 }, TestRenderFlags::None, { 3, 3 + 460 }, { 36 });
         });
         visualTestMono("wrapped-ar-left", { 490, 384 }, [&](RC<Image> image) {
-            Font font{ noto, 32.f };
+            Font font{ "noto", 32.f };
             // clang-format off
         auto t = U"يولد جميع الناس أحرارًا متساوين في الكرامة والحقوق. وقد وهبوا عقلاً وضميرًا وعليهم أن يعامل بعضهم بعضًا بروح الإخاء.";
             // clang-format on
@@ -738,7 +730,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
             fontManager->testRender(image, run, { 23, 36 }, TestRenderFlags::None, { 23, 23 + 360 }, { 36 });
         });
         visualTestMono("wrapped-ar-right", { 490, 384 }, [&](RC<Image> image) {
-            Font font{ noto, 32.f };
+            Font font{ "noto", 32.f };
             // clang-format off
         auto t = U"يولد جميع الناس أحرارًا متساوين في الكرامة والحقوق. وقد وهبوا عقلاً وضميرًا وعليهم أن يعامل بعضهم بعضًا بروح الإخاء.";
             // clang-format on
@@ -750,28 +742,28 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         });
     }
     visualTestMono("letter-spacing", { 640, 64 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         font.letterSpacing = 12.f;
         auto t             = U"Letter spacing fi fl ff áb́ć";
         auto run           = fontManager->prepare(font, t, HUGE_VALF);
         fontManager->testRender(image, run, { 5, 36 });
     });
     visualTestMono("word-spacing", { 640, 64 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         font.wordSpacing = 12.f;
         auto t           = U"Word spacing fi fl ff áb́ć";
         auto run         = fontManager->prepare(font, t, HUGE_VALF);
         fontManager->testRender(image, run, { 5, 36 });
     });
     visualTestMono("letter-spacing-cn", { 640, 64 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         font.letterSpacing = 12.f;
         auto t             = U"人人生而自由，在尊严和权利上一律平等。";
         auto run           = fontManager->prepare(font, t, HUGE_VALF);
         fontManager->testRender(image, run, { 5, 36 });
     });
     visualTestMono("word-spacing-cn", { 640, 64 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         font.wordSpacing = 12.f;
         auto t           = U"人人生而自由，在尊严和权利上一律平等。";
         auto run         = fontManager->prepare(font, t, HUGE_VALF);
@@ -779,14 +771,14 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
     });
     if (icuAvailable) {
         visualTestMono("letter-spacing-ar", { 640, 64 }, [&](RC<Image> image) {
-            Font font{ noto, 22.f };
+            Font font{ "noto", 22.f };
             font.letterSpacing = 12.f;
             auto t             = U"abcdef مرحبا بالعالم!";
             auto run           = fontManager->prepare(font, t, HUGE_VALF);
             fontManager->testRender(image, run, { 5, 36 });
         });
         visualTestMono("word-spacing-ar", { 640, 64 }, [&](RC<Image> image) {
-            Font font{ noto, 22.f };
+            Font font{ "noto", 22.f };
             font.wordSpacing = 12.f;
             auto t           = U"abcdef مرحبا بالعالم!";
             auto run         = fontManager->prepare(font, t, HUGE_VALF);
@@ -795,7 +787,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
     }
 
     visualTestMono("alignment-ltr", { 256, 64 }, [&](RC<Image> image) {
-        Font font{ noto, 32.f };
+        Font font{ "noto", 32.f };
         auto t        = U"Hello, world!";
         auto run      = fontManager->prepare(font, t);
         PointF offset = run.alignLines(0.f, 0.5f);
@@ -805,7 +797,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
     });
     if (icuAvailable) {
         visualTestMono("alignment-rtl", { 256, 64 }, [&](RC<Image> image) {
-            Font font{ noto, 32.f };
+            Font font{ "noto", 32.f };
             auto t        = U"مرحبا بالعالم!";
             auto run      = fontManager->prepare(font, t);
             PointF offset = run.alignLines(1.f, 0.5f);
@@ -816,7 +808,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
     }
 
     visualTestMono("wrapped-align-left", { 256, 256 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         auto t = U"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla scelerisque posuere urna "
                  U"sit amet luctus.";
         auto run      = fontManager->prepare(font, t, image->width() - 4);
@@ -826,7 +818,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
                                 TestRenderFlags::TextBounds);
     });
     visualTestMono("wrapped-align-center", { 256, 256 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         auto t = U"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla scelerisque posuere urna "
                  U"sit amet luctus.";
         auto run      = fontManager->prepare(font, t, image->width() - 4);
@@ -836,7 +828,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
                                 TestRenderFlags::TextBounds);
     });
     visualTestMono("wrapped-align-right", { 256, 256 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         auto t = U"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla scelerisque posuere urna "
                  U"sit amet luctus.";
         auto run      = fontManager->prepare(font, t, image->width() - 4);
@@ -846,7 +838,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
                                 TestRenderFlags::TextBounds);
     });
     visualTestMono("indented-left", { 256, 256 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         auto t        = U"0\n  2\n    4\n  2\n   3\n0";
         auto run      = fontManager->prepare(font, t, image->width() - 4);
         PointF offset = run.alignLines(0, 0.5f);
@@ -855,13 +847,57 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
                                 TestRenderFlags::TextBounds);
     });
     visualTestMono("indented-right", { 256, 256 }, [&](RC<Image> image) {
-        Font font{ noto, 22.f };
+        Font font{ "noto", 22.f };
         auto t        = U"0\n  2\n    4\n  2\n   3\n0";
         auto run      = fontManager->prepare(font, t, image->width() - 4);
         PointF offset = run.alignLines(1, 0.5f);
         fontManager->testRender(image, run,
                                 RectangleF(image->bounds().withPadding(2, 2)).at(1, 0.5f) + offset,
                                 TestRenderFlags::TextBounds);
+    });
+
+    Font noto24{ "noto", 24 };
+    Font noto36{ "noto", 36 };
+    Font lato24{ "lato", 24 };
+    Font lato26{ "lato", 26 };
+    Font lato48{ "lato", 48 };
+    Font latolight20{ "latolight", 20.f };
+    Font mono20{ "mono", 20 };
+
+    visualTestMono("richtext1", { 192, 64 }, [&](RC<Image> image) {
+        FontAndColor fonts[2]{ { noto24 }, { noto36 } };
+        uint32_t offsets[1]{ 3 };
+
+        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("ABCDEF"), LayoutOptions::Default },
+                                        fonts, offsets);
+        fontManager->testRender(image, run, { 5, 42 });
+    });
+    visualTestMono("richtext2", { 256, 64 }, [&](RC<Image> image) {
+        FontAndColor fonts[3]{ { latolight20 }, { mono20 }, { latolight20 } };
+        uint32_t offsets[2]{ 6, 11 };
+
+        auto run = fontManager->prepare(
+            TextWithOptions{ utf8ToUtf32("Press Enter to continue"), LayoutOptions::Default }, fonts,
+            offsets);
+        fontManager->testRender(image, run, { 5, 42 });
+    });
+    visualTestMono("richtext-liga", { 192, 64 }, [&](RC<Image> image) {
+        FontAndColor fonts[2]{ { lato24 }, { lato26 } };
+        uint32_t offsets[1]{ 4 };
+
+        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("fi fi fi"), LayoutOptions::Default },
+                                        fonts, offsets);
+        fontManager->testRender(image, run, { 5, 42 });
+    });
+    visualTestMono("richtext-ml", { 256, 256 }, [&](RC<Image> image) {
+        FontAndColor fonts[3]{ { lato24 }, { lato48 }, { lato24 } };
+        uint32_t offsets[2]{ 24, 25 };
+
+        auto run = fontManager->prepare(
+            TextWithOptions{ utf8ToUtf32("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
+                             LayoutOptions::Default },
+            fonts, offsets, 170);
+        fontManager->testRender(image, run, { 8, 32 });
     });
 
     fontManager.reset();

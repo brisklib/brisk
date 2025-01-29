@@ -362,7 +362,8 @@ enum class Overflow : uint8_t {
     ScrollBoth = 3,
 };
 
-BRISK_FLAGS(Overflow)
+template <>
+constexpr inline bool isBitFlags<Overflow> = true;
 
 enum class Gutter : uint8_t {
     Column,
@@ -381,7 +382,8 @@ enum class BoxSizingPerAxis : uint8_t {
     ContentBox  = 3,
 };
 
-BRISK_FLAGS(BoxSizingPerAxis)
+template <>
+constexpr inline bool isBitFlags<BoxSizingPerAxis> = true;
 
 enum class Dimension : uint8_t {
     Width,

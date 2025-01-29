@@ -457,7 +457,7 @@ RC<const Stylesheet> stylesheet() {
             Class{ "header" },
             {
                 fontSize     = FontSize::Bigger,
-                fontFamily   = Lato,
+                fontFamily   = Font::DefaultPlusIconsEmoji,
                 fontWeight   = FontWeight::Bold,
                 color        = ColorF(0.4f, 0.4f),
                 marginTop    = 8_apx,
@@ -468,7 +468,7 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Class{ "dialog-header" },
             {
-                fontFamily = Lato,
+                fontFamily = Font::DefaultPlusIconsEmoji,
                 fontWeight = FontWeight::Bold,
                 padding    = { 8_apx, 4_apx },
             },

@@ -61,7 +61,7 @@ struct ClipboardContent {
  * @param formatID The identifier of the format to register.
  * @return The registered ClipboardFormat.
  */
-ClipboardFormat registerClipboardFormat(string_view formatID);
+ClipboardFormat registerClipboardFormat(std::string_view formatID);
 
 /**
  * @brief Global variable that represents the text format identifier for the clipboard.
@@ -107,7 +107,7 @@ bool setClipboardContent(const ClipboardContent& content);
  * @param content The text content to copy to the clipboard.
  * @return True if the text content was successfully copied, otherwise false.
  */
-inline bool copyTextToClipboard(string_view content) {
+inline bool copyTextToClipboard(std::string_view content) {
     return setClipboardContent(ClipboardContent{ std::string(content), {} });
 }
 

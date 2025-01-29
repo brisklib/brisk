@@ -1,8 +1,30 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #pragma once
+
 #include <brisk/core/internal/InlineVector.hpp>
 #include <brisk/core/Stream.hpp>
 #include <brisk/core/Hash.hpp>
 #include <mutex>
+#include "Color.hpp"
 #include "brisk/core/internal/SmallVector.hpp"
 #include "internal/OpenType.hpp"
 #include "Image.hpp"
@@ -25,71 +47,25 @@ public:
 using GlyphID = uint32_t;
 
 enum class LayoutOptions : uint32_t {
-    Default    = 0,
-    SingleLine = 1,
+    Default      = 0,
+    SingleLine   = 1,
+    WrapAnywhere = 2,
+    HTML         = 4,
 };
 
-BRISK_FLAGS(LayoutOptions)
-
-struct TextSpan {
-    uint32_t start;
-    uint32_t stop;
-    uint32_t format;
-};
-
-struct TextWithOptions {
-    using Char = char32_t;
-    u32string text;
-    LayoutOptions options;
-    TextDirection defaultDirection;
-
-    constexpr static std::tuple Reflection{
-        ReflectionField{ "text", &TextWithOptions::text },
-        ReflectionField{ "options", &TextWithOptions::options },
-        ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },
-    };
-
-    TextWithOptions(string_view text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(utf8ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
-
-    template <std::convertible_to<std::string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(utf8ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
-
-    template <std::convertible_to<std::u32string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(text), options(options), defaultDirection(defaultDirection) {}
-
-    TextWithOptions(u16string_view text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(utf16ToUtf32(text)), options(options), defaultDirection(defaultDirection) {}
-
-    TextWithOptions(u32string_view text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(text), options(options), defaultDirection(defaultDirection) {}
-
-    TextWithOptions(u32string text, LayoutOptions options = LayoutOptions::Default,
-                    TextDirection defaultDirection = TextDirection::LTR)
-        : text(std::move(text)), options(options), defaultDirection(defaultDirection) {}
-
-    bool operator==(const TextWithOptions& other) const noexcept = default;
-};
+template <>
+constexpr inline bool isBitFlags<LayoutOptions> = true;
 
 struct OpenTypeFeatureFlag {
     OpenTypeFeature feature;
     bool enabled;
-    bool operator==(const OpenTypeFeatureFlag& b) const noexcept = default;
+    auto operator<=>(const OpenTypeFeatureFlag& b) const noexcept = default;
 };
 
 enum class FontStyle : uint8_t {
-    Normal,
+    Normal = 0,
     Italic = 1,
 };
-
-BRISK_FLAGS(FontStyle)
 
 template <>
 inline constexpr std::initializer_list<NameValuePair<FontStyle>> defaultNames<FontStyle>{
@@ -119,7 +95,8 @@ enum class FontWeight : uint16_t {
     Black      = Weight900,
 };
 
-BRISK_FLAGS(FontWeight)
+template <>
+constexpr inline bool isBitFlags<FontWeight> = true;
 
 template <>
 inline constexpr std::initializer_list<NameValuePair<FontWeight>> defaultNames<FontWeight>{
@@ -145,15 +122,8 @@ inline constexpr std::initializer_list<NameValuePair<TextDecoration>> defaultNam
     { "LineThrough", TextDecoration::LineThrough },
 };
 
-BRISK_FLAGS(TextDecoration)
-
-enum class FontFamily : uint32_t {
-    Default,
-};
-
-constexpr std::underlying_type_t<FontFamily> operator+(FontFamily ff) {
-    return static_cast<std::underlying_type_t<FontFamily>>(ff);
-}
+template <>
+constexpr inline bool isBitFlags<TextDecoration> = true;
 
 class FontManager;
 
@@ -238,21 +208,23 @@ struct TextRun {
     TextDirection direction;
 
     /**
-     * @brief The starting index of the text run within the text.
+     * @brief The position of the first character of the text run.
      */
-    int32_t begin;
+    uint32_t begin;
 
     /**
-     * @brief The ending index of the text run within the text.
+     * @brief The position just beyond the last character of the text run.
      */
-    int32_t end;
+    uint32_t end;
 
     /**
      * @brief The visual order of the text run.
      *
      * This indicates the position of the run when rendered visually.
      */
-    int32_t visualOrder;
+    uint32_t visualOrder;
+
+    uint32_t fontIndex;
 
     /**
      * @brief Pointer to the font face associated with the text run.
@@ -329,8 +301,6 @@ enum class GlyphFlags : uint8_t {
      */
     IsCompactedWhitespace = 16,
 };
-
-BRISK_FLAGS(GlyphFlags)
 
 using FTFixed = int32_t;
 
@@ -456,6 +426,9 @@ using GlyphList = SmallVector<Glyph, 1>;
 
 } // namespace Internal
 
+template <>
+constexpr inline bool isBitFlags<Internal::GlyphFlags> = true;
+
 /**
  * @brief Specifies the types of bounds that can be calculated for a glyph run.
  */
@@ -565,6 +538,8 @@ struct GlyphRun {
      * @brief Position of the left-most point of the glyph run at the text baseline.
      */
     PointF position;
+
+    std::optional<Color> color;
 
     InclusiveRange<float> textVRange() const;
 
@@ -870,17 +845,25 @@ using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
  * @brief Represents font properties and settings for text rendering.
  */
 struct Font {
-    FontFamily fontFamily         = FontFamily::Default;  ///< The font family.
-    float fontSize                = 10.f;                 ///< The size of the font in points.
-    FontStyle style               = FontStyle::Normal;    ///< The style of the font (e.g., normal, italic).
-    FontWeight weight             = FontWeight::Regular;  ///< The weight of the font (e.g., regular, bold).
-    TextDecoration textDecoration = TextDecoration::None; ///< Text decoration (e.g., underline, none).
-    float lineHeight              = 1.2f;                 ///< Line height as a multiplier.
-    float tabWidth                = 8.f;                  ///< Tab width in space units.
-    float letterSpacing           = 0.f;                  ///< Additional space between letters.
-    float wordSpacing             = 0.f;                  ///< Additional space between words.
-    float verticalAlign           = 0.f;                  ///< Vertical alignment offset.
-    OpenTypeFeatureFlags features{};                      ///< OpenType features for advanced text styling.
+    const static std::string Default;
+    const static std::string Monospace;
+    const static std::string Icons;
+    const static std::string Emoji;
+
+    const static std::string DefaultPlusIcons;
+    const static std::string DefaultPlusIconsEmoji;
+
+    std::string fontFamily        = DefaultPlusIconsEmoji; ///< The font family.
+    float fontSize                = 10.f;                  ///< The size of the font in points.
+    FontStyle style               = FontStyle::Normal;     ///< The style of the font (e.g., normal, italic).
+    FontWeight weight             = FontWeight::Regular;   ///< The weight of the font (e.g., regular, bold).
+    TextDecoration textDecoration = TextDecoration::None;  ///< Text decoration (e.g., underline, none).
+    float lineHeight              = 1.2f;                  ///< Line height as a multiplier.
+    float tabWidth                = 8.f;                   ///< Tab width in space units.
+    float letterSpacing           = 0.f;                   ///< Additional space between letters.
+    float wordSpacing             = 0.f;                   ///< Additional space between words.
+    float verticalAlign           = 0.f;                   ///< Vertical alignment offset.
+    OpenTypeFeatureFlags features{};                       ///< OpenType features for advanced text styling.
 
     inline static const std::tuple Reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
@@ -901,7 +884,7 @@ struct Font {
      * @param fontFamily The new font family.
      * @return Font A copy with the updated font family.
      */
-    Font operator()(FontFamily fontFamily) const;
+    Font operator()(std::string fontFamily) const;
 
     /**
      * @brief Creates a copy of the font with a new font size.
@@ -924,10 +907,7 @@ struct Font {
      */
     Font operator()(FontWeight weight) const;
 
-    /**
-     * @brief Compares two fonts for equality.
-     */
-    bool operator==(const Font& b) const noexcept = default;
+    auto operator<=>(const Font& b) const noexcept = default;
 };
 
 /**
@@ -941,6 +921,86 @@ struct FontStyleAndWeight {
      * @brief Compares two FontStyleAndWeight objects for equality.
      */
     bool operator==(const FontStyleAndWeight& b) const noexcept = default;
+};
+
+struct FontAndColor {
+    Font font;
+    std::optional<Color> color;
+    bool operator==(const FontAndColor&) const noexcept = default;
+};
+
+namespace Internal {
+
+enum class FontFormatFlags : uint32_t {
+    None           = 0,
+    Family         = 1 << 0,
+    Size           = 1 << 1,
+    Style          = 1 << 2,
+    Weight         = 1 << 3,
+    Color          = 1 << 4,
+    TextDecoration = 1 << 5,
+
+    SizeIsRelative = 1 << 6,
+};
+
+struct RichText {
+    std::vector<FontAndColor> fonts;
+    std::vector<uint32_t> offsets;
+    std::vector<FontFormatFlags> flags;
+
+    bool empty() const noexcept {
+        return fonts.empty();
+    }
+
+    void setBaseFont(const Font& font);
+
+    static std::optional<std::pair<std::u32string, RichText>> fromHtml(std::string_view html);
+
+    bool operator==(const RichText& other) const noexcept = default;
+};
+
+} // namespace Internal
+
+template <>
+constexpr inline bool isBitFlags<Internal::FontFormatFlags> = true;
+
+struct TextWithOptions {
+    std::u32string text;
+    LayoutOptions options;
+    TextDirection defaultDirection;
+    Internal::RichText richText;
+
+    constexpr static std::tuple Reflection{
+        ReflectionField{ "text", &TextWithOptions::text },
+        ReflectionField{ "options", &TextWithOptions::options },
+        ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },
+    };
+
+    TextWithOptions(std::string_view text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+    TextWithOptions(std::u16string_view text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+    TextWithOptions(std::u32string_view text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+    TextWithOptions(std::u32string text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR);
+
+    template <std::convertible_to<std::string_view> T>
+    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR)
+        : TextWithOptions(std::string_view(text), options, defaultDirection) {}
+
+    template <std::convertible_to<std::u16string_view> T>
+    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR)
+        : TextWithOptions(std::u16string_view(text), options, defaultDirection) {}
+
+    template <std::convertible_to<std::u32string_view> T>
+    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+                    TextDirection defaultDirection = TextDirection::LTR)
+        : TextWithOptions(std::u32string_view(text), options, defaultDirection) {}
+
+    bool operator==(const TextWithOptions& other) const noexcept = default;
 };
 
 constexpr inline size_t maxFontsInMergedFonts = 4;
@@ -957,7 +1017,8 @@ enum class TestRenderFlags {
     Fade        = 4,
 };
 
-BRISK_FLAGS(TestRenderFlags)
+template <>
+constexpr inline bool isBitFlags<TestRenderFlags> = true;
 
 enum class FontFlags {
     Default          = 0,
@@ -966,7 +1027,8 @@ enum class FontFlags {
     DisableLigatures = 4,
 };
 
-BRISK_FLAGS(FontFlags)
+template <>
+constexpr inline bool isBitFlags<FontFlags> = true;
 
 struct OSFont {
     std::string family;
@@ -988,24 +1050,28 @@ public:
     explicit FontManager(std::recursive_mutex* mutex, int hscale, uint32_t cacheTimeMs);
     ~FontManager();
 
-    void addMergedFont(FontFamily fontFamily, std::initializer_list<FontFamily> families);
-    void addFont(FontFamily fontFamily, FontStyle style, FontWeight weight, bytes_view data,
+    void addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily);
+    void addFont(std::string fontFamily, FontStyle style, FontWeight weight, bytes_view data,
                  bool makeCopy = true, FontFlags flags = FontFlags::Default);
-    [[nodiscard]] bool addFontByName(FontFamily fontFamily, std::string_view fontName);
-    [[nodiscard]] bool addSystemFont(FontFamily fontFamily);
-    [[nodiscard]] status<IOError> addFontFromFile(FontFamily family, FontStyle style, FontWeight weight,
+    [[nodiscard]] bool addFontByName(std::string fontFamily, std::string_view fontName);
+    [[nodiscard]] bool addSystemFont(std::string fontFamily);
+    [[nodiscard]] status<IOError> addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                                   const fs::path& path);
     [[nodiscard]] std::vector<OSFont> installedFonts(bool rescan = false) const;
-    std::vector<FontStyleAndWeight> fontFamilyStyles(FontFamily fontFamily) const;
+    std::vector<FontStyleAndWeight> fontFamilyStyles(std::string_view fontFamily) const;
 
     FontMetrics metrics(const Font& font) const;
     bool hasCodepoint(const Font& font, char32_t codepoint) const;
-    PreparedText prepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF,
-                         bool wrapAnywhere = false) const;
+    PreparedText prepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF) const;
     RectangleF bounds(const Font& font, const TextWithOptions& text,
                       GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
+    PreparedText prepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                         std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
+    RectangleF bounds(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                      std::span<const uint32_t> offsets,
+                      GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
 
-    using FontKey = std::tuple<FontFamily, FontStyle, FontWeight>;
+    using FontKey = std::tuple<std::string, FontStyle, FontWeight>;
 
     FontKey faceToKey(Internal::FontFace* face) const;
     void testRender(RC<Image> image, const PreparedText& run, Point origin,
@@ -1021,8 +1087,7 @@ public:
 private:
     friend struct Internal::FontFace;
     friend struct Font;
-    std::map<FontKey, std::unique_ptr<Internal::FontFace>> m_fonts;
-    std::map<FontFamily, inline_vector<FontFamily, maxFontsInMergedFonts>> m_mergedFonts;
+    std::map<FontKey, std::shared_ptr<Internal::FontFace>> m_fonts;
     void* m_ft_library;
     mutable std::recursive_mutex* m_lock;
 
@@ -1035,23 +1100,28 @@ private:
     mutable uint64_t m_cacheCounter = 0;
     int m_hscale;
     uint32_t m_cacheTimeMs;
-    inline_vector<FontFamily, maxFontsInMergedFonts> fontList(FontFamily ff) const;
+    std::vector<std::string_view> fontList(std::string_view ff) const;
     mutable std::vector<OSFont> m_osFonts;
     Internal::FontFace* lookup(const Font& font) const;
+    Internal::FontFace* findFontByKey(FontKey fontKey) const;
     std::pair<Internal::FontFace*, GlyphID> lookupCodepoint(const Font& font, char32_t codepoint,
                                                             bool fallbackToUndef) const;
     FontMetrics getMetrics(const Font& font) const;
     static RectangleF glyphBounds(const Internal::Glyph& g, const Internal::GlyphData& d);
-    PreparedText shapeRuns(const Font& font, const TextWithOptions& text,
+    PreparedText shapeRuns(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                           std::span<const uint32_t> offsets,
                            const std::vector<Internal::TextRun>& textRuns) const;
     std::vector<Internal::TextRun> assignFontsToTextRuns(
-        const Font& font, std::u32string_view text, const std::vector<Internal::TextRun>& textRuns) const;
+        std::u32string_view text, std::span<const FontAndColor> fonts, std::span<const uint32_t> offsets,
+        const std::vector<Internal::TextRun>& textRuns) const;
     std::vector<Internal::TextRun> splitControls(std::u32string_view text,
                                                  const std::vector<Internal::TextRun>& textRuns) const;
-    PreparedText doPrepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF,
-                           bool wrapAnywhere = false) const;
-    PreparedText doShapeCached(const Font& font, const TextWithOptions& text) const;
-    PreparedText doShape(const Font& font, const TextWithOptions& text) const;
+    PreparedText doPrepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                           std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
+    PreparedText doShapeCached(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                               std::span<const uint32_t> offsets) const;
+    PreparedText doShape(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                         std::span<const uint32_t> offsets) const;
 };
 
 extern std::optional<FontManager> fonts;
@@ -1078,8 +1148,15 @@ namespace Internal {
  * text.
  * @return std::vector<TextRun> A vector of `TextRun` objects representing the segmented text.
  */
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection,
-                                   bool visualOrder);
+std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection);
+
+inline std::vector<TextRun> toVisualOrder(std::vector<TextRun> textRuns) {
+    std::stable_sort(textRuns.begin(), textRuns.end(), [](const TextRun& a, const TextRun& b) {
+        return a.visualOrder < b.visualOrder;
+    });
+    return textRuns;
+}
+
 } // namespace Internal
 
 /**

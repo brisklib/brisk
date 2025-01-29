@@ -167,64 +167,10 @@ static TextDirection toDir(UBiDiLevel level) {
     }
 
 namespace Internal {
-// Split text into runs of the same direction
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection) {
-    uncompressICUData();
-    std::vector<TextRun> textRuns;
-    UErrorCode uerr = U_ZERO_ERROR;
-    std::unique_ptr<UBiDi, UBiDiDeleter> bidi(ubidi_openSized(0, 0, &uerr));
-    HANDLE_UERROR(textRuns)
-
-    std::u16string u16 = utf32ToUtf16(text);
-    ubidi_setPara(bidi.get(), u16.data(), u16.size(),
-                  defaultDirection == TextDirection::LTR ? UBIDI_DEFAULT_LTR : UBIDI_DEFAULT_RTL, nullptr,
-                  &uerr);
-    HANDLE_UERROR(textRuns)
-
-    UBiDiDirection direction = ubidi_getDirection(bidi.get());
-    if (direction != UBIDI_MIXED) {
-        textRuns.push_back(TextRun{
-            toDir(direction),
-            0,
-            (int32_t)text.size(),
-            0,
-            nullptr,
-        });
-    } else {
-        int32_t count = ubidi_countRuns(bidi.get(), &uerr);
-        HANDLE_UERROR(textRuns)
-        int32_t codepoints = 0;
-        int32_t u16chars   = 0;
-        for (int i = 0; i < count; ++i) {
-            TextRun r;
-            r.face = nullptr;
-            int32_t u16length;
-            UBiDiLevel level;
-            ubidi_getLogicalRun(bidi.get(), u16chars, &u16length, &level);
-            u16length -= u16chars;
-            r.direction   = toDir(level);
-            r.begin       = codepoints;
-            r.end         = codepoints + utf16Codepoints(u16string_view(u16).substr(u16chars, u16length));
-            codepoints    = r.end;
-            r.visualOrder = ubidi_getVisualIndex(bidi.get(), u16chars, &uerr);
-            HANDLE_UERROR(textRuns)
-            textRuns.push_back(r);
-            u16chars += u16length;
-        }
-    }
-    return textRuns;
-}
-} // namespace Internal
-
-} // namespace Brisk
-
-namespace Brisk {
-
-Internal::TextBreakIterator::~TextBreakIterator() = default;
 
 namespace {
 
-class TextBreakIteratorICU final : public Internal::TextBreakIterator {
+class TextBreakIteratorICU final : public TextBreakIterator {
 public:
     LockedICUBreakIterator icu;
     icu::UnicodeString ustr;
@@ -232,6 +178,7 @@ public:
     int32_t oldp      = 0;
 
     TextBreakIteratorICU(std::u32string_view text, TextBreakMode mode) : icu(mode) {
+        uncompressICUData();
         std::u16string u16 = utf32ToUtf16(text);
         ustr.setTo(u16.data(), u16.size());
         icu->setText(ustr);
@@ -250,9 +197,60 @@ public:
         return codepoints;
     }
 };
+
+class BidiTextIteratorICU final : public BidiTextIterator {
+public:
+    std::unique_ptr<UBiDi, UBiDiDeleter> bidi;
+    std::u16string u16;
+    int32_t codepoints = 0;
+    int32_t u16chars   = 0;
+
+    BidiTextIteratorICU(std::u32string_view text, TextDirection defaultDirection) {
+        uncompressICUData();
+        UErrorCode uerr = U_ZERO_ERROR;
+        bidi.reset(ubidi_openSized(0, 0, &uerr));
+        HANDLE_UERROR();
+        u16 = utf32ToUtf16(text);
+        ubidi_setPara(bidi.get(), u16.data(), u16.size(),
+                      defaultDirection == TextDirection::LTR ? UBIDI_DEFAULT_LTR : UBIDI_DEFAULT_RTL, nullptr,
+                      &uerr);
+        HANDLE_UERROR();
+    }
+
+    ~BidiTextIteratorICU() = default;
+
+    bool isMixed() const {
+        return ubidi_getDirection(bidi.get()) == UBIDI_MIXED;
+    }
+
+    std::optional<TextFragment> next() {
+        if (u16chars == u16.size())
+            return std::nullopt;
+        UErrorCode uerr = U_ZERO_ERROR;
+        TextFragment r;
+        int32_t u16length;
+        UBiDiLevel level;
+        ubidi_getLogicalRun(bidi.get(), u16chars, &u16length, &level);
+        u16length -= u16chars;
+        r.direction          = toDir(level);
+        r.codepointRange.min = codepoints;
+        r.codepointRange.max =
+            codepoints + utf16Codepoints(std::u16string_view(u16).substr(u16chars, u16length));
+        codepoints    = r.codepointRange.max;
+        r.visualOrder = ubidi_getVisualIndex(bidi.get(), u16chars, &uerr);
+        HANDLE_UERROR(std::nullopt)
+        u16chars += u16length;
+        return r;
+    }
+};
 } // namespace
 
-RC<Internal::TextBreakIterator> Internal::textBreakIterator(std::u32string_view text, TextBreakMode mode) {
+RC<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode) {
     return rcnew TextBreakIteratorICU(text, mode);
 }
+
+RC<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection) {
+    return rcnew BidiTextIteratorICU(text, defaultDirection);
+}
+} // namespace Internal
 } // namespace Brisk

@@ -124,7 +124,8 @@ inline constexpr std::initializer_list<NameValuePair<OpenFileMode>> defaultNames
     { "AppendOrCreate", OpenFileMode::AppendOrCreate },
 };
 
-BRISK_FLAGS(OpenFileMode)
+template <>
+constexpr inline bool isBitFlags<OpenFileMode> = true;
 
 /**
  * @brief Opens a file with the specified path and mode.
@@ -248,8 +249,6 @@ BRISK_FLAGS(OpenFileMode)
  */
 [[nodiscard]] expected<std::FILE*, IOError> fopen_native(const fs::path& file_name, OpenFileMode mode);
 
-using u8strings = std::vector<string>;
-
 /**
  * @brief Reads the entire file as a vector of bytes.
  *
@@ -280,7 +279,7 @@ using u8strings = std::vector<string>;
  * @return An `expected` object containing the UTF-8 string or
  *         an I/O error.
  */
-[[nodiscard]] expected<string, IOError> readUtf8(const fs::path& file_name, bool removeBOM = true);
+[[nodiscard]] expected<std::string, IOError> readUtf8(const fs::path& file_name, bool removeBOM = true);
 
 /**
  * @brief Reads a JSON object from a file.
@@ -319,7 +318,7 @@ using u8strings = std::vector<string>;
  * @return An `expected` object containing a vector of lines or
  *         an I/O error.
  */
-[[nodiscard]] expected<u8strings, IOError> readLines(const fs::path& file_name);
+[[nodiscard]] expected<std::vector<std::string>, IOError> readLines(const fs::path& file_name);
 
 /**
  * @brief Writes a byte span to a file.
@@ -346,7 +345,7 @@ using u8strings = std::vector<string>;
  *                (default is `false`).
  * @return A status indicating success or an I/O error.
  */
-[[nodiscard]] status<IOError> writeUtf8(const fs::path& file_name, string_view str, bool useBOM = false);
+[[nodiscard]] status<IOError> writeUtf8(const fs::path& file_name, std::string_view str, bool useBOM = false);
 
 /**
  * @brief Writes a JSON object to a file.

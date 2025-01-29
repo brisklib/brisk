@@ -114,7 +114,8 @@ enum class AlignToViewport : uint8_t {
     XY   = 3,
 };
 
-BRISK_FLAGS(AlignToViewport)
+template <>
+constexpr inline bool isBitFlags<AlignToViewport> = true;
 
 enum FontSize : uint8_t {
     Small    = 10,
@@ -139,7 +140,8 @@ enum class PropFlags : uint16_t {
     Compound         = 1 << 8,
 };
 
-BRISK_FLAGS(PropFlags)
+template <>
+constexpr inline bool isBitFlags<PropFlags> = true;
 
 namespace Internal {
 constexpr size_t indexFromFlags(PropFlags flags) noexcept {
@@ -153,11 +155,13 @@ enum class PropState : uint8_t {
 
     Mask      = Overriden | Inherited,
 };
-BRISK_FLAGS(PropState)
 
 constexpr inline size_t propStateBits = std::bit_width(static_cast<uint8_t>(PropState::Mask));
 
 } // namespace Internal
+
+template <>
+constexpr inline bool isBitFlags<Internal::PropState> = true;
 
 namespace Tag {
 struct PropertyTag {};

@@ -557,28 +557,26 @@ void Widget::requestStateRestyle() {
     }
 }
 
-constexpr static FontFamily internalLato      = FontFamily(100);
-constexpr static FontFamily internalGoNoto    = FontFamily(101);
-constexpr static FontFamily internalLucide    = FontFamily(102);
-constexpr static FontFamily internalMonospace = FontFamily(103);
-
-static bool fontsRegistered                   = false;
+static bool fontsRegistered = false;
 
 void registerBuiltinFonts() {
     if (fontsRegistered)
         return;
-    fonts->addFont(internalLato, FontStyle::Normal, FontWeight::Regular, Lato_Medium(), false);
-    fonts->addFont(internalLato, FontStyle::Normal, FontWeight::Light, Lato_Light(), false);
-    fonts->addFont(internalLato, FontStyle::Normal, FontWeight::Bold, Lato_Black(), false);
-#ifdef BRISK_RESOURCE_GoNotoCurrent_Regular
-    fonts->addFont(internalGoNoto, FontStyle::Normal, FontWeight::Regular, GoNotoCurrent_Regular(), false);
-#endif
-    fonts->addFont(internalLucide, FontStyle::Normal, FontWeight::Regular, Lucide(), false);
-    fonts->addFont(internalMonospace, FontStyle::Normal, FontWeight::Regular, SourceCodePro_Medium(), false);
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, Lato_Medium(), false);
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Light, Lato_Light(), false);
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, Lato_Black(), false);
+    fonts->addFontAlias(Font::Default, "Lato");
 
-    fonts->addMergedFont(Lato, { internalLato, internalGoNoto, internalLucide });
-    fonts->addMergedFont(GoNoto, { internalGoNoto, internalLucide });
-    fonts->addMergedFont(Monospace, { internalMonospace, internalGoNoto, internalLucide });
+#ifdef BRISK_RESOURCE_GoNotoCurrent_Regular
+    fonts->addFont("Noto", FontStyle::Normal, FontWeight::Regular, GoNotoCurrent_Regular(), false);
+#endif
+
+    fonts->addFont("Lucide", FontStyle::Normal, FontWeight::Regular, Lucide(), false);
+    fonts->addFontAlias(Font::Icons, "Lucide");
+
+    fonts->addFont("Source Code Pro", FontStyle::Normal, FontWeight::Regular, SourceCodePro_Medium(), false);
+    fonts->addFontAlias(Font::Monospace, "Source Code Pro");
+
     fontsRegistered = true;
 }
 
@@ -1135,7 +1133,7 @@ void Widget::paintHint(Canvas& canvas_) const {
         m_tree->requestLayer([hint, this](Canvas& canvas_) {
             RawCanvas& canvas  = canvas_.raw();
 
-            Font font          = Font{ DefaultFont, dp(FontSize::Normal - 1) };
+            Font font          = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
             Size textSize      = fonts->bounds(font, utf8ToUtf32(hint)).size();
             Point p            = m_rect.at(0.5f, 1.f);
             Rectangle hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
@@ -1414,9 +1412,9 @@ Size Widget::scrollSize() const noexcept {
 }
 
 int Widget::scrollSize(Orientation orientation) const noexcept {
-    if (orientation == Orientation::Horizontal && !(overflow && Overflow::ScrollX))
+    if (orientation == Orientation::Horizontal && !(overflow.get() && Overflow::ScrollX))
         return 0;
-    if (orientation == Orientation::Vertical && !(overflow && Overflow::ScrollY))
+    if (orientation == Orientation::Vertical && !(overflow.get() && Overflow::ScrollY))
         return 0;
     if (m_contentSize[+orientation] <= 0 || m_contentSize[+orientation] <= m_rect.size()[+orientation])
         return 0;
@@ -1734,7 +1732,7 @@ void Widget::resolveProperties(PropFlags flags) {
         }
 
         if (getPropState(fontFamily.index) && PropState::Inherited) {
-            m_fontFamily = getFallback(m_parent, &Widget::m_fontFamily, DefaultFont);
+            m_fontFamily = getFallback(m_parent, &Widget::m_fontFamily, Font::DefaultPlusIconsEmoji);
         }
         if (getPropState(fontStyle.index) && PropState::Inherited) {
             m_fontStyle = getFallback(m_parent, &Widget::m_fontStyle, FontStyle::Normal);

@@ -31,7 +31,8 @@ enum class InitializationFlags {
     Default   = Threading | Settings,
 };
 
-BRISK_FLAGS(InitializationFlags)
+template <>
+constexpr inline bool isBitFlags<InitializationFlags> = true;
 
 void initializeCommon(InitializationFlags flags = InitializationFlags::Default);
 void finalizeCommon();

@@ -75,7 +75,8 @@ inline constexpr std::initializer_list<NameValuePair<DialogButtons>> defaultName
  * This macro allows the use of bitwise operators on DialogButtons, enabling
  * combinations of multiple button types.
  */
-BRISK_FLAGS(DialogButtons)
+template <>
+constexpr inline bool isBitFlags<DialogButtons> = true;
 
 /**
  * @brief The result of a dialog interaction.

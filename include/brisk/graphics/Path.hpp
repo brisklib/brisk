@@ -5,6 +5,7 @@
 #include <brisk/core/RC.hpp>
 #include <mutex>
 #include <variant>
+#include "brisk/core/internal/InlineVector.hpp"
 #include "internal/Sprites.hpp"
 
 namespace Brisk {
@@ -49,20 +50,41 @@ enum class CapStyle : uint8_t {
 };
 
 /**
+ * @typedef DashArray
+ * @brief A container for storing dash patterns used in stroking paths.
+ *
+ * DashArray holds a sequence of floats,
+ * representing the lengths of dashes and gaps in a dashed line pattern.
+ */
+using DashArray = inline_vector<float, 7>;
+
+/**
  * @brief Structure representing stroke parameters.
  */
 struct StrokeParams {
-    JoinStyle joinStyle; ///< The join style of the stroke.
-    CapStyle capStyle;   ///< The cap style of the stroke.
-    float strokeWidth;   ///< The width of the stroke.
-    float miterLimit;    ///< The limit for miter joins.
+    JoinStyle joinStyle = JoinStyle::Bevel; ///< The join style of the stroke.
+    CapStyle capStyle   = CapStyle::Flat;   ///< The cap style of the stroke.
+    float strokeWidth   = 1.f;              ///< The width of the stroke.
+    float miterLimit    = 10.f;             ///< The limit for miter joins.
+    DashArray dashArray{};
+    float dashOffset = 0.f;
+
+    StrokeParams scale(float value) const noexcept {
+        StrokeParams copy = *this;
+        copy.strokeWidth *= value;
+        copy.miterLimit *= value;
+        copy.dashOffset *= value;
+        for (float& v : copy.dashArray)
+            v *= value;
+        return copy;
+    }
 };
 
 /**
  * @brief Structure representing fill parameters.
  */
 struct FillParams {
-    FillRule fillRule; ///< The fill rule to be used.
+    FillRule fillRule = FillRule::Winding; ///< The fill rule to be used.
 };
 
 /**
@@ -277,7 +299,9 @@ struct Path {
      * @param m The transformation matrix to apply.
      * @return Path The transformed path.
      */
-    Path transformed(const Matrix& m) const;
+    Path transformed(const Matrix& m) const&;
+
+    Path transformed(const Matrix& m) &&;
 
     /**
      * @brief Calculates the length of the path.

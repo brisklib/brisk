@@ -74,20 +74,6 @@ std::span<const T> one(const T& value) noexcept {
 }
 
 /**
- * @file
- * @brief Type alias definitions and utility functions for working with various string and byte types.
- */
-
-using std::string;
-using std::string_view;
-using std::u16string;
-using std::u16string_view;
-using std::u32string;
-using std::u32string_view;
-using std::wstring;
-using std::wstring_view;
-
-/**
  * @brief Type alias for a single byte (8-bit unsigned integer).
  */
 using byte               = uint8_t;
@@ -734,56 +720,89 @@ Range(T, T) -> Range<T, false>;
 template <typename T>
 using InclusiveRange = Range<T>;
 
-#define BRISK_FLAGS(TYPE)                                                                                    \
-    constexpr std::underlying_type_t<TYPE> operator+(TYPE x) noexcept {                                      \
-        return static_cast<std::underlying_type_t<TYPE>>(x);                                                 \
-    }                                                                                                        \
-    constexpr bool operator&&(TYPE flags, TYPE flag) noexcept {                                              \
-        return (+flags & +flag) != 0;                                                                        \
-    }                                                                                                        \
-    constexpr TYPE operator|(TYPE x, TYPE y) noexcept {                                                      \
-        return static_cast<TYPE>(+x | +y);                                                                   \
-    }                                                                                                        \
-    constexpr TYPE operator&(TYPE x, TYPE y) noexcept {                                                      \
-        return static_cast<TYPE>(+x & +y);                                                                   \
-    }                                                                                                        \
-    constexpr TYPE& operator|=(TYPE& x, TYPE y) noexcept {                                                   \
-        return x = static_cast<TYPE>(+x | +y);                                                               \
-    }                                                                                                        \
-    constexpr TYPE& operator^=(TYPE& x, TYPE y) noexcept {                                                   \
-        return x = static_cast<TYPE>(+x ^ +y);                                                               \
-    }                                                                                                        \
-    constexpr TYPE operator^(TYPE x, TYPE y) noexcept {                                                      \
-        return static_cast<TYPE>(+x ^ +y);                                                                   \
-    }                                                                                                        \
-    constexpr TYPE operator~(TYPE x) noexcept {                                                              \
-        return static_cast<TYPE>(~+x);                                                                       \
-    }                                                                                                        \
-    constexpr TYPE& operator&=(TYPE& x, TYPE y) noexcept {                                                   \
-        return x = static_cast<TYPE>(+x & +y);                                                               \
-    }                                                                                                        \
-    /*constexpr TYPE operator<<(TYPE& x, int y) { return static_cast<TYPE>(+x << y); }  */                   \
-    constexpr TYPE operator>>(TYPE& x, int y) noexcept {                                                     \
-        return static_cast<TYPE>(+x >> y);                                                                   \
-    }                                                                                                        \
-    constexpr TYPE& operator<<=(TYPE& x, int y) noexcept {                                                   \
-        return x = static_cast<TYPE>(+x << y);                                                               \
-    }                                                                                                        \
-    constexpr TYPE& operator>>=(TYPE& x, int y) noexcept {                                                   \
-        return x = static_cast<TYPE>(+x >> y);                                                               \
-    }                                                                                                        \
-    constexpr TYPE operator+(TYPE x, TYPE y) noexcept {                                                      \
-        return static_cast<TYPE>(+x + +y);                                                                   \
-    }                                                                                                        \
-    constexpr TYPE& operator+=(TYPE& x, TYPE y) noexcept {                                                   \
-        return x = static_cast<TYPE>(+x + +y);                                                               \
-    }                                                                                                        \
-    constexpr void toggle(TYPE& x, TYPE y, bool flag) noexcept {                                             \
-        if (flag)                                                                                            \
-            x |= y;                                                                                          \
-        else                                                                                                 \
-            x &= ~y;                                                                                         \
-    }
+template <typename T>
+constexpr inline bool isBitFlags = false;
+
+template <typename T>
+concept BitFlags = isBitFlags<T>;
+
+template <BitFlags T>
+constexpr std::underlying_type_t<T> operator+(T x) noexcept {
+    return static_cast<std::underlying_type_t<T>>(x);
+}
+
+template <BitFlags T>
+constexpr bool operator&&(T flags, T flag) noexcept {
+    return (+flags & +flag) != 0;
+}
+
+template <BitFlags T>
+constexpr T operator|(T x, T y) noexcept {
+    return static_cast<T>(+x | +y);
+}
+
+template <BitFlags T>
+constexpr T operator&(T x, T y) noexcept {
+    return static_cast<T>(+x & +y);
+}
+
+template <BitFlags T>
+constexpr T& operator|=(T& x, T y) noexcept {
+    return x = static_cast<T>(+x | +y);
+}
+
+template <BitFlags T>
+constexpr T& operator^=(T& x, T y) noexcept {
+    return x = static_cast<T>(+x ^ +y);
+}
+
+template <BitFlags T>
+constexpr T operator^(T x, T y) noexcept {
+    return static_cast<T>(+x ^ +y);
+}
+
+template <BitFlags T>
+constexpr T operator~(T x) noexcept {
+    return static_cast<T>(~+x);
+}
+
+template <BitFlags T>
+constexpr T& operator&=(T& x, T y) noexcept {
+    return x = static_cast<T>(+x & +y);
+} /*constexpr T operator<<(T& x, int y) { return static_cast<T>(+x << y); }  */
+
+template <BitFlags T>
+constexpr T operator>>(T& x, int y) noexcept {
+    return static_cast<T>(+x >> y);
+}
+
+template <BitFlags T>
+constexpr T& operator<<=(T& x, int y) noexcept {
+    return x = static_cast<T>(+x << y);
+}
+
+template <BitFlags T>
+constexpr T& operator>>=(T& x, int y) noexcept {
+    return x = static_cast<T>(+x >> y);
+}
+
+template <BitFlags T>
+constexpr T operator+(T x, T y) noexcept {
+    return static_cast<T>(+x + +y);
+}
+
+template <BitFlags T>
+constexpr T& operator+=(T& x, T y) noexcept {
+    return x = static_cast<T>(+x + +y);
+}
+
+template <BitFlags T>
+constexpr void toggle(T& x, T y, bool flag) noexcept {
+    if (flag)
+        x |= y;
+    else
+        x &= ~y;
+}
 
 struct Empty {};
 

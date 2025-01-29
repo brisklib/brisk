@@ -45,7 +45,7 @@ optional<std::vector<uint8_t>> Stream::readUntilEnd(bool incompleteOk) {
     return data;
 }
 
-Transferred Stream::write(string_view data) {
+Transferred Stream::write(std::string_view data) {
     return write(reinterpret_cast<const uint8_t*>(data.data()), data.size());
 }
 
