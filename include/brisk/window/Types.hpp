@@ -196,7 +196,8 @@ enum class KeyModifiers {
     ControlOrCommand = WinControl,
 #endif
 };
-BRISK_FLAGS(KeyModifiers)
+template <>
+constexpr inline bool isBitFlags<KeyModifiers> = true;
 
 std::string keyModifiersToString(KeyModifiers mods, const std::string& joiner = "+", bool finalJoiner = true);
 
@@ -280,14 +281,16 @@ enum class WindowStyle : int32_t {
     Normal      = Resizable,
     Dialog      = ToolWindow,
 };
-BRISK_FLAGS(WindowStyle)
+template <>
+constexpr inline bool isBitFlags<WindowStyle> = true;
 
 enum class WindowState : int32_t {
     Normal    = 0,
     Maximized = 1,
     Minimized = 2,
 };
-BRISK_FLAGS(WindowState)
+template <>
+constexpr inline bool isBitFlags<WindowState> = true;
 
 enum class DragEvent : int32_t {
     None     = -1,

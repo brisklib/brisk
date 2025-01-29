@@ -173,7 +173,8 @@ enum class ImageMapFlags : uint32_t {
     Default = 0,
 };
 
-BRISK_FLAGS(ImageMapFlags)
+template <>
+constexpr inline bool isBitFlags<ImageMapFlags> = true;
 
 template <typename T>
 struct ImageData {

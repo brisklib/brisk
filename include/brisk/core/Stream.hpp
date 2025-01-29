@@ -174,7 +174,8 @@ enum class StreamCapabilities {
  * This macro allows for the use of bitwise operations on the StreamCapabilities
  * enumeration, such as bitwise OR, AND, and NOT operations.
  */
-BRISK_FLAGS(StreamCapabilities)
+template <>
+constexpr inline bool isBitFlags<StreamCapabilities> = true;
 
 /**
  * @class Stream

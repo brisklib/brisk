@@ -718,7 +718,8 @@ enum class UTFNormalization {
     NFKD      = Compat | Decompose, ///< Compatibility and Decompose normalization (alias for NFKD).
 };
 
-BRISK_FLAGS(UTFNormalization)
+template <>
+constexpr inline bool isBitFlags<UTFNormalization> = true;
 
 /**
  * @brief Normalizes UTF text according to the specified normalization type.

@@ -53,7 +53,8 @@ enum class LayoutOptions : uint32_t {
     HTML         = 4,
 };
 
-BRISK_FLAGS(LayoutOptions)
+template <>
+constexpr inline bool isBitFlags<LayoutOptions> = true;
 
 struct OpenTypeFeatureFlag {
     OpenTypeFeature feature;
@@ -62,11 +63,9 @@ struct OpenTypeFeatureFlag {
 };
 
 enum class FontStyle : uint8_t {
-    Normal,
+    Normal = 0,
     Italic = 1,
 };
-
-BRISK_FLAGS(FontStyle)
 
 template <>
 inline constexpr std::initializer_list<NameValuePair<FontStyle>> defaultNames<FontStyle>{
@@ -96,7 +95,8 @@ enum class FontWeight : uint16_t {
     Black      = Weight900,
 };
 
-BRISK_FLAGS(FontWeight)
+template <>
+constexpr inline bool isBitFlags<FontWeight> = true;
 
 template <>
 inline constexpr std::initializer_list<NameValuePair<FontWeight>> defaultNames<FontWeight>{
@@ -122,7 +122,8 @@ inline constexpr std::initializer_list<NameValuePair<TextDecoration>> defaultNam
     { "LineThrough", TextDecoration::LineThrough },
 };
 
-BRISK_FLAGS(TextDecoration)
+template <>
+constexpr inline bool isBitFlags<TextDecoration> = true;
 
 class FontManager;
 
@@ -301,8 +302,6 @@ enum class GlyphFlags : uint8_t {
     IsCompactedWhitespace = 16,
 };
 
-BRISK_FLAGS(GlyphFlags)
-
 using FTFixed = int32_t;
 
 /**
@@ -426,6 +425,9 @@ struct GlyphData {
 using GlyphList = SmallVector<Glyph, 1>;
 
 } // namespace Internal
+
+template <>
+constexpr inline bool isBitFlags<Internal::GlyphFlags> = true;
 
 /**
  * @brief Specifies the types of bounds that can be calculated for a glyph run.
@@ -941,8 +943,6 @@ enum class FontFormatFlags : uint32_t {
     SizeIsRelative = 1 << 6,
 };
 
-BRISK_FLAGS(FontFormatFlags)
-
 struct RichText {
     std::vector<FontAndColor> fonts;
     std::vector<uint32_t> offsets;
@@ -960,6 +960,9 @@ struct RichText {
 };
 
 } // namespace Internal
+
+template <>
+constexpr inline bool isBitFlags<Internal::FontFormatFlags> = true;
 
 struct TextWithOptions {
     std::u32string text;
@@ -1014,7 +1017,8 @@ enum class TestRenderFlags {
     Fade        = 4,
 };
 
-BRISK_FLAGS(TestRenderFlags)
+template <>
+constexpr inline bool isBitFlags<TestRenderFlags> = true;
 
 enum class FontFlags {
     Default          = 0,
@@ -1023,7 +1027,8 @@ enum class FontFlags {
     DisableLigatures = 4,
 };
 
-BRISK_FLAGS(FontFlags)
+template <>
+constexpr inline bool isBitFlags<FontFlags> = true;
 
 struct OSFont {
     std::string family;

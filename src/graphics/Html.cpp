@@ -5,6 +5,7 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
 #include <utf8proc.h>
+#include <charconv>
 
 namespace Brisk {
 

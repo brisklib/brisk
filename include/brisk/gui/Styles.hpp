@@ -281,7 +281,8 @@ enum class MatchFlags {
     None   = 0,
     IsRoot = 1,
 };
-BRISK_FLAGS(MatchFlags)
+template <>
+constexpr inline bool isBitFlags<MatchFlags> = true;
 
 template <Argument arg>
 constexpr inline Internal::Fn1Type<typename decltype(arg)::ValueType> styleVar = [](Widget* w) ->

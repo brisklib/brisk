@@ -189,7 +189,8 @@ enum class WidgetState : uint8_t {
     Last       = Disabled,
 };
 
-BRISK_FLAGS(WidgetState)
+template <>
+constexpr inline bool isBitFlags<WidgetState> = true;
 
 struct MatchAny {
     template <std::derived_from<Widget> WidgetClass>

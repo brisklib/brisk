@@ -1412,9 +1412,9 @@ Size Widget::scrollSize() const noexcept {
 }
 
 int Widget::scrollSize(Orientation orientation) const noexcept {
-    if (orientation == Orientation::Horizontal && !(overflow && Overflow::ScrollX))
+    if (orientation == Orientation::Horizontal && !(overflow.get() && Overflow::ScrollX))
         return 0;
-    if (orientation == Orientation::Vertical && !(overflow && Overflow::ScrollY))
+    if (orientation == Orientation::Vertical && !(overflow.get() && Overflow::ScrollY))
         return 0;
     if (m_contentSize[+orientation] <= 0 || m_contentSize[+orientation] <= m_rect.size()[+orientation])
         return 0;

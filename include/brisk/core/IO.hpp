@@ -124,7 +124,8 @@ inline constexpr std::initializer_list<NameValuePair<OpenFileMode>> defaultNames
     { "AppendOrCreate", OpenFileMode::AppendOrCreate },
 };
 
-BRISK_FLAGS(OpenFileMode)
+template <>
+constexpr inline bool isBitFlags<OpenFileMode> = true;
 
 /**
  * @brief Opens a file with the specified path and mode.
