@@ -40,7 +40,7 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats_webp.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageTransform.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/HtmlParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/Html.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/RawCanvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Canvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/RenderState.cpp

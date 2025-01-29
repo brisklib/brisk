@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include "brisk/graphics/Html.hpp"
 #include <brisk/graphics/Fonts.hpp>
 #include <map>
 #include <brisk/core/Log.hpp>
@@ -943,10 +944,10 @@ PreparedText FontManager::shapeRuns(const TextWithOptions& text, std::span<const
 
 PreparedText FontManager::prepare(const Font& font, const TextWithOptions& text, float width) const {
     lock_quard_cond lk(m_lock);
-    if (text.html) {
-        RichText richText = processHtml(text.html, font);
-        return doPrepare(TextWithOptions(std::move(richText.text), text.options, text.defaultDirection),
-                         richText.fonts, richText.offsets, width);
+    if (!text.richText.empty()) {
+        RichText richText = text.richText;
+        richText.setBaseFont(font);
+        return doPrepare(text, richText.fonts, richText.offsets, width);
     } else {
         return doPrepare(text, one(FontAndColor{ font }), {}, width);
     }
@@ -954,10 +955,10 @@ PreparedText FontManager::prepare(const Font& font, const TextWithOptions& text,
 
 RectangleF FontManager::bounds(const Font& font, const TextWithOptions& text,
                                GlyphRunBounds boundsType) const {
-    if (text.html) {
-        RichText richText = processHtml(text.html, font);
-        return bounds(TextWithOptions(std::move(richText.text), text.options, text.defaultDirection),
-                      richText.fonts, richText.offsets, boundsType);
+    if (!text.richText.empty()) {
+        RichText richText = text.richText;
+        richText.setBaseFont(font);
+        return bounds(text, richText.fonts, richText.offsets, boundsType);
     } else {
         return bounds(text, one(FontAndColor{ font }), {}, boundsType);
     }
@@ -1751,7 +1752,9 @@ TextWithOptions::TextWithOptions(std::string_view text, LayoutOptions options,
     this->options          = options & ~LayoutOptions::HTML;
     this->defaultDirection = defaultDirection;
     if (options && LayoutOptions::HTML) {
-        this->html = parseHtml(text);
+        auto rich = RichText::fromHtml(text);
+        if (rich)
+            std::tie(this->text, this->richText) = *rich;
     } else {
         this->text = utf8ToUtf32(text);
     }
@@ -1762,7 +1765,9 @@ TextWithOptions::TextWithOptions(std::u16string_view text, LayoutOptions options
     this->options          = options & ~LayoutOptions::HTML;
     this->defaultDirection = defaultDirection;
     if (options && LayoutOptions::HTML) {
-        this->html = parseHtml(utf16ToUtf8(text));
+        auto rich = RichText::fromHtml(utf16ToUtf8(text));
+        if (rich)
+            std::tie(this->text, this->richText) = *rich;
     } else {
         this->text = utf16ToUtf32(text);
     }
@@ -1773,7 +1778,9 @@ TextWithOptions::TextWithOptions(std::u32string_view text, LayoutOptions options
     this->options          = options & ~LayoutOptions::HTML;
     this->defaultDirection = defaultDirection;
     if (options && LayoutOptions::HTML) {
-        this->html = parseHtml(utf32ToUtf8(text));
+        auto rich = RichText::fromHtml(utf32ToUtf8(text));
+        if (rich)
+            std::tie(this->text, this->richText) = *rich;
     } else {
         this->text = text;
     }
@@ -1783,11 +1790,159 @@ TextWithOptions::TextWithOptions(std::u32string text, LayoutOptions options, Tex
     this->options          = options & ~LayoutOptions::HTML;
     this->defaultDirection = defaultDirection;
     if (options && LayoutOptions::HTML) {
-        this->html = parseHtml(utf32ToUtf8(text));
+        auto rich = RichText::fromHtml(utf32ToUtf8(text));
+        if (rich)
+            std::tie(this->text, this->richText) = *rich;
     } else {
         this->text = std::move(text);
     }
 }
+
+namespace Internal {
+
+static Font overrideFont(const Font& base, Font&& font, FontFormatFlags flags) {
+    font.letterSpacing = base.letterSpacing;
+    font.wordSpacing   = base.wordSpacing;
+    font.verticalAlign = base.verticalAlign;
+    font.tabWidth      = base.tabWidth;
+    font.lineHeight    = base.lineHeight;
+    if (!(flags && FontFormatFlags::Family))
+        font.fontFamily = base.fontFamily;
+    if (!(flags && FontFormatFlags::Size))
+        font.fontSize = base.fontSize;
+    else if (flags && FontFormatFlags::SizeIsRelative) {
+        font.fontSize = base.fontSize * font.fontSize;
+    }
+    if (!(flags && FontFormatFlags::Weight))
+        font.weight = base.weight;
+    if (!(flags && FontFormatFlags::Style))
+        font.style = base.style;
+    if (!(flags && FontFormatFlags::TextDecoration))
+        font.textDecoration = base.textDecoration;
+    return font;
+}
+
+void RichText::setBaseFont(const Font& font) {
+    BRISK_ASSERT(fonts.size() == flags.size());
+    for (size_t i = 0; i < fonts.size(); ++i) {
+        fonts[i].font = overrideFont(font, std::move(fonts[i].font), flags[i]);
+    }
+    flags.clear();
+}
+
+struct FontFormatEx : FontAndColor {
+    FontFormatFlags flags                      = FontFormatFlags::None;
+
+    bool operator==(const FontFormatEx&) const = default;
+};
+
+struct Visitor final : public HTMLSAX {
+    std::u32string text;
+    RichText richText;
+    std::vector<FontFormatEx> fontStack{
+        FontFormatEx{},
+    };
+    std::string_view tag;
+    std::string_view attr;
+    std::string attrValue;
+
+    void closeDocument() {
+        if (!richText.offsets.empty())
+            richText.offsets.pop_back();
+    }
+
+    void openTag(std::string_view tagName) {
+        tag = tagName;
+        fontStack.push_back(fontStack.back());
+
+        if (tagName == "b"sv || tagName == "strong"sv) {
+            fontStack.back().font.weight = FontWeight::Bold;
+            fontStack.back().flags |= FontFormatFlags::Weight;
+        } else if (tagName == "i"sv || tagName == "em"sv) {
+            fontStack.back().font.style = FontStyle::Italic;
+            fontStack.back().flags |= FontFormatFlags::Style;
+        } else if (tagName == "big"sv) {
+            if (fontStack.back().flags && FontFormatFlags::Size) {
+                fontStack.back().font.fontSize *= 2.f;
+            } else {
+                fontStack.back().font.fontSize = 2.f;
+            }
+            fontStack.back().flags |= FontFormatFlags::Size;
+            fontStack.back().flags |= FontFormatFlags::SizeIsRelative;
+        } else if (tagName == "small"sv) {
+            if (fontStack.back().flags && FontFormatFlags::Size) {
+                fontStack.back().font.fontSize *= 0.5f;
+            } else {
+                fontStack.back().font.fontSize = 0.5f;
+            }
+            fontStack.back().flags |= FontFormatFlags::Size;
+            fontStack.back().flags |= FontFormatFlags::SizeIsRelative;
+        } else if (tagName == "s"sv) {
+            fontStack.back().font.textDecoration |= TextDecoration::LineThrough;
+            fontStack.back().flags |= FontFormatFlags::TextDecoration;
+        } else if (tagName == "u"sv) {
+            fontStack.back().font.textDecoration |= TextDecoration::Underline;
+            fontStack.back().flags |= FontFormatFlags::TextDecoration;
+        } else if (tagName == "br"sv) {
+            emitText(U"\n");
+        }
+    }
+
+    void closeTag() {
+        fontStack.pop_back();
+    }
+
+    void attrName(std::string_view name) {
+        attr = name;
+    }
+
+    void attrValueFragment(std::string_view value) {
+        attrValue += value;
+    }
+
+    void attrFinished() {
+        if (tag == "font" && attr == "color") {
+            fontStack.back().color = parseHtmlColor(attrValue);
+        }
+        if (tag == "font" && attr == "face") {
+            fontStack.back().font.fontFamily = attrValue;
+            fontStack.back().flags |= FontFormatFlags::Family;
+        }
+        if (tag == "font" && attr == "size") {
+            float val = strtof(attrValue.c_str(), nullptr);
+            if (val != 0)
+                fontStack.back().font.fontSize = val;
+        }
+        attrValue = {};
+    }
+
+    void emitText(std::u32string_view str) {
+        FontFormatEx newFont = fontStack.back();
+        text += str;
+        // OPTIMIZE: Avoid comparison
+        if (richText.fonts.empty() || newFont != richText.fonts.back()) {
+            richText.flags.push_back(newFont.flags);
+            richText.fonts.push_back(std::move(newFont));
+            richText.offsets.push_back(text.size());
+        } else if (!richText.offsets.empty()) {
+            richText.offsets.back() = text.size();
+        }
+    }
+
+    void textFragment(std::string_view text) {
+        emitText(utf8ToUtf32(text));
+    }
+};
+
+std::optional<std::pair<std::u32string, RichText>> RichText::fromHtml(std::string_view html) {
+    Visitor visitor;
+    if (parseHtml(html, &visitor)) {
+        return std::pair{ std::move(visitor.text), std::move(visitor.richText) };
+    } else {
+        return std::nullopt;
+    }
+}
+} // namespace Internal
 
 std::recursive_mutex fontMutex;
 

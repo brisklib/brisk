@@ -554,6 +554,39 @@ void utfWrite(char32_t*& text, char32_t* end, char32_t ch);
 void utfWrite(wchar_t*& text, wchar_t* end, char32_t ch);
 
 /**
+ * @brief Utility struct for encoding a single Unicode character to UTF-8.
+ */
+struct Utf8Character {
+    /**
+     * @brief Buffer to store the UTF-8 encoded character.
+     */
+    char buf[4];
+
+    /**
+     * @brief The length of the UTF-8 encoded character in bytes (1-4).
+     */
+    uint32_t len;
+
+    /**
+     * @brief Constructs a Utf8Character from a Unicode codepoint.
+     * @param codepoint The Unicode codepoint to encode as UTF-8.
+     */
+    explicit Utf8Character(char32_t codepoint) {
+        char* data = buf;
+        utfWrite(data, buf + std::size(buf), codepoint);
+        len = static_cast<uint32_t>(data - buf);
+    }
+
+    /**
+     * @brief Implicitly converts the Utf8Character to a string view.
+     * @return A std::string_view representing the UTF-8 encoded character.
+     */
+    operator std::string_view() const noexcept {
+        return std::string_view(buf, len);
+    }
+};
+
+/**
  * @brief Struct representing a UTF iterator for iterating over UTF text.
  *
  * @tparam InChar The character type of the input text.

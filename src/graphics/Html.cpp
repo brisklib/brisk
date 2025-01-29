@@ -1,22 +1,223 @@
-#include <string>
-#include <string_view>
+#include <brisk/graphics/Html.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/core/Log.hpp>
-#include <brisk/graphics/Fonts.hpp>
-#include <tinyxml2.h>
+#include <brisk/core/Encoding.hpp>
+#include <tao/pegtl.hpp>
+#include <tao/pegtl/contrib/analyze.hpp>
+#include <utf8proc.h>
 
 namespace Brisk {
 
-using namespace tinyxml2;
-
 namespace Internal {
 
-class Html : public XMLDocument {
-public:
-    using XMLDocument::XMLDocument;
+namespace {
+
+std::array<std::pair<std::string_view, std::string_view>, 6> charNames{ {
+    { "amp", "&" },
+    { "apos", "'" },
+    { "gt", ">" },
+    { "lt", "<" },
+    { "nbsp", "\xA0" },
+    { "quot", "\"" },
+} };
+
+namespace Grammar {
+
+using namespace tao::pegtl;
+using tao::pegtl::eof;
+using tao::pegtl::one;
+
+struct WS : plus<one<' ', '\t', '\f', '\n', '\r'>> {};
+
+struct OptWS : star<one<' ', '\t', '\f', '\n', '\r'>> {};
+
+struct TagName : plus<ranges<'A', 'Z', 'a', 'z', '0', '9'>> {};
+
+struct OpenTagName : TagName {};
+
+struct CloseTagName : TagName {};
+
+struct CharName : plus<ranges<'A', 'Z', 'a', 'z', '0', '9'>> {};
+
+struct CharCode : plus<digit> {};
+
+struct CharHexCode : plus<xdigit> {};
+
+struct CharRef
+    : seq<one<'&'>, sor<CharName, seq<one<'#'>, CharCode>, seq<one<'#'>, one<'x', 'X'>, CharHexCode>>,
+          one<';'>> {};
+
+template <char q>
+struct PlainAttrValueQuoted : plus<not_one<q, '&', '<', '>'>> {};
+
+template <char q>
+struct QuotedContent : star<sor<CharRef, PlainAttrValueQuoted<q>>> {};
+
+template <char q>
+struct Quoted : seq<one<q>, QuotedContent<q>, one<q>> {};
+
+struct AttrName : plus<not_one<' ', '\t', '\f', '\n', '\r', '"', '\x27', '>', '/', '=', '&'>> {};
+
+struct PlainAttrValueUnquoted
+    : plus<not_one<' ', '\t', '\f', '\n', '\r', '"', '\x27', '<', '>', '/', '=', '`', '&'>> {};
+
+struct Unquoted : plus<sor<CharRef, PlainAttrValueUnquoted>> {};
+
+struct AttrValue : sor<Unquoted, Quoted<'"'>, Quoted<'\''>> {};
+
+struct Attribute : seq<AttrName, OptWS, opt<one<'='>, OptWS, AttrValue>> {};
+
+struct PlainText : plus<not_one<'<', '&'>> {};
+
+struct Text : plus<sor<CharRef, PlainText>> {};
+
+struct Content;
+
+struct SelfCloseTag : one<'>'> {};
+
+struct EndOpenTag : one<'>'> {};
+
+struct Element
+    : seq<one<'<'>, OpenTagName, opt<OptWS, list<Attribute, WS>>, //
+          if_then_else<one<'/'>, SelfCloseTag,
+                       seq<EndOpenTag, Content, one<'<'>, one<'/'>, CloseTagName, OptWS, one<'>'>>>> {};
+
+struct Content : star<sor<Element, Text>> {};
+
+struct Document : seq<Content, eof> {};
+
+enum class SAXMode {
+    Text,
+    Attribute,
 };
 
-namespace {
+template <typename Rule>
+struct Action : nothing<Rule> {};
+
+template <>
+struct Action<EndOpenTag> {
+    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+        mode = SAXMode::Text;
+    }
+};
+
+template <>
+struct Action<Text> {
+    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+        sax->textFinished();
+    }
+};
+
+template <>
+struct Action<Attribute> {
+    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+        sax->attrFinished();
+    }
+};
+
+template <>
+struct Action<OpenTagName> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        sax->openTag(str);
+        mode = SAXMode::Attribute;
+    }
+};
+
+template <>
+struct Action<SelfCloseTag> {
+    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+        sax->closeTag();
+        mode = SAXMode::Text;
+    }
+};
+
+template <>
+struct Action<PlainText> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        sax->textFragment(str);
+    }
+};
+
+template <>
+struct Action<PlainAttrValueUnquoted> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        sax->attrValueFragment(str);
+    }
+};
+
+template <char q>
+struct Action<PlainAttrValueQuoted<q>> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        sax->attrValueFragment(str);
+    }
+};
+
+template <>
+struct Action<AttrName> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        sax->attrName(str);
+    }
+};
+
+template <>
+struct Action<CharName> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        if (mode == SAXMode::Attribute)
+            sax->attrValueFragment(htmlDecodeChar(str));
+        else
+            sax->textFragment(htmlDecodeChar(str));
+    }
+};
+
+template <>
+struct Action<CharCode> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        uint32_t value;
+        std::from_chars(str.data(), str.data() + str.size(), value, 10);
+        if (mode == SAXMode::Attribute)
+            sax->attrValueFragment(Utf8Character{ value });
+        else
+            sax->textFragment(Utf8Character{ value });
+    }
+};
+
+template <>
+struct Action<CharHexCode> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        std::string_view str = in.string_view();
+        uint32_t value;
+        std::from_chars(str.data(), str.data() + str.size(), value, 16);
+        if (mode == SAXMode::Attribute)
+            sax->attrValueFragment(Utf8Character{ value });
+        else
+            sax->textFragment(Utf8Character{ value });
+    }
+};
+
+template <>
+struct Action<CloseTagName> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+        sax->closeTag();
+    }
+};
+
+} // namespace Grammar
 
 std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
     { "aliceblue", 0xf0f8ff_rgb },
@@ -169,76 +370,31 @@ std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
     { "yellow", 0xffff00_rgb },
     { "yellowgreen", 0x9acd32_rgb },
 } };
-
-class RichTextBuilder final : public XMLVisitor {
-public:
-    RichText richText;
-    std::vector<FontAndColor> fontStack;
-    bool lastNodeIsText = true;
-
-    explicit RichTextBuilder(const Font& font) {
-        fontStack.push_back({ font, std::nullopt });
-    }
-
-    bool VisitExit(const XMLDocument& /*doc*/) {
-        richText.offsets.pop_back();
-        return true;
-    }
-
-    void emitText(std::u32string_view text) {
-        FontAndColor newFont = fontStack.back();
-        richText.text += text;
-        if (richText.fonts.empty() || newFont != richText.fonts.back()) {
-            richText.fonts.push_back(std::move(newFont));
-            richText.offsets.push_back(richText.text.size());
-        } else if (!richText.offsets.empty()) {
-            richText.offsets.back() = richText.text.size();
-        }
-    }
-
-    bool Visit(const XMLText& text) {
-        emitText(utf8ToUtf32(text.Value()));
-        lastNodeIsText = true;
-        return true;
-    }
-
-    bool VisitEnter(const XMLElement& element, const XMLAttribute* /*firstAttribute*/) {
-        if (!lastNodeIsText) {
-            emitText(U" ");
-        }
-        fontStack.push_back(fontStack.back());
-        if (element.Value() == "b"sv || element.Value() == "strong"sv) {
-            fontStack.back().font.weight = FontWeight::Bold;
-        } else if (element.Value() == "i"sv || element.Value() == "em"sv) {
-            fontStack.back().font.style = FontStyle::Italic;
-        } else if (element.Value() == "small"sv) {
-            fontStack.back().font.fontSize *= 0.5f;
-        } else if (element.Value() == "s"sv) {
-            fontStack.back().font.textDecoration |= TextDecoration::LineThrough;
-        } else if (element.Value() == "u"sv) {
-            fontStack.back().font.textDecoration |= TextDecoration::Underline;
-        } else if (element.Value() == "big"sv) {
-            fontStack.back().font.fontSize *= 2.0f;
-        } else if (element.Value() == "br"sv) {
-            emitText(U"\n");
-        } else if (element.Value() == "font"sv) {
-            if (const char* color = element.Attribute("color")) {
-                fontStack.back().color = parseHtmlColor(color);
-            }
-            if (float size = element.FloatAttribute("size", 0.f); size != 0.f) {
-                fontStack.back().font.fontSize = size;
-            }
-        }
-        return true;
-    }
-
-    bool VisitExit(const XMLElement& element) {
-        fontStack.pop_back();
-        lastNodeIsText = false;
-        return true;
-    }
-};
 } // namespace
+
+} // namespace Internal
+
+using namespace Internal;
+
+bool parseHtml(std::string_view html, HTMLSAX* visitor) {
+    tao::pegtl::memory_input input(html.data(), html.size(), "");
+
+    Grammar::SAXMode mode = Grammar::SAXMode::Text;
+    visitor->openDocument();
+    bool result = tao::pegtl::parse<Grammar::Document, Grammar::Action>(input, mode, visitor);
+    visitor->closeDocument();
+    return result;
+}
+
+std::string_view htmlDecodeChar(std::string_view name) {
+    auto it = std::lower_bound(charNames.begin(), charNames.end(), name,
+                               [](const auto& pair, std::string_view name) {
+                                   return pair.first < name;
+                               });
+    if (it != charNames.end() && it->first == name)
+        return it->second;
+    return "";
+}
 
 std::optional<Color> parseHtmlColor(std::string_view colorText) {
     if (colorText.starts_with('#')) {
@@ -279,22 +435,5 @@ std::optional<Color> parseHtmlColor(std::string_view colorText) {
         return std::nullopt;
     }
 }
-
-std::shared_ptr<Html> parseHtml(std::string_view html) {
-    std::shared_ptr<Html> doc(new Html(true, PRESERVE_WHITESPACE));
-    auto err = doc->Parse(fmt::format("<html>{}</html>", html).c_str());
-    if (err != XMLError::XML_SUCCESS) {
-        LOG_DEBUG(xml, "xml parse error {}", Html::ErrorIDToName(err));
-        return nullptr;
-    }
-    return doc;
-}
-
-RichText processHtml(std::shared_ptr<Html> html, const Font& defaultFont) {
-    RichTextBuilder builder{ defaultFont };
-    html->Accept(&builder);
-    return std::move(builder.richText);
-}
-}; // namespace Internal
 
 } // namespace Brisk

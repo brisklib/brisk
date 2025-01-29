@@ -1,4 +1,25 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #pragma once
+
 #include <brisk/core/internal/InlineVector.hpp>
 #include <brisk/core/Stream.hpp>
 #include <brisk/core/Hash.hpp>
@@ -913,14 +934,44 @@ struct FontAndColor {
 };
 
 namespace Internal {
-class Html;
-}; // namespace Internal
+
+enum class FontFormatFlags : uint32_t {
+    None           = 0,
+    Family         = 1 << 0,
+    Size           = 1 << 1,
+    Style          = 1 << 2,
+    Weight         = 1 << 3,
+    Color          = 1 << 4,
+    TextDecoration = 1 << 5,
+
+    SizeIsRelative = 1 << 6,
+};
+
+BRISK_FLAGS(FontFormatFlags)
+
+struct RichText {
+    std::vector<FontAndColor> fonts;
+    std::vector<uint32_t> offsets;
+    std::vector<FontFormatFlags> flags;
+
+    bool empty() const noexcept {
+        return fonts.empty();
+    }
+
+    void setBaseFont(const Font& font);
+
+    static std::optional<std::pair<std::u32string, RichText>> fromHtml(std::string_view html);
+
+    bool operator==(const RichText& other) const noexcept = default;
+};
+
+} // namespace Internal
 
 struct TextWithOptions {
     std::u32string text;
     LayoutOptions options;
     TextDirection defaultDirection;
-    std::shared_ptr<Internal::Html> html;
+    Internal::RichText richText;
 
     constexpr static std::tuple Reflection{
         ReflectionField{ "text", &TextWithOptions::text },
@@ -1106,16 +1157,6 @@ inline std::vector<TextRun> toVisualOrder(std::vector<TextRun> textRuns) {
     });
     return textRuns;
 }
-
-struct RichText {
-    std::u32string text;
-    std::vector<FontAndColor> fonts;
-    std::vector<uint32_t> offsets;
-};
-
-std::shared_ptr<Html> parseHtml(std::string_view html);
-RichText processHtml(std::shared_ptr<Html> html, const Font& defaultFont);
-std::optional<Color> parseHtmlColor(std::string_view colorText);
 
 } // namespace Internal
 
