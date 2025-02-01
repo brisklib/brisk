@@ -34,6 +34,8 @@ function (add_autotests target)
     target_compile_definitions(${target}_tests PUBLIC PROJECT_BINARY_DIR="${PROJECT_BINARY_DIR}")
     # target_compile_definitions(${target}_tests PUBLIC BRISK_ASSERT_THROWS=1)
 
+    brisk_bundle_resources(${target}_tests)
+
     add_test(NAME ${target}_autotests COMMAND ${target}_tests)
 
     if (AUTOTESTS_ENVIRONMENT)

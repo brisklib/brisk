@@ -81,8 +81,10 @@ endif ()
 target_compile_definitions(brisk-graphics PRIVATE V_NAMESPACE=Brisk)
 
 if (WIN32)
+
+    set(D3D11_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR})
     add_subdirectory(D3D11Renderer)
-    target_link_libraries(brisk-graphics PRIVATE brisk-renderer-d3d11)
+    target_link_libraries(brisk-graphics PUBLIC brisk-renderer-d3d11)
 endif ()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -109,14 +111,10 @@ add_library(Brisk::I18n-ICU ALIAS brisk-i18n-icu)
 set_property(TARGET brisk-i18n-icu PROPERTY EXPORT_NAME I18n-ICU)
 target_link_libraries(brisk-i18n-icu PUBLIC brisk-core)
 target_compile_definitions(brisk-i18n-icu PRIVATE ICUDT_SIZE=${ICUDT_SIZE})
-brisk_target_link_resource(
-    brisk-i18n-icu PRIVATE icudt
-    INPUT "${PROJECT_SOURCE_DIR}/resources/icu/${ICU_DT}"
-    BROTLI)
 
 if (BRISK_ICU)
     target_link_libraries(brisk-graphics INTERFACE $<BUILD_INTERFACE:brisk-i18n-icu>)
-else()
+else ()
     target_link_libraries(brisk-graphics INTERFACE $<BUILD_INTERFACE:brisk-i18n>)
 endif ()
 
@@ -134,7 +132,7 @@ unset(_DEP_PRIVATE)
 
 if (BRISK_WEBGPU)
     if (TARGET Dawn)
-        target_link_libraries(brisk-graphics PRIVATE brisk-renderer-webgpu)
+        target_link_libraries(brisk-graphics PUBLIC brisk-renderer-webgpu)
         target_compile_definitions(brisk-graphics PRIVATE BRISK_WEBGPU=1)
     else ()
         message(FATAL_ERROR "BRISK_WEBGPU is ON but Dawn target is missing")

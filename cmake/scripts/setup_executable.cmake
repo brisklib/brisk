@@ -47,4 +47,6 @@ function (brisk_setup_executable TARGET)
             CMAKE_CXX_EXTENSIONS OFF)
 
     setup_executable_platform(${TARGET})
+
+    brisk_bundle_resources(${TARGET})
 endfunction ()

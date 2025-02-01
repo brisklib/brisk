@@ -35,7 +35,6 @@ add_library(
     Common.cpp)
 
 foreach (SHADER_TYPE IN ITEMS "fragment" "vertex")
-    set(SHADER_EXT fxc)
     set(FXC_MODE_fragment ps_5_0)
     set(FXC_MODE_vertex vs_5_0)
 
@@ -46,23 +45,26 @@ foreach (SHADER_TYPE IN ITEMS "fragment" "vertex")
     endif ()
 
     add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_TYPE}.fxc
+        OUTPUT ${D3D11_SHADER_DIR}/${SHADER_TYPE}.fxc
         COMMAND
             ${FXC} -nologo -T ${FXC_MODE_${SHADER_TYPE}}
             # -WX
-            -O3 -E ${SHADER_TYPE}Main -Fo ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_TYPE}.fxc
+            -O3 -E ${SHADER_TYPE}Main -Fo ${D3D11_SHADER_DIR}/${SHADER_TYPE}.fxc
             ${CMAKE_CURRENT_LIST_DIR}/${SHADER_TYPE}.hlsl
         DEPENDS ${CMAKE_CURRENT_LIST_DIR}/${SHADER_TYPE}.hlsl
         VERBATIM)
 
-    set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/${SHADER_TYPE}.fxc PROPERTIES GENERATED TRUE)
+    set_source_files_properties(${D3D11_SHADER_DIR}/${SHADER_TYPE}.fxc PROPERTIES GENERATED TRUE)
 
-    brisk_target_link_resource(
-        brisk-renderer-d3d11 PUBLIC shader_${SHADER_TYPE}
-        INPUT ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_TYPE}.fxc
-        BROTLI)
 endforeach ()
 
 target_link_libraries(brisk-renderer-d3d11 PUBLIC brisk-core)
 
 target_link_libraries(brisk-renderer-d3d11 PUBLIC d3d11 dxgi)
+
+install(FILES ${D3D11_SHADER_DIR}/fragment.fxc ${D3D11_SHADER_DIR}/vertex.fxc DESTINATION "resources/shaders")
+
+target_sources(brisk-renderer-d3d11 PRIVATE ${D3D11_SHADER_DIR}/fragment.fxc ${D3D11_SHADER_DIR}/vertex.fxc)
+
+set_source_files_properties(${D3D11_SHADER_DIR}/fragment.fxc ${D3D11_SHADER_DIR}/vertex.fxc PROPERTIES HEADER_FILE_ONLY
+                                                                                                       TRUE)

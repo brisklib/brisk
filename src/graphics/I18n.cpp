@@ -29,12 +29,11 @@
 #endif
 
 #include <brisk/core/Time.hpp>
-#include <brisk/core/Embed.hpp>
 #include <unicode/putil.h>
 #include <unicode/uclean.h>
 #include <unicode/ubidi.h>
 #include <unicode/brkiter.h>
-#include <resources/icudt.hpp>
+#include <brisk/core/Resources.hpp>
 
 // Externally declare the ICU data array. This array will hold the ICU data.
 extern "C" {
@@ -52,7 +51,7 @@ static void uncompressICUData() {
         return;
 
     // Unpack the ICU data.
-    auto&& b = icudt();
+    auto&& b = loadResource("internal/icudt.dat");
 
     // Assert that the size of the retrieved data matches the expected size.
     BRISK_ASSERT(b.size() == ICUDT_SIZE);

@@ -1,9 +1,7 @@
 #include "Visual.hpp"
+#include <brisk/core/Resources.hpp>
 #include <brisk/gui/Styles.hpp>
 #include <brisk/graphics/Palette.hpp>
-#include <resources/cat.hpp>
-#include <resources/hot_air_balloons.hpp>
-#include <resources/countries_json.hpp>
 
 namespace Brisk {
 
@@ -84,7 +82,8 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
             [](Canvas& canvas, Rectangle rect) {
                 // Static initialization of an image rendered from an SVG representation of "cat"
                 // with a size of 256x256 pixels.
-                static RC<Image> img = SVGImage(toStringView(cat())).render(Size{ idp(256), idp(256) });
+                static RC<Image> img =
+                    SVGImage(toStringView(loadResource("cat.svg"))).render(Size{ idp(256), idp(256) });
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
@@ -155,10 +154,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 canvas.setJoinStyle(JoinStyle::Miter);
                 canvas.strokePath(p);
 
-                // Set the fill color to lime green and set the font to "Lato" with a size of 48
+                // Set the fill color to lime green and set the font with a size of 48
                 // pixels. Draw the text "Brisk" centered inside the rectangle 'frect'.
                 canvas.setFillColor(Palette::Standard::lime);
-                canvas.setFont(Font{ "Lato", 48_dp });
+                canvas.setFont(Font{ Font::Default, 48_dp });
                 canvas.fillText("Brisk", frect.at(0.5f, 0.5f));
             },
             dimensions = { 256, 256 },
@@ -191,13 +190,14 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
         rcnew Text{ "ImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{
-            rcnew ImageView{ hot_air_balloons(), dimensions = { 180_apx, 120_apx } },
+            rcnew ImageView{ loadResourceCached("hot-air-balloons.jpg"), dimensions = { 180_apx, 120_apx } },
         },
 
         rcnew Text{ "SVGImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{
-            rcnew SVGImageView{ toStringView(cat()), dimensions = { 120_apx, 120_apx } },
+            rcnew SVGImageView{ toStringView(loadResourceCached("cat.svg")),
+                                dimensions = { 120_apx, 120_apx } },
         },
 
         rcnew Text{ "Table (widgets/Table.hpp)", classes = { "section-header" } },
@@ -216,9 +216,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                                      justifyContent = Justify::FlexEnd },
                 },
                 Builder([](Widget* target) {
-                    JsonArray countries = Json::fromJson(std::string(toStringView(countries_json())))
-                                              .value()              // Assume it's valid JSON
-                                              .access<JsonArray>(); // Assume it's array
+                    JsonArray countries =
+                        Json::fromJson(std::string(toStringView(loadResource("countries.json"))))
+                            .value()              // Assume it's valid JSON
+                            .access<JsonArray>(); // Assume it's array
                     std::sort(countries.begin(), countries.end(), [](Json a, Json b) {
                         return a.access<JsonObject>()["population"].to<int64_t>().value_or(0) >
                                b.access<JsonObject>()["population"].to<int64_t>().value_or(0);

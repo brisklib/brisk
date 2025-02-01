@@ -1,13 +1,12 @@
 #include "Messenger.hpp"
-#include <resources/hot_air_balloons.hpp>
-#include <resources/wp1.hpp>
+#include <brisk/core/Resources.hpp>
 #include <brisk/gui/Icons.hpp>
 #include <fmt/chrono.h>
 
 namespace Brisk {
 
 static void backgroundPainter(Canvas& canvas, const Widget& widget) {
-    static auto img = imageDecode(wp1(), ImageFormat::RGBA).value();
+    static auto img = imageDecode(loadResource("wp1.webp"), ImageFormat::RGBA).value();
     float x         = static_cast<float>(img->width()) / widget.rect().width(),
           y         = static_cast<float>(img->height()) / widget.rect().height();
     float m         = std::min(x, y);
@@ -147,7 +146,7 @@ ShowcaseMessenger::ShowcaseMessenger() {
         Message{
             Status::Read,
             date - std::chrono::minutes(71),
-            imageDecode(hot_air_balloons(), ImageFormat::RGBA).value(),
+            imageDecode(loadResource("hot-air-balloons.jpg"), ImageFormat::RGBA).value(),
             ICON_heart,
         },
         Message{

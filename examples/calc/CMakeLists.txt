@@ -31,4 +31,6 @@ add_executable(calc calc.cpp)
 
 target_link_libraries(calc PRIVATE brisk-widgets brisk-executable decNumber)
 
+brisk_target_remove_resources(calc fonts/default/bold.ttf fonts/default/light.ttf)
+
 brisk_setup_executable(calc)

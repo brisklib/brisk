@@ -199,6 +199,14 @@ struct FontFace {
         hb_font = hb_ft_font_create_referenced(face);
     }
 
+    std::string_view familyName() const {
+        return face->family_name;
+    }
+
+    std::string_view styleName() const {
+        return face->style_name;
+    }
+
     bool setSize(uint32_t sz) {
         HANDLE_FT_ERROR(FT_Set_Char_Size(face, sz, 0, DPI * HORIZONTAL_OVERSAMPLING, DPI));
         return true;
@@ -444,7 +452,12 @@ void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight we
                           bool makeCopy, FontFlags flags) {
     lock_quard_cond lk(m_lock);
     FontKey key{ std::move(fontFamily), style, weight };
-    m_fonts.insert_or_assign(key, rcnew FontFace(this, data, makeCopy, flags));
+    auto fontFace = rcnew FontFace(this, data, makeCopy, flags);
+    m_fonts.insert_or_assign(key, fontFace);
+    if (fontFace->familyName() != std::get<0>(key)) {
+        // Register alias with real font name
+        m_fonts.insert_or_assign(FontKey{ fontFace->familyName(), style, weight }, std::move(fontFace));
+    }
 }
 
 status<IOError> FontManager::addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,

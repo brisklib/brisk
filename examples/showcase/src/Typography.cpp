@@ -71,9 +71,9 @@ RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
                                 fontSize   = size,
                             });
                         };
-                        row("Lato Light", "Lato", FontWeight::Light);
-                        row("Lato Regular", "Lato", FontWeight::Regular);
-                        row("Lato Bold", "Lato", FontWeight::Bold);
+                        row("Lato Light", Font::Default, FontWeight::Light);
+                        row("Lato Regular", Font::Default, FontWeight::Regular);
+                        row("Lato Bold", Font::Default, FontWeight::Bold);
                         row("GoNoto", "Noto", FontWeight::Regular);
                         row("Monospace", Font::Monospace, FontWeight::Regular);
                         target->apply(rcnew Spacer{ height = 12_apx });

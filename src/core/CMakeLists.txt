@@ -58,7 +58,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/IO.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Log.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Settings.cpp
-    ${PROJECT_SOURCE_DIR}/src/core/Embed.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Text.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Localization.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Threading.cpp
@@ -131,12 +130,10 @@ unset(_DEP_PUBLIC)
 unset(_DEP_PRIVATE)
 
 if (WIN32)
-    target_link_options(
-        brisk-core PUBLIC $<BUILD_INTERFACE:-NATVIS:${CMAKE_CURRENT_SOURCE_DIR}/types.natvis>
-        $<INSTALL_INTERFACE:-NATVIS:$<INSTALL_PREFIX>/${CMAKE_INSTALL_LIBDIR}${BRISK_DEBUG_INSTALL_SUFFIX}/types.natvis>
-    )
+    target_link_options(brisk-core PUBLIC $<BUILD_INTERFACE:-NATVIS:${CMAKE_CURRENT_SOURCE_DIR}/types.natvis>
+                        $<INSTALL_INTERFACE:-NATVIS:$<INSTALL_PREFIX>/${CMAKE_INSTALL_LIBDIR}/types.natvis>)
 
-    install(FILES types.natvis DESTINATION ${CMAKE_INSTALL_LIBDIR}$<$<CONFIG:Debug>:${BRISK_DBG_SUFFIX}>)
+    install(FILES types.natvis DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif ()
 
 target_compile_definitions(brisk-core PUBLIC BRISK_CFG_$<CONFIG>=1)

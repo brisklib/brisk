@@ -30,15 +30,7 @@
 #include <yoga/algorithm/CalculateLayout.h>
 #include <yoga/algorithm/BoundAxis.h>
 #include <brisk/gui/WidgetTree.hpp>
-
-#include <resources/Lucide.hpp>
-#include <resources/Lato-Black.hpp>
-#include <resources/Lato-Medium.hpp>
-#include <resources/Lato-Light.hpp>
-#include <resources/SourceCodePro-Medium.hpp>
-#ifdef BRISK_RESOURCE_GoNotoCurrent_Regular
-#include <resources/GoNotoCurrent-Regular.hpp>
-#endif
+#include <brisk/core/Resources.hpp>
 
 namespace Brisk {
 
@@ -562,20 +554,32 @@ static bool fontsRegistered = false;
 void registerBuiltinFonts() {
     if (fontsRegistered)
         return;
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, Lato_Medium(), false);
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Light, Lato_Light(), false);
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, Lato_Black(), false);
-    fonts->addFontAlias(Font::Default, "Lato");
 
-#ifdef BRISK_RESOURCE_GoNotoCurrent_Regular
-    fonts->addFont("Noto", FontStyle::Normal, FontWeight::Regular, GoNotoCurrent_Regular(), false);
-#endif
+    if (auto& ttf = loadResourceCached("fonts/default/regular.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Regular, ttf, false);
+    }
+    if (auto& ttf = loadResourceCached("fonts/default/light.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Light, ttf, false);
+    }
+    if (auto& ttf = loadResourceCached("fonts/default/bold.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Bold, ttf, false);
+    }
+    if (auto& ttf = loadResourceCached("fonts/default/regular-italic.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Regular, ttf, false);
+    }
+    if (auto& ttf = loadResourceCached("fonts/default/light-italic.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Light, ttf, false);
+    }
+    if (auto& ttf = loadResourceCached("fonts/default/bold-italic.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Bold, ttf, false);
+    }
 
-    fonts->addFont("Lucide", FontStyle::Normal, FontWeight::Regular, Lucide(), false);
-    fonts->addFontAlias(Font::Icons, "Lucide");
-
-    fonts->addFont("Source Code Pro", FontStyle::Normal, FontWeight::Regular, SourceCodePro_Medium(), false);
-    fonts->addFontAlias(Font::Monospace, "Source Code Pro");
+    if (auto& ttf = loadResourceCached("fonts/icons.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Icons, FontStyle::Normal, FontWeight::Regular, ttf, false);
+    }
+    if (auto& ttf = loadResourceCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Monospace, FontStyle::Normal, FontWeight::Regular, ttf, false);
+    }
 
     fontsRegistered = true;
 }

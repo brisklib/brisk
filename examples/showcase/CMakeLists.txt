@@ -61,14 +61,14 @@ brisk_metadata(
     APPLE_BUNDLE "com.brisklib.showcase")
 
 brisk_target_link_resource(
-    showcase PRIVATE cat
+    showcase PRIVATE cat.svg
     INPUT "${PROJECT_SOURCE_DIR}/resources/cat.svg"
     BROTLI)
-brisk_target_link_resource(showcase PRIVATE hot_air_balloons
+brisk_target_link_resource(showcase PRIVATE hot-air-balloons.jpg
                            INPUT "${PROJECT_SOURCE_DIR}/resources/hot-air-balloons.jpg")
-brisk_target_link_resource(showcase PRIVATE wp1 INPUT "${PROJECT_SOURCE_DIR}/resources/wp1.webp")
+brisk_target_link_resource(showcase PRIVATE wp1.webp INPUT "${PROJECT_SOURCE_DIR}/resources/wp1.webp")
 brisk_target_link_resource(
-    showcase PRIVATE countries_json
+    showcase PRIVATE countries.json
     INPUT "${PROJECT_SOURCE_DIR}/resources/countries.json"
     BROTLI)
 
