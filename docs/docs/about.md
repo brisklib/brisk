@@ -173,7 +173,7 @@ For example, the `Text` widget is highly configurable with respect to font featu
 rcnew Text{
     text           = Value{ &m_text },
     fontSize       = 40,
-    fontFamily     = Lato,
+    fontFamily     = "Lato",
     fontFeatures =
         OpenTypeFeatureFlags{
             { OpenTypeFeature::salt, false },
