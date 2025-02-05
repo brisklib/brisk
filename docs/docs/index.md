@@ -13,6 +13,7 @@ The Brisk library is in the beta stage, so there may be breaking changes, and th
 ## Core Concepts
 
 * [Data Binding](binding.md)
+* [Resources](resources.md)
 
 ## Examples
 
