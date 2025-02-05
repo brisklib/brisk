@@ -36,7 +36,6 @@
 #include <brisk/window/WindowApplication.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/core/Compression.hpp>
-#include <brisk/core/Embed.hpp>
 #include <brisk/core/internal/AutoreleasePool.hpp>
 
 #include "FrameTimePredictor.hpp"

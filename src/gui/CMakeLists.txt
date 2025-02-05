@@ -55,36 +55,12 @@ target_link_libraries(brisk-gui PUBLIC brisk-window)
 
 target_include_directories(brisk-gui PRIVATE ${CMAKE_CURRENT_LIST_DIR}/yoga)
 
-brisk_target_link_resource(
-    brisk-gui PRIVATE Lato-Black
-    INPUT "${FONTS_DIR}/Lato-Black.ttf"
-    BROTLI)
-brisk_target_link_resource(
-    brisk-gui PRIVATE Lato-Medium
-    INPUT "${FONTS_DIR}/Lato-Medium.ttf"
-    BROTLI)
-brisk_target_link_resource(
-    brisk-gui PRIVATE Lato-Light
-    INPUT "${FONTS_DIR}/Lato-Light.ttf"
-    BROTLI)
-brisk_target_link_resource(
-    brisk-gui PRIVATE SourceCodePro-Medium
-    INPUT "${FONTS_DIR}/SourceCodePro-Medium.ttf"
-    BROTLI)
-if (BRISK_GONOTO)
-    brisk_target_link_resource(
-        brisk-gui PRIVATE GoNotoCurrent-Regular
-        INPUT "${FONTS_DIR}/GoNotoCurrent-Regular.ttf"
-        BROTLI)
-endif ()
-brisk_target_link_resource(brisk-gui PUBLIC brisk-white INPUT "${RESOURCES_DIR}/images/brisk-white.png")
-brisk_target_link_resource(
-    brisk-gui PUBLIC brisk
-    INPUT "${RESOURCES_DIR}/images/brisk.svg"
-    BROTLI)
-brisk_target_link_resource(
-    brisk-gui PRIVATE Lucide
-    INPUT "${FONTS_DIR}/Lucide.ttf"
-    BROTLI)
+set(_DEP_PUBLIC PUBLIC)
+set(_DEP_PRIVATE PRIVATE)
+
+include(Deps.cmake)
+
+unset(_DEP_PUBLIC)
+unset(_DEP_PRIVATE)
 
 set_target_properties(brisk-gui PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_ARGS}")

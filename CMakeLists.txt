@@ -38,11 +38,10 @@ project(
     VERSION ${BRISK_VERSION}
     LANGUAGES CXX C)
 
-    
 get_directory_property(BRISK_PARENT_DIR PARENT_DIRECTORY)
 if (NOT BRISK_PARENT_DIR)
     set(BRISK_STANDALONE TRUE)
-endif()
+endif ()
 
 if (DEBUG_CMAKE)
     get_cmake_property(VARS VARIABLES)
@@ -128,9 +127,9 @@ foreach (license_path ${LICENSE_LIST})
     add_license(${PKG_NAME} ${license_path})
 endforeach ()
 
-set(RESOURCES_DIR ${PROJECT_SOURCE_DIR}/resources)
-set(FONTS_DIR ${RESOURCES_DIR}/fonts)
-set(IMAGES_DIR ${RESOURCES_DIR}/images)
+set(BRISK_RESOURCES_DIR ${PROJECT_SOURCE_DIR}/resources)
+set(FONTS_DIR ${BRISK_RESOURCES_DIR}/fonts)
+set(IMAGES_DIR ${BRISK_RESOURCES_DIR}/images)
 
 if (NOT BRISK_DBG_SUFFIX)
     set(BRISK_DBG_SUFFIX
@@ -259,6 +258,12 @@ install(
     FILES src/window/Deps.cmake
     RENAME Window.cmake
     DESTINATION "${BRISK_INSTALL_CMAKEDIR}/deps")
+install(
+    FILES src/gui/Deps.cmake
+    RENAME GUI.cmake
+    DESTINATION "${BRISK_INSTALL_CMAKEDIR}/deps")
+
+install(DIRECTORY resources/ DESTINATION "resources")
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BriskConfig.cmake DESTINATION "${BRISK_INSTALL_CMAKEDIR}")
 

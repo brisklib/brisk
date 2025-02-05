@@ -24,11 +24,9 @@
 #include "RenderEncoder.hpp"
 #include "ImageBackend.hpp"
 #include "brisk/core/Threading.hpp"
-#include <brisk/core/Embed.hpp>
 #include <brisk/core/Encoding.hpp>
 
-#include <resources/shader_fragment.hpp>
-#include <resources/shader_vertex.hpp>
+#include <brisk/core/Resources.hpp>
 
 namespace Brisk {
 
@@ -152,12 +150,15 @@ status<RenderDeviceError> RenderDeviceD3D11::init() {
     hr = m_adapter->GetParent(IID_PPV_ARGS(&m_factory));
     CHECK_HRESULT(hr, return unexpected(RenderDeviceError::InternalError));
 
-    std::ignore = m_factory.As(&m_factory2);
+    std::ignore          = m_factory.As(&m_factory2);
 
-    hr          = m_device->CreateVertexShader(shader_vertex().data(), shader_vertex().size(), nullptr,
-                                               m_vertexShader.ReleaseAndGetAddressOf());
+    auto shader_vertex   = loadResource("d3d11/vertex.fxc");
+    auto shader_fragment = loadResource("d3d11/fragment.fxc");
+
+    hr                   = m_device->CreateVertexShader(shader_vertex.data(), shader_vertex.size(), nullptr,
+                                                        m_vertexShader.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return unexpected(RenderDeviceError::ShaderError));
-    hr = m_device->CreatePixelShader(shader_fragment().data(), shader_fragment().size(), nullptr,
+    hr = m_device->CreatePixelShader(shader_fragment.data(), shader_fragment.size(), nullptr,
                                      m_pixelShader.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return unexpected(RenderDeviceError::ShaderError));
 

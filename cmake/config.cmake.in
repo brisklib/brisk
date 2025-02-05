@@ -13,8 +13,17 @@ add_library(brisk-network ALIAS Brisk::Network)
 add_library(brisk-executable ALIAS Brisk::Executable)
 add_library(brisk-i18n-icu ALIAS Brisk::I18n-ICU)
 
+if (TARGET Brisk::brisk-renderer-webgpu)
+    add_library(brisk-renderer-webgpu ALIAS Brisk::brisk-renderer-webgpu)
+endif ()
+if (TARGET Brisk::brisk-renderer-d3d11)
+    add_library(brisk-renderer-d3d11 ALIAS Brisk::brisk-renderer-d3d11)
+endif ()
+
 get_filename_component(_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-get_filename_component(_BRISK_INCLUDE_DIR "${_DIR}/../../../include" ABSOLUTE)
+get_filename_component(_BRISK_DIST_DIR "${_DIR}/../../.." ABSOLUTE)
+get_filename_component(_BRISK_INCLUDE_DIR "${_BRISK_DIST_DIR}/include" ABSOLUTE)
+set(BRISK_RESOURCES_DIR ${_BRISK_DIST_DIR}/resources)
 
 file(GLOB SCRIPT_FILES "${_DIR}/scripts/*.cmake")
 foreach (f ${SCRIPT_FILES})
@@ -28,7 +37,7 @@ set(BRISK_WEBGPU @BRISK_WEBGPU@)
 
 if (BRISK_ICU)
     target_link_libraries(Brisk::Graphics INTERFACE Brisk::I18n-ICU)
-else()
+else ()
     target_link_libraries(Brisk::Graphics INTERFACE Brisk::I18n)
 endif ()
 
@@ -36,10 +45,13 @@ set(_DEP_PUBLIC INTERFACE)
 set(_DEP_PRIVATE INTERFACE)
 set(_FIND_PACKAGE find_dependency)
 
+set(_EXPORT_MODE TRUE)
+
 include(${_DIR}/deps/Core.cmake)
 include(${_DIR}/deps/Graphics.cmake)
 include(${_DIR}/deps/Network.cmake)
 include(${_DIR}/deps/Window.cmake)
+include(${_DIR}/deps/GUI.cmake)
 
 unset(_DEP_PUBLIC)
 unset(_DEP_PRIVATE)

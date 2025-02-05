@@ -1,9 +1,9 @@
 {
-  "name": "bin2c",
-  "version": "123",
+  "name": "pack-resource",
+  "version": "2",
   "homepage": "https://brisklib.com",
   "license": null,
-  "description": "Bin2c compresses binary files and generates C source code for embedding resources",
+  "description": "pack_resource compresses binary files and generates C source code for embedding resources",
   "supports": "!(windows & arm32) & !mingw",
   "dependencies": [
     {

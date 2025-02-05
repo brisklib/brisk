@@ -24,12 +24,9 @@
 #include "RenderEncoder.hpp"
 #include "ImageBackend.hpp"
 #include <brisk/core/Cryptography.hpp>
-#include <brisk/core/Embed.hpp>
+#include <brisk/core/Resources.hpp>
 #include <brisk/core/App.hpp>
-
 #include <brisk/core/Log.hpp>
-
-#include <resources/wgslshader.hpp>
 
 namespace Brisk {
 
@@ -166,9 +163,10 @@ status<RenderDeviceError> RenderDeviceWebGPU::init() {
         return unexpected(RenderDeviceError::Unsupported);
     }
 
+    auto wgslShader = loadResourceText("webgpu/webgpu.wgsl");
+
     wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
-    std::string s((const char*)wgslshader().data(), wgslshader().size());
-    wgslDesc.code = s.c_str();
+    wgslDesc.code = wgslShader.c_str();
 
     wgpu::ShaderModuleDescriptor shaderModuleDescriptor{ .nextInChain = &wgslDesc };
     m_shader                                          = m_device.CreateShaderModule(&shaderModuleDescriptor);

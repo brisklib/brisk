@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(bin2c)
+project(pack_resource)
 
 if (WIN32)
     set(PLATFORM_SPECIFIC_CPP "_Windows.cpp")
@@ -11,8 +11,8 @@ else ()
 endif ()
 
 add_executable(
-    bin2c
-    ${BRISK_ROOT}/src/core/bin2c.cpp
+    pack_resource
+    ${BRISK_ROOT}/src/core/pack_resource.cpp
     ${BRISK_ROOT}/src/core/App.cpp
     ${BRISK_ROOT}/src/core/Binding.cpp
     ${BRISK_ROOT}/src/core/Bytes.cpp
@@ -37,44 +37,44 @@ add_executable(
     ${BRISK_ROOT}/src/core/uv.cpp
     ${BRISK_ROOT}/src/core/Version.cpp)
 
-target_include_directories(bin2c PUBLIC ${BRISK_ROOT}/include)
+target_include_directories(pack_resource PUBLIC ${BRISK_ROOT}/include)
 
-target_compile_definitions(bin2c PUBLIC BRISK_HAVE_BROTLI=1)
+target_compile_definitions(pack_resource PUBLIC BRISK_HAVE_BROTLI=1)
 
 if (WIN32)
-    target_compile_definitions(bin2c PUBLIC NOMINMAX=1)
+    target_compile_definitions(pack_resource PUBLIC NOMINMAX=1)
 endif ()
 
 find_package(fmt CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC fmt::fmt)
+target_link_libraries(pack_resource PUBLIC fmt::fmt)
 
 find_package(RapidJSON CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC rapidjson)
+target_link_libraries(pack_resource PUBLIC rapidjson)
 
 find_package(msgpack-cxx CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC msgpack-cxx)
+target_link_libraries(pack_resource PUBLIC msgpack-cxx)
 
 find_package(libuv CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC $<BUILD_INTERFACE:$<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>>)
+target_link_libraries(pack_resource PUBLIC $<BUILD_INTERFACE:$<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>>)
 
 find_package(lz4 CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC lz4::lz4)
+target_link_libraries(pack_resource PUBLIC lz4::lz4)
 
 find_package(unofficial-brotli CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
+target_link_libraries(pack_resource PUBLIC unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
 
 find_package(unofficial-utf8proc CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC utf8proc)
+target_link_libraries(pack_resource PUBLIC utf8proc)
 
 find_package(ZLIB REQUIRED)
-target_link_libraries(bin2c PUBLIC ZLIB::ZLIB)
+target_link_libraries(pack_resource PUBLIC ZLIB::ZLIB)
 
 find_package(spdlog CONFIG REQUIRED)
-target_link_libraries(bin2c PUBLIC spdlog::spdlog)
+target_link_libraries(pack_resource PUBLIC spdlog::spdlog)
 
 if (APPLE)
-    target_link_libraries(bin2c PUBLIC "-framework Foundation")
-    target_compile_options(bin2c PUBLIC $<BUILD_INTERFACE:-fobjc-arc>)
+    target_link_libraries(pack_resource PUBLIC "-framework Foundation")
+    target_compile_options(pack_resource PUBLIC $<BUILD_INTERFACE:-fobjc-arc>)
 endif ()
 
-install(TARGETS bin2c EXPORT Bin2CTargets)
+install(TARGETS pack_resource EXPORT PackResourceTargets)

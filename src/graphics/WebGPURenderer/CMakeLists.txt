@@ -38,11 +38,6 @@ add_library(
 
 target_link_libraries(brisk-renderer-webgpu PUBLIC brisk-core)
 
-brisk_target_link_resource(
-    brisk-renderer-webgpu PUBLIC wgslshader
-    INPUT ${CMAKE_CURRENT_LIST_DIR}/shader.wgsl
-    BROTLI)
-
 if (WIN32)
     target_link_libraries(brisk-renderer-webgpu PUBLIC d3d11 dxgi)
 endif ()
