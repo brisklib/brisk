@@ -221,24 +221,52 @@ using PointL   = PointOf<Length>;
 using EdgesL   = EdgesOf<Length>;
 using CornersL = CornersOf<Length>;
 
+/**
+ * @brief Constant representing a Length with an auto size.
+ */
 constexpr inline Length auto_{ 0.f, LengthUnit::Auto };
 
+/**
+ * @brief UDL operator to convert a value in scalable pixels to Length.
+ * @param value The value in scalable pixels.
+ * @return A Length object with the Pixels unit.
+ */
 constexpr Length operator""_px(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::Pixels };
 }
 
+/**
+ * @brief UDL operator to convert a value in device pixels to Length.
+ * @param value The value in device pixels.
+ * @return A Length object with the DevicePixels unit.
+ */
 constexpr Length operator""_dpx(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::DevicePixels };
 }
 
+/**
+ * @brief UDL operator to convert a value in aligned pixels to Length.
+ * @param value The value in aligned pixels.
+ * @return A Length object with the AlignedPixels unit.
+ */
 constexpr Length operator""_apx(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::AlignedPixels };
 }
 
+/**
+ * @brief UDL operator to convert a value in Em-units to Length.
+ * @param value The value in Em-units.
+ * @return A Length object with the Em unit.
+ */
 constexpr Length operator""_em(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::Em };
 }
 
+/**
+ * @brief UDL operator to convert a value in percents to Length.
+ * @param value The value in percents.
+ * @return A Length object with the Percent unit.
+ */
 constexpr Length operator""_perc(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::Percent };
 }
@@ -261,22 +289,47 @@ constexpr Length operator""_vmax(unsigned long long value) noexcept {
 }
 #endif
 
+/**
+ * @brief UDL operator to convert a value in scalable pixels (long double) to Length.
+ * @param value The value in scalable pixels.
+ * @return A Length object with the Pixels unit.
+ */
 constexpr Length operator""_px(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::Pixels };
 }
 
+/**
+ * @brief UDL operator to convert a value in device pixels (long double) to Length.
+ * @param value The value in device pixels.
+ * @return A Length object with the DevicePixels unit.
+ */
 constexpr Length operator""_dpx(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::DevicePixels };
 }
 
+/**
+ * @brief UDL operator to convert a value in aligned pixels (long double) to Length.
+ * @param value The value in aligned pixels.
+ * @return A Length object with the AlignedPixels unit.
+ */
 constexpr Length operator""_apx(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::AlignedPixels };
 }
 
+/**
+ * @brief UDL operator to convert a value in Em-units (long double) to Length.
+ * @param value The value in Em-units.
+ * @return A Length object with the Em unit.
+ */
 constexpr Length operator""_em(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::Em };
 }
 
+/**
+ * @brief UDL operator to convert a value in percents (long double) to Length.
+ * @param value The value in percents.
+ * @return A Length object with the Percent unit.
+ */
 constexpr Length operator""_perc(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::Percent };
 }
@@ -299,78 +352,135 @@ constexpr Length operator""_vmax(long double value) noexcept {
 }
 #endif
 
+/**
+ * @brief Specifies the flex container's main axis direction.
+ *
+ * Defines the direction in which flex items are placed within a flex container.
+ */
 enum class FlexDirection : uint8_t {
-    Column,
-    ColumnReverse,
-    Row,
-    RowReverse,
+    Column,        /**< Items are placed in a column (vertical direction). */
+    ColumnReverse, /**< Items are placed in a column, but in reverse order. */
+    Row,           /**< Items are placed in a row (horizontal direction). */
+    RowReverse,    /**< Items are placed in a row, but in reverse order. */
 };
 
+/**
+ * @brief Converts a FlexDirection value to its underlying integer type.
+ */
 constexpr auto operator+(FlexDirection value) noexcept {
     return static_cast<std::underlying_type_t<decltype(value)>>(value);
 }
 
+/**
+ * @brief Specifies how flex items are aligned along the main axis.
+ *
+ * Defines how the items are distributed along the flex container's main axis.
+ */
 enum class Justify : uint8_t {
-    FlexStart,
-    Center,
-    FlexEnd,
-    SpaceBetween,
-    SpaceAround,
-    SpaceEvenly,
+    FlexStart,    /**< Items are aligned at the start of the main axis. */
+    Center,       /**< Items are aligned at the center of the main axis. */
+    FlexEnd,      /**< Items are aligned at the end of the main axis. */
+    SpaceBetween, /**< Items are spaced with the first item at the start and the last at the end. */
+    SpaceAround,  /**< Items are spaced with equal space around them. */
+    SpaceEvenly,  /**< Items are spaced with equal space between them. */
 };
 
+/**
+ * @brief Converts a Justify value to its underlying integer type.
+ */
 constexpr auto operator+(Justify value) noexcept {
     return static_cast<std::underlying_type_t<decltype(value)>>(value);
 }
 
+/**
+ * @brief Specifies how flex items are aligned along the cross axis.
+ *
+ * Defines how items are aligned perpendicular to the main axis of the flex container.
+ */
 enum class Align : uint8_t {
-    Auto,
-    FlexStart,
-    Center,
-    FlexEnd,
-    Stretch,
-    Baseline,
-    SpaceBetween,
-    SpaceAround,
-    SpaceEvenly,
+    Auto,         /**< Items are aligned based on their default behavior. */
+    FlexStart,    /**< Items are aligned at the start of the cross axis. */
+    Center,       /**< Items are aligned at the center of the cross axis. */
+    FlexEnd,      /**< Items are aligned at the end of the cross axis. */
+    Stretch,      /**< Items are stretched to fill the available space along the cross axis. */
+    Baseline,     /**< Items are aligned based on their baseline. */
+    SpaceBetween, /**< Items are spaced with the first item at the start and the last at the end. */
+    SpaceAround,  /**< Items are spaced with equal space around them. */
+    SpaceEvenly,  /**< Items are spaced with equal space between them. */
 };
 
+/**
+ * @brief Converts an Align value to its underlying integer type.
+ */
 constexpr auto operator+(Align value) noexcept {
     return static_cast<std::underlying_type_t<decltype(value)>>(value);
 }
 
+/**
+ * @brief Alias for Align, used for aligning items along the cross axis.
+ */
 using AlignItems   = Align;
 
+/**
+ * @brief Alias for Align, used for aligning individual flex items.
+ */
 using AlignSelf    = Align;
 
+/**
+ * @brief Alias for Align, used for aligning flex container's content along the cross axis.
+ */
 using AlignContent = Align;
 
+/**
+ * @brief Specifies whether flex items wrap onto multiple lines.
+ *
+ * Defines how the flex container's items wrap within the container.
+ */
 enum class Wrap : uint8_t {
-    NoWrap,
-    Wrap,
-    WrapReverse,
+    NoWrap,      /**< Items do not wrap, staying in a single line. */
+    Wrap,        /**< Items wrap onto multiple lines as needed. */
+    WrapReverse, /**< Items wrap in reverse order, starting from the bottom/right. */
 };
 
+/**
+ * @brief Converts a Wrap value to its underlying integer type.
+ */
 constexpr auto operator+(Wrap value) noexcept {
     return static_cast<std::underlying_type_t<decltype(value)>>(value);
 }
 
+/**
+ * @brief Specifies the overflow behavior for the flex container.
+ *
+ * Defines how content overflow is handled in the flex container.
+ */
 enum class Overflow : uint8_t {
-    None       = 0,
-    ScrollX    = 1,
-    ScrollY    = 2,
-    ScrollBoth = 3,
+    None       = 0, /**< No scrolling is allowed. */
+    ScrollX    = 1, /**< Scrolling is enabled along the horizontal axis. */
+    ScrollY    = 2, /**< Scrolling is enabled along the vertical axis. */
+    ScrollBoth = 3, /**< Scrolling is enabled along both axes. */
 };
 
+/**
+ * @brief Template specialization indicating that Overflow is a bitflag type.
+ */
 template <>
 constexpr inline bool isBitFlags<Overflow> = true;
 
+/**
+ * @brief Specifies the gutter (spacing) direction for the flex container.
+ *
+ * Defines the direction in which gutter spacing is applied between flex items.
+ */
 enum class Gutter : uint8_t {
-    Column,
-    Row,
-    All,
+    Column, /**< Gutter applies between items in a column layout. */
+    Row,    /**< Gutter applies between items in a row layout. */
+    All,    /**< Gutter applies between all items regardless of layout direction. */
 };
 
+/**
+ * @brief Converts a Gutter value to its underlying integer type.
+ */
 constexpr auto operator+(Gutter value) noexcept {
     return static_cast<std::underlying_type_t<decltype(value)>>(value);
 }
