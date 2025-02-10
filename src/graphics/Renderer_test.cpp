@@ -480,4 +480,57 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
     });
 }
 
+TEST_CASE("Canvas::drawColorMask", "[gpu]") {
+    renderTest("drawColorMask", Size{ 31, 23 }, [](RenderContext& context) {
+        RawCanvas canvas(context);
+        constexpr Size size{ 29, 21 };
+        std::array<uint8_t, size.area() * 4> pixels;
+        for (int y = 0; y < size.height; ++y) {
+            for (int x = 0; x < size.width; ++x) {
+                uint8_t alpha                        = ((x & 1) + (y & 1)) * 0xFF / 2;
+                pixels[(y * size.width + x) * 4 + 0] = x * alpha / (size.width - 1);
+                pixels[(y * size.width + x) * 4 + 1] = alpha / 2;
+                pixels[(y * size.width + x) * 4 + 2] = y * alpha / (size.height - 1);
+                pixels[(y * size.width + x) * 4 + 3] = alpha;
+            }
+        }
+        auto sprite = makeSprite(Size{ size.width * 4, size.height }, pixels);
+        canvas.drawColorMask({ std::move(sprite) },
+                             one(GeometryGlyph{
+                                 { { 1, 1 }, size },
+                                 size,
+                                 0,
+                                 float(size.width * 4),
+                             }),
+                             std::tuple{ fillColor = Palette::white });
+    });
+}
+
+TEST_CASE("Emoji") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Noto Emoji", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::EnableColor);
+    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf2.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::Default);
+
+    const Size size{ 1200, 200 };
+    renderTest("emoji-only", size, [&](RenderContext& context) {
+        RawCanvas canvas(context);
+        Rectangle rect({}, size);
+        canvas.drawText(rect, 0.5f, 0.5f, "🐢👑🌟🧿📸🚨🏡🕊️🏆😻✌️🍀🎨🌴🍜", Font{ "Noto Emoji", 60.f },
+                        Palette::black);
+    });
+
+    renderTest(
+        "emoji-text", size,
+        [&](RenderContext& context) {
+            RawCanvas canvas(context);
+            Rectangle rect({}, size);
+            canvas.drawText(rect, 0.5f, 0.5f, "Crown: 👑, Star: 🌟 Camera: 📸",
+                            Font{ "Lato,Noto Emoji", 72.f }, Palette::black);
+        },
+        ColorF(0.5f));
+}
+
 } // namespace Brisk

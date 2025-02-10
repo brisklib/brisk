@@ -160,7 +160,8 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
     // Add padding needed to align m_data to a multiple of 4.
     m_data.resize(alignUp(m_data.size(), 4), 0);
 
-    if (cmd.shader == ShaderType::Text || cmd.shader == ShaderType::Mask) {
+    if (cmd.shader == ShaderType::Text || cmd.shader == ShaderType::Mask ||
+        cmd.shader == ShaderType::ColorMask) {
         float* cmdData        = m_data.data() + offs;
         GeometryGlyph* glyphs = reinterpret_cast<GeometryGlyph*>(cmdData);
         for (size_t i = 0; i < data.size_bytes() / sizeof(GeometryGlyph); ++i) {

@@ -34,13 +34,14 @@ struct VertexOutput {
 
 const PI = 3.1415926535897932384626433832795;
 
-const atlasAlignment     = 8;
+const atlasAlignment     = 8u;
 
 const shader_rectangles  = shader_type(0);
 const shader_arcs        = shader_type(1);
 const shader_text        = shader_type(2);
 const shader_shadow      = shader_type(3);
 const shader_mask        = shader_type(4);
+const shader_color_mask  = shader_type(5);
 
 const gradient_linear    = gradient_type(0);
 const gradient_radial    = gradient_type(1);
@@ -142,11 +143,11 @@ struct UniformBlockPerFrame {
 @group(0) @binding(7) var gradTex_s: sampler;
 
 fn to_screen(xy: vec2f) -> vec2f {
-    return xy * perFrame.viewport.zw * vec2f(2, -2) + vec2f(-1, 1);
+    return xy * perFrame.viewport.zw * vec2f(2., -2.) + vec2f(-1., 1.);
 }
 
 fn from_screen(xy: vec2f) -> vec2f {
-    return (xy - vec2f(-1, 1)) * vec2f(0.5, -0.5) * perFrame.viewport.xy;
+    return (xy - vec2f(-1., 1.)) * vec2f(0.5, -0.5) * perFrame.viewport.xy;
 }
 
 fn max2(pt: vec2f) -> f32 {
@@ -177,13 +178,13 @@ fn norm_rect(rect: vec4f) -> vec4f {
     var output: VertexOutput;
 
     let position = vertices[vidx];
-    let uv_coord: vec2f = position + 0.5;
-    var outPosition = vec4f(0);
+    let uv_coord: vec2f = position + vec2f(0.5);
+    var outPosition = vec4f(0.);
     if constants.shader == shader_rectangles || constants.shader == shader_shadow {
         let m = margin();
-        let rect = norm_rect(data[constants.data_offset + inst * 2]);
-        output.data0 = vec4f(rect.zw - rect.xy, 0, 0);
-        let dat = data[constants.data_offset + inst * 2 + 1];
+        let rect = norm_rect(data[constants.data_offset + inst * 2u]);
+        output.data0 = vec4f(rect.zw - rect.xy, 0., 0.);
+        let dat = data[constants.data_offset + inst * 2u + 1u];
         output.data1 = dat;
 
         let angle = dat.x;
@@ -192,20 +193,20 @@ fn norm_rect(rect: vec4f) -> vec4f {
         let center = (rect.xy + rect.zw) * 0.5;
         let pt = mix(rect.xy - vec2f(m), rect.zw + vec2f(m), uv_coord) - center;
         let pt2 = vec2f(angle_cos * pt.x - angle_sin * pt.y, angle_sin * pt.x + angle_cos * pt.y);
-        outPosition = vec4f(pt2 + center, 0, 1);
+        outPosition = vec4f(pt2 + center, 0., 1.);
         output.uv = position * (m + m + rect.zw - rect.xy);
     } else if constants.shader == shader_arcs {
         let m = margin();
-        let dat0 = data[constants.data_offset + inst * 2];
+        let dat0 = data[constants.data_offset + inst * 2u];
         output.data0 = dat0;
-        let dat1 = data[constants.data_offset + inst * 2 + 1];
+        let dat1 = data[constants.data_offset + inst * 2u + 1u];
         output.data1 = dat1;
 
-        outPosition = vec4f(mix(dat0.xy - vec2f(dat0.z + m), dat0.xy + vec2f(dat0.z + m), uv_coord), 0, 1);
+        outPosition = vec4f(mix(dat0.xy - vec2f(dat0.z + m), dat0.xy + vec2f(dat0.z + m), uv_coord), 0., 1.);
         output.uv = position * (m + m + 2.0 * dat0.z);
     } else if constants.shader == shader_text {
-        var rect = norm_rect(data[constants.data_offset + inst * 2]);
-        let glyph_data = data[constants.data_offset + inst * 2 + 1];
+        var rect = norm_rect(data[constants.data_offset + inst * 2u]);
+        let glyph_data = data[constants.data_offset + inst * 2u + 1u];
 
         let base = rect.x;
 
@@ -215,13 +216,13 @@ fn norm_rect(rect: vec4f) -> vec4f {
         rect.x -= perFrame.text_rect_padding;
         rect.z += perFrame.text_rect_padding;
 
-        outPosition = vec4f(mix(rect.xy, rect.zw, uv_coord), 0, 1);
-        output.uv = (outPosition.xy - vec2f(base, rect.y) + vec2f(-perFrame.text_rect_padding, 0)) * vec2f(f32(constants.sprite_oversampling), 1);
+        outPosition = vec4f(mix(rect.xy, rect.zw, uv_coord), 0., 1.);
+        output.uv = (outPosition.xy - vec2f(base, rect.y) + vec2f(-perFrame.text_rect_padding, 0.)) * vec2f(f32(constants.sprite_oversampling), 1.);
         output.data0 = glyph_data;
-    } else if constants.shader == shader_mask {
-        let rect = norm_rect(data[constants.data_offset + inst * 2]);
-        let glyph_data = data[constants.data_offset + inst * 2 + 1];
-        outPosition = vec4f(mix(rect.xy, rect.zw, uv_coord), 0, 1);
+    } else if constants.shader == shader_mask || constants.shader == shader_color_mask {
+        let rect = norm_rect(data[constants.data_offset + inst * 2u]);
+        let glyph_data = data[constants.data_offset + inst * 2u + 1u];
+        outPosition = vec4f(mix(rect.xy, rect.zw, uv_coord), 0., 1.);
         output.uv = outPosition.xy - rect.xy;
         output.data0 = glyph_data;
     }
@@ -248,14 +249,14 @@ fn sd_length_ex(pt: vec2f, border_radius: f32) -> f32 {
 
 fn sd_rectangle(pt: vec2f, rect_size: vec2f, border_radius: f32, corners: i32) -> f32 {
     let ext = rect_size * 0.5;
-    let quadrant = u32(pt.x >= 0) + 2 * u32(pt.y >= 0);
+    let quadrant = u32(pt.x >= 0.) + 2u * u32(pt.y >= 0.);
     var rad: f32 = abs(border_radius);
     if (corners & (1 << quadrant)) == 0 {
         rad = 0.0;
     }
     let ext2 = ext - vec2(rad, rad);
     let d = abs(pt) - ext2;
-    return (min(max(d.x, d.y), 0.0) + sd_length_ex(max(d, vec2f(0)), border_radius) - rad);
+    return (min(max(d.x, d.y), 0.0) + sd_length_ex(max(d, vec2f(0.)), border_radius) - rad);
 }
 
 struct SignedDistance {
@@ -291,19 +292,19 @@ fn signedDistanceArc(pt: vec2f, outer_radius: f32, inner_radius: f32, start_angl
         }
         circle = max(circle, pie);
     }
-    return SignedDistance(circle, -1000);
+    return SignedDistance(circle, -1000.);
 }
 
 fn signedDistanceRectangle(uv: vec2f, rectSize: vec2f, borderRadius: f32, corners: i32) -> SignedDistance {
     var sd: f32;
-    var intersect_sd: f32 = -1000;
+    var intersect_sd: f32 = -1000.;
 
     sd = (sd_rectangle(uv, rectSize.xy, borderRadius, corners));
 
     if constants.stroke_width > 0.0 {
-        let edges = corners >> 4; // same as corners
+        let edges = corners >> 4u; // same as corners
         if edges != 15 {
-            intersect_sd = 1000; // off
+            intersect_sd = 1000.; // off
 
             if (EDGE_LEFT & edges) != 0 { // left enabled
                 intersect_sd = min(intersect_sd, uv.x + rectSize.x * 0.5 - constants.stroke_width * 0.5);
@@ -351,7 +352,7 @@ fn simpleGradient(pos: f32, stroke: bool) -> vec4f {
 }
 
 fn multiGradient(pos: f32) -> vec4f {
-    let invDims = vec2f(1) / vec2f(textureDimensions(gradTex_t));
+    let invDims = vec2f(1.) / vec2f(textureDimensions(gradTex_t));
     return gammaColor(textureSample(gradTex_t, gradTex_s,
         vec2f(0.5 + pos * f32(gradientResolution - 1), 0.5 + f32(constants.multigradient)) * invDims));
 }
@@ -469,7 +470,7 @@ fn signedDistanceToColor(sd: SignedDistance, canvas_coord: vec2f, uv: vec2f, rec
 }
 
 fn get_pattern(x: u32, pattern: u32) -> u32 {
-    return (pattern >> (x % u32(24))) & u32(1);
+    return (pattern >> (x % 24u)) & 1u;
 }
 
 fn mask(pt: vec2f) -> f32 {
@@ -480,17 +481,34 @@ fn mask(pt: vec2f) -> f32 {
 
 fn atlas(sprite: i32, pos: vec2i, stride: u32) -> f32 {
     if pos.x < 0 || pos.x >= i32(stride) {
-        return 0;
+        return 0.;
     }
     if sprite < 0 {
-        return f32((pos.x & pos.y) & 1);
+        return f32(u32(pos.x & pos.y) & 1u);
     }
-    let linear = u32(sprite) * atlasAlignment + u32(pos.x) + u32(pos.y) * stride;
-    return textureLoad(fontTex_t, vec2u(linear % perFrame.atlas_width, linear / perFrame.atlas_width), 0).r;
+    let linear: u32 = u32(sprite) * atlasAlignment + u32(pos.x) + u32(pos.y) * stride;
+    return textureLoad(fontTex_t, vec2u(linear % perFrame.atlas_width, linear / perFrame.atlas_width), 0u).r;
+}
+
+fn atlasRGBA(sprite: i32, pos: vec2i, stride: u32) -> vec4<f32> {
+    if pos.x < 0 || pos.x * 4 + 3 >= i32(stride) {
+        return vec4<f32>(0.);
+    }
+    if sprite < 0 {
+        return vec4<f32>(f32(u32(pos.x & pos.y) & 1u));
+    }
+    let linear: u32 = u32(sprite) * atlasAlignment + u32(pos.x) * 4u + u32(pos.y) * stride;
+    let c = vec2u(linear % perFrame.atlas_width, linear / perFrame.atlas_width);
+    return vec4f(
+        textureLoad(fontTex_t, c, 0u).r,
+        textureLoad(fontTex_t, c + vec2u(1u, 0u), 0u).r,
+        textureLoad(fontTex_t, c + vec2u(2u, 0u), 0u).r,
+        textureLoad(fontTex_t, c + vec2u(3u, 0u), 0u).r
+    );
 }
 
 fn atlasAccum(sprite: i32, pos: vec2i, stride: u32) -> f32 {
-    var alpha: f32 = 0;
+    var alpha: f32 = 0.;
     if constants.sprite_oversampling == 1 {
         alpha = atlas(sprite, pos, stride);
         return alpha;
@@ -525,17 +543,17 @@ fn atlasSubpixel(sprite: i32, pos: vec2i, stride: u32) -> vec3f {
             x2 * filt[0] + x3 * filt[1] + x4 * filt[2] + x5 * filt[1] + x6 * filt[0]
         );
     } else {
-        return vec3f(1);
+        return vec3f(1.);
     }
 }
 
 fn shadow(signed_distance: f32) -> vec4f {
-    var op: f32 = 1;
-    if (constants.shadow_flags & 1) == 0 && signed_distance < 0 {
-        op = 0;
+    var op: f32 = 1.;
+    if (constants.shadow_flags & 1) == 0 && signed_distance < 0. {
+        op = 0.;
     }
-    if (constants.shadow_flags & 2) == 0 && signed_distance > 0 {
-        op = 0;
+    if (constants.shadow_flags & 2) == 0 && signed_distance > 0. {
+        op = 0.;
     }
     let shadow_size = constants.stroke_width / 2.0;
     var sh = (signed_distance + shadow_size * 0.25) / (shadow_size * 0.5);
@@ -545,7 +563,7 @@ fn shadow(signed_distance: f32) -> vec4f {
 }
 
 fn applyGamma(in: vec4f, gamma: f32) -> vec4f {
-    return pow(max(in, vec4f(0)), vec4f(gamma));
+    return pow(max(in, vec4f(0.)), vec4f(gamma));
 }
 
 fn applyBlueLightFilter(in: vec4f, intensity: f32) -> vec4f {
@@ -565,7 +583,7 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2u) -> FragOu
     var out: FragOut = in;
     var opacity = constants.opacity * mask_value;
 
-    if (constants.hpattern | constants.vpattern) != 0 {
+    if (constants.hpattern | constants.vpattern) != 0u {
         let p = get_pattern(canvas_coord.x / u32(constants.pattern_scale), constants.hpattern) & get_pattern(canvas_coord.y / u32(constants.pattern_scale), constants.vpattern);
         opacity = opacity * f32(p);
     }
@@ -574,13 +592,13 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2u) -> FragOu
         out.blend = out.blend * opacity;
     }
 
-    if perFrame.blue_light_filter != 0 {
+    if perFrame.blue_light_filter != 0. {
         out.color = applyBlueLightFilter(out.color, perFrame.blue_light_filter);
         if useBlending() {
             out.blend = applyBlueLightFilter(out.blend, perFrame.blue_light_filter);
         }
     }
-    if perFrame.global_gamma != 1 {
+    if perFrame.global_gamma != 1. {
         out.color = applyGamma(out.color, perFrame.global_gamma);
         if useBlending() {
             out.blend = applyGamma(out.blend, perFrame.global_gamma);
@@ -602,7 +620,7 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2u) -> FragOu
         pt = in.canvas_coord;
     }
     let mask_value = mask(pt);
-    if mask_value <= 0 {
+    if mask_value <= 0. {
         discard;
     }
     var outColor: vec4f;
@@ -619,7 +637,7 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2u) -> FragOu
         outColor = signedDistanceToColor(sd, in.canvas_coord, in.uv, in.data0.xy);
     } else if constants.shader == shader_shadow {
         outColor = shadow(sd_rectangle(in.uv, in.data0.xy, in.data1.y, i32(in.data1.z)));
-    } else if constants.shader == shader_mask || constants.shader == shader_text {
+    } else if constants.shader == shader_mask || constants.shader == shader_color_mask || constants.shader == shader_text {
         let sprite = i32(in.data0.z);
         let stride = u32(in.data0.w);
         let tuv = vec2i(in.uv);
@@ -627,8 +645,10 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2u) -> FragOu
 
         if useBlending() {
             let rgb = atlasSubpixel(sprite, tuv, stride);
-            outColor = colors.brush * vec4f(rgb, 1);
-            outBlend = vec4f(colors.brush.a * rgb, 1);
+            outColor = colors.brush * vec4f(rgb, 1.);
+            outBlend = vec4f(colors.brush.a * rgb, 1.);
+        } else if constants.shader == shader_color_mask {
+            outColor = colors.brush * atlasRGBA(sprite, tuv, stride);
         } else {
             var alpha = atlasAccum(sprite, tuv, stride);
             outColor = colors.brush * vec4f(alpha);

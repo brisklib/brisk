@@ -47,7 +47,7 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
   VertexOutput output = (VertexOutput)0;
   float2 tint_symbol_9[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
   float2 position = tint_symbol_9[vidx];
-  float2 uv_coord = (position + 0.5f);
+  float2 uv_coord = (position + (0.5f).xx);
   float4 outPosition = (0.0f).xxxx;
   bool tint_tmp = (asint(constants[1].x) == 0);
   if (!tint_tmp) {
@@ -89,7 +89,11 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
         output.uv = (((outPosition.xy - float2(base, rect.y)) + float2(-(asfloat(perFrame[1].z)), 0.0f)) * float2(float(asint(constants[3].z)), 1.0f));
         output.data0 = glyph_data;
       } else {
-        if ((asint(constants[1].x) == 4)) {
+        bool tint_tmp_1 = (asint(constants[1].x) == 4);
+        if (!tint_tmp_1) {
+          tint_tmp_1 = (asint(constants[1].x) == 5);
+        }
+        if ((tint_tmp_1)) {
           float4 rect = norm_rect(asfloat(data.Load4((16u * (constants[0].x + (inst * 2u))))));
           float4 glyph_data = asfloat(data.Load4((16u * ((constants[0].x + (inst * 2u)) + 1u))));
           outPosition = float4(lerp(rect.xy, rect.zw, uv_coord), 0.0f, 1.0f);

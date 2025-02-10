@@ -56,6 +56,7 @@ enum class ShaderType : int {
     Text,       // Gradient or texture
     Shadow,     // Custom paint or texture
     Mask,       // Gradient or texture
+    ColorMask,  // Gradient or texture
 };
 
 struct GeometryGlyph {

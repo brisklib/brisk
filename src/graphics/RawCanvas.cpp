@@ -54,17 +54,19 @@ static PointF quantize(PointF pt, unsigned value) {
     };
 }
 
-static GeometryGlyphs glyphLayout(uint32_t& runIndex, std::optional<Color>& color, SpriteResources& sprites,
-                                  const PreparedText& prepared, PointF offset = { 0, 0 }) {
+static GeometryGlyphs glyphLayout(uint32_t& runIndex, bool& multicolor, std::optional<Color>& color,
+                                  SpriteResources& sprites, const PreparedText& prepared,
+                                  PointF offset = { 0, 0 }) {
     GeometryGlyphs result;
     bool first = true;
     for (; runIndex < prepared.runs.size(); ++runIndex) {
         const GlyphRun& run = prepared.runVisual(runIndex);
         if (first) {
-            color = run.color;
-            first = false;
+            color      = run.color;
+            multicolor = run.hasColor();
+            first      = false;
         } else {
-            if (color != run.color)
+            if (run.color != color || run.hasColor() != multicolor)
                 return result;
         }
 
@@ -73,12 +75,14 @@ static GeometryGlyphs glyphLayout(uint32_t& runIndex, std::optional<Color>& colo
             if (data && data->sprite) {
                 GeometryGlyph glyphDesc;
                 PointF pos        = g.pos + run.position + offset;
-                glyphDesc.rect.p1 = quantize(pos + PointF(data->offset_x, -data->offset_y), fonts->hscale());
+                glyphDesc.rect.p1 = quantize(pos + PointF(data->offset_x, -data->offset_y), run.hscale());
                 glyphDesc.rect.p2 =
-                    glyphDesc.rect.p1 + PointF(float(data->size.width) / fonts->hscale(), data->size.height);
+                    glyphDesc.rect.p1 + PointF(float(data->size.width) / run.hscale(), data->size.height);
                 glyphDesc.sprite = static_cast<float>(findOrAdd(sprites, data->sprite));
                 glyphDesc.stride = data->size.width;
-                glyphDesc.size   = data->size;
+                if (run.hasColor())
+                    glyphDesc.stride *= 4;
+                glyphDesc.size = data->size;
 
                 result.push_back(std::move(glyphDesc));
             }
@@ -197,14 +201,18 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
         RenderStateExArgs runArgs = args;
         std::optional<Color> color;
         uint32_t oldRunIndex = runIndex;
-        GeometryGlyphs g     = glyphLayout(runIndex, color, sprites, prepared, pos);
+        bool multicolor      = false;
+        GeometryGlyphs g     = glyphLayout(runIndex, multicolor, color, sprites, prepared, pos);
         std::tuple argsColor{ args, fillColor = color.value_or(Color{}) };
         if (color) {
             runArgs = argsColor;
         } else {
             runArgs = args;
         }
-        drawText(std::move(sprites), g, runArgs);
+        if (multicolor)
+            drawColorMask(std::move(sprites), g, std::tuple{ args, fillColor = Palette::white });
+        else
+            drawText(std::move(sprites), g, runArgs);
         for (uint32_t ri = oldRunIndex; ri < runIndex; ++ri) {
             const GlyphRun& run = prepared.runVisual(ri);
             if (run.decoration != TextDecoration::None) {
@@ -271,7 +279,7 @@ RawCanvas& RawCanvas::drawArc(PointF center, float outerRadius, float innerRadiu
     return *this;
 }
 
-RawCanvas& RawCanvas::drawMask(SpriteResources sprites, std::span<GeometryGlyph> glyphs,
+RawCanvas& RawCanvas::drawMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                                RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Mask, glyphs.size(), args);
     style.subpixelMode       = SubpixelMode::Off;
@@ -282,7 +290,18 @@ RawCanvas& RawCanvas::drawMask(SpriteResources sprites, std::span<GeometryGlyph>
     return *this;
 }
 
-RawCanvas& RawCanvas::drawText(SpriteResources sprites, std::span<GeometryGlyph> glyphs,
+RawCanvas& RawCanvas::drawColorMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                                    RenderStateExArgs args) {
+    RenderStateEx style(ShaderType::ColorMask, glyphs.size(), args);
+    style.subpixelMode       = SubpixelMode::Off;
+    style.spriteOversampling = 1;
+    style.sprites            = std::move(sprites);
+    prepareStateInplace(style);
+    m_context.command(std::move(style), glyphs);
+    return *this;
+}
+
+RawCanvas& RawCanvas::drawText(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                                RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Text, glyphs.size(), args);
     style.subpixelMode       = SubpixelMode::RGB;
