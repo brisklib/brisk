@@ -822,21 +822,45 @@ Value<FT> remapLog(Value<T> value, std::type_identity_t<FT> min, std::type_ident
         });
 }
 
+/**
+ * @brief Converts a Value of any type to a Value of type std::string with optional formatting.
+ *
+ * @tparam T The type of the input Value.
+ * @param value The Value to convert.
+ * @param fmtstr Optional format string (default: "{}").
+ * @return Value<std::string> The formatted string representation of the input Value.
+ *
+ * @code
+ * int m_num = 42;
+ * // Create a `Text` widget that displays the text `"number: 42"` and updates dynamically
+ * // when `m_num` changes.
+ * rcnew Text{ text = toString(Value<int>{ &m_num }, "number: {}") };
+ * @endcode
+ */
 template <typename T>
 Value<std::string> toString(Value<T> value, std::string fmtstr = "{}") {
-    return value.transform([get = std::move(value.getter()), fmtstr = std::move(fmtstr)]() {
+    return value.transform([get = value.getter(), fmtstr = std::move(fmtstr)]() {
         return fmt::format(fmtstr, get());
     });
 }
-
+/**
+ * @brief Specifies how listeners will be notified in response to a value change.
+ */
 enum class BindType : uint8_t {
-    Immediate,
-    Deferred,
+    Immediate, ///< Listeners will be notified immediately.
+    Deferred,  ///< Listeners will be notified via a target object queue.
 };
 
+/**
+ * @brief Handle that allows manually disconnecting bound values.
+ */
 struct BindingHandle {
     BindingHandle() noexcept = default;
 
+    /**
+     * @brief Checks if the handle is valid.
+     * @return True if the handle is valid, false otherwise.
+     */
     explicit operator bool() const noexcept {
         return m_id != 0;
     }
@@ -850,33 +874,64 @@ private:
 
     friend class Bindings;
 
-    /// Starts generation from 1
+    /**
+     * @brief Generates a unique ID starting from 1.
+     * @return A new unique ID.
+     */
     static uint64_t generate() {
         static std::atomic_uint64_t value{ 0 };
         return ++value;
     }
 
-    uint64_t m_id = 0;
+    uint64_t m_id = 0; ///< The unique identifier for the binding handle.
 };
 
+/**
+ * @brief Holds a value along with its associated BindingAddress.
+ *
+ * @tparam T The type of the stored value.
+ */
 template <typename T>
 struct WithLifetime {
-    T value;
-    BindingAddress address;
+    T value;                ///< The stored value.
+    BindingAddress address; ///< The associated binding address.
 
+    /**
+     * @brief Constructs a WithLifetime object.
+     * @param value The value to store.
+     * @param address The associated binding address.
+     */
     constexpr WithLifetime(T value, BindingAddress address) : value(std::move(value)), address(address) {}
 
+    /**
+     * @brief Converts from another WithLifetime of a convertible type.
+     * @tparam U The convertible type.
+     * @param other The other WithLifetime object to convert from.
+     */
     template <std::convertible_to<T> U>
     constexpr WithLifetime(WithLifetime<U> other) : value(std::move(other.value)), address(other.address) {}
 };
 
+/**
+ * @brief Specifies the binding direction (used for disconnecting values).
+ */
 enum BindDir : uint8_t {
-    Dest,
-    Src,
-    Both,
+    Dest, ///< Value is a destination.
+    Src,  ///< Value is a source.
+    Both, ///< Value is either a source or a destination.
 };
 
-// singleton
+/**
+ * @brief Singleton class for binding values and notifying about changes.
+ *
+ * This class provides mechanisms for connecting instances of `Value`,
+ * notifying about variable changes (including batch notifications),
+ * and registering regions with associated queues.
+ *
+ * Access the singleton instance via the `bindings` global variable.
+ *
+ * @threadsafe All public methods are thread-safe and can be called from any thread.
+ */
 class Bindings {
 private:
     mutable std::recursive_mutex m_mutex;
@@ -890,6 +945,23 @@ public:
     Bindings& operator=(const Bindings&) = delete;
     Bindings& operator=(Bindings&&)      = delete;
 
+    /**
+     * @brief Connects two values using bidirectional binding.
+     *
+     * When `src` changes, `dest` is updated to match `src`.
+     * When `dest` changes, `src` is updated to match `dest`.
+     * The connection is automatically removed when either `dest` or `src` region is removed.
+     *
+     * @tparam TDest The type of the destination value.
+     * @tparam TSrc The type of the source value.
+     * @param dest The destination value.
+     * @param src The source value.
+     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param updateNow If true, immediately updates `dest` with the current value of `src`.
+     * @param destDesc Optional description for the destination value.
+     * @param srcDesc Optional description for the source value.
+     * @return BindingHandle A handle that allows manually disconnecting the binding.
+     */
     template <typename TDest, typename TSrc>
     BindingHandle connectBidir(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
                                bool updateNow = true, std::string_view destDesc = {},
@@ -905,6 +977,22 @@ public:
         return BindingHandle(id);
     }
 
+    /**
+     * @brief Connects two values using one-way binding.
+     *
+     * When `src` changes, `dest` is updated to match `src`.
+     * The connection is automatically removed when either `dest` or `src` region is removed.
+     *
+     * @tparam TDest The type of the destination value.
+     * @tparam TSrc The type of the source value.
+     * @param dest The destination value.
+     * @param src The source value.
+     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param updateNow If true, immediately updates `dest` with the current value of `src`.
+     * @param destDesc Optional description for the destination value.
+     * @param srcDesc Optional description for the source value.
+     * @return BindingHandle A handle that allows manually disconnecting the binding.
+     */
     template <typename TDest, typename TSrc>
     BindingHandle connect(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
                           bool updateNow = true, std::string_view destDesc = {},
@@ -919,6 +1007,15 @@ public:
         return BindingHandle(id);
     }
 
+    /**
+     * @brief Remove all bindings where the destination address matches `dest` and
+     * the source address matches `src`.
+     *
+     * @tparam TDest The type of the destination value.
+     * @tparam TSrc The type of the source value.
+     * @param dest The destination value.
+     * @param src The source value.
+     */
     template <typename TDest, typename TSrc>
     void disconnect(Value<TDest> dest, Value<TSrc> src) {
         std::lock_guard lk(m_mutex);
@@ -927,6 +1024,13 @@ public:
         internalDisconnect(std::move(destAddress), std::move(srcAddresses));
     }
 
+    /**
+     * @brief Disconnects all bindings where the given value is either a source or destination.
+     *
+     * @tparam T The type of the value.
+     * @param val The value to disconnect.
+     * @param dir The direction to disconnect (source, destination, or both).
+     */
     template <typename T>
     void disconnect(Value<T> val, BindDir dir) {
         std::lock_guard lk(m_mutex);
@@ -934,10 +1038,39 @@ public:
         internalDisconnect(std::move(addresses), dir);
     }
 
+    /**
+     * @brief Disconnects a binding using a previously saved handle.
+     *
+     * @param handle The handle representing the binding to be disconnected.
+     */
     void disconnect(BindingHandle handle);
 
+    /**
+     * @brief Registers a region with an associated queue.
+     *
+     * The region must not be registered before calling this method.
+     *
+     * @param region The binding address representing the region.
+     * @param queue The scheduler queue associated with the region.
+     */
     void registerRegion(BindingAddress region, RC<Scheduler> queue);
+
+    /**
+     * @brief Unregisters a previously registered region.
+     *
+     * The region must have been previously registered using `registerRegion`.
+     *
+     * @param region The binding address representing the region to unregister.
+     */
     void unregisterRegion(BindingAddress region);
+
+    /**
+     * @brief Unregisters a previously registered region by its memory address.
+     *
+     * The region must have been previously registered using `registerRegion`.
+     *
+     * @param regionBegin Pointer to the beginning of the region to unregister.
+     */
     void unregisterRegion(const uint8_t* regionBegin);
 
     template <typename T>
