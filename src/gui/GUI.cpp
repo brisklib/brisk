@@ -2610,8 +2610,8 @@ const std::string_view propNames[numProperties]{
     /*82*/ "tabStop",
     /*83*/ "tabGroup",
     /*84*/ "autofocus",
-    /*85*/ "onClick",
-    /*86*/ "onDoubleClick",
+    /*85*/ "",
+    /*86*/ "",
     /*87*/ "delegate",
     /*88*/ "hint",
     /*89*/ "stylesheet",
@@ -2718,8 +2718,6 @@ template void instantiateProp<decltype(Widget::description)>();
 template void instantiateProp<decltype(Widget::tabStop)>();
 template void instantiateProp<decltype(Widget::tabGroup)>();
 template void instantiateProp<decltype(Widget::autofocus)>();
-template void instantiateProp<decltype(Widget::onClick)>();
-template void instantiateProp<decltype(Widget::onDoubleClick)>();
 template void instantiateProp<decltype(Widget::delegate)>();
 template void instantiateProp<decltype(Widget::hint)>();
 template void instantiateProp<decltype(Widget::zorder)>();
@@ -2824,8 +2822,6 @@ const Argument<Tag::PropArg<decltype(Widget::description)>> description{};
 const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop{};
 const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup{};
 const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus{};
-const Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick{};
-const Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick{};
 const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate{};
 const Argument<Tag::PropArg<decltype(Widget::hint)>> hint{};
 const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder{};

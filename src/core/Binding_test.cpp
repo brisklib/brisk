@@ -412,11 +412,11 @@ TEST_CASE("Binding with arguments 3") {
     {
         BindingRegistration cb_r{ &events, nullptr };
 
-        bindings->connect(listener<std::string>( // Create a listener that captures events
+        bindings->connect(Value<std::string>::listener( // Create a listener that captures events
                               [&](std::string val) {
                                   events.push_back(std::move(val));
                               },
-                              cb_r.m_address),
+                              toBindingAddress(cb_r.m_address)),
                           Value{ &s1 }, BindType::Immediate, false);
         CHECK(events == std::vector<std::string>{});
 

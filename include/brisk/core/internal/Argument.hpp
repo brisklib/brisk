@@ -64,8 +64,10 @@ public:
 
     constexpr ArgumentsView(std::nullptr_t) noexcept : args(nullptr), applyFn(nullptr) {}
 
-    template <Applicable<Target>... Args>
+    template <typename... Args>
     ArgumentsView(const std::tuple<Args...>& args) : args(&args) {
+        static_assert((Applicable<Args, Target> && ...));
+
         applyFn = [](const void* args, Target* target) BRISK_INLINE_LAMBDA {
             applyTuple(*reinterpret_cast<const std::tuple<Args...>*>(args), target,
                        std::index_sequence_for<Args...>{});

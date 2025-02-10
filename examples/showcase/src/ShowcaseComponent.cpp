@@ -35,7 +35,7 @@ static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
         Selectors::Class{ "section-header" },
         Rules{
             fontSize      = 14_px,
-            fontFamily    = Font::Monospace,
+            fontFamily    = "@mono",
             color         = 0x5599ff_rgb,
             margin        = { 0, 10_apx },
 
@@ -86,7 +86,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_zoom_in },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           []() {
                               windowApplication->uiScale =
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 + 1) * 0.5);
@@ -96,7 +96,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_zoom_out },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           []() {
                               windowApplication->uiScale =
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 - 1) * 0.5);
@@ -106,7 +106,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_camera },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           [this]() {
                               captureScreenshot();
                           },
@@ -115,7 +115,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_sun_moon },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           [this]() {
                               m_lightTheme = !m_lightTheme;
                               this->tree().disableTransitions();

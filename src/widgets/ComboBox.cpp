@@ -27,11 +27,13 @@ namespace Brisk {
 
 void ComboBox::onChildAdded(Widget* w) {
     Base::onChildAdded(w);
+
     if (ItemList* itemlist = this->itemlist.matchesType(w)) {
-        itemlist->onItemClick = [this](size_t index) BRISK_INLINE_LAMBDA {
+        itemlist->onItemClick = lifetime() | [this](size_t index) BRISK_INLINE_LAMBDA {
             value = index;
         };
-        itemlist->onBecameVisible = [this]() BRISK_INLINE_LAMBDA {
+
+        itemlist->onBecameVisible = lifetime() | [this]() BRISK_INLINE_LAMBDA {
             if (auto item = findSelected()) {
                 item->focus();
             }

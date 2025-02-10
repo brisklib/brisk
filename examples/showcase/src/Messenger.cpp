@@ -35,7 +35,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
                                    return img == imageContent ? Classes{ "zoom" } : Classes{};
                                }),
 
-                               onClick = m_lifetime |
+                               onClick = lifetime() |
                                          [this, imageContent]() {
                                              if (m_zoomImage)
                                                  bindings->assign(m_zoomImage, nullptr);
@@ -105,7 +105,7 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
                     padding         = 8,
                     backgroundColor = Palette::transparent,
                     borderWidth     = 0,
-                    onEnter         = m_lifetime |
+                    onEnter         = lifetime() |
                               [this]() {
                                   send();
                               },
@@ -114,7 +114,7 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
                     rcnew Text{ ICON_send_horizontal },
                     classes = { "flat" },
                     color   = 0x373737_rgb,
-                    onClick = m_lifetime |
+                    onClick = lifetime() |
                               [this]() {
                                   send();
                               },

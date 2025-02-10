@@ -36,8 +36,8 @@ public:
     }
 
 protected:
-    OnItemClick m_onItemClick;
-    Callback<> m_onBecameVisible;
+    Trigger<size_t> m_onItemClick;
+    Trigger<> m_onBecameVisible;
     void onEvent(Event& event) override;
     void append(RC<Widget> widget) override;
     Ptr cloneThis() const override;
@@ -48,8 +48,8 @@ protected:
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<ItemList, OnItemClick, &ItemList::m_onItemClick> onItemClick;
-    Property<ItemList, Callback<>, &ItemList::m_onBecameVisible> onBecameVisible;
+    Property<ItemList, Trigger<size_t>, &ItemList::m_onItemClick> onItemClick;
+    Property<ItemList, Trigger<>, &ItemList::m_onBecameVisible> onBecameVisible;
     BRISK_PROPERTIES_END
 };
 

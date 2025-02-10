@@ -21,7 +21,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
             rcnew Widget{
                 rcnew Button{
                     rcnew Text{ "Button 1" },
-                    onClick = m_lifetime |
+                    onClick = lifetime() |
                               [notifications]() {
                                   notifications->show(rcnew Text{ "Button 1 clicked" });
                               },
@@ -29,7 +29,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                 rcnew Button{
                     rcnew Text{ "Disabled Button" },
                     disabled = true,
-                    onClick  = m_lifetime |
+                    onClick  = lifetime() |
                               [notifications]() {
                                   notifications->show(rcnew Text{ "Disabled Button clicked" });
                               },
@@ -127,7 +127,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
                     },
                     repeatDelay    = 0.2,
                     repeatInterval = 0.2,
-                    onClick        = m_lifetime |
+                    onClick        = lifetime() |
                               [this] {
                                   m_clicked++;
                                   bindings->notify(&m_clicked);

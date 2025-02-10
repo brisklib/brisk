@@ -133,9 +133,6 @@ struct Trigger {
 
     constexpr Trigger() noexcept = default;
 
-    template <typename T>
-    Trigger(T anything) noexcept {}
-
     constexpr bool operator==(const Trigger& other) const noexcept {
         return false;
     }
@@ -754,25 +751,6 @@ Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... valu
         nullptr, std::move(addresses), BindingAddress{});
 }
 
-template <typename... Args, typename T>
-[[nodiscard]] Value<Trigger<Args...>> listener(Callback<std::type_identity_t<Args>...> cb, T* lifetime) {
-    BindingAddress address = toBindingAddress(lifetime);
-    return Value<Trigger<Args...>>{
-        nullptr,
-        [cb = std::move(cb)](ValueArgument<Trigger<Args...>> newValue) {
-            if constexpr (sizeof...(Args) == 0) {
-                cb();
-            } else if constexpr (sizeof...(Args) == 1) {
-                cb(std::move(newValue));
-            } else {
-                std::apply(cb, std::move(newValue));
-            }
-        },
-        { address },
-        address,
-    };
-}
-
 namespace Internal {
 template <typename T>
 using floatingPointTypeOf = decltype(1.f * std::declval<T>());
@@ -886,30 +864,13 @@ private:
     uint64_t m_id = 0; ///< The unique identifier for the binding handle.
 };
 
-/**
- * @brief Holds a value along with its associated BindingAddress.
- *
- * @tparam T The type of the stored value.
- */
-template <typename T>
-struct WithLifetime {
-    T value;                ///< The stored value.
+template <typename... Args>
+struct Listener {
+    Callback<Args...> callback;
     BindingAddress address; ///< The associated binding address.
 
-    /**
-     * @brief Constructs a WithLifetime object.
-     * @param value The value to store.
-     * @param address The associated binding address.
-     */
-    constexpr WithLifetime(T value, BindingAddress address) : value(std::move(value)), address(address) {}
-
-    /**
-     * @brief Converts from another WithLifetime of a convertible type.
-     * @tparam U The convertible type.
-     * @param other The other WithLifetime object to convert from.
-     */
-    template <std::convertible_to<T> U>
-    constexpr WithLifetime(WithLifetime<U> other) : value(std::move(other.value)), address(other.address) {}
+    constexpr Listener(Callback<Args...> callback, BindingAddress address)
+        : callback(std::move(callback)), address(address) {}
 };
 
 /**
@@ -1074,28 +1035,27 @@ public:
     void unregisterRegion(const uint8_t* regionBegin);
 
     template <typename T>
-    BindingHandle listen(Value<T> src, Callback<> callback, BindType type = BindType::Immediate) {
-        return connect(Value<T>::listener(std::move(callback), staticBindingAddress), src, type, false);
+    BindingHandle listen(Value<T> src, Callback<> callback, BindingAddress address = staticBindingAddress,
+                         BindType type = BindType::Immediate) {
+        return connect(Value<T>::listener(std::move(callback), address), src, type, false);
     }
 
     template <typename T>
     BindingHandle listen(Value<T> src, Callback<ValueArgument<T>> callback,
-                         BindType type = BindType::Immediate) {
-        return connect(Value<ValueArgument<T>>::listener(std::move(callback), staticBindingAddress), src,
+                         BindingAddress address = staticBindingAddress, BindType type = BindType::Immediate) {
+        return connect(Value<ValueArgument<T>>::listener(std::move(callback), address), src, type, false);
+    }
+
+    template <typename T>
+    BindingHandle listen(Value<T> src, Listener<> callback, BindType type = BindType::Immediate) {
+        return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, WithLifetime<Callback<>> callback,
+    BindingHandle listen(Value<T> src, Listener<ValueArgument<T>> callback,
                          BindType type = BindType::Immediate) {
-        return connect(Value<ValueArgument<T>>::listener(std::move(callback.value), callback.address), src,
-                       type, false);
-    }
-
-    template <typename T>
-    BindingHandle listen(Value<T> src, WithLifetime<Callback<ValueArgument<T>>> callback,
-                         BindType type = BindType::Immediate) {
-        return connect(Value<ValueArgument<T>>::listener(std::move(callback.value), callback.address), src,
+        return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
@@ -1399,11 +1359,6 @@ struct BindingRegistration {
     const uint8_t* m_address;
 };
 
-template <std::invocable Fn>
-inline Value<Trigger<>> operator|(BindingRegistration& reg, Fn callback) {
-    return listener<>(callback, reg.m_address);
-}
-
 struct BindingLifetime {
     template <typename T>
     BindingLifetime(T* thiz) noexcept : m_address(toBindingAddress(thiz).min) {}
@@ -1411,9 +1366,41 @@ struct BindingLifetime {
     const uint8_t* m_address;
 };
 
-template <std::invocable Fn>
-inline Value<Trigger<>> operator|(BindingLifetime& lt, Fn callback) {
-    return listener<>(callback, lt.m_address);
+const inline BindingLifetime staticLifetime{ &staticBinding };
+
+template <typename T>
+inline BindingLifetime lifetimeOf(T* thiz) noexcept {
+    return BindingLifetime{ thiz };
+}
+
+namespace Internal {
+
+template <typename Fn, template <typename... Args> typename Tpl>
+struct DeduceArgs;
+
+template <typename Fn, typename FnRet, typename... FnArgs, template <typename... Args> typename Tpl>
+struct DeduceArgs<FnRet (Fn::*)(FnArgs...), Tpl> {
+    using Type = Tpl<FnArgs...>;
+};
+
+template <typename Fn, typename FnRet, typename... FnArgs, template <typename... Args> typename Tpl>
+struct DeduceArgs<FnRet (Fn::*)(FnArgs...) const, Tpl> {
+    using Type = Tpl<FnArgs...>;
+};
+
+} // namespace Internal
+
+template <typename Fn>
+using DeduceListener = typename Internal::DeduceArgs<decltype(&Fn::operator()), Listener>::Type;
+
+template <typename Fn>
+inline DeduceListener<Fn> operator|(const BindingRegistration& reg, Fn callback) {
+    return { std::move(callback), reg.m_address };
+}
+
+template <typename Fn>
+inline DeduceListener<Fn> operator|(const BindingLifetime& lt, Fn callback) {
+    return { std::move(callback), toBindingAddress(lt.m_address) };
 }
 
 template <typename T>
@@ -1620,9 +1607,21 @@ public:
     using Type                      = std::remove_const_t<T>;
     using ValueType                 = Type;
 
+    constexpr static bool isTrigger = Internal::isTrigger<T>;
+
     constexpr static bool isMutable = !std::is_const_v<T>;
 
     static_assert(field != nullptr || getter != nullptr);
+
+    void listen(Callback<ValueArgument<T>> callback, BindingAddress address = staticBindingAddress,
+                BindType bindType = BindType::Immediate) {
+        bindings->listen(Value{ this }, std::move(callback), address, bindType);
+    }
+
+    void listen(Callback<> callback, BindingAddress address = staticBindingAddress,
+                BindType bindType = BindType::Immediate) {
+        bindings->listen(Value{ this }, std::move(callback), address, bindType);
+    }
 
     operator Type() const noexcept {
         return get();
@@ -1650,7 +1649,7 @@ public:
     void set(Type value)
         requires isMutable
     {
-        BRISK_ASSERT(this_pointer);        
+        BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
         if BRISK_IF_GNU_ATTR (constexpr)
             (setter == nullptr) {
@@ -1676,6 +1675,14 @@ public:
 
     void operator=(Value<Type> value) {
         set(std::move(value));
+    }
+
+    void operator=(Listener<> listener) {
+        bindings->listen(Value{ this }, std::move(listener));
+    }
+
+    void operator=(Listener<ValueArgument<T>> listener) {
+        bindings->listen(Value{ this }, std::move(listener));
     }
 
     void set(Value<Type> value) {
@@ -1759,8 +1766,9 @@ public:
         alignedFree(ptr);
     }
 
-protected:
-    BindingLifetime m_lifetime{ this };
+    BindingLifetime lifetime() const noexcept {
+        return lifetimeOf(this);
+    }
 };
 
 } // namespace Brisk

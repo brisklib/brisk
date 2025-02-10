@@ -49,56 +49,70 @@ void TextEditor::createContextMenu() {
         Arg::role       = "context",
         Arg::fontFamily = Font::DefaultPlusIconsEmoji,
         Arg::fontSize   = FontSize::Normal,
-        rcnew Item{ Arg::icon = ICON_scissors, rcnew Text{ "Cut||Menu"_tr }, rcnew Spacer{},
-                    rcnew Text{
-                        hotKeyToString(KeyCode::X, KeyModifiers::ControlOrCommand),
-                        Arg::classes = { "hotkeyhint" },
-                    },
-                    Arg::onClick = listener(
-                        [this] {
-                            cutToClipboard();
-                        },
-                        this) },
-        rcnew Item{ Arg::icon = ICON_copy, rcnew Text{ "Copy||Menu"_tr }, rcnew Spacer{},
-                    rcnew Text{
-                        hotKeyToString(KeyCode::C, KeyModifiers::ControlOrCommand),
-                        Arg::classes = { "hotkeyhint" },
-                    },
-                    Arg::onClick = listener(
-                        [this] {
-                            copyToClipboard();
-                        },
-                        this) },
-        rcnew Item{ Arg::icon = ICON_clipboard, rcnew Text{ "Paste||Menu"_tr }, rcnew Spacer{},
-                    rcnew Text{
-                        hotKeyToString(KeyCode::V, KeyModifiers::ControlOrCommand),
-                        Arg::classes = { "hotkeyhint" },
-                    },
-                    Arg::onClick = listener(
-                        [this] {
-                            pasteFromClipboard();
-                        },
-                        this) },
-        rcnew Item{ Arg::icon = ICON_x, rcnew Text{ "Delete||Menu"_tr }, rcnew Spacer{},
-                    rcnew Text{
-                        hotKeyToString(KeyCode::Del, KeyModifiers::None),
-                        Arg::classes = { "hotkeyhint" },
-                    },
-                    Arg::onClick = listener(
-                        [this] {
-                            deleteSelection();
-                        },
-                        this) },
-        rcnew Item{ rcnew Text{ "Select All||Menu"_tr }, rcnew Spacer{},
-                    rcnew Text{
-                        hotKeyToString(KeyCode::A, KeyModifiers::ControlOrCommand),
-                        Arg::classes = { "hotkeyhint" },
-                    },
-                    Arg::onClick = listener(
-                        [this] {
-                            selectAll();
-                        },
-                        this) },
+        rcnew Item{
+            Arg::icon = ICON_scissors,
+            rcnew Text{ "Cut||Menu"_tr },
+            rcnew Spacer{},
+            rcnew Text{
+                hotKeyToString(KeyCode::X, KeyModifiers::ControlOrCommand),
+                Arg::classes = { "hotkeyhint" },
+            },
+            Arg::onClick = lifetime() |
+                           [this] {
+                               cutToClipboard();
+                           },
+        },
+        rcnew Item{
+            Arg::icon = ICON_copy,
+            rcnew Text{ "Copy||Menu"_tr },
+            rcnew Spacer{},
+            rcnew Text{
+                hotKeyToString(KeyCode::C, KeyModifiers::ControlOrCommand),
+                Arg::classes = { "hotkeyhint" },
+            },
+            Arg::onClick = lifetime() |
+                           [this] {
+                               copyToClipboard();
+                           },
+        },
+        rcnew Item{
+            Arg::icon = ICON_clipboard,
+            rcnew Text{ "Paste||Menu"_tr },
+            rcnew Spacer{},
+            rcnew Text{
+                hotKeyToString(KeyCode::V, KeyModifiers::ControlOrCommand),
+                Arg::classes = { "hotkeyhint" },
+            },
+            Arg::onClick = lifetime() |
+                           [this] {
+                               pasteFromClipboard();
+                           },
+        },
+        rcnew Item{
+            Arg::icon = ICON_x,
+            rcnew Text{ "Delete||Menu"_tr },
+            rcnew Spacer{},
+            rcnew Text{
+                hotKeyToString(KeyCode::Del, KeyModifiers::None),
+                Arg::classes = { "hotkeyhint" },
+            },
+            Arg::onClick = lifetime() |
+                           [this] {
+                               deleteSelection();
+                           },
+        },
+        rcnew Item{
+            rcnew Text{ "Select All||Menu"_tr },
+            rcnew Spacer{},
+            rcnew Text{
+                hotKeyToString(KeyCode::A, KeyModifiers::ControlOrCommand),
+                Arg::classes = { "hotkeyhint" },
+            },
+            Arg::onClick = lifetime() |
+                           [this] {
+                               selectAll();
+                           },
+        },
     });
 }
 

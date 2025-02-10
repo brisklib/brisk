@@ -286,13 +286,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 }
 
 ShowcaseVisual::ShowcaseVisual() {
-    bindings->listen(Value{ &frameStartTime },
-                     WithLifetime{
-                         [this]() {
-                             if (m_progressActive)
-                                 bindings->assign(m_progress, std::fmod(m_progress + 0.2f, 100.f));
-                         },
-                         toBindingAddress(this),
-                     });
+    bindings->listen(
+        Value{ &frameStartTime }, lifetime() | [this]() {
+            if (m_progressActive)
+                bindings->assign(m_progress, std::fmod(m_progress + 0.2f, 100.f));
+        });
 }
 } // namespace Brisk

@@ -71,8 +71,6 @@ using BindingFunc = function<void(Widget*)>;
 class Stylesheet;
 struct Rules;
 
-using OnItemClick = Callback<size_t>;
-
 struct EventDelegate;
 
 struct Painter {
@@ -530,13 +528,28 @@ void fixClone(U* ptr) noexcept {
 namespace Tag {
 
 template <typename PropertyType>
-struct PropArg : PropertyTag {
+struct PropArg;
+
+template <typename PropertyType>
+    requires(!PropertyType::isTrigger)
+struct PropArg<PropertyType> : PropertyTag {
     using Type = typename PropertyType::ValueType;
 
     struct ExtraTypes {
         static void accept(Value<Type>);
         static void accept(function<Type()>);
         static void accept(function<Type(Widget*)>);
+    };
+};
+
+template <typename PropertyType>
+    requires PropertyType::isTrigger
+struct PropArg<PropertyType> : PropertyTag {
+    using Type = typename PropertyType::ValueType;
+
+    struct ExtraTypes {
+        static void accept(Listener<>);
+        static void accept(Listener<ValueArgument<Type>>);
     };
 };
 
@@ -561,11 +574,6 @@ struct PropArg<GUIProperty<index, T, flags, field, subfield>> : PropertyTag {
     };
 };
 
-template <size_t index, typename... Args, PropFlags flags, Trigger<Args...> Widget::* field, int subfield>
-struct PropArg<GUIProperty<index, Trigger<Args...>, flags, field, subfield>> : PropertyTag {
-    using Type = Value<Trigger<Args...>>;
-};
-
 template <size_t index_, typename Type_, PropFlags flags_,
           PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
 struct PropArg<GUIPropertyCompound<index_, Type_, flags_, field, Properties...>> : PropertyTag {
@@ -585,11 +593,11 @@ struct PropArg<GUIPropertyCompound<index_, Type_, flags_, field, Properties...>>
 } // namespace Tag
 
 template <std::derived_from<Widget> Target, typename PropertyType, typename... Args>
-inline void applier(Target* target,
-                    const ArgVal<Tag::PropArg<PropertyType>, Value<Trigger<Args...>>>& value) {
+inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, Listener<Args...>>& value) {
     BRISK_ASSERT(target);
+    BRISK_ASSUME(target);
     PropertyType prop{ target };
-    bindings->connect(value.value, Internal::asValue(prop), BindType::Immediate, false);
+    prop.listen(value.value.callback, value.value.address, BindType::Immediate);
 }
 
 template <std::derived_from<Widget> Target, typename PropertyType, typename U>
@@ -1412,8 +1420,8 @@ public:
     GUIProperty<82, bool, None, &This::m_tabStop> tabStop;
     GUIProperty<83, bool, None, &This::m_tabGroup> tabGroup;
     GUIProperty<84, bool, None, &This::m_autofocus> autofocus;
-    GUIProperty<85, Trigger<>, None, &This::m_onClick> onClick;
-    GUIProperty<86, Trigger<>, None, &This::m_onDoubleClick> onDoubleClick;
+    /* 85 unused */
+    /* 86 unused */
     GUIProperty<87, EventDelegate*, None, &This::m_delegate> delegate;
     GUIProperty<88, std::string, None, &This::m_hint> hint;
     GUIProperty<89, std::shared_ptr<const Stylesheet>, AffectStyle, &This::m_stylesheet> stylesheet;
@@ -1448,6 +1456,9 @@ public:
     GUIProperty<101, ColorF, Transition | Inheritable, &This::m_scrollBarColor> scrollBarColor;
     GUIProperty<102, Length, Resolvable, &This::m_scrollBarThickness> scrollBarThickness;
     GUIProperty<103, Length, Resolvable, &This::m_scrollBarRadius> scrollBarRadius;
+
+    Property<This, Trigger<>, &This::m_onClick> onClick;
+    Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;
 
     Property<This, bool, &This::m_state, &This::isDisabled, &This::setDisabled> disabled;
     BRISK_PROPERTIES_END
@@ -1524,8 +1535,6 @@ extern const Argument<Tag::PropArg<decltype(Widget::description)>> description;
 extern const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop;
 extern const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup;
 extern const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus;
-extern const Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick;
-extern const Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick;
 extern const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate;
 extern const Argument<Tag::PropArg<decltype(Widget::hint)>> hint;
 extern const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder;
@@ -1570,6 +1579,9 @@ extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures
 extern const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
 extern const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThickness;
 extern const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
+
+constexpr inline Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick{};
+constexpr inline Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick{};
 
 } // namespace Arg
 

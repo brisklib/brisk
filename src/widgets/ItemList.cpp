@@ -25,8 +25,7 @@ namespace Brisk {
 
 void ItemList::close(Widget* sender) {
     if (auto index = indexOf(sender)) {
-        if (m_onItemClick)
-            m_onItemClick(*index);
+        m_onItemClick.trigger(*index);
     }
     visible = false;
 }
@@ -69,7 +68,6 @@ RC<Widget> ItemList::cloneThis() const {
 }
 
 void ItemList::onVisible() {
-    if (m_onBecameVisible)
-        m_onBecameVisible();
+    m_onBecameVisible.trigger();
 }
 } // namespace Brisk

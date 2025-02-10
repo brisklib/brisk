@@ -71,8 +71,8 @@ public:
             // Button widget
             rcnew Button{
                 rcnew Text{ "Click" },
-                // Using m_lifetime ensures that callbacks will be detached once the Component is deleted
-                onClick = m_lifetime |
+                // Using lifetime() ensures that callbacks will be detached once the Component is deleted
+                onClick = lifetime() |
                           [this]() {
                               // Notify bindings about the change
                               bindings->assign(m_label) = "Updated text";

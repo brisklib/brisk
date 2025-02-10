@@ -57,20 +57,18 @@ RC<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okB
                           rcnew Spacer{},
                           (buttons && DialogButtons::OK)
                               ? rcnew Button{ rcnew Text{ std::move(okBtn) }, id = "dialog-ok",
-                                              onClick = listener(
-                                                  [this] {
-                                                      accept();
-                                                  },
-                                                  this),
+                                              onClick = lifetime() |
+                                                        [this] {
+                                                            accept();
+                                                        },
                                               margin = { 4, 0 } }
                               : nullptr,
                           (buttons && DialogButtons::Cancel)
                               ? rcnew Button{ rcnew Text{ std::move(cancelBtn) }, id = "dialog-cancel",
-                                              onClick = listener(
-                                                  [this] {
-                                                      reject();
-                                                  },
-                                                  this),
+                                              onClick = lifetime() |
+                                                        [this] {
+                                                            reject();
+                                                        },
                                               margin = { 4, 0 } }
                               : nullptr,
                           rcnew Spacer{} };

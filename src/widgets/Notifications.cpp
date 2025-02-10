@@ -39,11 +39,10 @@ RC<Widget> NotificationView::makeCloseButton() {
         Arg::zorder           = ZOrder::TopMost,
         Arg::absolutePosition = { 100_perc, 50_perc },
         Arg::anchor           = { 100_perc, 50_perc },
-        Arg::onClick          = listener(
-            [this]() {
-                expireNow();
-            },
-            this),
+        Arg::onClick          = lifetime() |
+                       [this]() {
+                           expireNow();
+                       },
     };
 }
 

@@ -6,7 +6,7 @@
 
 namespace Brisk {
 
-static RC<Widget> osDialogButton(std::string text, Value<Trigger<>> fn) {
+static RC<Widget> osDialogButton(std::string text, Listener<> fn) {
     return rcnew HLayout{
         rcnew Button{
             rcnew Text{ std::move(text) },
@@ -42,7 +42,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         rcnew HLayout{
             rcnew Button{
                 rcnew Text{ "Open window" },
-                onClick = m_lifetime |
+                onClick = lifetime() |
                           [this]() {
                               RC<SmallComponent> comp = rcnew SmallComponent();
                               windowApplication->addWindow(comp->makeWindow());
@@ -51,7 +51,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
 
             rcnew Button{
                 rcnew Text{ "Open modal window" },
-                onClick = m_lifetime |
+                onClick = lifetime() |
                           [this]() {
                               RC<SmallComponent> comp = rcnew SmallComponent();
                               windowApplication->showModalWindow(comp->makeWindow());
@@ -61,7 +61,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         rcnew HLayout{
             rcnew Button{
                 rcnew Text{ "TextInputDialog" },
-                onClick = m_lifetime |
+                onClick = lifetime() |
                           []() {
                               RC<TextInputDialog> dialog = rcnew TextInputDialog{ "Enter name", "World" };
                               windowApplication->showModalWindow(dialog->makeWindow());
@@ -78,7 +78,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         rcnew HLayout{
             rcnew Button{
                 rcnew Text{ "Open Dialog" },
-                onClick = m_lifetime |
+                onClick = lifetime() |
                           [this]() {
                               bindings->assign(m_popupDialog, true);
                           },
@@ -95,33 +95,33 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
 
         rcnew Text{ "OS dialogs (window/OSDialogs.hpp)", classes = { "section-header" } },
         osDialogButton(
-            "Open URL", m_lifetime |
+            "Open URL", lifetime() |
                             []() {
                                 openURLInBrowser("https://www.brisklib.com/");
                             }),
         osDialogButton(
-            "Open folder", m_lifetime |
+            "Open folder", lifetime() |
                                []() {
                                    openFolder(defaultFolder(DefaultFolder::Documents));
                                }),
 
         osDialogButton(
-            "Message box (Info)", m_lifetime |
+            "Message box (Info)", lifetime() |
                                       []() {
                                           showMessage("title", "message", MessageBoxType::Info);
                                       }),
         osDialogButton(
-            "Message box (Warning)", m_lifetime |
+            "Message box (Warning)", lifetime() |
                                          []() {
                                              showMessage("title", "message", MessageBoxType::Warning);
                                          }),
         osDialogButton(
-            "Message box (Error)", m_lifetime |
+            "Message box (Error)", lifetime() |
                                        []() {
                                            showMessage("title", "message", MessageBoxType::Error);
                                        }),
         osDialogButton(
-            "Dialog (OK, Cancel)", m_lifetime |
+            "Dialog (OK, Cancel)", lifetime() |
                                        [this]() {
                                            if (showDialog("title", "message", DialogButtons::OKCancel,
                                                           MessageBoxType::Info) == DialogResult::OK)
@@ -131,7 +131,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                                            bindings->notify(&m_text);
                                        }),
         osDialogButton(
-            "Dialog (Yes, No, Cancel)", m_lifetime |
+            "Dialog (Yes, No, Cancel)", lifetime() |
                                             [this]() {
                                                 if (DialogResult r = showDialog("title", "message",
                                                                                 DialogButtons::YesNoCancel,
@@ -145,7 +145,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                                                 bindings->notify(&m_text);
                                             }),
         osDialogButton(
-            "Open File", m_lifetime |
+            "Open File", lifetime() |
                              [this]() {
                                  auto file = showOpenDialog({ { "*.txt", "Text files" } },
                                                             defaultFolder(DefaultFolder::Documents));
@@ -156,7 +156,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                                  bindings->notify(&m_text);
                              }),
         osDialogButton(
-            "Open Files", m_lifetime |
+            "Open Files", lifetime() |
                               [this]() {
                                   auto files = showOpenDialogMulti({ { "*.txt", "Text files" }, anyFile() },
                                                                    defaultFolder(DefaultFolder::Documents));
@@ -165,7 +165,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                                   bindings->notify(&m_text);
                               }),
         osDialogButton(
-            "Pick folder", m_lifetime |
+            "Pick folder", lifetime() |
                                [this]() {
                                    auto folder = showFolderDialog(defaultFolder(DefaultFolder::Documents));
                                    if (folder)
