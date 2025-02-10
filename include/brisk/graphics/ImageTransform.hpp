@@ -36,7 +36,7 @@ void imageResizeTo(RC<Image> destination, RC<Image> source, ResizingFilter filte
  */
 [[nodiscard]] inline RC<Image> imageResize(RC<Image> image, Size newSize,
                                            ResizingFilter filter = ResizingFilter::Default) {
-    RC<Image> result = rcnew Image(newSize, image->format());
+    RC<Image> result = image->copy(false);
     imageResizeTo(result, std::move(image), filter);
     return result;
 }

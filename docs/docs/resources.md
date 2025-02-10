@@ -20,19 +20,34 @@ During the linking process, Brisk traverses the dependency tree and collects the
 ```cmake
 add_library(utilities utilities.cpp)
 
-# Add a resource named 'table' from 'data/table.csv' and compress it using Brotli.
+# Add a resource named 'table' from 'data/table.csv'
+# and compress it using Brotli.
 brisk_target_resource(utilities table INPUT data/table.csv BROTLI)
 
 add_executable(main main.cpp)
 
-# Add an icon from 'icon.png' as a resource.
+# Add an icon from 'icon.png' as a resource to the main executable.
 brisk_target_resource(main icon INPUT icon.png)
 
+# Link the main target to the utilities library
+# The icon resource will be available for main too.
 target_link_libraries(main PRIVATE utilities)
 
-# Must be placed after brisk_target_resource to bundle all resources into the executable.
+# The following command replaces the "table" resource 
+# provided by the utilities target with another file.
+brisk_target_resource(utilities table INPUT data/another-table.csv LZ4)
+
+# Must be placed after the last brisk_target_resource
+# to bundle all resources into the executable.
 brisk_bundle_resources(main)
+
+# Note: The brisk_setup_executable cmake function
+# automatically calls brisk_bundle_resources
+# to bundle all required resource.
 ```
+
+> [!Note]
+> More methods for bundling resources with Brisk applications are planned for future releases. Examples include the `Resources` folder in macOS bundles and resources in the Win32 PE format.
 
 ### C++ Code
 

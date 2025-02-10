@@ -316,8 +316,13 @@ public:
     int shadowFlags       = 3; // 1 - inner, 2 - outer
     float reserved5       = 0;
 
-    Internal::ImageBackend* imageBackend = nullptr;
-    uint8_t unused2[16 - sizeof(void*)]{};
+    union {
+        Internal::ImageBackend* imageBackend = nullptr;
+        uint64_t dummy;
+    };
+
+    float reserved6 = 0;
+    float reserved7 = 0;
 
 public:
     SIMD<float, 4> padding[16]{ 0, 0, 0, 0, 0, 0, 0 };

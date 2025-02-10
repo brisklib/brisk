@@ -40,10 +40,34 @@ public:
      *
      * @param size The desired size of the output image.
      * @param background The background color to use (default is transparent).
+     * @param format The image format for the output (default is 8-bit RGBA).
      *
      * @return A smart pointer to an Image object representing the rendered image.
      */
-    RC<Image> render(Size size, ColorF background = ColorF(0.f, 0.f)) const;
+    RC<Image> render(Size size, ColorF background = ColorF(0.f, 0.f),
+                     ImageFormat format = ImageFormat::RGBA) const;
+
+    /**
+     * @brief Renders SVG to a destination image, preserving existing content.
+     *
+     * This is a faster alternative to `render()` as it avoids memory allocation.
+     * The format of the destination image must match the native format of the SVG renderer
+     * as returned by `nativeFormat()`.
+     *
+     * @param destination The image to which the SVG will be rendered.
+     *
+     * @exception EImageError if the format does not match.
+     */
+    void renderTo(const RC<Image>& destination) const;
+
+    /**
+     * @brief Gets the native image format used by the SVG renderer.
+     *
+     * The native format could be either ImageFormat::BGRA or ImageFormat::RGBA.
+     *
+     * @return The native image format used by the renderer.
+     */
+    static ImageFormat nativeFormat();
 
 private:
     RC<Internal::SVGImpl> m_impl; ///< Pointer to the internal SVG implementation.

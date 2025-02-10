@@ -317,7 +317,7 @@ void Canvas::drawPath(const RasterizedPath& path, const Paint& paint) {
     RenderStateEx renderState(ShaderType::Mask, 1, nullptr);
     prepareStateInplace(renderState);
     setPaint(renderState, paint);
-    GeometryGlyphs data = pathLayout(renderState.sprites, path);
+    GeometryGlyphs data = Internal::pathLayout(renderState.sprites, path);
     if (!data.empty()) {
         m_context.command(std::move(renderState), std::span{ data });
     }

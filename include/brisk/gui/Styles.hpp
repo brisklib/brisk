@@ -312,6 +312,20 @@ inline auto scaleValue(Fn&& fn, float scale) {
     };
 }
 
+/**
+ * @brief Computes the contrast ratio between two colors.
+ *
+ * This function calculates the contrast ratio between a foreground and a background color,
+ * based on their lightness values. The contrast ratio is used to determine the readability
+ * and accessibility of text on a background.
+ *
+ * The formula used is: (L1 + 0.05) / (L2 + 0.05), where L1 is the lightness of the lighter color
+ * and L2 is the lightness of the darker color.
+ *
+ * @param foreground The foreground color.
+ * @param background The background color.
+ * @return The contrast ratio between the two colors.
+ */
 inline float contrastRatio(ColorF foreground, ColorF background) {
     float L1 = foreground.lightness();
     float L2 = background.lightness();
@@ -320,6 +334,20 @@ inline float contrastRatio(ColorF foreground, ColorF background) {
     return (L1 + 0.05f) / (L2 + 0.05f);
 }
 
+/**
+ * @brief Creates a function that returns the appropriate text color based on contrast.
+ *
+ * This function returns a lambda that, when given a `Widget` pointer, computes the contrast
+ * ratio between the given colors and the result of a provided function `fn`. The lambda
+ * returns the primary color if it has a higher contrast ratio to the computed color,
+ * and the secondary color otherwise.
+ *
+ * @tparam Fn The type of the function provided.
+ * @param fn The function that returns a `ColorF` based on a `Widget`.
+ * @param primary The primary text color (default is white).
+ * @param secondary The secondary text color (default is black).
+ * @return A lambda that takes a `Widget*` and returns a `ColorF` (either primary or secondary color).
+ */
 template <typename Fn>
 inline auto textColorFor(Fn&& fn, ColorF primary = Palette::white, ColorF secondary = Palette::black) {
     return [fn = std::move(fn), primary, secondary](Widget* w) {
