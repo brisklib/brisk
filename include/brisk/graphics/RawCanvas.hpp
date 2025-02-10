@@ -76,8 +76,8 @@ inline Edges scalePixels(const Edges& x) noexcept {
     return { idp(x.x1), idp(x.y1), idp(x.x2), idp(x.y2) };
 }
 
-inline Font scalePixels(const Font& x) noexcept {
-    Font result          = x;
+inline Font scalePixels(Font x) noexcept {
+    Font result          = std::move(x);
     result.fontSize      = dp(result.fontSize);
     result.letterSpacing = dp(result.letterSpacing);
     result.wordSpacing   = dp(result.wordSpacing);
@@ -116,9 +116,11 @@ inline Edges unscalePixels(const Edges& x) noexcept {
     return { invertidp(x.x1), invertidp(x.y1), invertidp(x.x2), invertidp(x.y2) };
 }
 
-inline Font unscalePixels(const Font& x) noexcept {
-    Font result     = x;
-    result.fontSize = invertdp(result.fontSize);
+inline Font unscalePixels(Font x) noexcept {
+    Font result          = std::move(x);
+    result.fontSize      = invertdp(result.fontSize);
+    result.letterSpacing = invertdp(result.letterSpacing);
+    result.wordSpacing   = invertdp(result.wordSpacing);
     return result;
 }
 
@@ -130,7 +132,9 @@ enum class LineEnd {
 
 using GeometryGlyphs = std::vector<GeometryGlyph>;
 
+namespace Internal {
 GeometryGlyphs pathLayout(SpriteResources& sprites, const RasterizedPath& path);
+}
 
 class Canvas;
 
@@ -219,8 +223,8 @@ public:
                         const Font& f, const ColorF& textColor);
 
     template <typename... Args>
-    RawCanvas& drawTexture(RectangleF rect, const RC<Image>& tex, const Matrix& matrix, const Args&... args) {
-        return drawTexture(rect, tex, matrix, RenderStateExArgs{ std::make_tuple(args...) });
+    RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, const Args&... args) {
+        return drawTexture(rect, std::move(tex), matrix, RenderStateExArgs{ std::make_tuple(args...) });
     }
 
     struct State {

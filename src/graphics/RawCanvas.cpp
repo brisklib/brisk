@@ -91,7 +91,7 @@ static GeometryGlyphs glyphLayout(uint32_t& runIndex, bool& multicolor, std::opt
     return result;
 }
 
-GeometryGlyphs pathLayout(SpriteResources& sprites, const RasterizedPath& path) {
+GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPath& path) {
     GeometryGlyphs result;
     if (path.sprite) {
         result.push_back(GeometryGlyph{

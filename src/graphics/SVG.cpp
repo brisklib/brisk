@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-constexpr static PixelFormat lunaFormat = PixelFormat::BGRA;
+constexpr static ImageFormat lunaFormat = ImageFormat::BGRA_U8Gamma;
 
 namespace Internal {
 struct SVGImpl : public lunasvg::Document {
@@ -43,11 +43,27 @@ SVGImage::SVGImage(bytes_view svg) : SVGImage(toStringView(svg)) {}
 
 SVGImage::~SVGImage() = default;
 
-RC<Image> SVGImage::render(Size size, ColorF background) const {
+ImageFormat SVGImage::nativeFormat() {
+    return lunaFormat;
+}
+
+void SVGImage::renderTo(const RC<Image>& destination) const {
+    if (destination->format() != lunaFormat) {
+        throwException(EImageError("Image format must match SVGImage::nativeFormat()"));
+    }
+    auto wr = destination->mapWrite<lunaFormat>();
+    lunasvg::Bitmap bmp((std::uint8_t*)wr.data(), wr.width(), wr.height(), wr.byteStride());
+    m_impl->render(bmp);
+}
+
+RC<Image> SVGImage::render(Size size, ColorF background, ImageFormat format) const {
+    if (toPixelType(format) != PixelType::U8Gamma) {
+        throwException(EImageError("Image format must be 8-bit gamma-corrected"));
+    }
     Color color         = background;
     lunasvg::Bitmap bmp = m_impl->renderToBitmap(size.width, size.height, std::bit_cast<uint32_t>(color));
-    RC<Image> image     = rcnew Image(size, ImageFormat::RGBA);
-    convertPixels(image->pixelFormat(), image->data().to<uint8_t>(), lunaFormat,
+    RC<Image> image     = rcnew Image(size, format);
+    convertPixels(image->pixelFormat(), image->data().to<uint8_t>(), toPixelFormat(lunaFormat),
                   StridedData<const uint8_t>{
                       reinterpret_cast<const uint8_t*>(bmp.data()),
                       int32_t(bmp.stride()),
