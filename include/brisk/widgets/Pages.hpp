@@ -116,6 +116,9 @@ protected:
 
     explicit Pages(Construction construction, ArgumentsView<Pages> args);
 
+private:
+    void internalChanged();
+
 public:
     BRISK_PROPERTIES_BEGIN
     Property<Pages, int, &Pages::m_value, nullptr, nullptr, &Pages::onChanged> value;
