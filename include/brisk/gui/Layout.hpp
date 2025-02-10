@@ -199,7 +199,9 @@ private:
         if ((value & valueMask) == special) {
             return static_cast<Unit>(value & unitMask);
         } else {
+            // NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
             return static_cast<Unit>((value & unitMask) + +Unit::Default);
+            // NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
         }
     }
 

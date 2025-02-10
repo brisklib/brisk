@@ -738,7 +738,7 @@ constexpr bool operator&&(T flags, T flag) noexcept {
 
 template <BitFlags T>
 constexpr T operator|(T x, T y) noexcept {
-    return static_cast<T>(+x | +y);
+    return static_cast<T>(+x | +y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
@@ -748,22 +748,22 @@ constexpr T operator&(T x, T y) noexcept {
 
 template <BitFlags T>
 constexpr T& operator|=(T& x, T y) noexcept {
-    return x = static_cast<T>(+x | +y);
+    return x = static_cast<T>(+x | +y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
 constexpr T& operator^=(T& x, T y) noexcept {
-    return x = static_cast<T>(+x ^ +y);
+    return x = static_cast<T>(+x ^ +y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
 constexpr T operator^(T x, T y) noexcept {
-    return static_cast<T>(+x ^ +y);
+    return static_cast<T>(+x ^ +y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
 constexpr T operator~(T x) noexcept {
-    return static_cast<T>(~+x);
+    return static_cast<T>(~+x); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
@@ -773,27 +773,27 @@ constexpr T& operator&=(T& x, T y) noexcept {
 
 template <BitFlags T>
 constexpr T operator>>(T& x, int y) noexcept {
-    return static_cast<T>(+x >> y);
+    return static_cast<T>(+x >> y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
 constexpr T& operator<<=(T& x, int y) noexcept {
-    return x = static_cast<T>(+x << y);
+    return x = static_cast<T>(+x << y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
 constexpr T& operator>>=(T& x, int y) noexcept {
-    return x = static_cast<T>(+x >> y);
+    return x = static_cast<T>(+x >> y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
 constexpr T operator+(T x, T y) noexcept {
-    return static_cast<T>(+x + +y);
+    return static_cast<T>(+x + +y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>
 constexpr T& operator+=(T& x, T y) noexcept {
-    return x = static_cast<T>(+x + +y);
+    return x = static_cast<T>(+x + +y); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 template <BitFlags T>

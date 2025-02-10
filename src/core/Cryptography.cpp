@@ -232,7 +232,9 @@ RC<Stream> sha3_512HashStream(SHA3_512Hash& hash) {
     return hashStream(HashMethod::SHA3_512, toBytesMutableView(hash));
 }
 
-Hasher::Hasher() noexcept : method(static_cast<HashMethod>(-1)) {}
+Hasher::Hasher() noexcept
+    : method(static_cast<HashMethod>(-1)) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+{}
 
 Hasher::Hasher(HashMethod method) noexcept : method(method) {
     hashFunctions(method).init(reinterpret_cast<hash_state*>(state.data()));

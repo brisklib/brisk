@@ -145,7 +145,7 @@ void PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyMo
     if (m_windowStyle && WindowStyle::Disabled)
         return;
 
-    if (key < KeyCode(0) || key > KeyCode::Last)
+    if (key < KeyCode(0) || key > KeyCode::Last) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         return;
 
     bool repeated = false;

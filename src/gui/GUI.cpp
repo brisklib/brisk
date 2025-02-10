@@ -578,7 +578,8 @@ void registerBuiltinFonts() {
         fonts->addFont(Font::Icons, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
     if (auto& ttf = loadResourceCached("fonts/emoji.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Emoji, FontStyle::Normal, FontWeight::Regular, ttf, false, FontFlags::EnableColor);
+        fonts->addFont(Font::Emoji, FontStyle::Normal, FontWeight::Regular, ttf, false,
+                       FontFlags::EnableColor);
     }
     if (auto& ttf = loadResourceCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Monospace, FontStyle::Normal, FontWeight::Regular, ttf, false);
@@ -1299,7 +1300,9 @@ void Widget::onEvent(Event& event) {
     for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
         if (!hasScrollBar(orientation))
             continue;
-        if (float d = event.wheelScrolled(static_cast<WheelOrientation>(orientation))) {
+        if (float d = event.wheelScrolled(
+                static_cast<WheelOrientation>( // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                    orientation))) {
             int offset =
                 std::clamp(static_cast<int>(std::round(scrollOffset(orientation) - d * dp(scrollPixels))), 0,
                            scrollSize(orientation));
@@ -2355,6 +2358,7 @@ OptConstRef<PropFieldType<T, subfield>> Widget::getterCurrent() const noexcept {
     return Internal::subField<field, subfield>(std::false_type{}, *this).current;
 }
 
+// NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
 template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field_,
           int subfield_>
 void Widget::setter(PropFieldType<T, subfield_> value) {
@@ -2378,8 +2382,11 @@ void Widget::setter(PropFieldType<T, subfield_> value) {
         }
         field = value;
     } else {
-        if constexpr (flags && Transition) {
-            if (!field.set(value, transitionAllowed() ? this->*(transitionField(field_)) : 0.f))
+        if constexpr ((flags && Transition)) {
+            auto tf = transitionField(field_);
+            if (!tf)
+                return;
+            if (!field.set(value, transitionAllowed() ? this->*tf : 0.f))
                 return;
             if (field.isActive()) {
                 requestAnimationFrame();
@@ -2402,6 +2409,8 @@ void Widget::setter(PropFieldType<T, subfield_> value) {
     bindings->notify(&field);
 }
 
+// NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
+
 template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
           int subfield>
 void Widget::setter(Inherit) {
@@ -2421,7 +2430,7 @@ void Widget::setter(Inherit) {
     if (!m_parent)
         return; // No one to inherit from
 
-    resolveProperties(flags);
+    resolveProperties(flags); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 PropState Widget::getPropState(size_t index) const noexcept {
@@ -2475,7 +2484,7 @@ void GUIProperty<index_, T, flags_, field, subfield>::internalSet(ValueType valu
 template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field,
           int subfield>
 void GUIProperty<index_, T, flags_, field, subfield>::internalSetInherit() {
-    if constexpr (isInheritable(flags_))
+    if constexpr (isInheritable(flags_)) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         this_pointer->setter<T, index, flags_, field, subfield>(inherit);
 }
 
@@ -2503,7 +2512,7 @@ void GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::internalS
 template <size_t index_, typename Type_, PropFlags flags_,
           PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
 void GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::internalSetInherit() {
-    if constexpr (isInheritable(flags_))
+    if constexpr (isInheritable(flags_)) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         (Properties{ this_pointer }.internalSetInherit(), ...);
 }
 

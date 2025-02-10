@@ -548,8 +548,9 @@ std::basic_string<Char> utfNormalize(std::basic_string_view<Char> text, UTFNorma
         opt |= utf8proc_option_t::UTF8PROC_COMPAT;
     std::string u8        = toUtf8(text);
     utf8proc_uint8_t* dst = nullptr;
-    if (utf8proc_ssize_t sz = utf8proc_map(reinterpret_cast<utf8proc_uint8_t*>(u8.data()), u8.size(), &dst,
-                                           utf8proc_option_t(opt));
+    if (utf8proc_ssize_t sz =
+            utf8proc_map(reinterpret_cast<utf8proc_uint8_t*>(u8.data()), u8.size(), &dst,
+                         utf8proc_option_t(opt)); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         sz >= 0) {
         std::string result(dst, dst + sz);
         std::free(dst);

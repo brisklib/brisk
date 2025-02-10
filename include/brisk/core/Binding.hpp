@@ -1636,8 +1636,10 @@ public:
 
     Type get() const noexcept {
         BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
         if BRISK_IF_GNU_ATTR (constexpr)
             (getter == nullptr) {
+                static_assert(field != nullptr);
                 return this_pointer->*field;
             }
         else {
@@ -1648,12 +1650,16 @@ public:
     void set(Type value)
         requires isMutable
     {
-        BRISK_ASSERT(this_pointer);
+        BRISK_ASSERT(this_pointer);        
+        BRISK_ASSUME(this_pointer);
         if BRISK_IF_GNU_ATTR (constexpr)
             (setter == nullptr) {
+                static_assert(field != nullptr);
                 if constexpr (requires { this_pointer->*field = std::move(value); }) {
+                    // NOLINTBEGIN(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
                     if (value == this_pointer->*field)
                         return; // Not changed
+                    // NOLINTEND(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
                     this_pointer->*field = std::move(value);
                 }
             }
@@ -1674,11 +1680,13 @@ public:
 
     void set(Value<Type> value) {
         BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
         bindings->connectBidir(Value{ this }, std::move(value));
     }
 
     BindingAddress address() const {
         BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
         return toBindingAddress(&(this_pointer->*field));
     }
 
