@@ -463,8 +463,6 @@ FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* stat
     FT_Size_Metrics metrics  = document->metrics;
 
     FT_UShort units_per_EM   = document->units_per_EM;
-    FT_UShort end_glyph_id   = document->end_glyph_id;
-    FT_UShort start_glyph_id = document->start_glyph_id;
 
     std::string svg((const char*)document->svg_document, document->svg_document_length);
 

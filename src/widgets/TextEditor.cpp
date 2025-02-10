@@ -165,7 +165,6 @@ void TextEditor::moveCursor(MoveCursor move, bool select) {
 void TextEditor::paint(Canvas& canvas) const {
     paintBackground(canvas, m_rect);
     Font font                  = this->font();
-    FontMetrics metrics        = fonts->metrics(font);
 
     std::u32string placeholder = utf8ToUtf32(this->m_placeholder);
     bool isPlaceholder         = m_text.empty();
