@@ -71,7 +71,6 @@ using BindingFunc = function<void(Widget*)>;
 class Stylesheet;
 struct Rules;
 
-using OnClick     = WithLifetime<Callback<>>;
 using OnItemClick = Callback<size_t>;
 
 struct EventDelegate;
