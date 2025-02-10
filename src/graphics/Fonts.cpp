@@ -552,6 +552,9 @@ FontManager::~FontManager() {
 
 std::vector<std::string_view> FontManager::fontList(std::string_view ff) const {
     std::vector<std::string_view> list = split(ff, ',');
+    for (std::string_view& sv : list) {
+        sv = trim(sv);
+    }
     return list;
 }
 
@@ -577,6 +580,8 @@ std::pair<FontFace*, GlyphID> FontManager::lookupCodepoint(const Font& font, cha
         return { nullptr, UINT32_MAX };
     auto list = fontList(font.fontFamily);
     for (int offset = 0; offset < list.size(); ++offset) {
+        if (list[offset].empty())
+            continue;
         FontFace* face = findFontByKey(FontKey{ list[offset], font.style, font.weight });
         if (face) {
             GlyphID id = FT_Get_Char_Index(face->face, (FT_ULong)(codepoint));
