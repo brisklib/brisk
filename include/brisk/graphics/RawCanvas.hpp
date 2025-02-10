@@ -151,8 +151,12 @@ public:
     RawCanvas& drawArc(PointF center, float outerRadius, float innerRadius, float startAngle, float endEngle,
                        RenderStateExArgs args);
     RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, RenderStateExArgs args);
-    RawCanvas& drawText(SpriteResources sprites, std::span<GeometryGlyph> glyphs, RenderStateExArgs args);
-    RawCanvas& drawMask(SpriteResources sprites, std::span<GeometryGlyph> glyphs, RenderStateExArgs args);
+    RawCanvas& drawText(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                        RenderStateExArgs args);
+    RawCanvas& drawMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                        RenderStateExArgs args);
+    RawCanvas& drawColorMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                             RenderStateExArgs args);
 
     RawCanvas& drawLine(PointF p1, PointF p2, float thickness, const ColorF& color,
                         LineEnd end = LineEnd::Butt);

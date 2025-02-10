@@ -577,6 +577,9 @@ void registerBuiltinFonts() {
     if (auto& ttf = loadResourceCached("fonts/icons.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Icons, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
+    if (auto& ttf = loadResourceCached("fonts/emoji.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Emoji, FontStyle::Normal, FontWeight::Regular, ttf, false, FontFlags::EnableColor);
+    }
     if (auto& ttf = loadResourceCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Monospace, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }

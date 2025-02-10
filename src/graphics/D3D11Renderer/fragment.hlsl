@@ -96,8 +96,8 @@ SignedDistance signedDistanceArc(float2 pt, float outer_radius, float inner_radi
     }
     circle = max(circle, pie);
   }
-  SignedDistance tint_symbol_34 = {circle, -1000.0f};
-  return tint_symbol_34;
+  SignedDistance tint_symbol_36 = {circle, -1000.0f};
+  return tint_symbol_36;
 }
 
 SignedDistance signedDistanceRectangle(float2 uv, float2 rectSize, float borderRadius, int corners) {
@@ -134,8 +134,8 @@ SignedDistance signedDistanceRectangle(float2 uv, float2 rectSize, float borderR
       }
     }
   }
-  SignedDistance tint_symbol_35 = {sd, intersect_sd};
-  return tint_symbol_35;
+  SignedDistance tint_symbol_37 = {sd, intersect_sd};
+  return tint_symbol_37;
 }
 
 struct Colors {
@@ -311,10 +311,26 @@ float atlas(int sprite, int2 pos, uint stride) {
     return 0.0f;
   }
   if ((sprite < 0)) {
-    return float(((pos.x & pos.y) & 1));
+    return float((uint((pos.x & pos.y)) & 1u));
   }
   uint tint_symbol_1 = (((uint(sprite) * 8u) + uint(pos.x)) + (uint(pos.y) * stride));
-  return fontTex_t.Load(uint3(tint_mod(tint_symbol_1, perFrame[2].x), tint_div(tint_symbol_1, perFrame[2].x), uint(0))).r;
+  return fontTex_t.Load(uint3(tint_mod(tint_symbol_1, perFrame[2].x), tint_div(tint_symbol_1, perFrame[2].x), 0u)).r;
+}
+
+float4 atlasRGBA(int sprite, int2 pos, uint stride) {
+  bool tint_tmp_3 = (pos.x < 0);
+  if (!tint_tmp_3) {
+    tint_tmp_3 = (((pos.x * 4) + 3) >= int(stride));
+  }
+  if ((tint_tmp_3)) {
+    return (0.0f).xxxx;
+  }
+  if ((sprite < 0)) {
+    return float4((float((uint((pos.x & pos.y)) & 1u))).xxxx);
+  }
+  uint tint_symbol_1 = (((uint(sprite) * 8u) + (uint(pos.x) * 4u)) + (uint(pos.y) * stride));
+  uint2 c = uint2(tint_mod(tint_symbol_1, perFrame[2].x), tint_div(tint_symbol_1, perFrame[2].x));
+  return float4(fontTex_t.Load(uint3(c, 0u)).r, fontTex_t.Load(uint3((c + uint2(1u, 0u)), 0u)).r, fontTex_t.Load(uint3((c + uint2(2u, 0u)), 0u)).r, fontTex_t.Load(uint3((c + uint2(3u, 0u)), 0u)).r);
 }
 
 float atlasAccum(int sprite, int2 pos, uint stride) {
@@ -370,18 +386,18 @@ float3 atlasSubpixel(int sprite, int2 pos, uint stride) {
 
 float4 shadow(float signed_distance) {
   float op = 1.0f;
-  bool tint_tmp_3 = ((asint(constants[14].z) & 1) == 0);
-  if (tint_tmp_3) {
-    tint_tmp_3 = (signed_distance < 0.0f);
-  }
-  if ((tint_tmp_3)) {
-    op = 0.0f;
-  }
-  bool tint_tmp_4 = ((asint(constants[14].z) & 2) == 0);
+  bool tint_tmp_4 = ((asint(constants[14].z) & 1) == 0);
   if (tint_tmp_4) {
-    tint_tmp_4 = (signed_distance > 0.0f);
+    tint_tmp_4 = (signed_distance < 0.0f);
   }
   if ((tint_tmp_4)) {
+    op = 0.0f;
+  }
+  bool tint_tmp_5 = ((asint(constants[14].z) & 2) == 0);
+  if (tint_tmp_5) {
+    tint_tmp_5 = (signed_distance > 0.0f);
+  }
+  if ((tint_tmp_5)) {
     op = 0.0f;
   }
   float shadow_size = (asfloat(constants[14].x) / 2.0f);
@@ -405,15 +421,15 @@ struct FragOut {
 };
 
 bool useBlending() {
-  bool tint_tmp_6 = (asint(constants[1].x) == 2);
-  if (!tint_tmp_6) {
-    tint_tmp_6 = (asint(constants[1].x) == 4);
+  bool tint_tmp_7 = (asint(constants[1].x) == 2);
+  if (!tint_tmp_7) {
+    tint_tmp_7 = (asint(constants[1].x) == 4);
   }
-  bool tint_tmp_5 = (tint_tmp_6);
-  if (tint_tmp_5) {
-    tint_tmp_5 = (asint(constants[3].w) != 0);
+  bool tint_tmp_6 = (tint_tmp_7);
+  if (tint_tmp_6) {
+    tint_tmp_6 = (asint(constants[3].w) != 0);
   }
-  return (tint_tmp_5);
+  return (tint_tmp_6);
 }
 
 FragOut postprocessColor(FragOut tint_symbol_2, float mask_value, uint2 canvas_coord) {
@@ -447,14 +463,14 @@ FragOut postprocessColor(FragOut tint_symbol_2, float mask_value, uint2 canvas_c
   return tint_symbol_3;
 }
 
-struct tint_symbol_32 {
+struct tint_symbol_34 {
   noperspective float4 data0 : TEXCOORD0;
   noperspective float4 data1 : TEXCOORD1;
   noperspective float2 uv : TEXCOORD2;
   noperspective float2 canvas_coord : TEXCOORD3;
   float4 position : SV_Position;
 };
-struct tint_symbol_33 {
+struct tint_symbol_35 {
   float4 color : SV_Target0;
   float4 blend : SV_Target1;
 };
@@ -473,11 +489,11 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_2) {
   float4 outColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
   float4 outBlend = float4(0.0f, 0.0f, 0.0f, 0.0f);
   bool useBlend = false;
-  bool tint_tmp_7 = (asint(constants[1].x) == 0);
-  if (!tint_tmp_7) {
-    tint_tmp_7 = (asint(constants[1].x) == 1);
+  bool tint_tmp_8 = (asint(constants[1].x) == 0);
+  if (!tint_tmp_8) {
+    tint_tmp_8 = (asint(constants[1].x) == 1);
   }
-  if ((tint_tmp_7)) {
+  if ((tint_tmp_8)) {
     SignedDistance sd = (SignedDistance)0;
     if ((asint(constants[1].x) == 0)) {
       sd = signedDistanceRectangle(tint_symbol_2.uv, tint_symbol_2.data0.xy, tint_symbol_2.data1.y, tint_ftoi(tint_symbol_2.data1.z));
@@ -490,11 +506,15 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_2) {
       float tint_symbol_30 = sd_rectangle(tint_symbol_2.uv, tint_symbol_2.data0.xy, tint_symbol_2.data1.y, tint_ftoi(tint_symbol_2.data1.z));
       outColor = shadow(tint_symbol_30);
     } else {
-      bool tint_tmp_8 = (asint(constants[1].x) == 4);
-      if (!tint_tmp_8) {
-        tint_tmp_8 = (asint(constants[1].x) == 2);
+      bool tint_tmp_10 = (asint(constants[1].x) == 4);
+      if (!tint_tmp_10) {
+        tint_tmp_10 = (asint(constants[1].x) == 5);
       }
-      if ((tint_tmp_8)) {
+      bool tint_tmp_9 = (tint_tmp_10);
+      if (!tint_tmp_9) {
+        tint_tmp_9 = (asint(constants[1].x) == 2);
+      }
+      if ((tint_tmp_9)) {
         int sprite = tint_ftoi(tint_symbol_2.data0.z);
         uint stride = tint_ftou_1(tint_symbol_2.data0.w);
         int2 tuv = tint_ftoi_1(tint_symbol_2.uv);
@@ -504,20 +524,26 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_2) {
           outColor = (colors.brush * float4(rgb, 1.0f));
           outBlend = float4((colors.brush.a * rgb), 1.0f);
         } else {
-          float alpha = atlasAccum(sprite, tuv, stride);
-          outColor = (colors.brush * float4((alpha).xxxx));
+          if ((asint(constants[1].x) == 5)) {
+            float4 tint_symbol_31 = colors.brush;
+            float4 tint_symbol_32 = atlasRGBA(sprite, tuv, stride);
+            outColor = (tint_symbol_31 * tint_symbol_32);
+          } else {
+            float alpha = atlasAccum(sprite, tuv, stride);
+            outColor = (colors.brush * float4((alpha).xxxx));
+          }
         }
       }
     }
   }
-  FragOut tint_symbol_36 = {outColor, outBlend};
-  return postprocessColor(tint_symbol_36, mask_value, tint_ftou(tint_symbol_2.canvas_coord));
+  FragOut tint_symbol_38 = {outColor, outBlend};
+  return postprocessColor(tint_symbol_38, mask_value, tint_ftou(tint_symbol_2.canvas_coord));
 }
 
-tint_symbol_33 fragmentMain(tint_symbol_32 tint_symbol_31) {
-  VertexOutput tint_symbol_37 = {float4(tint_symbol_31.position.xyz, (1.0f / tint_symbol_31.position.w)), tint_symbol_31.data0, tint_symbol_31.data1, tint_symbol_31.uv, tint_symbol_31.canvas_coord};
-  FragOut inner_result = fragmentMain_inner(tint_symbol_37);
-  tint_symbol_33 wrapper_result = (tint_symbol_33)0;
+tint_symbol_35 fragmentMain(tint_symbol_34 tint_symbol_33) {
+  VertexOutput tint_symbol_39 = {float4(tint_symbol_33.position.xyz, (1.0f / tint_symbol_33.position.w)), tint_symbol_33.data0, tint_symbol_33.data1, tint_symbol_33.uv, tint_symbol_33.canvas_coord};
+  FragOut inner_result = fragmentMain_inner(tint_symbol_39);
+  tint_symbol_35 wrapper_result = (tint_symbol_35)0;
   wrapper_result.color = inner_result.color;
   wrapper_result.blend = inner_result.blend;
   if (tint_discarded) {

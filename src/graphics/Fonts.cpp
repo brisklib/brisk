@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "brisk/graphics/Html.hpp"
+#include "brisk/graphics/ImageFormats.hpp"
 #include <brisk/graphics/Fonts.hpp>
 #include <map>
 #include <brisk/core/Log.hpp>
@@ -35,12 +36,16 @@
 #include <harfbuzz/hb.h>
 #include <harfbuzz/hb-ft.h>
 
+#include <lunasvg.h>
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_STROKER_H
 #include FT_LCD_FILTER_H
 #include FT_SIZES_H
 #include FT_TRUETYPE_TABLES_H
+#include FT_OTSVG_H
+#include FT_MODULE_H
 
 namespace Brisk {
 
@@ -74,17 +79,17 @@ static void handleFTErrSoft(FT_Error err) {
 
 #define HANDLE_FT_ERROR(expression)                                                                          \
     do {                                                                                                     \
-        FT_Error error = expression;                                                                         \
-        if (error) {                                                                                         \
-            handleFTErr(error);                                                                              \
+        FT_Error error_ = expression;                                                                        \
+        if (error_) {                                                                                        \
+            handleFTErr(error_);                                                                             \
         }                                                                                                    \
     } while (0)
 
 #define HANDLE_FT_ERROR_SOFT(expression, ...)                                                                \
     do {                                                                                                     \
-        FT_Error error = expression;                                                                         \
-        if (error) {                                                                                         \
-            handleFTErrSoft(error);                                                                          \
+        FT_Error error_ = expression;                                                                        \
+        if (error_) {                                                                                        \
+            handleFTErrSoft(error_);                                                                         \
             __VA_ARGS__;                                                                                     \
         }                                                                                                    \
     } while (0)
@@ -143,6 +148,10 @@ struct FontFace {
     hb_font_t* hb_font;
     Bytes bytes;
 
+    bool isSVG() const noexcept {
+        return (flags && FontFlags::EnableColor) && FT_HAS_SVG(face);
+    }
+
     struct GlyphDataAndTime : GlyphData {
         double time;
     };
@@ -156,6 +165,7 @@ struct FontFace {
     std::map<uint32_t, SizeData> sizes;
     FT_Fixed xHeight                     = 0;
     FT_Fixed capHeight                   = 0;
+    int hscale                           = 1;
 
     FontFace(const FontFace&)            = delete;
     FontFace(FontFace&&)                 = delete;
@@ -182,8 +192,10 @@ struct FontFace {
                                            (const FT_Byte*)data.data(), data.size(), 0, &face));
         HANDLE_FT_ERROR(FT_Select_Charmap(face, FT_ENCODING_UNICODE));
 
-        FT_Matrix matrix = { toFixed16(1.0f / HORIZONTAL_OVERSAMPLING * manager->m_hscale), toFixed16(0),
-                             toFixed16(0), toFixed16(1.0f) };
+        hscale           = isSVG() ? 1 : manager->m_hscale;
+
+        FT_Matrix matrix = { toFixed16(1.0f / HORIZONTAL_OVERSAMPLING * hscale), toFixed16(0), toFixed16(0),
+                             toFixed16(1.0f) };
         FT_Set_Transform(face, &matrix, NULL);
         TT_OS2* os2 = (TT_OS2*)FT_Get_Sfnt_Table(face, FT_SFNT_OS2);
         if (os2) {
@@ -298,40 +310,59 @@ struct FontFace {
 
         FT_GlyphSlot slot = face->glyph;
 
-        return fromFixed6(slot->advance.x) / float(manager->m_hscale);
+        return fromFixed6(slot->advance.x) / float(hscale);
     }
 
     optional<GlyphData> loadGlyph(GlyphID glyphIndex) {
-        FT_Int32 ftFlags = FT_LOAD_RENDER | FT_LOAD_TARGET_LIGHT;
+        FT_Int32 ftFlags;
+        if (isSVG()) {
+            ftFlags = FT_LOAD_TARGET_LIGHT | FT_LOAD_SVG_ONLY | FT_LOAD_COLOR;
+        } else {
+            ftFlags = FT_LOAD_RENDER | FT_LOAD_TARGET_LIGHT;
+        }
         if (flags && FontFlags::DisableHinting) {
             ftFlags |= FT_LOAD_NO_HINTING;
         } else {
             ftFlags |= FT_LOAD_FORCE_AUTOHINT;
         }
-        HANDLE_FT_ERROR_SOFT(FT_Load_Glyph(face, glyphIndex, ftFlags), return nullopt);
+
+        FT_Error err = FT_Load_Glyph(face, glyphIndex, ftFlags);
+        if (err == FT_Err_Invalid_Glyph_Index || err == FT_Err_Invalid_Argument) {
+            return nullopt;
+        }
+        HANDLE_FT_ERROR(err);
+
+        if (isSVG()) {
+            if (face->glyph->format != FT_GLYPH_FORMAT_SVG) {
+                LOG_WARN(font, "Cannot load svg glyph #{} from a SVG font {}", glyphIndex, familyName());
+                return nullopt;
+            }
+            FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+        }
 
         FT_GlyphSlot slot = face->glyph;
         if (slot->advance.y != 0)
             return nullopt;
 
         GlyphData glyph;
-        glyph.offset_x = slot->bitmap_left / float(manager->m_hscale);
+        glyph.offset_x = slot->bitmap_left / float(hscale);
         glyph.offset_y = slot->bitmap_top;
         glyph.size.x   = slot->bitmap.width;
         glyph.size.y   = slot->bitmap.rows;
-        glyph.sprite   = makeSprite(glyph.size);
+        unsigned comp  = slot->bitmap.pixel_mode == FT_PIXEL_MODE_BGRA ? 4 : 1;
+        glyph.sprite   = makeSprite(Size(glyph.size.x * comp, glyph.size.y));
 
         if (!glyph.size.empty()) {
-            if (slot->bitmap.pitch == glyph.size.x) {
-                memcpy(glyph.sprite->data(), slot->bitmap.buffer, glyph.size.area());
+            if (slot->bitmap.pitch == glyph.size.x * comp) {
+                memcpy(glyph.sprite->data(), slot->bitmap.buffer, glyph.size.area() * comp);
             } else {
                 for (int i = 0; i < glyph.size.y; ++i) {
-                    memcpy(glyph.sprite->data() + i * glyph.size.x,
+                    memcpy(glyph.sprite->data() + i * glyph.size.x * comp,
                            slot->bitmap.buffer + i * slot->bitmap.pitch, glyph.size.x);
                 }
             }
         }
-        glyph.advance_x = fromFixed6(slot->advance.x) / float(manager->m_hscale);
+        glyph.advance_x = fromFixed6(slot->advance.x) / float(hscale);
         return glyph;
     }
 };
@@ -365,9 +396,155 @@ struct Caret {
 
 using namespace Internal;
 
+namespace {
+
+struct SvgGlyphState {
+    std::unique_ptr<lunasvg::Document> doc;
+    lunasvg::Box bbox;
+};
+
+FT_Error svg_port_init(FT_Pointer* state) {
+    *state = new SvgGlyphState{};
+    return FT_Err_Ok;
+}
+
+void svg_port_free(FT_Pointer* state) {
+    delete reinterpret_cast<SvgGlyphState*>(*state);
+}
+
+FT_Error svg_port_render(FT_GlyphSlot slot, FT_Pointer* state) {
+    lunasvg::Bitmap bmp(slot->bitmap.buffer, slot->bitmap.width, slot->bitmap.rows, slot->bitmap.pitch);
+
+    bmp.clear(0x00000000u);
+
+    auto& svgState = *reinterpret_cast<SvgGlyphState*>(*state);
+    lunasvg::Matrix mat;
+    mat.translate(-svgState.bbox.x, -svgState.bbox.y);
+    svgState.doc->render(bmp, mat);
+
+    uint8_t* pixels = slot->bitmap.buffer;
+    for (int i = 0; i < slot->bitmap.rows; ++i) {
+        for (int j = 0; j < slot->bitmap.width; ++j) {
+            std::swap(pixels[j * 4 + 0], pixels[j * 4 + 2]);
+        }
+        pixels += slot->bitmap.pitch;
+    }
+
+    // RC<Image> img           = rcnew Image(slot->bitmap.buffer, Size(slot->bitmap.width, slot->bitmap.rows),
+    //   slot->bitmap.pitch, ImageFormat::RGBA);
+
+    slot->bitmap.pixel_mode = FT_PIXEL_MODE_BGRA;
+    slot->bitmap.num_grays  = 256;
+    slot->format            = FT_GLYPH_FORMAT_BITMAP;
+
+    return FT_Err_Ok;
+}
+
+static RectangleF viewBoxToRect(const std::string& str) {
+    std::array<float, 4> values;
+    int num       = 0;
+    const char* p = str.c_str();
+    char* end     = nullptr;
+    for (float f = std::strtof(p, &end); p != end; f = std::strtof(p, &end)) {
+        values[num++] = f;
+        if (num == 4)
+            break;
+        p = end;
+        while (*p && std::isspace(*p))
+            ++p;
+        if (*p && *p == ',')
+            ++p;
+    }
+    return RectangleF(values[0], values[1], values[0] + values[2], values[1] + values[3]);
+}
+
+FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* state) {
+    FT_SVG_Document document = (FT_SVG_Document)slot->other;
+    FT_Size_Metrics metrics  = document->metrics;
+
+    FT_UShort units_per_EM   = document->units_per_EM;
+    FT_UShort end_glyph_id   = document->end_glyph_id;
+    FT_UShort start_glyph_id = document->start_glyph_id;
+
+    std::string svg((const char*)document->svg_document, document->svg_document_length);
+
+    auto& svgState                         = *reinterpret_cast<SvgGlyphState*>(*state);
+
+    std::unique_ptr<lunasvg::Document> doc = lunasvg::Document::loadFromData(svg);
+
+    auto root                              = doc->rootElement();
+    std::string attr_viewBox               = root.getAttribute("viewBox");
+    std::string attr_width                 = root.getAttribute("width");
+    std::string attr_height                = root.getAttribute("height");
+
+    Size dimensions;
+    PointF offset{ 0, 0 };
+
+    if (!attr_viewBox.empty()) {
+        RectangleF vbox = viewBoxToRect(attr_viewBox);
+        dimensions      = vbox.size();
+        offset          = vbox.p1;
+    } else if (!attr_width.empty() && !attr_height.empty()) {
+        dimensions.width  = atoi(attr_width.c_str());
+        dimensions.height = atoi(attr_height.c_str());
+
+        if (dimensions == Size{ 1, 1 }) {
+            dimensions.width  = units_per_EM;
+            dimensions.height = units_per_EM;
+        }
+    } else {
+        dimensions.width  = units_per_EM;
+        dimensions.height = units_per_EM;
+    }
+
+    lunasvg::Matrix mat;
+    SizeF svgScale = SizeF(metrics.x_ppem, metrics.y_ppem) / SizeF(dimensions);
+    mat.scale(svgScale.x, svgScale.y);
+    mat.transform(+(double)document->transform.xx / (1 << 16),                         //
+                  -(double)document->transform.xy / (1 << 16),                         //
+                  -(double)document->transform.yx / (1 << 16),                         //
+                  +(double)document->transform.yy / (1 << 16),                         //
+                  +(double)document->delta.x / 64 * dimensions.width / metrics.x_ppem, //
+                  -(double)document->delta.y / 64 * dimensions.height / metrics.y_ppem //
+    );
+    mat.translate(-offset.x, -offset.y);
+    doc->setMatrix(mat);
+
+    auto box                = doc->box();
+    slot->bitmap_left       = std::floor(box.x);
+    slot->bitmap_top        = -std::floor(box.y);
+    slot->bitmap.rows       = std::ceil(box.y + box.h) - -slot->bitmap_top;
+    slot->bitmap.width      = std::ceil(box.x + box.w) - slot->bitmap_left;
+    slot->bitmap.pitch      = slot->bitmap.width * 4;
+    slot->bitmap.pixel_mode = FT_PIXEL_MODE_BGRA;
+
+    if (cache) {
+        svgState.doc  = std::move(doc);
+        svgState.bbox = box;
+    }
+
+    return FT_Err_Ok;
+}
+
+SVG_RendererHooks svgHooks = {
+    (SVG_Lib_Init_Func)svg_port_init,
+    (SVG_Lib_Free_Func)svg_port_free,
+    (SVG_Lib_Render_Func)svg_port_render,
+    (SVG_Lib_Preset_Slot_Func)svg_port_preset_slot,
+};
+} // namespace
+
 FontManager::FontManager(std::recursive_mutex* mutex, int hscale, uint32_t cacheTimeMs)
     : m_lock(mutex), m_hscale(hscale), m_cacheTimeMs(cacheTimeMs) {
     HANDLE_FT_ERROR(FT_Init_FreeType(&reinterpret_cast<FT_Library&>(m_ft_library)));
+
+    FT_Module mod = FT_Get_Module(reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg");
+    if (!mod) {
+        LOG_ERROR(svg, "ot-svg module is not found");
+    }
+
+    HANDLE_FT_ERROR(
+        FT_Property_Set(reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg", "svg-hooks", &svgHooks));
 }
 
 FontManager::~FontManager() {
@@ -1264,6 +1441,14 @@ float GlyphRun::lastCaret() const noexcept {
 
 float GlyphRun::firstCaret() const noexcept {
     return direction == TextDirection::LTR ? glyphs.front().left_caret : glyphs.back().right_caret;
+}
+
+int GlyphRun::hscale() const noexcept {
+    return face ? face->hscale : 1;
+}
+
+bool GlyphRun::hasColor() const noexcept {
+    return face && face->isSVG();
 }
 
 RectangleF GlyphRun::bounds(GlyphRunBounds boundsType) const {

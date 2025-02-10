@@ -549,6 +549,9 @@ struct GlyphRun {
 
     float lastCaret() const noexcept;
 
+    int hscale() const noexcept;
+    bool hasColor() const noexcept;
+
     /**
      * @brief Returns the bounds of the glyph run.
      *
@@ -1025,6 +1028,7 @@ enum class FontFlags {
     DisableKerning   = 1,
     DisableHinting   = 2,
     DisableLigatures = 4,
+    EnableColor      = 8,
 };
 
 template <>

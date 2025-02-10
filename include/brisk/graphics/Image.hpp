@@ -577,6 +577,19 @@ struct ImageAccess {
         }
     }
 
+    void unpremultiplyAlpha()
+        requires(Mode != AccessMode::R)
+    {
+        if (pixelAlpha(pixelFormat()) != PixelFlagAlpha::None && pixelFormat() != PixelFormat::Alpha) {
+            forPixels([](int32_t, int32_t, auto& pix) {
+                ColorF color;
+                pixelToColor(color, pix);
+                color = color.unpremultiply();
+                colorToPixel(pix, color);
+            });
+        }
+    }
+
     const ImageData<value_type>& imageData() const {
         return m_data;
     }
