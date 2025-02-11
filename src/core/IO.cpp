@@ -113,10 +113,10 @@ public:
         return m_caps;
     }
 
-    uintmax_t size() const {
-        uintmax_t saved = IO_TELL_64(m_file);
+    uint64_t size() const {
+        uint64_t saved = IO_TELL_64(m_file);
         IO_SEEK_64(m_file, 0, SEEK_END);
-        uintmax_t size = IO_TELL_64(m_file);
+        uint64_t size = IO_TELL_64(m_file);
         IO_SEEK_64(m_file, saved, SEEK_SET);
         return size;
     }
@@ -134,13 +134,13 @@ public:
     explicit FileStream(std::FILE* file, bool owns, StreamCapabilities caps)
         : m_file(std::move(file)), m_owns(owns), m_caps(caps) {}
 
-    [[nodiscard]] bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
+    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
         return IO_SEEK_64(m_file, position,
                           staticMap(origin, SeekOrigin::Beginning, SEEK_SET, SeekOrigin::Current, SEEK_CUR,
                                     SeekOrigin::End, SEEK_END, SEEK_SET)) == 0;
     }
 
-    [[nodiscard]] uintmax_t tell() const final {
+    [[nodiscard]] uint64_t tell() const final {
         return IO_TELL_64(m_file);
     }
 
@@ -199,9 +199,9 @@ expected<RC<Stream>, IOError> openFileForWriting(const fs::path& filePath, bool 
     return openFile(filePath, appending ? OpenFileMode::AppendOrCreate : OpenFileMode::RewriteOrCreate);
 }
 
-optional<uintmax_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize) {
-    uintmax_t transferred = 0;
-    auto buf              = std::unique_ptr<std::byte[]>(new std::byte[bufSize]);
+optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize) {
+    uint64_t transferred = 0;
+    auto buf             = std::unique_ptr<std::byte[]>(new std::byte[bufSize]);
     Transferred rd;
     while ((rd = src->read(buf.get(), bufSize))) {
         if (dest->write(buf.get(), rd.bytes()) != rd.bytes())

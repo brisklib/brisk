@@ -66,7 +66,7 @@ struct Win32Handle {
     HANDLE handle;
 };
 
-static LARGE_INTEGER toLarge(intmax_t value) {
+static LARGE_INTEGER toLarge(int64_t value) {
     LARGE_INTEGER result;
     result.QuadPart = value;
     return result;
@@ -81,7 +81,7 @@ public:
                StreamCapabilities::CanFlush | StreamCapabilities::CanTruncate | StreamCapabilities::HasSize;
     }
 
-    [[nodiscard]] uintmax_t size() const final {
+    [[nodiscard]] uint64_t size() const final {
         LARGE_INTEGER fs;
         if (!GetFileSizeEx(m_handle.get(), &fs))
             return invalidSize;
@@ -94,7 +94,7 @@ public:
 
     explicit Win32HandleStream(Win32Handle handle) noexcept : m_handle(std::move(handle)) {}
 
-    [[nodiscard]] bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
+    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
         if (!m_handle)
             return false;
         if (!SetFilePointerEx(m_handle.get(), toLarge(position), nullptr,
@@ -105,7 +105,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] uintmax_t tell() const final {
+    [[nodiscard]] uint64_t tell() const final {
         if (!m_handle)
             return invalidPosition;
         LARGE_INTEGER result;

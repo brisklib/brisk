@@ -61,15 +61,15 @@ bool SequentialReader::flush() {
     throwException(ENotImplemented("flush called for SequentialReader"));
 }
 
-uintmax_t SequentialReader::size() const {
+uint64_t SequentialReader::size() const {
     throwException(ENotImplemented("size called for SequentialReader"));
 }
 
-uintmax_t SequentialReader::tell() const {
+uint64_t SequentialReader::tell() const {
     throwException(ENotImplemented("tell called for SequentialReader"));
 }
 
-bool SequentialReader::seek(intmax_t position, SeekOrigin origin) {
+bool SequentialReader::seek(int64_t position, SeekOrigin origin) {
     throwException(ENotImplemented("seek called for SequentialReader"));
 }
 
@@ -125,16 +125,16 @@ bool MemoryStream::truncate() {
     return true;
 }
 
-uintmax_t MemoryStream::size() const {
+uint64_t MemoryStream::size() const {
     return m_data.size();
 }
 
-uintmax_t MemoryStream::tell() const {
+uint64_t MemoryStream::tell() const {
     return m_position;
 }
 
-bool MemoryStream::seek(intmax_t position, SeekOrigin origin) {
-    intmax_t newPosition;
+bool MemoryStream::seek(int64_t position, SeekOrigin origin) {
+    int64_t newPosition;
     switch (origin) {
     case SeekOrigin::End:
         newPosition = m_data.size() + position;
@@ -157,15 +157,15 @@ bool SequentialWriter::truncate() {
     throwException(ENotImplemented("truncate called for SequentialWriter"));
 }
 
-uintmax_t SequentialWriter::size() const {
+uint64_t SequentialWriter::size() const {
     throwException(ENotImplemented("size called for SequentialWriter"));
 }
 
-uintmax_t SequentialWriter::tell() const {
+uint64_t SequentialWriter::tell() const {
     throwException(ENotImplemented("tell called for SequentialWriter"));
 }
 
-bool SequentialWriter::seek(intmax_t position, SeekOrigin origin) {
+bool SequentialWriter::seek(int64_t position, SeekOrigin origin) {
     throwException(ENotImplemented("seek called for SequentialWriter"));
 }
 

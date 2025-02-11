@@ -138,7 +138,7 @@ enum class SeekOrigin {
  * This value is used to indicate an invalid or undefined position when working
  * with stream operations.
  */
-constexpr inline uintmax_t invalidPosition = UINTMAX_MAX;
+constexpr inline uint64_t invalidPosition = UINTMAX_MAX;
 
 /**
  * @brief Constant representing an invalid size for a stream.
@@ -146,7 +146,7 @@ constexpr inline uintmax_t invalidPosition = UINTMAX_MAX;
  * This value is used to indicate an invalid or undefined size when working
  * with stream operations.
  */
-constexpr inline uintmax_t invalidSize     = UINTMAX_MAX;
+constexpr inline uint64_t invalidSize     = UINTMAX_MAX;
 
 /**
  * @enum StreamCapabilities
@@ -250,7 +250,7 @@ public:
      * @brief Flushes the stream, ensuring that all buffered data is written to the underlying storage.
      * @return True if the flush operation was successful, false otherwise.
      */
-    [[nodiscard]] virtual bool flush()                                                            = 0;
+    [[nodiscard]] virtual bool flush()                                                           = 0;
 
     /**
      * @brief Seeks to a specific position in the stream.
@@ -258,25 +258,25 @@ public:
      * @param origin The reference point for the seek operation.
      * @return True if the seek operation was successful, false otherwise.
      */
-    [[nodiscard]] virtual bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) = 0;
+    [[nodiscard]] virtual bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) = 0;
 
     /**
      * @brief Retrieves the current position of the stream.
      * @return The current position of the stream or `invalidPosition` if an error occurs.
      */
-    [[nodiscard]] virtual uintmax_t tell() const                                                  = 0;
+    [[nodiscard]] virtual uint64_t tell() const                                                  = 0;
 
     /**
      * @brief Retrieves the size of the stream.
      * @return The size of the stream or `invalidSize` if an error occurs.
      */
-    [[nodiscard]] virtual uintmax_t size() const                                                  = 0;
+    [[nodiscard]] virtual uint64_t size() const                                                  = 0;
 
     /**
      * @brief Truncates the stream to the current position.
      * @return True if the truncate operation was successful, false otherwise.
      */
-    [[nodiscard]] virtual bool truncate()                                                         = 0;
+    [[nodiscard]] virtual bool truncate()                                                        = 0;
 
 public:
     /**
@@ -392,11 +392,11 @@ public:
 
     Transferred write(const std::byte* data, size_t size) final;
 
-    bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
+    bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
 
-    uintmax_t tell() const override;
+    uint64_t tell() const override;
 
-    uintmax_t size() const override;
+    uint64_t size() const override;
 
     bool flush() final;
 
@@ -418,11 +418,11 @@ public:
 
     Transferred read(std::byte* data, size_t size) final;
 
-    bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
+    bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
 
-    uintmax_t tell() const override;
+    uint64_t tell() const override;
 
-    uintmax_t size() const override;
+    uint64_t size() const override;
 
     bool truncate() override;
 };
@@ -488,11 +488,11 @@ public:
 
     [[nodiscard]] bool flush() override;
 
-    [[nodiscard]] bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
+    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
 
-    [[nodiscard]] uintmax_t tell() const override;
+    [[nodiscard]] uint64_t tell() const override;
 
-    [[nodiscard]] uintmax_t size() const override;
+    [[nodiscard]] uint64_t size() const override;
 
     [[nodiscard]] bool truncate() override;
 
@@ -510,7 +510,7 @@ public:
 
 private:
     std::vector<std::byte> m_data;
-    uintmax_t m_position = 0;
+    uint64_t m_position = 0;
 };
 
 /**
@@ -575,8 +575,8 @@ public:
         }
     }
 
-    [[nodiscard]] bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override {
-        intmax_t newPosition;
+    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override {
+        int64_t newPosition;
         switch (origin) {
         case SeekOrigin::End:
             newPosition = m_data.size_bytes() + position;
@@ -589,17 +589,17 @@ public:
             newPosition = position;
             break;
         }
-        if (newPosition < 0 || newPosition > static_cast<intmax_t>(m_data.size_bytes()))
+        if (newPosition < 0 || newPosition > static_cast<int64_t>(m_data.size_bytes()))
             return false;
         m_bytePosition = newPosition;
         return true;
     }
 
-    [[nodiscard]] uintmax_t tell() const override {
+    [[nodiscard]] uint64_t tell() const override {
         return m_bytePosition;
     }
 
-    [[nodiscard]] uintmax_t size() const override {
+    [[nodiscard]] uint64_t size() const override {
         return m_data.size_bytes();
     }
 
@@ -621,7 +621,7 @@ public:
 
 private:
     std::span<T> m_data;
-    uintmax_t m_bytePosition = 0;
+    uint64_t m_bytePosition = 0;
 };
 
 using ByteMutableViewStream = SpanStream<std::byte>;

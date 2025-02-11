@@ -388,7 +388,7 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  * @return An optional indicating the number of bytes written, or
  *         an empty optional if an error occurs.
  */
-[[nodiscard]] optional<uintmax_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize = 65536);
+[[nodiscard]] optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize = 65536);
 
 /**
  * @enum DefaultFolder
