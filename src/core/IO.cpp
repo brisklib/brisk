@@ -144,7 +144,7 @@ public:
         return IO_TELL_64(m_file);
     }
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
         if (!m_file || ferror(m_file))
             return Transferred::Error;
         if (feof(m_file))
@@ -152,7 +152,7 @@ public:
         return fread(data, 1, size, m_file);
     }
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
         if (!m_file || ferror(m_file))
             return Transferred::Error;
         return fwrite(data, 1, size, m_file);
@@ -201,7 +201,7 @@ expected<RC<Stream>, IOError> openFileForWriting(const fs::path& filePath, bool 
 
 optional<uintmax_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize) {
     uintmax_t transferred = 0;
-    auto buf              = std::unique_ptr<uint8_t[]>(new uint8_t[bufSize]);
+    auto buf              = std::unique_ptr<std::byte[]>(new std::byte[bufSize]);
     Transferred rd;
     while ((rd = src->read(buf.get(), bufSize))) {
         if (dest->write(buf.get(), rd.bytes()) != rd.bytes())
@@ -228,9 +228,9 @@ expected<Bytes, IOError> readBytes(const fs::path& file_name) {
 expected<std::string, IOError> readUtf8(const fs::path& file_name, bool removeBOM) {
     return readBytes(file_name).map([removeBOM](const Bytes& b) {
         if (removeBOM)
-            return std::string(utf8SkipBom(std::string(b.begin(), b.end())));
+            return std::string(utf8SkipBom(std::string((const char*)b.data(), b.size())));
         else
-            return std::string(b.begin(), b.end());
+            return std::string((const char*)b.data(), b.size());
     });
 }
 

@@ -43,7 +43,7 @@ namespace Brisk {
 
 static void stbi_write(void* context, void* data, int size) {
     MemoryStream& result = *reinterpret_cast<MemoryStream*>(context);
-    std::ignore          = result.write((const uint8_t*)data, size);
+    std::ignore          = result.write((const std::byte*)data, size);
 }
 
 Bytes bmpEncode(RC<Image> image) {
@@ -77,7 +77,7 @@ static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat
     PixelFormat pixelFormat = toPixelFormat(format);
     int width, height, comp;
     std::unique_ptr<stbi_uc, stbi_delete> mem(
-        stbi_load_from_memory(bytes.data(), bytes.size(), &width, &height, &comp,
+        stbi_load_from_memory((const uint8_t*)bytes.data(), bytes.size(), &width, &height, &comp,
                               pixelFormat == PixelFormat::Unknown ? 0 : pixelComponents(pixelFormat)));
     if (!mem)
         return unexpected(ImageIOError::CodecError);
@@ -90,7 +90,7 @@ static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat
         return unexpected(ImageIOError::InvalidFormat);
     RC<Image> image = rcnew Image(Size{ width, height }, imageFormat(PixelType::U8Gamma, fmt));
     auto w          = image->mapWrite();
-    w.readFrom(BytesView{ mem.get(), size_t(width * height * comp) });
+    w.readFrom(BytesView{ (const std::byte*)mem.get(), size_t(width * height * comp) });
     return image;
 }
 

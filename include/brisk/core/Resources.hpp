@@ -46,21 +46,22 @@ inline bool resourceExists(std::string_view name) {
     return rsrc && *rsrc->size > 0;
 }
 
-inline std::vector<uint8_t> loadResource(std::string_view name, bool emptyOk = false) {
+inline Bytes loadResource(std::string_view name, bool emptyOk = false) {
     const Internal::ResourceEntry* rsrc = Internal::lookupResource(name);
     if ((!rsrc || *rsrc->size == 0) && emptyOk) {
         return {};
     }
     BRISK_ASSERT(rsrc);
     if (rsrc->compression == Internal::ResourceCompression::None) {
-        return std::vector<uint8_t>(rsrc->data, rsrc->data + *rsrc->size);
+        return Bytes((const std::byte*)rsrc->data, (const std::byte*)rsrc->data + *rsrc->size);
     }
-    return compressionDecode(static_cast<CompressionMethod>(rsrc->compression),
-                             std::span<const uint8_t>(rsrc->data, rsrc->data + *rsrc->size));
+    return compressionDecode(
+        static_cast<CompressionMethod>(rsrc->compression),
+        BytesView((const std::byte*)rsrc->data, (const std::byte*)rsrc->data + *rsrc->size));
 }
 
-inline const std::vector<uint8_t>& loadResourceCached(std::string name, bool emptyOk = false) {
-    static std::map<std::string, std::vector<uint8_t>> cache;
+inline const Bytes& loadResourceCached(std::string name, bool emptyOk = false) {
+    static std::map<std::string, Bytes> cache;
     auto data = loadResource(name, emptyOk);
     auto it   = cache.insert_or_assign(std::move(name), std::move(data));
     return it.first->second;
@@ -73,11 +74,12 @@ inline std::string loadResourceText(std::string_view name, bool emptyOk = false)
     }
     BRISK_ASSERT(rsrc);
     if (rsrc->compression == Internal::ResourceCompression::None) {
-        return std::string(rsrc->data, rsrc->data + *rsrc->size);
+        return std::string((const char*)rsrc->data, (const char*)rsrc->data + *rsrc->size);
     }
-    auto bytes = compressionDecode(static_cast<CompressionMethod>(rsrc->compression),
-                                   std::span<const uint8_t>(rsrc->data, rsrc->data + *rsrc->size));
-    return std::string(bytes.data(), bytes.data() + bytes.size());
+    auto bytes = compressionDecode(
+        static_cast<CompressionMethod>(rsrc->compression),
+        BytesView((const std::byte*)rsrc->data, (const std::byte*)rsrc->data + *rsrc->size));
+    return std::string((const char*)bytes.data(), (const char*)bytes.data() + bytes.size());
 }
 
 inline const std::string& loadResourceTextCached(std::string name, bool emptyOk = false) {

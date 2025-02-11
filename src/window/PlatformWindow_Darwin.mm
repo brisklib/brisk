@@ -160,7 +160,7 @@ static NSCursor* createCursor(const ImageAccess<ImageFormat::RGBA, AccessMode::R
 
         if (rep == nil)
             return nullptr;
-        image.writeTo(BytesMutableView([rep bitmapData], image.byteSize()));
+        image.writeTo(BytesMutableView(reinterpret_cast<std::byte*>([rep bitmapData]), image.byteSize()));
         NSSize dipSize = NSMakeSize(std::round(image.width() / scale), std::round(image.height() / scale));
         NSPoint dipHot = NSMakePoint(std::round(xhot / scale), std::round(yhot / scale));
 

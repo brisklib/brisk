@@ -78,8 +78,8 @@ struct StringMaker<Brisk::optional<T>> {
 };
 
 template <>
-struct StringMaker<std::vector<uint8_t>> {
-    static std::string convert(const std::vector<uint8_t>& value) {
+struct StringMaker<std::vector<std::byte>> {
+    static std::string convert(const std::vector<std::byte>& value) {
         return Brisk::toHex(value);
     }
 };

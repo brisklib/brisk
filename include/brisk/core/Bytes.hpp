@@ -29,8 +29,6 @@
 
 namespace Brisk {
 
-using Bytes = std::vector<uint8_t>;
-
 /// @brief Converts string in Hex format to span of bytes
 /// @returns number of bytes written or SIZE_MAX in case of error
 [[nodiscard]] size_t fromHex(BytesMutableView data, std::string_view encoded);
@@ -49,8 +47,7 @@ using Bytes = std::vector<uint8_t>;
 
 /// @brief Converts span of bytes to string in Base64 format
 /// @returns number of characters written or SIZE_MAX in case of error
-[[nodiscard]] size_t toBase64(std::span<char> encoded, BytesView data, bool urlSafe = false,
-                              bool pad = true);
+[[nodiscard]] size_t toBase64(std::span<char> encoded, BytesView data, bool urlSafe = false, bool pad = true);
 
 [[nodiscard]] optional<Bytes> fromBase64(std::string_view encoded, bool urlSafe = false, bool strict = false);
 [[nodiscard]] std::string toBase64(BytesView data, bool urlSafe = false, bool pad = true);
@@ -236,7 +233,7 @@ struct FixedBytes {
         return Brisk::toBase64({ data(), size() }, urlSafe, pad);
     }
 
-    using value_type     = uint8_t;
+    using value_type     = std::byte;
     using size_type      = size_t;
     using pointer        = value_type*;
     using const_pointer  = const value_type*;
@@ -279,7 +276,7 @@ struct FixedBytes {
         return data() + size();
     }
 
-    uint8_t m_data[Size];
+    value_type m_data[Size];
 };
 
 template <size_t Size>

@@ -43,7 +43,7 @@ class RandomReader : public SequentialReader {
 public:
     RandomReader() = default;
 
-    Transferred read(uint8_t* data, size_t size) final {
+    Transferred read(std::byte* data, size_t size) final {
         return cryptoRandomInplaceSafe(BytesMutableView{ data, size });
     }
 };
@@ -77,8 +77,8 @@ static void hashTo(HashMethod method, BytesView data, BytesMutableView hash) {
     const HashFunctions& desc = hashFunctions(method);
     hash_state state;
     desc.init(&state);
-    desc.process(&state, data.data(), data.size());
-    desc.done(&state, hash.data());
+    desc.process(&state, (const uint8_t*)data.data(), data.size());
+    desc.done(&state, (uint8_t*)hash.data());
 }
 
 template <HashMethod method>
@@ -162,11 +162,11 @@ public:
         }
     }
 
-    Transferred write(const uint8_t* data, size_t size) final {
+    Transferred write(const std::byte* data, size_t size) final {
         if (failed || flushed)
             return Transferred::Error;
 
-        if (desc.process(&state, data, size) != CRYPT_OK) {
+        if (desc.process(&state, (const uint8_t*)data, size) != CRYPT_OK) {
             failed = true;
             return Transferred::Error;
         }
@@ -187,9 +187,9 @@ public:
         }
 
         if (failed) {
-            std::fill(hash.begin(), hash.end(), 0);
+            std::fill(hash.begin(), hash.end(), 0_b);
         } else {
-            desc.done(&state, hash.data());
+            desc.done(&state, (uint8_t*)hash.data());
         }
 
         flushed = true;
@@ -243,11 +243,12 @@ Hasher::Hasher(HashMethod method) noexcept : method(method) {
 bool Hasher::finish(BytesMutableView bytes) {
     auto desc = hashFunctions(method);
     BRISK_ASSERT(bytes.size() == desc.hashsize);
-    return desc.done(reinterpret_cast<hash_state*>(state.data()), bytes.data()) == CRYPT_OK;
+    return desc.done(reinterpret_cast<hash_state*>(state.data()), (uint8_t*)bytes.data()) == CRYPT_OK;
 }
 
 bool Hasher::write(BytesView data) {
     auto desc = hashFunctions(method);
-    return desc.process(reinterpret_cast<hash_state*>(state.data()), data.data(), data.size()) == CRYPT_OK;
+    return desc.process(reinterpret_cast<hash_state*>(state.data()), (const uint8_t*)data.data(),
+                        data.size()) == CRYPT_OK;
 }
 } // namespace Brisk

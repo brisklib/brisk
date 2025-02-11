@@ -1220,7 +1220,7 @@ void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Poin
                         int32_t xx = std::lround(origin.x + (g.pos + run.position).x + data->offset_x + x);
                         if (xx < 0 || xx >= w.width())
                             continue;
-                        uint8_t value = v[x + y * data->size.width];
+                        uint8_t value = static_cast<uint8_t>(v[x + y * data->size.width]);
                         if (flags && TestRenderFlags::Fade)
                             value /= 2;
                         if (flags && TestRenderFlags::GlyphBounds)

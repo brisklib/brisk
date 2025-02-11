@@ -379,15 +379,18 @@ struct Visitor : public BaseReaderHandler<UTF8<>, Visitor> {
     bool keyMode = false;
 };
 
-struct byte_stream {
+namespace {
+
+struct ByteStream {
     Bytes data;
 
     void write(const char* buf, size_t len) {
-        data.insert(data.end(), buf, buf + len);
+        data.insert(data.end(), (const std::byte*)buf, (const std::byte*)buf + len);
     }
 };
+} // namespace
 
-void writeMsgpack(msgpack::packer<byte_stream>& w, const Json& b) {
+void writeMsgpack(msgpack::packer<ByteStream>& w, const Json& b) {
     switch (b.type()) {
     case JsonType::Array: {
         const auto& arr = b.access<JsonArray>();
@@ -472,9 +475,9 @@ optional<Json> Json::fromJson(const std::string& s) {
     return visitor.back();
 }
 
-std::vector<uint8_t> Json::toMsgPack() const {
-    byte_stream bs;
-    msgpack::packer<byte_stream> pack(bs);
+Bytes Json::toMsgPack() const {
+    ByteStream bs;
+    msgpack::packer<ByteStream> pack(bs);
 
     writeMsgpack(pack, *this);
 

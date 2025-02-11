@@ -12,12 +12,12 @@ struct SpriteResource {
     uint64_t id;
     Size size;
 
-    uint8_t* data() noexcept {
-        return std::launder(reinterpret_cast<uint8_t*>(this)) + sizeof(SpriteResource);
+    std::byte* data() noexcept {
+        return std::launder(reinterpret_cast<std::byte*>(this)) + sizeof(SpriteResource);
     }
 
-    const uint8_t* data() const noexcept {
-        return std::launder(reinterpret_cast<const uint8_t*>(this)) + sizeof(SpriteResource);
+    const std::byte* data() const noexcept {
+        return std::launder(reinterpret_cast<const std::byte*>(this)) + sizeof(SpriteResource);
     }
 
     BytesView bytes() const noexcept {
@@ -30,10 +30,10 @@ struct SpriteResource {
 };
 
 inline RC<SpriteResource> makeSprite(Size size) {
-    uint8_t* ptr           = (uint8_t*)::malloc(sizeof(SpriteResource) + size.area());
+    std::byte* ptr         = (std::byte*)::malloc(sizeof(SpriteResource) + size.area());
     SpriteResource* sprite = new (ptr) SpriteResource{ autoincremented<SpriteResource, uint64_t>(), size };
     return std::shared_ptr<SpriteResource>(sprite, [](SpriteResource* ptr) {
-        ::free(reinterpret_cast<uint8_t*>(ptr));
+        ::free(reinterpret_cast<std::byte*>(ptr));
     });
 }
 

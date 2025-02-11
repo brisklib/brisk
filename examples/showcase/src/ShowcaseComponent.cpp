@@ -171,7 +171,7 @@ void ShowcaseComponent::configureWindow(RC<GUIWindow> window) {
 }
 
 void ShowcaseComponent::saveScreenshot(RC<Image> image) {
-    std::vector<uint8_t> bytes = pngEncode(image);
+    Bytes bytes = pngEncode(image);
     if (auto file = showSaveDialog({ FileDialogFilter{ "*.png", "PNG image"_tr } },
                                    defaultFolder(DefaultFolder::Pictures))) {
         if (auto s = writeBytes(*file, bytes)) {

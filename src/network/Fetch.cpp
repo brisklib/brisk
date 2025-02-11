@@ -34,12 +34,12 @@ void setupCURLE(void* c) {
 
 static size_t curlWriter(void* ptr, size_t size, size_t nmemb, Stream* stream) {
     size_t totalSize = size * nmemb;
-    return stream->write((const uint8_t*)ptr, totalSize).bytes();
+    return stream->write((const std::byte*)ptr, totalSize).bytes();
 }
 
 static size_t curlReader(void* ptr, size_t size, size_t nmemb, Stream* stream) {
     size_t totalSize = size * nmemb;
-    return stream->read((uint8_t*)ptr, totalSize).bytes();
+    return stream->read((std::byte*)ptr, totalSize).bytes();
 }
 
 static size_t curlHeaderWriter(char* ptr, size_t size, size_t nmemb, std::string* headers) {

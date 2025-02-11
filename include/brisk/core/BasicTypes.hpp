@@ -39,6 +39,10 @@ namespace Brisk {
 using namespace std::literals::string_view_literals;
 using namespace std::literals::string_literals;
 
+constexpr std::byte operator""_b(unsigned long long n) {
+    return static_cast<std::byte>(n);
+}
+
 /**
  * @brief Creates a `std::span` representing a view over a single mutable element.
  *
@@ -74,24 +78,19 @@ std::span<const T> one(const T& value) noexcept {
 }
 
 /**
- * @brief Type alias for a single byte (8-bit unsigned integer).
- */
-using byte               = uint8_t;
-
-/**
  * @brief Type alias for a vector of bytes.
  */
-using Bytes              = std::vector<byte>;
+using Bytes            = std::vector<std::byte>;
 
 /**
  * @brief Type alias for a non-modifiable view of a sequence of bytes.
  */
-using BytesView         = std::span<const byte>;
+using BytesView        = std::span<const std::byte>;
 
 /**
  * @brief Type alias for a modifiable view of a sequence of bytes.
  */
-using BytesMutableView = std::span<byte>;
+using BytesMutableView = std::span<std::byte>;
 
 #ifdef BRISK_USE_CHAR8_T
 /**
@@ -233,7 +232,7 @@ template <typename Type>
 inline BytesView asBytesView(const Type& value)
     requires simpleMemoryRepresentation<Type>
 {
-    return BytesView(reinterpret_cast<const byte*>(std::addressof(value)), sizeof(Type));
+    return BytesView(reinterpret_cast<const std::byte*>(std::addressof(value)), sizeof(Type));
 }
 
 /**
@@ -249,7 +248,7 @@ inline BytesView toBytesView(Container&& cont)
     requires std::is_constructible_v<std::span<const T>, Container&>
 {
     std::span<const T> sp(cont);
-    return BytesView(reinterpret_cast<const byte*>(sp.data()), sp.size_bytes());
+    return BytesView(reinterpret_cast<const std::byte*>(sp.data()), sp.size_bytes());
 }
 
 /**
@@ -260,7 +259,7 @@ inline BytesView toBytesView(Container&& cont)
  */
 template <size_t N>
 inline BytesView toBytesView(const char (&str)[N]) {
-    return BytesView(reinterpret_cast<const byte*>(str), N - 1);
+    return BytesView(reinterpret_cast<const std::byte*>(str), N - 1);
 }
 
 /**
@@ -271,7 +270,7 @@ inline BytesView toBytesView(const char (&str)[N]) {
  */
 template <size_t N>
 inline BytesView toBytesView(const char8_t (&str)[N]) {
-    return BytesView(reinterpret_cast<const byte*>(str), N - 1);
+    return BytesView(reinterpret_cast<const std::byte*>(str), N - 1);
 }
 
 /**
@@ -282,7 +281,7 @@ inline BytesView toBytesView(const char8_t (&str)[N]) {
  */
 template <size_t N>
 inline BytesView toBytesView(const char16_t (&str)[N]) {
-    return BytesView(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(char16_t));
+    return BytesView(reinterpret_cast<const std::byte*>(str), (N - 1) * sizeof(char16_t));
 }
 
 /**
@@ -293,7 +292,7 @@ inline BytesView toBytesView(const char16_t (&str)[N]) {
  */
 template <size_t N>
 inline BytesView toBytesView(const char32_t (&str)[N]) {
-    return BytesView(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(char32_t));
+    return BytesView(reinterpret_cast<const std::byte*>(str), (N - 1) * sizeof(char32_t));
 }
 
 /**
@@ -304,7 +303,7 @@ inline BytesView toBytesView(const char32_t (&str)[N]) {
  */
 template <size_t N>
 inline BytesView toBytesView(const wchar_t (&str)[N]) {
-    return BytesView(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(wchar_t));
+    return BytesView(reinterpret_cast<const std::byte*>(str), (N - 1) * sizeof(wchar_t));
 }
 
 /**
@@ -320,7 +319,7 @@ inline BytesMutableView toBytesMutableView(Container&& cont)
     requires requires { std::span{ cont }; }
 {
     std::span sp(cont);
-    return BytesMutableView(reinterpret_cast<byte*>(sp.data()), sp.size_bytes());
+    return BytesMutableView(reinterpret_cast<std::byte*>(sp.data()), sp.size_bytes());
 }
 
 /**

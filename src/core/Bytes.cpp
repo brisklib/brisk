@@ -54,7 +54,7 @@ struct Hex {
             uint8_t h2 = hashmap[n2];
             if (h1 == 0xff || h2 == 0xff)
                 return SIZE_MAX;
-            data[i] = (h1 << 4) | h2;
+            data[i] = std::byte((h1 << 4) | h2);
         }
         return encoded.size() / 2;
     }
@@ -65,7 +65,7 @@ struct Hex {
         }
         std::string_view alphabet = Hex::alphabet[upperCase];
         for (size_t i = 0; i < data.size(); i++) {
-            uint8_t b          = data[i];
+            uint8_t b          = uint8_t(data[i]);
             encoded[i * 2]     = alphabet[(b >> 4) & 0x0f];
             encoded[i * 2 + 1] = alphabet[b & 0x0f];
         }
@@ -126,7 +126,7 @@ struct Base64 {
 
     static size_t decode(BytesMutableView data, std::string_view encoded, bool urlSafe, bool strict) {
         const uint8_t* hashmap = Base64::hashmap[urlSafe];
-        uint8_t* out           = data.data();
+        std::byte* out         = data.data();
         int g                  = 0;
         size_t y               = 0;
         size_t z               = 0;
@@ -158,9 +158,9 @@ struct Base64 {
             if (++y == 4) {
                 if (z + 3 > data.size())
                     return SIZE_MAX;
-                *out++ = (uint8_t)((t >> 16) & 255);
-                *out++ = (uint8_t)((t >> 8) & 255);
-                *out++ = (uint8_t)(t & 255);
+                *out++ = (std::byte)((t >> 16) & 255);
+                *out++ = (std::byte)((t >> 8) & 255);
+                *out++ = (std::byte)(t & 255);
                 y = t = 0;
             }
         }
@@ -174,9 +174,9 @@ struct Base64 {
             if (z + y - 1 > data.size())
                 return SIZE_MAX;
             if (y >= 2)
-                *out++ = (uint8_t)((t >> 16) & 255);
+                *out++ = (std::byte)((t >> 16) & 255);
             if (y == 3)
-                *out++ = (uint8_t)((t >> 8) & 255);
+                *out++ = (std::byte)((t >> 8) & 255);
         }
 
         return out - data.data();
@@ -189,7 +189,7 @@ struct Base64 {
         std::string_view alphabet = Base64::alphabet[urlSafe];
 
         char* out                 = encoded.data();
-        const uint8_t* in         = data.data();
+        const uint8_t* in         = reinterpret_cast<const uint8_t*>(data.data());
         size_t round              = data.size() / 3 * 3;
         for (size_t i = 0; i < round; i += 3) {
             *out++ = alphabet[(in[0] >> 2) & 0x3F];

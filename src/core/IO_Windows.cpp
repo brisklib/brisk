@@ -115,7 +115,7 @@ public:
         return result.QuadPart;
     }
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
         if (!m_handle)
             return Transferred::Error;
 
@@ -140,7 +140,7 @@ public:
         return size;
     }
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
         if (!m_handle)
             return Transferred::Error;
 

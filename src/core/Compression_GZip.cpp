@@ -31,7 +31,7 @@ using Internal::compressionBatchSize;
 class ZLibDecoder : public SequentialReader {
 public:
     explicit ZLibDecoder(RC<Stream> reader) : reader(std::move(reader)) {
-        buffer.reset(new uint8_t[compressionBatchSize]);
+        buffer.reset(new std::byte[compressionBatchSize]);
         bufferUsed  = 0;
 
         strm.zalloc = Z_NULL;
@@ -41,13 +41,13 @@ public:
         inflateInit2(&strm, MAX_WBITS | ACCEPT_GZIP_OR_ZLIB_HEADER);
     }
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
         if (finished)
             return Transferred::Eof;
         strm.avail_out = size;
         strm.next_out  = (Bytef*)data;
         do {
-            strm.next_in = buffer.get();
+            strm.next_in = (Bytef*)buffer.get();
             if (bufferUsed < compressionBatchSize) {
                 Transferred sz = reader->read(buffer.get() + bufferUsed, compressionBatchSize - bufferUsed);
                 if (sz.isError())
@@ -93,7 +93,7 @@ public:
 private:
     RC<Stream> reader;
     z_stream strm{};
-    std::unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<std::byte[]> buffer;
     size_t bufferUsed = 0;
     bool finished     = false;
 };
@@ -102,7 +102,7 @@ class ZLibEncoder final : public SequentialWriter {
 public:
     explicit ZLibEncoder(RC<Stream> writer, CompressionLevel level, bool gzip = false)
         : writer(std::move(writer)) {
-        buffer.reset(new uint8_t[compressionBatchSize]);
+        buffer.reset(new std::byte[compressionBatchSize]);
 
         strm.zalloc = Z_NULL;
         strm.zfree  = Z_NULL;
@@ -132,7 +132,7 @@ public:
         return compressionBatchSize;
     }
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
         if (size == 0)
             return 0;
         strm.avail_in = (uInt)size;
@@ -163,7 +163,7 @@ public:
 private:
     RC<Stream> writer;
     z_stream strm{};
-    std::unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<std::byte[]> buffer;
 };
 
 RC<Stream> gzipDecoder(RC<Stream> reader) {
@@ -276,8 +276,8 @@ Bytes zlibEncode2(BytesView data, CompressionLevel level, bool gzip) {
     size_t sz = compressBound(data.size());
     result.resize(sz);
     unsigned long destLen = result.size();
-    while (int e = zlibCompress(result.data(), &destLen, data.data(), data.size(), static_cast<int>(level),
-                                gzip)) {
+    while (int e = zlibCompress((uint8_t*)result.data(), &destLen, (const uint8_t*)data.data(), data.size(),
+                                static_cast<int>(level), gzip)) {
         if (e != Z_BUF_ERROR)
             return {};
         result.resize(result.size() * 2);
@@ -300,7 +300,8 @@ Bytes zlibDecode(BytesView data) {
     size_t sz = data.size() * 4;
     result.resize(sz);
     unsigned long destLen = result.size();
-    while (int e = zlibUncompress(result.data(), &destLen, data.data(), data.size())) {
+    while (int e =
+               zlibUncompress((uint8_t*)result.data(), &destLen, (const uint8_t*)data.data(), data.size())) {
         if (e != Z_BUF_ERROR)
             return {};
         result.resize(result.size() * 2);

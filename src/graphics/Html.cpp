@@ -400,29 +400,29 @@ std::string_view htmlDecodeChar(std::string_view name) {
 std::optional<Color> parseHtmlColor(std::string_view colorText) {
     if (colorText.starts_with('#')) {
         if (colorText.size() == 1 + 6) { // RRGGBB
-            uint8_t rgb[3];
+            std::byte rgb[3];
             if (fromHex(rgb, colorText.substr(1)) != 3)
                 return std::nullopt;
-            return Color(rgb[0], rgb[1], rgb[2]);
+            return Color(uint8_t(rgb[0]), uint8_t(rgb[1]), uint8_t(rgb[2]));
         } else if (colorText.size() == 1 + 8) { // RRGGBBAA
-            uint8_t rgba[4];
+            std::byte rgba[4];
             if (fromHex(rgba, colorText.substr(1)) != 4)
                 return std::nullopt;
-            return Color(rgba[0], rgba[1], rgba[2], rgba[3]);
+            return Color(uint8_t(rgba[0]), uint8_t(rgba[1]), uint8_t(rgba[2]), uint8_t(rgba[3]));
         } else if (colorText.size() == 1 + 3) { // RGB
             const char expanded[6] = { colorText[1], colorText[1], colorText[2],
                                        colorText[2], colorText[3], colorText[3] };
-            uint8_t rgb[3];
+            std::byte rgb[3];
             if (fromHex(rgb, std::string_view(std::data(expanded), std::size(expanded))) != 3)
                 return std::nullopt;
-            return Color(rgb[0], rgb[1], rgb[2]);
+            return Color(uint8_t(rgb[0]), uint8_t(rgb[1]), uint8_t(rgb[2]));
         } else if (colorText.size() == 1 + 4) { // RGBA
             const char expanded[8] = { colorText[1], colorText[1], colorText[2], colorText[2],
                                        colorText[3], colorText[3], colorText[4], colorText[4] };
-            uint8_t rgba[4];
+            std::byte rgba[4];
             if (fromHex(rgba, std::string_view(std::data(expanded), std::size(expanded))) != 4)
                 return std::nullopt;
-            return Color(rgba[0], rgba[1], rgba[2], rgba[3]);
+            return Color(uint8_t(rgba[0]), uint8_t(rgba[1]), uint8_t(rgba[2]), uint8_t(rgba[3]));
         } else {
             return std::nullopt;
         }

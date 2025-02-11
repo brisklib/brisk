@@ -292,8 +292,12 @@ struct Hasher {
      * @param size The number of bytes to write.
      * @return True if the write operation was successful, otherwise false.
      */
-    bool write(const uint8_t* data, size_t size) {
+    bool write(const std::byte* data, size_t size) {
         return write({ data, size });
+    }
+
+    bool write(const uint8_t* data, size_t size) {
+        return write(reinterpret_cast<const std::byte*>(data), size);
     }
 
     /** The hashing method used by this hasher. */

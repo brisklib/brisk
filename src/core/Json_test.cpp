@@ -231,18 +231,19 @@ TEST_CASE("get bool") {
 }
 
 TEST_CASE("toMsgPack") {
-    CHECK(Json(true).toMsgPack() == Bytes{ 0xC3 });
-    CHECK(Json(false).toMsgPack() == Bytes{ 0xC2 });
-    CHECK(Json(nullptr).toMsgPack() == Bytes{ 0xC0 });
-    CHECK(Json(1).toMsgPack() == Bytes{ 0x01 });
-    CHECK(Json(32).toMsgPack() == Bytes{ 0x20 });
-    CHECK(Json(1024).toMsgPack() == Bytes{ 0xCD, 0x04, 0x00 });
-    CHECK(Json(1048768).toMsgPack() == Bytes{ 0xCE, 0x00, 0x10, 0x00, 0xC0 });
-    CHECK(Json(1073741824).toMsgPack() == Bytes{ 0xCE, 0x40, 0x00, 0x00, 0x00 });
-    CHECK(Json(JsonArray{ 1, 2, 3, 4 }).toMsgPack() == Bytes{ 0x94, 0x01, 0x02, 0x03, 0x04 });
-    CHECK(Json("abc").toMsgPack() == Bytes{ 0xA3, 0x61, 0x62, 0x63 });
+    CHECK(Json(true).toMsgPack() == Bytes{ 0xC3_b });
+    CHECK(Json(false).toMsgPack() == Bytes{ 0xC2_b });
+    CHECK(Json(nullptr).toMsgPack() == Bytes{ 0xC0_b });
+    CHECK(Json(1).toMsgPack() == Bytes{ 0x01_b });
+    CHECK(Json(32).toMsgPack() == Bytes{ 0x20_b });
+    CHECK(Json(1024).toMsgPack() == Bytes{ 0xCD_b, 0x04_b, 0x00_b });
+    CHECK(Json(1048768).toMsgPack() == Bytes{ 0xCE_b, 0x00_b, 0x10_b, 0x00_b, 0xC0_b });
+    CHECK(Json(1073741824).toMsgPack() == Bytes{ 0xCE_b, 0x40_b, 0x00_b, 0x00_b, 0x00_b });
+    CHECK(Json(JsonArray{ 1, 2, 3, 4 }).toMsgPack() == Bytes{ 0x94_b, 0x01_b, 0x02_b, 0x03_b, 0x04_b });
+    CHECK(Json("abc").toMsgPack() == Bytes{ 0xA3_b, 0x61_b, 0x62_b, 0x63_b });
     CHECK(Json(JsonObject{ { "a", 1 }, { "b", 0.5f } }).toMsgPack() ==
-          Bytes{ 0x82, 0xA1, 0x61, 0x01, 0xA1, 0x62, 0xCB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+          Bytes{ 0x82_b, 0xA1_b, 0x61_b, 0x01_b, 0xA1_b, 0x62_b, 0xCB_b, 0x3F_b, 0xE0_b, 0x00_b, 0x00_b,
+                 0x00_b, 0x00_b, 0x00_b, 0x00_b });
 
     CHECK(BytesView(Json(JsonObject{ { "compact", true }, { "schema", 0 } }).toMsgPack()) ==
           toBytesView("\x82\xA7"

@@ -26,7 +26,7 @@ namespace Brisk {
 
 static std::string_view pangram = "The quick brown fox jumps over the lazy dog";
 
-static uint8_t buf[1024];
+static std::byte buf[1024];
 
 TEST_CASE("MemoryStream") {
     RC<Stream> m = rcnew MemoryStream();
@@ -46,7 +46,7 @@ TEST_CASE("MemoryStream") {
         CHECK(m->read(buf, 100) == Transferred::Eof);
         CHECK(m->readUntilEnd() == Bytes{});
         CHECK(m->seek(0) == true);
-        CHECK(m->readUntilEnd(true) == Bytes{ 'a', 'b', 'c', 'd', 'e', 'f' });
+        CHECK(m->readUntilEnd(true) == toBytes(std::vector<char>{ 'a', 'b', 'c', 'd', 'e', 'f' }));
     }
 }
 

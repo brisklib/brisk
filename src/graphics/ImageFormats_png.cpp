@@ -62,7 +62,7 @@ Bytes pngEncode(RC<Image> image) {
     pngimage.width   = image->width();
     pngimage.height  = image->height();
     pngimage.format  = toPNGFormat(image->pixelFormat());
-    Bytes b(PNG_IMAGE_PNG_SIZE_MAX(pngimage), 0);
+    Bytes b(PNG_IMAGE_PNG_SIZE_MAX(pngimage), 0_b);
     png_alloc_size_t pngbytes = b.size();
 
     SCOPE_EXIT {

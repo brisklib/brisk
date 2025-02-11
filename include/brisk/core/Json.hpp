@@ -517,7 +517,7 @@ struct Json : protected JsonVariant {
      * @brief Converts the current Json object to a MessagePack byte array.
      * @return A vector of bytes representing the MessagePack format.
      */
-    std::vector<uint8_t> toMsgPack() const;
+    Bytes toMsgPack() const;
 
     /**
      * @brief Parses a MessagePack byte array and returns a Json object.
@@ -933,7 +933,7 @@ inline bool fromJson(const Json& b, std::set<K, C, Alloc>& v) {
 template <typename T, typename Alloc>
 inline bool toJson(Json& b, const std::vector<T, Alloc>& v) {
     if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t> || std::is_same_v<T, std::byte>) {
-        b = toHex(v);
+        b = toHex(toBytesView(v));
         return true;
     } else {
         JsonArray a(v.size());
