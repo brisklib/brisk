@@ -524,7 +524,7 @@ struct Json : protected JsonVariant {
      * @param s The byte array to parse.
      * @return An optional Json object if parsing is successful.
      */
-    static optional<Json> fromMsgPack(const bytes_view& s);
+    static optional<Json> fromMsgPack(const BytesView& s);
 
     /**
      * @brief Compares two Json objects for equality.

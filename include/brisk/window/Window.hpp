@@ -103,7 +103,7 @@ public:
     void setMinimumSize(Size size);
     void setFixedSize(Size size);
     Bytes windowPlacement() const;
-    void setWindowPlacement(bytes_view data);
+    void setWindowPlacement(BytesView data);
 
     void focus();
 

@@ -33,30 +33,30 @@ using Bytes = std::vector<uint8_t>;
 
 /// @brief Converts string in Hex format to span of bytes
 /// @returns number of bytes written or SIZE_MAX in case of error
-[[nodiscard]] size_t fromHex(bytes_mutable_view data, std::string_view encoded);
+[[nodiscard]] size_t fromHex(BytesMutableView data, std::string_view encoded);
 
 /// @brief Converts span of bytes to string in Hex format
 /// @returns number of characters written or SIZE_MAX in case of error
-[[nodiscard]] size_t toHex(std::span<char> encoded, bytes_view data, bool upperCase = true);
+[[nodiscard]] size_t toHex(std::span<char> encoded, BytesView data, bool upperCase = true);
 
 [[nodiscard]] optional<Bytes> fromHex(std::string_view encoded);
-[[nodiscard]] std::string toHex(bytes_view data, bool upperCase = true);
+[[nodiscard]] std::string toHex(BytesView data, bool upperCase = true);
 
 /// @brief Converts string in Base64 format to span of bytes
 /// @returns number of bytes written or SIZE_MAX in case of error
-[[nodiscard]] size_t fromBase64(bytes_mutable_view data, std::string_view encoded, bool urlSafe = false,
+[[nodiscard]] size_t fromBase64(BytesMutableView data, std::string_view encoded, bool urlSafe = false,
                                 bool strict = false);
 
 /// @brief Converts span of bytes to string in Base64 format
 /// @returns number of characters written or SIZE_MAX in case of error
-[[nodiscard]] size_t toBase64(std::span<char> encoded, bytes_view data, bool urlSafe = false,
+[[nodiscard]] size_t toBase64(std::span<char> encoded, BytesView data, bool urlSafe = false,
                               bool pad = true);
 
 [[nodiscard]] optional<Bytes> fromBase64(std::string_view encoded, bool urlSafe = false, bool strict = false);
-[[nodiscard]] std::string toBase64(bytes_view data, bool urlSafe = false, bool pad = true);
+[[nodiscard]] std::string toBase64(BytesView data, bool urlSafe = false, bool pad = true);
 
 template <typename T>
-T readFromBytes(bytes_view data) {
+T readFromBytes(BytesView data) {
     static_assert(std::is_trivially_copyable_v<T>);
     if (data.size() < sizeof(T))
         return T{};
@@ -108,19 +108,19 @@ struct CC {
     explicit operator uint16_t() const noexcept
         requires(Size == 2)
     {
-        return readFromBytes<uint16_t>(bytes_view(*this));
+        return readFromBytes<uint16_t>(BytesView(*this));
     }
 
     explicit operator uint32_t() const noexcept
         requires(Size == 4)
     {
-        return readFromBytes<uint32_t>(bytes_view(*this));
+        return readFromBytes<uint32_t>(BytesView(*this));
     }
 
     explicit operator uint64_t() const noexcept
         requires(Size == 8)
     {
-        return readFromBytes<uint64_t>(bytes_view(*this));
+        return readFromBytes<uint64_t>(BytesView(*this));
     }
 
     bool matches(CC other) const {

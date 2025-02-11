@@ -693,7 +693,7 @@ struct ImageAccess {
      * @param data The memory buffer to write to.
      * @param flipY Whether to flip the image vertically.
      */
-    void writeTo(bytes_mutable_view data, bool flipY = false) const {
+    void writeTo(BytesMutableView data, bool flipY = false) const {
 #ifndef NDEBUG
         if (data.size() != sizeof(StorageType) * m_data.memorySize())
             throwRangeError(fmt::format("writeTo(): invalid size {} (required={})", data.size(),
@@ -717,7 +717,7 @@ struct ImageAccess {
      * @param data The memory buffer to read from.
      * @param flipY Whether to flip the image vertically.
      */
-    void readFrom(bytes_view data, bool flipY = false) const
+    void readFrom(BytesView data, bool flipY = false) const
         requires(Mode != AccessMode::R)
     {
 #ifndef NDEBUG

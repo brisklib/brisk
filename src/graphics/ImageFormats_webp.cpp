@@ -34,7 +34,7 @@ struct webp_deleter {
 };
 } // namespace
 
-[[nodiscard]] bytes webpEncode(RC<Image> image, optional<float> quality, bool lossless) {
+[[nodiscard]] Bytes webpEncode(RC<Image> image, optional<float> quality, bool lossless) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("Webp codec doesn't support encoding {} format", image->format()));
     }
@@ -42,7 +42,7 @@ struct webp_deleter {
     auto rd         = image->mapRead<ImageFormat::Unknown_U8Gamma>();
 
     uint8_t* output = nullptr;
-    bytes result;
+    Bytes result;
     size_t sz;
     if (lossless) {
         switch (image->pixelFormat()) {
@@ -95,7 +95,7 @@ struct webp_deleter {
     return result;
 }
 
-[[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(bytes_view bytes, ImageFormat format) {
+[[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("Webp codec doesn't support decoding to {} format", format));
     }

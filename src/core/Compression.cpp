@@ -61,10 +61,10 @@ namespace Brisk {
     }
 }
 
-[[nodiscard]] bytes compressionEncode(CompressionMethod method, bytes_view data, CompressionLevel level) {
+[[nodiscard]] Bytes compressionEncode(CompressionMethod method, BytesView data, CompressionLevel level) {
     switch (method) {
     case CompressionMethod::None:
-        return bytes(data.begin(), data.end());
+        return Bytes(data.begin(), data.end());
     case CompressionMethod::GZip:
         return gzipEncode(data, level);
     case CompressionMethod::ZLib:
@@ -80,10 +80,10 @@ namespace Brisk {
     }
 }
 
-[[nodiscard]] bytes compressionDecode(CompressionMethod method, bytes_view data) {
+[[nodiscard]] Bytes compressionDecode(CompressionMethod method, BytesView data) {
     switch (method) {
     case CompressionMethod::None:
-        return bytes(data.begin(), data.end());
+        return Bytes(data.begin(), data.end());
     case CompressionMethod::GZip:
         return gzipDecode(data);
     case CompressionMethod::ZLib:

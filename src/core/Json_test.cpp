@@ -244,7 +244,7 @@ TEST_CASE("toMsgPack") {
     CHECK(Json(JsonObject{ { "a", 1 }, { "b", 0.5f } }).toMsgPack() ==
           Bytes{ 0x82, 0xA1, 0x61, 0x01, 0xA1, 0x62, 0xCB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
 
-    CHECK(bytes_view(Json(JsonObject{ { "compact", true }, { "schema", 0 } }).toMsgPack()) ==
+    CHECK(BytesView(Json(JsonObject{ { "compact", true }, { "schema", 0 } }).toMsgPack()) ==
           toBytesView("\x82\xA7"
                       "compact\xC3\xA6schema\x00"));
 

@@ -271,8 +271,8 @@ int zlibUncompress(Bytef* dest, uLongf* destLen, const Bytef* source, uLong sour
                                                            : err;
 }
 
-bytes zlibEncode2(bytes_view data, CompressionLevel level, bool gzip) {
-    bytes result;
+Bytes zlibEncode2(BytesView data, CompressionLevel level, bool gzip) {
+    Bytes result;
     size_t sz = compressBound(data.size());
     result.resize(sz);
     unsigned long destLen = result.size();
@@ -287,16 +287,16 @@ bytes zlibEncode2(bytes_view data, CompressionLevel level, bool gzip) {
     return result;
 }
 
-bytes gzipEncode(bytes_view data, CompressionLevel level) {
+Bytes gzipEncode(BytesView data, CompressionLevel level) {
     return zlibEncode2(data, level, true);
 }
 
-bytes zlibEncode(bytes_view data, CompressionLevel level) {
+Bytes zlibEncode(BytesView data, CompressionLevel level) {
     return zlibEncode2(data, level, false);
 }
 
-bytes zlibDecode(bytes_view data) {
-    bytes result;
+Bytes zlibDecode(BytesView data) {
+    Bytes result;
     size_t sz = data.size() * 4;
     result.resize(sz);
     unsigned long destLen = result.size();
@@ -310,7 +310,7 @@ bytes zlibDecode(bytes_view data) {
     return result;
 }
 
-bytes gzipDecode(bytes_view data) {
+Bytes gzipDecode(BytesView data) {
     return zlibDecode(data);
 }
 

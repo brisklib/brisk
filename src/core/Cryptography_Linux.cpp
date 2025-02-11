@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-size_t cryptoRandomInplaceSafe(bytes_mutable_view data) {
+size_t cryptoRandomInplaceSafe(BytesMutableView data) {
     FILE* f = fopen("/dev/urandom", "rb");
     if (f == nullptr) {
         f = fopen("/dev/random", "rb");

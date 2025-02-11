@@ -20,11 +20,11 @@ struct SpriteResource {
         return std::launder(reinterpret_cast<const uint8_t*>(this)) + sizeof(SpriteResource);
     }
 
-    bytes_view bytes() const noexcept {
+    BytesView bytes() const noexcept {
         return { data(), static_cast<size_t>(size.area()) };
     }
 
-    bytes_mutable_view bytes() noexcept {
+    BytesMutableView bytes() noexcept {
         return { data(), static_cast<size_t>(size.area()) };
     }
 };
@@ -37,7 +37,7 @@ inline RC<SpriteResource> makeSprite(Size size) {
     });
 }
 
-inline RC<SpriteResource> makeSprite(Size size, bytes_view bytes) {
+inline RC<SpriteResource> makeSprite(Size size, BytesView bytes) {
     BRISK_ASSERT(size.area() == bytes.size());
     RC<SpriteResource> result = makeSprite(size);
     memcpy(result->data(), bytes.data(), bytes.size());

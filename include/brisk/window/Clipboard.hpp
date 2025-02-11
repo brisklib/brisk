@@ -118,7 +118,7 @@ inline bool copyTextToClipboard(std::string_view content) {
  * @param format The ClipboardFormat to associate with the binary data.
  * @return True if the binary data was successfully copied, otherwise false.
  */
-inline bool copyBytesToClipboard(bytes_view content, ClipboardFormat format) {
+inline bool copyBytesToClipboard(BytesView content, ClipboardFormat format) {
     return setClipboardContent(ClipboardContent{ nullopt, { { format, toBytes(content) } } });
 }
 

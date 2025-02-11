@@ -59,7 +59,7 @@ static Bytes toNulTerminatedWString(std::string_view text) {
     return toBytes(std::span{ content.data(), content.data() + content.size() + 1 });
 }
 
-static std::string fromNulTerminatedWString(bytes_view text) {
+static std::string fromNulTerminatedWString(BytesView text) {
     if (text.size_bytes() < 2)
         return {};
     std::wstring content(text.size_bytes() / 2, ' ');

@@ -42,7 +42,7 @@ static int toJPGFormat(PixelFormat fmt) {
                      TJPF_GRAY);
 }
 
-bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampling> ss) {
+Bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampling> ss) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("JPEG codec doesn't support encoding {} format", image->format()));
     }
@@ -54,7 +54,7 @@ bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampli
 
     auto r = image->mapRead<ImageFormat::Unknown_U8Gamma>();
 
-    bytes result(tjBufSize(r.width(), r.height(), toJPGSS(ss.value_or(defaultColorSubsampling))));
+    Bytes result(tjBufSize(r.width(), r.height(), toJPGSS(ss.value_or(defaultColorSubsampling))));
     uint8_t* resultData      = result.data();
     unsigned long resultSize = result.size();
 
@@ -71,7 +71,7 @@ bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampli
     return result;
 }
 
-expected<RC<Image>, ImageIOError> jpegDecode(bytes_view bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> jpegDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("JPEG codec doesn't support decoding to {} format", format));
     }

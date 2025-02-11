@@ -48,7 +48,7 @@ bool SpriteAtlas::canAdd(size_t size) {
     return true;
 }
 
-SpriteOffset SpriteAtlas::add(bytes_view data, bool allowGrow) {
+SpriteOffset SpriteAtlas::add(BytesView data, bool allowGrow) {
     Allocator::offset_type offset = m_alloc->allocate(data.size());
     while (offset == Allocator::null()) {
         if (!allowGrow)

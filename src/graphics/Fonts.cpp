@@ -182,7 +182,7 @@ struct FontFace {
         HANDLE_FT_ERROR_SOFT(FT_Done_Face(face), return);
     }
 
-    explicit FontFace(FontManager* manager, bytes_view data, bool makeCopy, FontFlags flags)
+    explicit FontFace(FontManager* manager, BytesView data, bool makeCopy, FontFlags flags)
         : manager(manager), flags(flags) {
         if (makeCopy) {
             bytes = Bytes(data.begin(), data.end());
@@ -628,7 +628,7 @@ void FontManager::addFontAlias(std::string_view newFontFamily, std::string_view 
     }
 }
 
-void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight weight, bytes_view data,
+void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight weight, BytesView data,
                           bool makeCopy, FontFlags flags) {
     lock_quard_cond lk(m_lock);
     FontKey key{ std::move(fontFamily), style, weight };
@@ -643,7 +643,7 @@ void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight we
 status<IOError> FontManager::addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                              const fs::path& path) {
     lock_quard_cond lk(m_lock);
-    expected<bytes, IOError> b = readBytes(path);
+    expected<Bytes, IOError> b = readBytes(path);
     if (b) {
         addFont(std::move(fontFamily), style, weight, *b);
         return {};
@@ -1208,7 +1208,7 @@ void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Poin
             optional<GlyphData> data = g.load(run);
 
             if (data && data->sprite) {
-                bytes_view v = data->sprite->bytes();
+                BytesView v = data->sprite->bytes();
                 if (v.empty())
                     continue;
                 for (int32_t y = 0; y < data->size.height; ++y) {

@@ -39,7 +39,7 @@ struct Hex {
         0xff, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xff, /* `abcdefg */
     };
 
-    static size_t decode(bytes_mutable_view data, std::string_view encoded) {
+    static size_t decode(BytesMutableView data, std::string_view encoded) {
         if (encoded.size() % 2 != 0 || data.size() < encoded.size() / 2) {
             return SIZE_MAX;
         }
@@ -59,7 +59,7 @@ struct Hex {
         return encoded.size() / 2;
     }
 
-    static size_t encode(std::span<char> encoded, bytes_view data, bool upperCase = false) {
+    static size_t encode(std::span<char> encoded, BytesView data, bool upperCase = false) {
         if (encoded.size() < data.size() * 2) {
             return SIZE_MAX;
         }
@@ -124,7 +124,7 @@ struct Base64 {
         return chunks * 4 + (remaining ? (pad ? 4 : remaining + 1) : 0);
     }
 
-    static size_t decode(bytes_mutable_view data, std::string_view encoded, bool urlSafe, bool strict) {
+    static size_t decode(BytesMutableView data, std::string_view encoded, bool urlSafe, bool strict) {
         const uint8_t* hashmap = Base64::hashmap[urlSafe];
         uint8_t* out           = data.data();
         int g                  = 0;
@@ -182,7 +182,7 @@ struct Base64 {
         return out - data.data();
     }
 
-    static size_t encode(std::span<char> encoded, bytes_view data, bool urlSafe, bool pad) {
+    static size_t encode(std::span<char> encoded, BytesView data, bool urlSafe, bool pad) {
         if (encoded.size() < encodedSize(data.size(), pad)) {
             return SIZE_MAX;
         }
@@ -219,11 +219,11 @@ struct Base64 {
 };
 } // namespace
 
-size_t fromHex(bytes_mutable_view bytes, std::string_view hex) {
+size_t fromHex(BytesMutableView bytes, std::string_view hex) {
     return Hex::decode(bytes, hex);
 }
 
-size_t toHex(std::span<char> hex, bytes_view bytes, bool upperCase) {
+size_t toHex(std::span<char> hex, BytesView bytes, bool upperCase) {
     return Hex::encode(hex, bytes, upperCase);
 }
 
@@ -236,7 +236,7 @@ optional<Bytes> fromHex(std::string_view hex) {
     return nullopt;
 }
 
-std::string toHex(bytes_view data, bool upperCase) {
+std::string toHex(BytesView data, bool upperCase) {
     std::string result(data.size() * 2, ' ');
     if (size_t sz = toHex(result, data, upperCase); sz != SIZE_MAX) {
         result.resize(sz);
@@ -245,11 +245,11 @@ std::string toHex(bytes_view data, bool upperCase) {
     return {};
 }
 
-size_t fromBase64(bytes_mutable_view data, std::string_view encoded, bool urlSafe, bool strict) {
+size_t fromBase64(BytesMutableView data, std::string_view encoded, bool urlSafe, bool strict) {
     return Base64::decode(data, encoded, urlSafe, strict);
 }
 
-size_t toBase64(std::span<char> encoded, bytes_view data, bool urlSafe, bool pad) {
+size_t toBase64(std::span<char> encoded, BytesView data, bool urlSafe, bool pad) {
     return Base64::encode(encoded, data, urlSafe, pad);
 }
 
@@ -262,7 +262,7 @@ optional<Bytes> fromBase64(std::string_view encoded, bool urlSafe, bool strict) 
     return nullopt;
 }
 
-std::string toBase64(bytes_view data, bool urlSafe, bool pad) {
+std::string toBase64(BytesView data, bool urlSafe, bool pad) {
     std::string result(Base64::encodedSize(data.size(), pad), ' ');
     if (size_t sz = toBase64(result, data, urlSafe, pad); sz != SIZE_MAX) {
         result.resize(sz);

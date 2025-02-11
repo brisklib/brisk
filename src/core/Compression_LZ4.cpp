@@ -215,8 +215,8 @@ RC<Stream> lz4Encoder(RC<Stream> writer, CompressionLevel level) {
     return RC<Stream>(new LZ4Encoder(std::move(writer), level));
 }
 
-bytes lz4Encode(bytes_view data, CompressionLevel level) {
-    bytes result;
+Bytes lz4Encode(BytesView data, CompressionLevel level) {
+    Bytes result;
     size_t max_compressed_size = LZ4F_compressFrameBound(data.size(), nullptr);
     result.resize(max_compressed_size);
 
@@ -231,8 +231,8 @@ bytes lz4Encode(bytes_view data, CompressionLevel level) {
     return result;
 }
 
-bytes lz4Decode(bytes_view data) {
-    bytes result;
+Bytes lz4Decode(BytesView data) {
+    Bytes result;
     result.resize(data.size() * 3);
 
     LZ4F_dctx* dctx;

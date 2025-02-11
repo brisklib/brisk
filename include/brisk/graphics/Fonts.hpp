@@ -1055,7 +1055,7 @@ public:
     ~FontManager();
 
     void addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily);
-    void addFont(std::string fontFamily, FontStyle style, FontWeight weight, bytes_view data,
+    void addFont(std::string fontFamily, FontStyle style, FontWeight weight, BytesView data,
                  bool makeCopy = true, FontFlags flags = FontFlags::Default);
     [[nodiscard]] bool addFontByName(std::string fontFamily, std::string_view fontName);
     [[nodiscard]] bool addSystemFont(std::string fontFamily);

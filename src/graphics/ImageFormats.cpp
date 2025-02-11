@@ -26,7 +26,7 @@
 
 namespace Brisk {
 
-optional<ImageCodec> guessImageCodec(bytes_view bytes) {
+optional<ImageCodec> guessImageCodec(BytesView bytes) {
     if (bytes.size() <= 4)
         return nullopt;
     FourCC cc = readFromBytes<FourCC>(bytes);
@@ -45,7 +45,7 @@ optional<ImageCodec> guessImageCodec(bytes_view bytes) {
     return nullopt;
 }
 
-bytes imageEncode(ImageCodec codec, RC<Image> image, optional<int> quality, optional<ColorSubsampling> ss) {
+Bytes imageEncode(ImageCodec codec, RC<Image> image, optional<int> quality, optional<ColorSubsampling> ss) {
     switch (codec) {
     case ImageCodec::BMP:
         return bmpEncode(std::move(image));
@@ -60,7 +60,7 @@ bytes imageEncode(ImageCodec codec, RC<Image> image, optional<int> quality, opti
     }
 }
 
-expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, bytes_view bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, BytesView bytes, ImageFormat format) {
     switch (codec) {
     case ImageCodec::BMP:
         return bmpDecode(bytes, format);
@@ -75,7 +75,7 @@ expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, bytes_view bytes
     }
 }
 
-expected<RC<Image>, ImageIOError> imageDecode(bytes_view bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> imageDecode(BytesView bytes, ImageFormat format) {
     auto codec = guessImageCodec(bytes);
     if (!codec)
         return unexpected(ImageIOError::CodecError);

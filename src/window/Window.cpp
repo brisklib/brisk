@@ -492,7 +492,7 @@ Bytes Window::windowPlacement() const {
     });
 }
 
-void Window::setWindowPlacement(bytes_view data) {
+void Window::setWindowPlacement(BytesView data) {
     mustBeUIThread();
     if (!m_platformWindow) {
         return;

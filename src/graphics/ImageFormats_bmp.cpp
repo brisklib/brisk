@@ -46,7 +46,7 @@ static void stbi_write(void* context, void* data, int size) {
     std::ignore          = result.write((const uint8_t*)data, size);
 }
 
-bytes bmpEncode(RC<Image> image) {
+Bytes bmpEncode(RC<Image> image) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("BMP codec doesn't support encoding {} format", image->format()));
     }
@@ -57,7 +57,7 @@ bytes bmpEncode(RC<Image> image) {
     if (r.byteStride() == r.width() * comp) {
         stbi_write_bmp_to_func(&stbi_write, &strm, image->width(), image->height(), comp, r.data());
     } else {
-        bytes tmp(r.memorySize());
+        Bytes tmp(r.memorySize());
         r.writeTo(tmp);
         stbi_write_bmp_to_func(&stbi_write, &strm, image->width(), image->height(), comp, tmp.data());
     }
@@ -70,7 +70,7 @@ struct stbi_delete {
     }
 };
 
-static expected<RC<Image>, ImageIOError> stbiDecode(bytes_view bytes, ImageFormat format) {
+static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("BMP codec doesn't support decoding to {} format", format));
     }
@@ -90,11 +90,11 @@ static expected<RC<Image>, ImageIOError> stbiDecode(bytes_view bytes, ImageForma
         return unexpected(ImageIOError::InvalidFormat);
     RC<Image> image = rcnew Image(Size{ width, height }, imageFormat(PixelType::U8Gamma, fmt));
     auto w          = image->mapWrite();
-    w.readFrom(bytes_view{ mem.get(), size_t(width * height * comp) });
+    w.readFrom(BytesView{ mem.get(), size_t(width * height * comp) });
     return image;
 }
 
-expected<RC<Image>, ImageIOError> bmpDecode(bytes_view bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes, ImageFormat format) {
     return stbiDecode(bytes, format);
 }
 

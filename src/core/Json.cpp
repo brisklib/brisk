@@ -380,7 +380,7 @@ struct Visitor : public BaseReaderHandler<UTF8<>, Visitor> {
 };
 
 struct byte_stream {
-    bytes data;
+    Bytes data;
 
     void write(const char* buf, size_t len) {
         data.insert(data.end(), buf, buf + len);
@@ -481,7 +481,7 @@ std::vector<uint8_t> Json::toMsgPack() const {
     return std::move(bs.data);
 }
 
-optional<Json> Json::fromMsgPack(const bytes_view& s) {
+optional<Json> Json::fromMsgPack(const BytesView& s) {
     Visitor visitor;
     visitor.jsons.push_back(nullptr);
     msgpack::detail::parse_helper<Visitor> r(visitor);

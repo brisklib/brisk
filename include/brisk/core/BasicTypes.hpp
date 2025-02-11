@@ -81,17 +81,17 @@ using byte               = uint8_t;
 /**
  * @brief Type alias for a vector of bytes.
  */
-using bytes              = std::vector<byte>;
+using Bytes              = std::vector<byte>;
 
 /**
  * @brief Type alias for a non-modifiable view of a sequence of bytes.
  */
-using bytes_view         = std::span<const byte>;
+using BytesView         = std::span<const byte>;
 
 /**
  * @brief Type alias for a modifiable view of a sequence of bytes.
  */
-using bytes_mutable_view = std::span<byte>;
+using BytesMutableView = std::span<byte>;
 
 #ifdef BRISK_USE_CHAR8_T
 /**
@@ -227,13 +227,13 @@ constexpr inline bool simpleMemoryRepresentation =
  * This function requires that the type `T` has a simple memory representation.
  *
  * @param value The object to convert.
- * @return A `bytes_view` representing the object as a sequence of bytes.
+ * @return A `BytesView` representing the object as a sequence of bytes.
  */
 template <typename Type>
-inline bytes_view asBytesView(const Type& value)
+inline BytesView asBytesView(const Type& value)
     requires simpleMemoryRepresentation<Type>
 {
-    return bytes_view(reinterpret_cast<const byte*>(std::addressof(value)), sizeof(Type));
+    return BytesView(reinterpret_cast<const byte*>(std::addressof(value)), sizeof(Type));
 }
 
 /**
@@ -242,69 +242,69 @@ inline bytes_view asBytesView(const Type& value)
  * This function works for containers that may be converted to a `std::span<const T>`.
  *
  * @param cont The container to convert.
- * @return A `bytes_view` representing the container's elements as a sequence of bytes.
+ * @return A `BytesView` representing the container's elements as a sequence of bytes.
  */
 template <typename Container, typename T = typename std::decay_t<Container>::value_type>
-inline bytes_view toBytesView(Container&& cont)
+inline BytesView toBytesView(Container&& cont)
     requires std::is_constructible_v<std::span<const T>, Container&>
 {
     std::span<const T> sp(cont);
-    return bytes_view(reinterpret_cast<const byte*>(sp.data()), sp.size_bytes());
+    return BytesView(reinterpret_cast<const byte*>(sp.data()), sp.size_bytes());
 }
 
 /**
  * @brief Converts a null-terminated C-string to a non-modifiable view of bytes.
  *
  * @param str The null-terminated C-string to convert.
- * @return A `bytes_view` representing the C-string as a sequence of bytes, excluding null byte.
+ * @return A `BytesView` representing the C-string as a sequence of bytes, excluding null byte.
  */
 template <size_t N>
-inline bytes_view toBytesView(const char (&str)[N]) {
-    return bytes_view(reinterpret_cast<const byte*>(str), N - 1);
+inline BytesView toBytesView(const char (&str)[N]) {
+    return BytesView(reinterpret_cast<const byte*>(str), N - 1);
 }
 
 /**
  * @brief Converts a null-terminated UTF-8 C-string to a non-modifiable view of bytes.
  *
  * @param str The null-terminated UTF-8 C-string to convert.
- * @return A `bytes_view` representing the UTF-8 C-string as a sequence of bytes, excluding null byte.
+ * @return A `BytesView` representing the UTF-8 C-string as a sequence of bytes, excluding null byte.
  */
 template <size_t N>
-inline bytes_view toBytesView(const char8_t (&str)[N]) {
-    return bytes_view(reinterpret_cast<const byte*>(str), N - 1);
+inline BytesView toBytesView(const char8_t (&str)[N]) {
+    return BytesView(reinterpret_cast<const byte*>(str), N - 1);
 }
 
 /**
  * @brief Converts a null-terminated UTF-16 C-string to a non-modifiable view of bytes.
  *
  * @param str The null-terminated UTF-16 C-string to convert.
- * @return A `bytes_view` representing the UTF-16 C-string as a sequence of bytes, excluding null.
+ * @return A `BytesView` representing the UTF-16 C-string as a sequence of bytes, excluding null.
  */
 template <size_t N>
-inline bytes_view toBytesView(const char16_t (&str)[N]) {
-    return bytes_view(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(char16_t));
+inline BytesView toBytesView(const char16_t (&str)[N]) {
+    return BytesView(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(char16_t));
 }
 
 /**
  * @brief Converts a null-terminated UTF-32 C-string to a non-modifiable view of bytes.
  *
  * @param str The null-terminated UTF-32 C-string to convert.
- * @return A `bytes_view` representing the UTF-32 C-string as a sequence of bytes, excluding null.
+ * @return A `BytesView` representing the UTF-32 C-string as a sequence of bytes, excluding null.
  */
 template <size_t N>
-inline bytes_view toBytesView(const char32_t (&str)[N]) {
-    return bytes_view(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(char32_t));
+inline BytesView toBytesView(const char32_t (&str)[N]) {
+    return BytesView(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(char32_t));
 }
 
 /**
  * @brief Converts a null-terminated wide C-string to a non-modifiable view of bytes.
  *
  * @param str The null-terminated wide C-string to convert.
- * @return A `bytes_view` representing the wide C-string as a sequence of bytes, excluding null.
+ * @return A `BytesView` representing the wide C-string as a sequence of bytes, excluding null.
  */
 template <size_t N>
-inline bytes_view toBytesView(const wchar_t (&str)[N]) {
-    return bytes_view(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(wchar_t));
+inline BytesView toBytesView(const wchar_t (&str)[N]) {
+    return BytesView(reinterpret_cast<const byte*>(str), (N - 1) * sizeof(wchar_t));
 }
 
 /**
@@ -313,41 +313,41 @@ inline bytes_view toBytesView(const wchar_t (&str)[N]) {
  * This function works for containers that may be converted to a `std::span<T>`.
  *
  * @param cont The container to convert.
- * @return A `bytes_mutable_view` representing the container's elements as a sequence of bytes.
+ * @return A `BytesMutableView` representing the container's elements as a sequence of bytes.
  */
 template <typename Container>
-inline bytes_mutable_view toBytesMutableView(Container&& cont)
+inline BytesMutableView toBytesMutableView(Container&& cont)
     requires requires { std::span{ cont }; }
 {
     std::span sp(cont);
-    return bytes_mutable_view(reinterpret_cast<byte*>(sp.data()), sp.size_bytes());
+    return BytesMutableView(reinterpret_cast<byte*>(sp.data()), sp.size_bytes());
 }
 
 /**
  * @brief Converts an object to a vector of bytes.
  *
- * This function first converts the object to a `bytes_view`, then creates a `bytes` vector from it.
+ * This function first converts the object to a `BytesView`, then creates a `Bytes` vector from it.
  *
  * @param value The object to convert.
- * @return A `bytes` vector representing the object as a sequence of bytes.
+ * @return A `Bytes` vector representing the object as a sequence of bytes.
  */
 template <typename T>
-inline bytes toBytes(T&& value) {
-    bytes_view v = toBytesView(value);
-    return bytes(v.begin(), v.end());
+inline Bytes toBytes(T&& value) {
+    BytesView v = toBytesView(value);
+    return Bytes(v.begin(), v.end());
 }
 
 /**
  * @brief Converts an object to a `std::string_view`.
  *
- * This function first converts the object to a `bytes_view`, then creates a `std::string_view` from it.
+ * This function first converts the object to a `BytesView`, then creates a `std::string_view` from it.
  *
  * @param value The object to convert.
  * @return A `std::string_view` representing the object as a sequence of characters.
  */
 template <typename T>
 inline std::string_view toStringView(T&& value) {
-    bytes_view v = toBytesView(value);
+    BytesView v = toBytesView(value);
     return std::string_view(reinterpret_cast<const char*>(v.data()), v.size());
 }
 

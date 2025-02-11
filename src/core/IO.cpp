@@ -215,8 +215,8 @@ optional<uintmax_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufS
     return transferred;
 }
 
-expected<bytes, IOError> readBytes(const fs::path& file_name) {
-    return openFileForReading(file_name).and_then([](const RC<Stream>& r) -> expected<bytes, IOError> {
+expected<Bytes, IOError> readBytes(const fs::path& file_name) {
+    return openFileForReading(file_name).and_then([](const RC<Stream>& r) -> expected<Bytes, IOError> {
         auto rd = r->readUntilEnd();
         if (rd)
             return *rd;
@@ -226,7 +226,7 @@ expected<bytes, IOError> readBytes(const fs::path& file_name) {
 }
 
 expected<std::string, IOError> readUtf8(const fs::path& file_name, bool removeBOM) {
-    return readBytes(file_name).map([removeBOM](const bytes& b) {
+    return readBytes(file_name).map([removeBOM](const Bytes& b) {
         if (removeBOM)
             return std::string(utf8SkipBom(std::string(b.begin(), b.end())));
         else
@@ -241,7 +241,7 @@ expected<Json, IOError> readJson(const fs::path& file_name) {
 }
 
 expected<Json, IOError> readMsgpack(const fs::path& file_name) {
-    return readBytes(file_name).map([](const bytes& b) {
+    return readBytes(file_name).map([](const Bytes& b) {
         return Json::fromMsgPack(b).value_or(JsonNull{});
     });
 }
@@ -254,14 +254,14 @@ expected<std::vector<std::string>, IOError> readLines(const fs::path& file_name)
     });
 }
 
-status<IOError> writeBytes(const fs::path& file_name, const bytes_view& b) {
+status<IOError> writeBytes(const fs::path& file_name, const BytesView& b) {
     return openFileForWriting(file_name).and_then([b](const RC<Stream>& w) -> status<IOError> {
         return unexpected_if(w->writeAll(b), IOError::CantWrite);
     });
 }
 
 status<IOError> writeUtf8(const fs::path& file_name, std::string_view str, bool useBOM) {
-    bytes_view bv = toBytesView(str);
+    BytesView bv = toBytesView(str);
     if (useBOM) {
         return openFileForWriting(file_name).and_then([bv](const RC<Stream>& w) -> status<IOError> {
             return unexpected_if(w->writeAll(toBytesView(utf8_bom)) && w->writeAll(bv), IOError::CantWrite);

@@ -182,8 +182,8 @@ RC<Stream> brotliEncoder(RC<Stream> writer, CompressionLevel level) {
     return RC<Stream>(new BrotliEncoder(std::move(writer), level));
 }
 
-bytes brotliEncode(bytes_view data, CompressionLevel level) {
-    bytes result;
+Bytes brotliEncode(BytesView data, CompressionLevel level) {
+    Bytes result;
     int q     = brotliQuality(level);
     size_t sz = BrotliEncoderMaxCompressedSize(data.size());
     if (sz == 0)
@@ -201,8 +201,8 @@ bytes brotliEncode(bytes_view data, CompressionLevel level) {
     return result;
 }
 
-bytes brotliDecode(bytes_view data) {
-    bytes result;
+Bytes brotliDecode(BytesView data) {
+    Bytes result;
     result.resize(data.size() * 3);
     size_t decoded_size = result.size();
     while (!BrotliDecoderDecompress(data.size(), data.data(), &decoded_size, result.data())) {

@@ -263,7 +263,7 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  *         the read operation is successful, or an I/O error if
  *         it fails.
  */
-[[nodiscard]] expected<bytes, IOError> readBytes(const fs::path& file_name);
+[[nodiscard]] expected<Bytes, IOError> readBytes(const fs::path& file_name);
 
 /**
  * @brief Reads the entire file as a UTF-8 encoded string.
@@ -330,7 +330,7 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  * @param b The bytes to write to the file.
  * @return A status indicating success or an I/O error.
  */
-[[nodiscard]] status<IOError> writeBytes(const fs::path& file_name, const bytes_view& b);
+[[nodiscard]] status<IOError> writeBytes(const fs::path& file_name, const BytesView& b);
 
 /**
  * @brief Writes a UTF-8 encoded string to a file.

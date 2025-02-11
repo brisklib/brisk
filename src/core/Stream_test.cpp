@@ -58,7 +58,7 @@ TEST_CASE("SpanStream") {
 
     SECTION("read") {
         CHECK(m->read(buf, 100) == 43);
-        CHECK(bytes_view(buf, 43) == toBytesView(pangram));
+        CHECK(BytesView(buf, 43) == toBytesView(pangram));
     }
 }
 } // namespace Brisk
