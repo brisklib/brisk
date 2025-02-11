@@ -199,7 +199,7 @@ expected<RC<Stream>, IOError> openFileForWriting(const fs::path& filePath, bool 
     return openFile(filePath, appending ? OpenFileMode::AppendOrCreate : OpenFileMode::RewriteOrCreate);
 }
 
-optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize) {
+std::optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize) {
     uint64_t transferred = 0;
     auto buf             = std::unique_ptr<std::byte[]>(new std::byte[bufSize]);
     Transferred rd;
@@ -209,9 +209,9 @@ optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSi
         transferred += rd.bytes();
     }
     if (!dest->flush())
-        return nullopt;
+        return std::nullopt;
     if (rd.isError())
-        return nullopt;
+        return std::nullopt;
     return transferred;
 }
 
@@ -318,12 +318,12 @@ fs::path tempFilePath(std::string pattern) {
     return tmp / pattern;
 }
 
-optional<fs::path> findDirNextToExe(std::string_view dirName) {
+std::optional<fs::path> findDirNextToExe(std::string_view dirName) {
     fs::path path = executablePath();
     for (;;) {
         path = path.parent_path();
         if (!path.has_relative_path())
-            return nullopt;
+            return std::nullopt;
         if (fs::path dirPath = path / dirName; fs::is_directory(dirPath))
             return dirPath;
     }

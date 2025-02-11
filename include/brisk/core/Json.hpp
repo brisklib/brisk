@@ -401,9 +401,9 @@ struct Json : protected JsonVariant {
     }
 
     template <typename T>
-    using ConstRefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<const T>, optional<T>>;
+    using ConstRefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<const T>, std::optional<T>>;
     template <typename T>
-    using RefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<T>, optional<T>>;
+    using RefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<T>, std::optional<T>>;
 
     /**
      * @brief Converts the current Json value to another type.
@@ -431,7 +431,7 @@ struct Json : protected JsonVariant {
             if (JsonConverter<T>::fromJson(*this, val))
                 return val;
         }
-        return nullopt;
+        return std::nullopt;
     }
 
     /**
@@ -460,7 +460,7 @@ struct Json : protected JsonVariant {
             if (JsonConverter<T>::fromJson(*this, val))
                 return val;
         }
-        return nullopt;
+        return std::nullopt;
     }
 
     /**
@@ -511,7 +511,7 @@ struct Json : protected JsonVariant {
      * @param s The JSON string to parse.
      * @return An optional Json object if parsing is successful.
      */
-    static optional<Json> fromJson(const std::string& s);
+    static std::optional<Json> fromJson(const std::string& s);
 
     /**
      * @brief Converts the current Json object to a MessagePack byte array.
@@ -524,7 +524,7 @@ struct Json : protected JsonVariant {
      * @param s The byte array to parse.
      * @return An optional Json object if parsing is successful.
      */
-    static optional<Json> fromMsgPack(const BytesView& s);
+    static std::optional<Json> fromMsgPack(const BytesView& s);
 
     /**
      * @brief Compares two Json objects for equality.
@@ -552,10 +552,10 @@ struct Json : protected JsonVariant {
     ConstRefOpt<T> getItem(std::string_view key) const {
         optional_ref<const JsonObject> o = to<JsonObject>();
         if (!o.has_value())
-            return nullopt;
+            return std::nullopt;
         auto it = o->find(key);
         if (it == o->end())
-            return nullopt;
+            return std::nullopt;
         return it->second.template to<T>();
     }
 
@@ -630,14 +630,14 @@ struct Json : protected JsonVariant {
                 continue;
             optional_ref<const JsonObject> o = root->to<JsonObject>();
             if (!o)
-                return nullopt;
+                return std::nullopt;
             auto it = o->find(key);
             if (it == o->end())
-                return nullopt;
+                return std::nullopt;
             root = &it->second;
         }
         if (!root) // empty path
-            return nullopt;
+            return std::nullopt;
         return root->template to<T>();
     }
 
@@ -778,7 +778,7 @@ inline bool fromJson(const Json& b, T& v)
 }
 
 template <typename T, typename U>
-inline bool assignOpt(T& dst, const optional<U>& src) {
+inline bool assignOpt(T& dst, const std::optional<U>& src) {
     if (src.has_value()) {
         dst = *src;
     }

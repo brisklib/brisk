@@ -36,11 +36,11 @@ TEST_CASE("Convert empty hex string to Bytes") {
 }
 
 TEST_CASE("Handle invalid hex input: '0'") {
-    CHECK(fromHex("0") == nullopt);
+    CHECK(fromHex("0") == std::nullopt);
 }
 
 TEST_CASE("Handle invalid hex input: 'X'") {
-    CHECK(fromHex("X") == nullopt);
+    CHECK(fromHex("X") == std::nullopt);
 }
 
 TEST_CASE("Convert uint32 vector to hex") {
@@ -76,19 +76,19 @@ TEST_CASE("Convert empty Base64 string to Bytes") {
 }
 
 TEST_CASE("Handle invalid Base64 input: '0'") {
-    CHECK(fromBase64("0", false, true) == nullopt);
+    CHECK(fromBase64("0", false, true) == std::nullopt);
 }
 
 TEST_CASE("Handle invalid Base64 input: '@'") {
-    CHECK(fromBase64("@", false, true) == nullopt);
+    CHECK(fromBase64("@", false, true) == std::nullopt);
 }
 
 TEST_CASE("Convert Base64 string with newlines to Bytes") {
     CHECK(fromBase64("AAA\r\nAAA", false, false) == Bytes{ 0_b, 0_b, 0_b, 0_b });
 }
 
-TEST_CASE("Invalid Base64 string with newlines returns nullopt") {
-    CHECK(fromBase64("AAA\r\nAAA", false, true) == nullopt);
+TEST_CASE("Invalid Base64 string with newlines returns std::nullopt") {
+    CHECK(fromBase64("AAA\r\nAAA", false, true) == std::nullopt);
 }
 
 TEST_CASE("Convert uint32 vector to Base64") {

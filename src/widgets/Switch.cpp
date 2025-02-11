@@ -89,7 +89,7 @@ Switch::Switch(Construction construction, ArgumentsView<Switch> args)
     args.apply(this);
 }
 
-optional<float>& Switch::animatedValue() const {
+std::optional<float>& Switch::animatedValue() const {
     return m_animatedValue;
 }
 } // namespace Brisk

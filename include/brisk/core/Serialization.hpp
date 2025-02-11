@@ -301,14 +301,14 @@ inline void Serialization::operator()(SerializableInterface& value, std::string_
     }
 
 /**
- * @brief Specialization of `JsonConverter` for `optional<T>`.
+ * @brief Specialization of `JsonConverter` for `std::optional<T>`.
  *
- * Provides serialization and deserialization logic for `optional` types.
+ * Provides serialization and deserialization logic for `std::optional` types.
  *
- * @tparam T The type contained within the optional.
+ * @tparam T The type contained within the std::optional.
  */
 template <typename T>
-struct JsonConverter<optional<T>> {
+struct JsonConverter<std::optional<T>> {
     /**
      * @brief Converts an `optional` value to JSON.
      *
@@ -316,7 +316,7 @@ struct JsonConverter<optional<T>> {
      * @param srcValue The source optional value.
      * @return True on success.
      */
-    static bool toJson(Json& result, const optional<T>& srcValue);
+    static bool toJson(Json& result, const std::optional<T>& srcValue);
 
     /**
      * @brief Converts a JSON object to an `optional` value.
@@ -325,7 +325,7 @@ struct JsonConverter<optional<T>> {
      * @param result The target optional value.
      * @return True on success.
      */
-    static bool fromJson(const Json& srcJson, optional<T>& result);
+    static bool fromJson(const Json& srcJson, std::optional<T>& result);
 };
 
 } // namespace Brisk

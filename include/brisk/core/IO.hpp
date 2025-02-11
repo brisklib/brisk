@@ -388,7 +388,8 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  * @return An optional indicating the number of bytes written, or
  *         an empty optional if an error occurs.
  */
-[[nodiscard]] optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize = 65536);
+[[nodiscard]] std::optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src,
+                                                      size_t bufSize = 65536);
 
 /**
  * @enum DefaultFolder
@@ -509,6 +510,6 @@ fs::path tempFilePath(std::string pattern);
  * @return An optional containing the path to the found directory if it exists;
  *         otherwise, `std::nullopt` is returned if the directory is not found.
  */
-optional<fs::path> findDirNextToExe(std::string_view dirName);
+std::optional<fs::path> findDirNextToExe(std::string_view dirName);
 
 } // namespace Brisk

@@ -119,7 +119,7 @@ inline bool copyTextToClipboard(std::string_view content) {
  * @return True if the binary data was successfully copied, otherwise false.
  */
 inline bool copyBytesToClipboard(BytesView content, ClipboardFormat format) {
-    return setClipboardContent(ClipboardContent{ nullopt, { { format, toBytes(content) } } });
+    return setClipboardContent(ClipboardContent{ std::nullopt, { { format, toBytes(content) } } });
 }
 
 /**
@@ -127,7 +127,7 @@ inline bool copyBytesToClipboard(BytesView content, ClipboardFormat format) {
  *
  * @return An optional string containing the clipboard text if available, otherwise std::nullopt.
  */
-inline optional<std::string> getTextFromClipboard() {
+inline std::optional<std::string> getTextFromClipboard() {
     return getClipboardContent({ textFormat }).text;
 }
 
@@ -138,12 +138,12 @@ inline optional<std::string> getTextFromClipboard() {
  * @return An optional vector of bytes containing the clipboard data for the specified format, or std::nullopt
  * if not found.
  */
-inline optional<Bytes> getBytesFromClipboard(ClipboardFormat format) {
+inline std::optional<Bytes> getBytesFromClipboard(ClipboardFormat format) {
     ClipboardContent content = getClipboardContent({ format });
     if (auto it = content.formats.find(format); it != content.formats.end()) {
         return std::move(it->second);
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 } // namespace Brisk

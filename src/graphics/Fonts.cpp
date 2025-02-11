@@ -281,15 +281,15 @@ struct FontFace {
         return numRemoved;
     }
 
-    optional<GlyphData> loadGlyphCached(float fontSize, GlyphID glyphIndex) {
+    std::optional<GlyphData> loadGlyphCached(float fontSize, GlyphID glyphIndex) {
         if (auto it = cache.find(glyphCacheKey(fontSize, glyphIndex)); it != cache.end()) {
             it->second.time = currentTime();
             return it->second;
         } else {
-            std::ignore              = lookupSize(fontSize);
-            optional<GlyphData> data = loadGlyph(glyphIndex);
+            std::ignore                   = lookupSize(fontSize);
+            std::optional<GlyphData> data = loadGlyph(glyphIndex);
             if (!data.has_value())
-                return nullopt;
+                return std::nullopt;
 
             it              = cache.insert(it, std::pair<Internal::GlyphCacheKey, GlyphDataAndTime>{
                                       glyphCacheKey(fontSize, glyphIndex),
@@ -313,7 +313,7 @@ struct FontFace {
         return fromFixed6(slot->advance.x) / float(hscale);
     }
 
-    optional<GlyphData> loadGlyph(GlyphID glyphIndex) {
+    std::optional<GlyphData> loadGlyph(GlyphID glyphIndex) {
         FT_Int32 ftFlags;
         if (isSVG()) {
             ftFlags = FT_LOAD_TARGET_LIGHT | FT_LOAD_SVG_ONLY | FT_LOAD_COLOR;
@@ -328,21 +328,21 @@ struct FontFace {
 
         FT_Error err = FT_Load_Glyph(face, glyphIndex, ftFlags);
         if (err == FT_Err_Invalid_Glyph_Index || err == FT_Err_Invalid_Argument) {
-            return nullopt;
+            return std::nullopt;
         }
         HANDLE_FT_ERROR(err);
 
         if (isSVG()) {
             if (face->glyph->format != FT_GLYPH_FORMAT_SVG) {
                 LOG_WARN(font, "Cannot load svg glyph #{} from a SVG font {}", glyphIndex, familyName());
-                return nullopt;
+                return std::nullopt;
             }
             FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
         }
 
         FT_GlyphSlot slot = face->glyph;
         if (slot->advance.y != 0)
-            return nullopt;
+            return std::nullopt;
 
         GlyphData glyph;
         glyph.offset_x = slot->bitmap_left / float(hscale);
@@ -661,11 +661,11 @@ static bool isFontExt(std::string_view ext) {
     return cmpi(ext, ".ttf") || cmpi(ext, ".otf");
 }
 
-static optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& path) {
+static std::optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& path) {
     FT_Face face;
     FT_Error err = FT_New_Face(library, path.string().c_str(), 0, &face);
     if (err)
-        return nullopt;
+        return std::nullopt;
     SCOPE_EXIT {
         FT_Done_Face(face);
     };
@@ -675,7 +675,7 @@ static optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& path) 
     font.weight = FontWeight::Regular;
     font.style  = FontStyle::Normal;
     if (face->family_name == nullptr)
-        return nullopt;
+        return std::nullopt;
     font.family = face->family_name;
     if (face->style_name != nullptr) {
         std::string_view styleName = face->style_name;
@@ -720,7 +720,7 @@ std::vector<OSFont> FontManager::installedFonts(bool rescan) const {
         for (fs::path path : fontFolders()) {
             for (auto f : fs::directory_iterator(path)) {
                 if (f.is_regular_file() && isFontExt(f.path().extension().string())) {
-                    if (optional<OSFont> fontInfo =
+                    if (std::optional<OSFont> fontInfo =
                             fontQuickInfo(static_cast<FT_Library>(m_ft_library), f.path())) {
                         m_osFonts.push_back(std::move(*fontInfo));
                     }
@@ -1204,8 +1204,8 @@ void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Poin
         const GlyphRun& run = prepared.runVisual(ri);
 
         for (size_t i = 0; i < run.glyphs.size(); ++i) {
-            const Glyph& g           = run.glyphs[i];
-            optional<GlyphData> data = g.load(run);
+            const Glyph& g                = run.glyphs[i];
+            std::optional<GlyphData> data = g.load(run);
 
             if (data && data->sprite) {
                 BytesView v = data->sprite->bytes();
@@ -1320,9 +1320,9 @@ float Glyph::caretForDirection(bool inverse) const {
         return left_caret;
 }
 
-optional<GlyphData> Glyph::load(const GlyphRun& run) const {
+std::optional<GlyphData> Glyph::load(const GlyphRun& run) const {
     if (!run.face || glyph == UINT32_MAX)
-        return nullopt;
+        return std::nullopt;
     return run.face->loadGlyphCached(run.fontSize, glyph);
 }
 

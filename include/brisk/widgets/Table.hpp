@@ -29,7 +29,7 @@ template <typename TItem>
 struct Selection {
     PossiblyShared<std::vector<TItem>> order;
     std::set<TItem> selection;
-    optional<TItem> focused; // last selected
+    std::optional<TItem> focused; // last selected
 
     void selectAll() {
         selection.clear();

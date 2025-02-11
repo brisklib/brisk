@@ -611,7 +611,7 @@ void Window::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mod
     }
     onMouseEvent(button, action, mods, point, triClick ? 3 : dblClick ? 2 : 1);
     if (button == MouseButton::Left && action == MouseAction::Release) {
-        m_downPoint = nullopt;
+        m_downPoint = std::nullopt;
     }
 }
 

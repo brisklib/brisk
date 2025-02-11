@@ -38,13 +38,13 @@ static bool setClipboardData(ClipboardFormat format, const Bytes& bytes) {
     return true;
 }
 
-static optional<Bytes> getClipboardData(ClipboardFormat format) {
+static std::optional<Bytes> getClipboardData(ClipboardFormat format) {
     HGLOBAL mem = GetClipboardData(format);
     if (mem == NULL)
-        return nullopt;
+        return std::nullopt;
     uint8_t* locked = (uint8_t*)GlobalLock(mem);
     if (!locked)
-        return nullopt;
+        return std::nullopt;
     SCOPE_EXIT {
         GlobalUnlock(mem);
     };

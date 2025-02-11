@@ -138,7 +138,7 @@ TEST_CASE("Json Json") {
 
     CHECK(b.toJson() == s);
 
-    optional<Json> bb = Json::fromJson(s);
+    std::optional<Json> bb = Json::fromJson(s);
 
     CHECK(bb.has_value());
     CHECK(*bb == b);

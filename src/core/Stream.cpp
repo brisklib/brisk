@@ -31,7 +31,7 @@ Transferred& Transferred::operator+=(Transferred other) noexcept {
     return *this;
 }
 
-optional<std::vector<std::byte>> Stream::readUntilEnd(bool incompleteOk) {
+std::optional<std::vector<std::byte>> Stream::readUntilEnd(bool incompleteOk) {
     constexpr size_t SIZE = 16384;
     std::vector<std::byte> data;
     std::byte buf[SIZE];
@@ -41,7 +41,7 @@ optional<std::vector<std::byte>> Stream::readUntilEnd(bool incompleteOk) {
         data.insert(data.end(), buf, buf + r.bytes());
     }
     if (r.isError() && !incompleteOk)
-        return nullopt;
+        return std::nullopt;
     return data;
 }
 

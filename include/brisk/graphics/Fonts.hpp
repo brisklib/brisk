@@ -376,11 +376,11 @@ struct Glyph {
      * @brief Loads and renders the glyph into `SpriteResource`.
      *
      * @param run The glyph run containing this glyph.
-     * @return optional<GlyphData> The loaded glyph data if available, or an empty value otherwise.
+     * @return std::optional<GlyphData> The loaded glyph data if available, or an empty value otherwise.
      *
      * @note This is an internal method and should not be used directly.
      */
-    optional<GlyphData> load(const GlyphRun& run) const;
+    std::optional<GlyphData> load(const GlyphRun& run) const;
 };
 
 /**

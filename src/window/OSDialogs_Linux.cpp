@@ -123,7 +123,8 @@ void openFolder(const fs::path& path) {
     openURLInBrowser(path.string());
 }
 
-optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
+std::optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters,
+                                       const fs::path& defaultPath) {
     std::string command = "zenity --file-selection --title=" + escapeShellArg("Open file"_tr);
     if (!defaultPath.empty()) {
         command += " --filename=" + escapeShellArg(defaultPath.string());
@@ -157,7 +158,8 @@ std::vector<fs::path> showOpenDialogMulti(std::span<const FileDialogFilter> filt
     return list;
 }
 
-optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
+std::optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters,
+                                       const fs::path& defaultPath) {
     std::string command =
         "zenity --file-selection --save --confirm-overwrite --title=" + escapeShellArg("Save file"_tr);
     if (!defaultPath.empty()) {
@@ -173,7 +175,7 @@ optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters, con
     return fs::path(trim(result.first)); // Remove trailing newline
 }
 
-optional<fs::path> showFolderDialog(const fs::path& defaultPath) {
+std::optional<fs::path> showFolderDialog(const fs::path& defaultPath) {
     std::string command = "zenity --file-selection --directory --title=" + escapeShellArg("Select folder"_tr);
     if (!defaultPath.empty()) {
         command += " --filename=" + escapeShellArg(defaultPath.string() + "/");

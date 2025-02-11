@@ -463,14 +463,14 @@ std::string Json::toJson(int indent) const {
     return std::string(s.GetString(), s.GetSize());
 }
 
-optional<Json> Json::fromJson(const std::string& s) {
+std::optional<Json> Json::fromJson(const std::string& s) {
     rapidjson::StringStream ss(s.c_str());
     rapidjson::Reader r;
     Visitor visitor;
     visitor.jsons.push_back(nullptr);
     auto e = r.Parse(ss, visitor);
     if (e.IsError())
-        return nullopt;
+        return std::nullopt;
     RAPIDJSON_ASSERT(visitor.jsons.size() == 1);
     return visitor.back();
 }
@@ -484,13 +484,13 @@ Bytes Json::toMsgPack() const {
     return std::move(bs.data);
 }
 
-optional<Json> Json::fromMsgPack(const BytesView& s) {
+std::optional<Json> Json::fromMsgPack(const BytesView& s) {
     Visitor visitor;
     visitor.jsons.push_back(nullptr);
     msgpack::detail::parse_helper<Visitor> r(visitor);
     size_t offs = 0;
     if (r.execute((const char*)s.data(), s.size(), offs) != msgpack::PARSE_SUCCESS)
-        return nullopt;
+        return std::nullopt;
     RAPIDJSON_ASSERT(visitor.jsons.size() == 1);
     return visitor.back();
 }

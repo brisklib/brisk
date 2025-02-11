@@ -642,7 +642,7 @@ public:
         apply(arg);
     }
 
-    virtual optional<std::string> textContent() const;
+    virtual std::optional<std::string> textContent() const;
 
     ////////////////////////////////////////////////////////////////////////////////
     // Debug
@@ -843,7 +843,7 @@ public:
         return find<WidgetClass>(MatchId{ id }, MatchAny{});
     }
 
-    optional<WidgetIterator> findIterator(Widget* widget, Widget** parent = nullptr);
+    std::optional<WidgetIterator> findIterator(Widget* widget, Widget** parent = nullptr);
 
     ////////////////////////////////////////////////////////////////////////////////
     // Geometry
@@ -978,7 +978,7 @@ public:
 
     Drawable drawable(RectangleF scissors) const;
 
-    optional<PointF> mousePos() const;
+    std::optional<PointF> mousePos() const;
 
     void reveal();
 
@@ -1004,7 +1004,7 @@ protected:
     RC<const Stylesheet> m_stylesheet;
     Painter m_painter;
 
-    optional<PointF> m_mousePos;
+    std::optional<PointF> m_mousePos;
 
     bool m_inConstruction : 1       = true;
     bool m_constructed : 1          = false;

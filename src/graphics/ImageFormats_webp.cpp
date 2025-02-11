@@ -34,7 +34,7 @@ struct webp_deleter {
 };
 } // namespace
 
-[[nodiscard]] Bytes webpEncode(RC<Image> image, optional<float> quality, bool lossless) {
+[[nodiscard]] Bytes webpEncode(RC<Image> image, std::optional<float> quality, bool lossless) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("Webp codec doesn't support encoding {} format", image->format()));
     }

@@ -321,7 +321,7 @@ struct Calculator {
     }
 
     void memClear() {
-        memory = nullopt;
+        memory = std::nullopt;
         notify();
     }
 
@@ -392,7 +392,7 @@ struct Calculator {
         additiveOperation       = std::make_tuple(currentOperand, op);
         multiplicativeOperation = std::nullopt;
         exponentiationOperation = std::nullopt;
-        editable                = nullopt;
+        editable                = std::nullopt;
         notify();
     }
 
@@ -400,19 +400,19 @@ struct Calculator {
         currentOperand          = exponentiationSolve();
         multiplicativeOperation = std::make_tuple(currentOperand, op);
         exponentiationOperation = std::nullopt;
-        editable                = nullopt;
+        editable                = std::nullopt;
         notify();
     }
 
     void operation(ExponentiationOperator op) {
         exponentiationOperation = std::make_tuple(currentOperand, op);
-        editable                = nullopt;
+        editable                = std::nullopt;
         notify();
     }
 
     void operation(UnaryOperator op) {
         currentOperand = unary(op, currentOperand);
-        editable       = nullopt;
+        editable       = std::nullopt;
         notify();
     }
 

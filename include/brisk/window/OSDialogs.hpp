@@ -228,9 +228,10 @@ inline FileDialogFilter anyFile(std::string description = {}) {
  *
  * @param filters A set of file filters for the dialog.
  * @param defaultPath The default path for the dialog.
- * @return optional<fs::path> The selected file path, or nullopt if the dialog was canceled.
+ * @return std::optional<fs::path> The selected file path, or nullopt if the dialog was canceled.
  */
-optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath);
+std::optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters,
+                                       const fs::path& defaultPath);
 
 /**
  * @brief Displays an open file dialog for multiple file selections.
@@ -247,27 +248,28 @@ std::vector<fs::path> showOpenDialogMulti(std::span<const FileDialogFilter> filt
  *
  * @param filters A set of file filters for the dialog.
  * @param defaultPath The default path for the dialog.
- * @return optional<fs::path> The file path to save, or nullopt if the dialog was canceled.
+ * @return std::optional<fs::path> The file path to save, or std::nullopt if the dialog was canceled.
  */
-optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath);
+std::optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters,
+                                       const fs::path& defaultPath);
 
 /**
  * @brief Displays a folder selection dialog.
  *
  * @param defaultPath The default folder path for the dialog.
- * @return optional<fs::path> The selected folder path, or nullopt if the dialog was canceled.
+ * @return std::optional<fs::path> The selected folder path, or std::nullopt if the dialog was canceled.
  */
-optional<fs::path> showFolderDialog(const fs::path& defaultPath);
+std::optional<fs::path> showFolderDialog(const fs::path& defaultPath);
 
 /**
  * @brief Displays an open file dialog using an initializer list for filters.
  *
  * @param filters An initializer list of file filters.
  * @param defaultPath The default path for the dialog.
- * @return optional<fs::path> The selected file path, or nullopt if the dialog was canceled.
+ * @return std::optional<fs::path> The selected file path, or std::nullopt if the dialog was canceled.
  */
-inline optional<fs::path> showOpenDialog(std::initializer_list<FileDialogFilter> filters,
-                                         const fs::path& defaultPath) {
+inline std::optional<fs::path> showOpenDialog(std::initializer_list<FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
     return showOpenDialog(std::span<const FileDialogFilter>{ filters }, defaultPath);
 }
 
@@ -288,10 +290,10 @@ inline std::vector<fs::path> showOpenDialogMulti(std::initializer_list<FileDialo
  *
  * @param filters An initializer list of file filters.
  * @param defaultPath The default path for the dialog.
- * @return optional<fs::path> The file path to save, or nullopt if the dialog was canceled.
+ * @return std::optional<fs::path> The file path to save, or std::nullopt if the dialog was canceled.
  */
-inline optional<fs::path> showSaveDialog(std::initializer_list<FileDialogFilter> filters,
-                                         const fs::path& defaultPath) {
+inline std::optional<fs::path> showSaveDialog(std::initializer_list<FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
     return showSaveDialog(std::span<const FileDialogFilter>{ filters }, defaultPath);
 }
 

@@ -90,9 +90,9 @@ private:
 };
 
 template <typename T>
-static optional<T> getFirst(const std::vector<T>& values) {
+static std::optional<T> getFirst(const std::vector<T>& values) {
     if (values.empty())
-        return nullopt;
+        return std::nullopt;
     return values.front();
 }
 
@@ -191,24 +191,26 @@ static std::vector<fs::path> pathDialog(OSWindow* window, std::span<const FileDi
     return results;
 }
 
-optional<fs::path> showFolderDialog(const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> showFolderDialog(const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
         result = getFirst(pathDialog<IFileOpenDialog>(window, {}, FOS_PICKFOLDERS, defaultPath));
     });
     return result;
 }
 
-optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters,
+                                       const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
         result = getFirst(pathDialog<IFileOpenDialog>(window, filters, FOS_FILEMUSTEXIST, defaultPath));
     });
     return result;
 }
 
-optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters,
+                                       const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
         result = getFirst(pathDialog<IFileSaveDialog>(window, filters, 0, defaultPath));
     });

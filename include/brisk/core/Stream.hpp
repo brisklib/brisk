@@ -351,7 +351,7 @@ public:
      * - A `std::vector<std::byte>` containing the data read from the stream if successful.
      * - `std::nullopt` if an error occurs and `incompleteOk` is `false`.
      */
-    optional<std::vector<std::byte>> readUntilEnd(bool incompleteOk = false);
+    std::optional<std::vector<std::byte>> readUntilEnd(bool incompleteOk = false);
 
     /**
      * @brief Writes all data from the given span to the stream.

@@ -142,7 +142,7 @@ void Text::paint(Canvas& canvas) const {
     }
 }
 
-optional<std::string> Text::textContent() const {
+std::optional<std::string> Text::textContent() const {
     return m_text;
 }
 

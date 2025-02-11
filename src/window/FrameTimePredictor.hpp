@@ -29,7 +29,7 @@ struct FrameTimePredictor {
     using MeasurementArray = std::array<double, 64>;
     MeasurementArray frameDeltas{};
     int64_t frameIndex{ 0 };
-    optional<Clock::time_point> lastFrameTime;
+    std::optional<Clock::time_point> lastFrameTime;
 
     void markFrameTime() {
         const Clock::time_point thisFrameTime = now();

@@ -26,9 +26,9 @@
 
 namespace Brisk {
 
-optional<ImageCodec> guessImageCodec(BytesView bytes) {
+std::optional<ImageCodec> guessImageCodec(BytesView bytes) {
     if (bytes.size() <= 4)
-        return nullopt;
+        return std::nullopt;
     FourCC cc = readFromBytes<FourCC>(bytes);
     if (cc.matches("\x42\x4D??")) {
         return ImageCodec::BMP;
@@ -42,10 +42,11 @@ optional<ImageCodec> guessImageCodec(BytesView bytes) {
     if (cc.matches("RIFF")) {
         return ImageCodec::WEBP;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
-Bytes imageEncode(ImageCodec codec, RC<Image> image, optional<int> quality, optional<ColorSubsampling> ss) {
+Bytes imageEncode(ImageCodec codec, RC<Image> image, std::optional<int> quality,
+                  std::optional<ColorSubsampling> ss) {
     switch (codec) {
     case ImageCodec::BMP:
         return bmpEncode(std::move(image));

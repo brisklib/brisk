@@ -227,13 +227,13 @@ size_t toHex(std::span<char> hex, BytesView bytes, bool upperCase) {
     return Hex::encode(hex, bytes, upperCase);
 }
 
-optional<Bytes> fromHex(std::string_view hex) {
+std::optional<Bytes> fromHex(std::string_view hex) {
     Bytes result(hex.size() / 2);
     if (size_t sz = fromHex(result, hex); sz != SIZE_MAX) {
         result.resize(sz);
         return result;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 std::string toHex(BytesView data, bool upperCase) {
@@ -253,13 +253,13 @@ size_t toBase64(std::span<char> encoded, BytesView data, bool urlSafe, bool pad)
     return Base64::encode(encoded, data, urlSafe, pad);
 }
 
-optional<Bytes> fromBase64(std::string_view encoded, bool urlSafe, bool strict) {
+std::optional<Bytes> fromBase64(std::string_view encoded, bool urlSafe, bool strict) {
     Bytes result((encoded.size() + 3) / 4 * 3);
     if (size_t sz = fromBase64(result, encoded, urlSafe, strict); sz != SIZE_MAX) {
         result.resize(sz);
         return result;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 std::string toBase64(BytesView data, bool urlSafe, bool pad) {

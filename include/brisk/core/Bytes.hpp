@@ -37,7 +37,7 @@ namespace Brisk {
 /// @returns number of characters written or SIZE_MAX in case of error
 [[nodiscard]] size_t toHex(std::span<char> encoded, BytesView data, bool upperCase = true);
 
-[[nodiscard]] optional<Bytes> fromHex(std::string_view encoded);
+[[nodiscard]] std::optional<Bytes> fromHex(std::string_view encoded);
 [[nodiscard]] std::string toHex(BytesView data, bool upperCase = true);
 
 /// @brief Converts string in Base64 format to span of bytes
@@ -49,7 +49,8 @@ namespace Brisk {
 /// @returns number of characters written or SIZE_MAX in case of error
 [[nodiscard]] size_t toBase64(std::span<char> encoded, BytesView data, bool urlSafe = false, bool pad = true);
 
-[[nodiscard]] optional<Bytes> fromBase64(std::string_view encoded, bool urlSafe = false, bool strict = false);
+[[nodiscard]] std::optional<Bytes> fromBase64(std::string_view encoded, bool urlSafe = false,
+                                              bool strict = false);
 [[nodiscard]] std::string toBase64(BytesView data, bool urlSafe = false, bool pad = true);
 
 template <typename T>
@@ -198,20 +199,21 @@ struct FixedBytes {
         std::ignore = Brisk::fromHex({ data(), size() }, str);
     }
 
-    static optional<FixedBytes> fromHex(std::string_view str) {
+    static std::optional<FixedBytes> fromHex(std::string_view str) {
         FixedBytes result;
         if (Brisk::fromHex({ result.data(), result.size() }, str) == Size)
             return result;
         else
-            return nullopt;
+            return std::nullopt;
     }
 
-    static optional<FixedBytes> fromBase64(std::string_view str, bool urlSafe = false, bool strict = false) {
+    static std::optional<FixedBytes> fromBase64(std::string_view str, bool urlSafe = false,
+                                                bool strict = false) {
         FixedBytes result;
         if (Brisk::fromBase64({ result.data(), result.size() }, str, urlSafe, strict) == Size)
             return result;
         else
-            return nullopt;
+            return std::nullopt;
     }
 
     constexpr bool operator==(const FixedBytes<Size>& other) const {

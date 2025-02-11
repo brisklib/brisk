@@ -42,7 +42,7 @@ static int toJPGFormat(PixelFormat fmt) {
                      TJPF_GRAY);
 }
 
-Bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampling> ss) {
+Bytes jpegEncode(RC<Image> image, std::optional<int> quality, std::optional<ColorSubsampling> ss) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("JPEG codec doesn't support encoding {} format", image->format()));
     }

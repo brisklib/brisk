@@ -898,7 +898,7 @@ void Widget::dump(int depth) const {
     fprintf(stderr, "%*s}\n", depth * 4, "");
 }
 
-optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** parent) {
+std::optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** parent) {
     WidgetPtrs::iterator it =
         std::find_if(m_widgets.begin(), m_widgets.end(), [&](Ptr p) BRISK_INLINE_LAMBDA {
             return p.get() == widget;
@@ -909,12 +909,12 @@ optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** p
         return it;
     } else {
         for (const RC<Widget>& w : *this) {
-            optional<WidgetPtrs::iterator> wit = w->findIterator(widget, parent);
+            std::optional<WidgetPtrs::iterator> wit = w->findIterator(widget, parent);
             if (wit) {
                 return *wit;
             }
         }
-        return nullopt;
+        return std::nullopt;
     }
 }
 
@@ -1229,7 +1229,7 @@ void Widget::processEvent(Event& event) {
     const bool released = event.released();
 
     if (event.type() == EventType::MouseExited) {
-        m_mousePos  = nullopt;
+        m_mousePos  = std::nullopt;
         m_hoverTime = -1.0;
         m_hintShown = false;
     } else if (event.type() == EventType::MouseEntered) {
@@ -1791,8 +1791,8 @@ void Widget::resolveProperties(PropFlags flags) {
     }
 }
 
-optional<std::string> Widget::textContent() const {
-    return nullopt;
+std::optional<std::string> Widget::textContent() const {
+    return std::nullopt;
 }
 
 void Widget::closeNearestPopup() {
@@ -1825,7 +1825,7 @@ std::optional<size_t> Widget::indexOf(const Widget* widget) const {
             return p.get() == widget;
         });
     if (it == m_widgets.end())
-        return nullopt;
+        return std::nullopt;
     return it - m_widgets.begin();
 }
 
@@ -1886,7 +1886,7 @@ Widget::Widget(Construction construction) : m_layoutEngine{ this } {
     m_type = construction.type;
 }
 
-optional<PointF> Widget::mousePos() const {
+std::optional<PointF> Widget::mousePos() const {
     return m_mousePos;
 }
 
