@@ -172,14 +172,14 @@ void ShowcaseComponent::configureWindow(RC<GUIWindow> window) {
 
 void ShowcaseComponent::saveScreenshot(RC<Image> image) {
     Bytes bytes = pngEncode(image);
-    if (auto file = showSaveDialog({ FileDialogFilter{ "*.png", "PNG image"_tr } },
-                                   defaultFolder(DefaultFolder::Pictures))) {
+    if (auto file = Shell::showSaveDialog({ Shell::FileDialogFilter{ "*.png", "PNG image"_tr } },
+                                          defaultFolder(DefaultFolder::Pictures))) {
         if (auto s = writeBytes(*file, bytes)) {
             m_notifications.show(rcnew Text{ "Screenshot saved successfully"_tr });
         } else {
-            showMessage(fmt::format(fmt::runtime("Unable to save screenshot to {0}: {1}"_tr), file->string(),
-                                    s.error()),
-                        MessageBoxType::Warning);
+            Shell::showMessage(fmt::format(fmt::runtime("Unable to save screenshot to {0}: {1}"_tr),
+                                           file->string(), s.error()),
+                               MessageBoxType::Warning);
         }
     }
 }

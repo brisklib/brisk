@@ -55,8 +55,8 @@ static std::string escapeShellArg(std::string_view arg) {
     return escaped;
 }
 
-DialogResult showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
-                        MessageBoxType type) {
+DialogResult Shell::showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
+                               MessageBoxType type) {
     std::vector<std::pair<std::string, DialogResult>> localizedLabels;
     std::string buttonSetup;
 
@@ -107,7 +107,7 @@ DialogResult showDialog(std::string_view title, std::string_view message, Dialog
     }
 }
 
-void openURLInBrowser(std::string_view url) {
+void Shell::openURLInBrowser(std::string_view url) {
     std::string command                = "xdg-open " + escapeShellArg(url) + " &";
     std::pair<std::string, int> result = execCommand(command);
     if (result.second != 0) {
@@ -115,16 +115,16 @@ void openURLInBrowser(std::string_view url) {
     }
 }
 
-void openFileInDefaultApp(const fs::path& path) {
+void Shell::openFileInDefaultApp(const fs::path& path) {
     openURLInBrowser(path.string());
 }
 
-void openFolder(const fs::path& path) {
+void Shell::openFolder(const fs::path& path) {
     openURLInBrowser(path.string());
 }
 
-std::optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters,
-                                       const fs::path& defaultPath) {
+std::optional<fs::path> Shell::showOpenDialog(std::span<const FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
     std::string command = "zenity --file-selection --title=" + escapeShellArg("Open file"_tr);
     if (!defaultPath.empty()) {
         command += " --filename=" + escapeShellArg(defaultPath.string());
@@ -139,8 +139,8 @@ std::optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters
     return fs::path(trim(result.first)); // Remove trailing newline
 }
 
-std::vector<fs::path> showOpenDialogMulti(std::span<const FileDialogFilter> filters,
-                                          const fs::path& defaultPath) {
+std::vector<fs::path> Shell::showOpenDialogMulti(std::span<const FileDialogFilter> filters,
+                                                 const fs::path& defaultPath) {
     std::string command =
         "zenity --file-selection --multiple --separator=':' --title=" + escapeShellArg("Open file"_tr);
     if (!defaultPath.empty()) {
@@ -158,8 +158,8 @@ std::vector<fs::path> showOpenDialogMulti(std::span<const FileDialogFilter> filt
     return list;
 }
 
-std::optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters,
-                                       const fs::path& defaultPath) {
+std::optional<fs::path> Shell::showSaveDialog(std::span<const FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
     std::string command =
         "zenity --file-selection --save --confirm-overwrite --title=" + escapeShellArg("Save file"_tr);
     if (!defaultPath.empty()) {
@@ -175,7 +175,7 @@ std::optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters
     return fs::path(trim(result.first)); // Remove trailing newline
 }
 
-std::optional<fs::path> showFolderDialog(const fs::path& defaultPath) {
+std::optional<fs::path> Shell::showFolderDialog(const fs::path& defaultPath) {
     std::string command = "zenity --file-selection --directory --title=" + escapeShellArg("Select folder"_tr);
     if (!defaultPath.empty()) {
         command += " --filename=" + escapeShellArg(defaultPath.string() + "/");

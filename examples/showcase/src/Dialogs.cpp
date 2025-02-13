@@ -66,9 +66,10 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                               RC<TextInputDialog> dialog = rcnew TextInputDialog{ "Enter name", "World" };
                               windowApplication->showModalWindow(dialog->makeWindow());
                               if (dialog->result)
-                                  showMessage("title", "Hello, " + dialog->value, MessageBoxType::Info);
+                                  Shell::showMessage("title", "Hello, " + dialog->value,
+                                                     MessageBoxType::Info);
                               else
-                                  showMessage("title", "Hello, nobody", MessageBoxType::Warning);
+                                  Shell::showMessage("title", "Hello, nobody", MessageBoxType::Warning);
                           },
             },
         },
@@ -97,58 +98,58 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         osDialogButton(
             "Open URL", lifetime() |
                             []() {
-                                openURLInBrowser("https://www.brisklib.com/");
+                                Shell::openURLInBrowser("https://www.brisklib.com/");
                             }),
         osDialogButton(
             "Open folder", lifetime() |
                                []() {
-                                   openFolder(defaultFolder(DefaultFolder::Documents));
+                                   Shell::openFolder(defaultFolder(DefaultFolder::Documents));
                                }),
 
         osDialogButton(
             "Message box (Info)", lifetime() |
                                       []() {
-                                          showMessage("title", "message", MessageBoxType::Info);
+                                          Shell::showMessage("title", "message", MessageBoxType::Info);
                                       }),
         osDialogButton(
             "Message box (Warning)", lifetime() |
                                          []() {
-                                             showMessage("title", "message", MessageBoxType::Warning);
+                                             Shell::showMessage("title", "message", MessageBoxType::Warning);
                                          }),
         osDialogButton(
             "Message box (Error)", lifetime() |
                                        []() {
-                                           showMessage("title", "message", MessageBoxType::Error);
+                                           Shell::showMessage("title", "message", MessageBoxType::Error);
                                        }),
         osDialogButton(
             "Dialog (OK, Cancel)", lifetime() |
                                        [this]() {
-                                           if (showDialog("title", "message", DialogButtons::OKCancel,
-                                                          MessageBoxType::Info) == DialogResult::OK)
+                                           if (Shell::showDialog("title", "message", DialogButtons::OKCancel,
+                                                                 MessageBoxType::Info) == DialogResult::OK)
                                                m_text += "OK clicked\n";
                                            else
                                                m_text += "Cancel clicked\n";
                                            bindings->notify(&m_text);
                                        }),
         osDialogButton(
-            "Dialog (Yes, No, Cancel)", lifetime() |
-                                            [this]() {
-                                                if (DialogResult r = showDialog("title", "message",
-                                                                                DialogButtons::YesNoCancel,
-                                                                                MessageBoxType::Warning);
-                                                    r == DialogResult::Yes)
-                                                    m_text += "Yes clicked\n";
-                                                else if (r == DialogResult::No)
-                                                    m_text += "No clicked\n";
-                                                else
-                                                    m_text += "Cancel clicked\n";
-                                                bindings->notify(&m_text);
-                                            }),
+            "Dialog (Yes, No, Cancel)",
+            lifetime() |
+                [this]() {
+                    if (DialogResult r = Shell::showDialog("title", "message", DialogButtons::YesNoCancel,
+                                                           MessageBoxType::Warning);
+                        r == DialogResult::Yes)
+                        m_text += "Yes clicked\n";
+                    else if (r == DialogResult::No)
+                        m_text += "No clicked\n";
+                    else
+                        m_text += "Cancel clicked\n";
+                    bindings->notify(&m_text);
+                }),
         osDialogButton(
             "Open File", lifetime() |
                              [this]() {
-                                 auto file = showOpenDialog({ { "*.txt", "Text files" } },
-                                                            defaultFolder(DefaultFolder::Documents));
+                                 auto file = Shell::showOpenDialog({ { "*.txt", "Text files" } },
+                                                                   defaultFolder(DefaultFolder::Documents));
                                  if (file)
                                      m_text += file->string() + "\n";
                                  else
@@ -158,8 +159,9 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         osDialogButton(
             "Open Files", lifetime() |
                               [this]() {
-                                  auto files = showOpenDialogMulti({ { "*.txt", "Text files" }, anyFile() },
-                                                                   defaultFolder(DefaultFolder::Documents));
+                                  auto files = Shell::showOpenDialogMulti(
+                                      { { "*.txt", "Text files" }, Shell::anyFile() },
+                                      defaultFolder(DefaultFolder::Documents));
                                   for (fs::path file : files)
                                       m_text += file.string() + "\n";
                                   bindings->notify(&m_text);
@@ -167,7 +169,8 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
         osDialogButton(
             "Pick folder", lifetime() |
                                [this]() {
-                                   auto folder = showFolderDialog(defaultFolder(DefaultFolder::Documents));
+                                   auto folder =
+                                       Shell::showFolderDialog(defaultFolder(DefaultFolder::Documents));
                                    if (folder)
                                        m_text += folder->string() + "\n";
                                    else
