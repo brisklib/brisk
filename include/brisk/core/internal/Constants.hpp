@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <utility>
+#include <limits>
 
 namespace Brisk {
 
@@ -220,11 +221,11 @@ namespace Internal {
  * @return The integral type that can represent the specified range.
  */
 template <std::integral auto Min, std::integral auto Max>
-constexpr auto find_integral_type() {
+constexpr auto findIntegralType() {
     if constexpr (std::cmp_less(Min, 0)) {
         // signed
         constexpr auto AbsMax = std::cmp_greater_equal(-(Min + 1), Max) ? -(Min + 1) : Max;
-        if constexpr (std::cmp_less_equal(AbsMax, INT8_MAX)) {
+        if constexpr (std::cmp_less_equal(AbsMax, int8_t(INT8_MAX))) {
             return int8_t{};
         } else if constexpr (std::cmp_less_equal(AbsMax, INT16_MAX)) {
             return int16_t{};
@@ -247,6 +248,12 @@ constexpr auto find_integral_type() {
     }
 }
 
+template <std::integral Tout, std::integral Tin>
+constexpr bool fitsIntType(Tin in) {
+    return std::cmp_less_equal(in, std::numeric_limits<Tout>::max()) &&
+           std::cmp_greater_equal(in, std::numeric_limits<Tout>::min());
+}
+
 } // namespace Internal
 
 /**
@@ -259,6 +266,6 @@ constexpr auto find_integral_type() {
  * @tparam Max The maximum value of the range.
  */
 template <auto Min, auto Max>
-using find_integral_type = decltype(Internal::find_integral_type<Min, Max>);
+using findIntegralType = decltype(Internal::findIntegralType<Min, Max>());
 
 } // namespace Brisk
