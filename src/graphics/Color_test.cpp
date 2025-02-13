@@ -24,6 +24,36 @@
 #include <brisk/core/Reflection.hpp>
 
 namespace Brisk {
+
+TEST_CASE("colorGamma") {
+    CHECK_THAT(Internal::srgbGammaToLinear(0.f), Catch::Matchers::WithinAbs(0.f, 0.001f));
+    CHECK_THAT(Internal::srgbGammaToLinear(0.5f), Catch::Matchers::WithinAbs(0.21404f, 0.001f));
+    CHECK_THAT(Internal::srgbGammaToLinear(1.f), Catch::Matchers::WithinAbs(1.f, 0.001f));
+    CHECK_THAT(Internal::srgbGammaToLinear(2.f), Catch::Matchers::WithinAbs(4.9538f, 0.001f));
+    CHECK_THAT(Internal::srgbGammaToLinear(-0.5f), Catch::Matchers::WithinAbs(-0.21404f, 0.001f));
+    CHECK_THAT(Internal::srgbGammaToLinear(-1.f), Catch::Matchers::WithinAbs(-1.f, 0.001f));
+    CHECK_THAT(Internal::srgbGammaToLinear(-2.f), Catch::Matchers::WithinAbs(-4.9538f, 0.001f));
+    CHECK_THAT(Internal::srgbLinearToGamma(0.f), Catch::Matchers::WithinAbs(0.f, 0.001f));
+    CHECK_THAT(Internal::srgbLinearToGamma(0.5f), Catch::Matchers::WithinAbs(0.73536f, 0.001f));
+    CHECK_THAT(Internal::srgbLinearToGamma(1.f), Catch::Matchers::WithinAbs(1.f, 0.001f));
+    CHECK_THAT(Internal::srgbLinearToGamma(2.f), Catch::Matchers::WithinAbs(1.3532f, 0.001f));
+    CHECK_THAT(Internal::srgbLinearToGamma(-0.5f), Catch::Matchers::WithinAbs(-0.73536f, 0.001f));
+    CHECK_THAT(Internal::srgbLinearToGamma(-1.f), Catch::Matchers::WithinAbs(-1.f, 0.001f));
+    CHECK_THAT(Internal::srgbLinearToGamma(-2.f), Catch::Matchers::WithinAbs(-1.3532f, 0.001f));
+}
+
+TEST_CASE("ColorW") {
+    bool linearColor = true;
+    std::swap(linearColor, Brisk::linearColor);
+    SCOPE_EXIT {
+        std::swap(linearColor, Brisk::linearColor);
+    };
+
+    CHECK(ColorW(Color(255, 128, 0)).v == ColorW(8192, 4112, 0, 8192).v);
+    CHECK_THAT(ColorF(ColorW(32767, -32767, 32767, 8192)).v,
+               Catch::Matchers::SIMDWithinMatcher(ColorF(25.312836, -25.312836, 25.312836, 1.f).v, 0.001));
+}
+
 TEST_CASE("rgbToColor") {
     CHECK(rgbToColor(0xAABBCC) == Color{ 0xAA, 0xBB, 0xCC, 0xFF });
 
