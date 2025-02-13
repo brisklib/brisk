@@ -163,7 +163,7 @@ status<RenderDeviceError> RenderDeviceWebGPU::init() {
         return unexpected(RenderDeviceError::Unsupported);
     }
 
-    auto wgslShader = loadResourceText("webgpu/webgpu.wgsl");
+    auto wgslShader = Resources::loadText("webgpu/webgpu.wgsl");
 
     wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
     wgslDesc.code = wgslShader.c_str();

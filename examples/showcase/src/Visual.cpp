@@ -83,7 +83,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 // Static initialization of an image rendered from an SVG representation of "cat"
                 // with a size of 256x256 pixels.
                 static RC<Image> img =
-                    SVGImage(toStringView(loadResource("cat.svg"))).render(Size{ idp(256), idp(256) });
+                    SVGImage(Resources::loadText("cat.svg")).render(Size{ idp(256), idp(256) });
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
@@ -190,14 +190,14 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
         rcnew Text{ "ImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{
-            rcnew ImageView{ loadResourceCached("hot-air-balloons.jpg"), dimensions = { 180_apx, 120_apx } },
+            rcnew ImageView{ Resources::loadCached("hot-air-balloons.jpg"),
+                             dimensions = { 180_apx, 120_apx } },
         },
 
         rcnew Text{ "SVGImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{
-            rcnew SVGImageView{ toStringView(loadResourceCached("cat.svg")),
-                                dimensions = { 120_apx, 120_apx } },
+            rcnew SVGImageView{ Resources::loadText("cat.svg"), dimensions = { 120_apx, 120_apx } },
         },
 
         rcnew Text{ "Table (widgets/Table.hpp)", classes = { "section-header" } },
@@ -216,10 +216,9 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                                      justifyContent = Justify::FlexEnd },
                 },
                 Builder([](Widget* target) {
-                    JsonArray countries =
-                        Json::fromJson(std::string(toStringView(loadResource("countries.json"))))
-                            .value()              // Assume it's valid JSON
-                            .access<JsonArray>(); // Assume it's array
+                    JsonArray countries = Json::fromJson(Resources::loadText("countries.json"))
+                                              .value()              // Assume it's valid JSON
+                                              .access<JsonArray>(); // Assume it's array
                     std::sort(countries.begin(), countries.end(), [](Json a, Json b) {
                         return a.access<JsonObject>()["population"].to<int64_t>().value_or(0) >
                                b.access<JsonObject>()["population"].to<int64_t>().value_or(0);

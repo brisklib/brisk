@@ -555,33 +555,33 @@ void registerBuiltinFonts() {
     if (fontsRegistered)
         return;
 
-    if (auto& ttf = loadResourceCached("fonts/default/regular.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/regular.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/light.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/light.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Light, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/bold.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/bold.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Bold, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/regular-italic.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/regular-italic.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Regular, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/light-italic.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/light-italic.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Light, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/bold-italic.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/bold-italic.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Bold, ttf, false);
     }
 
-    if (auto& ttf = loadResourceCached("fonts/icons.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/icons.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Icons, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/emoji.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/emoji.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Emoji, FontStyle::Normal, FontWeight::Regular, ttf, false,
                        FontFlags::EnableColor);
     }
-    if (auto& ttf = loadResourceCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Monospace, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
 
