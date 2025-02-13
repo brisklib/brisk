@@ -1316,7 +1316,8 @@ private:
 
     float resolveFontHeight() const;
     void updateGeometryAndProcessEvents();
-    void updateLayout(Rectangle rectangle);
+    void updateLayout(Rectangle rectangle, bool viewportChanged);
+    void markTreeDirty();
 
     void layoutSet();
     void layoutResetRecursively();

@@ -334,7 +334,7 @@ private:
     BRISK_INLINE Size viewportSize() const noexcept {
         Size viewport{ 0, 0 };
         if (m_widget->m_tree)
-            viewport = m_widget->m_tree->viewportRectangle.size();
+            viewport = m_widget->m_tree->viewportRectangle().size();
         return viewport;
     }
 
@@ -362,7 +362,6 @@ private:
         case LengthUnit::Percent:
             return Length::percentUnsafe(value.value());
 
-#ifdef BRISK_VIEWPORT_UNITS
         case LengthUnit::Vw:
             return Length::pointsUnsafe(value.value() * viewportSize().width * 0.01f);
         case LengthUnit::Vh:
@@ -371,7 +370,6 @@ private:
             return Length::pointsUnsafe(value.value() * viewportSize().shortestSide() * 0.01f);
         case LengthUnit::Vmin:
             return Length::pointsUnsafe(value.value() * viewportSize().longestSide() * 0.01f);
-#endif
 
         case LengthUnit::Em:
             return Length::pointsUnsafe(value.value() * m_widget->resolveFontHeight());
@@ -682,7 +680,6 @@ float resolveValue(Length value, float defaultValue, float referenceValue, const
     case Em:
         return value.value() * params.fontHeight;
 
-#ifdef BRISK_VIEWPORT_UNITS
     case Vw:
         return value.value() * params.viewportSize.width * 0.01f;
     case Vh:
@@ -691,7 +688,6 @@ float resolveValue(Length value, float defaultValue, float referenceValue, const
         return value.value() * params.viewportSize.shortestSide() * 0.01f;
     case Vmax:
         return value.value() * params.viewportSize.longestSide() * 0.01f;
-#endif
 
     default:
         return defaultValue;
@@ -718,7 +714,7 @@ PointF resolveValue(PointL value, PointF defaultValue, PointF referenceValue,
 } // namespace
 
 Size Widget::viewportSize() const noexcept {
-    return m_tree ? m_tree->viewportRectangle.size() : Size(0, 0);
+    return m_tree ? m_tree->viewportRectangle().size() : Size(0, 0);
 }
 
 /// Returns the number of changes
@@ -847,8 +843,17 @@ void Widget::refreshTree() {
         });
 }
 
-void Widget::updateLayout(Rectangle rectangle) {
+void Widget::markTreeDirty() {
+    m_layoutEngine->setDirty(true);
+    for (const Ptr& w : *this) {
+        w->markTreeDirty();
+    }
+}
+
+void Widget::updateLayout(Rectangle rectangle, bool viewportChanged) {
     // Called by widget tree for the root widget only
+    if (viewportChanged)
+        markTreeDirty();
     if (yoga::calculateLayout(m_layoutEngine.get(), rectangle.width(), rectangle.height(),
                               yoga::Direction::LTR)) {
         if (applyLayoutRecursively(rectangle)) {
@@ -1145,8 +1150,8 @@ void Widget::paintHint(Canvas& canvas_) const {
             Size textSize      = fonts->bounds(font, utf8ToUtf32(hint)).size();
             Point p            = m_rect.at(0.5f, 1.f);
             Rectangle hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
-            if (m_tree && !m_tree->viewportRectangle.empty()) {
-                Rectangle boundingRect = m_tree->viewportRectangle;
+            if (m_tree && !m_tree->viewportRectangle().empty()) {
+                Rectangle boundingRect = m_tree->viewportRectangle();
 
                 if (hintRect.y2 > boundingRect.y2) {
                     p        = m_rect.at(0.5f, 0.f);
@@ -1977,7 +1982,7 @@ SizeF Widget::computeSize(AvailableSize size) {
     if (m_parent) {
         ownerSize = m_parent->m_rect.size();
     } else if (m_tree) {
-        ownerSize = m_tree->viewportRectangle.size();
+        ownerSize = m_tree->viewportRectangle().size();
     }
     yoga::gCurrentGenerationCount.fetch_add(1, std::memory_order_relaxed);
     yoga::calculateLayoutInternal(

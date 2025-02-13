@@ -35,6 +35,23 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
                 }
             }),
         },
+
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew Text{
+                    "This widget's size is set to half of the window's width and a quarter of its height "
+                    "<code>(width = 50_vw, height = 25_vh)</code>",
+                    wordWrap      = true,
+                    layoutOptions = LayoutOptions::HTML,
+                    fontSize      = 16_px,
+                },
+                alignContent    = Align::Center,
+                justifyContent  = Justify::Center,
+                width           = 50_vw,
+                height          = 25_vh,
+                backgroundColor = Palette::grey,
+            },
+        },
     };
 }
 } // namespace Brisk

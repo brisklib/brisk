@@ -167,7 +167,7 @@ void GUIWindow::paint(RenderContext& context) {
 
     InputQueueScope inputQueueScope(&m_inputQueue);
 
-    m_tree.viewportRectangle = getFramebufferBounds();
+    m_tree.setViewportRectangle(getFramebufferBounds());
 
     if (!m_tree.root()) {
         rebuild();
@@ -176,7 +176,7 @@ void GUIWindow::paint(RenderContext& context) {
     {
         Stopwatch w(m_drawingPerformance);
         if (m_backgroundColor != ColorF(0, 0))
-            canvas.raw().drawRectangle(m_tree.viewportRectangle, 0.f, 0.f, fillColor = m_backgroundColor);
+            canvas.raw().drawRectangle(m_tree.viewportRectangle(), 0.f, 0.f, fillColor = m_backgroundColor);
         beforeDraw(canvas);
         if (m_tree.root()) {
             m_tree.updateAndPaint(canvas);
