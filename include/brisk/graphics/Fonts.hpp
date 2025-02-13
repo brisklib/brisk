@@ -178,7 +178,7 @@ struct FontMetrics {
      */
     bool operator==(const FontMetrics& b) const noexcept = default;
 
-    inline static const std::tuple Reflection            = {
+    inline static const std::tuple reflection            = {
         ReflectionField{ "size", &FontMetrics::size },
         ReflectionField{ "ascender", &FontMetrics::ascender },
         ReflectionField{ "descender", &FontMetrics::descender },
@@ -236,7 +236,7 @@ struct TextRun {
      */
     bool operator==(const TextRun&) const noexcept = default;
 
-    inline static const std::tuple Reflection      = {
+    inline static const std::tuple reflection      = {
         ReflectionField{ "direction", &TextRun::direction },
         ReflectionField{ "begin", &TextRun::begin },
         ReflectionField{ "end", &TextRun::end },
@@ -868,7 +868,7 @@ struct Font {
     float verticalAlign           = 0.f;                   ///< Vertical alignment offset.
     OpenTypeFeatureFlags features{};                       ///< OpenType features for advanced text styling.
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
         ReflectionField{ "fontSize", &Font::fontSize },
         ReflectionField{ "style", &Font::style },
@@ -973,7 +973,7 @@ struct TextWithOptions {
     TextDirection defaultDirection;
     Internal::RichText richText;
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "text", &TextWithOptions::text },
         ReflectionField{ "options", &TextWithOptions::options },
         ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },

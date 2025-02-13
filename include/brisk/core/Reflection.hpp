@@ -108,11 +108,26 @@ ReflectionField(const char (&)[N], FieldType Class::*) -> ReflectionField<Class,
 template <size_t N, typename Class, typename FieldType>
 ReflectionField(const char (&)[N], FieldType Class::*, ReflectionFlag) -> ReflectionField<Class, FieldType>;
 
+template <typename T>
+struct ReflectionOf {
+    constexpr static bool hasReflection = false;
+};
+
+template <typename T>
+    requires std::is_class_v<std::remove_cvref_t<T>> && requires { std::remove_cvref_t<T>::reflection; }
+struct ReflectionOf<T> {
+    constexpr static bool hasReflection = true;
+
+    static decltype(auto) reflection() {
+        return std::remove_cvref_t<T>::reflection;
+    }
+};
+
 /**
  * @brief Concept that checks if a type `T` has reflection metadata.
  */
 template <typename T>
-concept HasReflection = requires { std::get<0>(std::remove_cvref_t<T>::Reflection); };
+concept HasReflection = ReflectionOf<T>::hasReflection;
 
 /**
  * @brief Retrieves the reflection metadata of a type `T`.
@@ -122,7 +137,7 @@ concept HasReflection = requires { std::get<0>(std::remove_cvref_t<T>::Reflectio
  */
 template <HasReflection T>
 constexpr decltype(auto) reflectionOf() {
-    return std::remove_cvref_t<T>::Reflection;
+    return ReflectionOf<T>::reflection();
 }
 
 /**
@@ -134,7 +149,7 @@ constexpr decltype(auto) reflectionOf() {
  */
 template <HasReflection T>
 constexpr decltype(auto) reflectionOf(T&& obj) {
-    return std::remove_cvref_t<T>::Reflection;
+    return ReflectionOf<T>::reflection();
 }
 
 /**
@@ -247,11 +262,6 @@ constexpr std::string_view defaultToString(T value) {
         #f, &This::f                                                                                         \
     }
 
-/**
- * @brief Macro to define the reflection metadata for a class.
- */
-#define BRISK_REFLECTION constexpr static std::tuple Reflection
-
 namespace Internal {
 
 template <typename T>
@@ -291,8 +301,8 @@ std::basic_string<Char> reflectFormat(size_constants<indices...>, const T& val,
  */
 template <typename Char = char, typename T>
 std::basic_string<Char> reflectFormat(const T& val) {
-    constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
-    return Internal::reflectFormat<char>(size_sequence<numFields>{}, val, T::Reflection);
+    constexpr static auto numFields = std::tuple_size_v<decltype(reflectionOf<T>())>;
+    return Internal::reflectFormat<char>(size_sequence<numFields>{}, val, reflectionOf<T>());
 }
 
 } // namespace Brisk
@@ -307,10 +317,10 @@ std::basic_string<Char> reflectFormat(const T& val) {
  */
 template <Brisk::HasReflection T>
 std::ostream& operator<<(std::ostream& os, const T& val) {
-    constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
+    constexpr static auto numFields = std::tuple_size_v<decltype(Brisk::reflectionOf<T>())>;
 
-    std::string str =
-        Brisk::Internal::reflectFormat<char>(Brisk::size_sequence<numFields>{}, val, T::Reflection);
+    std::string str = Brisk::Internal::reflectFormat<char>(Brisk::size_sequence<numFields>{}, val,
+                                                           Brisk::reflectionOf<T>());
     os << str;
     return os;
 }
@@ -323,12 +333,12 @@ std::ostream& operator<<(std::ostream& os, const T& val) {
  */
 template <Brisk::HasReflection T, typename Char>
 struct fmt::formatter<T, Char> : fmt::formatter<std::basic_string<Char>, Char> {
-    constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
+    constexpr static auto numFields = std::tuple_size_v<decltype(Brisk::reflectionOf<T>())>;
 
     template <typename FormatContext>
     auto format(const T& val, FormatContext& ctx) const {
-        std::basic_string<Char> str =
-            Brisk::Internal::reflectFormat<Char>(Brisk::size_sequence<numFields>{}, val, T::Reflection);
+        std::basic_string<Char> str = Brisk::Internal::reflectFormat<Char>(Brisk::size_sequence<numFields>{},
+                                                                           val, Brisk::reflectionOf<T>());
         return formatter<std::basic_string<Char>, char>::format(str, ctx);
     }
 };

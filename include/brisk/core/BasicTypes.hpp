@@ -504,7 +504,7 @@ struct Range {
     T min; ///< The minimum value of the range.
     T max; ///< The maximum value of the range.
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "min", &Range::min },
         ReflectionField{ "max", &Range::max },
     };

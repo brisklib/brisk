@@ -87,7 +87,7 @@ struct RenderDeviceInfo {
     std::string vendor; ///< The vendor of the rendering device.
     std::string device; ///< The specific device name.
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "api", &RenderDeviceInfo::api },
         ReflectionField{ "apiVersion", &RenderDeviceInfo::apiVersion },
         ReflectionField{ "vendor", &RenderDeviceInfo::vendor },

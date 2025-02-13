@@ -115,7 +115,7 @@ struct Fraction {
     /**
      * @brief Reflection data for the Fraction structure.
      */
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "num", &Fraction::numerator },
         ReflectionField{ "den", &Fraction::denominator },
     };

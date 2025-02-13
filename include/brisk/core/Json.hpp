@@ -1094,7 +1094,7 @@ bool reflectFromJson(size_constants<indices...>, const Json& j, T& val,
  */
 template <HasReflection T>
 struct JsonConverter<T> {
-    constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
+    constexpr static auto numFields = std::tuple_size_v<decltype(reflectionOf<T>())>;
 
     /**
      * @brief Serializes an object to a JSON object using reflection.
@@ -1104,7 +1104,7 @@ struct JsonConverter<T> {
      * @return `true` if serialization succeeds.
      */
     static bool toJson(Json& j, const T& val) {
-        return Internal::reflectToJson(size_sequence<numFields>{}, j, val, T::Reflection);
+        return Internal::reflectToJson(size_sequence<numFields>{}, j, val, reflectionOf<T>());
     }
 
     /**
@@ -1115,7 +1115,7 @@ struct JsonConverter<T> {
      * @return `true` if deserialization succeeds.
      */
     static bool fromJson(const Json& j, T& val) {
-        return Internal::reflectFromJson(size_sequence<numFields>{}, j, val, T::Reflection);
+        return Internal::reflectFromJson(size_sequence<numFields>{}, j, val, reflectionOf<T>());
     }
 };
 

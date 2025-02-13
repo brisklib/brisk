@@ -580,7 +580,7 @@ struct ColorOf {
         return rescale<T, maximum, 1, Tfloat>(x);
     }
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "r", &ColorOf::r },
         ReflectionField{ "g", &ColorOf::g },
         ReflectionField{ "b", &ColorOf::b },

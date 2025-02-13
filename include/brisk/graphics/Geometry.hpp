@@ -63,7 +63,7 @@ struct PolarOf {
      */
     constexpr bool operator!=(const PolarOf& c) const noexcept = default;
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "radius", &PolarOf::radius },
         ReflectionField{ "angle", &PolarOf::angle },
     };
@@ -193,7 +193,7 @@ struct PointOf {
      * This static member provides reflection information about the PointOf struct,
      * including its fields and their corresponding names.
      */
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x", &PointOf::x },
         ReflectionField{ "y", &PointOf::y },
     };
@@ -702,7 +702,7 @@ struct PointOf<T> {
     /**
      * @brief Reflection metadata for the PointOf struct.
      */
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x", &PointOf::x },
         ReflectionField{ "y", &PointOf::y },
     };
@@ -825,7 +825,7 @@ struct SizeOf {
         };
     };
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x", &SizeOf::x },
         ReflectionField{ "y", &SizeOf::y },
     };
@@ -1055,7 +1055,7 @@ struct SizeOf<T> {
         };
     };
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x", &SizeOf::x },
         ReflectionField{ "y", &SizeOf::y },
     };
@@ -1167,7 +1167,7 @@ struct EdgesOf {
         };
     };
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x1", &EdgesOf::x1 },
         ReflectionField{ "y1", &EdgesOf::y1 },
         ReflectionField{ "x2", &EdgesOf::x2 },
@@ -1372,7 +1372,7 @@ struct EdgesOf<T> {
         };
     };
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x1", &EdgesOf::x1 },
         ReflectionField{ "y1", &EdgesOf::y1 },
         ReflectionField{ "x2", &EdgesOf::x2 },
@@ -1476,7 +1476,7 @@ struct CornersOf {
         };
     };
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x1y1", &CornersOf::x1y1 },
         ReflectionField{ "x2y1", &CornersOf::x2y1 },
         ReflectionField{ "x1y2", &CornersOf::x1y2 },
@@ -1587,7 +1587,7 @@ struct CornersOf<T> {
         };
     };
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x1y1", &CornersOf::x1y1 },
         ReflectionField{ "x2y1", &CornersOf::x2y1 },
         ReflectionField{ "x1y2", &CornersOf::x1y2 },
@@ -2349,7 +2349,7 @@ struct RectangleOf {
         };
     };
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "x1", &RectangleOf::x1 },
         ReflectionField{ "y1", &RectangleOf::y1 },
         ReflectionField{ "x2", &RectangleOf::x2 },

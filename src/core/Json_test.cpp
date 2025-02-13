@@ -36,7 +36,7 @@ struct NameAndNumber {
     std::string name;
     double number;
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "name", &NameAndNumber::name },
         ReflectionField{ "number", &NameAndNumber::number },
     };
@@ -61,7 +61,7 @@ struct SomePoint2 {
     int x                                  = 0;
     int y                                  = 0;
 
-    static constexpr std::tuple Reflection = {
+    static constexpr std::tuple reflection = {
         ReflectionField{ "x", &SomePoint2::x },
         ReflectionField{ "y", &SomePoint2::y },
     };
@@ -98,11 +98,11 @@ TEST_CASE("Json") {
 
     CHECK(pt2 == SomePoint{ 3, 4 });
 
-    CHECK(std::tuple_size_v<decltype(SomePoint2::Reflection)> == 2);
-    CHECK(std::get<0>(SomePoint2::Reflection).pointerToField == &SomePoint2::x);
-    CHECK(std::get<1>(SomePoint2::Reflection).pointerToField == &SomePoint2::y);
-    CHECK(std::get<0>(SomePoint2::Reflection).name == "x"sv);
-    CHECK(std::get<1>(SomePoint2::Reflection).name == "y"sv);
+    CHECK(std::tuple_size_v<decltype(SomePoint2::reflection)> == 2);
+    CHECK(std::get<0>(SomePoint2::reflection).pointerToField == &SomePoint2::x);
+    CHECK(std::get<1>(SomePoint2::reflection).pointerToField == &SomePoint2::y);
+    CHECK(std::get<0>(SomePoint2::reflection).name == "x"sv);
+    CHECK(std::get<1>(SomePoint2::reflection).name == "y"sv);
 
     SomePoint2 pt3{ 123, 456 };
     Json j = SomePoint2{ 777, 10000 };

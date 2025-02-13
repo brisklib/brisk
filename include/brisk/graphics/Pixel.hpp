@@ -319,7 +319,7 @@ struct PixelStruct<Type, PixelFormat::RGBA> {
 
     constexpr PixelStruct(T r, T g, T b, T a) noexcept : r(r), g(g), b(b), a(a) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "r", &PixelStruct::r },
         ReflectionField{ "g", &PixelStruct::g },
         ReflectionField{ "b", &PixelStruct::b },
@@ -343,7 +343,7 @@ struct PixelStruct<Type, PixelFormat::ARGB> {
 
     constexpr PixelStruct(T a, T r, T g, T b) noexcept : a(a), r(r), g(g), b(b) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "a", &PixelStruct::a },
         ReflectionField{ "r", &PixelStruct::r },
         ReflectionField{ "g", &PixelStruct::g },
@@ -367,7 +367,7 @@ struct PixelStruct<Type, PixelFormat::BGRA> {
 
     constexpr PixelStruct(T b, T g, T r, T a) noexcept : b(b), g(g), r(r), a(a) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "b", &PixelStruct::b },
         ReflectionField{ "g", &PixelStruct::g },
         ReflectionField{ "r", &PixelStruct::r },
@@ -391,7 +391,7 @@ struct PixelStruct<Type, PixelFormat::ABGR> {
 
     constexpr PixelStruct(T a, T b, T g, T r) noexcept : a(a), b(b), g(g), r(r) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "a", &PixelStruct::a },
         ReflectionField{ "b", &PixelStruct::b },
         ReflectionField{ "g", &PixelStruct::g },
@@ -415,7 +415,7 @@ struct PixelStruct<Type, PixelFormat::RGB> {
 
     constexpr PixelStruct(T r, T g, T b) noexcept : r(r), g(g), b(b) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "r", &PixelStruct::r },
         ReflectionField{ "g", &PixelStruct::g },
         ReflectionField{ "b", &PixelStruct::b },
@@ -438,7 +438,7 @@ struct PixelStruct<Type, PixelFormat::BGR> {
 
     constexpr PixelStruct(T b, T g, T r) noexcept : b(b), g(g), r(r) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "b", &PixelStruct::b },
         ReflectionField{ "g", &PixelStruct::g },
         ReflectionField{ "r", &PixelStruct::r },
@@ -469,7 +469,7 @@ struct PixelStruct<Type, PixelFormat::Greyscale> {
 
     constexpr PixelStruct(T grey) noexcept : grey(grey) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "grey", &PixelStruct::grey },
     };
 };
@@ -491,7 +491,7 @@ struct PixelStruct<Type, PixelFormat::GreyscaleAlpha> {
 
     constexpr PixelStruct(T grey, T a) noexcept : grey(grey), a(a) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "grey", &PixelStruct::grey },
         ReflectionField{ "a", &PixelStruct::a },
     };
@@ -521,7 +521,7 @@ struct PixelStruct<Type, PixelFormat::Alpha> {
 
     constexpr PixelStruct(T a) noexcept : a(a) {}
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "a", &PixelStruct::a },
     };
 };

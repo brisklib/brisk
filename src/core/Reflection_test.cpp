@@ -27,7 +27,7 @@ namespace Brisk {
 struct RGB {
     int red, green, blue;
 
-    BRISK_REFLECTION{
+    constexpr static std::tuple reflection{
         ReflectionField{ "red", &RGB::red },
         ReflectionField{ "green", &RGB::green },
         ReflectionField{ "blue", &RGB::blue },

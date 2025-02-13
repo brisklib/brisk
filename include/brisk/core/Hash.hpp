@@ -176,8 +176,8 @@ template <HasReflection T>
 uint64_t fastHash(const T& val, uint64_t seed = 0)
     requires(!simpleMemoryRepresentation<T>)
 {
-    constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
-    return Internal::reflectHash(seed, size_sequence<numFields>{}, val, T::Reflection);
+    constexpr static auto numFields = std::tuple_size_v<decltype(reflectionOf<T>())>;
+    return Internal::reflectHash(seed, size_sequence<numFields>{}, val, reflectionOf<T>());
 }
 
 } // namespace Brisk
