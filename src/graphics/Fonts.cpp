@@ -2093,6 +2093,9 @@ struct Visitor final : public HTMLSAX {
             fontStack.back().flags |= FontFormatFlags::TextDecoration;
         } else if (tagName == "br"sv) {
             emitText(U"\n");
+        } else if (tagName == "code"sv || tagName == "kbd"sv) {
+            fontStack.back().font.fontFamily = Font::Monospace;
+            fontStack.back().flags |= FontFormatFlags::Family;
         }
     }
 
