@@ -4,7 +4,7 @@
 
 namespace Brisk {
 
-class ShowcaseMessenger : public BindingObject<ShowcaseMessenger, &uiThread> {
+class ShowcaseMessenger : public BindingObject<ShowcaseMessenger, &uiScheduler> {
 public:
     ShowcaseMessenger();
 

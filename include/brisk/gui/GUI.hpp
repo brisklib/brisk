@@ -615,7 +615,7 @@ inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, U>&
 
 using StyleVarType = std::variant<std::monostate, ColorF, EdgesL, float, int>;
 
-class WIDGET Widget : public BindingObject<Widget, &uiThread> {
+class WIDGET Widget : public BindingObject<Widget, &uiScheduler> {
 public:
     using Ptr                 = std::shared_ptr<Widget>;
     using WidgetPtrs          = std::vector<Ptr>;
@@ -623,7 +623,7 @@ public:
     using WidgetConstIterator = typename WidgetPtrs::const_iterator;
 
     static RC<Scheduler> dispatcher() {
-        return uiThread;
+        return uiScheduler;
     }
 
     Widget& operator=(const Widget&) = delete;

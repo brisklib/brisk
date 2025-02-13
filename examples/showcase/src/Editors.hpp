@@ -5,7 +5,7 @@
 
 namespace Brisk {
 
-class ShowcaseEditors : public BindingObject<ShowcaseEditors, &uiThread> {
+class ShowcaseEditors : public BindingObject<ShowcaseEditors, &uiScheduler> {
 public:
     RC<Widget> build(RC<Notifications> notifications);
 

@@ -801,6 +801,6 @@ bool InputQueue::hasFocus() {
     return static_cast<bool>(focused.lock());
 }
 
-InputQueue::InputQueue() : registration{ this, uiThread } {}
+InputQueue::InputQueue() : registration{ this, uiScheduler } {}
 
 } // namespace Brisk

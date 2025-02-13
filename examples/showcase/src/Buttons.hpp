@@ -4,7 +4,7 @@
 
 namespace Brisk {
 
-class ShowcaseButtons : public BindingObject<ShowcaseButtons, &uiThread> {
+class ShowcaseButtons : public BindingObject<ShowcaseButtons, &uiScheduler> {
 public:
     ShowcaseButtons() {}
 

@@ -53,7 +53,7 @@ bool GUIWindow::handleEvent(function<void()> fn) {
     bool result = false;
     std::atomic_bool finished{ false };
 
-    uiThread->dispatchAndWait([fn = std::move(fn), this, &result, &finished] {
+    uiScheduler->dispatchAndWait([fn = std::move(fn), this, &result, &finished] {
         fn();
         uint32_t cookie = m_inputQueue.events.back().cookie();
         LOG_DEBUG(gui, "wait cookie={:08X}", cookie);
@@ -251,7 +251,7 @@ void GUIWindow::afterDraw(Canvas& canvas) {}
 void GUIWindow::beforeDraw(Canvas& canvas) {}
 
 void GUIWindow::beforeOpeningWindow() {
-    uiThread->dispatchAndWait([this]() {
+    uiScheduler->dispatchAndWait([this]() {
         updateWindowLimits();
     });
 }

@@ -53,7 +53,7 @@ enum class QuitCondition {
 };
 
 extern WindowApplication* windowApplication;
-extern RC<TaskQueue> uiThread;
+extern RC<TaskQueue> uiScheduler;
 
 class WindowApplication : public SerializableInterface {
 public:

@@ -33,7 +33,7 @@ namespace Brisk {
  * in the application. It manages the lifecycle of the component, its event
  * handling, and its associated window.
  */
-class Component : public BindingObject<Component, &uiThread> {
+class Component : public BindingObject<Component, &uiScheduler> {
 public:
     virtual ~Component();
 
@@ -118,7 +118,7 @@ private:
 
 template <std::derived_from<Component> ComponentClass>
 void createComponent(RC<ComponentClass>& component) {
-    uiThread->dispatchAndWait([&]() {
+    uiScheduler->dispatchAndWait([&]() {
         component = rcnew ComponentClass();
     });
 }
