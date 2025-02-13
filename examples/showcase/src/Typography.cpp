@@ -30,7 +30,7 @@ static Builder iconsBuilder() {
                     dimensions        = { 50, 50 },
                     onClick           = staticLifetime |
                               [ch] {
-                                  copyTextToClipboard(fmt::format("\\u{:04X}", uint32_t(ch)));
+                                  Clipboard::setText(fmt::format("\\u{:04X}", uint32_t(ch)));
                               },
                 });
             }

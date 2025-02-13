@@ -519,7 +519,7 @@ void TextEditor::deleteSelection(std::u32string& text) {
 }
 
 void TextEditor::pasteFromClipboard(std::u32string& text) {
-    if (auto t = getTextFromClipboard()) {
+    if (auto t = Clipboard::getText()) {
         deleteSelection(text);
         std::u32string t32 = utf8ToUtf32(*t);
         t32                = newLinesToInternal(std::move(t32));
@@ -533,7 +533,7 @@ void TextEditor::copyToClipboard(const std::u32string& text) {
     if (selectedLength) {
         const Range<int32_t> selection = this->selection();
         if (m_passwordChar == 0)
-            copyTextToClipboard(utf32ToUtf8(
+            Clipboard::setText(utf32ToUtf8(
                 newLinesToNative(normalizeCompose(text.substr(selection.min, selection.distance())))));
     }
 }
@@ -542,7 +542,7 @@ void TextEditor::cutToClipboard(std::u32string& text) {
     if (selectedLength) {
         const Range<int32_t> selection = this->selection();
         if (m_passwordChar == 0)
-            copyTextToClipboard(utf32ToUtf8(
+            Clipboard::setText(utf32ToUtf8(
                 newLinesToNative(normalizeCompose(text.substr(selection.min, selection.distance())))));
         deleteSelection(text);
     }
