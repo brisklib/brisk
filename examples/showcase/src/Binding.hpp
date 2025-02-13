@@ -6,9 +6,11 @@ namespace Brisk {
 
 class ShowcaseBinding : public BindingObject<ShowcaseBinding, &uiThread> {
 public:
+    ShowcaseBinding();
     RC<Widget> build(RC<Notifications> notifications);
 
 private:
+    void onTimer();
     WidthGroup m_group;
     bool m_open    = false;
     float m_value1 = 0.f;
@@ -16,5 +18,6 @@ private:
     float m_value3 = 0.f;
     bool m_checkBoxes[5]{ false, false, false, false, false };
     float m_size = 30.f;
+    RC<Button> m_buttonPtr;
 };
 } // namespace Brisk

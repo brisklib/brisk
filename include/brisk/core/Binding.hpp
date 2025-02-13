@@ -871,6 +871,20 @@ struct Listener {
 
     constexpr Listener(Callback<Args...> callback, BindingAddress address)
         : callback(std::move(callback)), address(address) {}
+
+    template <typename Class>
+    constexpr Listener(Class* class_, void (Class::*method)(Args...))
+        : callback([class_, method](Args... args) {
+              (class_->*method)(std::forward<Args>(args)...);
+          }),
+          address(toBindingAddress(class_)) {}
+
+    template <typename Class>
+    constexpr Listener(const Class* class_, void (Class::*method)(Args...) const)
+        : callback([class_, method](Args... args) {
+              (class_->*method)(std::forward<Args>(args)...);
+          }),
+          address(toBindingAddress(class_)) {}
 };
 
 /**

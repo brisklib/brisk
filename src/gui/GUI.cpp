@@ -2053,6 +2053,11 @@ void Widget::childrenAdded() {
 void Widget::parentChanged() {
     resolveProperties(AffectResolve | AffectFont | AffectLayout | AffectStyle);
     onParentChanged();
+    if (m_parent) {
+        for (const auto& fn : m_onParentSet) {
+            fn(this);
+        }
+    }
 }
 
 void Widget::onParentChanged() {}
@@ -2883,5 +2888,10 @@ Point Widget::scrollOffset() const {
 
 int Widget::scrollOffset(Orientation orientation) const {
     return -m_childrenOffset[+orientation];
+}
+
+void Widget::apply(const WidgetActions& action) {
+    if (action.onParentSet)
+        m_onParentSet.push_back(action.onParentSet);
 }
 } // namespace Brisk

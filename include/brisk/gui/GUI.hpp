@@ -280,6 +280,10 @@ struct ResolvedType<CornersL> {
 template <typename T>
 using ResolvedType = typename Internal::ResolvedType<T>::Type;
 
+struct WidgetActions {
+    function<void(Widget*)> onParentSet;
+};
+
 namespace Internal {
 
 template <typename InputT>
@@ -306,6 +310,7 @@ struct WidgetArgumentAccept {
     void operator()(const Attributes&);
     void operator()(const Rules&);
     void operator()(WidgetGroup*);
+    void operator()(WidgetActions);
 
     template <typename T, typename U, ArgumentOp op>
     void operator()(ArgVal<T, U, op>);
@@ -659,6 +664,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////////
 
     void apply(Builder builder);
+
+    void apply(const WidgetActions& action);
 
     void doRebuild();
     virtual void rebuild(bool force);
@@ -1282,6 +1289,7 @@ private:
     WidgetPtrs m_widgets;
     std::vector<BuilderData> m_builders;
     std::set<WidgetGroup*> m_groups;
+    std::vector<function<void(Widget*)>> m_onParentSet;
 
     friend struct WidgetGroup;
 
@@ -1465,6 +1473,25 @@ public:
 };
 
 constinit inline size_t widgetSize = sizeof(Widget);
+
+template <std::derived_from<Widget> WidgetType>
+inline WidgetActions storeWidget(std::shared_ptr<WidgetType>* ptr) {
+    return WidgetActions{
+        .onParentSet =
+            [ptr](Widget* w) {
+                *ptr = std::dynamic_pointer_cast<WidgetType>(w->shared_from_this());
+            },
+    };
+}
+
+template <std::derived_from<Widget> WidgetType>
+inline WidgetActions storeWidget(std::weak_ptr<WidgetType>* ptr) {
+    return WidgetActions{
+        [ptr](Widget* w) {
+            *ptr = std::dynamic_pointer_cast<WidgetType>(w->shared_from_this());
+        },
+    };
+}
 
 inline namespace Arg {
 
