@@ -132,68 +132,6 @@ struct IfChanged {
 };
 
 /**
- * @brief A structure that holds either a shared or unique value of type T.
- *
- * @tparam T The type of the held value.
- */
-template <typename T>
-struct PossiblyShared {
-    /**
-     * @brief Constructs a PossiblyShared object with a copy of the given value.
-     *
-     * @param copy The value to copy.
-     */
-    PossiblyShared(const T& copy) : value(copy) {}
-
-    /**
-     * @brief Constructs a PossiblyShared object with a moved value.
-     *
-     * @param copy The value to move.
-     */
-    PossiblyShared(std::remove_const_t<T>&& copy) : value(std::move(copy)) {}
-
-    /**
-     * @brief Constructs a PossiblyShared object with a shared pointer to the value.
-     *
-     * @param ptr A pointer to the shared value.
-     */
-    PossiblyShared(T* ptr) : shared(ptr) {}
-
-    /**
-     * @brief Dereferences the PossiblyShared object.
-     *
-     * @return A reference to the held value.
-     */
-    T& operator*() const {
-        return shared ? *shared : *value;
-    }
-
-    /**
-     * @brief Accesses members of the held value.
-     *
-     * @return A pointer to the held value.
-     */
-    T* operator->() const {
-        return shared ? shared : &*value;
-    }
-
-    /**
-     * @brief Checks if the PossiblyShared object holds a shared value.
-     *
-     * @return True if the value is shared, otherwise false.
-     */
-    bool isShared() const {
-        return shared;
-    }
-
-private:
-    /// Optionally holds the unique value if it is not shared.
-    mutable std::optional<std::remove_const_t<T>> value;
-    /// Pointer to the shared value, if applicable.
-    T* shared = nullptr;
-};
-
-/**
  * @brief A cache that stores an instance of a value and can be copied or moved.
  *
  * @tparam T The type of the cached value.
