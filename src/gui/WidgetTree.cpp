@@ -127,7 +127,8 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
         g->beforeLayout(m_root->isLayoutDirty());
     }
 
-    m_root->updateLayout(viewportRectangle);
+    m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
+    m_viewportRectangleChanged = false;
 
     if (m_updateGeometryRequested) {
         inputQueue->reset();
@@ -143,7 +144,8 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
         g->beforeLayout(m_root->isLayoutDirty());
     }
 
-    m_root->updateLayout(viewportRectangle);
+    m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
+    m_viewportRectangleChanged = false;
 
     for (WidgetGroup* g : m_groups) {
         g->beforePaint();
@@ -152,7 +154,7 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
     // Paint the widgets per-layer
     // Clear the layer and push the root widget's drawable
     m_layer.clear();
-    m_layer.push_back(m_root->drawable(viewportRectangle));
+    m_layer.push_back(m_root->drawable(m_viewportRectangle));
     do {
         std::vector<Drawable> layer;
         // Swap the contents of the current layer with the m_layer vector.
@@ -195,5 +197,16 @@ bool WidgetTree::transitionsAllowed() {
 
 void WidgetTree::disableTransitions() {
     m_disableTransitions = true;
+}
+
+void WidgetTree::setViewportRectangle(Rectangle rect) {
+    if (rect != m_viewportRectangle) {
+        m_viewportRectangleChanged = true;
+        m_viewportRectangle        = rect;
+    }
+}
+
+Rectangle WidgetTree::viewportRectangle() const noexcept {
+    return m_viewportRectangle;
 }
 } // namespace Brisk

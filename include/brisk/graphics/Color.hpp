@@ -85,6 +85,22 @@ using ColorF = ColorOf<float, ColorGamma::Default>;
 /** @brief A standard 8-bit sRGB color type. */
 using Color  = ColorOf<uint8_t, ColorGamma::sRGB>;
 
+/** @brief An extended-range 16-bit sRGB color type with 13-bit precision. */
+using ColorW = ColorOf<int16_t, ColorGamma::sRGB>;
+
+namespace Internal {
+
+template <typename T>
+constexpr int colorScale() {
+    if constexpr (std::is_floating_point_v<T>)
+        return 1;
+    else if constexpr (std::is_unsigned_v<T>)
+        return std::numeric_limits<T>::max();
+    else if constexpr (std::is_same_v<T, int16_t>)
+        return 8192; // 16-bit Extended range sRGB
+}
+} // namespace Internal
+
 /**
  * @brief Converts a 32-bit RGBA color to a `Color` instance.
  *
@@ -103,11 +119,8 @@ struct ColorOf {
 
     /**
      * @brief Maximum value for color components, based on the type `T`.
-     *
-     * If `T` is a floating-point type, the maximum is 1.0. If `T` is an integer type, the maximum is
-     * determined by the limits of that type (e.g., 255 for `uint8_t`).
      */
-    constexpr static inline int maximum = std::is_floating_point_v<T> ? 1 : std::numeric_limits<T>::max();
+    constexpr static inline int maximum = Internal::colorScale<T>();
 
     /**
      * @brief Returns the color space of the current color based on the gamma setting.
@@ -580,7 +593,7 @@ struct ColorOf {
         return rescale<T, maximum, 1, Tfloat>(x);
     }
 
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "r", &ColorOf::r },
         ReflectionField{ "g", &ColorOf::g },
         ReflectionField{ "b", &ColorOf::b },

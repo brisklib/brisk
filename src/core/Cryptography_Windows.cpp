@@ -25,7 +25,7 @@
 
 namespace Brisk {
 
-size_t cryptoRandomInplaceSafe(bytes_mutable_view data) {
+size_t cryptoRandomInplaceSafe(BytesMutableView data) {
     return BCRYPT_SUCCESS(BCryptGenRandom(nullptr, (PUCHAR)data.data(), (ULONG)data.size_bytes(),
                                           BCRYPT_USE_SYSTEM_PREFERRED_RNG))
                ? data.size()

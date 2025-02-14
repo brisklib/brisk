@@ -60,8 +60,8 @@ void Event::passThrough() {
 }
 
 template <typename T>
-optional<T> Event::as() const {
-    optional<T> result;
+std::optional<T> Event::as() const {
+    std::optional<T> result;
     std::visit(
         [&](const auto& val) BRISK_INLINE_LAMBDA {
             if constexpr (std::is_base_of_v<T, std::decay_t<decltype(val)>>)
@@ -71,33 +71,33 @@ optional<T> Event::as() const {
     return result;
 }
 
-template optional<EventMouseMoved> Event::as<EventMouseMoved>() const;
-template optional<EventMouseYWheel> Event::as<EventMouseYWheel>() const;
-template optional<EventMouseXWheel> Event::as<EventMouseXWheel>() const;
-template optional<EventMouseButtonPressed> Event::as<EventMouseButtonPressed>() const;
-template optional<EventMouseButtonReleased> Event::as<EventMouseButtonReleased>() const;
-template optional<EventMouseDoubleClicked> Event::as<EventMouseDoubleClicked>() const;
-template optional<EventMouseTripleClicked> Event::as<EventMouseTripleClicked>() const;
-template optional<EventKeyPressed> Event::as<EventKeyPressed>() const;
-template optional<EventKeyReleased> Event::as<EventKeyReleased>() const;
-template optional<EventCharacterTyped> Event::as<EventCharacterTyped>() const;
-template optional<EventTargetDragging> Event::as<EventTargetDragging>() const;
-template optional<EventTargetDropped> Event::as<EventTargetDropped>() const;
-template optional<EventFocused> Event::as<EventFocused>() const;
-template optional<EventBlurred> Event::as<EventBlurred>() const;
-template optional<EventMouseEntered> Event::as<EventMouseEntered>() const;
-template optional<EventMouseExited> Event::as<EventMouseExited>() const;
-template optional<EventSourceDragging> Event::as<EventSourceDragging>() const;
-template optional<EventSourceDropped> Event::as<EventSourceDropped>() const;
-template optional<EventBase> Event::as<EventBase>() const;
-template optional<EventInput> Event::as<EventInput>() const;
-template optional<EventMouse> Event::as<EventMouse>() const;
-template optional<EventMouseButton> Event::as<EventMouseButton>() const;
-template optional<EventDragNDrop> Event::as<EventDragNDrop>() const;
-template optional<EventDragging> Event::as<EventDragging>() const;
-template optional<EventDropped> Event::as<EventDropped>() const;
-template optional<EventKey> Event::as<EventKey>() const;
-template optional<EventTargeted> Event::as<EventTargeted>() const;
+template std::optional<EventMouseMoved> Event::as<EventMouseMoved>() const;
+template std::optional<EventMouseYWheel> Event::as<EventMouseYWheel>() const;
+template std::optional<EventMouseXWheel> Event::as<EventMouseXWheel>() const;
+template std::optional<EventMouseButtonPressed> Event::as<EventMouseButtonPressed>() const;
+template std::optional<EventMouseButtonReleased> Event::as<EventMouseButtonReleased>() const;
+template std::optional<EventMouseDoubleClicked> Event::as<EventMouseDoubleClicked>() const;
+template std::optional<EventMouseTripleClicked> Event::as<EventMouseTripleClicked>() const;
+template std::optional<EventKeyPressed> Event::as<EventKeyPressed>() const;
+template std::optional<EventKeyReleased> Event::as<EventKeyReleased>() const;
+template std::optional<EventCharacterTyped> Event::as<EventCharacterTyped>() const;
+template std::optional<EventTargetDragging> Event::as<EventTargetDragging>() const;
+template std::optional<EventTargetDropped> Event::as<EventTargetDropped>() const;
+template std::optional<EventFocused> Event::as<EventFocused>() const;
+template std::optional<EventBlurred> Event::as<EventBlurred>() const;
+template std::optional<EventMouseEntered> Event::as<EventMouseEntered>() const;
+template std::optional<EventMouseExited> Event::as<EventMouseExited>() const;
+template std::optional<EventSourceDragging> Event::as<EventSourceDragging>() const;
+template std::optional<EventSourceDropped> Event::as<EventSourceDropped>() const;
+template std::optional<EventBase> Event::as<EventBase>() const;
+template std::optional<EventInput> Event::as<EventInput>() const;
+template std::optional<EventMouse> Event::as<EventMouse>() const;
+template std::optional<EventMouseButton> Event::as<EventMouseButton>() const;
+template std::optional<EventDragNDrop> Event::as<EventDragNDrop>() const;
+template std::optional<EventDragging> Event::as<EventDragging>() const;
+template std::optional<EventDropped> Event::as<EventDropped>() const;
+template std::optional<EventKey> Event::as<EventKey>() const;
+template std::optional<EventTargeted> Event::as<EventTargeted>() const;
 
 void HitTestMap::clear() {
     list.clear();
@@ -307,19 +307,19 @@ void InputQueue::processKeyEvent(Event e) {
     }
 }
 
-optional<std::string> InputQueue::getDescriptionAtMouse() const {
+std::optional<std::string> InputQueue::getDescriptionAtMouse() const {
     return getAtMouse<std::string>([](Widget* w) BRISK_INLINE_LAMBDA {
-        return !w->m_description.empty() ? optional<std::string>(w->m_description) : nullopt;
+        return !w->m_description.empty() ? std::optional<std::string>(w->m_description) : std::nullopt;
     });
 }
 
-optional<Cursor> InputQueue::getCursorAtMouse() const {
+std::optional<Cursor> InputQueue::getCursorAtMouse() const {
     if (isDragging()) {
         bool allowed = dropAllowed || draggingOnSource;
         return allowed ? Cursor::Grab : Cursor::GrabDeny;
     }
     return getAtMouse<Cursor>([](Widget* w) BRISK_INLINE_LAMBDA {
-        return w->m_cursor != Cursor::NotSet ? optional<Cursor>(w->m_cursor) : nullopt;
+        return w->m_cursor != Cursor::NotSet ? std::optional<Cursor>(w->m_cursor) : std::nullopt;
     });
 }
 
@@ -377,7 +377,7 @@ void InputQueue::cancelDragging() {
 
 void InputQueue::processDragEvent(Event e) {
     // Process mouse event and generate all needed drag&drop events
-    optional<EventMouse> base              = e.as<EventMouse>();
+    std::optional<EventMouse> base         = e.as<EventMouse>();
 
     std::shared_ptr<Widget> previousTarget = dragTarget.lock();
 
@@ -432,7 +432,7 @@ void InputQueue::processDragEvent(Event e) {
 }
 
 void InputQueue::processMouseEvent(Event e) {
-    optional<EventMouse> base = e.as<EventMouse>();
+    std::optional<EventMouse> base = e.as<EventMouse>();
     BRISK_ASSERT(!!base);
 
     if (isDragging()) {
@@ -468,7 +468,7 @@ void InputQueue::processMouseEvent(Event e) {
 }
 
 void InputQueue::processTargetedEvent(Event e) {
-    optional<EventTargeted> targeted = e.as<EventTargeted>();
+    std::optional<EventTargeted> targeted = e.as<EventTargeted>();
     BRISK_ASSERT(!!targeted);
     if (RC<Widget> target = targeted->target.lock()) {
         target->processEvent(e);
@@ -616,20 +616,20 @@ void InputQueue::mouseLeave() {
     processMouseState(nullptr);
 }
 
-optional<PointF> InputQueue::mousePosFor(Widget* widget) const {
+std::optional<PointF> InputQueue::mousePosFor(Widget* widget) const {
     if (!lastMouseEvent)
-        return nullopt;
+        return std::nullopt;
     if (!widget->rect().contains(lastMouseEvent->point))
-        return nullopt;
+        return std::nullopt;
     return lastMouseEvent->point;
 }
 
-optional<PointF> InputQueue::mousePosForClient(Widget* widget) const {
+std::optional<PointF> InputQueue::mousePosForClient(Widget* widget) const {
     if (!lastMouseEvent)
-        return nullopt;
+        return std::nullopt;
     Rectangle client = widget->clientRect();
     if (!client.contains(lastMouseEvent->point))
-        return nullopt;
+        return std::nullopt;
     return lastMouseEvent->point - PointF(client.p1);
 }
 
@@ -642,9 +642,9 @@ std::tuple<DragEvent, PointF, KeyModifiers> Event::dragged(Rectangle rect, bool&
     auto mouseUp    = as<EventMouseButtonReleased>();
     auto mouseMoved = as<EventMouseMoved>();
     if (mouseDown && mouseDown->button != MouseButton::Left)
-        mouseDown = nullopt;
+        mouseDown = std::nullopt;
     if (mouseUp && mouseUp->button != MouseButton::Left)
-        mouseUp = nullopt;
+        mouseUp = std::nullopt;
 
     if (!dragActive && mouseDown && rect.contains(mouseDown->point)) {
         dragActive = true;
@@ -679,11 +679,11 @@ bool Event::blurred() const {
     return false;
 }
 
-optional<char32_t> Event::characterTyped() const {
+std::optional<char32_t> Event::characterTyped() const {
     auto e = as<EventCharacterTyped>();
     if (e)
         return e->character;
-    return nullopt;
+    return std::nullopt;
 }
 
 bool Event::keyReleased(KeyCode key, KeyModifiers mods) const {
@@ -801,6 +801,6 @@ bool InputQueue::hasFocus() {
     return static_cast<bool>(focused.lock());
 }
 
-InputQueue::InputQueue() : registration{ this, uiThread } {}
+InputQueue::InputQueue() : registration{ this, uiScheduler } {}
 
 } // namespace Brisk

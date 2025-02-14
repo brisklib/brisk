@@ -43,7 +43,7 @@ struct OSVersion {
     /**
      * @brief Reflection data for the fields of OSVersion.
      */
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "major", &OSVersion::major },
         ReflectionField{ "minor", &OSVersion::minor },
         ReflectionField{ "build", &OSVersion::build },
@@ -67,7 +67,7 @@ struct OSUname {
     /**
      * @brief Reflection data for the fields of OSUname.
      */
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "sysname", &OSUname::sysname },
         ReflectionField{ "release", &OSUname::release },
         ReflectionField{ "version", &OSUname::version },
@@ -103,7 +103,7 @@ struct CpuInfo {
     /**
      * @brief Reflection data for the fields of CpuInfo.
      */
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "model", &CpuInfo::model },
         ReflectionField{ "speed", &CpuInfo::speed },
     };

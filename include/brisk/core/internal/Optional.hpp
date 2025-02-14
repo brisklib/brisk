@@ -24,8 +24,6 @@
 #include <fmt/format.h>
 
 namespace Brisk {
-using std::nullopt;
-using std::optional;
 
 template <typename T>
 struct optional_ref : public std::optional<T*> {

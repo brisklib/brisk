@@ -607,19 +607,19 @@ struct Rules {
     std::vector<Rule> rules;
 
     template <PropertyTag Tag>
-    optional<typename Tag::Type> get(Tag) const {
+    std::optional<typename Tag::Type> get(Tag) const {
         const Internal::StyleProperty* prop = Internal::styleProperty<Tag>();
         for (const Rule& rule : rules) {
             if (rule.m_property == prop) {
                 if (rule.m_op == Internal::RuleOp::Function) {
-                    return nullopt;
+                    return std::nullopt;
                 }
                 typename Tag::Type value;
                 prop->get(value, rule.m_op, rule.m_storage, nullptr);
                 return value;
             }
         }
-        return nullopt;
+        return std::nullopt;
     }
 
     bool operator==(const Rules&) const noexcept = default;

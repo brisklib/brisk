@@ -39,7 +39,7 @@ SVGImage::SVGImage(std::string_view svg) {
         reinterpret_cast<SVGImpl*>(lunasvg::Document::loadFromData(svg.data(), svg.size()).release()));
 }
 
-SVGImage::SVGImage(bytes_view svg) : SVGImage(toStringView(svg)) {}
+SVGImage::SVGImage(BytesView svg) : SVGImage(toStringView(svg)) {}
 
 SVGImage::~SVGImage() = default;
 

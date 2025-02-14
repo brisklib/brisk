@@ -379,15 +379,18 @@ struct Visitor : public BaseReaderHandler<UTF8<>, Visitor> {
     bool keyMode = false;
 };
 
-struct byte_stream {
-    bytes data;
+namespace {
+
+struct ByteStream {
+    Bytes data;
 
     void write(const char* buf, size_t len) {
-        data.insert(data.end(), buf, buf + len);
+        data.insert(data.end(), (const std::byte*)buf, (const std::byte*)buf + len);
     }
 };
+} // namespace
 
-void writeMsgpack(msgpack::packer<byte_stream>& w, const Json& b) {
+void writeMsgpack(msgpack::packer<ByteStream>& w, const Json& b) {
     switch (b.type()) {
     case JsonType::Array: {
         const auto& arr = b.access<JsonArray>();
@@ -460,34 +463,34 @@ std::string Json::toJson(int indent) const {
     return std::string(s.GetString(), s.GetSize());
 }
 
-optional<Json> Json::fromJson(const std::string& s) {
+std::optional<Json> Json::fromJson(const std::string& s) {
     rapidjson::StringStream ss(s.c_str());
     rapidjson::Reader r;
     Visitor visitor;
     visitor.jsons.push_back(nullptr);
     auto e = r.Parse(ss, visitor);
     if (e.IsError())
-        return nullopt;
+        return std::nullopt;
     RAPIDJSON_ASSERT(visitor.jsons.size() == 1);
     return visitor.back();
 }
 
-std::vector<uint8_t> Json::toMsgPack() const {
-    byte_stream bs;
-    msgpack::packer<byte_stream> pack(bs);
+Bytes Json::toMsgPack() const {
+    ByteStream bs;
+    msgpack::packer<ByteStream> pack(bs);
 
     writeMsgpack(pack, *this);
 
     return std::move(bs.data);
 }
 
-optional<Json> Json::fromMsgPack(const bytes_view& s) {
+std::optional<Json> Json::fromMsgPack(const BytesView& s) {
     Visitor visitor;
     visitor.jsons.push_back(nullptr);
     msgpack::detail::parse_helper<Visitor> r(visitor);
     size_t offs = 0;
     if (r.execute((const char*)s.data(), s.size(), offs) != msgpack::PARSE_SUCCESS)
-        return nullopt;
+        return std::nullopt;
     RAPIDJSON_ASSERT(visitor.jsons.size() == 1);
     return visitor.back();
 }

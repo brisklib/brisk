@@ -138,7 +138,7 @@ enum class SeekOrigin {
  * This value is used to indicate an invalid or undefined position when working
  * with stream operations.
  */
-constexpr inline uintmax_t invalidPosition = UINTMAX_MAX;
+constexpr inline uint64_t invalidPosition = UINTMAX_MAX;
 
 /**
  * @brief Constant representing an invalid size for a stream.
@@ -146,7 +146,7 @@ constexpr inline uintmax_t invalidPosition = UINTMAX_MAX;
  * This value is used to indicate an invalid or undefined size when working
  * with stream operations.
  */
-constexpr inline uintmax_t invalidSize     = UINTMAX_MAX;
+constexpr inline uint64_t invalidSize     = UINTMAX_MAX;
 
 /**
  * @enum StreamCapabilities
@@ -196,7 +196,7 @@ public:
      * @brief Retrieves the capabilities of the stream.
      * @return StreamCapabilities A bitmask representing the capabilities of the stream.
      */
-    [[nodiscard]] virtual StreamCapabilities caps() const noexcept                                = 0;
+    [[nodiscard]] virtual StreamCapabilities caps() const noexcept       = 0;
 
     /**
      * @brief Reads up to `size` bytes from the stream into the provided buffer.
@@ -218,7 +218,11 @@ public:
      * - If EOF is reached, the function returns the number of bytes read before EOF.
      * - If EOF is reached before any bytes are read, `Transferred::Eof` is returned.
      */
-    [[nodiscard]] virtual Transferred read(uint8_t* data, size_t size)                            = 0;
+    [[nodiscard]] virtual Transferred read(std::byte* data, size_t size) = 0;
+
+    [[nodiscard]] virtual Transferred read(uint8_t* data, size_t size) {
+        return read(reinterpret_cast<std::byte*>(data), size);
+    }
 
     /**
      * @brief Writes up to `size` bytes from the provided buffer to the stream.
@@ -236,13 +240,17 @@ public:
      * - If any error occurs during the `WriteFile` call or no bytes are written, the function
      * returns `Transferred::Error`.
      */
-    [[nodiscard]] virtual Transferred write(const uint8_t* data, size_t size)                     = 0;
+    [[nodiscard]] virtual Transferred write(const std::byte* data, size_t size) = 0;
+
+    [[nodiscard]] virtual Transferred write(uint8_t* data, size_t size) {
+        return write(reinterpret_cast<const std::byte*>(data), size);
+    }
 
     /**
      * @brief Flushes the stream, ensuring that all buffered data is written to the underlying storage.
      * @return True if the flush operation was successful, false otherwise.
      */
-    [[nodiscard]] virtual bool flush()                                                            = 0;
+    [[nodiscard]] virtual bool flush()                                                           = 0;
 
     /**
      * @brief Seeks to a specific position in the stream.
@@ -250,25 +258,25 @@ public:
      * @param origin The reference point for the seek operation.
      * @return True if the seek operation was successful, false otherwise.
      */
-    [[nodiscard]] virtual bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) = 0;
+    [[nodiscard]] virtual bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) = 0;
 
     /**
      * @brief Retrieves the current position of the stream.
      * @return The current position of the stream or `invalidPosition` if an error occurs.
      */
-    [[nodiscard]] virtual uintmax_t tell() const                                                  = 0;
+    [[nodiscard]] virtual uint64_t tell() const                                                  = 0;
 
     /**
      * @brief Retrieves the size of the stream.
      * @return The size of the stream or `invalidSize` if an error occurs.
      */
-    [[nodiscard]] virtual uintmax_t size() const                                                  = 0;
+    [[nodiscard]] virtual uint64_t size() const                                                  = 0;
 
     /**
      * @brief Truncates the stream to the current position.
      * @return True if the truncate operation was successful, false otherwise.
      */
-    [[nodiscard]] virtual bool truncate()                                                         = 0;
+    [[nodiscard]] virtual bool truncate()                                                        = 0;
 
 public:
     /**
@@ -320,18 +328,18 @@ public:
     }
 
     /**
-     * @brief Reads data into a `std::span<uint8_t>` buffer.
-     * @param data A `std::span<uint8_t>` representing the buffer to read into.
+     * @brief Reads data into a `std::span<std::byte>` buffer.
+     * @param data A `std::span<std::byte>` representing the buffer to read into.
      * @return Transferred The result of the read operation.
      */
-    [[nodiscard]] Transferred read(std::span<uint8_t> data) {
+    [[nodiscard]] Transferred read(std::span<std::byte> data) {
         return read(data.data(), data.size());
     }
 
     /**
      * @brief Reads data from the stream until the end is reached or an error occurs.
      *
-     * The `readUntilEnd` function reads data in chunks into a `std::vector<uint8_t>` from the stream. It
+     * The `readUntilEnd` function reads data in chunks into a `std::vector<std::byte>` from the stream. It
      * continues reading until EOF is encountered or an error occurs. If an error occurs before all requested
      * data is read and `incompleteOk` is set to `false`, the function returns `std::nullopt` to indicate that
      * the read operation failed.
@@ -339,11 +347,11 @@ public:
      * @param incompleteOk If set to `true`, allows returning partial data if error occurs before the buffer
      * is completely filled.
      *
-     * @return std::optional<std::vector<uint8_t>>
-     * - A `std::vector<uint8_t>` containing the data read from the stream if successful.
+     * @return std::optional<std::vector<std::byte>>
+     * - A `std::vector<std::byte>` containing the data read from the stream if successful.
      * - `std::nullopt` if an error occurs and `incompleteOk` is `false`.
      */
-    optional<std::vector<uint8_t>> readUntilEnd(bool incompleteOk = false);
+    std::optional<std::vector<std::byte>> readUntilEnd(bool incompleteOk = false);
 
     /**
      * @brief Writes all data from the given span to the stream.
@@ -351,10 +359,10 @@ public:
      * The `writeAll` function attempts to write the entire range of data specified by `data` to the
      * stream. It ensures that the number of bytes written matches the size of the `data` span.
      *
-     * @param data A `std::span<const uint8_t>` containing the data to be written.
+     * @param data A `std::span<const std::byte>` containing the data to be written.
      * @return bool True if the entire data was written successfully; otherwise, false.
      */
-    [[nodiscard]] bool writeAll(std::span<const uint8_t> data);
+    [[nodiscard]] bool writeAll(std::span<const std::byte> data);
 
     /**
      * @brief Writes the contents of a `string_view` to the stream.
@@ -382,13 +390,13 @@ public:
 
     StreamCapabilities caps() const noexcept override;
 
-    Transferred write(const uint8_t* data, size_t size) final;
+    Transferred write(const std::byte* data, size_t size) final;
 
-    bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
+    bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
 
-    uintmax_t tell() const override;
+    uint64_t tell() const override;
 
-    uintmax_t size() const override;
+    uint64_t size() const override;
 
     bool flush() final;
 
@@ -408,13 +416,13 @@ public:
 
     StreamCapabilities caps() const noexcept override;
 
-    Transferred read(uint8_t* data, size_t size) final;
+    Transferred read(std::byte* data, size_t size) final;
 
-    bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
+    bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
 
-    uintmax_t tell() const override;
+    uint64_t tell() const override;
 
-    uintmax_t size() const override;
+    uint64_t size() const override;
 
     bool truncate() override;
 };
@@ -454,7 +462,7 @@ public:
 /**
  * @class MemoryStream
  * @brief In-memory stream with full read/write capabilities.
- * Internally stores data as a `std::vector<uint8_t>` and grows as new data is written to the stream.
+ * Internally stores data as a `Bytes` and grows as new data is written to the stream.
  *
  * Supports all stream operations, including read, write, seek, and size queries.
  */
@@ -468,41 +476,41 @@ public:
 
     /**
      * @brief Constructs a `MemoryStream` with the given initial data.
-     * @param data A `std::vector<uint8_t>` containing the initial data for the stream.
+     * @param data A `std::vector<std::byte>` containing the initial data for the stream.
      */
-    MemoryStream(std::vector<uint8_t> data);
+    MemoryStream(std::vector<std::byte> data);
 
     [[nodiscard]] StreamCapabilities caps() const noexcept override;
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) override;
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) override;
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) override;
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) override;
 
     [[nodiscard]] bool flush() override;
 
-    [[nodiscard]] bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
+    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override;
 
-    [[nodiscard]] uintmax_t tell() const override;
+    [[nodiscard]] uint64_t tell() const override;
 
-    [[nodiscard]] uintmax_t size() const override;
+    [[nodiscard]] uint64_t size() const override;
 
     [[nodiscard]] bool truncate() override;
 
     /**
      * @brief Returns a const reference to the internal data buffer.
-     * @return A constant reference to the `std::vector<uint8_t>` holding the stream's data.
+     * @return A constant reference to the `std::vector<std::byte>` holding the stream's data.
      */
-    const std::vector<uint8_t>& data() const;
+    const std::vector<std::byte>& data() const;
 
     /**
      * @brief Returns a non-const reference to the internal data buffer.
-     * @return A non-constant reference to the `std::vector<uint8_t>` holding the stream's data.
+     * @return A non-constant reference to the `std::vector<std::byte>` holding the stream's data.
      */
-    std::vector<uint8_t>& data();
+    std::vector<std::byte>& data();
 
 private:
-    std::vector<uint8_t> m_data;
-    uintmax_t m_position = 0;
+    std::vector<std::byte> m_data;
+    uint64_t m_position = 0;
 };
 
 /**
@@ -532,19 +540,19 @@ public:
         }
     }
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) override {
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) override {
         if (size == 0)
             return Transferred::Error;
         size_t trSize = std::min(size, static_cast<size_t>(m_data.size_bytes() - m_bytePosition));
         if (trSize == 0) {
             return Transferred::Eof;
         }
-        memcpy(data, reinterpret_cast<const uint8_t*>(m_data.data()) + m_bytePosition, trSize);
+        memcpy(data, reinterpret_cast<const std::byte*>(m_data.data()) + m_bytePosition, trSize);
         m_bytePosition += trSize;
         return trSize;
     }
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) override {
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) override {
         if constexpr (readOnly) {
             throwException(ENotImplemented("write called for read-only SpanStream"));
         } else {
@@ -552,7 +560,7 @@ public:
                 return Transferred::Error;
             size = std::min(static_cast<size_t>(m_data.size_bytes() - m_bytePosition), size);
             if (size) {
-                memcpy(reinterpret_cast<uint8_t*>(m_data.data()) + m_bytePosition, data, size);
+                memcpy(reinterpret_cast<std::byte*>(m_data.data()) + m_bytePosition, data, size);
                 m_bytePosition += size;
             }
             return size;
@@ -567,8 +575,8 @@ public:
         }
     }
 
-    [[nodiscard]] bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) override {
-        intmax_t newPosition;
+    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) override {
+        int64_t newPosition;
         switch (origin) {
         case SeekOrigin::End:
             newPosition = m_data.size_bytes() + position;
@@ -581,17 +589,17 @@ public:
             newPosition = position;
             break;
         }
-        if (newPosition < 0 || newPosition > static_cast<intmax_t>(m_data.size_bytes()))
+        if (newPosition < 0 || newPosition > static_cast<int64_t>(m_data.size_bytes()))
             return false;
         m_bytePosition = newPosition;
         return true;
     }
 
-    [[nodiscard]] uintmax_t tell() const override {
+    [[nodiscard]] uint64_t tell() const override {
         return m_bytePosition;
     }
 
-    [[nodiscard]] uintmax_t size() const override {
+    [[nodiscard]] uint64_t size() const override {
         return m_data.size_bytes();
     }
 
@@ -613,10 +621,10 @@ public:
 
 private:
     std::span<T> m_data;
-    uintmax_t m_bytePosition = 0;
+    uint64_t m_bytePosition = 0;
 };
 
-using ByteMutableViewStream = SpanStream<uint8_t>;
-using ByteViewStream        = SpanStream<const uint8_t>;
+using ByteMutableViewStream = SpanStream<std::byte>;
+using ByteViewStream        = SpanStream<const std::byte>;
 
 } // namespace Brisk

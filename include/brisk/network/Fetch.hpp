@@ -46,7 +46,7 @@ struct HTTPRequest {
     bool followLocation              = true;             ///< Whether to follow redirects.
     std::variant<std::monostate, HTTPBasicAuth, HTTPBearerAuth> authentication; ///< Authentication options.
     std::chrono::milliseconds timeout = std::chrono::milliseconds(5000);        ///< Request timeout duration.
-    function<void(intmax_t, intmax_t)> progressCallback =
+    function<void(int64_t, int64_t)> progressCallback =
         nullptr; ///< Callback function for reporting progress.
 };
 

@@ -474,6 +474,42 @@ std::string rtrim(std::string s);
 std::string trim(std::string s);
 
 /**
+ * @brief Trims whitespace from the left side of a string view.
+ *
+ * @param s The string view to trim.
+ * @return The left-trimmed string view.
+ */
+std::string_view ltrim(std::string_view s);
+
+/**
+ * @brief Trims whitespace from the right side of a string view.
+ *
+ * @param s The string view to trim.
+ * @return The right-trimmed string view.
+ */
+std::string_view rtrim(std::string_view s);
+
+/**
+ * @brief Trims whitespace from both sides of a string view.
+ *
+ * @param s The string view to trim.
+ * @return The trimmed string view.
+ */
+std::string_view trim(std::string_view s);
+
+inline std::string_view ltrim(const char* s) {
+    return ltrim(std::string_view(s));
+}
+
+inline std::string_view rtrim(const char* s) {
+    return rtrim(std::string_view(s));
+}
+
+inline std::string_view trim(const char* s) {
+    return trim(std::string_view(s));
+}
+
+/**
  * @brief Splits a string view into two substrings using a delimiter.
  *
  * @param text The input string to split.

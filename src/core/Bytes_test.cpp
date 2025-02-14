@@ -36,11 +36,11 @@ TEST_CASE("Convert empty hex string to Bytes") {
 }
 
 TEST_CASE("Handle invalid hex input: '0'") {
-    CHECK(fromHex("0") == nullopt);
+    CHECK(fromHex("0") == std::nullopt);
 }
 
 TEST_CASE("Handle invalid hex input: 'X'") {
-    CHECK(fromHex("X") == nullopt);
+    CHECK(fromHex("X") == std::nullopt);
 }
 
 TEST_CASE("Convert uint32 vector to hex") {
@@ -48,19 +48,23 @@ TEST_CASE("Convert uint32 vector to hex") {
 }
 
 TEST_CASE("Convert Bytes to uppercase hex representation") {
-    CHECK(toHex(Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }) == "0123456789ABCDEF");
+    CHECK(toHex(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }) ==
+          "0123456789ABCDEF");
 }
 
 TEST_CASE("Convert Bytes to lowercase hex representation") {
-    CHECK(toHex(Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }, false) == "0123456789abcdef");
+    CHECK(toHex(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }, false) ==
+          "0123456789abcdef");
 }
 
 TEST_CASE("Convert uppercase hex string to Bytes") {
-    CHECK(fromHex("0123456789ABCDEF") == Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF });
+    CHECK(fromHex("0123456789ABCDEF") ==
+          Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b });
 }
 
 TEST_CASE("Convert lowercase hex string to Bytes") {
-    CHECK(fromHex("0123456789abcdef") == Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF });
+    CHECK(fromHex("0123456789abcdef") ==
+          Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b });
 }
 
 TEST_CASE("Convert empty Bytes to Base64 representation") {
@@ -72,19 +76,19 @@ TEST_CASE("Convert empty Base64 string to Bytes") {
 }
 
 TEST_CASE("Handle invalid Base64 input: '0'") {
-    CHECK(fromBase64("0", false, true) == nullopt);
+    CHECK(fromBase64("0", false, true) == std::nullopt);
 }
 
 TEST_CASE("Handle invalid Base64 input: '@'") {
-    CHECK(fromBase64("@", false, true) == nullopt);
+    CHECK(fromBase64("@", false, true) == std::nullopt);
 }
 
 TEST_CASE("Convert Base64 string with newlines to Bytes") {
-    CHECK(fromBase64("AAA\r\nAAA", false, false) == Bytes{ 0, 0, 0, 0 });
+    CHECK(fromBase64("AAA\r\nAAA", false, false) == Bytes{ 0_b, 0_b, 0_b, 0_b });
 }
 
-TEST_CASE("Invalid Base64 string with newlines returns nullopt") {
-    CHECK(fromBase64("AAA\r\nAAA", false, true) == nullopt);
+TEST_CASE("Invalid Base64 string with newlines returns std::nullopt") {
+    CHECK(fromBase64("AAA\r\nAAA", false, true) == std::nullopt);
 }
 
 TEST_CASE("Convert uint32 vector to Base64") {
@@ -97,19 +101,23 @@ TEST_CASE("Convert uint32 vector to Base64 with URL safe flag") {
 }
 
 TEST_CASE("Convert Bytes to Base64") {
-    CHECK(toBase64(Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }) == "ASNFZ4mrze8=");
+    CHECK(toBase64(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }) ==
+          "ASNFZ4mrze8=");
 }
 
 TEST_CASE("Convert Bytes to Base64 without padding") {
-    CHECK(toBase64(Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }, false) == "ASNFZ4mrze8=");
+    CHECK(toBase64(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }, false) ==
+          "ASNFZ4mrze8=");
 }
 
 TEST_CASE("Convert valid Base64 string to Bytes") {
-    CHECK(fromBase64("ASNFZ4mrze8=", false, true) == Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF });
+    CHECK(fromBase64("ASNFZ4mrze8=", false, true) ==
+          Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b });
 }
 
 TEST_CASE("Duplicate check for valid Base64 string conversion") {
-    CHECK(fromBase64("ASNFZ4mrze8=", false, true) == Bytes{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF });
+    CHECK(fromBase64("ASNFZ4mrze8=", false, true) ==
+          Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b });
 }
 
 TEST_CASE("Convert string of length 3 to CC") {

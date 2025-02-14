@@ -391,7 +391,7 @@ public:
      * @return An optional Rectangle object representing the clipping area. If no clipping is applied, the
      * optional is empty.
      */
-    optional<Rectangle> getClipRect() const;
+    std::optional<Rectangle> getClipRect() const;
 
     /**
      * @brief Sets the clipping rectangle.

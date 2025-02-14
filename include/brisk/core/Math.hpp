@@ -115,7 +115,7 @@ struct Fraction {
     /**
      * @brief Reflection data for the Fraction structure.
      */
-    constexpr static std::tuple Reflection{
+    constexpr static std::tuple reflection{
         ReflectionField{ "num", &Fraction::numerator },
         ReflectionField{ "den", &Fraction::denominator },
     };
@@ -395,25 +395,25 @@ private:
 /** @brief Defines optional operators for arithmetic operations. */
 #define OPTIONAL_OPERATOR(op)                                                                                \
     template <typename T1, typename T2>                                                                      \
-    inline optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(const optional<T1>& x,   \
-                                                                                    const optional<T2>& y) { \
+    inline std::optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(                    \
+        const std::optional<T1>& x, const std::optional<T2>& y) {                                            \
         if (x && y)                                                                                          \
             return *x op * y;                                                                                \
-        return nullopt;                                                                                      \
+        return std::nullopt;                                                                                 \
     }                                                                                                        \
     template <typename T1, typename T2>                                                                      \
-    inline optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(const T1 & x,            \
-                                                                                    const optional<T2>& y) { \
+    inline std::optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(                    \
+        const T1 & x, const std::optional<T2>& y) {                                                          \
         if (y)                                                                                               \
             return x op * y;                                                                                 \
-        return nullopt;                                                                                      \
+        return std::nullopt;                                                                                 \
     }                                                                                                        \
     template <typename T1, typename T2>                                                                      \
-    inline optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(const optional<T1>& x,   \
-                                                                                    const T2 & y) {          \
+    inline std::optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(                    \
+        const std::optional<T1>& x, const T2 & y) {                                                          \
         if (x)                                                                                               \
             return *x op y;                                                                                  \
-        return nullopt;                                                                                      \
+        return std::nullopt;                                                                                 \
     }
 
 OPTIONAL_OPERATOR(+)

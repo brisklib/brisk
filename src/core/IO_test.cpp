@@ -27,7 +27,7 @@
 namespace Brisk {
 
 struct Slice {
-    bytes_view bytes;
+    BytesView bytes;
     size_t offset = 0;
 
     Transferred read(uint8_t* data, size_t size) {

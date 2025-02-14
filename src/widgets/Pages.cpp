@@ -43,7 +43,7 @@ void Pages::updateTabs() {
             ++index;
         }
     }
-    onChanged();
+    internalChanged();
 }
 
 void Pages::childrenAdded() {
@@ -51,7 +51,7 @@ void Pages::childrenAdded() {
     updateTabs();
 }
 
-void Pages::onChanged() {
+void Pages::internalChanged() {
     if (m_value == Horizontal) {
         layout = Layout::Horizontal;
     } else if (m_value == Vertical) {
@@ -64,6 +64,10 @@ void Pages::onChanged() {
             ++index;
         }
     }
+}
+
+void Pages::onChanged() {
+    internalChanged();
 }
 
 TabButton::TabButton(Construction construction, ArgumentsView<TabButton> args) : Base(construction, nullptr) {

@@ -112,16 +112,16 @@ Another way to ensure correct lifetime management is by deriving from `BindingOb
 
 Example:
 ```c++
-class Component : public BindingObject<Component, &uiThread> {
+class Component : public BindingObject<Component, &uiScheduler> {
 public:
     virtual ~Component();
 };
 ```
 
-The `uiThread` variable is defined in `window/WindowApplication.hpp`:
+The `uiScheduler` variable is defined in `window/WindowApplication.hpp`:
 
 ```c++
-extern RC<TaskQueue> uiThread;
+extern RC<TaskQueue> uiScheduler;
 ```
 
 The `BindingObject` class also inherits from `std::enable_shared_from_this`, allowing `shared_from_this` to be used.

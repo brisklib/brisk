@@ -263,7 +263,7 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  *         the read operation is successful, or an I/O error if
  *         it fails.
  */
-[[nodiscard]] expected<bytes, IOError> readBytes(const fs::path& file_name);
+[[nodiscard]] expected<Bytes, IOError> readBytes(const fs::path& file_name);
 
 /**
  * @brief Reads the entire file as a UTF-8 encoded string.
@@ -330,7 +330,7 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  * @param b The bytes to write to the file.
  * @return A status indicating success or an I/O error.
  */
-[[nodiscard]] status<IOError> writeBytes(const fs::path& file_name, const bytes_view& b);
+[[nodiscard]] status<IOError> writeBytes(const fs::path& file_name, const BytesView& b);
 
 /**
  * @brief Writes a UTF-8 encoded string to a file.
@@ -388,7 +388,8 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  * @return An optional indicating the number of bytes written, or
  *         an empty optional if an error occurs.
  */
-[[nodiscard]] optional<uintmax_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize = 65536);
+[[nodiscard]] std::optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src,
+                                                      size_t bufSize = 65536);
 
 /**
  * @enum DefaultFolder
@@ -509,6 +510,6 @@ fs::path tempFilePath(std::string pattern);
  * @return An optional containing the path to the found directory if it exists;
  *         otherwise, `std::nullopt` is returned if the directory is not found.
  */
-optional<fs::path> findDirNextToExe(std::string_view dirName);
+std::optional<fs::path> findDirNextToExe(std::string_view dirName);
 
 } // namespace Brisk

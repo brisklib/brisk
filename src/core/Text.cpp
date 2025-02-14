@@ -71,24 +71,39 @@ std::string wordWrap(std::string text, size_t columns) {
     }
 }
 
+static bool isASCIISpace(unsigned ch) {
+    return ch <= ' ';
+}
+
+static bool isASCIINonSpace(unsigned ch) {
+    return ch > ' ';
+}
+
 std::string ltrim(std::string s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned ch) BRISK_INLINE_LAMBDA {
-                return ch > 32;
-            }));
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), isASCIINonSpace));
     return s;
 }
 
 std::string rtrim(std::string s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(),
-                         [](unsigned ch) BRISK_INLINE_LAMBDA {
-                             return ch > 32;
-                         })
-                .base(),
-            s.end());
+    s.erase(std::find_if(s.rbegin(), s.rend(), isASCIINonSpace).base(), s.end());
     return s;
 }
 
 std::string trim(std::string s) {
+    return rtrim(ltrim(std::move(s)));
+}
+
+std::string_view ltrim(std::string_view s) {
+    auto firstNonSpace = std::find_if(s.begin(), s.end(), isASCIINonSpace);
+    return s.substr(firstNonSpace - s.begin());
+}
+
+std::string_view rtrim(std::string_view s) {
+    auto lastNonSpace = std::find_if(s.rbegin(), s.rend(), isASCIINonSpace).base();
+    return s.substr(0, lastNonSpace - s.begin());
+}
+
+std::string_view trim(std::string_view s) {
     return rtrim(ltrim(std::move(s)));
 }
 

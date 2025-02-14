@@ -42,7 +42,7 @@ static int toJPGFormat(PixelFormat fmt) {
                      TJPF_GRAY);
 }
 
-bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampling> ss) {
+Bytes jpegEncode(RC<Image> image, std::optional<int> quality, std::optional<ColorSubsampling> ss) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("JPEG codec doesn't support encoding {} format", image->format()));
     }
@@ -54,8 +54,8 @@ bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampli
 
     auto r = image->mapRead<ImageFormat::Unknown_U8Gamma>();
 
-    bytes result(tjBufSize(r.width(), r.height(), toJPGSS(ss.value_or(defaultColorSubsampling))));
-    uint8_t* resultData      = result.data();
+    Bytes result(tjBufSize(r.width(), r.height(), toJPGSS(ss.value_or(defaultColorSubsampling))));
+    uint8_t* resultData      = (uint8_t*)result.data();
     unsigned long resultSize = result.size();
 
     if (tjCompress2(jpeg, r.data(), r.width(), r.byteStride(), r.height(), toJPGFormat(image->pixelFormat()),
@@ -71,7 +71,7 @@ bytes jpegEncode(RC<Image> image, optional<int> quality, optional<ColorSubsampli
     return result;
 }
 
-expected<RC<Image>, ImageIOError> jpegDecode(bytes_view bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> jpegDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("JPEG codec doesn't support decoding to {} format", format));
     }
@@ -84,8 +84,8 @@ expected<RC<Image>, ImageIOError> jpegDecode(bytes_view bytes, ImageFormat forma
     Size size;
     int jpegSS;
 
-    if (tjDecompressHeader2(jpeg, const_cast<uint8_t*>(bytes.data()), bytes.size(), &size.width, &size.height,
-                            &jpegSS) != 0) {
+    if (tjDecompressHeader2(jpeg, reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())),
+                            bytes.size(), &size.width, &size.height, &jpegSS) != 0) {
         return unexpected(ImageIOError::CodecError);
     }
     if (pixelFormat == PixelFormat::Unknown) {
@@ -96,8 +96,9 @@ expected<RC<Image>, ImageIOError> jpegDecode(bytes_view bytes, ImageFormat forma
 
     auto w          = image->mapWrite<ImageFormat::Unknown_U8Gamma>();
 
-    if (tjDecompress2(jpeg, const_cast<uint8_t*>(bytes.data()), bytes.size(), w.data(), w.width(),
-                      w.byteStride(), w.height(), toJPGFormat(pixelFormat), TJFLAG_ACCURATEDCT) != 0) {
+    if (tjDecompress2(jpeg, reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())), bytes.size(),
+                      w.data(), w.width(), w.byteStride(), w.height(), toJPGFormat(pixelFormat),
+                      TJFLAG_ACCURATEDCT) != 0) {
         return unexpected(ImageIOError::CodecError);
     }
 

@@ -34,12 +34,12 @@ void setupCURLE(void* c) {
 
 static size_t curlWriter(void* ptr, size_t size, size_t nmemb, Stream* stream) {
     size_t totalSize = size * nmemb;
-    return stream->write((const uint8_t*)ptr, totalSize).bytes();
+    return stream->write((const std::byte*)ptr, totalSize).bytes();
 }
 
 static size_t curlReader(void* ptr, size_t size, size_t nmemb, Stream* stream) {
     size_t totalSize = size * nmemb;
-    return stream->read((uint8_t*)ptr, totalSize).bytes();
+    return stream->read((std::byte*)ptr, totalSize).bytes();
 }
 
 static size_t curlHeaderWriter(char* ptr, size_t size, size_t nmemb, std::string* headers) {
@@ -47,9 +47,9 @@ static size_t curlHeaderWriter(char* ptr, size_t size, size_t nmemb, std::string
     return nmemb * size;
 }
 
-static int curlProgress(function<void(intmax_t, intmax_t)>* progress, curl_off_t dltotal, curl_off_t dlnow,
+static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t dltotal, curl_off_t dlnow,
                         curl_off_t ultotal, curl_off_t ulnow) {
-    (*progress)(static_cast<intmax_t>(dlnow), static_cast<intmax_t>(dltotal));
+    (*progress)(static_cast<int64_t>(dlnow), static_cast<int64_t>(dltotal));
     return 0;
 }
 
@@ -82,7 +82,7 @@ static int curlProgress(function<void(intmax_t, intmax_t)>* progress, curl_off_t
     if (requestBody) {
         curl_easy_setopt(curl, CURLOPT_READFUNCTION, &curlReader);
         curl_easy_setopt(curl, CURLOPT_READDATA, requestBody.get());
-        uintmax_t size = requestBody->size();
+        uint64_t size = requestBody->size();
         if (size != invalidSize) {
             curl_easy_setopt(curl,
                              request.method == HTTPMethod::Put ? CURLOPT_INFILESIZE_LARGE

@@ -89,6 +89,7 @@ void setTimeout(double time_s, VoidFunc fn);
 
 namespace Internal {
 
+#ifdef BRISK_EXCEPTIONS
 #define BRISK_SUPPRESS_EXCEPTIONS(...)                                                                       \
     try {                                                                                                    \
         __VA_ARGS__;                                                                                         \
@@ -97,16 +98,26 @@ namespace Internal {
     } catch (...) {                                                                                          \
         LOG_WARN(core, "Unknown exception suppressed");                                                      \
     }
+#else
+#define BRISK_SUPPRESS_EXCEPTIONS(...)                                                                       \
+    do {                                                                                                     \
+        __VA_ARGS__;                                                                                         \
+    } while (0)
+#endif
 
 template <typename Fn, typename... Args>
 void suppressExceptions(Fn&& fn, Args&&... args) {
+#ifdef BRISK_EXCEPTIONS
     try {
+#endif
         std::forward<Fn>(fn)(std::forward<Args>(args)...);
+#ifdef BRISK_EXCEPTIONS
     } catch (const std::exception& e) {
         LOG_WARN(core, "Exception suppressed: {}", e.what());
     } catch (...) {
         LOG_WARN(core, "Unknown exception suppressed");
     }
+#endif
 }
 } // namespace Internal
 

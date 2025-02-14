@@ -42,7 +42,7 @@ namespace Brisk {
 template <typename T, typename... Args>
 struct Cache {
     /// The cached value.
-    optional<T> data;
+    std::optional<T> data;
     /// The tuple storing the input parameters associated with the cached value.
     std::tuple<Args...> parameters;
 
@@ -106,7 +106,7 @@ struct IfChanged {
     static_assert(sizeof...(Args) > 0);
 
     /// The last stored tuple of arguments.
-    optional<std::tuple<Args...>> data;
+    std::optional<std::tuple<Args...>> data;
 
     /**
      * @brief Checks if the given arguments have changed since the last call.
@@ -127,70 +127,8 @@ struct IfChanged {
      * @brief Resets the internal state, clearing the stored arguments.
      */
     void reset() {
-        data = nullopt;
+        data = std::nullopt;
     }
-};
-
-/**
- * @brief A structure that holds either a shared or unique value of type T.
- *
- * @tparam T The type of the held value.
- */
-template <typename T>
-struct PossiblyShared {
-    /**
-     * @brief Constructs a PossiblyShared object with a copy of the given value.
-     *
-     * @param copy The value to copy.
-     */
-    PossiblyShared(const T& copy) : value(copy) {}
-
-    /**
-     * @brief Constructs a PossiblyShared object with a moved value.
-     *
-     * @param copy The value to move.
-     */
-    PossiblyShared(std::remove_const_t<T>&& copy) : value(std::move(copy)) {}
-
-    /**
-     * @brief Constructs a PossiblyShared object with a shared pointer to the value.
-     *
-     * @param ptr A pointer to the shared value.
-     */
-    PossiblyShared(T* ptr) : shared(ptr) {}
-
-    /**
-     * @brief Dereferences the PossiblyShared object.
-     *
-     * @return A reference to the held value.
-     */
-    T& operator*() const {
-        return shared ? *shared : *value;
-    }
-
-    /**
-     * @brief Accesses members of the held value.
-     *
-     * @return A pointer to the held value.
-     */
-    T* operator->() const {
-        return shared ? shared : &*value;
-    }
-
-    /**
-     * @brief Checks if the PossiblyShared object holds a shared value.
-     *
-     * @return True if the value is shared, otherwise false.
-     */
-    bool isShared() const {
-        return shared;
-    }
-
-private:
-    /// Optionally holds the unique value if it is not shared.
-    mutable optional<std::remove_const_t<T>> value;
-    /// Pointer to the shared value, if applicable.
-    T* shared = nullptr;
 };
 
 /**
@@ -590,63 +528,63 @@ using NameValueOrderedList = std::vector<KeyValue<std::string, Value>>;
  * @brief Finds the index of a specified value in a list.
  *
  * Searches for the given value in a vector of type V.
- * Returns the index of the value if found, otherwise returns nullopt.
+ * Returns the index of the value if found, otherwise returns std::nullopt.
  *
  * @tparam V The type of the values in the list.
  * @tparam T The type of the value to find.
  * @param list The list to search through.
  * @param value The value to find.
- * @return optional<size_t> The index of the found value, or nullopt if not found.
+ * @return std::optional<size_t> The index of the found value, or std::nullopt if not found.
  */
 template <typename V, typename T>
-inline optional<size_t> findValue(const std::vector<V>& list, const T& value) {
+inline std::optional<size_t> findValue(const std::vector<V>& list, const T& value) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i] == value)
             return i;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 /**
  * @brief Finds the index of a specified value in a key-value ordered list.
  *
  * Searches for the given value in a KeyValueOrderedList.
- * Returns the index of the value if found, otherwise returns nullopt.
+ * Returns the index of the value if found, otherwise returns std::nullopt.
  *
  * @tparam K The type of the keys.
  * @tparam V The type of the values.
  * @param list The list to search through.
  * @param value The value to find.
- * @return optional<size_t> The index of the found value, or nullopt if not found.
+ * @return std::optional<size_t> The index of the found value, or std::nullopt if not found.
  */
 template <typename K, typename V>
-inline optional<size_t> findValue(const KeyValueOrderedList<K, V>& list, const V& value) {
+inline std::optional<size_t> findValue(const KeyValueOrderedList<K, V>& list, const V& value) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].second == value)
             return i;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 /**
  * @brief Finds the index of a specified key in a key-value ordered list.
  *
  * Searches for the given key in a KeyValueOrderedList.
- * Returns the index of the key if found, otherwise returns nullopt.
+ * Returns the index of the key if found, otherwise returns std::nullopt.
  *
  * @tparam K The type of the keys.
  * @tparam V The type of the values.
  * @param list The list to search through.
  * @param name The key to find.
- * @return optional<size_t> The index of the found key, or nullopt if not found.
+ * @return std::optional<size_t> The index of the found key, or std::nullopt if not found.
  */
 template <typename K, typename V>
-inline optional<size_t> findKey(const KeyValueOrderedList<K, V>& list, const K& name) {
+inline std::optional<size_t> findKey(const KeyValueOrderedList<K, V>& list, const K& name) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].first == name)
             return i;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 /**
@@ -672,42 +610,42 @@ inline auto findKeyIt(const KeyValueOrderedList<K, V>& list, const K& name) {
  * @brief Converts a value to its corresponding key in a key-value ordered list.
  *
  * Searches for the given value and returns the associated key if found,
- * otherwise returns nullopt.
+ * otherwise returns std::nullopt.
  *
  * @tparam K The type of the keys.
  * @tparam V The type of the values.
  * @param list The list to search through.
  * @param value The value to find.
- * @return optional<K> The associated key, or nullopt if not found.
+ * @return std::optional<K> The associated key, or std::nullopt if not found.
  */
 template <typename K, typename V>
-inline optional<K> valueToKey(const KeyValueOrderedList<K, V>& list, const V& value) {
+inline std::optional<K> valueToKey(const KeyValueOrderedList<K, V>& list, const V& value) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].second == value)
             return list[i].first;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 /**
  * @brief Converts a key to its corresponding value in a key-value ordered list.
  *
  * Searches for the given key and returns the associated value if found,
- * otherwise returns nullopt.
+ * otherwise returns std::nullopt.
  *
  * @tparam K The type of the keys.
  * @tparam V The type of the values.
  * @param list The list to search through.
  * @param name The key to find.
- * @return optional<V> The associated value, or nullopt if not found.
+ * @return std::optional<V> The associated value, or std::nullopt if not found.
  */
 template <typename K, typename V>
-inline optional<V> keyToValue(const KeyValueOrderedList<K, V>& list, const K& name) {
+inline std::optional<V> keyToValue(const KeyValueOrderedList<K, V>& list, const K& name) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].first == name)
             return list[i].second;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 /**
@@ -766,15 +704,15 @@ inline void removeValueByKey(KeyValueOrderedList<K, V>& list, const K& key) {
  * @param list The list to search through.
  * @param field Pointer to the field to compare.
  * @param fieldValue The value to find.
- * @return optional<V> The found value, or nullopt if not found.
+ * @return std::optional<V> The found value, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline optional<V> keyToValue(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
+inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return list[i];
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 /**
@@ -788,15 +726,15 @@ inline optional<V> keyToValue(const std::vector<V>& list, K(V::* field), const K
  * @param list The list to search through.
  * @param field Pointer to the field to compare.
  * @param fieldValue The value to find.
- * @return optional<size_t> The index of the found key, or nullopt if not found.
+ * @return std::optional<size_t> The index of the found key, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline optional<size_t> findKey(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
+inline std::optional<size_t> findKey(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return i;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 /**

@@ -111,7 +111,7 @@
 #define BRISK_MSVC_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #else
 #define BRISK_IF_MSVC(...)
-#define BRISK_MSVC_PRAGMA(...) 
+#define BRISK_MSVC_PRAGMA(...)
 #endif
 
 #ifdef BRISK_GNU
@@ -233,3 +233,15 @@
 #error unsupported compiler
 #endif
 #define BRISK_UNREACHABLE() unreachable_path()
+
+#ifdef BRISK_CLANG
+#ifdef __cplusplus
+#define BRISK_ASSUME(...) __builtin_assume(static_cast<bool>(__VA_ARGS__))
+#else
+#define BRISK_ASSUME(...) __builtin_assume(__VA_ARGS__)
+#endif
+#else
+#define BRISK_ASSUME(...)                                                                                    \
+    do {                                                                                                     \
+    } while (0)
+#endif

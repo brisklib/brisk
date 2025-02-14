@@ -28,11 +28,10 @@ static Builder iconsBuilder() {
                     fontFamily        = iconFontFamily,
                     fontSize          = iconFontSize,
                     dimensions        = { 50, 50 },
-                    onClick           = listener(
-                        [ch] {
-                            copyTextToClipboard(fmt::format("\\u{:04X}", uint32_t(ch)));
-                        },
-                        &staticBinding),
+                    onClick           = staticLifetime |
+                              [ch] {
+                                  Clipboard::setText(fmt::format("\\u{:04X}", uint32_t(ch)));
+                              },
                 });
             }
             target->apply(std::move(glyphs));

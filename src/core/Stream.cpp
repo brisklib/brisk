@@ -31,25 +31,25 @@ Transferred& Transferred::operator+=(Transferred other) noexcept {
     return *this;
 }
 
-optional<std::vector<uint8_t>> Stream::readUntilEnd(bool incompleteOk) {
+std::optional<std::vector<std::byte>> Stream::readUntilEnd(bool incompleteOk) {
     constexpr size_t SIZE = 16384;
-    std::vector<uint8_t> data;
-    uint8_t buf[SIZE];
+    std::vector<std::byte> data;
+    std::byte buf[SIZE];
     Transferred r;
 
     while ((r = read(buf, SIZE))) {
         data.insert(data.end(), buf, buf + r.bytes());
     }
     if (r.isError() && !incompleteOk)
-        return nullopt;
+        return std::nullopt;
     return data;
 }
 
 Transferred Stream::write(std::string_view data) {
-    return write(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+    return write(reinterpret_cast<const std::byte*>(data.data()), data.size());
 }
 
-bool Stream::writeAll(std::span<const uint8_t> data) {
+bool Stream::writeAll(std::span<const std::byte> data) {
     return write(data.data(), data.size()) == data.size();
 }
 
@@ -61,19 +61,19 @@ bool SequentialReader::flush() {
     throwException(ENotImplemented("flush called for SequentialReader"));
 }
 
-uintmax_t SequentialReader::size() const {
+uint64_t SequentialReader::size() const {
     throwException(ENotImplemented("size called for SequentialReader"));
 }
 
-uintmax_t SequentialReader::tell() const {
+uint64_t SequentialReader::tell() const {
     throwException(ENotImplemented("tell called for SequentialReader"));
 }
 
-bool SequentialReader::seek(intmax_t position, SeekOrigin origin) {
+bool SequentialReader::seek(int64_t position, SeekOrigin origin) {
     throwException(ENotImplemented("seek called for SequentialReader"));
 }
 
-Transferred SequentialReader::write(const uint8_t* data, size_t size) {
+Transferred SequentialReader::write(const std::byte* data, size_t size) {
     throwException(ENotImplemented("write called for SequentialReader"));
 }
 
@@ -86,7 +86,7 @@ StreamCapabilities MemoryStream::caps() const noexcept {
            StreamCapabilities::CanFlush | StreamCapabilities::CanTruncate | StreamCapabilities::HasSize;
 }
 
-Transferred MemoryStream::read(uint8_t* data, size_t size) {
+Transferred MemoryStream::read(std::byte* data, size_t size) {
     if (size == 0)
         return Transferred::Error;
     size_t trSize = std::min(size, static_cast<size_t>(m_data.size() - m_position));
@@ -98,7 +98,7 @@ Transferred MemoryStream::read(uint8_t* data, size_t size) {
     return trSize;
 }
 
-Transferred MemoryStream::write(const uint8_t* data, size_t size) {
+Transferred MemoryStream::write(const std::byte* data, size_t size) {
     if (size == 0)
         return Transferred::Error;
     if (m_data.size() < m_position + size)
@@ -112,29 +112,29 @@ bool MemoryStream::flush() {
     return true;
 }
 
-std::vector<uint8_t>& MemoryStream::data() {
+std::vector<std::byte>& MemoryStream::data() {
     return m_data;
 }
 
-const std::vector<uint8_t>& MemoryStream::data() const {
+const std::vector<std::byte>& MemoryStream::data() const {
     return m_data;
 }
 
 bool MemoryStream::truncate() {
-    m_data.resize(m_position, uint8_t{});
+    m_data.resize(m_position, std::byte{});
     return true;
 }
 
-uintmax_t MemoryStream::size() const {
+uint64_t MemoryStream::size() const {
     return m_data.size();
 }
 
-uintmax_t MemoryStream::tell() const {
+uint64_t MemoryStream::tell() const {
     return m_position;
 }
 
-bool MemoryStream::seek(intmax_t position, SeekOrigin origin) {
-    intmax_t newPosition;
+bool MemoryStream::seek(int64_t position, SeekOrigin origin) {
+    int64_t newPosition;
     switch (origin) {
     case SeekOrigin::End:
         newPosition = m_data.size() + position;
@@ -157,19 +157,19 @@ bool SequentialWriter::truncate() {
     throwException(ENotImplemented("truncate called for SequentialWriter"));
 }
 
-uintmax_t SequentialWriter::size() const {
+uint64_t SequentialWriter::size() const {
     throwException(ENotImplemented("size called for SequentialWriter"));
 }
 
-uintmax_t SequentialWriter::tell() const {
+uint64_t SequentialWriter::tell() const {
     throwException(ENotImplemented("tell called for SequentialWriter"));
 }
 
-bool SequentialWriter::seek(intmax_t position, SeekOrigin origin) {
+bool SequentialWriter::seek(int64_t position, SeekOrigin origin) {
     throwException(ENotImplemented("seek called for SequentialWriter"));
 }
 
-Transferred SequentialWriter::read(uint8_t* data, size_t size) {
+Transferred SequentialWriter::read(std::byte* data, size_t size) {
     throwException(ENotImplemented("read called for SequentialWriter"));
 }
 
@@ -177,7 +177,7 @@ StreamCapabilities SequentialWriter::caps() const noexcept {
     return StreamCapabilities::CanWrite | StreamCapabilities::CanFlush;
 }
 
-MemoryStream::MemoryStream(std::vector<uint8_t> data) : m_data(std::move(data)) {}
+MemoryStream::MemoryStream(std::vector<std::byte> data) : m_data(std::move(data)) {}
 
 MemoryStream::MemoryStream() {}
 

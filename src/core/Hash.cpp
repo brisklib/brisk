@@ -27,7 +27,7 @@ static const uint32_t crctable[256] = {
 #include <brisk/core/internal/crctable.inc.hpp>
 };
 
-uint32_t crc32(bytes_view data, uint32_t crc) {
+uint32_t crc32(BytesView data, uint32_t crc) {
     crc = crc ^ 0xFFFFFFFFU;
     for (size_t i = 0; i < data.size(); i++) {
         crc = crctable[static_cast<uint8_t>(data[i]) ^ (crc & 0xFFu)] ^ (crc >> 8);
@@ -36,7 +36,7 @@ uint32_t crc32(bytes_view data, uint32_t crc) {
     return crc;
 }
 
-uint64_t fastHash(bytes_view data, uint64_t seed) {
+uint64_t fastHash(BytesView data, uint64_t seed) {
     return CityHash64WithSeed(reinterpret_cast<const char*>(data.data()), data.size(), seed);
 }
 

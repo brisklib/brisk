@@ -263,9 +263,9 @@ void Canvas::transform(const Matrix& matrix) {
     m_state.transform = Matrix(m_state.transform) * matrix;
 }
 
-optional<Rectangle> Canvas::getClipRect() const {
+std::optional<Rectangle> Canvas::getClipRect() const {
     if (m_state.clipRect == noClipRect)
-        return nullopt;
+        return std::nullopt;
     return m_state.clipRect;
 }
 

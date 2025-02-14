@@ -12,7 +12,7 @@ using Internal::compressionBatchSize;
 class LZ4Decoder : public SequentialReader {
 public:
     explicit LZ4Decoder(RC<Stream> reader) : reader(std::move(reader)) {
-        buffer.reset(new uint8_t[compressionBatchSize]);
+        buffer.reset(new std::byte[compressionBatchSize]);
         bufferSize = bufferConsumed = 0;
         LZ4F_errorCode_t result     = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
         if (LZ4F_isError(result)) {
@@ -21,14 +21,14 @@ public:
         }
     }
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
         if (!dctx)
             return Transferred::Error;
         if (finished)
             return Transferred::Eof;
 
         size_t available_out = size;
-        uint8_t* next_out    = data;
+        uint8_t* next_out    = (uint8_t*)data;
         size_t in_size;
         const uint8_t* next_in;
 
@@ -42,7 +42,7 @@ public:
             }
 
             in_size              = bufferSize - bufferConsumed;
-            next_in              = buffer.get() + bufferConsumed;
+            next_in              = (uint8_t*)buffer.get() + bufferConsumed;
 
             size_t next_out_size = available_out;
             size_t result = LZ4F_decompress(dctx, next_out, &next_out_size, next_in, &in_size, nullptr);
@@ -86,7 +86,7 @@ public:
 private:
     RC<Stream> reader;
     LZ4F_dctx* dctx = nullptr;
-    std::unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<std::byte[]> buffer;
     size_t bufferSize     = 0;
     size_t bufferConsumed = 0;
     bool finished         = false;
@@ -112,12 +112,13 @@ public:
         preferences.compressionLevel      = lz4Level(level);
 
         bufferSize                        = LZ4F_compressBound(compressionBatchSize, &preferences);
-        buffer.reset(new uint8_t[bufferSize]);
+        buffer.reset(new std::byte[bufferSize]);
     }
 
     bool writeHeader() {
-        uint8_t headerData[LZ4F_HEADER_SIZE_MAX];
-        size_t headerSize = LZ4F_compressBegin(cctx, headerData, std::size(headerData), &preferences);
+        std::byte headerData[LZ4F_HEADER_SIZE_MAX];
+        size_t headerSize =
+            LZ4F_compressBegin(cctx, (uint8_t*)headerData, std::size(headerData), &preferences);
         if (LZ4F_isError(headerSize)) {
             LOG_ERROR(lz4, "LZ4F_compressBegin failed: {}", LZ4F_getErrorName(headerSize));
             return false;
@@ -125,7 +126,7 @@ public:
         return this->writer->write(headerData, headerSize) == headerSize;
     }
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
         if (!headerWritten) {
             if (!writeHeader())
                 return Transferred::Error;
@@ -136,12 +137,12 @@ public:
             return Transferred::Error;
         }
 
-        const uint8_t* next_in = data;
+        const uint8_t* next_in = (const uint8_t*)data;
         size_t available_in    = size;
 
         while (available_in > 0) {
             size_t available_out = bufferSize;
-            uint8_t* next_out    = buffer.get();
+            uint8_t* next_out    = (uint8_t*)buffer.get();
 
             size_t result        = LZ4F_compressUpdate(cctx, next_out, available_out, next_in,
                                                        std::min(available_in, compressionBatchSize), nullptr);
@@ -173,7 +174,7 @@ public:
         }
 
         size_t available_out = bufferSize;
-        uint8_t* next_out    = buffer.get();
+        uint8_t* next_out    = (uint8_t*)buffer.get();
 
         size_t result        = LZ4F_compressEnd(cctx, next_out, available_out, nullptr);
         if (LZ4F_isError(result)) {
@@ -203,7 +204,7 @@ private:
     bool headerWritten = false;
     LZ4F_cctx* cctx    = nullptr;
     LZ4F_preferences_t preferences{};
-    std::unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<std::byte[]> buffer;
     size_t bufferSize{};
 };
 
@@ -215,8 +216,8 @@ RC<Stream> lz4Encoder(RC<Stream> writer, CompressionLevel level) {
     return RC<Stream>(new LZ4Encoder(std::move(writer), level));
 }
 
-bytes lz4Encode(bytes_view data, CompressionLevel level) {
-    bytes result;
+Bytes lz4Encode(BytesView data, CompressionLevel level) {
+    Bytes result;
     size_t max_compressed_size = LZ4F_compressFrameBound(data.size(), nullptr);
     result.resize(max_compressed_size);
 
@@ -231,8 +232,8 @@ bytes lz4Encode(bytes_view data, CompressionLevel level) {
     return result;
 }
 
-bytes lz4Decode(bytes_view data) {
-    bytes result;
+Bytes lz4Decode(BytesView data) {
+    Bytes result;
     result.resize(data.size() * 3);
 
     LZ4F_dctx* dctx;

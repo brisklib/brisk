@@ -103,7 +103,7 @@ public:
     void setMinimumSize(Size size);
     void setFixedSize(Size size);
     Bytes windowPlacement() const;
-    void setWindowPlacement(bytes_view data);
+    void setWindowPlacement(BytesView data);
 
     void focus();
 
@@ -178,7 +178,7 @@ protected:
     // Input
     KeyModifiers m_mods = KeyModifiers::None; // Reflects OS state. Changed in keyboard callback
     PointF m_mousePoint{ 0, 0 };              // Reflects OS state. Changed in callback
-    optional<PointF> m_downPoint;             // Reflects OS state. Changed in callback
+    std::optional<PointF> m_downPoint;        // Reflects OS state. Changed in callback
     double m_firstClickTime = -1.0;
     PointF m_firstClickPos{ -1.f, -1.f };
     bool m_doubleClicked = false;
@@ -223,7 +223,7 @@ protected:
     std::chrono::microseconds m_lastFrameRenderTime{ 0 };
     Internal::DisplaySyncPoint m_syncPoint;
     std::atomic_llong m_frameNumber{ 0 };
-    optional<Clock::time_point> m_nextFrameTime;
+    std::optional<Clock::time_point> m_nextFrameTime;
     std::unique_ptr<Internal::FrameTimePredictor> m_frameTimePredictor;
     std::mutex m_mutex;
     VisualSettings m_renderSettings{};

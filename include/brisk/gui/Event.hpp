@@ -83,8 +83,9 @@ struct EventInput : public EventBase {
  * @brief Struct representing a mouse event, derived from EventInput.
  */
 struct EventMouse : public EventInput {
-    PointF point;               ///< The current mouse position.
-    optional<PointF> downPoint; ///< The mouse position at the time the button was pressed, if applicable.
+    PointF point; ///< The current mouse position.
+    std::optional<PointF>
+        downPoint; ///< The mouse position at the time the button was pressed, if applicable.
 };
 
 /**
@@ -147,11 +148,11 @@ struct EventMouseTripleClicked : public EventMouse {};
  * @brief Struct representing a drag-and-drop event.
  */
 struct EventDragNDrop : public EventInput {
-    PointF point;                   ///< The current mouse position during the drag.
-    optional<PointF> downPoint;     ///< The initial mouse position when the drag started.
-    std::shared_ptr<Object> object; ///< The object being dragged.
-    std::shared_ptr<Widget> source; ///< The widget initiating the drag.
-    std::shared_ptr<Widget> target; ///< The target widget where the drop may occur.
+    PointF point;                    ///< The current mouse position during the drag.
+    std::optional<PointF> downPoint; ///< The initial mouse position when the drag started.
+    std::shared_ptr<Object> object;  ///< The object being dragged.
+    std::shared_ptr<Widget> source;  ///< The widget initiating the drag.
+    std::shared_ptr<Widget> target;  ///< The target widget where the drop may occur.
 };
 
 /**
@@ -332,7 +333,7 @@ struct Event : public EventVariant {
     bool shouldBubble() const;
 
     template <typename T>
-    optional<T> as() const;
+    std::optional<T> as() const;
 
     /**
      * @brief Returns the event's unique cookie.
@@ -380,7 +381,7 @@ struct Event : public EventVariant {
     bool focused() const;
     bool blurred() const;
 
-    optional<char32_t> characterTyped() const;
+    std::optional<char32_t> characterTyped() const;
 
     std::tuple<DragEvent, PointF, KeyModifiers> dragged(bool& dragActive) const;
 
@@ -457,8 +458,8 @@ struct InputQueue {
     function<void(Event&)> unhandledEvent;
     bool passThroughFlag = false;
     std::weak_ptr<Widget> passedThroughBy;
-    optional<EventMouse> lastMouseEvent;
-    optional<EventInput> lastInputEvent;
+    std::optional<EventMouse> lastMouseEvent;
+    std::optional<EventInput> lastInputEvent;
     std::shared_ptr<Widget>
         eventTarget; ///< The target widget of the event currently processed, unaffected by bubbling.
 
@@ -547,14 +548,14 @@ struct InputQueue {
      * @param widget The widget to check.
      * @return The mouse position relative to the widget, if applicable.
      */
-    optional<PointF> mousePosFor(Widget* widget) const;
+    std::optional<PointF> mousePosFor(Widget* widget) const;
 
     /**
      * Returns the mouse position relative to the widget's client area, if within its bounds.
      * @param widget The widget to check.
      * @return The mouse position relative to the widget's client area, if applicable.
      */
-    optional<PointF> mousePosForClient(Widget* widget) const;
+    std::optional<PointF> mousePosForClient(Widget* widget) const;
 
     /**
      * Gets the widget at the specified point, starting from a specified offset.
@@ -577,9 +578,9 @@ struct InputQueue {
                        bool useMouseCapture = true) const;
 
     template <typename T>
-    optional<T> getAtMouse(const function<optional<T>(Widget*)>& fn, bool bubble = true,
-                           bool useMouseCapture = true) const {
-        optional<T> value;
+    std::optional<T> getAtMouse(const function<std::optional<T>(Widget*)>& fn, bool bubble = true,
+                                bool useMouseCapture = true) const {
+        std::optional<T> value;
         if (mouseAtBubble(
                 [&](Widget* w) BRISK_INLINE_LAMBDA -> bool {
                     if ((value = fn(w))) {
@@ -590,20 +591,20 @@ struct InputQueue {
                 bubble, useMouseCapture)) {
             return value;
         }
-        return nullopt;
+        return std::nullopt;
     }
 
     /**
      * Gets the description of the widget under the mouse, if any.
      * @return The description of the widget, if applicable.
      */
-    optional<std::string> getDescriptionAtMouse() const;
+    std::optional<std::string> getDescriptionAtMouse() const;
 
     /**
      * Gets the cursor type for the widget under the mouse, if any.
      * @return The cursor type, if applicable.
      */
-    optional<Cursor> getCursorAtMouse() const;
+    std::optional<Cursor> getCursorAtMouse() const;
 
     /**
      * Sets the focus to the specified widget.

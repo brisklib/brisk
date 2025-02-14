@@ -12,32 +12,32 @@ struct SpriteResource {
     uint64_t id;
     Size size;
 
-    uint8_t* data() noexcept {
-        return std::launder(reinterpret_cast<uint8_t*>(this)) + sizeof(SpriteResource);
+    std::byte* data() noexcept {
+        return std::launder(reinterpret_cast<std::byte*>(this)) + sizeof(SpriteResource);
     }
 
-    const uint8_t* data() const noexcept {
-        return std::launder(reinterpret_cast<const uint8_t*>(this)) + sizeof(SpriteResource);
+    const std::byte* data() const noexcept {
+        return std::launder(reinterpret_cast<const std::byte*>(this)) + sizeof(SpriteResource);
     }
 
-    bytes_view bytes() const noexcept {
+    BytesView bytes() const noexcept {
         return { data(), static_cast<size_t>(size.area()) };
     }
 
-    bytes_mutable_view bytes() noexcept {
+    BytesMutableView bytes() noexcept {
         return { data(), static_cast<size_t>(size.area()) };
     }
 };
 
 inline RC<SpriteResource> makeSprite(Size size) {
-    uint8_t* ptr           = (uint8_t*)::malloc(sizeof(SpriteResource) + size.area());
+    std::byte* ptr         = (std::byte*)::malloc(sizeof(SpriteResource) + size.area());
     SpriteResource* sprite = new (ptr) SpriteResource{ autoincremented<SpriteResource, uint64_t>(), size };
     return std::shared_ptr<SpriteResource>(sprite, [](SpriteResource* ptr) {
-        ::free(reinterpret_cast<uint8_t*>(ptr));
+        ::free(reinterpret_cast<std::byte*>(ptr));
     });
 }
 
-inline RC<SpriteResource> makeSprite(Size size, bytes_view bytes) {
+inline RC<SpriteResource> makeSprite(Size size, BytesView bytes) {
     BRISK_ASSERT(size.area() == bytes.size());
     RC<SpriteResource> result = makeSprite(size);
     memcpy(result->data(), bytes.data(), bytes.size());

@@ -28,9 +28,9 @@
 
 namespace Brisk {
 
-ClipboardFormat textFormat = {};
+Clipboard::Format Clipboard::textFormat = {};
 
-bool setClipboardContent(const ClipboardContent& content) {
+bool Clipboard::setContent(const Content& content) {
     if (content.text) {
         mainScheduler->dispatch([text = content.text]() {
             glfwSetClipboardString(nullptr, text->c_str());
@@ -40,8 +40,8 @@ bool setClipboardContent(const ClipboardContent& content) {
     return false;
 }
 
-ClipboardContent getClipboardContent(std::initializer_list<ClipboardFormat> formats) {
-    ClipboardContent content;
+auto Clipboard::getContent(std::initializer_list<Format> formats) -> Content {
+    Content content;
 
     content.text = mainScheduler->dispatchAndWait([]() -> std::optional<std::string> {
         if (const char* str = glfwGetClipboardString(nullptr)) {
@@ -52,14 +52,14 @@ ClipboardContent getClipboardContent(std::initializer_list<ClipboardFormat> form
     return content;
 }
 
-bool clipboardHasFormat(ClipboardFormat format) {
+bool Clipboard::hasFormat(Format format) {
     if (format == textFormat) {
         return glfwGetClipboardString(nullptr) != nullptr;
     }
     return false;
 }
 
-ClipboardFormat registerClipboardFormat(std::string_view formatID) {
+auto Clipboard::registerFormat(std::string_view formatID) -> Format {
     LOG_WARN(clipboard, "Not implemented");
     return {};
 }

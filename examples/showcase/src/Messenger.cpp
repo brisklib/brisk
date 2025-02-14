@@ -6,7 +6,7 @@
 namespace Brisk {
 
 static void backgroundPainter(Canvas& canvas, const Widget& widget) {
-    static auto img = imageDecode(loadResource("wp1.webp"), ImageFormat::RGBA).value();
+    static auto img = imageDecode(Resources::load("wp1.webp"), ImageFormat::RGBA).value();
     float x         = static_cast<float>(img->width()) / widget.rect().width(),
           y         = static_cast<float>(img->height()) / widget.rect().height();
     float m         = std::min(x, y);
@@ -35,7 +35,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
                                    return img == imageContent ? Classes{ "zoom" } : Classes{};
                                }),
 
-                               onClick = m_lifetime |
+                               onClick = lifetime() |
                                          [this, imageContent]() {
                                              if (m_zoomImage)
                                                  bindings->assign(m_zoomImage, nullptr);
@@ -105,7 +105,7 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
                     padding         = 8,
                     backgroundColor = Palette::transparent,
                     borderWidth     = 0,
-                    onEnter         = m_lifetime |
+                    onEnter         = lifetime() |
                               [this]() {
                                   send();
                               },
@@ -114,7 +114,7 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
                     rcnew Text{ ICON_send_horizontal },
                     classes = { "flat" },
                     color   = 0x373737_rgb,
-                    onClick = m_lifetime |
+                    onClick = lifetime() |
                               [this]() {
                                   send();
                               },
@@ -146,7 +146,7 @@ ShowcaseMessenger::ShowcaseMessenger() {
         Message{
             Status::Read,
             date - std::chrono::minutes(71),
-            imageDecode(loadResource("hot-air-balloons.jpg"), ImageFormat::RGBA).value(),
+            imageDecode(Resources::load("hot-air-balloons.jpg"), ImageFormat::RGBA).value(),
             ICON_heart,
         },
         Message{

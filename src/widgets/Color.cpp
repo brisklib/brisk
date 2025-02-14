@@ -211,11 +211,10 @@ RC<Widget> ColorPalette::addColor(const ColorF& swatch, float brightness, float 
         Arg::borderRadius = 0,
         Arg::padding      = 0,
         Arg::margin       = 2,
-        Arg::onClick      = listener(
-            [this, c]() BRISK_INLINE_LAMBDA {
-                value = c;
-            },
-            this),
+        Arg::onClick      = lifetime() |
+                       [this, c]() BRISK_INLINE_LAMBDA {
+                           value = c;
+                       },
     };
 }
 

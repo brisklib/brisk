@@ -41,21 +41,21 @@ struct BrotliEncoderDeleter {
 class BrotliDecoder : public SequentialReader {
 public:
     explicit BrotliDecoder(RC<Stream> reader) : reader(std::move(reader)) {
-        buffer.reset(new uint8_t[compressionBatchSize]);
+        buffer.reset(new std::byte[compressionBatchSize]);
         bufferUsed = 0;
         state.reset(BrotliDecoderCreateInstance(nullptr, nullptr, nullptr));
     }
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
         if (finished)
             return Transferred::Eof;
         size_t available_out = size;
-        uint8_t* next_out    = data;
+        uint8_t* next_out    = reinterpret_cast<uint8_t*>(data);
         size_t available_in;
         const uint8_t* next_in;
 
         do {
-            next_in = buffer.get();
+            next_in = (const uint8_t*)buffer.get();
             if (bufferUsed < compressionBatchSize) {
                 Transferred sz = reader->read(buffer.get() + bufferUsed, compressionBatchSize - bufferUsed);
                 if (sz.isError()) {
@@ -97,7 +97,7 @@ public:
 private:
     RC<Stream> reader;
     std::unique_ptr<BrotliDecoderState, BrotliDecoderDeleter> state;
-    std::unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<std::byte[]> buffer;
     size_t bufferUsed = 0;
     bool finished     = false;
 };
@@ -115,21 +115,21 @@ static_assert(brotliQuality(CompressionLevel::Normal) == (BROTLI_MAX_QUALITY + B
 class BrotliEncoder final : public SequentialWriter {
 public:
     explicit BrotliEncoder(RC<Stream> writer, CompressionLevel level) : writer(std::move(writer)) {
-        buffer.reset(new uint8_t[compressionBatchSize]);
+        buffer.reset(new std::byte[compressionBatchSize]);
 
         state.reset(BrotliEncoderCreateInstance(nullptr, nullptr, nullptr));
         BrotliEncoderSetParameter(state.get(), BROTLI_PARAM_QUALITY, brotliQuality(level));
         BrotliEncoderSetParameter(state.get(), BROTLI_PARAM_LGWIN, brotliLgWin);
     }
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
         if (size == 0)
             return 0;
-        const uint8_t* next_in = data;
+        const uint8_t* next_in = reinterpret_cast<const uint8_t*>(data);
         size_t available_in    = size;
         while (available_in > 0) {
             size_t available_out = compressionBatchSize;
-            uint8_t* next_out    = buffer.get();
+            uint8_t* next_out    = (uint8_t*)buffer.get();
             if (!BrotliEncoderCompressStream(state.get(), BROTLI_OPERATION_PROCESS, &available_in, &next_in,
                                              &available_out, &next_out, nullptr)) {
                 return Transferred::Error;
@@ -150,7 +150,7 @@ public:
         size_t avail_in        = 0;
         while (!BrotliEncoderIsFinished(state.get())) {
             size_t avail_out  = compressionBatchSize;
-            uint8_t* next_out = buffer.get();
+            uint8_t* next_out = (uint8_t*)buffer.get();
             if (!BrotliEncoderCompressStream(state.get(), BROTLI_OPERATION_FINISH, &avail_in, &next_in,
                                              &avail_out, &next_out, nullptr)) {
                 return false;
@@ -171,7 +171,7 @@ public:
 private:
     RC<Stream> writer;
     std::unique_ptr<BrotliEncoderState, BrotliEncoderDeleter> state;
-    std::unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<std::byte[]> buffer;
 };
 
 RC<Stream> brotliDecoder(RC<Stream> reader) {
@@ -182,8 +182,8 @@ RC<Stream> brotliEncoder(RC<Stream> writer, CompressionLevel level) {
     return RC<Stream>(new BrotliEncoder(std::move(writer), level));
 }
 
-bytes brotliEncode(bytes_view data, CompressionLevel level) {
-    bytes result;
+Bytes brotliEncode(BytesView data, CompressionLevel level) {
+    Bytes result;
     int q     = brotliQuality(level);
     size_t sz = BrotliEncoderMaxCompressedSize(data.size());
     if (sz == 0)
@@ -191,7 +191,7 @@ bytes brotliEncode(bytes_view data, CompressionLevel level) {
     result.resize(sz);
     size_t encoded_size = result.size();
     while (!BrotliEncoderCompress(q, brotliLgWin, BrotliEncoderMode::BROTLI_MODE_GENERIC, data.size(),
-                                  data.data(), &encoded_size, result.data())) {
+                                  (const uint8_t*)data.data(), &encoded_size, (uint8_t*)result.data())) {
         if (encoded_size == 0)
             return {};
         result.resize(result.size() * 2);
@@ -201,11 +201,12 @@ bytes brotliEncode(bytes_view data, CompressionLevel level) {
     return result;
 }
 
-bytes brotliDecode(bytes_view data) {
-    bytes result;
+Bytes brotliDecode(BytesView data) {
+    Bytes result;
     result.resize(data.size() * 3);
     size_t decoded_size = result.size();
-    while (!BrotliDecoderDecompress(data.size(), data.data(), &decoded_size, result.data())) {
+    while (!BrotliDecoderDecompress(data.size(), (const uint8_t*)data.data(), &decoded_size,
+                                    (uint8_t*)result.data())) {
         if (decoded_size == 0)
             return {};
         result.resize(result.size() * 2);

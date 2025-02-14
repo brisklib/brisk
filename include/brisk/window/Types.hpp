@@ -166,7 +166,7 @@ inline std::string keyCodeToString(KeyCode code) {
     return valueToKey(keyCodes, code).value_or("");
 }
 
-inline optional<KeyCode> stringToKeyCode(const std::string& str) {
+inline std::optional<KeyCode> stringToKeyCode(const std::string& str) {
     return keyToValue(keyCodes, str);
 }
 
@@ -239,7 +239,7 @@ inline std::string mouseButtonToString(MouseButton btn) {
     return valueToKey(mouseButtons, btn).value_or("");
 }
 
-inline optional<MouseButton> stringToMouseButton(const std::string& str) {
+inline std::optional<MouseButton> stringToMouseButton(const std::string& str) {
     return keyToValue(mouseButtons, str);
 }
 

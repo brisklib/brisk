@@ -108,7 +108,7 @@ public:
     PointF mapFramebuffer(PointF pos);
 
     Bytes placement() const;
-    void setPlacement(bytes_view data);
+    void setPlacement(BytesView data);
     explicit PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style);
     bool createWindow();
 

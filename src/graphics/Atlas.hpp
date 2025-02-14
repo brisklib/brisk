@@ -265,7 +265,7 @@ private:
      * @param data The data to be stored in the allocated block.
      * @return The offset of the allocated block within the atlas, or spriteNull if the atlas is full.
      */
-    SpriteOffset add(bytes_view data, bool allowGrow);
+    SpriteOffset add(BytesView data, bool allowGrow);
 
     /**
      * @brief Deallocates a block and zeroes its content.

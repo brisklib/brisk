@@ -1,7 +1,20 @@
 #include "Binding.hpp"
 #include <brisk/gui/Icons.hpp>
+#include <brisk/graphics/Palette.hpp>
 
 namespace Brisk {
+
+void ShowcaseBinding::onTimer() {
+    if (m_buttonPtr) {
+        static int n = 0;
+        if (++n % 10 == 0)
+            m_buttonPtr->apply(Graphene::buttonColor = Palette::Standard::index(n / 10));
+    }
+}
+
+ShowcaseBinding::ShowcaseBinding() {
+    bindings->listen(Value{ &frameStartTime }, Listener<>(this, &ShowcaseBinding::onTimer));
+}
 
 RC<Widget> ShowcaseBinding::build(RC<Notifications> notifications) {
     return rcnew VLayout{
@@ -91,6 +104,13 @@ RC<Widget> ShowcaseBinding::build(RC<Notifications> notifications) {
             },
             gapColumn = 10_apx,
             "Text::visible is bound to the number of selected checkboxes"_Text,
+        },
+
+        rcnew HLayout{
+            rcnew Button{
+                rcnew Text{ "Button with color changed from code" },
+                storeWidget(&m_buttonPtr),
+            },
         },
     };
 }

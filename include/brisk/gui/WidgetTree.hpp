@@ -58,7 +58,9 @@ public:
     void onLayoutUpdated();
     uint32_t layoutCounter() const noexcept;
 
-    Rectangle viewportRectangle;
+    void setViewportRectangle(Rectangle rect);
+
+    Rectangle viewportRectangle() const noexcept;
 
     void updateAndPaint(Canvas& canvas);
     void requestLayer(Drawable drawable);
@@ -89,5 +91,7 @@ private:
     bool m_disableTransitions      = false;
     bool m_updateGeometryRequested = false;
     std::set<WidgetGroup*> m_groups;
+    Rectangle m_viewportRectangle{};
+    bool m_viewportRectangleChanged = true;
 };
 } // namespace Brisk

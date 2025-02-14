@@ -182,7 +182,7 @@ struct FontFace {
         HANDLE_FT_ERROR_SOFT(FT_Done_Face(face), return);
     }
 
-    explicit FontFace(FontManager* manager, bytes_view data, bool makeCopy, FontFlags flags)
+    explicit FontFace(FontManager* manager, BytesView data, bool makeCopy, FontFlags flags)
         : manager(manager), flags(flags) {
         if (makeCopy) {
             bytes = Bytes(data.begin(), data.end());
@@ -281,15 +281,15 @@ struct FontFace {
         return numRemoved;
     }
 
-    optional<GlyphData> loadGlyphCached(float fontSize, GlyphID glyphIndex) {
+    std::optional<GlyphData> loadGlyphCached(float fontSize, GlyphID glyphIndex) {
         if (auto it = cache.find(glyphCacheKey(fontSize, glyphIndex)); it != cache.end()) {
             it->second.time = currentTime();
             return it->second;
         } else {
-            std::ignore              = lookupSize(fontSize);
-            optional<GlyphData> data = loadGlyph(glyphIndex);
+            std::ignore                   = lookupSize(fontSize);
+            std::optional<GlyphData> data = loadGlyph(glyphIndex);
             if (!data.has_value())
-                return nullopt;
+                return std::nullopt;
 
             it              = cache.insert(it, std::pair<Internal::GlyphCacheKey, GlyphDataAndTime>{
                                       glyphCacheKey(fontSize, glyphIndex),
@@ -313,7 +313,7 @@ struct FontFace {
         return fromFixed6(slot->advance.x) / float(hscale);
     }
 
-    optional<GlyphData> loadGlyph(GlyphID glyphIndex) {
+    std::optional<GlyphData> loadGlyph(GlyphID glyphIndex) {
         FT_Int32 ftFlags;
         if (isSVG()) {
             ftFlags = FT_LOAD_TARGET_LIGHT | FT_LOAD_SVG_ONLY | FT_LOAD_COLOR;
@@ -328,21 +328,21 @@ struct FontFace {
 
         FT_Error err = FT_Load_Glyph(face, glyphIndex, ftFlags);
         if (err == FT_Err_Invalid_Glyph_Index || err == FT_Err_Invalid_Argument) {
-            return nullopt;
+            return std::nullopt;
         }
         HANDLE_FT_ERROR(err);
 
         if (isSVG()) {
             if (face->glyph->format != FT_GLYPH_FORMAT_SVG) {
                 LOG_WARN(font, "Cannot load svg glyph #{} from a SVG font {}", glyphIndex, familyName());
-                return nullopt;
+                return std::nullopt;
             }
             FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
         }
 
         FT_GlyphSlot slot = face->glyph;
         if (slot->advance.y != 0)
-            return nullopt;
+            return std::nullopt;
 
         GlyphData glyph;
         glyph.offset_x = slot->bitmap_left / float(hscale);
@@ -463,8 +463,6 @@ FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* stat
     FT_Size_Metrics metrics  = document->metrics;
 
     FT_UShort units_per_EM   = document->units_per_EM;
-    FT_UShort end_glyph_id   = document->end_glyph_id;
-    FT_UShort start_glyph_id = document->start_glyph_id;
 
     std::string svg((const char*)document->svg_document, document->svg_document_length);
 
@@ -554,6 +552,9 @@ FontManager::~FontManager() {
 
 std::vector<std::string_view> FontManager::fontList(std::string_view ff) const {
     std::vector<std::string_view> list = split(ff, ',');
+    for (std::string_view& sv : list) {
+        sv = trim(sv);
+    }
     return list;
 }
 
@@ -579,6 +580,8 @@ std::pair<FontFace*, GlyphID> FontManager::lookupCodepoint(const Font& font, cha
         return { nullptr, UINT32_MAX };
     auto list = fontList(font.fontFamily);
     for (int offset = 0; offset < list.size(); ++offset) {
+        if (list[offset].empty())
+            continue;
         FontFace* face = findFontByKey(FontKey{ list[offset], font.style, font.weight });
         if (face) {
             GlyphID id = FT_Get_Char_Index(face->face, (FT_ULong)(codepoint));
@@ -625,7 +628,7 @@ void FontManager::addFontAlias(std::string_view newFontFamily, std::string_view 
     }
 }
 
-void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight weight, bytes_view data,
+void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight weight, BytesView data,
                           bool makeCopy, FontFlags flags) {
     lock_quard_cond lk(m_lock);
     FontKey key{ std::move(fontFamily), style, weight };
@@ -640,7 +643,7 @@ void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight we
 status<IOError> FontManager::addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                              const fs::path& path) {
     lock_quard_cond lk(m_lock);
-    expected<bytes, IOError> b = readBytes(path);
+    expected<Bytes, IOError> b = readBytes(path);
     if (b) {
         addFont(std::move(fontFamily), style, weight, *b);
         return {};
@@ -658,11 +661,11 @@ static bool isFontExt(std::string_view ext) {
     return cmpi(ext, ".ttf") || cmpi(ext, ".otf");
 }
 
-static optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& path) {
+static std::optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& path) {
     FT_Face face;
     FT_Error err = FT_New_Face(library, path.string().c_str(), 0, &face);
     if (err)
-        return nullopt;
+        return std::nullopt;
     SCOPE_EXIT {
         FT_Done_Face(face);
     };
@@ -672,7 +675,7 @@ static optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& path) 
     font.weight = FontWeight::Regular;
     font.style  = FontStyle::Normal;
     if (face->family_name == nullptr)
-        return nullopt;
+        return std::nullopt;
     font.family = face->family_name;
     if (face->style_name != nullptr) {
         std::string_view styleName = face->style_name;
@@ -717,7 +720,7 @@ std::vector<OSFont> FontManager::installedFonts(bool rescan) const {
         for (fs::path path : fontFolders()) {
             for (auto f : fs::directory_iterator(path)) {
                 if (f.is_regular_file() && isFontExt(f.path().extension().string())) {
-                    if (optional<OSFont> fontInfo =
+                    if (std::optional<OSFont> fontInfo =
                             fontQuickInfo(static_cast<FT_Library>(m_ft_library), f.path())) {
                         m_osFonts.push_back(std::move(*fontInfo));
                     }
@@ -1201,11 +1204,11 @@ void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Poin
         const GlyphRun& run = prepared.runVisual(ri);
 
         for (size_t i = 0; i < run.glyphs.size(); ++i) {
-            const Glyph& g           = run.glyphs[i];
-            optional<GlyphData> data = g.load(run);
+            const Glyph& g                = run.glyphs[i];
+            std::optional<GlyphData> data = g.load(run);
 
             if (data && data->sprite) {
-                bytes_view v = data->sprite->bytes();
+                BytesView v = data->sprite->bytes();
                 if (v.empty())
                     continue;
                 for (int32_t y = 0; y < data->size.height; ++y) {
@@ -1217,7 +1220,7 @@ void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Poin
                         int32_t xx = std::lround(origin.x + (g.pos + run.position).x + data->offset_x + x);
                         if (xx < 0 || xx >= w.width())
                             continue;
-                        uint8_t value = v[x + y * data->size.width];
+                        uint8_t value = static_cast<uint8_t>(v[x + y * data->size.width]);
                         if (flags && TestRenderFlags::Fade)
                             value /= 2;
                         if (flags && TestRenderFlags::GlyphBounds)
@@ -1317,9 +1320,9 @@ float Glyph::caretForDirection(bool inverse) const {
         return left_caret;
 }
 
-optional<GlyphData> Glyph::load(const GlyphRun& run) const {
+std::optional<GlyphData> Glyph::load(const GlyphRun& run) const {
     if (!run.face || glyph == UINT32_MAX)
-        return nullopt;
+        return std::nullopt;
     return run.face->loadGlyphCached(run.fontSize, glyph);
 }
 
@@ -2090,6 +2093,9 @@ struct Visitor final : public HTMLSAX {
             fontStack.back().flags |= FontFormatFlags::TextDecoration;
         } else if (tagName == "br"sv) {
             emitText(U"\n");
+        } else if (tagName == "code"sv || tagName == "kbd"sv) {
+            fontStack.back().font.fontFamily = Font::Monospace;
+            fontStack.back().flags |= FontFormatFlags::Family;
         }
     }
 

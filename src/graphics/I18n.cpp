@@ -51,7 +51,7 @@ static void uncompressICUData() {
         return;
 
     // Unpack the ICU data.
-    auto&& b = loadResource("internal/icudt.dat");
+    auto&& b = Resources::load("internal/icudt.dat");
 
     // Assert that the size of the retrieved data matches the expected size.
     BRISK_ASSERT(b.size() == ICUDT_SIZE);

@@ -33,7 +33,7 @@ void PlatformWindow::updateSize() {
     if (m_iconified)
         return;
 
-    uiThread->dispatch([window = m_window, size = m_windowSize, framebufferSize = m_framebufferSize] {
+    uiScheduler->dispatch([window = m_window, size = m_windowSize, framebufferSize = m_framebufferSize] {
         window->windowResized(size, framebufferSize);
     });
 }
@@ -103,7 +103,7 @@ void PlatformWindow::charEvent(char32_t codepoint, bool nonClient) {
     if (codepoint < 32 || (codepoint > 126 && codepoint < 160))
         return;
     if (!nonClient) {
-        uiThread->dispatch([window = m_window, codepoint] {
+        uiScheduler->dispatch([window = m_window, codepoint] {
             window->charEvent(static_cast<char32_t>(codepoint));
         });
     }
@@ -129,14 +129,14 @@ void PlatformWindow::focusChange(bool gained) {
         releaseButtonsAndKeys();
     }
 
-    uiThread->dispatch([window = m_window, gained] {
+    uiScheduler->dispatch([window = m_window, gained] {
         window->focusChange(gained);
     });
 }
 
 void PlatformWindow::closeAttempt() {
     m_shouldClose = true;
-    uiThread->dispatch([window = m_window] {
+    uiScheduler->dispatch([window = m_window] {
         window->closeAttempt();
     });
 }
@@ -145,7 +145,7 @@ void PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyMo
     if (m_windowStyle && WindowStyle::Disabled)
         return;
 
-    if (key < KeyCode(0) || key > KeyCode::Last)
+    if (key < KeyCode(0) || key > KeyCode::Last) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         return;
 
     bool repeated = false;
@@ -160,7 +160,7 @@ void PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyMo
 
     if (repeated)
         action = KeyAction::Repeat;
-    uiThread->dispatch([window = m_window, key, scancode, action, mods] {
+    uiScheduler->dispatch([window = m_window, key, scancode, action, mods] {
         window->keyEvent(static_cast<KeyCode>(key), scancode, static_cast<KeyAction>(action),
                          static_cast<KeyModifiers>(mods));
     });
@@ -180,13 +180,13 @@ void PlatformWindow::mouseEvent(MouseButton button, MouseAction action, KeyModif
 
     m_mouseState[+button] = action == MouseAction::Press;
 
-    uiThread->dispatch([window = m_window, button, action, mods, pos] {
+    uiScheduler->dispatch([window = m_window, button, action, mods, pos] {
         window->mouseEvent(button, action, mods, pos);
     });
 }
 
 void PlatformWindow::mouseEnterOrLeave(bool enter) {
-    uiThread->dispatch([window = m_window, enter] {
+    uiScheduler->dispatch([window = m_window, enter] {
         if (enter)
             window->mouseEnter();
         else
@@ -195,13 +195,13 @@ void PlatformWindow::mouseEnterOrLeave(bool enter) {
 }
 
 void PlatformWindow::mouseMove(PointF pos) {
-    uiThread->dispatch([window = m_window, pos] {
+    uiScheduler->dispatch([window = m_window, pos] {
         window->mouseMove(pos);
     });
 }
 
 void PlatformWindow::wheelEvent(float x, float y) {
-    uiThread->dispatch([window = m_window, x, y] {
+    uiScheduler->dispatch([window = m_window, x, y] {
         window->wheelEvent(x, y);
     });
 }
@@ -216,7 +216,7 @@ void PlatformWindow::windowMoved(Point position) {
     if (!isVisible()) {
         return;
     }
-    uiThread->dispatch([window = m_window, position] {
+    uiScheduler->dispatch([window = m_window, position] {
         window->windowMoved(position);
     });
 }
@@ -224,7 +224,7 @@ void PlatformWindow::windowMoved(Point position) {
 void PlatformWindow::contentScaleChanged(float xscale, float yscale) {
     updateSize();
     std::ignore = yscale;
-    uiThread->dispatch([platformWindow = this, window = m_window, xscale] {
+    uiScheduler->dispatch([platformWindow = this, window = m_window, xscale] {
         window->m_windowPixelRatio = xscale;
         window->determineWindowDPI();
         window->windowPixelRatioChanged();
@@ -235,13 +235,13 @@ void PlatformWindow::contentScaleChanged(float xscale, float yscale) {
 }
 
 void PlatformWindow::filesDropped(std::vector<std::string> files) {
-    uiThread->dispatch([window = m_window, files = std::move(files)] {
+    uiScheduler->dispatch([window = m_window, files = std::move(files)] {
         window->filesDropped(std::move(files));
     });
 }
 
 void PlatformWindow::windowStateChanged(bool isIconified, bool isMaximized) {
-    uiThread->dispatch([window = m_window, isIconified, isMaximized] {
+    uiScheduler->dispatch([window = m_window, isIconified, isMaximized] {
         window->windowStateChanged(isIconified, isMaximized);
     });
 }

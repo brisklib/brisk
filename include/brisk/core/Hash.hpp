@@ -32,7 +32,7 @@ namespace Brisk {
 /// @param data The data to calculate the checksum for.
 /// @param crc The initial CRC value (default is 0).
 /// @return The CRC-32 checksum.
-uint32_t crc32(bytes_view data, uint32_t crc = 0);
+uint32_t crc32(BytesView data, uint32_t crc = 0);
 
 /// Computes the CRC-32 checksum for a string.
 /// @param data The string to calculate the checksum for.
@@ -46,7 +46,7 @@ inline uint32_t crc32(std::string_view data, uint32_t crc = 0) {
 /// @param data The data to hash.
 /// @param seed The initial hash seed (default is 0).
 /// @return The computed hash.
-uint64_t fastHash(bytes_view data, uint64_t seed = 0);
+uint64_t fastHash(BytesView data, uint64_t seed = 0);
 
 /// Computes a fast hash for basic string views.
 /// @param data The string view to hash.
@@ -176,8 +176,8 @@ template <HasReflection T>
 uint64_t fastHash(const T& val, uint64_t seed = 0)
     requires(!simpleMemoryRepresentation<T>)
 {
-    constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
-    return Internal::reflectHash(seed, size_sequence<numFields>{}, val, T::Reflection);
+    constexpr static auto numFields = std::tuple_size_v<decltype(reflectionOf<T>())>;
+    return Internal::reflectHash(seed, size_sequence<numFields>{}, val, reflectionOf<T>());
 }
 
 } // namespace Brisk

@@ -1329,9 +1329,12 @@ constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
 {
     using Tcommon      = std::common_type_t<Tin, Tout>;
     SIMD<Tcommon, N> x = static_cast<SIMD<Tcommon, N>>(value) * Tcommon(Mout) / Tcommon(Min);
-    if constexpr (!std::is_floating_point_v<Tout>)
+    if constexpr (!std::is_floating_point_v<Tout>) {
         x += Tcommon(0.5);
-    return static_cast<SIMD<Tout, N>>(clamp(x, SIMD<Tcommon, N>(0), SIMD<Tcommon, N>(Mout)));
+        x = clamp(x, SIMD<Tcommon, N>(std::numeric_limits<Tout>::min()),
+                  SIMD<Tcommon, N>(std::numeric_limits<Tout>::max()));
+    }
+    return static_cast<SIMD<Tout, N>>(x);
 }
 
 /**
@@ -1352,8 +1355,16 @@ constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
     requires(Mout != Min && !(std::is_floating_point<Tin>::value || std::is_floating_point<Tout>::value))
 {
     using Tcommon =
-        find_integral_type<std::numeric_limits<Tin>::min() * Mout, std::numeric_limits<Tin>::max() * Mout>;
-    return static_cast<SIMD<Tout, N>>(static_cast<SIMD<Tcommon, N>>(value) * Tcommon(Mout) / Tcommon(Min));
+        findIntegralType<std::numeric_limits<Tin>::min() * Mout, std::numeric_limits<Tin>::max() * Mout>;
+    SIMD<Tcommon, N> x = static_cast<SIMD<Tcommon, N>>(value);
+    x                  = x * Tcommon(Mout) / Tcommon(Min);
+    if constexpr (Internal::fitsIntType<Tcommon>(std::numeric_limits<Tout>::max())) {
+        x = min(x, SIMD<Tcommon, N>(std::numeric_limits<Tout>::max()));
+    }
+    if constexpr (Internal::fitsIntType<Tcommon>(std::numeric_limits<Tout>::min())) {
+        x = max(x, SIMD<Tcommon, N>(std::numeric_limits<Tout>::min()));
+    }
+    return static_cast<SIMD<Tout, N>>(static_cast<SIMD<Tcommon, N>>(x));
 }
 
 /**

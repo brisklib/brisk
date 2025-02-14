@@ -166,7 +166,8 @@ KeyCode scanCodeToKeyCode(int scanCode) {
 }
 
 int keyCodeToScanCode(KeyCode keyCode) {
-    if (keyCode < KeyCode(0) || keyCode > KeyCode::Last)
+    if (keyCode < KeyCode(0) || // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+        keyCode > KeyCode::Last)
         return -1;
     return keyCodeToScanCodeTable[+keyCode];
 }

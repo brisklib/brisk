@@ -90,7 +90,7 @@ protected:
     CacheWithInvalidation<Cached2, CacheKey2, Text, &Text::updateCache2> m_cache2{ this };
 
     void paint(Canvas& canvas) const override;
-    optional<std::string> textContent() const override;
+    std::optional<std::string> textContent() const override;
     void onFontChanged() override;
     void onChanged();
     void onLayoutUpdated() override;
@@ -181,8 +181,8 @@ protected:
     void paint(Canvas& canvas) const override;
 
 private:
-    mutable optional<std::string> m_cachedText;
-    mutable optional<double> m_lastChange;
+    mutable std::optional<std::string> m_cachedText;
+    mutable std::optional<double> m_lastChange;
 };
 
 } // namespace Brisk

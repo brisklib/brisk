@@ -556,7 +556,7 @@ Bytes PlatformWindow::placement() const {
     return {};
 }
 
-void PlatformWindow::setPlacement(bytes_view data) {
+void PlatformWindow::setPlacement(BytesView data) {
     HWND h = m_data->hWnd;
     if (data.size() == sizeof(WINDOWPLACEMENT)) {
         WINDOWPLACEMENT placement;

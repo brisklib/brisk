@@ -133,9 +133,6 @@ struct Trigger {
 
     constexpr Trigger() noexcept = default;
 
-    template <typename T>
-    Trigger(T anything) noexcept {}
-
     constexpr bool operator==(const Trigger& other) const noexcept {
         return false;
     }
@@ -754,25 +751,6 @@ Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... valu
         nullptr, std::move(addresses), BindingAddress{});
 }
 
-template <typename... Args, typename T>
-[[nodiscard]] Value<Trigger<Args...>> listener(Callback<std::type_identity_t<Args>...> cb, T* lifetime) {
-    BindingAddress address = toBindingAddress(lifetime);
-    return Value<Trigger<Args...>>{
-        nullptr,
-        [cb = std::move(cb)](ValueArgument<Trigger<Args...>> newValue) {
-            if constexpr (sizeof...(Args) == 0) {
-                cb();
-            } else if constexpr (sizeof...(Args) == 1) {
-                cb(std::move(newValue));
-            } else {
-                std::apply(cb, std::move(newValue));
-            }
-        },
-        { address },
-        address,
-    };
-}
-
 namespace Internal {
 template <typename T>
 using floatingPointTypeOf = decltype(1.f * std::declval<T>());
@@ -822,21 +800,45 @@ Value<FT> remapLog(Value<T> value, std::type_identity_t<FT> min, std::type_ident
         });
 }
 
+/**
+ * @brief Converts a Value of any type to a Value of type std::string with optional formatting.
+ *
+ * @tparam T The type of the input Value.
+ * @param value The Value to convert.
+ * @param fmtstr Optional format string (default: "{}").
+ * @return Value<std::string> The formatted string representation of the input Value.
+ *
+ * @code
+ * int m_num = 42;
+ * // Create a `Text` widget that displays the text `"number: 42"` and updates dynamically
+ * // when `m_num` changes.
+ * rcnew Text{ text = toString(Value<int>{ &m_num }, "number: {}") };
+ * @endcode
+ */
 template <typename T>
 Value<std::string> toString(Value<T> value, std::string fmtstr = "{}") {
-    return value.transform([get = std::move(value.getter()), fmtstr = std::move(fmtstr)]() {
+    return value.transform([get = value.getter(), fmtstr = std::move(fmtstr)]() {
         return fmt::format(fmtstr, get());
     });
 }
-
+/**
+ * @brief Specifies how listeners will be notified in response to a value change.
+ */
 enum class BindType : uint8_t {
-    Immediate,
-    Deferred,
+    Immediate, ///< Listeners will be notified immediately.
+    Deferred,  ///< Listeners will be notified via a target object queue.
 };
 
+/**
+ * @brief Handle that allows manually disconnecting bound values.
+ */
 struct BindingHandle {
     BindingHandle() noexcept = default;
 
+    /**
+     * @brief Checks if the handle is valid.
+     * @return True if the handle is valid, false otherwise.
+     */
     explicit operator bool() const noexcept {
         return m_id != 0;
     }
@@ -850,33 +852,61 @@ private:
 
     friend class Bindings;
 
-    /// Starts generation from 1
+    /**
+     * @brief Generates a unique ID starting from 1.
+     * @return A new unique ID.
+     */
     static uint64_t generate() {
         static std::atomic_uint64_t value{ 0 };
         return ++value;
     }
 
-    uint64_t m_id = 0;
+    uint64_t m_id = 0; ///< The unique identifier for the binding handle.
 };
 
-template <typename T>
-struct WithLifetime {
-    T value;
-    BindingAddress address;
+template <typename... Args>
+struct Listener {
+    Callback<Args...> callback;
+    BindingAddress address; ///< The associated binding address.
 
-    constexpr WithLifetime(T value, BindingAddress address) : value(std::move(value)), address(address) {}
+    constexpr Listener(Callback<Args...> callback, BindingAddress address)
+        : callback(std::move(callback)), address(address) {}
 
-    template <std::convertible_to<T> U>
-    constexpr WithLifetime(WithLifetime<U> other) : value(std::move(other.value)), address(other.address) {}
+    template <typename Class>
+    constexpr Listener(Class* class_, void (Class::*method)(Args...))
+        : callback([class_, method](Args... args) {
+              (class_->*method)(std::forward<Args>(args)...);
+          }),
+          address(toBindingAddress(class_)) {}
+
+    template <typename Class>
+    constexpr Listener(const Class* class_, void (Class::*method)(Args...) const)
+        : callback([class_, method](Args... args) {
+              (class_->*method)(std::forward<Args>(args)...);
+          }),
+          address(toBindingAddress(class_)) {}
 };
 
+/**
+ * @brief Specifies the binding direction (used for disconnecting values).
+ */
 enum BindDir : uint8_t {
-    Dest,
-    Src,
-    Both,
+    Dest, ///< Value is a destination.
+    Src,  ///< Value is a source.
+    Both, ///< Value is either a source or a destination.
 };
 
-// singleton
+/**
+ * @brief Singleton class for binding values and notifying about changes.
+ *
+ * This class provides mechanisms for connecting instances of `Value`,
+ * notifying about variable changes (including batch notifications),
+ * and registering regions with associated queues.
+ *
+ * Access the singleton instance via the `bindings` global variable.
+ *
+ * @threadsafe All public methods are thread-safe and can be called from any thread.
+ */
 class Bindings {
 private:
     mutable std::recursive_mutex m_mutex;
@@ -890,6 +920,23 @@ public:
     Bindings& operator=(const Bindings&) = delete;
     Bindings& operator=(Bindings&&)      = delete;
 
+    /**
+     * @brief Connects two values using bidirectional binding.
+     *
+     * When `src` changes, `dest` is updated to match `src`.
+     * When `dest` changes, `src` is updated to match `dest`.
+     * The connection is automatically removed when either `dest` or `src` region is removed.
+     *
+     * @tparam TDest The type of the destination value.
+     * @tparam TSrc The type of the source value.
+     * @param dest The destination value.
+     * @param src The source value.
+     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param updateNow If true, immediately updates `dest` with the current value of `src`.
+     * @param destDesc Optional description for the destination value.
+     * @param srcDesc Optional description for the source value.
+     * @return BindingHandle A handle that allows manually disconnecting the binding.
+     */
     template <typename TDest, typename TSrc>
     BindingHandle connectBidir(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
                                bool updateNow = true, std::string_view destDesc = {},
@@ -905,6 +952,22 @@ public:
         return BindingHandle(id);
     }
 
+    /**
+     * @brief Connects two values using one-way binding.
+     *
+     * When `src` changes, `dest` is updated to match `src`.
+     * The connection is automatically removed when either `dest` or `src` region is removed.
+     *
+     * @tparam TDest The type of the destination value.
+     * @tparam TSrc The type of the source value.
+     * @param dest The destination value.
+     * @param src The source value.
+     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param updateNow If true, immediately updates `dest` with the current value of `src`.
+     * @param destDesc Optional description for the destination value.
+     * @param srcDesc Optional description for the source value.
+     * @return BindingHandle A handle that allows manually disconnecting the binding.
+     */
     template <typename TDest, typename TSrc>
     BindingHandle connect(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
                           bool updateNow = true, std::string_view destDesc = {},
@@ -919,6 +982,15 @@ public:
         return BindingHandle(id);
     }
 
+    /**
+     * @brief Remove all bindings where the destination address matches `dest` and
+     * the source address matches `src`.
+     *
+     * @tparam TDest The type of the destination value.
+     * @tparam TSrc The type of the source value.
+     * @param dest The destination value.
+     * @param src The source value.
+     */
     template <typename TDest, typename TSrc>
     void disconnect(Value<TDest> dest, Value<TSrc> src) {
         std::lock_guard lk(m_mutex);
@@ -927,6 +999,13 @@ public:
         internalDisconnect(std::move(destAddress), std::move(srcAddresses));
     }
 
+    /**
+     * @brief Disconnects all bindings where the given value is either a source or destination.
+     *
+     * @tparam T The type of the value.
+     * @param val The value to disconnect.
+     * @param dir The direction to disconnect (source, destination, or both).
+     */
     template <typename T>
     void disconnect(Value<T> val, BindDir dir) {
         std::lock_guard lk(m_mutex);
@@ -934,35 +1013,63 @@ public:
         internalDisconnect(std::move(addresses), dir);
     }
 
+    /**
+     * @brief Disconnects a binding using a previously saved handle.
+     *
+     * @param handle The handle representing the binding to be disconnected.
+     */
     void disconnect(BindingHandle handle);
 
+    /**
+     * @brief Registers a region with an associated queue.
+     *
+     * The region must not be registered before calling this method.
+     *
+     * @param region The binding address representing the region.
+     * @param queue The scheduler queue associated with the region.
+     */
     void registerRegion(BindingAddress region, RC<Scheduler> queue);
+
+    /**
+     * @brief Unregisters a previously registered region.
+     *
+     * The region must have been previously registered using `registerRegion`.
+     *
+     * @param region The binding address representing the region to unregister.
+     */
     void unregisterRegion(BindingAddress region);
+
+    /**
+     * @brief Unregisters a previously registered region by its memory address.
+     *
+     * The region must have been previously registered using `registerRegion`.
+     *
+     * @param regionBegin Pointer to the beginning of the region to unregister.
+     */
     void unregisterRegion(const uint8_t* regionBegin);
 
     template <typename T>
-    BindingHandle listen(Value<T> src, Callback<> callback, BindType type = BindType::Immediate) {
-        return connect(Value<T>::listener(std::move(callback), staticBindingAddress), src, type, false);
+    BindingHandle listen(Value<T> src, Callback<> callback, BindingAddress address = staticBindingAddress,
+                         BindType type = BindType::Immediate) {
+        return connect(Value<T>::listener(std::move(callback), address), src, type, false);
     }
 
     template <typename T>
     BindingHandle listen(Value<T> src, Callback<ValueArgument<T>> callback,
-                         BindType type = BindType::Immediate) {
-        return connect(Value<ValueArgument<T>>::listener(std::move(callback), staticBindingAddress), src,
+                         BindingAddress address = staticBindingAddress, BindType type = BindType::Immediate) {
+        return connect(Value<ValueArgument<T>>::listener(std::move(callback), address), src, type, false);
+    }
+
+    template <typename T>
+    BindingHandle listen(Value<T> src, Listener<> callback, BindType type = BindType::Immediate) {
+        return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, WithLifetime<Callback<>> callback,
+    BindingHandle listen(Value<T> src, Listener<ValueArgument<T>> callback,
                          BindType type = BindType::Immediate) {
-        return connect(Value<ValueArgument<T>>::listener(std::move(callback.value), callback.address), src,
-                       type, false);
-    }
-
-    template <typename T>
-    BindingHandle listen(Value<T> src, WithLifetime<Callback<ValueArgument<T>>> callback,
-                         BindType type = BindType::Immediate) {
-        return connect(Value<ValueArgument<T>>::listener(std::move(callback.value), callback.address), src,
+        return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
@@ -1266,11 +1373,6 @@ struct BindingRegistration {
     const uint8_t* m_address;
 };
 
-template <std::invocable Fn>
-inline Value<Trigger<>> operator|(BindingRegistration& reg, Fn callback) {
-    return listener<>(callback, reg.m_address);
-}
-
 struct BindingLifetime {
     template <typename T>
     BindingLifetime(T* thiz) noexcept : m_address(toBindingAddress(thiz).min) {}
@@ -1278,9 +1380,41 @@ struct BindingLifetime {
     const uint8_t* m_address;
 };
 
-template <std::invocable Fn>
-inline Value<Trigger<>> operator|(BindingLifetime& lt, Fn callback) {
-    return listener<>(callback, lt.m_address);
+const inline BindingLifetime staticLifetime{ &staticBinding };
+
+template <typename T>
+inline BindingLifetime lifetimeOf(T* thiz) noexcept {
+    return BindingLifetime{ thiz };
+}
+
+namespace Internal {
+
+template <typename Fn, template <typename... Args> typename Tpl>
+struct DeduceArgs;
+
+template <typename Fn, typename FnRet, typename... FnArgs, template <typename... Args> typename Tpl>
+struct DeduceArgs<FnRet (Fn::*)(FnArgs...), Tpl> {
+    using Type = Tpl<FnArgs...>;
+};
+
+template <typename Fn, typename FnRet, typename... FnArgs, template <typename... Args> typename Tpl>
+struct DeduceArgs<FnRet (Fn::*)(FnArgs...) const, Tpl> {
+    using Type = Tpl<FnArgs...>;
+};
+
+} // namespace Internal
+
+template <typename Fn>
+using DeduceListener = typename Internal::DeduceArgs<decltype(&Fn::operator()), Listener>::Type;
+
+template <typename Fn>
+inline DeduceListener<Fn> operator|(const BindingRegistration& reg, Fn callback) {
+    return { std::move(callback), reg.m_address };
+}
+
+template <typename Fn>
+inline DeduceListener<Fn> operator|(const BindingLifetime& lt, Fn callback) {
+    return { std::move(callback), toBindingAddress(lt.m_address) };
 }
 
 template <typename T>
@@ -1487,9 +1621,21 @@ public:
     using Type                      = std::remove_const_t<T>;
     using ValueType                 = Type;
 
+    constexpr static bool isTrigger = Internal::isTrigger<T>;
+
     constexpr static bool isMutable = !std::is_const_v<T>;
 
     static_assert(field != nullptr || getter != nullptr);
+
+    void listen(Callback<ValueArgument<T>> callback, BindingAddress address = staticBindingAddress,
+                BindType bindType = BindType::Immediate) {
+        bindings->listen(Value{ this }, std::move(callback), address, bindType);
+    }
+
+    void listen(Callback<> callback, BindingAddress address = staticBindingAddress,
+                BindType bindType = BindType::Immediate) {
+        bindings->listen(Value{ this }, std::move(callback), address, bindType);
+    }
 
     operator Type() const noexcept {
         return get();
@@ -1503,8 +1649,10 @@ public:
 
     Type get() const noexcept {
         BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
         if BRISK_IF_GNU_ATTR (constexpr)
             (getter == nullptr) {
+                static_assert(field != nullptr);
                 return this_pointer->*field;
             }
         else {
@@ -1516,11 +1664,15 @@ public:
         requires isMutable
     {
         BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
         if BRISK_IF_GNU_ATTR (constexpr)
             (setter == nullptr) {
+                static_assert(field != nullptr);
                 if constexpr (requires { this_pointer->*field = std::move(value); }) {
+                    // NOLINTBEGIN(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
                     if (value == this_pointer->*field)
                         return; // Not changed
+                    // NOLINTEND(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
                     this_pointer->*field = std::move(value);
                 }
             }
@@ -1539,13 +1691,23 @@ public:
         set(std::move(value));
     }
 
+    void operator=(Listener<> listener) {
+        bindings->listen(Value{ this }, std::move(listener));
+    }
+
+    void operator=(Listener<ValueArgument<T>> listener) {
+        bindings->listen(Value{ this }, std::move(listener));
+    }
+
     void set(Value<Type> value) {
         BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
         bindings->connectBidir(Value{ this }, std::move(value));
     }
 
     BindingAddress address() const {
         BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
         return toBindingAddress(&(this_pointer->*field));
     }
 
@@ -1618,8 +1780,9 @@ public:
         alignedFree(ptr);
     }
 
-protected:
-    BindingLifetime m_lifetime{ this };
+    BindingLifetime lifetime() const noexcept {
+        return lifetimeOf(this);
+    }
 };
 
 } // namespace Brisk

@@ -41,7 +41,7 @@
 
 namespace Brisk {
 
-void openURLInBrowser(std::string_view url_str) {
+void Shell::openURLInBrowser(std::string_view url_str) {
     mustBeMainThread();
     CFURLRef url = CFURLCreateWithBytes(NULL,                   // allocator
                                         (UInt8*)url_str.data(), // URLBytes
@@ -53,11 +53,11 @@ void openURLInBrowser(std::string_view url_str) {
     CFRelease(url);
 }
 
-void openFolder(const fs::path& path) {
+void Shell::openFolder(const fs::path& path) {
     return openURLInBrowser("file://" + path.string());
 }
 
-void openFileInDefaultApp(const fs::path& path) {
+void Shell::openFileInDefaultApp(const fs::path& path) {
     return openURLInBrowser("file://" + path.string());
 }
 
@@ -88,8 +88,8 @@ static DialogButtons nextButton(DialogButtons& buttons) {
     return static_cast<DialogButtons>(1 << idx);
 }
 
-static DialogResult showDialog(OSWindow* window, std::string_view title, std::string_view message,
-                               DialogButtons buttons, MessageBoxType type) {
+static DialogResult showChildDialog(OSWindow* window, std::string_view title, std::string_view message,
+                                    DialogButtons buttons, MessageBoxType type) {
     mustBeMainThread();
     DialogResult result;
     CFOptionFlags alertResult;
@@ -140,23 +140,23 @@ static DialogResult showDialog(OSWindow* window, std::string_view title, std::st
     return result;
 }
 
-DialogResult showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
-                        MessageBoxType type) {
+DialogResult Shell::showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
+                               MessageBoxType type) {
     DialogResult result;
     windowApplication->systemModal([&](OSWindow* window) {
-        result = showDialog(window, title, message, buttons, type);
+        result = showChildDialog(window, title, message, buttons, type);
     });
     return result;
 }
 
-static void addFilterListToDialog(NSSavePanel* dialog, std::span<const FileDialogFilter> filters) {
+static void addFilterListToDialog(NSSavePanel* dialog, std::span<const Shell::FileDialogFilter> filters) {
     mustBeMainThread();
     if (filters.empty())
         return;
 
     NSMutableArray* filterList = [[NSMutableArray alloc] init];
     std::set<std::string_view> exts;
-    for (const FileDialogFilter& ff : filters) {
+    for (const Shell::FileDialogFilter& ff : filters) {
         for (const std::string& f : ff.filters) {
             if (f == "*" || f == "*.*")
                 return;
@@ -180,8 +180,9 @@ static void addFilterListToDialog(NSSavePanel* dialog, std::span<const FileDialo
     [dialog setAllowedContentTypes:filterList];
 }
 
-static optional<fs::path> showOpenDialog(OSWindow* window, std::span<const FileDialogFilter> filters,
-                                         const fs::path& defaultPath) {
+static std::optional<fs::path> showChildOpenDialog(OSWindow* window,
+                                                   std::span<const Shell::FileDialogFilter> filters,
+                                                   const fs::path& defaultPath) {
     mustBeMainThread();
     @autoreleasepool {
         @try {
@@ -211,16 +212,18 @@ static optional<fs::path> showOpenDialog(OSWindow* window, std::span<const FileD
     return std::nullopt;
 }
 
-optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> Shell::showOpenDialog(std::span<const FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
-        result = showOpenDialog(window, filters, defaultPath);
+        result = showChildOpenDialog(window, filters, defaultPath);
     });
     return result;
 }
 
-static optional<fs::path> showSaveDialog(OSWindow* window, std::span<const FileDialogFilter> filters,
-                                         const fs::path& defaultPath) {
+static std::optional<fs::path> showChildSaveDialog(OSWindow* window,
+                                                   std::span<const Shell::FileDialogFilter> filters,
+                                                   const fs::path& defaultPath) {
     mustBeMainThread();
     @autoreleasepool {
         NSWindow* keyWindow = [[NSApplication sharedApplication] keyWindow];
@@ -251,16 +254,18 @@ static optional<fs::path> showSaveDialog(OSWindow* window, std::span<const FileD
     return std::nullopt;
 }
 
-optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> Shell::showSaveDialog(std::span<const FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
-        result = showSaveDialog(window, filters, defaultPath);
+        result = showChildSaveDialog(window, filters, defaultPath);
     });
     return result;
 }
 
-static std::vector<fs::path> showOpenDialogMulti(OSWindow* window, std::span<const FileDialogFilter> filters,
-                                                 const fs::path& defaultPath) {
+static std::vector<fs::path> showChildOpenDialogMulti(OSWindow* window,
+                                                      std::span<const Shell::FileDialogFilter> filters,
+                                                      const fs::path& defaultPath) {
     mustBeMainThread();
     std::vector<fs::path> paths;
     @autoreleasepool {
@@ -295,16 +300,16 @@ static std::vector<fs::path> showOpenDialogMulti(OSWindow* window, std::span<con
     return paths;
 }
 
-std::vector<fs::path> showOpenDialogMulti(std::span<const FileDialogFilter> filters,
-                                          const fs::path& defaultPath) {
+std::vector<fs::path> Shell::showOpenDialogMulti(std::span<const FileDialogFilter> filters,
+                                                 const fs::path& defaultPath) {
     std::vector<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
-        result = showOpenDialogMulti(window, filters, defaultPath);
+        result = showChildOpenDialogMulti(window, filters, defaultPath);
     });
     return result;
 }
 
-static optional<fs::path> showFolderDialog(OSWindow* window, const fs::path& defaultPath) {
+static std::optional<fs::path> showChildFolderDialog(OSWindow* window, const fs::path& defaultPath) {
     mustBeMainThread();
     @autoreleasepool {
         @try {
@@ -336,10 +341,10 @@ static optional<fs::path> showFolderDialog(OSWindow* window, const fs::path& def
     return std::nullopt;
 }
 
-optional<fs::path> showFolderDialog(const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> Shell::showFolderDialog(const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
-        result = showFolderDialog(window, defaultPath);
+        result = showChildFolderDialog(window, defaultPath);
     });
     return result;
 }

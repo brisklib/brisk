@@ -334,7 +334,7 @@ private:
     BRISK_INLINE Size viewportSize() const noexcept {
         Size viewport{ 0, 0 };
         if (m_widget->m_tree)
-            viewport = m_widget->m_tree->viewportRectangle.size();
+            viewport = m_widget->m_tree->viewportRectangle().size();
         return viewport;
     }
 
@@ -362,7 +362,6 @@ private:
         case LengthUnit::Percent:
             return Length::percentUnsafe(value.value());
 
-#ifdef BRISK_VIEWPORT_UNITS
         case LengthUnit::Vw:
             return Length::pointsUnsafe(value.value() * viewportSize().width * 0.01f);
         case LengthUnit::Vh:
@@ -371,7 +370,6 @@ private:
             return Length::pointsUnsafe(value.value() * viewportSize().shortestSide() * 0.01f);
         case LengthUnit::Vmin:
             return Length::pointsUnsafe(value.value() * viewportSize().longestSide() * 0.01f);
-#endif
 
         case LengthUnit::Em:
             return Length::pointsUnsafe(value.value() * m_widget->resolveFontHeight());
@@ -555,32 +553,33 @@ void registerBuiltinFonts() {
     if (fontsRegistered)
         return;
 
-    if (auto& ttf = loadResourceCached("fonts/default/regular.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/regular.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/light.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/light.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Light, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/bold.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/bold.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Bold, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/regular-italic.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/regular-italic.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Regular, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/light-italic.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/light-italic.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Light, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/default/bold-italic.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/default/bold-italic.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Bold, ttf, false);
     }
 
-    if (auto& ttf = loadResourceCached("fonts/icons.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/icons.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Icons, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
-    if (auto& ttf = loadResourceCached("fonts/emoji.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Emoji, FontStyle::Normal, FontWeight::Regular, ttf, false, FontFlags::EnableColor);
+    if (auto& ttf = Resources::loadCached("fonts/emoji.ttf", true); !ttf.empty()) {
+        fonts->addFont(Font::Emoji, FontStyle::Normal, FontWeight::Regular, ttf, false,
+                       FontFlags::EnableColor);
     }
-    if (auto& ttf = loadResourceCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
+    if (auto& ttf = Resources::loadCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
         fonts->addFont(Font::Monospace, FontStyle::Normal, FontWeight::Regular, ttf, false);
     }
 
@@ -681,7 +680,6 @@ float resolveValue(Length value, float defaultValue, float referenceValue, const
     case Em:
         return value.value() * params.fontHeight;
 
-#ifdef BRISK_VIEWPORT_UNITS
     case Vw:
         return value.value() * params.viewportSize.width * 0.01f;
     case Vh:
@@ -690,7 +688,6 @@ float resolveValue(Length value, float defaultValue, float referenceValue, const
         return value.value() * params.viewportSize.shortestSide() * 0.01f;
     case Vmax:
         return value.value() * params.viewportSize.longestSide() * 0.01f;
-#endif
 
     default:
         return defaultValue;
@@ -717,7 +714,7 @@ PointF resolveValue(PointL value, PointF defaultValue, PointF referenceValue,
 } // namespace
 
 Size Widget::viewportSize() const noexcept {
-    return m_tree ? m_tree->viewportRectangle.size() : Size(0, 0);
+    return m_tree ? m_tree->viewportRectangle().size() : Size(0, 0);
 }
 
 /// Returns the number of changes
@@ -846,8 +843,17 @@ void Widget::refreshTree() {
         });
 }
 
-void Widget::updateLayout(Rectangle rectangle) {
+void Widget::markTreeDirty() {
+    m_layoutEngine->setDirty(true);
+    for (const Ptr& w : *this) {
+        w->markTreeDirty();
+    }
+}
+
+void Widget::updateLayout(Rectangle rectangle, bool viewportChanged) {
     // Called by widget tree for the root widget only
+    if (viewportChanged)
+        markTreeDirty();
     if (yoga::calculateLayout(m_layoutEngine.get(), rectangle.width(), rectangle.height(),
                               yoga::Direction::LTR)) {
         if (applyLayoutRecursively(rectangle)) {
@@ -897,7 +903,7 @@ void Widget::dump(int depth) const {
     fprintf(stderr, "%*s}\n", depth * 4, "");
 }
 
-optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** parent) {
+std::optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** parent) {
     WidgetPtrs::iterator it =
         std::find_if(m_widgets.begin(), m_widgets.end(), [&](Ptr p) BRISK_INLINE_LAMBDA {
             return p.get() == widget;
@@ -908,12 +914,12 @@ optional<Widget::WidgetIterator> Widget::findIterator(Widget* widget, Widget** p
         return it;
     } else {
         for (const RC<Widget>& w : *this) {
-            optional<WidgetPtrs::iterator> wit = w->findIterator(widget, parent);
+            std::optional<WidgetPtrs::iterator> wit = w->findIterator(widget, parent);
             if (wit) {
                 return *wit;
             }
         }
-        return nullopt;
+        return std::nullopt;
     }
 }
 
@@ -1144,8 +1150,8 @@ void Widget::paintHint(Canvas& canvas_) const {
             Size textSize      = fonts->bounds(font, utf8ToUtf32(hint)).size();
             Point p            = m_rect.at(0.5f, 1.f);
             Rectangle hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
-            if (m_tree && !m_tree->viewportRectangle.empty()) {
-                Rectangle boundingRect = m_tree->viewportRectangle;
+            if (m_tree && !m_tree->viewportRectangle().empty()) {
+                Rectangle boundingRect = m_tree->viewportRectangle();
 
                 if (hintRect.y2 > boundingRect.y2) {
                     p        = m_rect.at(0.5f, 0.f);
@@ -1228,7 +1234,7 @@ void Widget::processEvent(Event& event) {
     const bool released = event.released();
 
     if (event.type() == EventType::MouseExited) {
-        m_mousePos  = nullopt;
+        m_mousePos  = std::nullopt;
         m_hoverTime = -1.0;
         m_hintShown = false;
     } else if (event.type() == EventType::MouseEntered) {
@@ -1299,7 +1305,9 @@ void Widget::onEvent(Event& event) {
     for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
         if (!hasScrollBar(orientation))
             continue;
-        if (float d = event.wheelScrolled(static_cast<WheelOrientation>(orientation))) {
+        if (float d = event.wheelScrolled(
+                static_cast<WheelOrientation>( // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                    orientation))) {
             int offset =
                 std::clamp(static_cast<int>(std::round(scrollOffset(orientation) - d * dp(scrollPixels))), 0,
                            scrollSize(orientation));
@@ -1788,8 +1796,8 @@ void Widget::resolveProperties(PropFlags flags) {
     }
 }
 
-optional<std::string> Widget::textContent() const {
-    return nullopt;
+std::optional<std::string> Widget::textContent() const {
+    return std::nullopt;
 }
 
 void Widget::closeNearestPopup() {
@@ -1822,7 +1830,7 @@ std::optional<size_t> Widget::indexOf(const Widget* widget) const {
             return p.get() == widget;
         });
     if (it == m_widgets.end())
-        return nullopt;
+        return std::nullopt;
     return it - m_widgets.begin();
 }
 
@@ -1883,7 +1891,7 @@ Widget::Widget(Construction construction) : m_layoutEngine{ this } {
     m_type = construction.type;
 }
 
-optional<PointF> Widget::mousePos() const {
+std::optional<PointF> Widget::mousePos() const {
     return m_mousePos;
 }
 
@@ -1974,7 +1982,7 @@ SizeF Widget::computeSize(AvailableSize size) {
     if (m_parent) {
         ownerSize = m_parent->m_rect.size();
     } else if (m_tree) {
-        ownerSize = m_tree->viewportRectangle.size();
+        ownerSize = m_tree->viewportRectangle().size();
     }
     yoga::gCurrentGenerationCount.fetch_add(1, std::memory_order_relaxed);
     yoga::calculateLayoutInternal(
@@ -2050,6 +2058,11 @@ void Widget::childrenAdded() {
 void Widget::parentChanged() {
     resolveProperties(AffectResolve | AffectFont | AffectLayout | AffectStyle);
     onParentChanged();
+    if (m_parent) {
+        for (const auto& fn : m_onParentSet) {
+            fn(this);
+        }
+    }
 }
 
 void Widget::onParentChanged() {}
@@ -2355,6 +2368,7 @@ OptConstRef<PropFieldType<T, subfield>> Widget::getterCurrent() const noexcept {
     return Internal::subField<field, subfield>(std::false_type{}, *this).current;
 }
 
+// NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
 template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field_,
           int subfield_>
 void Widget::setter(PropFieldType<T, subfield_> value) {
@@ -2378,8 +2392,11 @@ void Widget::setter(PropFieldType<T, subfield_> value) {
         }
         field = value;
     } else {
-        if constexpr (flags && Transition) {
-            if (!field.set(value, transitionAllowed() ? this->*(transitionField(field_)) : 0.f))
+        if constexpr ((flags && Transition)) {
+            auto tf = transitionField(field_);
+            if (!tf)
+                return;
+            if (!field.set(value, transitionAllowed() ? this->*tf : 0.f))
                 return;
             if (field.isActive()) {
                 requestAnimationFrame();
@@ -2402,6 +2419,8 @@ void Widget::setter(PropFieldType<T, subfield_> value) {
     bindings->notify(&field);
 }
 
+// NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
+
 template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
           int subfield>
 void Widget::setter(Inherit) {
@@ -2421,7 +2440,7 @@ void Widget::setter(Inherit) {
     if (!m_parent)
         return; // No one to inherit from
 
-    resolveProperties(flags);
+    resolveProperties(flags); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 PropState Widget::getPropState(size_t index) const noexcept {
@@ -2475,7 +2494,7 @@ void GUIProperty<index_, T, flags_, field, subfield>::internalSet(ValueType valu
 template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field,
           int subfield>
 void GUIProperty<index_, T, flags_, field, subfield>::internalSetInherit() {
-    if constexpr (isInheritable(flags_))
+    if constexpr (isInheritable(flags_)) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         this_pointer->setter<T, index, flags_, field, subfield>(inherit);
 }
 
@@ -2503,7 +2522,7 @@ void GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::internalS
 template <size_t index_, typename Type_, PropFlags flags_,
           PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
 void GUIPropertyCompound<index_, Type_, flags_, field, Properties...>::internalSetInherit() {
-    if constexpr (isInheritable(flags_))
+    if constexpr (isInheritable(flags_)) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         (Properties{ this_pointer }.internalSetInherit(), ...);
 }
 
@@ -2601,8 +2620,8 @@ const std::string_view propNames[numProperties]{
     /*82*/ "tabStop",
     /*83*/ "tabGroup",
     /*84*/ "autofocus",
-    /*85*/ "onClick",
-    /*86*/ "onDoubleClick",
+    /*85*/ "",
+    /*86*/ "",
     /*87*/ "delegate",
     /*88*/ "hint",
     /*89*/ "stylesheet",
@@ -2709,8 +2728,6 @@ template void instantiateProp<decltype(Widget::description)>();
 template void instantiateProp<decltype(Widget::tabStop)>();
 template void instantiateProp<decltype(Widget::tabGroup)>();
 template void instantiateProp<decltype(Widget::autofocus)>();
-template void instantiateProp<decltype(Widget::onClick)>();
-template void instantiateProp<decltype(Widget::onDoubleClick)>();
 template void instantiateProp<decltype(Widget::delegate)>();
 template void instantiateProp<decltype(Widget::hint)>();
 template void instantiateProp<decltype(Widget::zorder)>();
@@ -2815,8 +2832,6 @@ const Argument<Tag::PropArg<decltype(Widget::description)>> description{};
 const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop{};
 const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup{};
 const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus{};
-const Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick{};
-const Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick{};
 const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate{};
 const Argument<Tag::PropArg<decltype(Widget::hint)>> hint{};
 const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder{};
@@ -2878,5 +2893,10 @@ Point Widget::scrollOffset() const {
 
 int Widget::scrollOffset(Orientation orientation) const {
     return -m_childrenOffset[+orientation];
+}
+
+void Widget::apply(const WidgetActions& action) {
+    if (action.onParentSet)
+        m_onParentSet.push_back(action.onParentSet);
 }
 } // namespace Brisk

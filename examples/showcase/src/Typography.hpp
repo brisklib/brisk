@@ -4,7 +4,7 @@
 
 namespace Brisk {
 
-class ShowcaseTypography : public BindingObject<ShowcaseTypography, &uiThread> {
+class ShowcaseTypography : public BindingObject<ShowcaseTypography, &uiScheduler> {
 public:
     RC<Widget> build(RC<Notifications> notifications);
 

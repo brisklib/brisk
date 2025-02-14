@@ -401,9 +401,9 @@ struct Json : protected JsonVariant {
     }
 
     template <typename T>
-    using ConstRefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<const T>, optional<T>>;
+    using ConstRefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<const T>, std::optional<T>>;
     template <typename T>
-    using RefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<T>, optional<T>>;
+    using RefOpt = std::conditional_t<isJsonCompoundType<T>(), optional_ref<T>, std::optional<T>>;
 
     /**
      * @brief Converts the current Json value to another type.
@@ -431,7 +431,7 @@ struct Json : protected JsonVariant {
             if (JsonConverter<T>::fromJson(*this, val))
                 return val;
         }
-        return nullopt;
+        return std::nullopt;
     }
 
     /**
@@ -460,7 +460,7 @@ struct Json : protected JsonVariant {
             if (JsonConverter<T>::fromJson(*this, val))
                 return val;
         }
-        return nullopt;
+        return std::nullopt;
     }
 
     /**
@@ -511,20 +511,20 @@ struct Json : protected JsonVariant {
      * @param s The JSON string to parse.
      * @return An optional Json object if parsing is successful.
      */
-    static optional<Json> fromJson(const std::string& s);
+    static std::optional<Json> fromJson(const std::string& s);
 
     /**
      * @brief Converts the current Json object to a MessagePack byte array.
      * @return A vector of bytes representing the MessagePack format.
      */
-    std::vector<uint8_t> toMsgPack() const;
+    Bytes toMsgPack() const;
 
     /**
      * @brief Parses a MessagePack byte array and returns a Json object.
      * @param s The byte array to parse.
      * @return An optional Json object if parsing is successful.
      */
-    static optional<Json> fromMsgPack(const bytes_view& s);
+    static std::optional<Json> fromMsgPack(const BytesView& s);
 
     /**
      * @brief Compares two Json objects for equality.
@@ -552,10 +552,10 @@ struct Json : protected JsonVariant {
     ConstRefOpt<T> getItem(std::string_view key) const {
         optional_ref<const JsonObject> o = to<JsonObject>();
         if (!o.has_value())
-            return nullopt;
+            return std::nullopt;
         auto it = o->find(key);
         if (it == o->end())
-            return nullopt;
+            return std::nullopt;
         return it->second.template to<T>();
     }
 
@@ -630,14 +630,14 @@ struct Json : protected JsonVariant {
                 continue;
             optional_ref<const JsonObject> o = root->to<JsonObject>();
             if (!o)
-                return nullopt;
+                return std::nullopt;
             auto it = o->find(key);
             if (it == o->end())
-                return nullopt;
+                return std::nullopt;
             root = &it->second;
         }
         if (!root) // empty path
-            return nullopt;
+            return std::nullopt;
         return root->template to<T>();
     }
 
@@ -778,7 +778,7 @@ inline bool fromJson(const Json& b, T& v)
 }
 
 template <typename T, typename U>
-inline bool assignOpt(T& dst, const optional<U>& src) {
+inline bool assignOpt(T& dst, const std::optional<U>& src) {
     if (src.has_value()) {
         dst = *src;
     }
@@ -933,7 +933,7 @@ inline bool fromJson(const Json& b, std::set<K, C, Alloc>& v) {
 template <typename T, typename Alloc>
 inline bool toJson(Json& b, const std::vector<T, Alloc>& v) {
     if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t> || std::is_same_v<T, std::byte>) {
-        b = toHex(v);
+        b = toHex(toBytesView(v));
         return true;
     } else {
         JsonArray a(v.size());
@@ -1094,7 +1094,7 @@ bool reflectFromJson(size_constants<indices...>, const Json& j, T& val,
  */
 template <HasReflection T>
 struct JsonConverter<T> {
-    constexpr static auto numFields = std::tuple_size_v<decltype(T::Reflection)>;
+    constexpr static auto numFields = std::tuple_size_v<decltype(reflectionOf<T>())>;
 
     /**
      * @brief Serializes an object to a JSON object using reflection.
@@ -1104,7 +1104,7 @@ struct JsonConverter<T> {
      * @return `true` if serialization succeeds.
      */
     static bool toJson(Json& j, const T& val) {
-        return Internal::reflectToJson(size_sequence<numFields>{}, j, val, T::Reflection);
+        return Internal::reflectToJson(size_sequence<numFields>{}, j, val, reflectionOf<T>());
     }
 
     /**
@@ -1115,7 +1115,7 @@ struct JsonConverter<T> {
      * @return `true` if deserialization succeeds.
      */
     static bool fromJson(const Json& j, T& val) {
-        return Internal::reflectFromJson(size_sequence<numFields>{}, j, val, T::Reflection);
+        return Internal::reflectFromJson(size_sequence<numFields>{}, j, val, reflectionOf<T>());
     }
 };
 

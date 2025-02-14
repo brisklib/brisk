@@ -30,7 +30,7 @@
 
 namespace Brisk {
 
-ClipboardFormat textFormat = "__text";
+Clipboard::Format Clipboard::textFormat = "__text";
 
 namespace {
 
@@ -48,7 +48,7 @@ struct FmtData {
     NSData* data;
 };
 
-FmtData prepareData(const ClipboardFormat& format, const Bytes& bytes) {
+FmtData prepareData(const Clipboard::Format& format, const Bytes& bytes) {
     NSString* fmt = toNSStringNoCopy(format);
     NSData* data  = toNSDataNoCopy(bytes);
     return { fmt, data };
@@ -57,7 +57,7 @@ FmtData prepareData(const ClipboardFormat& format, const Bytes& bytes) {
 // [pasteboard setData:data forType:fmt];
 } // namespace
 
-bool setClipboardContent(const ClipboardContent& content) {
+bool Clipboard::setContent(const Content& content) {
     @autoreleasepool {
         NSPasteboard* pasteboard = [NSPasteboard generalPasteboard];
         [pasteboard clearContents];
@@ -84,18 +84,18 @@ bool setClipboardContent(const ClipboardContent& content) {
     return true;
 }
 
-static bool hasText(NSPasteboard* pasteboard) {
+static bool pasteboardHasText(NSPasteboard* pasteboard) {
     return [pasteboard availableTypeFromArray:[NSArray arrayWithObject:NSPasteboardTypeString]];
 }
 
-ClipboardContent getClipboardContent(std::initializer_list<ClipboardFormat> formats) {
-    ClipboardContent result;
+auto Clipboard::getContent(std::initializer_list<Format> formats) -> Content {
+    Content result;
     @autoreleasepool {
         NSPasteboard* pasteboard = [NSPasteboard generalPasteboard];
 
-        for (ClipboardFormat format : formats) {
+        for (Format format : formats) {
             if (format == textFormat) {
-                if (hasText(pasteboard)) {
+                if (pasteboardHasText(pasteboard)) {
                     result.text = fromNSString([pasteboard stringForType:NSPasteboardTypeString]);
                 }
             } else {
@@ -114,11 +114,11 @@ ClipboardContent getClipboardContent(std::initializer_list<ClipboardFormat> form
     return result;
 }
 
-bool clipboardHasFormat(ClipboardFormat format) {
+bool Clipboard::hasFormat(Format format) {
     @autoreleasepool {
         NSPasteboard* pasteboard = [NSPasteboard generalPasteboard];
         if (format == textFormat) {
-            return hasText(pasteboard);
+            return pasteboardHasText(pasteboard);
         } else {
             NSString* fmt = toNSStringNoCopy(format);
             return [pasteboard availableTypeFromArray:[NSArray arrayWithObject:fmt]];
@@ -127,7 +127,7 @@ bool clipboardHasFormat(ClipboardFormat format) {
     return false;
 }
 
-ClipboardFormat registerClipboardFormat(std::string_view formatID) {
+auto Clipboard::registerFormat(std::string_view formatID) -> Format {
     return std::string(formatID);
 }
 

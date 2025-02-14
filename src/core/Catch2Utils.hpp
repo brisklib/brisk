@@ -24,6 +24,7 @@
 #include <brisk/core/Bytes.hpp>
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/IO.hpp>
+#include <brisk/core/SIMD.hpp>
 
 inline std::string unicodeChar(char32_t value) {
     if (static_cast<int32_t>(value) < 0x1'0000)
@@ -68,8 +69,8 @@ struct StringMaker<T> {
 };
 
 template <typename T>
-struct StringMaker<Brisk::optional<T>> {
-    static std::string convert(const Brisk::optional<T>& value) {
+struct StringMaker<std::optional<T>> {
+    static std::string convert(const std::optional<T>& value) {
         if (value.has_value())
             return Catch::Detail::stringify(value.value());
         else
@@ -78,15 +79,15 @@ struct StringMaker<Brisk::optional<T>> {
 };
 
 template <>
-struct StringMaker<std::vector<uint8_t>> {
-    static std::string convert(const std::vector<uint8_t>& value) {
+struct StringMaker<std::vector<std::byte>> {
+    static std::string convert(const std::vector<std::byte>& value) {
         return Brisk::toHex(value);
     }
 };
 
 template <>
-struct StringMaker<Brisk::bytes_view> {
-    static std::string convert(Brisk::bytes_view value) {
+struct StringMaker<Brisk::BytesView> {
+    static std::string convert(Brisk::BytesView value) {
         return Brisk::toHex(value);
     }
 };
@@ -107,4 +108,33 @@ struct fmt::formatter<char32_t> : fmt::formatter<std::string> {
     }
 };
 
-namespace Brisk {}
+namespace Catch {
+namespace Matchers {
+
+template <typename T, size_t N>
+class SIMDWithinMatcher final : public MatcherBase<Brisk::SIMD<T, N>> {
+public:
+    SIMDWithinMatcher(const Brisk::SIMD<T, N>& target, double margin = 0.001)
+        : m_target(target), m_margin(margin) {}
+
+    bool match(const Brisk::SIMD<T, N>& matchee) const override {
+        Brisk::SIMD<T, N> absdiff = Brisk::abs(matchee - m_target);
+        return Brisk::horizontalAll(Brisk::lt(absdiff, Brisk::SIMD<T, N>(m_margin)));
+    }
+
+    std::string describe() const override {
+        return "is approx. equal to " + ::Catch::Detail::stringify(m_target);
+    }
+
+private:
+    Brisk::SIMD<T, N> m_target;
+    double m_margin;
+};
+
+template <typename T, size_t N>
+SIMDWithinMatcher(Brisk::SIMD<T, N>, double) -> SIMDWithinMatcher<T, N>;
+template <typename T, size_t N>
+SIMDWithinMatcher(Brisk::SIMD<T, N>) -> SIMDWithinMatcher<T, N>;
+
+} // namespace Matchers
+} // namespace Catch

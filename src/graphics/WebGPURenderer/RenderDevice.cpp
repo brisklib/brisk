@@ -39,7 +39,7 @@ static fs::path cacheFolder() {
 }
 
 static size_t loadCached(const void* key, size_t keySize, void* value, size_t valueSize, void* userdata) {
-    bytes_view keyBytes(reinterpret_cast<const uint8_t*>(key), keySize);
+    BytesView keyBytes(reinterpret_cast<const std::byte*>(key), keySize);
     auto hash       = sha256(keyBytes);
     auto valueBytes = readBytes(cacheFolder() / toHex(hash));
     if (!valueBytes) {
@@ -53,8 +53,8 @@ static size_t loadCached(const void* key, size_t keySize, void* value, size_t va
 
 static void storeCached(const void* key, size_t keySize, const void* value, size_t valueSize,
                         void* userdata) {
-    bytes_view keyBytes(reinterpret_cast<const uint8_t*>(key), keySize);
-    bytes_view valueBytes(reinterpret_cast<const uint8_t*>(value), valueSize);
+    BytesView keyBytes(reinterpret_cast<const std::byte*>(key), keySize);
+    BytesView valueBytes(reinterpret_cast<const std::byte*>(value), valueSize);
     auto hash   = sha256(keyBytes);
     std::ignore = writeBytes(cacheFolder() / toHex(hash), valueBytes);
 }
@@ -163,7 +163,7 @@ status<RenderDeviceError> RenderDeviceWebGPU::init() {
         return unexpected(RenderDeviceError::Unsupported);
     }
 
-    auto wgslShader = loadResourceText("webgpu/webgpu.wgsl");
+    auto wgslShader = Resources::loadText("webgpu/webgpu.wgsl");
 
     wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
     wgslDesc.code = wgslShader.c_str();

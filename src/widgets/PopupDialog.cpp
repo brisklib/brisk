@@ -65,14 +65,16 @@ PopupOKDialog::PopupOKDialog(Construction construction, std::string title, Value
               rcnew VLayout{
                   Arg::classes = { "dialog-body" },
                   asAttributes(args),
-                  rcnew Button{ rcnew Text{ "OK" }, Arg::classes = { "dialog-button" },
-                                Arg::alignSelf = AlignSelf::Center,
-                                Arg::onClick   = listener(
-                                    [accepted = std::move(accepted), visibleProp]() {
-                                        visibleProp.set(false);
-                                        accepted();
-                                    },
-                                    this) },
+                  rcnew Button{
+                      rcnew Text{ "OK" },
+                      Arg::classes   = { "dialog-button" },
+                      Arg::alignSelf = AlignSelf::Center,
+                      Arg::onClick   = lifetime() |
+                                     [accepted = std::move(accepted), visibleProp]() {
+                                         visibleProp.set(false);
+                                         accepted();
+                                     },
+                  },
               },
           },
       } {}

@@ -32,7 +32,7 @@ public:
     constexpr static std::string_view widgetType = "imageview";
 
     template <WidgetArgument... Args>
-    ImageView(bytes_view image, const Args&... args)
+    ImageView(BytesView image, const Args&... args)
         : ImageView(Construction{ widgetType }, imageDecode(image, ImageFormat::RGBA).value(),
                     std::tuple{ args... }) {
         endConstruction();

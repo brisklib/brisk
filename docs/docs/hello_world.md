@@ -76,7 +76,7 @@ public:
         rcnew Text{"Hello, world"},            // Display a text widget with "Hello, world"
         rcnew Button{
             rcnew Text{"Quit"},                // Button label
-            onClick = m_lifetime | []() {    // Quit the application on button click
+            onClick = lifetime() | []() {    // Quit the application on button click
                 windowApplication->quit();
             },
         },

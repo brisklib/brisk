@@ -41,7 +41,7 @@ public:
  * @param data The buffer to store the random bytes.
  * @return The number of bytes received.
  */
-[[nodiscard]] size_t cryptoRandomInplaceSafe(bytes_mutable_view data);
+[[nodiscard]] size_t cryptoRandomInplaceSafe(BytesMutableView data);
 
 /**
  * @brief Retrieves cryptographically secure random bytes.
@@ -49,15 +49,15 @@ public:
  * @param data The buffer to store the random bytes.
  * @exception CryptoException Thrown if there are not enough random bytes.
  */
-void cryptoRandomInplace(bytes_mutable_view data);
+void cryptoRandomInplace(BytesMutableView data);
 
 /**
  * @brief Retrieves cryptographically secure random bytes.
  *
  * @param size The number of bytes to return.
- * @return The random bytes as a `bytes` object.
+ * @return The random bytes as a `Bytes` object.
  */
-[[nodiscard]] bytes cryptoRandom(size_t size);
+[[nodiscard]] Bytes cryptoRandom(size_t size);
 
 /**
  * @brief Retrieves cryptographically secure random bytes as a fixed-size array.
@@ -145,7 +145,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The sequence of bytes to hash.
  * @return The resulting hash as a `Bytes` object.
  */
-[[nodiscard]] Bytes hash(HashMethod method, bytes_view data);
+[[nodiscard]] Bytes hash(HashMethod method, BytesView data);
 
 /**
  * @brief Computes the MD5 hash of a sequence of bytes.
@@ -153,7 +153,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The sequence of bytes to hash.
  * @return The resulting MD5 hash as an `MD5Hash` object.
  */
-[[nodiscard]] MD5Hash md5(bytes_view data);
+[[nodiscard]] MD5Hash md5(BytesView data);
 
 /**
  * @brief Computes the SHA-1 hash of a sequence of bytes.
@@ -161,7 +161,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The sequence of bytes to hash.
  * @return The resulting SHA-1 hash as a `SHA1Hash` object.
  */
-[[nodiscard]] SHA1Hash sha1(bytes_view data);
+[[nodiscard]] SHA1Hash sha1(BytesView data);
 
 /**
  * @brief Computes the SHA-256 hash of a sequence of bytes.
@@ -169,7 +169,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The sequence of bytes to hash.
  * @return The resulting SHA-256 hash as a `SHA256Hash` object.
  */
-[[nodiscard]] SHA256Hash sha256(bytes_view data);
+[[nodiscard]] SHA256Hash sha256(BytesView data);
 
 /**
  * @brief Computes the SHA-512 hash of a sequence of bytes.
@@ -177,7 +177,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The sequence of bytes to hash.
  * @return The resulting SHA-512 hash as a `SHA512Hash` object.
  */
-[[nodiscard]] SHA512Hash sha512(bytes_view data);
+[[nodiscard]] SHA512Hash sha512(BytesView data);
 
 /**
  * @brief Computes the SHA3-256 hash of a sequence of bytes.
@@ -185,7 +185,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The sequence of bytes to hash.
  * @return The resulting SHA3-256 hash as a `SHA3_256Hash` object.
  */
-[[nodiscard]] SHA3_256Hash sha3_256(bytes_view data);
+[[nodiscard]] SHA3_256Hash sha3_256(BytesView data);
 
 /**
  * @brief Computes the SHA3-512 hash of a sequence of bytes.
@@ -193,7 +193,7 @@ using SHA3_512Hash = FixedBits<512>; ///< Alias for SHA3-512 hash (512 bits)
  * @param data The sequence of bytes to hash.
  * @return The resulting SHA3-512 hash as a `SHA3_512Hash` object.
  */
-[[nodiscard]] SHA3_512Hash sha3_512(bytes_view data);
+[[nodiscard]] SHA3_512Hash sha3_512(BytesView data);
 
 /**
  * @brief Hashes a string using the specified hashing method.
@@ -275,7 +275,7 @@ struct Hasher {
      * @param hashOutput The buffer where the final hash result will be written.
      * @return True if the finalization was successful, otherwise false.
      */
-    bool finish(bytes_mutable_view hashOutput);
+    bool finish(BytesMutableView hashOutput);
 
     /**
      * @brief Writes a sequence of bytes to the hasher for hashing.
@@ -283,7 +283,7 @@ struct Hasher {
      * @param data The sequence of bytes to hash.
      * @return True if the write operation was successful, otherwise false.
      */
-    bool write(bytes_view data);
+    bool write(BytesView data);
 
     /**
      * @brief Writes a sequence of bytes to the hasher for hashing.
@@ -292,8 +292,12 @@ struct Hasher {
      * @param size The number of bytes to write.
      * @return True if the write operation was successful, otherwise false.
      */
-    bool write(const uint8_t* data, size_t size) {
+    bool write(const std::byte* data, size_t size) {
         return write({ data, size });
+    }
+
+    bool write(const uint8_t* data, size_t size) {
+        return write(reinterpret_cast<const std::byte*>(data), size);
     }
 
     /** The hashing method used by this hasher. */
@@ -346,7 +350,7 @@ struct SHA512Hasher : public Hasher {
  * @param hashOutput The buffer where the final hash result will be written.
  * @return A RC<Stream> for hashing.
  */
-[[nodiscard]] RC<Stream> hashStream(HashMethod method, bytes_mutable_view hashOutput);
+[[nodiscard]] RC<Stream> hashStream(HashMethod method, BytesMutableView hashOutput);
 
 /**
  * @brief Creates a RC<Stream> for MD5 hashing.

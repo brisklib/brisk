@@ -494,7 +494,7 @@ TEST_CASE("Canvas::drawColorMask", "[gpu]") {
                 pixels[(y * size.width + x) * 4 + 3] = alpha;
             }
         }
-        auto sprite = makeSprite(Size{ size.width * 4, size.height }, pixels);
+        auto sprite = makeSprite(Size{ size.width * 4, size.height }, toBytesView(pixels));
         canvas.drawColorMask({ std::move(sprite) },
                              one(GeometryGlyph{
                                  { { 1, 1 }, size },

@@ -38,12 +38,10 @@ enum class LengthUnit : uint8_t {
     AlignedPixels, // GUI pixels aligned to device pixels before layout
     Em,            // Current font EM square
 
-#ifdef BRISK_VIEWPORT_UNITS
     Vw,   // Viewport width
     Vh,   // Viewport height
     Vmin, // Minimum of viewport width and height (min(vw, vh))
     Vmax, // Maximum of viewport width and height (max(vw, vh))
-#endif
 
     Percent, // Range from 0 to 100
 
@@ -199,7 +197,9 @@ private:
         if ((value & valueMask) == special) {
             return static_cast<Unit>(value & unitMask);
         } else {
+            // NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
             return static_cast<Unit>((value & unitMask) + +Unit::Default);
+            // NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
         }
     }
 
@@ -271,7 +271,6 @@ constexpr Length operator""_perc(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::Percent };
 }
 
-#ifdef BRISK_VIEWPORT_UNITS
 constexpr Length operator""_vw(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::Vw };
 }
@@ -287,7 +286,6 @@ constexpr Length operator""_vmin(unsigned long long value) noexcept {
 constexpr Length operator""_vmax(unsigned long long value) noexcept {
     return { static_cast<float>(value), LengthUnit::Vmax };
 }
-#endif
 
 /**
  * @brief UDL operator to convert a value in scalable pixels (long double) to Length.
@@ -334,7 +332,6 @@ constexpr Length operator""_perc(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::Percent };
 }
 
-#ifdef BRISK_VIEWPORT_UNITS
 constexpr Length operator""_vw(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::Vw };
 }
@@ -350,7 +347,6 @@ constexpr Length operator""_vmin(long double value) noexcept {
 constexpr Length operator""_vmax(long double value) noexcept {
     return { static_cast<float>(value), LengthUnit::Vmax };
 }
-#endif
 
 /**
  * @brief Specifies the flex container's main axis direction.

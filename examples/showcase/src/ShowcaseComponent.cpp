@@ -35,7 +35,7 @@ static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
         Selectors::Class{ "section-header" },
         Rules{
             fontSize      = 14_px,
-            fontFamily    = Font::Monospace,
+            fontFamily    = "@mono",
             color         = 0x5599ff_rgb,
             margin        = { 0, 10_apx },
 
@@ -86,7 +86,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_zoom_in },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           []() {
                               windowApplication->uiScale =
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 + 1) * 0.5);
@@ -96,7 +96,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_zoom_out },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           []() {
                               windowApplication->uiScale =
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 - 1) * 0.5);
@@ -106,7 +106,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_camera },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           [this]() {
                               captureScreenshot();
                           },
@@ -115,7 +115,7 @@ RC<Widget> ShowcaseComponent::build() {
                 padding = 8_dpx,
                 rcnew Text{ ICON_sun_moon },
                 borderWidth = 1_dpx,
-                onClick     = m_lifetime |
+                onClick     = lifetime() |
                           [this]() {
                               m_lightTheme = !m_lightTheme;
                               this->tree().disableTransitions();
@@ -171,15 +171,15 @@ void ShowcaseComponent::configureWindow(RC<GUIWindow> window) {
 }
 
 void ShowcaseComponent::saveScreenshot(RC<Image> image) {
-    std::vector<uint8_t> bytes = pngEncode(image);
-    if (auto file = showSaveDialog({ FileDialogFilter{ "*.png", "PNG image"_tr } },
-                                   defaultFolder(DefaultFolder::Pictures))) {
+    Bytes bytes = pngEncode(image);
+    if (auto file = Shell::showSaveDialog({ Shell::FileDialogFilter{ "*.png", "PNG image"_tr } },
+                                          defaultFolder(DefaultFolder::Pictures))) {
         if (auto s = writeBytes(*file, bytes)) {
             m_notifications.show(rcnew Text{ "Screenshot saved successfully"_tr });
         } else {
-            showMessage(fmt::format(fmt::runtime("Unable to save screenshot to {0}: {1}"_tr), file->string(),
-                                    s.error()),
-                        MessageBoxType::Warning);
+            Shell::showMessage(fmt::format(fmt::runtime("Unable to save screenshot to {0}: {1}"_tr),
+                                           file->string(), s.error()),
+                               MessageBoxType::Warning);
         }
     }
 }

@@ -86,7 +86,7 @@ Bytes PlatformWindow::placement() const {
     return {};
 }
 
-void PlatformWindow::setPlacement(bytes_view data) {}
+void PlatformWindow::setPlacement(BytesView data) {}
 
 void PlatformWindow::setOwner(RC<Window> window) {}
 
@@ -262,7 +262,7 @@ RC<SystemCursor> PlatformCursors::cursorFromImage(const RC<Image>& image, Point 
     auto rd    = image->mapRead();
     img.width  = rd.width();
     img.height = rd.height();
-    std::vector<uint8_t> data;
+    Bytes data;
     if (rd.byteStride() == rd.width() * 4) {
         img.pixels = (unsigned char*)rd.data();
     } else {

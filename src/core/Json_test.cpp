@@ -36,7 +36,7 @@ struct NameAndNumber {
     std::string name;
     double number;
 
-    inline static const std::tuple Reflection = {
+    inline static const std::tuple reflection = {
         ReflectionField{ "name", &NameAndNumber::name },
         ReflectionField{ "number", &NameAndNumber::number },
     };
@@ -61,7 +61,7 @@ struct SomePoint2 {
     int x                                  = 0;
     int y                                  = 0;
 
-    static constexpr std::tuple Reflection = {
+    static constexpr std::tuple reflection = {
         ReflectionField{ "x", &SomePoint2::x },
         ReflectionField{ "y", &SomePoint2::y },
     };
@@ -98,11 +98,11 @@ TEST_CASE("Json") {
 
     CHECK(pt2 == SomePoint{ 3, 4 });
 
-    CHECK(std::tuple_size_v<decltype(SomePoint2::Reflection)> == 2);
-    CHECK(std::get<0>(SomePoint2::Reflection).pointerToField == &SomePoint2::x);
-    CHECK(std::get<1>(SomePoint2::Reflection).pointerToField == &SomePoint2::y);
-    CHECK(std::get<0>(SomePoint2::Reflection).name == "x"sv);
-    CHECK(std::get<1>(SomePoint2::Reflection).name == "y"sv);
+    CHECK(std::tuple_size_v<decltype(SomePoint2::reflection)> == 2);
+    CHECK(std::get<0>(SomePoint2::reflection).pointerToField == &SomePoint2::x);
+    CHECK(std::get<1>(SomePoint2::reflection).pointerToField == &SomePoint2::y);
+    CHECK(std::get<0>(SomePoint2::reflection).name == "x"sv);
+    CHECK(std::get<1>(SomePoint2::reflection).name == "y"sv);
 
     SomePoint2 pt3{ 123, 456 };
     Json j = SomePoint2{ 777, 10000 };
@@ -138,7 +138,7 @@ TEST_CASE("Json Json") {
 
     CHECK(b.toJson() == s);
 
-    optional<Json> bb = Json::fromJson(s);
+    std::optional<Json> bb = Json::fromJson(s);
 
     CHECK(bb.has_value());
     CHECK(*bb == b);
@@ -231,20 +231,21 @@ TEST_CASE("get bool") {
 }
 
 TEST_CASE("toMsgPack") {
-    CHECK(Json(true).toMsgPack() == Bytes{ 0xC3 });
-    CHECK(Json(false).toMsgPack() == Bytes{ 0xC2 });
-    CHECK(Json(nullptr).toMsgPack() == Bytes{ 0xC0 });
-    CHECK(Json(1).toMsgPack() == Bytes{ 0x01 });
-    CHECK(Json(32).toMsgPack() == Bytes{ 0x20 });
-    CHECK(Json(1024).toMsgPack() == Bytes{ 0xCD, 0x04, 0x00 });
-    CHECK(Json(1048768).toMsgPack() == Bytes{ 0xCE, 0x00, 0x10, 0x00, 0xC0 });
-    CHECK(Json(1073741824).toMsgPack() == Bytes{ 0xCE, 0x40, 0x00, 0x00, 0x00 });
-    CHECK(Json(JsonArray{ 1, 2, 3, 4 }).toMsgPack() == Bytes{ 0x94, 0x01, 0x02, 0x03, 0x04 });
-    CHECK(Json("abc").toMsgPack() == Bytes{ 0xA3, 0x61, 0x62, 0x63 });
+    CHECK(Json(true).toMsgPack() == Bytes{ 0xC3_b });
+    CHECK(Json(false).toMsgPack() == Bytes{ 0xC2_b });
+    CHECK(Json(nullptr).toMsgPack() == Bytes{ 0xC0_b });
+    CHECK(Json(1).toMsgPack() == Bytes{ 0x01_b });
+    CHECK(Json(32).toMsgPack() == Bytes{ 0x20_b });
+    CHECK(Json(1024).toMsgPack() == Bytes{ 0xCD_b, 0x04_b, 0x00_b });
+    CHECK(Json(1048768).toMsgPack() == Bytes{ 0xCE_b, 0x00_b, 0x10_b, 0x00_b, 0xC0_b });
+    CHECK(Json(1073741824).toMsgPack() == Bytes{ 0xCE_b, 0x40_b, 0x00_b, 0x00_b, 0x00_b });
+    CHECK(Json(JsonArray{ 1, 2, 3, 4 }).toMsgPack() == Bytes{ 0x94_b, 0x01_b, 0x02_b, 0x03_b, 0x04_b });
+    CHECK(Json("abc").toMsgPack() == Bytes{ 0xA3_b, 0x61_b, 0x62_b, 0x63_b });
     CHECK(Json(JsonObject{ { "a", 1 }, { "b", 0.5f } }).toMsgPack() ==
-          Bytes{ 0x82, 0xA1, 0x61, 0x01, 0xA1, 0x62, 0xCB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+          Bytes{ 0x82_b, 0xA1_b, 0x61_b, 0x01_b, 0xA1_b, 0x62_b, 0xCB_b, 0x3F_b, 0xE0_b, 0x00_b, 0x00_b,
+                 0x00_b, 0x00_b, 0x00_b, 0x00_b });
 
-    CHECK(bytes_view(Json(JsonObject{ { "compact", true }, { "schema", 0 } }).toMsgPack()) ==
+    CHECK(BytesView(Json(JsonObject{ { "compact", true }, { "schema", 0 } }).toMsgPack()) ==
           toBytesView("\x82\xA7"
                       "compact\xC3\xA6schema\x00"));
 

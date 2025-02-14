@@ -51,7 +51,7 @@ static png_uint_32 toPNGFormat(PixelFormat fmt) {
                      PNG_FORMAT_GRAY);
 }
 
-bytes pngEncode(RC<Image> image) {
+Bytes pngEncode(RC<Image> image) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("PNG codec doesn't support encoding {} format", image->format()));
     }
@@ -62,7 +62,7 @@ bytes pngEncode(RC<Image> image) {
     pngimage.width   = image->width();
     pngimage.height  = image->height();
     pngimage.format  = toPNGFormat(image->pixelFormat());
-    bytes b(PNG_IMAGE_PNG_SIZE_MAX(pngimage), 0);
+    Bytes b(PNG_IMAGE_PNG_SIZE_MAX(pngimage), 0_b);
     png_alloc_size_t pngbytes = b.size();
 
     SCOPE_EXIT {
@@ -78,7 +78,7 @@ bytes pngEncode(RC<Image> image) {
     }
 }
 
-expected<RC<Image>, ImageIOError> pngDecode(bytes_view bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("PNG codec doesn't support decoding to {} format", format));
     }

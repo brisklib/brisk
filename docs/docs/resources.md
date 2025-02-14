@@ -51,7 +51,7 @@ brisk_bundle_resources(main)
 
 ### C++ Code
 
-In C++, you can load any resource bundled with the executable using `loadResource` or `loadResourceText`:
+In C++, you can load any resource bundled with the executable using `Resources::load` or `Resources::loadText`:
 
 ```c++
 #include <brisk/core/Resources.hpp>
@@ -60,12 +60,12 @@ In C++, you can load any resource bundled with the executable using `loadResourc
 // Load the icon resource and decode it into an image.
 RC<Image> loadIcon() {
     // Assume the resource exists and ignore errors for simplicity.
-    return imageDecode(loadResource("icon"), ImageFormat::RGBA).value();
+    return imageDecode(Resources::load("icon"), ImageFormat::RGBA).value();
 }
 
 void loadTable() {
     // Load the 'table' resource as a text string.
-    std::string t = loadResourceText("table");
+    std::string t = Resources::loadText("table");
 
     // Process the table data...
 }

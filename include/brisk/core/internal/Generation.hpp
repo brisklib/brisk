@@ -91,7 +91,7 @@ inline bool assign(std::variant<Ts...>& target, U&& newValue) {
 }
 
 template <typename T, typename U>
-inline bool assign(optional<T>& target, U&& newValue) {
+inline bool assign(std::optional<T>& target, U&& newValue) {
     bool result = !target.has_value() || newValue != *target;
     if (result)
         target = std::forward<U>(newValue);
@@ -99,7 +99,7 @@ inline bool assign(optional<T>& target, U&& newValue) {
 }
 
 template <typename T>
-inline bool assign(optional<T>& target, std::nullopt_t) {
+inline bool assign(std::optional<T>& target, std::nullopt_t) {
     bool result = target.has_value();
     if (result)
         target = std::nullopt;

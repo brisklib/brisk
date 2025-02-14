@@ -24,7 +24,7 @@ public:
      * @param svg A string view representing the SVG data.
      */
     SVGImage(std::string_view svg);
-    SVGImage(bytes_view svg);
+    SVGImage(BytesView svg);
     SVGImage(const SVGImage&) noexcept            = default;
     SVGImage(SVGImage&&) noexcept                 = default;
     SVGImage& operator=(const SVGImage&) noexcept = default;

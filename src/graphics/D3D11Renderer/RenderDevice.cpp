@@ -152,8 +152,8 @@ status<RenderDeviceError> RenderDeviceD3D11::init() {
 
     std::ignore          = m_factory.As(&m_factory2);
 
-    auto shader_vertex   = loadResource("d3d11/vertex.fxc");
-    auto shader_fragment = loadResource("d3d11/fragment.fxc");
+    auto shader_vertex   = Resources::load("d3d11/vertex.fxc");
+    auto shader_fragment = Resources::load("d3d11/fragment.fxc");
 
     hr                   = m_device->CreateVertexShader(shader_vertex.data(), shader_vertex.size(), nullptr,
                                                         m_vertexShader.ReleaseAndGetAddressOf());

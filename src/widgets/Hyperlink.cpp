@@ -27,9 +27,9 @@ void Hyperlink::onEvent(Event& event) {
     if (event.pressed() || event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::Space)) {
         if (std::string_view(m_url).substr(0, 7) == "http://"sv ||
             std::string_view(m_url).substr(0, 8) == "https://"sv)
-            openURLInBrowser(m_url);
+            Shell::openURLInBrowser(m_url);
         else if (fs::is_directory(m_url))
-            openFolder(m_url);
+            Shell::openFolder(m_url);
         event.stopPropagation();
     }
 }

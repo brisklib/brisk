@@ -71,7 +71,7 @@ static GeometryGlyphs glyphLayout(uint32_t& runIndex, bool& multicolor, std::opt
         }
 
         for (const Internal::Glyph& g : run.glyphs) {
-            optional<Internal::GlyphData> data = g.load(run);
+            std::optional<Internal::GlyphData> data = g.load(run);
             if (data && data->sprite) {
                 GeometryGlyph glyphDesc;
                 PointF pos        = g.pos + run.position + offset;

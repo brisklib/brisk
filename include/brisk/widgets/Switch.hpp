@@ -34,7 +34,7 @@ public:
         endConstruction();
     }
 
-    optional<float>& animatedValue() const;
+    std::optional<float>& animatedValue() const;
 
 protected:
     Ptr cloneThis() const override;
@@ -43,7 +43,7 @@ protected:
     explicit Switch(Construction construction, ArgumentsView<Switch> args);
 
 private:
-    mutable optional<float> m_animatedValue;
+    mutable std::optional<float> m_animatedValue;
 };
 
 void switchPainter(Canvas& canvas, const Widget& widget);

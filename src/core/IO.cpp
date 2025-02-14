@@ -113,10 +113,10 @@ public:
         return m_caps;
     }
 
-    uintmax_t size() const {
-        uintmax_t saved = IO_TELL_64(m_file);
+    uint64_t size() const {
+        uint64_t saved = IO_TELL_64(m_file);
         IO_SEEK_64(m_file, 0, SEEK_END);
-        uintmax_t size = IO_TELL_64(m_file);
+        uint64_t size = IO_TELL_64(m_file);
         IO_SEEK_64(m_file, saved, SEEK_SET);
         return size;
     }
@@ -134,17 +134,17 @@ public:
     explicit FileStream(std::FILE* file, bool owns, StreamCapabilities caps)
         : m_file(std::move(file)), m_owns(owns), m_caps(caps) {}
 
-    [[nodiscard]] bool seek(intmax_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
+    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
         return IO_SEEK_64(m_file, position,
                           staticMap(origin, SeekOrigin::Beginning, SEEK_SET, SeekOrigin::Current, SEEK_CUR,
                                     SeekOrigin::End, SEEK_END, SEEK_SET)) == 0;
     }
 
-    [[nodiscard]] uintmax_t tell() const final {
+    [[nodiscard]] uint64_t tell() const final {
         return IO_TELL_64(m_file);
     }
 
-    [[nodiscard]] Transferred read(uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
         if (!m_file || ferror(m_file))
             return Transferred::Error;
         if (feof(m_file))
@@ -152,7 +152,7 @@ public:
         return fread(data, 1, size, m_file);
     }
 
-    [[nodiscard]] Transferred write(const uint8_t* data, size_t size) final {
+    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
         if (!m_file || ferror(m_file))
             return Transferred::Error;
         return fwrite(data, 1, size, m_file);
@@ -199,9 +199,9 @@ expected<RC<Stream>, IOError> openFileForWriting(const fs::path& filePath, bool 
     return openFile(filePath, appending ? OpenFileMode::AppendOrCreate : OpenFileMode::RewriteOrCreate);
 }
 
-optional<uintmax_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize) {
-    uintmax_t transferred = 0;
-    auto buf              = std::unique_ptr<uint8_t[]>(new uint8_t[bufSize]);
+std::optional<uint64_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufSize) {
+    uint64_t transferred = 0;
+    auto buf             = std::unique_ptr<std::byte[]>(new std::byte[bufSize]);
     Transferred rd;
     while ((rd = src->read(buf.get(), bufSize))) {
         if (dest->write(buf.get(), rd.bytes()) != rd.bytes())
@@ -209,14 +209,14 @@ optional<uintmax_t> writeFromReader(RC<Stream> dest, RC<Stream> src, size_t bufS
         transferred += rd.bytes();
     }
     if (!dest->flush())
-        return nullopt;
+        return std::nullopt;
     if (rd.isError())
-        return nullopt;
+        return std::nullopt;
     return transferred;
 }
 
-expected<bytes, IOError> readBytes(const fs::path& file_name) {
-    return openFileForReading(file_name).and_then([](const RC<Stream>& r) -> expected<bytes, IOError> {
+expected<Bytes, IOError> readBytes(const fs::path& file_name) {
+    return openFileForReading(file_name).and_then([](const RC<Stream>& r) -> expected<Bytes, IOError> {
         auto rd = r->readUntilEnd();
         if (rd)
             return *rd;
@@ -226,11 +226,11 @@ expected<bytes, IOError> readBytes(const fs::path& file_name) {
 }
 
 expected<std::string, IOError> readUtf8(const fs::path& file_name, bool removeBOM) {
-    return readBytes(file_name).map([removeBOM](const bytes& b) {
+    return readBytes(file_name).map([removeBOM](const Bytes& b) {
         if (removeBOM)
-            return std::string(utf8SkipBom(std::string(b.begin(), b.end())));
+            return std::string(utf8SkipBom(std::string((const char*)b.data(), b.size())));
         else
-            return std::string(b.begin(), b.end());
+            return std::string((const char*)b.data(), b.size());
     });
 }
 
@@ -241,7 +241,7 @@ expected<Json, IOError> readJson(const fs::path& file_name) {
 }
 
 expected<Json, IOError> readMsgpack(const fs::path& file_name) {
-    return readBytes(file_name).map([](const bytes& b) {
+    return readBytes(file_name).map([](const Bytes& b) {
         return Json::fromMsgPack(b).value_or(JsonNull{});
     });
 }
@@ -254,14 +254,14 @@ expected<std::vector<std::string>, IOError> readLines(const fs::path& file_name)
     });
 }
 
-status<IOError> writeBytes(const fs::path& file_name, const bytes_view& b) {
+status<IOError> writeBytes(const fs::path& file_name, const BytesView& b) {
     return openFileForWriting(file_name).and_then([b](const RC<Stream>& w) -> status<IOError> {
         return unexpected_if(w->writeAll(b), IOError::CantWrite);
     });
 }
 
 status<IOError> writeUtf8(const fs::path& file_name, std::string_view str, bool useBOM) {
-    bytes_view bv = toBytesView(str);
+    BytesView bv = toBytesView(str);
     if (useBOM) {
         return openFileForWriting(file_name).and_then([bv](const RC<Stream>& w) -> status<IOError> {
             return unexpected_if(w->writeAll(toBytesView(utf8_bom)) && w->writeAll(bv), IOError::CantWrite);
@@ -318,12 +318,12 @@ fs::path tempFilePath(std::string pattern) {
     return tmp / pattern;
 }
 
-optional<fs::path> findDirNextToExe(std::string_view dirName) {
+std::optional<fs::path> findDirNextToExe(std::string_view dirName) {
     fs::path path = executablePath();
     for (;;) {
         path = path.parent_path();
         if (!path.has_relative_path())
-            return nullopt;
+            return std::nullopt;
         if (fs::path dirPath = path / dirName; fs::is_directory(dirPath))
             return dirPath;
     }

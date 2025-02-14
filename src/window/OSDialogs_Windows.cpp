@@ -39,15 +39,15 @@ using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 namespace Brisk {
 
-void openURLInBrowser(std::string_view url) {
+void Shell::openURLInBrowser(std::string_view url) {
     ShellExecuteW(NULL, L"open", utf8ToWcs(url).c_str(), NULL, NULL, SW_SHOWNORMAL);
 }
 
-void openFolder(const fs::path& path) {
+void Shell::openFolder(const fs::path& path) {
     openURLInBrowser(path.string());
 }
 
-void openFileInDefaultApp(const fs::path& path) {
+void Shell::openFileInDefaultApp(const fs::path& path) {
     openURLInBrowser(path.string());
 }
 
@@ -90,14 +90,14 @@ private:
 };
 
 template <typename T>
-static optional<T> getFirst(const std::vector<T>& values) {
+static std::optional<T> getFirst(const std::vector<T>& values) {
     if (values.empty())
-        return nullopt;
+        return std::nullopt;
     return values.front();
 }
 
 template <std::derived_from<IFileDialog> Dialog>
-static std::vector<fs::path> pathDialog(OSWindow* window, std::span<const FileDialogFilter> filters,
+static std::vector<fs::path> pathDialog(OSWindow* window, std::span<const Shell::FileDialogFilter> filters,
                                         FILEOPENDIALOGOPTIONS flags, const fs::path& defaultPath) {
     COMInitializer com;
     std::vector<fs::path> results;
@@ -191,32 +191,34 @@ static std::vector<fs::path> pathDialog(OSWindow* window, std::span<const FileDi
     return results;
 }
 
-optional<fs::path> showFolderDialog(const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> Shell::showFolderDialog(const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
         result = getFirst(pathDialog<IFileOpenDialog>(window, {}, FOS_PICKFOLDERS, defaultPath));
     });
     return result;
 }
 
-optional<fs::path> showOpenDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> Shell::showOpenDialog(std::span<const FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
         result = getFirst(pathDialog<IFileOpenDialog>(window, filters, FOS_FILEMUSTEXIST, defaultPath));
     });
     return result;
 }
 
-optional<fs::path> showSaveDialog(std::span<const FileDialogFilter> filters, const fs::path& defaultPath) {
-    optional<fs::path> result;
+std::optional<fs::path> Shell::showSaveDialog(std::span<const FileDialogFilter> filters,
+                                              const fs::path& defaultPath) {
+    std::optional<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
         result = getFirst(pathDialog<IFileSaveDialog>(window, filters, 0, defaultPath));
     });
     return result;
 }
 
-std::vector<fs::path> showOpenDialogMulti(std::span<const FileDialogFilter> filters,
-                                          const fs::path& defaultPath) {
+std::vector<fs::path> Shell::showOpenDialogMulti(std::span<const FileDialogFilter> filters,
+                                                 const fs::path& defaultPath) {
     std::vector<fs::path> result;
     windowApplication->systemModal([&](OSWindow* window) {
         result = pathDialog<IFileOpenDialog>(window, filters, FOS_FILEMUSTEXIST | FOS_ALLOWMULTISELECT,
@@ -225,8 +227,8 @@ std::vector<fs::path> showOpenDialogMulti(std::span<const FileDialogFilter> filt
     return result;
 }
 
-static DialogResult showDialog(OSWindow* window, DialogButtons buttons, MessageBoxType type,
-                               std::string_view title, std::string_view message) {
+static DialogResult showChildDialog(OSWindow* window, DialogButtons buttons, MessageBoxType type,
+                                    std::string_view title, std::string_view message) {
     PCWSTR icon = TD_INFORMATION_ICON;
     switch (type) {
     case MessageBoxType::None:
@@ -282,11 +284,11 @@ static DialogResult showDialog(OSWindow* window, DialogButtons buttons, MessageB
     }
 }
 
-DialogResult showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
-                        MessageBoxType type) {
+DialogResult Shell::showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
+                               MessageBoxType type) {
     DialogResult result;
     windowApplication->systemModal([&](OSWindow* window) {
-        result = showDialog(window, buttons, type, title, message);
+        result = showChildDialog(window, buttons, type, title, message);
     });
     return result;
 }

@@ -49,7 +49,7 @@ inline NSString* toNSStringNoCopy(std::string_view str) {
                                     freeWhenDone:NO];
 }
 
-inline NSData* toNSDataNoCopy(bytes_view bytes) {
+inline NSData* toNSDataNoCopy(BytesView bytes) {
     return [NSData dataWithBytesNoCopy:(void*)bytes.data() length:bytes.size() freeWhenDone:NO];
 }
 

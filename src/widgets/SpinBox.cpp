@@ -32,18 +32,20 @@ void SpinBox::onChildAdded(Widget* w) {
     if (auto* btns = buttons.matchesType(w)) {
         btns->flexGrow = 0;
         ArgumentsView<Button>{
-            std::tuple{ Arg::onClick = listener(
-                            [this]() {
-                                increment();
-                            },
-                            this) }
+            std::tuple{
+                Arg::onClick = lifetime() |
+                               [this]() {
+                                   increment();
+                               },
+            }
         }.apply(UpDownButtons::up.get(btns).get());
         ArgumentsView<Button>{
-            std::tuple{ Arg::onClick = listener(
-                            [this]() {
-                                decrement();
-                            },
-                            this) }
+            std::tuple{
+                Arg::onClick = lifetime() |
+                               [this]() {
+                                   decrement();
+                               },
+            }
         }.apply(UpDownButtons::down.get(btns).get());
     }
 }

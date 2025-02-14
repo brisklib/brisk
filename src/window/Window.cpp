@@ -246,7 +246,7 @@ void Window::determineWindowDPI() {
     if (m_canvasPixelRatio != spr) {
         m_canvasPixelRatio = spr;
         LOG_INFO(window, "Pixel Ratio for window = {} scaled: {}", m_windowPixelRatio.load(), spr);
-        uiThread->dispatch([this] {
+        uiScheduler->dispatch([this] {
             Brisk::pixelRatio() = m_canvasPixelRatio;
             dpiChanged();
         });
@@ -487,17 +487,17 @@ Bytes Window::windowPlacement() const {
     if (!m_platformWindow) {
         return {};
     }
-    return uiThread->dispatchAndWait([this]() -> Bytes {
+    return uiScheduler->dispatchAndWait([this]() -> Bytes {
         return m_platformWindow->placement();
     });
 }
 
-void Window::setWindowPlacement(bytes_view data) {
+void Window::setWindowPlacement(BytesView data) {
     mustBeUIThread();
     if (!m_platformWindow) {
         return;
     }
-    uiThread->dispatchAndWait([this, data]() { // must wait, otherwise dangling reference
+    uiScheduler->dispatchAndWait([this, data]() { // must wait, otherwise dangling reference
         m_platformWindow->setPlacement(data);
     });
 }
@@ -611,7 +611,7 @@ void Window::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mod
     }
     onMouseEvent(button, action, mods, point, triClick ? 3 : dblClick ? 2 : 1);
     if (button == MouseButton::Left && action == MouseAction::Release) {
-        m_downPoint = nullopt;
+        m_downPoint = std::nullopt;
     }
 }
 

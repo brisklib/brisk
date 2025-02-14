@@ -26,15 +26,15 @@ namespace Brisk {
 
 static_assert(sizeof(decltype(Hasher::state)) == sizeof(hash_state));
 
-void cryptoRandomInplace(bytes_mutable_view data) {
+void cryptoRandomInplace(BytesMutableView data) {
     size_t result = cryptoRandomInplaceSafe(data);
     if (result != data.size()) {
         throwException(ECrypto("Not enough randomness for cryptoRandomInplace"));
     }
 }
 
-bytes cryptoRandom(size_t size) {
-    bytes result(size);
+Bytes cryptoRandom(size_t size) {
+    Bytes result(size);
     cryptoRandomInplace(result);
     return result;
 }
@@ -43,8 +43,8 @@ class RandomReader : public SequentialReader {
 public:
     RandomReader() = default;
 
-    Transferred read(uint8_t* data, size_t size) final {
-        return cryptoRandomInplaceSafe(bytes_mutable_view{ data, size });
+    Transferred read(std::byte* data, size_t size) final {
+        return cryptoRandomInplaceSafe(BytesMutableView{ data, size });
     }
 };
 
@@ -73,46 +73,46 @@ static const HashFunctions& hashFunctions(HashMethod method) {
     return list[static_cast<uint32_t>(+method)];
 }
 
-static void hashTo(HashMethod method, bytes_view data, bytes_mutable_view hash) {
+static void hashTo(HashMethod method, BytesView data, BytesMutableView hash) {
     const HashFunctions& desc = hashFunctions(method);
     hash_state state;
     desc.init(&state);
-    desc.process(&state, data.data(), data.size());
-    desc.done(&state, hash.data());
+    desc.process(&state, (const uint8_t*)data.data(), data.size());
+    desc.done(&state, (uint8_t*)hash.data());
 }
 
 template <HashMethod method>
-static FixedBits<hashBitSize(method)> hash(bytes_view data) {
+static FixedBits<hashBitSize(method)> hash(BytesView data) {
     FixedBits<hashBitSize(method)> result;
     hashTo(method, data, result);
     return result;
 }
 
-MD5Hash md5(bytes_view data) {
+MD5Hash md5(BytesView data) {
     return hash<HashMethod::MD5>(data);
 }
 
-SHA1Hash sha1(bytes_view data) {
+SHA1Hash sha1(BytesView data) {
     return hash<HashMethod::SHA1>(data);
 }
 
-SHA256Hash sha256(bytes_view data) {
+SHA256Hash sha256(BytesView data) {
     return hash<HashMethod::SHA256>(data);
 }
 
-SHA512Hash sha512(bytes_view data) {
+SHA512Hash sha512(BytesView data) {
     return hash<HashMethod::SHA512>(data);
 }
 
-SHA3_256Hash sha3_256(bytes_view data) {
+SHA3_256Hash sha3_256(BytesView data) {
     return hash<HashMethod::SHA3_256>(data);
 }
 
-SHA3_512Hash sha3_512(bytes_view data) {
+SHA3_512Hash sha3_512(BytesView data) {
     return hash<HashMethod::SHA3_512>(data);
 }
 
-Bytes hash(HashMethod method, bytes_view data) {
+Bytes hash(HashMethod method, BytesView data) {
     Bytes result(hashBitSize(method));
     hashTo(method, data, result);
     return result;
@@ -150,7 +150,7 @@ Bytes hash(HashMethod method, std::string_view data) {
 
 class HashStream final : public SequentialWriter {
 public:
-    HashStream(const HashFunctions& desc, bytes_mutable_view hash) : desc(desc), hash(hash) {
+    HashStream(const HashFunctions& desc, BytesMutableView hash) : desc(desc), hash(hash) {
         if (desc.init(&state) != CRYPT_OK) {
             failed = true;
         }
@@ -162,11 +162,11 @@ public:
         }
     }
 
-    Transferred write(const uint8_t* data, size_t size) final {
+    Transferred write(const std::byte* data, size_t size) final {
         if (failed || flushed)
             return Transferred::Error;
 
-        if (desc.process(&state, data, size) != CRYPT_OK) {
+        if (desc.process(&state, (const uint8_t*)data, size) != CRYPT_OK) {
             failed = true;
             return Transferred::Error;
         }
@@ -178,7 +178,7 @@ public:
         return getHash(hash);
     }
 
-    bool getHash(bytes_mutable_view hash) {
+    bool getHash(BytesMutableView hash) {
         if (flushed)
             return false;
 
@@ -187,9 +187,9 @@ public:
         }
 
         if (failed) {
-            std::fill(hash.begin(), hash.end(), 0);
+            std::fill(hash.begin(), hash.end(), 0_b);
         } else {
-            desc.done(&state, hash.data());
+            desc.done(&state, (uint8_t*)hash.data());
         }
 
         flushed = true;
@@ -198,13 +198,13 @@ public:
 
 private:
     const HashFunctions& desc;
-    bytes_mutable_view hash;
+    BytesMutableView hash;
     hash_state state;
     bool failed  = false;
     bool flushed = false;
 };
 
-RC<Stream> hashStream(HashMethod method, bytes_mutable_view hash) {
+RC<Stream> hashStream(HashMethod method, BytesMutableView hash) {
     return RC<Stream>(new HashStream(hashFunctions(method), hash));
 }
 
@@ -232,20 +232,23 @@ RC<Stream> sha3_512HashStream(SHA3_512Hash& hash) {
     return hashStream(HashMethod::SHA3_512, toBytesMutableView(hash));
 }
 
-Hasher::Hasher() noexcept : method(static_cast<HashMethod>(-1)) {}
+Hasher::Hasher() noexcept
+    : method(static_cast<HashMethod>(-1)) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+{}
 
 Hasher::Hasher(HashMethod method) noexcept : method(method) {
     hashFunctions(method).init(reinterpret_cast<hash_state*>(state.data()));
 }
 
-bool Hasher::finish(bytes_mutable_view bytes) {
+bool Hasher::finish(BytesMutableView bytes) {
     auto desc = hashFunctions(method);
     BRISK_ASSERT(bytes.size() == desc.hashsize);
-    return desc.done(reinterpret_cast<hash_state*>(state.data()), bytes.data()) == CRYPT_OK;
+    return desc.done(reinterpret_cast<hash_state*>(state.data()), (uint8_t*)bytes.data()) == CRYPT_OK;
 }
 
-bool Hasher::write(bytes_view data) {
+bool Hasher::write(BytesView data) {
     auto desc = hashFunctions(method);
-    return desc.process(reinterpret_cast<hash_state*>(state.data()), data.data(), data.size()) == CRYPT_OK;
+    return desc.process(reinterpret_cast<hash_state*>(state.data()), (const uint8_t*)data.data(),
+                        data.size()) == CRYPT_OK;
 }
 } // namespace Brisk

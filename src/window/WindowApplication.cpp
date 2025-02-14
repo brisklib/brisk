@@ -37,7 +37,7 @@ bool separateRenderThread            = true;
 
 WindowApplication* windowApplication = nullptr;
 
-RC<TaskQueue> uiThread;
+RC<TaskQueue> uiScheduler;
 
 void WindowApplication::quit(int exitCode) {
     m_exitCode = exitCode;
@@ -85,7 +85,7 @@ WindowApplication::WindowApplication() : m_separateRenderThread(separateRenderTh
         m_uiThread = std::thread(&WindowApplication::uiThreadBody, this);
         m_uiThreadStarted.acquire();
     } else {
-        uiThread         = rcnew TaskQueue();
+        uiScheduler      = rcnew TaskQueue();
         afterRenderQueue = rcnew TaskQueue();
     }
 
@@ -135,7 +135,7 @@ void WindowApplication::processEvents(bool wait) {
 }
 
 void WindowApplication::renderWindows() {
-    uiThread->process();
+    uiScheduler->process();
     std::vector<RC<Window>> windows = this->windows();
     for (RC<Window> w : windows) {
         if (w->m_rendering) {
@@ -153,7 +153,7 @@ void WindowApplication::renderWindows() {
 }
 
 void WindowApplication::uiThreadBody() {
-    uiThread         = rcnew TaskQueue();
+    uiScheduler      = rcnew TaskQueue();
     afterRenderQueue = rcnew TaskQueue();
     setThreadName("UIThread");
     m_uiThreadStarted.release();
@@ -161,7 +161,7 @@ void WindowApplication::uiThreadBody() {
         renderWindows();
     }
     m_uiThreadTerminated = true;
-    uiThread             = nullptr;
+    uiScheduler          = nullptr;
     afterRenderQueue     = nullptr;
 }
 
@@ -255,7 +255,7 @@ bool WindowApplication::hasWindow(const RC<Window>& window) {
 
 VoidFunc WindowApplication::idleFunc() {
     VoidFunc func;
-    if (m_separateRenderThread && uiThread->isOnThread())
+    if (m_separateRenderThread && uiScheduler->isOnThread())
         func = [this]() {
             renderWindows();
         };
@@ -343,7 +343,7 @@ QuitCondition WindowApplication::quitCondition() const noexcept {
 
 void WindowApplication::windowsChanged() {
     auto windows = m_mainData.m_windows;
-    uiThread->dispatch([this, windows = std::move(windows)]() {
+    uiScheduler->dispatch([this, windows = std::move(windows)]() {
         m_uiData.m_windows = std::move(windows);
     });
 }

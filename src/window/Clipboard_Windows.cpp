@@ -26,9 +26,9 @@
 
 namespace Brisk {
 
-ClipboardFormat textFormat = CF_UNICODETEXT;
+Clipboard::Format Clipboard::textFormat = CF_UNICODETEXT;
 
-static bool setClipboardData(ClipboardFormat format, const Bytes& bytes) {
+static bool setClipboardData(Clipboard::Format format, const Bytes& bytes) {
     HGLOBAL mem     = GlobalAlloc(GMEM_MOVEABLE, bytes.size());
     uint8_t* locked = (uint8_t*)GlobalLock(mem);
     memcpy(locked, bytes.data(), bytes.size());
@@ -38,13 +38,13 @@ static bool setClipboardData(ClipboardFormat format, const Bytes& bytes) {
     return true;
 }
 
-static optional<Bytes> getClipboardData(ClipboardFormat format) {
+static std::optional<Bytes> getClipboardData(Clipboard::Format format) {
     HGLOBAL mem = GetClipboardData(format);
     if (mem == NULL)
-        return nullopt;
+        return std::nullopt;
     uint8_t* locked = (uint8_t*)GlobalLock(mem);
     if (!locked)
-        return nullopt;
+        return std::nullopt;
     SCOPE_EXIT {
         GlobalUnlock(mem);
     };
@@ -59,7 +59,7 @@ static Bytes toNulTerminatedWString(std::string_view text) {
     return toBytes(std::span{ content.data(), content.data() + content.size() + 1 });
 }
 
-static std::string fromNulTerminatedWString(bytes_view text) {
+static std::string fromNulTerminatedWString(BytesView text) {
     if (text.size_bytes() < 2)
         return {};
     std::wstring content(text.size_bytes() / 2, ' ');
@@ -69,7 +69,7 @@ static std::string fromNulTerminatedWString(bytes_view text) {
     return wcsToUtf8(content);
 }
 
-bool setClipboardContent(const ClipboardContent& content) {
+bool Clipboard::setContent(const Content& content) {
     if (!OpenClipboard(NULL))
         return false;
     SCOPE_EXIT {
@@ -88,14 +88,14 @@ bool setClipboardContent(const ClipboardContent& content) {
     return true;
 }
 
-ClipboardContent getClipboardContent(std::initializer_list<ClipboardFormat> formats) {
-    ClipboardContent result;
+auto Clipboard::getContent(std::initializer_list<Format> formats) -> Content {
+    Content result;
     if (!OpenClipboard(NULL))
         return result;
     SCOPE_EXIT {
         CloseClipboard();
     };
-    for (ClipboardFormat fmt : formats) {
+    for (Format fmt : formats) {
         auto data = getClipboardData(fmt);
         if (!data)
             continue;
@@ -108,11 +108,11 @@ ClipboardContent getClipboardContent(std::initializer_list<ClipboardFormat> form
     return result;
 }
 
-bool clipboardHasFormat(ClipboardFormat format) {
+bool Clipboard::hasFormat(Format format) {
     return IsClipboardFormatAvailable(format);
 }
 
-ClipboardFormat registerClipboardFormat(std::string_view formatID) {
+auto Clipboard::registerFormat(std::string_view formatID) -> Format {
     return RegisterClipboardFormatW(utf8ToWcs(formatID).c_str());
 }
 

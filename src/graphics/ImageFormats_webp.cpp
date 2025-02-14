@@ -34,7 +34,7 @@ struct webp_deleter {
 };
 } // namespace
 
-[[nodiscard]] bytes webpEncode(RC<Image> image, optional<float> quality, bool lossless) {
+[[nodiscard]] Bytes webpEncode(RC<Image> image, std::optional<float> quality, bool lossless) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("Webp codec doesn't support encoding {} format", image->format()));
     }
@@ -42,7 +42,7 @@ struct webp_deleter {
     auto rd         = image->mapRead<ImageFormat::Unknown_U8Gamma>();
 
     uint8_t* output = nullptr;
-    bytes result;
+    Bytes result;
     size_t sz;
     if (lossless) {
         switch (image->pixelFormat()) {
@@ -95,7 +95,7 @@ struct webp_deleter {
     return result;
 }
 
-[[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(bytes_view bytes, ImageFormat format) {
+[[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("Webp codec doesn't support decoding to {} format", format));
     }
@@ -104,16 +104,16 @@ struct webp_deleter {
     std::unique_ptr<uint8_t[], webp_deleter> pixels;
     switch (toPixelFormat(format)) {
     case PixelFormat::RGBA:
-        pixels.reset(WebPDecodeRGBA(bytes.data(), bytes.size(), &width, &height));
+        pixels.reset(WebPDecodeRGBA((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
         break;
     case PixelFormat::RGB:
-        pixels.reset(WebPDecodeRGB(bytes.data(), bytes.size(), &width, &height));
+        pixels.reset(WebPDecodeRGB((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
         break;
     case PixelFormat::BGRA:
-        pixels.reset(WebPDecodeBGRA(bytes.data(), bytes.size(), &width, &height));
+        pixels.reset(WebPDecodeBGRA((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
         break;
     case PixelFormat::BGR:
-        pixels.reset(WebPDecodeBGR(bytes.data(), bytes.size(), &width, &height));
+        pixels.reset(WebPDecodeBGR((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
         break;
     default:
         return unexpected(ImageIOError::InvalidFormat);
@@ -122,7 +122,7 @@ struct webp_deleter {
         return unexpected(ImageIOError::InvalidFormat);
     RC<Image> img = rcnew Image(Size{ width, height }, format);
     auto wr       = img->mapWrite();
-    wr.readFrom({ pixels.get(), size_t(width * height * 4) });
+    wr.readFrom({ (const std::byte*)pixels.get(), size_t(width * height * 4) });
     return img;
 }
 

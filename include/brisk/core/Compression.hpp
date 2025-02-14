@@ -122,39 +122,39 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @param level The level of compression to apply.
  *  @return A vector of bytes containing the compressed data.
  */
-[[nodiscard]] bytes gzipEncode(bytes_view data, CompressionLevel level);
+[[nodiscard]] Bytes gzipEncode(BytesView data, CompressionLevel level);
 
 /** @brief Decompresses GZip-compressed data.
  *  @param data The GZip-compressed input data.
  *  @return A vector of bytes containing the decompressed data.
  */
-[[nodiscard]] bytes gzipDecode(bytes_view data);
+[[nodiscard]] Bytes gzipDecode(BytesView data);
 
 /** @brief Compresses data using ZLib.
  *  @param data The input data to compress.
  *  @param level The level of compression to apply.
  *  @return A vector of bytes containing the compressed data.
  */
-[[nodiscard]] bytes zlibEncode(bytes_view data, CompressionLevel level);
+[[nodiscard]] Bytes zlibEncode(BytesView data, CompressionLevel level);
 
 /** @brief Decompresses ZLib-compressed data.
  *  @param data The ZLib-compressed input data.
  *  @return A vector of bytes containing the decompressed data.
  */
-[[nodiscard]] bytes zlibDecode(bytes_view data);
+[[nodiscard]] Bytes zlibDecode(BytesView data);
 
 /** @brief Compresses data using LZ4.
  *  @param data The input data to compress.
  *  @param level The level of compression to apply.
  *  @return A vector of bytes containing the compressed data.
  */
-[[nodiscard]] bytes lz4Encode(bytes_view data, CompressionLevel level);
+[[nodiscard]] Bytes lz4Encode(BytesView data, CompressionLevel level);
 
 /** @brief Decompresses LZ4-compressed data.
  *  @param data The LZ4-compressed input data.
  *  @return A vector of bytes containing the decompressed data.
  */
-[[nodiscard]] bytes lz4Decode(bytes_view data);
+[[nodiscard]] Bytes lz4Decode(BytesView data);
 
 #ifdef BRISK_HAVE_BROTLI
 /** @brief Compresses data using Brotli.
@@ -163,14 +163,14 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @return A vector of bytes containing the compressed data.
  *  @note Available only if compiled with BRISK_BROTLI option enabled.
  */
-[[nodiscard]] bytes brotliEncode(bytes_view data, CompressionLevel level);
+[[nodiscard]] Bytes brotliEncode(BytesView data, CompressionLevel level);
 
 /** @brief Decompresses Brotli-compressed data.
  *  @param data The Brotli-compressed input data.
  *  @return A vector of bytes containing the decompressed data.
  *  @note Available only if compiled with BRISK_BROTLI option enabled.
  */
-[[nodiscard]] bytes brotliDecode(bytes_view data);
+[[nodiscard]] Bytes brotliDecode(BytesView data);
 #endif
 
 /** @brief Creates a Stream that reads data compressed with a specified compression method.
@@ -198,7 +198,7 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @return A vector of bytes containing the compressed data.
  *  @note If CompressionMethod::None is used, no compression is applied.
  */
-[[nodiscard]] bytes compressionEncode(CompressionMethod method, bytes_view data, CompressionLevel level);
+[[nodiscard]] Bytes compressionEncode(CompressionMethod method, BytesView data, CompressionLevel level);
 
 /** @brief Decompresses data using the specified compression method.
  *  @param method The compression method to use for decompression.
@@ -206,7 +206,7 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @return A vector of bytes containing the decompressed data.
  *  @note If CompressionMethod::None is used, no decompression is applied.
  */
-[[nodiscard]] bytes compressionDecode(CompressionMethod method, bytes_view data);
+[[nodiscard]] Bytes compressionDecode(CompressionMethod method, BytesView data);
 
 namespace Internal {
 extern size_t compressionBatchSize; //< Must not be less than 256
