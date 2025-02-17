@@ -1685,10 +1685,12 @@ struct RectangleOf {
     /**
      * @brief Checks if the rectangle is empty.
      *
+     * The rectangle is considered empty if its width or height is less than or equal to 0.
+     *
      * @return True if the rectangle is empty, false otherwise.
      */
     constexpr bool empty() const noexcept {
-        return horizontalAny(le(size().v, SIMD<T, 2>(0)));
+        return horizontalAny(le(v.high(), v.low()));
     }
 
     /**
@@ -2313,6 +2315,16 @@ struct RectangleOf {
     }
 
     /**
+     * @brief Creates a new rectangle that is the intersection of this rectangle and another.
+     *
+     * @param c The other rectangle.
+     * @return A new RectangleOf that is the intersection of both rectangles.
+     */
+    constexpr bool intersects(const RectangleOf& c) const noexcept {
+        return !intersection(c).empty();
+    }
+
+    /**
      * @brief Accesses a specific component of the rectangle.
      *
      * @param i The index of the component (0: x1, 1: y1, 2: x2, 3: y2).
@@ -2406,5 +2418,10 @@ using Rectangle  = RectangleOf<int32_t>;
  * @brief Type alias for a rectangle using single-precision floating-point numbers.
  */
 using RectangleF = RectangleOf<float>;
+
+/**
+ * @brief A constant rectangle that represents no clipping area.
+ */
+constexpr inline Rectangle noClipRect{ INT32_MIN, INT32_MIN, INT32_MAX, INT32_MAX };
 
 } // namespace Brisk
