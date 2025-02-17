@@ -268,6 +268,10 @@ public:
         return m_state;
     }
 
+    RenderContext& renderContext() {
+        return m_context;
+    }
+
 protected:
     friend class Canvas;
     RenderContext& m_context;
