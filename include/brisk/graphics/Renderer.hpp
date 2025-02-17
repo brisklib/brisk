@@ -148,45 +148,43 @@ public:
      * @brief Returns the rendering device associated with this encoder.
      * @return Pointer to the RenderDevice.
      */
-    virtual RenderDevice* device() const                                                   = 0;
+    virtual RenderDevice* device() const                                                            = 0;
 
     /**
      * @brief Gets the visual settings for the encoder.
      * @return The visual settings.
      */
-    virtual VisualSettings visualSettings() const                                          = 0;
+    virtual VisualSettings visualSettings() const                                                   = 0;
 
     /**
      * @brief Sets the visual settings for the encoder.
      * @param visualSettings The visual settings to apply.
      */
-    virtual void setVisualSettings(const VisualSettings& visualSettings)                   = 0;
+    virtual void setVisualSettings(const VisualSettings& visualSettings)                            = 0;
 
     /**
      * @brief Begins the rendering operation.
      * @param target The render target.
-     * @param clear The clear color.
-     * @param rectangles List of rectangles to clear.
+     * @param clear The clear color. std::nullopt means no clear command is issued.
      */
-    virtual void begin(RC<RenderTarget> target, ColorF clear = Palette::transparent,
-                       std::span<const Rectangle> rectangles = {})                         = 0;
+    virtual void begin(RC<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) = 0;
 
     /**
      * @brief Batches rendering commands.
      * @param commands The rendering commands.
      * @param data Associated data.
      */
-    virtual void batch(std::span<const RenderState> commands, std::span<const float> data) = 0;
+    virtual void batch(std::span<const RenderState> commands, std::span<const float> data)          = 0;
 
     /**
      * @brief Ends the rendering operation.
      */
-    virtual void end()                                                                     = 0;
+    virtual void end()                                                                              = 0;
 
     /**
      * @brief Waits for the rendering to finish.
      */
-    virtual void wait()                                                                    = 0;
+    virtual void wait()                                                                             = 0;
 };
 
 /**
@@ -200,15 +198,23 @@ public:
      * @param encoder The render encoder to execute.
      * @param target The render target.
      * @param clear The clear color.
-     * @param rectangles The rectangles to clear.
+     * @param clipRect The clipping rectangle. Pass noClipRect to disable clipping
      */
-    RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target, ColorF clear = Palette::transparent,
-                   std::span<const Rectangle> rectangles = {});
+    RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target,
+                   std::optional<ColorF> clear = Palette::transparent, Rectangle clipRect = noClipRect);
+
+    void blit(RC<Image> image);
 
     /**
      * @brief Destructor for the RenderPipeline.
      */
     ~RenderPipeline();
+
+    Rectangle clipRect() const;
+
+    void setClipRect(Rectangle clipRect) final;
+
+    using RenderContext::command;
 
     /**
      * @brief Issues a rendering command.
@@ -231,6 +237,7 @@ private:
     std::vector<float> m_data;           ///< Buffer for associated rendering data.
     std::vector<RC<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
+    Rectangle m_clipRect;
 
     /**
      * @brief Flushes the pipeline to issue the batched commands.

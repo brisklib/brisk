@@ -55,24 +55,17 @@ void switchPainter(Canvas& canvas_, const Widget& widget_) {
         LOG_ERROR(widgets, "switchPainter called for a non-Switch widget");
         return;
     }
-    const Switch& widget = static_cast<const Switch&>(widget_);
-    auto& animatedValue  = widget.animatedValue();
+    const Switch& widget    = static_cast<const Switch&>(widget_);
+    float interpolatedValue = widget.interpolatedValue.get();
 
-    RawCanvas& canvas    = canvas_.raw();
-    if (!animatedValue)
-        animatedValue = widget.value.get() ? 1.f : 0.f;
-    else {
-        if (widget.value.get())
-            animatedValue = std::min(*animatedValue + 0.2f, 1.f);
-        else
-            animatedValue = std::max(*animatedValue - 0.2f, 0.f);
-    }
+    RawCanvas& canvas       = canvas_.raw();
     RectangleF outerRect = widget.rect().alignedRect({ idp(24), idp(14) }, { 0.0f, 0.5f }).withPadding(dp(1));
     RectangleF outerRectWithPadding = outerRect.withPadding(dp(2));
     RectangleF innerRect            = outerRectWithPadding.alignedRect(
-        outerRectWithPadding.height(), outerRectWithPadding.height(), *animatedValue, 0.5f);
+        outerRectWithPadding.height(), outerRectWithPadding.height(), interpolatedValue, 0.5f);
     canvas.drawRectangle(outerRect, outerRect.shortestSide() * 0.5f, 0.f,
-                         fillColor = mix(*animatedValue, ColorF(0.f, 0.f), widget.backgroundColor.current()),
+                         fillColor =
+                             mix(interpolatedValue, ColorF(0.f, 0.f), widget.backgroundColor.current()),
                          strokeWidth = 1._dp, strokeColor = widget.color.current().multiplyAlpha(0.35f));
     canvas.drawRectangle(innerRect, innerRect.shortestSide() * 0.5f, 0.f,
                          fillColor = widget.color.current().multiplyAlpha(0.75f), strokeWidth = 0.f);
@@ -89,7 +82,4 @@ Switch::Switch(Construction construction, ArgumentsView<Switch> args)
     args.apply(this);
 }
 
-std::optional<float>& Switch::animatedValue() const {
-    return m_animatedValue;
-}
 } // namespace Brisk

@@ -32,7 +32,7 @@ public:
 protected:
     double m_time = currentTime() + 1.0;
 
-    void paint(RenderContext& context) override {
+    void paint(RenderContext& context, bool fullRepaint) override {
         if (currentTime() > m_time) {
             close();
         }

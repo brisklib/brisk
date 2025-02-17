@@ -136,8 +136,9 @@ enum class PropFlags : uint16_t {
     AffectFont       = 1 << 5,
     Inheritable      = 1 << 6,
     RelativeToParent = 1 << 7,
+    AffectPaint      = 1 << 8,
 
-    Compound         = 1 << 8,
+    Compound         = 1 << 9,
 };
 
 template <>

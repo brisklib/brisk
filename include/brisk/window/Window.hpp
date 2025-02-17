@@ -144,6 +144,9 @@ public:
     void enterModal();
     void exitModal();
 
+    bool bufferedRendering() const noexcept;
+    void setBufferedRendering(bool bufferedRendering);
+
     void captureFrame(function<void(RC<Image>)> callback);
 
     RC<WindowRenderTarget> target() const;
@@ -219,7 +222,7 @@ protected:
     RC<WindowRenderTarget> m_target;
     RC<RenderEncoder> m_encoder;
     function<void(RC<Image>)> m_captureCallback;
-    RC<Image> m_capturedFrame;
+    RC<ImageRenderTarget> m_bufferedFrameTarget;
     std::chrono::microseconds m_lastFrameRenderTime{ 0 };
     Internal::DisplaySyncPoint m_syncPoint;
     std::atomic_llong m_frameNumber{ 0 };
@@ -228,7 +231,9 @@ protected:
     std::mutex m_mutex;
     VisualSettings m_renderSettings{};
     std::atomic_bool m_rendering{ false }; /// true if rendering is active
-    virtual void paint(RenderContext& context);
+    std::atomic_bool m_bufferedRendering{ true };
+    virtual void paint(RenderContext& context, bool fullRepaint);
+    virtual void paintImmediate(RenderContext& context);
     virtual void beforeFrame();
     void paintDebug(RenderContext& context);
     void doPaint();

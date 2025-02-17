@@ -105,5 +105,47 @@ struct Transition {
         return startTime >= 0;
     }
 };
+
+template <typename T>
+struct Transition2 {
+    Transition2(T current) : stopValue(current) {}
+
+    constexpr static float disabled = -1;
+    float startTime                 = disabled;
+    T startValue;
+    T stopValue;
+
+    bool set(T& current, T value, float transitionDuration) {
+        if (transitionDuration == 0) {
+            if (value == current)
+                return false;
+            current   = value;
+            stopValue = value;
+            startTime = disabled;
+            return true;
+        } else {
+            startTime  = frameStartTime;
+            startValue = current;
+            stopValue  = value;
+            return true;
+        }
+    }
+
+    void tick(T& current, float transitionDuration, EasingFunction easing) {
+        if (isActive()) {
+            float elapsed = frameStartTime - startTime;
+            if (elapsed >= transitionDuration) {
+                startTime = disabled;
+                current   = stopValue;
+            } else {
+                current = mix(easing(elapsed / transitionDuration), startValue, stopValue);
+            }
+        }
+    }
+
+    bool isActive() const noexcept {
+        return startTime >= 0;
+    }
+};
 } // namespace Internal
 } // namespace Brisk

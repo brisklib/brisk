@@ -22,22 +22,32 @@
 
 namespace Brisk {
 
-static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorF color, bool checked) {
+static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorF color, float interpolatedValue) {
     canvas.drawRectangle(markRect.withPadding(1_dp), 2_dp, 0.f, strokeColor = color.multiplyAlpha(0.35f),
                          fillColor = Palette::transparent, strokeWidth = 1._dp);
-    if (checked) {
-        PointF p1 = markRect.at(20 / 24.f, 6 / 24.f);
-        PointF p2 = markRect.at(9 / 24.f, 17 / 24.f);
-        PointF p3 = markRect.at(4 / 24.f, 12 / 24.f);
-        canvas.drawLine(p1, p2, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
-        canvas.drawLine(p2, p3, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
-    }
+
+    if (interpolatedValue == 0)
+        return;
+    PointF p1 = markRect.at(20 / 24.f, 6 / 24.f);
+    PointF p2 = markRect.at(9 / 24.f, 17 / 24.f);
+    PointF p3 = markRect.at(4 / 24.f, 12 / 24.f);
+    p1.v      = mix(interpolatedValue, p2.v, p1.v);
+    p3.v      = mix(interpolatedValue, p2.v, p3.v);
+    canvas.drawLine(p1, p2, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
+    canvas.drawLine(p2, p3, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
 }
 
-void checkBoxPainter(Canvas& canvas, const Widget& widget) {
-    Rectangle markRect = widget.rect().alignedRect({ idp(14), idp(14) }, { 0.0f, 0.5f });
+void checkBoxPainter(Canvas& canvas, const Widget& widget_) {
+    if (!dynamic_cast<const CheckBox*>(&widget_)) {
+        LOG_ERROR(widgets, "checkBoxPainter called for a non-CheckBox widget");
+        return;
+    }
+    const CheckBox& widget  = static_cast<const CheckBox&>(widget_);
+    float interpolatedValue = widget.interpolatedValue.get();
+
+    Rectangle markRect      = widget.rect().alignedRect({ idp(14), idp(14) }, { 0.0f, 0.5f });
     boxPainter(canvas, widget, markRect);
-    checkMark(canvas.raw(), markRect, widget.color.current(), widget.state() && WidgetState::Selected);
+    checkMark(canvas.raw(), markRect, widget.color.current(), interpolatedValue);
 }
 
 void CheckBox::paint(Canvas& canvas) const {

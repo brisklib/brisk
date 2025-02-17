@@ -490,6 +490,7 @@ int shufflePalette(int x) {
 namespace Internal {
 std::atomic_bool debugRelayoutAndRegenerate{ false };
 std::atomic_bool debugBoundaries{ false };
+std::atomic_bool debugDirtyRect{ false };
 } // namespace Internal
 
 void Widget::requestUpdateLayout() {
@@ -610,6 +611,7 @@ IndexedBuilder::IndexedBuilder(IndexedBuilder::func builder)
       }) {}
 
 Widget::~Widget() noexcept {
+    invalidate();
     for (const Ptr& w : *this) {
         w->m_parent = nullptr;
         w->parentChanged();
@@ -791,6 +793,7 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     }
     Point bottomRight{ 0, 0 };
     RectangleF rectOffset = rect.withOffset(m_childrenOffset);
+    m_subtreeRect         = m_rect;
     for (const Ptr& w : *this) {
         if (w->m_ignoreChildrenOffset) {
             counter += w->applyLayoutRecursively(rect);
@@ -799,12 +802,16 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
             counter += w->applyLayoutRecursively(rectOffset);
             bottomRight = max(bottomRight, w->m_rect.p2 - m_childrenOffset);
         }
+        if (w->m_visible)
+            m_subtreeRect = m_subtreeRect.union_(w->m_subtreeRect);
     }
     if (assign(m_contentSize, Size((bottomRight - Point(rect.p1)).v))) {
         ++counter;
     }
-    if (counter)
+    if (counter) {
         updateScrollAxes();
+        invalidate();
+    }
     return counter;
 }
 
@@ -821,8 +828,12 @@ bool Widget::setChildrenOffset(Point offset) {
 }
 
 void Widget::reposition(Point relativeOffset) {
-    m_rect       = m_rect.withOffset(relativeOffset);
-    m_clientRect = m_clientRect.withOffset(relativeOffset);
+    if (relativeOffset == Point(0, 0))
+        return;
+    invalidate();
+    m_rect        = m_rect.withOffset(relativeOffset);
+    m_clientRect  = m_clientRect.withOffset(relativeOffset);
+    m_subtreeRect = m_subtreeRect.withOffset(relativeOffset);
     for (const Ptr& w : *this) {
         w->reposition(relativeOffset);
     }
@@ -830,7 +841,7 @@ void Widget::reposition(Point relativeOffset) {
         m_tree->requestUpdateGeometry();
 }
 
-static void show_debug_border(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color);
+static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color);
 
 void Widget::refreshTree() {
     traverse(
@@ -1027,7 +1038,7 @@ Drawable Widget::drawable(RectangleF scissors) const {
     };
 }
 
-static void show_debug_border(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color) {
+static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color) {
     const double displayTime = 1.0;
 
     if (elapsed < displayTime) {
@@ -1073,6 +1084,12 @@ void Widget::paintScrollBars(Canvas& canvas) const {
 }
 
 void Widget::doPaint(Canvas& canvas) const {
+    // Skip whole subtree
+    if (m_tree && !m_tree->isDirty(m_subtreeRect)) {
+        return;
+    }
+    bool isDirty = !m_tree || m_tree->isDirty(m_rect);
+
     if (m_clip != WidgetClip::Inherit && m_clip != WidgetClip::Children) {
         auto&& state = canvas.raw().save();
         if (m_clip == WidgetClip::All) {
@@ -1080,26 +1097,30 @@ void Widget::doPaint(Canvas& canvas) const {
         } else if (m_clip == WidgetClip::None) {
             state->scissors = noScissors;
         }
-        if (m_painter)
-            m_painter.paint(canvas, *this);
-        else
-            paint(canvas);
+        if (isDirty) {
+            if (m_painter)
+                m_painter.paint(canvas, *this);
+            else
+                paint(canvas);
+        }
         paintChildren(canvas);
         postPaint(canvas);
         paintScrollBars(canvas);
     } else {
-        if (m_painter)
-            m_painter.paint(canvas, *this);
-        else
-            paint(canvas);
+        if (isDirty) {
+            if (m_painter)
+                m_painter.paint(canvas, *this);
+            else
+                paint(canvas);
+        }
         paintChildren(canvas);
         postPaint(canvas);
         paintScrollBars(canvas);
     }
 
     if (Internal::debugRelayoutAndRegenerate) {
-        show_debug_border(canvas.raw(), m_rect, frameStartTime - m_regenerateTime, Palette::Standard::amber);
-        show_debug_border(canvas.raw(), m_rect, frameStartTime - m_relayoutTime, Palette::Standard::cyan);
+        showDebugBorder(canvas.raw(), m_rect, frameStartTime - m_regenerateTime, Palette::Standard::amber);
+        showDebugBorder(canvas.raw(), m_rect, frameStartTime - m_relayoutTime, Palette::Standard::cyan);
     }
     if (Internal::debugBoundaries) {
         union {
@@ -1108,7 +1129,7 @@ void Widget::doPaint(Canvas& canvas) const {
         } u;
 
         u.ptr = this;
-        show_debug_border(canvas.raw(), m_rect, 0.0, Palette::Standard::index(crc32(u.bytes, 0)));
+        showDebugBorder(canvas.raw(), m_rect, 0.0, Palette::Standard::index(crc32(u.bytes, 0)));
     }
 }
 
@@ -1466,6 +1487,7 @@ void Widget::processVisibility(bool isVisible) {
     m_previouslyVisible = m_isVisible;
     m_isVisible         = isVisible;
     if (m_isVisible != m_previouslyVisible) {
+        invalidate();
         if (m_isVisible) {
             rebuild(false);
             onVisible();
@@ -1605,6 +1627,9 @@ void Widget::setState(WidgetState newState) {
 
 void Widget::stateChanged(WidgetState oldState, WidgetState newState) {
     requestStateRestyle();
+    if (hasScrollBar(Orientation::Horizontal) || hasScrollBar(Orientation::Vertical)) {
+        invalidate();
+    }
     onStateChanged(oldState, newState);
 }
 
@@ -1919,6 +1944,13 @@ bool Widget::isVisible() const noexcept {
     return m_isVisible;
 }
 
+void Widget::treeSet() {
+    if (m_pendingAnimationRequest) {
+        m_pendingAnimationRequest = false;
+        requestAnimationFrame();
+    }
+}
+
 void Widget::setTree(WidgetTree* tree) {
     if (tree != m_tree) {
         if (m_tree) {
@@ -1927,6 +1959,9 @@ void Widget::setTree(WidgetTree* tree) {
         m_tree = tree;
         if (m_tree) {
             m_tree->attach(this);
+        }
+        if (m_tree) {
+            treeSet();
         }
         for (const Ptr& w : *this) {
             w->setTree(tree);
@@ -1999,10 +2034,13 @@ SizeF Widget::computeSize(AvailableSize size) {
 void Widget::requestAnimationFrame() {
     if (m_animationRequested) [[unlikely]]
         return;
-    if (!m_tree) [[unlikely]]
+    if (!m_tree) [[unlikely]] {
+        m_pendingAnimationRequest = true;
         return;
+    }
     m_animationRequested = true;
     m_tree->requestAnimationFrame(shared_from_this());
+    invalidate();
 }
 
 void Widget::requestRebuild() {
@@ -2014,14 +2052,14 @@ void Widget::requestRebuild() {
 
 void Widget::animationFrame() {
     m_animationRequested = false;
+    if (m_color.isActive() || m_borderColor.isActive() || m_backgroundColor.isActive() ||
+        m_shadowColor.isActive())
+        requestAnimationFrame();
+
     m_color.tick(m_colorTransition, m_colorEasing);
     m_borderColor.tick(m_borderColorTransition, m_borderColorEasing);
     m_backgroundColor.tick(m_backgroundColorTransition, m_backgroundColorEasing);
     m_shadowColor.tick(shadowColorTransition, m_shadowColorEasing);
-
-    if (m_color.isActive() || m_borderColor.isActive() || m_backgroundColor.isActive() ||
-        m_shadowColor.isActive())
-        requestAnimationFrame();
 
     onAnimationFrame();
 }
@@ -2407,6 +2445,10 @@ void Widget::setter(PropFieldType<T, subfield_> value) {
             }
             field = value;
         }
+    }
+
+    if constexpr (flags && AffectPaint) {
+        invalidate();
     }
 
     // Resolve
@@ -2899,4 +2941,21 @@ void Widget::apply(const WidgetActions& action) {
     if (action.onParentSet)
         m_onParentSet.push_back(action.onParentSet);
 }
+
+void Widget::invalidate() {
+    if (!m_isVisible)
+        return;
+    if (m_tree)
+        m_tree->invalidateRect(m_rect.withMargin(invalidationEdges()));
+}
+
+Rectangle Widget::subtreeRect() const noexcept {
+    return m_subtreeRect;
+}
+
+Edges Widget::invalidationEdges() const noexcept {
+    int border = std::ceil(m_shadowSize.resolved * 2);
+    return Edges{ border };
+}
+
 } // namespace Brisk

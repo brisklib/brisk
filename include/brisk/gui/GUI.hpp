@@ -64,6 +64,7 @@ void boxPainter(Canvas& canvas, const Widget& widget);
 namespace Internal {
 extern std::atomic_bool debugRelayoutAndRegenerate;
 extern std::atomic_bool debugBoundaries;
+extern std::atomic_bool debugDirtyRect;
 } // namespace Internal
 
 using BindingFunc = function<void(Widget*)>;
@@ -862,6 +863,10 @@ public:
 
     Rectangle clientRect() const noexcept;
 
+    Rectangle subtreeRect() const noexcept;
+
+    Edges invalidationEdges() const noexcept;
+
     ////////////////////////////////////////////////////////////////////////////////
     // Style & layout
     ////////////////////////////////////////////////////////////////////////////////
@@ -950,6 +955,7 @@ public:
 
     WidgetTree* tree() const noexcept;
     void setTree(WidgetTree* tree);
+    void treeSet();
 
     Widget* parent() const noexcept;
 
@@ -982,6 +988,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////////
 
     void paintTo(Canvas& canvas) const;
+
+    void invalidate();
 
     Drawable drawable(RectangleF scissors) const;
 
@@ -1037,6 +1045,7 @@ protected:
 
     Rectangle m_rect{ 0, 0, 0, 0 };
     Rectangle m_clientRect{ 0, 0, 0, 0 };
+    Rectangle m_subtreeRect{ 0, 0, 0, 0 };
     EdgesF m_computedMargin{ 0, 0, 0, 0 };
     EdgesF m_computedPadding{ 0, 0, 0, 0 };
     EdgesF m_computedBorderWidth{ 0, 0, 0, 0 };
@@ -1283,6 +1292,7 @@ private:
     bool m_animationRequested : 1 { false };
     bool m_hasLayout : 1 { false };
     bool m_previouslyHasLayout : 1 { false };
+    bool m_pendingAnimationRequest : 1 { false };
 
     Trigger<> m_rebuildTrigger{};
 
@@ -1346,23 +1356,27 @@ public:
     GUIProperty<5, OptFloat, AffectLayout, &This::m_aspect> aspect;
     GUIProperty<6, EasingFunction, None, &This::m_backgroundColorEasing> backgroundColorEasing;
     GUIProperty<7, float, None, &This::m_backgroundColorTransition> backgroundColorTransition;
-    GUIProperty<8, ColorF, Transition, &This::m_backgroundColor> backgroundColor;
+    GUIProperty<8, ColorF, Transition | AffectPaint, &This::m_backgroundColor> backgroundColor;
     GUIProperty<9, EasingFunction, None, &This::m_borderColorEasing> borderColorEasing;
     GUIProperty<10, float, None, &This::m_borderColorTransition> borderColorTransition;
-    GUIProperty<11, ColorF, Transition, &This::m_borderColor> borderColor;
-    GUIProperty<12, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 0> borderRadiusTopLeft;
-    GUIProperty<13, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 1> borderRadiusTopRight;
-    GUIProperty<14, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 2> borderRadiusBottomLeft;
-    GUIProperty<15, CornersL, Resolvable | Inheritable, &This::m_borderRadius, 3> borderRadiusBottomRight;
-    GUIProperty<16, EdgesL, AffectLayout, &This::m_borderWidth, 0> borderWidthLeft;
-    GUIProperty<17, EdgesL, AffectLayout, &This::m_borderWidth, 1> borderWidthTop;
-    GUIProperty<18, EdgesL, AffectLayout, &This::m_borderWidth, 2> borderWidthRight;
-    GUIProperty<19, EdgesL, AffectLayout, &This::m_borderWidth, 3> borderWidthBottom;
-    GUIProperty<20, WidgetClip, None, &This::m_clip> clip;
+    GUIProperty<11, ColorF, Transition | AffectPaint, &This::m_borderColor> borderColor;
+    GUIProperty<12, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 0>
+        borderRadiusTopLeft;
+    GUIProperty<13, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 1>
+        borderRadiusTopRight;
+    GUIProperty<14, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 2>
+        borderRadiusBottomLeft;
+    GUIProperty<15, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 3>
+        borderRadiusBottomRight;
+    GUIProperty<16, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 0> borderWidthLeft;
+    GUIProperty<17, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 1> borderWidthTop;
+    GUIProperty<18, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 2> borderWidthRight;
+    GUIProperty<19, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 3> borderWidthBottom;
+    GUIProperty<20, WidgetClip, None | AffectPaint, &This::m_clip> clip;
     GUIProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
     GUIProperty<22, float, None, &This::m_colorTransition> colorTransition;
-    GUIProperty<23, ColorF, Transition | Inheritable, &This::m_color> color;
-    GUIProperty<24, int, None, &This::m_corners> corners;
+    GUIProperty<23, ColorF, Transition | Inheritable | AffectPaint, &This::m_color> color;
+    GUIProperty<24, int, AffectPaint, &This::m_corners> corners;
     GUIProperty<25, Cursor, None, &This::m_cursor> cursor;
     GUIProperty<26, SizeL, AffectLayout, &This::m_dimensions, 0> width;
     GUIProperty<27, SizeL, AffectLayout, &This::m_dimensions, 1> height;
@@ -1370,20 +1384,25 @@ public:
     GUIProperty<29, OptFloat, AffectLayout, &This::m_flexGrow> flexGrow;
     GUIProperty<30, OptFloat, AffectLayout, &This::m_flexShrink> flexShrink;
     GUIProperty<31, Wrap, AffectLayout, &This::m_flexWrap> flexWrap;
-    GUIProperty<32, std::string, AffectLayout | AffectFont | Inheritable, &This::m_fontFamily> fontFamily;
+    GUIProperty<32, std::string, AffectLayout | AffectFont | Inheritable | AffectPaint, &This::m_fontFamily>
+        fontFamily;
     GUIProperty<33, Length,
-                AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable | RelativeToParent,
+                AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable | RelativeToParent |
+                    AffectPaint,
                 &This::m_fontSize>
         fontSize;
-    GUIProperty<34, FontStyle, AffectLayout | AffectFont | Inheritable, &This::m_fontStyle> fontStyle;
-    GUIProperty<35, FontWeight, AffectLayout | AffectFont | Inheritable, &This::m_fontWeight> fontWeight;
+    GUIProperty<34, FontStyle, AffectLayout | AffectFont | Inheritable | AffectPaint, &This::m_fontStyle>
+        fontStyle;
+    GUIProperty<35, FontWeight, AffectLayout | AffectFont | Inheritable | AffectPaint, &This::m_fontWeight>
+        fontWeight;
     GUIProperty<36, SizeL, AffectLayout, &This::m_gap, 0> gapColumn;
     GUIProperty<37, SizeL, AffectLayout, &This::m_gap, 1> gapRow;
-    GUIProperty<38, bool, None, &This::m_hidden> hidden;
+    GUIProperty<38, bool, AffectPaint, &This::m_hidden> hidden;
     GUIProperty<39, Justify, AffectLayout, &This::m_justifyContent> justifyContent;
     GUIProperty<40, LayoutOrder, AffectLayout, &This::m_layoutOrder> layoutOrder;
     GUIProperty<41, Layout, AffectLayout, &This::m_layout> layout;
-    GUIProperty<42, Length, AffectLayout | Resolvable | AffectFont | Inheritable, &This::m_letterSpacing>
+    GUIProperty<42, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
+                &This::m_letterSpacing>
         letterSpacing;
     GUIProperty<43, EdgesL, AffectLayout, &This::m_margin, 0> marginLeft;
     GUIProperty<44, EdgesL, AffectLayout, &This::m_margin, 1> marginTop;
@@ -1393,24 +1412,28 @@ public:
     GUIProperty<48, SizeL, AffectLayout, &This::m_maxDimensions, 1> maxHeight;
     GUIProperty<49, SizeL, AffectLayout, &This::m_minDimensions, 0> minWidth;
     GUIProperty<50, SizeL, AffectLayout, &This::m_minDimensions, 1> minHeight;
-    GUIProperty<51, float, None, &This::m_opacity> opacity;
+    GUIProperty<51, float, AffectPaint, &This::m_opacity> opacity;
     GUIProperty<52, Overflow, AffectLayout, &This::m_overflow> overflow;
     GUIProperty<53, EdgesL, AffectLayout, &This::m_padding, 0> paddingLeft;
     GUIProperty<54, EdgesL, AffectLayout, &This::m_padding, 1> paddingTop;
     GUIProperty<55, EdgesL, AffectLayout, &This::m_padding, 2> paddingRight;
     GUIProperty<56, EdgesL, AffectLayout, &This::m_padding, 3> paddingBottom;
     GUIProperty<57, Placement, AffectLayout, &This::m_placement> placement;
-    GUIProperty<58, Length, Resolvable | Inheritable, &This::m_shadowSize> shadowSize;
-    GUIProperty<59, ColorF, Transition, &This::m_shadowColor> shadowColor;
+    GUIProperty<58, Length, Resolvable | Inheritable | AffectPaint, &This::m_shadowSize> shadowSize;
+    GUIProperty<59, ColorF, Transition | AffectPaint, &This::m_shadowColor> shadowColor;
     GUIProperty<60, float, None, &This::m_shadowColorTransition> shadowColorTransition;
     GUIProperty<61, EasingFunction, None, &This::m_shadowColorEasing> shadowColorEasing;
-    GUIProperty<62, Length, AffectLayout | Resolvable | AffectFont | Inheritable, &This::m_tabSize> tabSize;
-    GUIProperty<63, TextAlign, Inheritable, &This::m_textAlign> textAlign;
-    GUIProperty<64, TextAlign, Inheritable, &This::m_textVerticalAlign> textVerticalAlign;
-    GUIProperty<65, TextDecoration, AffectFont | Inheritable, &This::m_textDecoration> textDecoration;
+    GUIProperty<62, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
+                &This::m_tabSize>
+        tabSize;
+    GUIProperty<63, TextAlign, Inheritable | AffectPaint, &This::m_textAlign> textAlign;
+    GUIProperty<64, TextAlign, Inheritable | AffectPaint, &This::m_textVerticalAlign> textVerticalAlign;
+    GUIProperty<65, TextDecoration, AffectFont | Inheritable | AffectPaint, &This::m_textDecoration>
+        textDecoration;
     GUIProperty<66, PointL, AffectLayout, &This::m_translate> translate;
     GUIProperty<67, bool, AffectLayout, &This::m_visible> visible;
-    GUIProperty<68, Length, AffectLayout | Resolvable | AffectFont | Inheritable, &This::m_wordSpacing>
+    GUIProperty<68, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
+                &This::m_wordSpacing>
         wordSpacing;
     GUIProperty<69, AlignToViewport, AffectLayout, &This::m_alignToViewport> alignToViewport;
     GUIProperty<70, BoxSizingPerAxis, AffectLayout, &This::m_boxSizing> boxSizing;
@@ -1432,17 +1455,18 @@ public:
     /* 85 unused */
     /* 86 unused */
     GUIProperty<87, EventDelegate*, None, &This::m_delegate> delegate;
-    GUIProperty<88, std::string, None, &This::m_hint> hint;
+    GUIProperty<88, std::string, AffectPaint, &This::m_hint> hint;
     GUIProperty<89, std::shared_ptr<const Stylesheet>, AffectStyle, &This::m_stylesheet> stylesheet;
-    GUIProperty<90, Painter, None, &This::m_painter> painter;
+    GUIProperty<90, Painter, AffectPaint, &This::m_painter> painter;
     GUIProperty<91, bool, None, &This::m_isHintExclusive> isHintExclusive;
 
-    GUIPropertyCompound<92, CornersL, Resolvable | Inheritable, &This::m_borderRadius,
+    GUIPropertyCompound<92, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius,
                         decltype(borderRadiusTopLeft), decltype(borderRadiusTopRight),
                         decltype(borderRadiusBottomLeft), decltype(borderRadiusBottomRight)>
         borderRadius;
-    GUIPropertyCompound<93, EdgesL, AffectLayout, &This::m_borderWidth, decltype(borderWidthLeft),
-                        decltype(borderWidthTop), decltype(borderWidthRight), decltype(borderWidthBottom)>
+    GUIPropertyCompound<93, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth,
+                        decltype(borderWidthLeft), decltype(borderWidthTop), decltype(borderWidthRight),
+                        decltype(borderWidthBottom)>
         borderWidth;
     GUIPropertyCompound<94, SizeL, AffectLayout, &This::m_dimensions, decltype(width), decltype(height)>
         dimensions;
@@ -1459,12 +1483,13 @@ public:
     GUIPropertyCompound<99, EdgesL, AffectLayout, &This::m_padding, decltype(paddingLeft),
                         decltype(paddingTop), decltype(paddingRight), decltype(paddingBottom)>
         padding;
-    GUIProperty<100, OpenTypeFeatureFlags, AffectLayout | AffectFont | Inheritable, &This::m_fontFeatures>
+    GUIProperty<100, OpenTypeFeatureFlags, AffectLayout | AffectFont | Inheritable | AffectPaint,
+                &This::m_fontFeatures>
         fontFeatures;
 
-    GUIProperty<101, ColorF, Transition | Inheritable, &This::m_scrollBarColor> scrollBarColor;
-    GUIProperty<102, Length, Resolvable, &This::m_scrollBarThickness> scrollBarThickness;
-    GUIProperty<103, Length, Resolvable, &This::m_scrollBarRadius> scrollBarRadius;
+    GUIProperty<101, ColorF, Transition | Inheritable | AffectPaint, &This::m_scrollBarColor> scrollBarColor;
+    GUIProperty<102, Length, Resolvable | AffectPaint, &This::m_scrollBarThickness> scrollBarThickness;
+    GUIProperty<103, Length, Resolvable | AffectPaint, &This::m_scrollBarRadius> scrollBarRadius;
 
     Property<This, Trigger<>, &This::m_onClick> onClick;
     Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;

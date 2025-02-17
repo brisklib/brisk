@@ -33,12 +33,11 @@ void RenderEncoderWebGPU::setVisualSettings(const VisualSettings& visualSettings
     m_visualSettings = visualSettings;
 }
 
-void RenderEncoderWebGPU::begin(RC<RenderTarget> target, ColorF clear,
-                                std::span<const Rectangle> rectangles) {
-    m_queue        = m_device->m_device.GetQueue();
-    Size frameSize = target->size();
+void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> clear) {
+    m_queue     = m_device->m_device.GetQueue();
+    m_frameSize = target->size();
     if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(target)) {
-        win->resizeBackbuffer(frameSize);
+        win->resizeBackbuffer(m_frameSize);
     }
     {
         std::lock_guard lk(m_device->m_resources.mutex);
@@ -47,7 +46,8 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, ColorF clear,
     }
 
     [[maybe_unused]] ConstantPerFrame constantPerFrame{
-        SIMD<float, 4>(frameSize.width, frameSize.height, 1.f / frameSize.width, 1.f / frameSize.height),
+        SIMD<float, 4>(m_frameSize.width, m_frameSize.height, 1.f / m_frameSize.width,
+                       1.f / m_frameSize.height),
         m_visualSettings.blueLightFilter,
         m_visualSettings.gamma,
         Internal::textRectPadding,
@@ -59,13 +59,16 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, ColorF clear,
 
     const BackBufferWebGPU& backBuf = dynamic_cast<BackBufferProviderWebGPU*>(target.get())->getBackBuffer();
 
-    m_colorAttachment               = wgpu::RenderPassColorAttachment{
-                      .view       = backBuf.colorView,
-                      .loadOp     = wgpu::LoadOp::Clear,
-                      .storeOp    = wgpu::StoreOp::Store,
-                      .clearValue = wgpu::Color{ clear.r, clear.g, clear.b, clear.a },
+    wgpu::RenderPassColorAttachment renderPassColorAttachment{
+        .view    = backBuf.colorView,
+        .loadOp  = clear ? wgpu::LoadOp::Clear : wgpu::LoadOp::Load,
+        .storeOp = wgpu::StoreOp::Store,
     };
-    m_renderFormat = backBuf.color.GetFormat();
+    clear                                = clear.value_or(ColorF{});
+    renderPassColorAttachment.clearValue = wgpu::Color{ clear->r, clear->g, clear->b, clear->a },
+
+    m_colorAttachment                    = renderPassColorAttachment;
+    m_renderFormat                       = backBuf.color.GetFormat();
 }
 
 void RenderEncoderWebGPU::end() {
@@ -97,6 +100,9 @@ void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span
     // OPTIMIZATION: separate groups for constants and texture
     wgpu::BindGroup bindGroup;
 
+    Rectangle frameRect       = Rectangle({}, m_frameSize);
+    Rectangle currentClipRect = noClipRect;
+
     for (size_t i = 0; i < commands.size(); ++i) {
         const RenderState& cmd = commands[i];
         const uint32_t offs[]  = {
@@ -106,6 +112,12 @@ void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span
         if (!bindGroup || cmd.imageBackend != savedTexture) {
             savedTexture = cmd.imageBackend;
             bindGroup    = createBindGroup(static_cast<ImageBackendWebGPU*>(cmd.imageBackend));
+        }
+
+        Rectangle clampedRect = cmd.shaderClip.intersection(frameRect);
+        if (clampedRect != currentClipRect) {
+            m_pass.SetScissorRect(clampedRect.x1, clampedRect.y1, clampedRect.width(), clampedRect.height());
+            currentClipRect = clampedRect;
         }
 
         m_pass.SetBindGroup(0, bindGroup, 1, offs);

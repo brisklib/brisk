@@ -105,13 +105,40 @@ void WidgetTree::attach(Widget* widget) {
 
 constexpr double refreshInterval = 0.1; // in seconds
 
-void WidgetTree::updateAndPaint(Canvas& canvas) {
-    if (!m_root)
-        return;
-    bindings->assign(frameStartTime, currentTime());
+static int frameNumber           = 0;
+
+void WidgetTree::groupsBeforeFrame() {
     for (WidgetGroup* g : m_groups) {
         g->beforeFrame();
     }
+}
+
+void WidgetTree::groupsBeforePaint() {
+    for (WidgetGroup* g : m_groups) {
+        g->beforePaint();
+    }
+}
+
+void WidgetTree::groupsAfterFrame() {
+    for (WidgetGroup* g : m_groups) {
+        g->afterFrame();
+    }
+}
+
+void WidgetTree::groupsBeforeLayout() {
+    for (WidgetGroup* g : m_groups) {
+        g->beforeLayout(m_root->isLayoutDirty());
+    }
+}
+
+Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, bool fullRepaint) {
+    if (!m_root)
+        return {};
+    m_fullRepaint = fullRepaint;
+
+    bindings->assign(frameStartTime, currentTime());
+
+    groupsBeforeFrame();
 
     if (frameStartTime >= m_refreshTime + refreshInterval) [[unlikely]] {
         for (WidgetGroup* g : m_groups) {
@@ -123,9 +150,7 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
     processAnimation();
     processRebuild();
 
-    for (WidgetGroup* g : m_groups) {
-        g->beforeLayout(m_root->isLayoutDirty());
-    }
+    groupsBeforeLayout();
 
     m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
     m_viewportRectangleChanged = false;
@@ -140,16 +165,28 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
     m_root->restyleIfRequested();
     m_disableTransitions = false;
 
-    for (WidgetGroup* g : m_groups) {
-        g->beforeLayout(m_root->isLayoutDirty());
-    }
+    groupsBeforeLayout();
 
     m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
     m_viewportRectangleChanged = false;
 
-    for (WidgetGroup* g : m_groups) {
-        g->beforePaint();
+    Rectangle paintRect        = this->paintRect();
+
+    if (paintRect.empty()) {
+        groupsAfterFrame();
+        return {};
     }
+
+    groupsBeforePaint();
+
+    ++frameNumber;
+    canvas.renderContext().setClipRect(paintRect);
+    if (backgroundColor.a != 0) {
+        canvas.raw().drawRectangle(m_viewportRectangle, 0.f, 0.f, fillColor = backgroundColor,
+                                   strokeWidth = 0.f);
+    }
+
+    m_painting = true;
 
     // Paint the widgets per-layer
     // Clear the layer and push the root widget's drawable
@@ -169,6 +206,25 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
         // the loop will process those new drawables in the subsequent iterations.
     } while (!m_layer.empty());
 
+    // if (Internal::debugDirtyRect) {
+    //     m_dirtyRects.push_back(m_dirtyRect.value_or(noClipRect));
+    //     if (m_dirtyRects.size() > 10)
+    //         m_dirtyRects.erase(m_dirtyRects.begin());
+    //     for (Rectangle r : m_dirtyRects) {
+    //         if (!r.empty())
+    //             canvas.raw().drawRectangle(r, 0.f, 0.f, fillColor = 0x00FF80'40_rgba, strokeWidth =
+    //             0.f);
+    //     }
+    // }
+
+    // if (m_dirtyRect)
+    // canvas.renderContext().setClipRect(noClipRect);
+    // canvas.raw().drawRectangle(paintRect(), 0.f, 0.f, fillColor = 0x00FF80'40_rgba, strokeWidth = 0.f);
+
+    m_dirtyRect = std::nullopt;
+
+    m_painting  = false;
+
     if (Internal::debugBoundaries) {
         std::optional<Rectangle> rect = inputQueue->getAtMouse<Rectangle>([](Widget* w) {
             return w->rect();
@@ -177,10 +233,12 @@ void WidgetTree::updateAndPaint(Canvas& canvas) {
             canvas.raw().drawRectangle(*rect, 0.f, 0.f, fillColor = 0x102040'40_rgba, strokeWidth = 0.f);
         }
     }
+    groupsAfterFrame();
+    return paintRect;
+}
 
-    for (WidgetGroup* g : m_groups) {
-        g->afterFrame();
-    }
+Rectangle WidgetTree::paintRect() const {
+    return m_fullRepaint ? m_viewportRectangle : m_dirtyRect.value_or(Rectangle{});
 }
 
 void WidgetTree::requestUpdateGeometry() {
@@ -208,5 +266,18 @@ void WidgetTree::setViewportRectangle(Rectangle rect) {
 
 Rectangle WidgetTree::viewportRectangle() const noexcept {
     return m_viewportRectangle;
+}
+
+bool WidgetTree::isDirty(Rectangle rect) const {
+    return rect.intersects(m_viewportRectangle) &&
+           (m_fullRepaint || (m_dirtyRect && rect.intersects(*m_dirtyRect)));
+}
+
+void WidgetTree::invalidateRect(Rectangle rect) {
+    BRISK_ASSERT(!m_painting);
+    if (rect.intersects(m_viewportRectangle)) {
+        m_dirtyRect =
+            m_viewportRectangle.intersection(!m_dirtyRect.has_value() ? rect : m_dirtyRect->union_(rect));
+    }
 }
 } // namespace Brisk

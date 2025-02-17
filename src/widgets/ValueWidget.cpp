@@ -45,7 +45,9 @@ void ValueWidget::onConstructed() {
     onChanged();
 }
 
-void ValueWidget::onChanged() {}
+void ValueWidget::onChanged() {
+    invalidate();
+}
 
 static double roundTo(double x, double r) {
     return std::round(x / r) * r;

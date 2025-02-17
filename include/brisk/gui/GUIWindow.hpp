@@ -38,7 +38,8 @@ class Component;
 
 class GUIWindow : public Window {
 public:
-    void paint(RenderContext& context) override;
+    void paint(RenderContext& context, bool fullRepaint) override;
+    void paintImmediate(RenderContext& context) override;
     void dpiChanged() override;
     void rebuild();
     const std::string& getId() const;
@@ -73,6 +74,7 @@ private:
     std::string m_id;
     bool m_frameSkipTestState = false;
     std::vector<uint32_t> m_unhandledEvents;
+    Rectangle m_savedPaintRect{};
 
     void updateWindowLimits();
 

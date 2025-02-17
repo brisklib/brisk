@@ -41,6 +41,7 @@ void Slider::updateSliderGeometry() {
                                                               normalizedValue, 0.5f)
                              : RectangleF(m_rect).alignedRect(thumbRadius * 3_dp, thumbRadius * 3_dp, 0.5f,
                                                               1.f - normalizedValue);
+    invalidate();
 }
 
 void sliderPainter(Canvas& canvas_, const Widget& widget_) {
@@ -50,8 +51,6 @@ void sliderPainter(Canvas& canvas_, const Widget& widget_) {
     }
     const Slider& widget = static_cast<const Slider&>(widget_);
     RawCanvas& canvas    = canvas_.raw();
-    const bool hover     = widget.isHovered();
-    const bool pressed   = widget.isPressed();
 
     ColorF backColor     = widget.backgroundColor.current();
 
@@ -64,11 +63,7 @@ void sliderPainter(Canvas& canvas_, const Widget& widget_) {
                          linearGradient = { thumbRect.center() - pt, thumbRect.center() + pt },
                          strokeWidth    = 0);
 
-    canvas.drawEllipse(thumbRect, 0.f,
-                       fillColor   = widget.borderColor.current().lighter(pressed ? -8
-                                                                          : hover ? +8
-                                                                                  : 0),
-                       strokeWidth = 0);
+    canvas.drawEllipse(thumbRect, 0.f, fillColor = widget.borderColor.current(), strokeWidth = 0);
 }
 
 void Slider::paint(Canvas& canvas_) const {

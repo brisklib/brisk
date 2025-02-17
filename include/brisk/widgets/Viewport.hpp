@@ -45,6 +45,7 @@ public:
     }
 
 protected:
+    void onAnimationFrame() override;
     void paint(Canvas& canvas) const override;
     void onEvent(Event& event) override;
     explicit Viewport(Construction construction, Renderer renderer, Controller controller,

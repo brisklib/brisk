@@ -40,6 +40,7 @@ void Text::onLayoutUpdated() {
 }
 
 void Text::onChanged() {
+    invalidate();
     Font font = this->font();
     if (!m_wordWrap && m_textAutoSize != TextAutoSize::None && !m_text.empty()) {
         font.fontSize = font.fontSize = calcFontSizeFor(font, m_text);

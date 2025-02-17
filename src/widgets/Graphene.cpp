@@ -317,9 +317,11 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ Slider::widgetType },
             {
-                borderColor     = styleVar<selectedColor>,
-                backgroundColor = transparency(styleVar<selectedColor>, 0.65f),
-                minDimensions   = { 15_apx, 15_apx },
+                borderColor           = styleVar<selectedColor>,
+                borderColor | Hover   = adjustColor(styleVar<selectedColor>, +8),
+                borderColor | Pressed = adjustColor(styleVar<selectedColor>, -8),
+                backgroundColor       = transparency(styleVar<selectedColor>, 0.65f),
+                minDimensions         = { 15_apx, 15_apx },
             },
         },
         Style{

@@ -36,10 +36,14 @@ public:
     }
 
 protected:
-    bool m_twoState = false;
+    bool m_twoState                        = false;
+    bool m_value                           = false;
+    float m_interpolatedValue              = 0.f;
+    float m_interpolatedValueTransitionOn  = 0.15f;
+    float m_interpolatedValueTransitionOff = 0.15f;
+    Internal::Transition2<float> m_interpolatedValueTransition{ m_interpolatedValue };
+    void onAnimationFrame() override;
     void onClicked() override;
-    bool m_value = false;
-    void setValue(bool newValue);
     void updateState();
     virtual void onChanged();
     Ptr cloneThis() const override;
@@ -49,6 +53,11 @@ public:
     BRISK_PROPERTIES_BEGIN
     Property<ToggleButton, bool, &ToggleButton::m_twoState> twoState;
     Property<ToggleButton, bool, &ToggleButton::m_value, nullptr, nullptr, &ToggleButton::onChanged> value;
+    Property<ToggleButton, const float, &ToggleButton::m_interpolatedValue> interpolatedValue;
+    Property<ToggleButton, float, &ToggleButton::m_interpolatedValueTransitionOn>
+        interpolatedValueTransitionOn;
+    Property<ToggleButton, float, &ToggleButton::m_interpolatedValueTransitionOff>
+        interpolatedValueTransitionOff;
     BRISK_PROPERTIES_END
 };
 

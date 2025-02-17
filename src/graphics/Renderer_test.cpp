@@ -62,7 +62,7 @@ TEST_CASE("Renderer Info", "[gpu]") {
 #endif
 }
 
-template <typename Fn>
+template <bool passRenderTarget = false, typename Fn>
 static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn,
                        ColorF backColor = Palette::transparent, float maximumDiff = 0.05f) {
 
@@ -88,7 +88,9 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
         visualTest(
             referenceImageName, size,
             [&](RC<Image> image) {
-                {
+                if constexpr (passRenderTarget) {
+                    fn(encoder, target);
+                } else {
                     RenderPipeline pipeline(encoder, target, backColor);
                     fn(static_cast<RenderContext&>(pipeline));
                 }
@@ -531,6 +533,42 @@ TEST_CASE("Emoji") {
                             Font{ "Lato,Noto Emoji", 72.f }, Palette::black);
         },
         ColorF(0.5f));
+}
+
+TEST_CASE("SetClipRect") {
+    renderTest("SetClipRect0", Size{ 256, 256 }, [&](RenderContext& context) {
+        RawCanvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::cyan, Palette::magenta },
+                             linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f);
+    });
+    renderTest("SetClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
+        RawCanvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        context.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::cyan, Palette::magenta },
+                             linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f);
+    });
+}
+
+TEST_CASE("Multi-pass render") {
+    renderTest<true>(
+        "MultiPass1", Size{ 256, 256 }, [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
+            {
+                RenderPipeline pipeline(encoder, target, Palette::transparent);
+                RawCanvas canvas(pipeline);
+                Rectangle rect({}, Size{ 256, 256 });
+                canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::red, Palette::transparent },
+                                     linearGradient = { { 0, 0 }, { 0, 256 } }, strokeWidth = 0.f);
+            }
+            {
+                RenderPipeline pipeline(encoder, target, std::nullopt);
+                RawCanvas canvas(pipeline);
+                Rectangle rect({}, Size{ 256, 256 });
+                canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::blue, Palette::transparent },
+                                     linearGradient = { { 0, 0 }, { 256, 0 } }, strokeWidth = 0.f);
+            }
+        });
 }
 
 } // namespace Brisk

@@ -325,7 +325,9 @@ public:
     float reserved7 = 0;
 
 public:
-    SIMD<float, 4> padding[16]{ 0, 0, 0, 0, 0, 0, 0 };
+    Rectangle shaderClip = noClipRect;
+
+    SIMD<float, 4> padding[15]{ 0, 0, 0, 0, 0, 0, 0 };
 
     bool compare(const RenderState& second) const;
     void premultiply();
@@ -375,6 +377,8 @@ static_assert(sizeof(RenderState) % 256 == 0, "sizeof(RenderState) % 256 == 0");
 class RenderContext {
 public:
     virtual void command(RenderStateEx&& cmd, std::span<const float> data = {}) = 0;
+
+    virtual void setClipRect(Rectangle clipRect)                                = 0;
 
     template <typename T>
     void command(RenderStateEx&& cmd, std::span<T> value) {
