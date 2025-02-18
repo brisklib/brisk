@@ -864,7 +864,7 @@ public:
     Rectangle clientRect() const noexcept;
 
     Rectangle subtreeRect() const noexcept;
-    
+
     Rectangle clipRect() const noexcept;
 
     Edges invalidationEdges() const noexcept;
@@ -1034,11 +1034,9 @@ protected:
     Trigger<> m_onClick;
     Trigger<> m_onDoubleClick;
 
-    mutable bool m_hintShown = false;
     function<void(Widget*)> m_reapplyStyle;
 
     // strings
-    std::string m_description;
     std::string m_type;
     std::string m_id;
     std::string m_hint;
@@ -1049,10 +1047,13 @@ protected:
     Rectangle m_clientRect{ 0, 0, 0, 0 };
     Rectangle m_subtreeRect{ 0, 0, 0, 0 };
     Rectangle m_clipRect{ 0, 0, 0, 0 };
+    Rectangle m_hintRect{ 0, 0, 0, 0 };
     EdgesF m_computedMargin{ 0, 0, 0, 0 };
     EdgesF m_computedPadding{ 0, 0, 0, 0 };
     EdgesF m_computedBorderWidth{ 0, 0, 0, 0 };
     Size m_contentSize{ 0, 0 };
+    Point m_hintTextOffset{ 0, 0 };
+    PreparedText m_hintPrepared;
 
     EdgesL m_margin{ 0, 0, 0, 0 };
     EdgesL m_padding{ 0, 0, 0, 0 };
@@ -1144,6 +1145,8 @@ protected:
     bool m_focusCapture                 = false;
     bool m_stateTriggersRestyle         = false;
     bool m_isHintExclusive              = false;
+    bool m_isHintVisible                = false;
+    bool m_autoHint                     = true;
 
     std::array<bool, 2> m_scrollBarDrag{ false, false };
     int m_savedScrollOffset = 0;
@@ -1214,6 +1217,7 @@ protected:
     ///////////////////////////////////////////////////////////////////////////////
 
     void doPaint(Canvas& canvas) const;
+    void doRefresh();
     virtual void paint(Canvas& canvas) const;
     virtual void postPaint(Canvas& canvas) const;
     virtual void paintScrollBar(Canvas& canvas, Orientation orientation,
@@ -1223,6 +1227,7 @@ protected:
     void paintFocusFrame(Canvas& canvas) const;
     void paintChildren(Canvas& canvas) const;
     void paintScrollBars(Canvas& canvas) const;
+    Rectangle fullPaintRect() const;
 
     ///////////////////////////////////////////////////////////////////////////////
 
@@ -1309,7 +1314,9 @@ private:
     explicit Widget(Construction construction);
     void childAdded(Widget* w);
     int32_t applyLayoutRecursively(RectangleF rectangle);
-    void recomputeClipRect(bool recursive);
+    void computeClipRect();
+    void prepareHint();
+    void computeHintRect();
 
     friend class Internal::LayoutEngine;
     ClonablePtr<Internal::LayoutEngine> m_layoutEngine;
@@ -1452,14 +1459,14 @@ public:
     GUIProperty<78, bool, None, &This::m_autoMouseCapture> autoMouseCapture;
     GUIProperty<79, bool, None, &This::m_mouseAnywhere> mouseAnywhere;
     GUIProperty<80, bool, None, &This::m_focusCapture> focusCapture;
-    GUIProperty<81, std::string, None, &This::m_description> description;
+    GUIProperty<81, bool, AffectPaint, &This::m_isHintVisible> isHintVisible;
     GUIProperty<82, bool, None, &This::m_tabStop> tabStop;
     GUIProperty<83, bool, None, &This::m_tabGroup> tabGroup;
     GUIProperty<84, bool, None, &This::m_autofocus> autofocus;
-    /* 85 unused */
+    GUIProperty<85, bool, None, &This::m_autoHint> autoHint;
     /* 86 unused */
     GUIProperty<87, EventDelegate*, None, &This::m_delegate> delegate;
-    GUIProperty<88, std::string, AffectPaint, &This::m_hint> hint;
+    GUIProperty<88, std::string, AffectLayout | AffectPaint | AffectHint, &This::m_hint> hint;
     GUIProperty<89, std::shared_ptr<const Stylesheet>, AffectStyle, &This::m_stylesheet> stylesheet;
     GUIProperty<90, Painter, AffectPaint, &This::m_painter> painter;
     GUIProperty<91, bool, None, &This::m_isHintExclusive> isHintExclusive;
@@ -1588,10 +1595,11 @@ extern const Argument<Tag::PropArg<decltype(Widget::mousePassThrough)>> mousePas
 extern const Argument<Tag::PropArg<decltype(Widget::autoMouseCapture)>> autoMouseCapture;
 extern const Argument<Tag::PropArg<decltype(Widget::mouseAnywhere)>> mouseAnywhere;
 extern const Argument<Tag::PropArg<decltype(Widget::focusCapture)>> focusCapture;
-extern const Argument<Tag::PropArg<decltype(Widget::description)>> description;
+extern const Argument<Tag::PropArg<decltype(Widget::isHintVisible)>> isHintVisible;
 extern const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop;
 extern const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup;
 extern const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus;
+extern const Argument<Tag::PropArg<decltype(Widget::autoHint)>> autoHint;
 extern const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate;
 extern const Argument<Tag::PropArg<decltype(Widget::hint)>> hint;
 extern const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder;

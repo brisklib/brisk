@@ -272,10 +272,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
         rcnew HLayout{
             rcnew Text{
                 "Hej, verden",
+                hint            = "Hello, world",
                 isHintExclusive = true,
-                hint            = Value{ &m_hintActive }.transform([](bool v) -> std::string {
-                    return v ? "Hello, world" : "";
-                }),
+                autoHint        = false,
+                isHintVisible   = Value{ &m_hintActive },
             },
             gapColumn = 10_apx,
             rcnew CheckBox{ value = Value{ &m_hintActive }, rcnew Text{ "Show hint" } },
@@ -289,6 +289,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 rcnew Text{ "Shadow" },
                 shadowSize  = Value{ &m_shadowSize },
                 shadowColor = 0x1050E8_rgb,
+                clip        = WidgetClip::None,
             },
             rcnew Slider{ value = Value{ &m_shadowSize }, minimum = 0.f, maximum = 40.f, width = 300_apx },
         },

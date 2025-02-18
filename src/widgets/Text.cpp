@@ -182,7 +182,7 @@ RC<Widget> BackStrikedText::cloneThis() const {
 
 void HoveredDescription::paint(Canvas& canvas) const {
     Widget::paintBackground(canvas, m_rect);
-    std::string newText = inputQueue->getDescriptionAtMouse().value_or(m_text);
+    std::string newText = inputQueue->getHintAtMouse().value_or(m_text);
     if (newText != m_cachedText) {
         m_cachedText = std::move(newText);
         m_lastChange = frameStartTime;

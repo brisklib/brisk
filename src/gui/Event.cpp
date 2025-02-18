@@ -307,9 +307,9 @@ void InputQueue::processKeyEvent(Event e) {
     }
 }
 
-std::optional<std::string> InputQueue::getDescriptionAtMouse() const {
+std::optional<std::string> InputQueue::getHintAtMouse() const {
     return getAtMouse<std::string>([](Widget* w) BRISK_INLINE_LAMBDA {
-        return !w->m_description.empty() ? std::optional<std::string>(w->m_description) : std::nullopt;
+        return !w->m_hint.empty() ? std::optional<std::string>(w->m_hint) : std::nullopt;
     });
 }
 

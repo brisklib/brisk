@@ -595,10 +595,10 @@ struct InputQueue {
     }
 
     /**
-     * Gets the description of the widget under the mouse, if any.
-     * @return The description of the widget, if applicable.
+     * Gets the hint of the widget under the mouse, if any.
+     * @return The hint of the widget, if applicable.
      */
-    std::optional<std::string> getDescriptionAtMouse() const;
+    std::optional<std::string> getHintAtMouse() const;
 
     /**
      * Gets the cursor type for the widget under the mouse, if any.
