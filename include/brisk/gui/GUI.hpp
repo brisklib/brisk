@@ -864,6 +864,8 @@ public:
     Rectangle clientRect() const noexcept;
 
     Rectangle subtreeRect() const noexcept;
+    
+    Rectangle clipRect() const noexcept;
 
     Edges invalidationEdges() const noexcept;
 
@@ -991,7 +993,7 @@ public:
 
     void invalidate();
 
-    Drawable drawable(RectangleF scissors) const;
+    Drawable drawable() const;
 
     std::optional<PointF> mousePos() const;
 
@@ -1046,6 +1048,7 @@ protected:
     Rectangle m_rect{ 0, 0, 0, 0 };
     Rectangle m_clientRect{ 0, 0, 0, 0 };
     Rectangle m_subtreeRect{ 0, 0, 0, 0 };
+    Rectangle m_clipRect{ 0, 0, 0, 0 };
     EdgesF m_computedMargin{ 0, 0, 0, 0 };
     EdgesF m_computedPadding{ 0, 0, 0, 0 };
     EdgesF m_computedBorderWidth{ 0, 0, 0, 0 };
@@ -1120,7 +1123,7 @@ protected:
     LayoutOrder m_layoutOrder           = LayoutOrder::Direct;
     Placement m_placement               = Placement::Normal;
     ZOrder m_zorder                     = ZOrder::Normal;
-    WidgetClip m_clip                   = WidgetClip::All;
+    WidgetClip m_clip                   = WidgetClip::Normal;
     Overflow m_overflow                 = Overflow::None;
     AlignContent m_alignContent         = AlignContent::FlexStart;
     Wrap m_flexWrap                     = Wrap::NoWrap;
@@ -1306,6 +1309,7 @@ private:
     explicit Widget(Construction construction);
     void childAdded(Widget* w);
     int32_t applyLayoutRecursively(RectangleF rectangle);
+    void recomputeClipRect(bool recursive);
 
     friend class Internal::LayoutEngine;
     ClonablePtr<Internal::LayoutEngine> m_layoutEngine;
@@ -1372,7 +1376,7 @@ public:
     GUIProperty<17, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 1> borderWidthTop;
     GUIProperty<18, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 2> borderWidthRight;
     GUIProperty<19, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 3> borderWidthBottom;
-    GUIProperty<20, WidgetClip, None | AffectPaint, &This::m_clip> clip;
+    GUIProperty<20, WidgetClip, AffectLayout | AffectPaint, &This::m_clip> clip;
     GUIProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
     GUIProperty<22, float, None, &This::m_colorTransition> colorTransition;
     GUIProperty<23, ColorF, Transition | Inheritable | AffectPaint, &This::m_color> color;

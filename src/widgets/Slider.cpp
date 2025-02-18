@@ -22,26 +22,17 @@
 
 namespace Brisk {
 
-void Slider::onLayoutUpdated() {
-    Base::onLayoutUpdated();
-    updateSliderGeometry();
+Rectangle Slider::trackRect() const noexcept {
+    return orientation() == Orientation::Horizontal
+               ? m_rect.alignedRect(m_rect.width(), idp(trackThickness), 0.5f, 0.5f)
+               : m_rect.alignedRect(idp(trackThickness), m_rect.height(), 0.5f, 0.5f);
 }
 
-void Slider::onChanged() {
-    Base::onChanged();
-    updateSliderGeometry();
-}
-
-void Slider::updateSliderGeometry() {
-    const bool horizontal = orientation() == Orientation::Horizontal;
-    m_trackRect           = horizontal ? m_rect.alignedRect(m_rect.width(), idp(trackThickness), 0.5f, 0.5f)
-                                       : m_rect.alignedRect(idp(trackThickness), m_rect.height(), 0.5f, 0.5f);
-
-    m_thumbRect = horizontal ? RectangleF(m_rect).alignedRect(thumbRadius * 3_dp, thumbRadius * 3_dp,
-                                                              normalizedValue, 0.5f)
-                             : RectangleF(m_rect).alignedRect(thumbRadius * 3_dp, thumbRadius * 3_dp, 0.5f,
-                                                              1.f - normalizedValue);
-    invalidate();
+RectangleF Slider::thumbRect() const noexcept {
+    return orientation() == Orientation::Horizontal
+               ? RectangleF(m_rect).alignedRect(thumbRadius * 3_dp, thumbRadius * 3_dp, normalizedValue, 0.5f)
+               : RectangleF(m_rect).alignedRect(thumbRadius * 3_dp, thumbRadius * 3_dp, 0.5f,
+                                                1.f - normalizedValue);
 }
 
 void sliderPainter(Canvas& canvas_, const Widget& widget_) {
@@ -80,21 +71,24 @@ void Slider::onEvent(Event& event) {
     } else {
         const bool horizontal = orientation() == Orientation::Horizontal;
 
-        m_distance =
-            horizontal ? m_trackRect.width() - thumbRadius * 2_dp : m_trackRect.height() - thumbRadius * 2_dp;
+        auto trackRect        = this->trackRect();
+        auto thumbRect        = this->thumbRect();
 
-        switch (const auto [flag, offset, mods] = event.dragged(m_thumbRect, m_drag); flag) {
+        m_distance =
+            horizontal ? trackRect.width() - thumbRadius * 2_dp : trackRect.height() - thumbRadius * 2_dp;
+
+        switch (const auto [flag, offset, mods] = event.dragged(thumbRect, m_drag); flag) {
         case DragEvent::Started:
-            savedValue = normalizedValue;
+            m_savedValue = normalizedValue;
             startModifying();
             event.stopPropagation();
             break;
         case DragEvent::Dragging:
             float newValue;
             if (horizontal)
-                newValue = (offset.x) / m_distance + savedValue;
+                newValue = (offset.x) / m_distance + m_savedValue;
             else
-                newValue = (-offset.y) / m_distance + savedValue;
+                newValue = (-offset.y) / m_distance + m_savedValue;
             normalizedValue = std::clamp(newValue, 0.f, 1.f);
             startModifying();
             if (m_hintFormatter)
@@ -117,14 +111,6 @@ Slider::Slider(Construction construction, ArgumentsView<Slider> args) : Base(con
 }
 
 RC<Widget> Slider::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
-
-RectangleF Slider::thumbRect() const noexcept {
-    return m_thumbRect;
-}
-
-Rectangle Slider::trackRect() const noexcept {
-    return m_trackRect;
-}
 
 Orientation Slider::orientation() const noexcept {
     return m_rect.width() > m_rect.height() ? Orientation::Horizontal : Orientation::Vertical;

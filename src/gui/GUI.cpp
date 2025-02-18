@@ -719,6 +719,34 @@ Size Widget::viewportSize() const noexcept {
     return m_tree ? m_tree->viewportRectangle().size() : Size(0, 0);
 }
 
+static Rectangle computeClipRect(WidgetClip clip, Rectangle selfRect, Rectangle parentRect,
+                                 Rectangle parentClipRect) {
+    Rectangle result = noClipRect;
+    if (clip && WidgetClip::SelfRect) {
+        result = result.intersection(selfRect);
+    }
+    if (clip && WidgetClip::ParentRect) {
+        result = result.intersection(parentRect);
+    }
+    if (clip && WidgetClip::ParentClipRect) {
+        result = result.intersection(parentClipRect);
+    }
+    return result;
+}
+
+void Widget::recomputeClipRect(bool recursive) {
+    Widget* parent = m_parent;
+    if (m_zorder == ZOrder::TopMost)
+        parent = nullptr;
+    m_clipRect = computeClipRect(m_clip, m_rect, parent ? parent->m_rect : noClipRect,
+                                 parent ? parent->m_clipRect : noClipRect);
+    if (!recursive)
+        return;
+    for (const Ptr& w : *this) {
+        w->recomputeClipRect(true);
+    }
+}
+
 /// Returns the number of changes
 int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     int32_t counter                = 0;
@@ -794,6 +822,9 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     Point bottomRight{ 0, 0 };
     RectangleF rectOffset = rect.withOffset(m_childrenOffset);
     m_subtreeRect         = m_rect;
+
+    recomputeClipRect(false);
+
     for (const Ptr& w : *this) {
         if (w->m_ignoreChildrenOffset) {
             counter += w->applyLayoutRecursively(rect);
@@ -834,6 +865,7 @@ void Widget::reposition(Point relativeOffset) {
     m_rect        = m_rect.withOffset(relativeOffset);
     m_clientRect  = m_clientRect.withOffset(relativeOffset);
     m_subtreeRect = m_subtreeRect.withOffset(relativeOffset);
+    recomputeClipRect(false);
     for (const Ptr& w : *this) {
         w->reposition(relativeOffset);
     }
@@ -1030,10 +1062,8 @@ void Widget::paint(Canvas& canvas) const {
     paintBackground(canvas, m_rect);
 }
 
-Drawable Widget::drawable(RectangleF scissors) const {
-    return [w = shared_from_this(), scissors](Canvas& canvas) {
-        auto&& state    = canvas.raw().save();
-        state->scissors = scissors;
+Drawable Widget::drawable() const {
+    return [w = shared_from_this()](Canvas& canvas) {
         w->doPaint(canvas);
     };
 }
@@ -1088,35 +1118,18 @@ void Widget::doPaint(Canvas& canvas) const {
     if (m_tree && !m_tree->isDirty(m_subtreeRect)) {
         return;
     }
-    bool isDirty = !m_tree || m_tree->isDirty(m_rect);
 
-    if (m_clip != WidgetClip::Inherit && m_clip != WidgetClip::Children) {
-        auto&& state = canvas.raw().save();
-        if (m_clip == WidgetClip::All) {
-            state.intersectScissors(m_rect);
-        } else if (m_clip == WidgetClip::None) {
-            state->scissors = noScissors;
-        }
-        if (isDirty) {
-            if (m_painter)
-                m_painter.paint(canvas, *this);
-            else
-                paint(canvas);
-        }
-        paintChildren(canvas);
-        postPaint(canvas);
-        paintScrollBars(canvas);
-    } else {
-        if (isDirty) {
-            if (m_painter)
-                m_painter.paint(canvas, *this);
-            else
-                paint(canvas);
-        }
-        paintChildren(canvas);
-        postPaint(canvas);
-        paintScrollBars(canvas);
+    auto&& state    = canvas.raw().save();
+    state->scissors = m_clipRect;
+    if (!m_tree || m_tree->isDirty(m_rect)) {
+        if (m_painter)
+            m_painter.paint(canvas, *this);
+        else
+            paint(canvas);
     }
+    paintChildren(canvas);
+    postPaint(canvas);
+    paintScrollBars(canvas);
 
     if (Internal::debugRelayoutAndRegenerate) {
         showDebugBorder(canvas.raw(), m_rect, frameStartTime - m_regenerateTime, Palette::Standard::amber);
@@ -1162,44 +1175,48 @@ void Widget::paintHint(Canvas& canvas_) const {
             requestHint();
         }
     }
+    Font font          = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
+    auto preparedText  = fonts->prepare(font, hint);
+    Size textSize      = preparedText.bounds().size();
+    Point p            = m_rect.at(0.5f, 1.f);
+    Rectangle hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
+
+    if (m_tree && !m_tree->viewportRectangle().empty()) {
+        Rectangle boundingRect = m_tree->viewportRectangle();
+
+        if (hintRect.y2 > boundingRect.y2) {
+            p        = m_rect.at(0.5f, 0.f);
+            hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 1.f });
+        }
+
+        if (hintRect.x1 < boundingRect.x1)
+            hintRect.applyOffset(boundingRect.x1 - hintRect.x1, 0);
+        if (hintRect.x2 > boundingRect.x2)
+            hintRect.applyOffset(boundingRect.x2 - hintRect.x2, 0);
+        hintRect.x2 = std::min(hintRect.x2, boundingRect.x2);
+
+        if (hintRect.y2 > boundingRect.y2)
+            hintRect.applyOffset(0, boundingRect.y2 - hintRect.y2);
+        if (hintRect.y1 < boundingRect.y1)
+            hintRect.applyOffset(0, boundingRect.y1 - hintRect.y1);
+        hintRect.y2 = std::min(hintRect.y2, boundingRect.y2);
+    }
+    preparedText.alignLines(0.5f, 0.5f);
 
     if ((m_isHintExclusive || isHintCurrent()) && !hint.empty() && m_tree) {
-        m_tree->requestLayer([hint, this](Canvas& canvas_) {
-            RawCanvas& canvas  = canvas_.raw();
+        m_tree->requestLayer([this, preparedText, hintRect](Canvas& canvas_) {
+            RawCanvas& canvas = canvas_.raw();
 
-            Font font          = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
-            Size textSize      = fonts->bounds(font, utf8ToUtf32(hint)).size();
-            Point p            = m_rect.at(0.5f, 1.f);
-            Rectangle hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
-            if (m_tree && !m_tree->viewportRectangle().empty()) {
-                Rectangle boundingRect = m_tree->viewportRectangle();
+            SizeF textSize    = preparedText.bounds().size();
 
-                if (hintRect.y2 > boundingRect.y2) {
-                    p        = m_rect.at(0.5f, 0.f);
-                    hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 1.f });
-                }
-
-                if (hintRect.x1 < boundingRect.x1)
-                    hintRect.applyOffset(boundingRect.x1 - hintRect.x1, 0);
-                if (hintRect.x2 > boundingRect.x2)
-                    hintRect.applyOffset(boundingRect.x2 - hintRect.x2, 0);
-                hintRect.x2 = std::min(hintRect.x2, boundingRect.x2);
-
-                if (hintRect.y2 > boundingRect.y2)
-                    hintRect.applyOffset(0, boundingRect.y2 - hintRect.y2);
-                if (hintRect.y1 < boundingRect.y1)
-                    hintRect.applyOffset(0, boundingRect.y1 - hintRect.y1);
-                hintRect.y2 = std::min(hintRect.y2, boundingRect.y2);
-            }
-
-            ColorF color = 0xFFE9AD_rgb;
+            ColorF color      = 0xFFE9AD_rgb;
             ColorF shadowColor =
                 getStyleVar<ColorF>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
                     ? 0x000000'55_rgba
                     : 0x000000'AA_rgba;
             canvas.drawShadow(hintRect, 4._dp, 0.f, contourSize = 10._dp, contourColor = shadowColor);
             canvas.drawRectangle(hintRect, -5._dp, 0.f, fillColor = color, strokeWidth = 0.f);
-            canvas.drawText(hintRect, 0.5f, 0.5f, hint, font, Palette::black);
+            canvas.drawText(hintRect.center(), preparedText, fillColor = Palette::black);
         });
     }
 }
@@ -1226,22 +1243,13 @@ void Widget::paintChildren(Canvas& canvas) const {
     if (m_widgets.empty())
         return;
 
-    auto&& state           = canvas.raw().save();
-
-    RectangleF newScissors = state.savedState.scissors;
-    if (m_clip == WidgetClip::Children) {
-        newScissors = RectangleF(m_rect).intersection(newScissors);
-    }
-    state->scissors = newScissors;
     for (const RC<Widget>& w : *this) {
-        if (!w->m_visible || w->m_hidden)
+        if (!w->m_visible || w->m_hidden || w->m_clipRect.empty())
             continue;
         if (m_tree && w->m_zorder != ZOrder::Normal) {
-            m_tree->requestLayer(w->drawable(noScissors));
+            m_tree->requestLayer(w->drawable());
         } else {
-            if (!RectangleF(w->m_rect).intersection(newScissors).empty()) {
-                w->doPaint(canvas);
-            }
+            w->doPaint(canvas);
         }
     }
 }
@@ -2247,8 +2255,13 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
     ColorF m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.get());
 
     if (widget.shadowSize.resolved() > 0) {
-        auto&& state    = canvas.save();
-        state->scissors = noScissors;
+        auto&& state = canvas.save();
+        if (widget.parent()) {
+            if (widget.zorder == ZOrder::Normal)
+                state->scissors = widget.parent()->clipRect();
+            else
+                state->scissors = noScissors;
+        }
         canvas.drawShadow(rect, std::max(std::abs(widget.borderRadius.resolved().max()), dp(8.f)), 0.f,
                           contourSize  = widget.shadowSize.resolved(),
                           contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()),
@@ -2951,6 +2964,10 @@ void Widget::invalidate() {
 
 Rectangle Widget::subtreeRect() const noexcept {
     return m_subtreeRect;
+}
+
+Rectangle Widget::clipRect() const noexcept {
+    return m_clipRect;
 }
 
 Edges Widget::invalidationEdges() const noexcept {

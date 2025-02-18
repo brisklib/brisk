@@ -50,11 +50,19 @@ enum class Placement : uint8_t {
 };
 
 enum class WidgetClip : uint8_t {
-    Children, // Only children
-    All,      // Children and self
-    Inherit,  // Inherit parent clipping
-    None,     // Disable clipping
+    SelfRect       = 1, // Clip to this widget rectangle
+    ParentRect     = 2, // Clip to the parent rectangle
+    ParentClipRect = 4, // Inherit parent clip rect
+    None           = 0, // Don't clip
+
+    Normal         = ParentClipRect | SelfRect,
+
+    Inherit        = ParentClipRect, // Deprecated alias
+    All            = Normal,         // Deprecated alias
 };
+
+template <>
+constexpr inline bool isBitFlags<WidgetClip> = true;
 
 enum class ZOrder : uint8_t {
     Normal,

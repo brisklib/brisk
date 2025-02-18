@@ -292,7 +292,6 @@ RC<const Stylesheet> stylesheet() {
                 minWidth         = 360_apx,
                 alignItems       = AlignItems::FlexStart,
                 gapRow           = 15_apx,
-                clip             = WidgetClip::All,
                 mouseInteraction = MouseInteraction::Disable,
                 justifyContent   = Justify::FlexEnd,
             },

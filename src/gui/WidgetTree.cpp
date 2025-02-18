@@ -191,7 +191,7 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, boo
     // Paint the widgets per-layer
     // Clear the layer and push the root widget's drawable
     m_layer.clear();
-    m_layer.push_back(m_root->drawable(m_viewportRectangle));
+    m_layer.push_back(m_root->drawable());
     do {
         std::vector<Drawable> layer;
         // Swap the contents of the current layer with the m_layer vector.

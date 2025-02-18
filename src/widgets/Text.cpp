@@ -113,11 +113,6 @@ SizeF Text::measure(AvailableSize size) const {
 void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
     if (m_opacity > 0.f) {
-        auto&& state = canvas.raw().save();
-        if (m_clip == WidgetClip::None)
-            state->scissors = noScissors;
-        else
-            state.intersectScissors(m_rect);
         RectangleF inner = m_clientRect;
         ColorF color     = m_color.current.multiplyAlpha(m_opacity);
         auto prepared    = m_cache2->prepared;
@@ -130,6 +125,7 @@ void Text::paint(Canvas& canvas) const {
                            .rotate90(static_cast<int>(m_rotation))
                            .translate(inner.center().x, inner.center().y);
             PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
+            auto&& state  = canvas.raw().save();
             state->scissors = m.invert()->transform(state->scissors);
             canvas.raw().drawText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) +
                                       offset,
