@@ -229,6 +229,10 @@ public:
      */
     int numBatches() const final;
 
+    RC<RenderEncoder> encoder() const {
+        return m_encoder;
+    }
+
 private:
     RC<RenderEncoder> m_encoder;         ///< The current rendering encoder.
     RenderLimits m_limits;               ///< Resource limits for the pipeline.
@@ -303,6 +307,56 @@ enum class DepthStencilType {
     None,  ///< No depth-stencil buffer.
     D24S8, ///< 24-bit depth, 8-bit stencil buffer.
     D32,   ///< 32-bit depth buffer.
+};
+
+/**
+ * @enum BlendMode
+ * @brief Defines different blending modes for combining colors.
+ *
+ * Blending modes determine how two colors (source and destination) are combined
+ * when rendering graphics. The result depends on the mathematical formula associated
+ * with each mode.
+ *
+ * The formulas use the following notation:
+ * - Csrc : Source color
+ * - Cdst : Destination color
+ * - Cout : Output color
+ *
+ * @note Color values are typically in the range [0,1].
+ */
+enum class BlendMode {
+    /**
+     * @brief Normal blending mode.
+     *
+     * The source color simply replaces the destination color.
+     * Cout = Csrc
+     */
+    Normal,
+
+    /**
+     * @brief Multiply blending mode.
+     *
+     * The source and destination colors are multiplied together,
+     * resulting in a darker image.
+     * Cout = Csrc × Cdst
+     */
+    Multiply,
+
+    /**
+     * @brief Screen blending mode.
+     *
+     * The inverse of the multiplied inverse colors, resulting in a lighter image.
+     * Cout = 1 - (1 - Csrc) × (1 - Cdst)
+     */
+    Screen,
+
+    /**
+     * @brief Difference blending mode.
+     *
+     * The absolute difference between the source and destination colors.
+     * Cout = |Csrc - Cdst|
+     */
+    Difference,
 };
 
 struct OSWindowHandle;
