@@ -223,6 +223,7 @@ TEST_CASE("FontManager") {
                          FontFlags::Default);
 
     Font font;
+    font.fontSize = 10;
     font.fontFamily     = "lato,noto";
     font.lineHeight     = 1.f;
     FontMetrics metrics = fontManager->metrics(font);

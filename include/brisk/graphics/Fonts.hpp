@@ -857,7 +857,7 @@ struct Font {
     const static std::string DefaultPlusIconsEmoji;
 
     std::string fontFamily        = DefaultPlusIconsEmoji; ///< The font family.
-    float fontSize                = 10.f;                  ///< The size of the font in points.
+    float fontSize                = 12.f;                  ///< The size of the font in points.
     FontStyle style               = FontStyle::Normal;     ///< The style of the font (e.g., normal, italic).
     FontWeight weight             = FontWeight::Regular;   ///< The weight of the font (e.g., regular, bold).
     TextDecoration textDecoration = TextDecoration::None;  ///< Text decoration (e.g., underline, none).
