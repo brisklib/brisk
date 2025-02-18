@@ -810,9 +810,9 @@ struct PreparedText {
      * @param alignment_y Vertical alignment factor (0: top, 0.5: center, 1: bottom).
      * @return PointF Offsets for alignment.
      */
-    PointF alignLines(float alignment_x, float alignment_y = 0.f);
+    [[nodiscard]] PointF alignLines(float alignment_x, float alignment_y = 0.f);
 
-    PointF alignLines(PointF alignment);
+    [[nodiscard]] PointF alignLines(PointF alignment);
 
     /**
      * @brief Converts a character index to its corresponding grapheme index.
