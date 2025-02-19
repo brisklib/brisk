@@ -24,6 +24,7 @@ namespace Brisk {
 
 Text::Text(Construction construction, std::string text, ArgumentsView<Text> args)
     : Widget{ construction, nullptr }, m_text(std::move(text)) {
+    registerBuiltinFonts();
     args.apply(this);
     onChanged();
     enableCustomMeasure();
