@@ -39,7 +39,7 @@ Rules darkColors() {
         menuColor      = 0xFDFDFD_rgb,
         animationSpeed = 1.f,
         boxBorderColor = 0x000000'A0_rgba,
-        shadeColor     = 0x000000'58_rgba,
+        shadeColor     = 0x000000'88_rgba,
         deepColor      = 0x000000_rgb,
     };
 }
@@ -55,7 +55,7 @@ Rules lightColors() {
         menuColor      = 0xFDFDFD_rgb,
         animationSpeed = 1.f,
         boxBorderColor = 0x000000'1F_rgba,
-        shadeColor     = 0x000000'34_rgba,
+        shadeColor     = 0x000000'54_rgba,
         deepColor      = 0x8D8D8D_rgb,
     };
 }

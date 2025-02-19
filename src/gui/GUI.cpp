@@ -2307,9 +2307,7 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
                           std::max(std::abs(widget.borderRadius.resolved().max()),
                                    std::min(widget.shadowSize.resolved(), dp(8.f))),
                           0.f, contourSize = widget.shadowSize.resolved(),
-                          contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()),
-                          contourFlags = 2 // outer shadow only
-        );
+                          contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
     }
 
     if (m_backgroundColor != ColorF(0, 0, 0, 0) || !widget.computedBorderWidth().empty()) {
@@ -3014,7 +3012,7 @@ Rectangle Widget::clipRect() const noexcept {
 }
 
 static Rectangle adjustForShadowSize(RectangleF rect, float shadowSize) {
-    RectangleF result = rect.withMargin(std::ceil(shadowSize * 2.f));
+    RectangleF result = rect.withMargin(std::ceil(shadowSize + 1.f));
     return result.roundOutward();
 }
 

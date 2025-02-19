@@ -571,4 +571,34 @@ TEST_CASE("Multi-pass render") {
         });
 }
 
+TEST_CASE("Shadow") {
+    renderTest(
+        "shadows", Size{ 1536, 256 },
+        [&](RenderContext& context) {
+            RawCanvas canvas(context);
+            for (int i = 0; i < 6; ++i) {
+                RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
+                context.setClipRect(box);
+                float shadowSize = 2 << i;
+                canvas.drawShadow(box.withPadding(64.f), 0.f, 0.f, contourSize = shadowSize,
+                                  contourColor = Palette::black);
+            }
+        },
+        Palette::white);
+
+    renderTest(
+        "shadows-rounded", Size{ 1536, 256 },
+        [&](RenderContext& context) {
+            RawCanvas canvas(context);
+            for (int i = 0; i < 6; ++i) {
+                RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
+                context.setClipRect(box);
+                float boxRadius = 2 << i;
+                canvas.drawShadow(box.withPadding(64.f), boxRadius, 0.f, contourSize = 16.f,
+                                  contourColor = Palette::black);
+            }
+        },
+        Palette::white);
+}
+
 } // namespace Brisk

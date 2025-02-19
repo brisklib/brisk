@@ -208,11 +208,6 @@ struct TextureChannel {
     static void apply(const Type& value, RenderStateEx& state);
 };
 
-struct ContourFlags {
-    using Type = int;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
 struct CoordMatrix {
     using Type = Matrix;
     static void apply(const Type& value, RenderStateEx& state);
@@ -245,7 +240,6 @@ constexpr inline Argument<Tag::Patterns> patterns{};
 constexpr inline Argument<Tag::BlurRadius> blurRadius{};
 constexpr inline Argument<Tag::BlurDirections> blurDirections{};
 constexpr inline Argument<Tag::TextureChannel> textureChannel{};
-constexpr inline Argument<Tag::ContourFlags> contourFlags{};
 constexpr inline Argument<Tag::CoordMatrix> coordMatrix{};
 constexpr inline Argument<Tag::SamplerMode> samplerMode{};
 
@@ -313,7 +307,7 @@ public:
 
     float strokeWidth     = 1.f; ///< Stroke or shadow width. Defaults to 1. Set to 0 to disable
     GradientType gradient = GradientType::Linear;
-    int shadowFlags       = 3; // 1 - inner, 2 - outer
+    int reserved4         = 0;
     float reserved5       = 0;
 
     union {

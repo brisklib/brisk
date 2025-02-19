@@ -1066,7 +1066,7 @@ protected:
     Internal::Transition<ColorF> m_backgroundColor{ Palette::transparent };
     Internal::Transition<ColorF> m_borderColor{ Palette::transparent };
     Internal::Transition<ColorF> m_color{ Palette::white };
-    Internal::Transition<ColorF> m_shadowColor{ Palette::black.multiplyAlpha(0.4f) };
+    Internal::Transition<ColorF> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
     Internal::Transition<ColorF> m_scrollBarColor{ Palette::grey };
     float m_backgroundColorTransition      = 0;
     float m_borderColorTransition          = 0;
