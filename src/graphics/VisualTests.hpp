@@ -24,6 +24,7 @@
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {
 
@@ -98,6 +99,46 @@ template <typename Fn>
 static void visualTestMono(const std::string& referenceImageName, Size size, Fn&& fn,
                            float maximumDiff = 0.02f) {
     visualTest<PixelFormat::Greyscale>(referenceImageName, size, std::forward<Fn>(fn), maximumDiff);
+}
+
+template <bool passRenderTarget = false, typename Fn>
+static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn,
+                       ColorF backColor = Palette::transparent, float maximumDiff = 0.05f) {
+
+    for (RendererBackend bk : rendererBackends) {
+        INFO(fmt::to_string(bk));
+        expected<RC<RenderDevice>, RenderDeviceError> device_ =
+            createRenderDevice(bk, RendererDeviceSelection::Default);
+        REQUIRE(device_.has_value());
+        RC<RenderDevice> device = *device_;
+        auto info               = device->info();
+        REQUIRE(!info.api.empty());
+        REQUIRE(!info.vendor.empty());
+        REQUIRE(!info.device.empty());
+
+        RC<ImageRenderTarget> target = device->createImageTarget(size, PixelType::U8Gamma);
+
+        REQUIRE(!!target.get());
+        REQUIRE(target->size() == size);
+
+        RC<RenderEncoder> encoder = device->createEncoder();
+        encoder->setVisualSettings(VisualSettings{ .blueLightFilter = 0, .gamma = 1, .subPixelText = false });
+
+        visualTest(
+            referenceImageName, size,
+            [&](RC<Image> image) {
+                if constexpr (passRenderTarget) {
+                    fn(encoder, target);
+                } else {
+                    RenderPipeline pipeline(encoder, target, backColor);
+                    fn(static_cast<RenderContext&>(pipeline));
+                }
+                encoder->wait();
+                RC<Image> out = target->image();
+                image->copyFrom(out);
+            },
+            maximumDiff);
+    }
 }
 
 } // namespace Brisk
