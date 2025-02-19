@@ -104,6 +104,6 @@ private:
     std::optional<Rectangle> m_dirtyRect;
     std::vector<Rectangle> m_dirtyRects;
     bool m_fullRepaint = true;
-    bool m_painting = false;
+    bool m_painting    = false;
 };
 } // namespace Brisk

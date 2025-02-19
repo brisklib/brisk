@@ -61,7 +61,7 @@ void ValueWidget::setValue(double value) {
     m_value = value;
 
     if (m_modifying && m_hintFormatter) {
-        hint          = m_hintFormatter(m_value);
+        hint = m_hintFormatter(m_value);
     }
 }
 

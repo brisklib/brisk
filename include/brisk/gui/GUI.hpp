@@ -866,9 +866,9 @@ public:
     Rectangle subtreeRect() const noexcept;
 
     Rectangle clipRect() const noexcept;
-    
+
     Rectangle hintRect() const noexcept;
-    
+
     Rectangle adjustedRect() const noexcept;
 
     Rectangle adjustedHintRect() const noexcept;
