@@ -361,6 +361,14 @@ struct ImplicitContext<T*, Tag, thread> : private Internal::ImplicitContextStora
         return get();
     }
 
+    bool operator!() const noexcept {
+        return !static_cast<bool>(*this);
+    }
+
+    explicit operator bool() const noexcept {
+        return Internal::ImplicitContextStorage<T*, Tag, thread>::instance != nullptr;
+    }
+
 private:
     friend struct ImplicitContextScope<T*, Tag>;
 };
