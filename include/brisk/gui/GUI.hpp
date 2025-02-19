@@ -1206,7 +1206,7 @@ protected:
     virtual void onAnimationFrame();
 
     virtual void revealChild(Widget*);
-    void updateGeometry();
+    void updateGeometry(HitTestMap::State& state);
     bool setChildrenOffset(Point newOffset);
     SizeF measuredDimensions() const noexcept;
     [[nodiscard]] virtual SizeF measure(AvailableSize size) const;

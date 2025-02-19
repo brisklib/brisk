@@ -1319,7 +1319,7 @@ void Widget::processEvent(Event& event) {
     } else {
         this->onEvent(event);
     }
-    if (m_autoMouseCapture) {
+    if (m_autoMouseCapture && inputQueue) {
         if (pressed) {
             inputQueue->captureMouse(shared_from_this());
         } else if (released) {
@@ -1426,51 +1426,57 @@ void Widget::bubbleEvent(Event& event, WidgetState enable, WidgetState disable, 
         includePopup);
 }
 
-void Widget::updateGeometry() {
-    auto self            = shared_from_this();
-    Rectangle mouse_rect = m_rect;
+void Widget::updateGeometry(HitTestMap::State& state) {
+    auto self                     = shared_from_this();
+    Rectangle mouse_rect          = m_rect;
 
-    auto saved_state     = inputQueue->hitTest.state;
+    HitTestMap::State saved_state = state;
     if (m_zorder != ZOrder::Normal)
-        inputQueue->hitTest.state.zindex--;
+        state.zindex--;
     if (m_zorder == ZOrder::Normal)
         mouse_rect = m_rect.intersection(saved_state.scissors);
-    inputQueue->hitTest.state.scissors = mouse_rect;
-    inputQueue->hitTest.state.visible  = inputQueue->hitTest.state.visible && m_visible && !m_hidden;
+    state.scissors = mouse_rect;
+    state.visible  = state.visible && m_visible && !m_hidden;
     if (m_mouseInteraction == MouseInteraction::Enable)
-        inputQueue->hitTest.state.mouseTransparent = false;
+        state.mouseTransparent = false;
     else if (m_mouseInteraction == MouseInteraction::Disable)
-        inputQueue->hitTest.state.mouseTransparent = true;
+        state.mouseTransparent = true;
 
-    processVisibility(inputQueue->hitTest.state.visible);
+    processVisibility(state.visible);
 
-    if (m_focusCapture && inputQueue->hitTest.state.visible) {
-        inputQueue->enterFocusCapture();
+    if (inputQueue) {
+        if (m_focusCapture && state.visible) {
+            inputQueue->enterFocusCapture();
+        }
+        if (m_tabStop && state.visible) {
+            if (!state.inTabGroup)
+                ++inputQueue->hitTest.tabGroupId;
+            m_tabGroupId = inputQueue->hitTest.tabGroupId;
+            if (!state.inTabGroup)
+                ++inputQueue->hitTest.tabGroupId;
+            inputQueue->addTabStop(self);
+        }
+        state.inTabGroup = m_tabGroup;
+        if (state.visible && !state.mouseTransparent)
+            inputQueue->hitTest.add(self, mouse_rect, m_mouseAnywhere, state.zindex);
     }
-    if (m_tabStop && inputQueue->hitTest.state.visible) {
-        if (!inputQueue->hitTest.state.inTabGroup)
-            ++inputQueue->hitTest.tabGroupId;
-        m_tabGroupId = inputQueue->hitTest.tabGroupId;
-        if (!inputQueue->hitTest.state.inTabGroup)
-            ++inputQueue->hitTest.tabGroupId;
-        inputQueue->addTabStop(self);
-    }
-    inputQueue->hitTest.state.inTabGroup = m_tabGroup;
-    inputQueue->hitTest.add(self, mouse_rect, m_mouseAnywhere);
+
     for (const Ptr& w : *this) {
-        w->updateGeometry();
+        w->updateGeometry(state);
     }
     onLayoutUpdated();
-
-    if (m_focusCapture && inputQueue->hitTest.state.visible) {
-        inputQueue->leaveFocusCapture();
-    }
     m_relayoutTime = frameStartTime;
 
-    if (m_autofocus && m_isVisible) {
-        inputQueue->setAutoFocus(self);
+    if (inputQueue) {
+        if (m_focusCapture && state.visible) {
+            inputQueue->leaveFocusCapture();
+        }
+
+        if (m_autofocus && m_isVisible) {
+            inputQueue->setAutoFocus(self);
+        }
     }
-    inputQueue->hitTest.state = std::move(saved_state);
+    state = std::move(saved_state);
 }
 
 bool Widget::hasScrollBar(Orientation orientation) const noexcept {
@@ -1967,23 +1973,26 @@ std::optional<PointF> Widget::mousePos() const {
 }
 
 bool Widget::isHintCurrent() const {
-    return inputQueue->activeHint.lock() == shared_from_this();
+    return inputQueue && inputQueue->activeHint.lock() == shared_from_this();
 }
 
 void Widget::requestHint() const {
-    inputQueue->activeHint = shared_from_this();
+    if (inputQueue)
+        inputQueue->activeHint = shared_from_this();
 }
 
 bool Widget::hasFocus() const {
-    return inputQueue->focused.lock() == shared_from_this();
+    return inputQueue && inputQueue->focused.lock() == shared_from_this();
 }
 
 void Widget::blur() {
-    inputQueue->resetFocus();
+    if (inputQueue)
+        inputQueue->resetFocus();
 }
 
 void Widget::focus(bool byKeyboard) {
-    inputQueue->setFocus(shared_from_this(), byKeyboard);
+    if (inputQueue)
+        inputQueue->setFocus(shared_from_this(), byKeyboard);
 }
 
 bool Widget::isVisible() const noexcept {

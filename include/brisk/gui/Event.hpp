@@ -392,7 +392,7 @@ struct Event : public EventVariant {
  * @brief Struct for managing hit test information for widgets.
  */
 struct HitTestMap {
-    void add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere);
+    void add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, int zindex);
 
     struct HTEntry {
         std::weak_ptr<Widget> widget; ///< The widget involved in the hit test.
@@ -421,13 +421,13 @@ struct HitTestMap {
      */
     void clear();
 
-    struct {
+    struct State {
         int zindex            = 0;
         bool visible          = true;
         bool inTabGroup       = false;
         bool mouseTransparent = false;
         Rectangle scissors    = Event::anywhere;
-    } state;
+    };
 
     int tabGroupId = 0;
 };

@@ -156,11 +156,14 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, boo
     m_viewportRectangleChanged = false;
 
     if (m_updateGeometryRequested) {
-        inputQueue->reset();
-        m_root->updateGeometry();
+        if (inputQueue)
+            inputQueue->reset();
+        HitTestMap::State state;
+        m_root->updateGeometry(state);
         m_updateGeometryRequested = false;
     }
-    inputQueue->processEvents();
+    if (inputQueue)
+        inputQueue->processEvents();
 
     m_root->restyleIfRequested();
     m_disableTransitions = false;
@@ -210,7 +213,7 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, boo
 
     m_painting  = false;
 
-    if (Internal::debugBoundaries) {
+    if (Internal::debugBoundaries && inputQueue.get()) {
         std::optional<Rectangle> rect = inputQueue->getAtMouse<Rectangle>([](Widget* w) {
             return w->rect();
         });

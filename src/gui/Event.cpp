@@ -101,18 +101,17 @@ template std::optional<EventTargeted> Event::as<EventTargeted>() const;
 
 void HitTestMap::clear() {
     list.clear();
-    state      = {};
     tabGroupId = 0;
 }
 
-void HitTestMap::add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere) {
-    if (rect.empty() || !state.visible || state.mouseTransparent)
+void HitTestMap::add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, int zindex) {
+    if (rect.empty())
         return;
-    auto it = std::lower_bound(list.begin(), list.end(), state.zindex,
+    auto it = std::lower_bound(list.begin(), list.end(), zindex,
                                [](const HTEntry& e, int zindex) BRISK_INLINE_LAMBDA {
                                    return e.zindex < zindex;
                                });
-    list.insert(it, HTEntry{ w, state.zindex, rect, anywhere });
+    list.insert(it, HTEntry{ w, zindex, rect, anywhere });
 }
 
 std::shared_ptr<Widget> HitTestMap::get(float x, float y, bool respect_anywhere) const {
