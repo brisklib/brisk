@@ -59,6 +59,10 @@ void ValueWidget::setValue(double value) {
         value = roundTo(value - m_minimum, m_step) + m_minimum;
     }
     m_value = value;
+
+    if (m_modifying && m_hintFormatter) {
+        hint          = m_hintFormatter(m_value);
+    }
 }
 
 void ValueWidget::onChangedParams() {
@@ -98,15 +102,18 @@ void ValueWidget::startModifying() {
     if (m_modifying)
         return;
     m_modifying = true;
-    if (m_hintFormatter)
-        m_hint = m_hintFormatter(m_value);
+    if (m_hintFormatter) {
+        hint          = m_hintFormatter(m_value);
+        isHintVisible = true;
+    }
 }
 
 void ValueWidget::stopModifying() {
     if (!m_modifying)
         return;
-    m_modifying = false;
-    m_hint      = {};
+    m_modifying   = false;
+    hint          = std::string{};
+    isHintVisible = false;
 }
 
 } // namespace Brisk
