@@ -206,21 +206,6 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, boo
         // the loop will process those new drawables in the subsequent iterations.
     } while (!m_layer.empty());
 
-    // if (Internal::debugDirtyRect) {
-    //     m_dirtyRects.push_back(m_dirtyRect.value_or(noClipRect));
-    //     if (m_dirtyRects.size() > 10)
-    //         m_dirtyRects.erase(m_dirtyRects.begin());
-    //     for (Rectangle r : m_dirtyRects) {
-    //         if (!r.empty())
-    //             canvas.raw().drawRectangle(r, 0.f, 0.f, fillColor = 0x00FF80'40_rgba, strokeWidth =
-    //             0.f);
-    //     }
-    // }
-
-    // if (m_dirtyRect)
-    // canvas.renderContext().setClipRect(noClipRect);
-    // canvas.raw().drawRectangle(paintRect(), 0.f, 0.f, fillColor = 0x00FF80'40_rgba, strokeWidth = 0.f);
-
     m_dirtyRect = std::nullopt;
 
     m_painting  = false;
