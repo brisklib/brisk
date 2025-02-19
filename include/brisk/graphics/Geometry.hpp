@@ -2237,6 +2237,30 @@ struct RectangleOf {
     }
 
     /**
+     * @brief Expands the rectangle by rounding its boundaries outward.
+     *
+     * This function enlarges the rectangle by applying the floor operation to the
+     * minimum corner and the ceil operation to the maximum corner.
+     *
+     * @return A new RectangleOf<int32_t> with expanded boundaries.
+     */
+    constexpr RectangleOf<int32_t> roundOutward() const noexcept {
+        return RectangleOf(blend<0, 0, 1, 1>(Brisk::floor(v), Brisk::ceil(v)));
+    }
+
+    /**
+     * @brief Shrinks the rectangle by rounding its boundaries inward.
+     *
+     * This function reduces the rectangle by applying the ceil operation to the
+     * minimum corner and the floor operation to the maximum corner.
+     *
+     * @return A new RectangleOf<int32_t> with reduced boundaries.
+     */
+    constexpr RectangleOf<int32_t> roundInward() const noexcept {
+        return RectangleOf(blend<1, 1, 0, 0>(Brisk::floor(v), Brisk::ceil(v)));
+    }
+
+    /**
      * @brief Ceils the rectangle's coordinates.
      *
      * @return A new RectangleOf with ceiled coordinates.

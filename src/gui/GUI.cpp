@@ -1172,8 +1172,8 @@ void Widget::doPaint(Canvas& canvas) const {
 
     auto&& state    = canvas.raw().save();
     state->scissors = m_clipRect;
-    bool needsPaint = !m_tree || m_tree->isDirty(m_rect.withMargin(invalidationEdges())) ||
-                      (!m_hintRect.empty() && m_tree->isDirty(m_hintRect.withMargin(dp(hintShadowSize) * 2)));
+    bool needsPaint = !m_tree || m_tree->isDirty(adjustedRect()) ||
+                      (!m_hintRect.empty() && m_tree->isDirty(adjustedHintRect()));
     if (needsPaint) {
         if (m_painter)
             m_painter.paint(canvas, *this);
@@ -1201,6 +1201,8 @@ void Widget::doPaint(Canvas& canvas) const {
     }
 }
 
+constexpr Range<float> focusFrameWidth = { 1.8f, 3.0f };
+
 static float remap(float x, float inmin, float inmax, float outmin, float outmax) {
     return (x - inmin) / (inmax - inmin) * (outmax - outmin) + outmin;
 }
@@ -1210,7 +1212,7 @@ void Widget::paintFocusFrame(Canvas& canvas_) const {
         float t = std::sin(static_cast<float>(frameStartTime * 2.5f));
         if (!m_tree)
             return;
-        float val = dp(remap(t, -1.0f, +1.0f, 1.8f, 3.0f));
+        float val = dp(remap(t, -1.0f, +1.0f, focusFrameWidth.min, focusFrameWidth.max));
         m_tree->requestLayer([val, this](Canvas& canvas) {
             canvas.raw().drawShadow(RectangleF(m_rect).withMargin(val, val),
                                     std::copysign(std::min(RectangleF(m_rect).shortestSide() * 0.5f,
@@ -1662,6 +1664,12 @@ void Widget::stateChanged(WidgetState oldState, WidgetState newState) {
     if (hasScrollBar(Orientation::Horizontal) || hasScrollBar(Orientation::Vertical)) {
         invalidate();
     }
+    // If KeyFocused flag changed
+    if ((oldState ^ newState) && WidgetState::KeyFocused) {
+        if (newState && WidgetState::KeyFocused)
+            requestAnimationFrame();
+        invalidate();
+    }
     onStateChanged(oldState, newState);
 }
 
@@ -2091,13 +2099,16 @@ void Widget::requestRebuild() {
 void Widget::animationFrame() {
     m_animationRequested = false;
     if (m_color.isActive() || m_borderColor.isActive() || m_backgroundColor.isActive() ||
-        m_shadowColor.isActive())
+        m_shadowColor.isActive() || isKeyFocused())
         requestAnimationFrame();
 
     m_color.tick(m_colorTransition, m_colorEasing);
     m_borderColor.tick(m_borderColorTransition, m_borderColorEasing);
     m_backgroundColor.tick(m_backgroundColorTransition, m_backgroundColorEasing);
     m_shadowColor.tick(shadowColorTransition, m_shadowColorEasing);
+    if (isKeyFocused()) {
+        invalidate();
+    }
 
     onAnimationFrame();
 }
@@ -2989,8 +3000,8 @@ void Widget::invalidate() {
     if (!m_isVisible)
         return;
     if (m_tree) {
-        m_tree->invalidateRect(m_rect.withMargin(invalidationEdges()));
-        m_tree->invalidateRect(m_hintRect.withMargin(dp(hintShadowSize) * 2));
+        m_tree->invalidateRect(adjustedRect());
+        m_tree->invalidateRect(adjustedHintRect());
     }
 }
 
@@ -3002,12 +3013,31 @@ Rectangle Widget::clipRect() const noexcept {
     return m_clipRect;
 }
 
-Edges Widget::invalidationEdges() const noexcept {
-    int border = std::ceil(m_shadowSize.resolved * 2);
-    return Edges{ border };
+static Rectangle adjustForShadowSize(RectangleF rect, float shadowSize) {
+    RectangleF result = rect.withMargin(std::ceil(shadowSize * 2.f));
+    return result.roundOutward();
 }
 
 Rectangle Widget::fullPaintRect() const {
-    return m_rect.withMargin(invalidationEdges()).union_(m_hintRect.withMargin(dp(hintShadowSize) * 2));
+    Rectangle rect = adjustedRect();
+    if (m_isHintVisible)
+        rect = rect.union_(adjustedHintRect());
+    return rect;
+}
+
+Rectangle Widget::hintRect() const noexcept {
+    return m_hintRect;
+}
+
+Rectangle Widget::adjustedRect() const noexcept {
+    float shadowSize = m_shadowSize.resolved;
+    if (isKeyFocused()) {
+        shadowSize = std::max(shadowSize, dp(focusFrameWidth.max));
+    }
+    return adjustForShadowSize(m_rect, shadowSize);
+}
+
+Rectangle Widget::adjustedHintRect() const noexcept {
+    return adjustForShadowSize(m_hintRect, dp(hintShadowSize));
 }
 } // namespace Brisk
