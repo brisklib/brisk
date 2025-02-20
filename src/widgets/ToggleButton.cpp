@@ -50,9 +50,10 @@ void ToggleButton::onClicked() {
 void ToggleButton::onChanged() {
     invalidate();
     updateState();
-    m_interpolatedValueTransition.set(m_interpolatedValue, m_value ? 1 : 0,
-                                      m_value ? m_interpolatedValueTransitionOn
-                                              : m_interpolatedValueTransitionOff);
+    m_interpolatedValueTransition.set(
+        m_interpolatedValue, m_value ? 1 : 0,
+        transitionAllowed() ? (m_value ? m_interpolatedValueTransitionOn : m_interpolatedValueTransitionOff)
+                            : 0);
     bindings->notify(&m_interpolatedValue);
     if (m_interpolatedValueTransition.isActive())
         requestAnimationFrame();
