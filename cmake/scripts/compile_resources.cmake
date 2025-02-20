@@ -23,7 +23,7 @@ set(_RESOURCES_DATA_DIR
 
 file(MAKE_DIRECTORY ${_RESOURCES_DATA_DIR})
 
-set(_SCRIPTS_DIR ${CMAKE_CURRENT_LIST_DIR})
+set(BRISK_SCRIPTS_DIR ${CMAKE_CURRENT_LIST_DIR} CACHE INTERNAL "Brisk script dir")
 
 find_program(PACK_RESOURCE_TOOL NAMES pack_resource REQUIRED)
 
@@ -218,7 +218,7 @@ function (brisk_bundle_resources target)
                 add_custom_command(
                     OUTPUT ${output_file}
                     COMMAND ${CMAKE_COMMAND} "-DIN=${full_path}" "-DOUT=${output_file}" "-DCMD=${CMD}" -P
-                            ${_SCRIPTS_DIR}/pack_resource.cmake
+                            ${BRISK_SCRIPTS_DIR}/pack_resource.cmake
                     # COMMAND ${PACK_RESOURCE_TOOL} ${flags} ${output_file} ${full_path}
                     DEPENDS ${full_path}
                     VERBATIM)
