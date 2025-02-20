@@ -70,6 +70,7 @@ static void widgetTest(const std::string& name, RC<Widget> widget, std::initiali
         input.addEvent(e);
     }
     WidgetTree tree;
+    tree.disableTransitions();
     Brisk::pixelRatio() = pixelRatio;
     tree.setViewportRectangle({ Point{}, size });
     tree.setRoot(rcnew Container{
@@ -156,5 +157,8 @@ TEST_CASE("WidgetRendering") {
                    },
                },
                {}, { 360, 360 });
+
+    widgetTest("widget-knob", rcnew Knob{ value = 0.5f, minimum = 0, maximum = 1 });
+    widgetTest("widget-slider", rcnew Slider{ width = 160_apx, value = 50, minimum = 0, maximum = 100 });
 }
 } // namespace Brisk
