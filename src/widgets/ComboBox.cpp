@@ -38,7 +38,8 @@ void ComboBox::onChildAdded(Widget* w) {
                 item->focus();
             }
         };
-        itemlist->visible          = false;
+        if (!itemlist->visible.isOverridden())
+            itemlist->visible = false;
         itemlist->absolutePosition = { 0, 100_perc };
         itemlist->anchor           = { 0_px, 0_px };
         itemlist->tabGroup         = true;

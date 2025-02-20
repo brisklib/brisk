@@ -457,6 +457,8 @@ public:
         this->internalSetInherit();
     }
 
+    bool isOverridden() const noexcept;
+
     OptConstRef<ValueType> get() const noexcept;
 
     OptConstRef<ResolvedType<ValueType>> resolved() const noexcept
@@ -1272,6 +1274,8 @@ protected:
     void restyleIfRequested();
     void requestUpdates(PropFlags flags);
 
+    bool isOverridden(size_t index) const noexcept;
+
     template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
     OptConstRef<PropFieldType<T, subfield>> getter() const noexcept;
 
@@ -1512,6 +1516,12 @@ public:
     Property<This, bool, &This::m_state, &This::isDisabled, &This::setDisabled> disabled;
     BRISK_PROPERTIES_END
 };
+
+template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field_,
+          int subfield_>
+inline bool GUIProperty<index_, T, flags_, field_, subfield_>::isOverridden() const noexcept {
+    return this_pointer->getPropState(index_) && Internal::PropState::Overriden;
+}
 
 constinit inline size_t widgetSize = sizeof(Widget);
 
