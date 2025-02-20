@@ -415,7 +415,7 @@ TEST_CASE("TextureFill", "[gpu]") {
 TEST_CASE("Canvas::drawImage", "[gpu]") {
     renderTest("rotate-texture", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
-        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/graphics/testdata/16616460-rgba.png");
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
@@ -423,7 +423,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
     });
     renderTest("rotate-texture-rect", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
-        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/graphics/testdata/16616460-rgba.png");
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
@@ -432,7 +432,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
     });
     renderTest("rotate-rect", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
-        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/graphics/testdata/16616460-rgba.png");
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());

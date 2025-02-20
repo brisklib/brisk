@@ -29,7 +29,7 @@ static void testImageCodec(std::string sample, RC<Image> reference, ImageCodec c
     INFO("codec=" << fmt::to_string(codec));
     INFO("format=" << fmt::to_string(reference->format()));
 
-    fs::path fileName = fs::path(PROJECT_SOURCE_DIR) / "src" / "graphics" / "testdata" / (sample + "." + ext);
+    fs::path fileName = fs::path(PROJECT_SOURCE_DIR) / "src" / "testdata" / (sample + "." + ext);
     auto bytes        = readBytes(fileName);
     REQUIRE(!!bytes);
 
@@ -47,7 +47,7 @@ static void testImageCodec(std::string sample, RC<Image> reference, ImageCodec c
 
 template <PixelFormat Format>
 static void testImageSample(std::string sample, Size size) {
-    auto raw = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src" / "graphics" / "testdata" / (sample + ".raw"));
+    auto raw = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src" / "testdata" / (sample + ".raw"));
     REQUIRE(!!raw);
     Image reference(raw->data(), size, size.width * pixelComponents(Format),
                     imageFormat(PixelType::U8Gamma, Format));

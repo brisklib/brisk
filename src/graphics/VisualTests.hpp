@@ -80,7 +80,7 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
     fn(testImage);
 
     fs::path fileName =
-        fs::path(PROJECT_SOURCE_DIR) / "src" / "graphics" / "testdata" / (referenceImageName + ".png");
+        fs::path(PROJECT_SOURCE_DIR) / "src" / "testdata" / (referenceImageName + ".png");
     auto refImgBytes = readBytes(fileName);
     CHECK(refImgBytes.has_value());
     if (refImgBytes.has_value()) {
