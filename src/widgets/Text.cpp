@@ -162,8 +162,9 @@ Text::Cached2 Text::updateCache2(const CacheKey2& key) {
 }
 
 void BackStrikedText::paint(Canvas& canvas) const {
+    ColorF color = m_color.current.multiplyAlpha(m_opacity);
     canvas.raw().drawText(m_clientRect, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign), m_text,
-                          font(), m_color.current);
+                          font(), color);
     const int p         = 10_idp;
     const float x_align = toFloatAlign(m_textAlign);
     const int tw        = m_cache2->textSize.x;
@@ -171,9 +172,9 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Rectangle r1{ m_rect.x1 + p, c.y, c.x - tw / 2 - p, c.y + 1_idp };
     Rectangle r2{ c.x + tw / 2 + p, c.y, m_rect.x2 - p, c.y + 1_idp };
     if (r1.width() > 0)
-        canvas.raw().drawRectangle(r1, 0.f, 0.f, fillColor = m_color.current, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r1, 0.f, 0.f, fillColor = color, strokeWidth = 0.f);
     if (r2.width() > 0)
-        canvas.raw().drawRectangle(r2, 0.f, 0.f, fillColor = m_color.current, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r2, 0.f, 0.f, fillColor = color, strokeWidth = 0.f);
     Widget::paint(canvas);
 }
 
