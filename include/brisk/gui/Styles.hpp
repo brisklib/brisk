@@ -329,6 +329,10 @@ inline auto scaleValue(Fn&& fn, float scale) {
 inline float contrastRatio(ColorF foreground, ColorF background) {
     float L1 = foreground.lightness();
     float L2 = background.lightness();
+    if (!linearColor) {
+        L1 = Internal::srgbGammaToLinear(L1);
+        L2 = Internal::srgbGammaToLinear(L2);
+    }
     if (L1 < L2)
         std::swap(L1, L2);
     return (L1 + 0.05f) / (L2 + 0.05f);
