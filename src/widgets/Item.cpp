@@ -71,4 +71,8 @@ Item::Item(Construction construction, ArgumentsView<Item> args)
 void Item::onChanged() {}
 
 void Item::onClicked() {}
+
+void Item::onHidden() {
+    toggleState(WidgetState::Selected, false);
+}
 } // namespace Brisk
