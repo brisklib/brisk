@@ -40,8 +40,8 @@ public:
     std::shared_ptr<PopupBox> popupBox() const;
 
 protected:
+    void onEvent(Event& event) override;
     using Button::close;
-    void onClicked() override;
     void onRefresh() override;
     void onChildAdded(Widget* w) override;
     Ptr cloneThis() const override;

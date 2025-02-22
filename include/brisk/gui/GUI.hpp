@@ -177,14 +177,15 @@ inline ArgumentAttributes asAttributes(ArgumentsView<Widget> args) {
 }
 
 enum class WidgetState : uint8_t {
-    None       = 0,
-    Hover      = 1 << 0,
-    Pressed    = 1 << 1,
-    Focused    = 1 << 2,
-    KeyFocused = 1 << 3,
-    Selected   = 1 << 4,
-    Disabled   = 1 << 5,
-    Last       = Disabled,
+    None         = 0,
+    Hover        = 1 << 0,
+    Pressed      = 1 << 1,
+    Focused      = 1 << 2,
+    KeyFocused   = 1 << 3,
+    Selected     = 1 << 4,
+    Disabled     = 1 << 5,
+    ForcePressed = 1 << 6,
+    Last         = Disabled,
 };
 
 template <>

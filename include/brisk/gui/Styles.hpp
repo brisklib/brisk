@@ -102,7 +102,11 @@ struct StyleProperty {
         using Type = typename Tag::Type;
         name       = Tag::name();
         apply      = [](RuleOp op, const StyleValuePtr& rule, Widget* widget, WidgetState state) {
-            if ((widget->state() & state) == state) {
+            WidgetState widgetState = widget->state();
+            if (widgetState && WidgetState::ForcePressed) {
+                widgetState |= WidgetState::Pressed;
+            }
+            if ((widgetState & state) == state) {
                 if constexpr (PropertyTag<Tag>) {
                     if constexpr (MatchesExtraTypes<Inherit, Tag>) {
                         if (op == RuleOp::Inherit) {
