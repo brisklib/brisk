@@ -39,10 +39,16 @@ RC<Widget> Component::build() {
 }
 
 RC<GUIWindow> Component::makeWindow() {
-    RC<GUIWindow> window = rcnew GUIWindow{ shared_from_this() };
+    if (auto window = m_window.lock())
+        return window;
+    RC<GUIWindow> window = createWindow();
     m_window             = window;
     configureWindow(window);
     return window;
+}
+
+RC<GUIWindow> Component::createWindow() {
+    return rcnew GUIWindow{ shared_from_this() };
 }
 
 void Component::configureWindow(RC<GUIWindow> window) {

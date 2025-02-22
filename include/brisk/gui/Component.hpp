@@ -40,6 +40,8 @@ public:
     /**
      * @brief Gets the `GUIWindow` associated with this component.
      *
+     * @note May return nullptr if the component has no associated window or if it has not been created yet.
+     *
      * @return RC<GUIWindow> A reference-counted pointer to the GUIWindow.
      */
     RC<GUIWindow> window();
@@ -52,12 +54,11 @@ public:
     WidgetTree& tree();
 
     /**
-     * @brief This method is called on the main thread and is expected to return
-     * the window object that the component will use.
+     * @brief Gets the window associated with this component, creating it if it does not exist.
      *
      * @return RC<GUIWindow> A reference-counted pointer to the GUIWindow.
      */
-    virtual RC<GUIWindow> makeWindow();
+    RC<GUIWindow> makeWindow();
 
 protected:
     friend class GUIWindow;
@@ -71,6 +72,14 @@ protected:
      * @return RC<Widget> A reference-counted pointer to the root widget.
      */
     virtual RC<Widget> build();
+
+    /**
+     * @brief This method is called on the main thread and is expected to return
+     * the window object that the component will use.
+     *
+     * @return RC<GUIWindow> A reference-counted pointer to the GUIWindow.
+     */
+    virtual RC<GUIWindow> createWindow();
 
     /**
      * @brief Handles any unhandled events.
