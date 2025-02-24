@@ -21,6 +21,7 @@
 #pragma once
 #include "GUI.hpp"
 #include <bit>
+#include <brisk/core/internal/cityhash.hpp>
 
 namespace Brisk {
 
@@ -660,21 +661,19 @@ private:
     void stylizeInternal(Rules& rules, Widget* widget, bool isRoot) const;
 };
 
-template <typename T, int index>
+template <typename T, uint64_t Id>
 struct StyleVariableTag : Tag::StyleVarTag {
-    using Type              = T;
-    constexpr static int id = index;
+    using Type                   = T;
+    constexpr static uint64_t id = Id;
 
     static std::string_view name() noexcept {
         return "styleVar";
     }
 };
 
-constexpr inline Argument<StyleVariableTag<ColorF, 0>> windowColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, 1>> selectedColor{};
-constexpr inline Argument<StyleVariableTag<float, 2>> animationSpeed{};
-
-constexpr inline int styleVarCustomID = 3;
+constexpr inline Argument<StyleVariableTag<ColorF, "windowColor"_hash>> windowColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "selectedColor"_hash>> selectedColor{};
+constexpr inline Argument<StyleVariableTag<float, "animationSpeed"_hash>> animationSpeed{};
 
 } // namespace Brisk
 

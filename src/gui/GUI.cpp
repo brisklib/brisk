@@ -2209,11 +2209,11 @@ Widget* Widget::parent() const noexcept {
 }
 
 template <typename T>
-std::optional<T> Widget::getStyleVar(unsigned id) const {
+std::optional<T> Widget::getStyleVar(uint64_t id) const {
     const Widget* self = this;
     do {
-        if (id < self->m_styleVars.size()) {
-            if (const T* val = std::get_if<T>(&self->m_styleVars[id])) {
+        if (auto it = self->m_styleVars.find(id); it != self->m_styleVars.end()) {
+            if (const T* val = std::get_if<T>(&it->second)) {
                 return *val;
             }
         }
@@ -2223,19 +2223,19 @@ std::optional<T> Widget::getStyleVar(unsigned id) const {
 }
 
 template <typename T>
-T Widget::getStyleVar(unsigned id, T fallback) const {
+T Widget::getStyleVar(uint64_t id, T fallback) const {
     return getStyleVar<T>(id).value_or(fallback);
 }
 
-template std::optional<ColorF> Widget::getStyleVar<ColorF>(unsigned) const;
-template std::optional<EdgesL> Widget::getStyleVar<EdgesL>(unsigned) const;
-template std::optional<float> Widget::getStyleVar<float>(unsigned) const;
-template std::optional<int> Widget::getStyleVar<int>(unsigned) const;
+template std::optional<ColorF> Widget::getStyleVar<ColorF>(uint64_t) const;
+template std::optional<EdgesL> Widget::getStyleVar<EdgesL>(uint64_t) const;
+template std::optional<float> Widget::getStyleVar<float>(uint64_t) const;
+template std::optional<int> Widget::getStyleVar<int>(uint64_t) const;
 
-template ColorF Widget::getStyleVar<ColorF>(unsigned, ColorF) const;
-template EdgesL Widget::getStyleVar<EdgesL>(unsigned, EdgesL) const;
-template float Widget::getStyleVar<float>(unsigned, float) const;
-template int Widget::getStyleVar<int>(unsigned, int) const;
+template ColorF Widget::getStyleVar<ColorF>(uint64_t, ColorF) const;
+template EdgesL Widget::getStyleVar<EdgesL>(uint64_t, EdgesL) const;
+template float Widget::getStyleVar<float>(uint64_t, float) const;
+template int Widget::getStyleVar<int>(uint64_t, int) const;
 
 const std::string& Widget::type() const noexcept {
     return m_type;

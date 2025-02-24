@@ -897,16 +897,13 @@ public:
     }
 
     template <typename T>
-    std::optional<T> getStyleVar(unsigned id) const;
+    std::optional<T> getStyleVar(uint64_t id) const;
 
     template <typename T>
-    T getStyleVar(unsigned id, T fallback) const;
+    T getStyleVar(uint64_t id, T fallback) const;
 
     template <StyleVarTag Tag>
     void set(Tag, typename Tag::Type value) {
-        if (Tag::id >= m_styleVars.size()) {
-            m_styleVars.resize(Tag::id + 1, std::monostate{});
-        }
         if (assign(m_styleVars[Tag::id], value))
             requestRestyle();
     }
@@ -1172,7 +1169,7 @@ protected:
     Internal::PropState getPropState(size_t index) const noexcept;
     void setPropState(size_t index, Internal::PropState state) noexcept;
 
-    std::vector<StyleVarType> m_styleVars;
+    std::map<uint64_t, StyleVarType> m_styleVars;
 
     enum class RestyleState {
         None,
