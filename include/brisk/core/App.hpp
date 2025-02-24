@@ -22,6 +22,7 @@
 
 #include <string>
 #include <array>
+#include <cstdint>
 
 namespace Brisk {
 
