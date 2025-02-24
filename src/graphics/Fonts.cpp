@@ -49,13 +49,6 @@
 
 namespace Brisk {
 
-const std::string Font::Default               = "@default";
-const std::string Font::Monospace             = "@mono";
-const std::string Font::Icons                 = "@icons";
-const std::string Font::Emoji                 = "@emoji";
-const std::string Font::DefaultPlusIcons      = "@default,@icons";
-const std::string Font::DefaultPlusIconsEmoji = "@default,@icons,@emoji";
-
 void uncompressICUData();
 
 static std::string_view freeTypeError(FT_Error err) {

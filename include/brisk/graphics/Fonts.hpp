@@ -848,25 +848,24 @@ using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
  * @brief Represents font properties and settings for text rendering.
  */
 struct Font {
-    const static std::string Default;
-    const static std::string Monospace;
-    const static std::string Icons;
-    const static std::string Emoji;
+    constexpr static char Default[]               = "@default";
+    constexpr static char Monospace[]             = "@mono";
+    constexpr static char Icons[]                 = "@icons";
+    constexpr static char Emoji[]                 = "@emoji";
+    constexpr static char DefaultPlusIcons[]      = "@default,@icons";
+    constexpr static char DefaultPlusIconsEmoji[] = "@default,@icons,@emoji";
 
-    const static std::string DefaultPlusIcons;
-    const static std::string DefaultPlusIconsEmoji;
-
-    std::string fontFamily        = DefaultPlusIconsEmoji; ///< The font family.
-    float fontSize                = 12.f;                  ///< The size of the font in points.
-    FontStyle style               = FontStyle::Normal;     ///< The style of the font (e.g., normal, italic).
-    FontWeight weight             = FontWeight::Regular;   ///< The weight of the font (e.g., regular, bold).
-    TextDecoration textDecoration = TextDecoration::None;  ///< Text decoration (e.g., underline, none).
-    float lineHeight              = 1.2f;                  ///< Line height as a multiplier.
-    float tabWidth                = 8.f;                   ///< Tab width in space units.
-    float letterSpacing           = 0.f;                   ///< Additional space between letters.
-    float wordSpacing             = 0.f;                   ///< Additional space between words.
-    float verticalAlign           = 0.f;                   ///< Vertical alignment offset.
-    OpenTypeFeatureFlags features{};                       ///< OpenType features for advanced text styling.
+    std::string fontFamily                        = DefaultPlusIconsEmoji; ///< The font family.
+    float fontSize                                = 12.f; ///< The size of the font in points.
+    FontStyle style               = FontStyle::Normal;    ///< The style of the font (e.g., normal, italic).
+    FontWeight weight             = FontWeight::Regular;  ///< The weight of the font (e.g., regular, bold).
+    TextDecoration textDecoration = TextDecoration::None; ///< Text decoration (e.g., underline, none).
+    float lineHeight              = 1.2f;                 ///< Line height as a multiplier.
+    float tabWidth                = 8.f;                  ///< Tab width in space units.
+    float letterSpacing           = 0.f;                  ///< Additional space between letters.
+    float wordSpacing             = 0.f;                  ///< Additional space between words.
+    float verticalAlign           = 0.f;                  ///< Vertical alignment offset.
+    OpenTypeFeatureFlags features{};                      ///< OpenType features for advanced text styling.
 
     inline static const std::tuple reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
