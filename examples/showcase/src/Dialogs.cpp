@@ -66,7 +66,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                               RC<TextInputDialog> dialog = rcnew TextInputDialog{ "Enter name", "World" };
                               windowApplication->showModalWindow(dialog->makeWindow());
                               if (dialog->result)
-                                  Shell::showMessage("title", "Hello, " + dialog->value,
+                                  Shell::showMessage("title", "Hello, " + dialog->value.get(),
                                                      MessageBoxType::Info);
                               else
                                   Shell::showMessage("title", "Hello, nobody", MessageBoxType::Warning);
