@@ -49,13 +49,6 @@
 
 namespace Brisk {
 
-const std::string Font::Default               = "@default";
-const std::string Font::Monospace             = "@mono";
-const std::string Font::Icons                 = "@icons";
-const std::string Font::Emoji                 = "@emoji";
-const std::string Font::DefaultPlusIcons      = "@default,@icons";
-const std::string Font::DefaultPlusIconsEmoji = "@default,@icons,@emoji";
-
 void uncompressICUData();
 
 static std::string_view freeTypeError(FT_Error err) {
@@ -368,7 +361,7 @@ struct FontFace {
 };
 
 struct Caret {
-    LayoutOptions options;
+    TextOptions options;
     float tabStep = 1.f;
     float x       = 0;
     float y       = 0;
@@ -961,7 +954,7 @@ PreparedText FontManager::shapeRuns(const TextWithOptions& text, std::span<const
     shaped.options            = text.options;
     shaped.graphemeBoundaries = textBreakPositions(text.text, TextBreakMode::Grapheme);
     std::vector<uint32_t> textBreaks;
-    if (!(text.options && LayoutOptions::SingleLine))
+    if (!(text.options && TextOptions::SingleLine))
         textBreaks = textBreakPositions(text.text, TextBreakMode::Line);
 
     std::unique_ptr<hb_buffer_t, hb_buffer_deleter> hb_buffer;
@@ -1293,7 +1286,7 @@ PreparedText FontManager::doPrepare(const TextWithOptions& text, std::span<const
                                     std::span<const uint32_t> offsets, float width) const {
     BRISK_ASSERT_MSG("The number of fonts and offsets do not match", fonts.size() == offsets.size() + 1);
     PreparedText shaped = doShapeCached(text, fonts, offsets);
-    return std::move(shaped).wrap(width, text.options && LayoutOptions::WrapAnywhere);
+    return std::move(shaped).wrap(width, text.options && TextOptions::WrapAnywhere);
 }
 
 RectangleF FontManager::bounds(const TextWithOptions& text, std::span<const FontAndColor> fonts,
@@ -1750,7 +1743,7 @@ static void formatLine(std::span<const uint32_t> input, std::span<GlyphRun> runs
         return;
     auto& first    = runs[input.front()];
     float tabWidth = first.tabWidth;
-    Caret caret{ .options = LayoutOptions::SingleLine,
+    Caret caret{ .options = TextOptions::SingleLine,
                  .tabStep = tabWidth * runs[input.front()].metrics.spaceAdvanceX };
 
     float xOffset = first.bounds(GlyphRunBounds::Text).x1 - first.bounds(GlyphRunBounds::Alignment).x1;
@@ -1793,8 +1786,7 @@ PreparedText PreparedText::wrap(float maxWidth, bool wrapAnywhere) && {
     PreparedText result;
     BRISK_ASSERT(visualOrder.size() == runs.size());
     result.graphemeBoundaries = std::move(graphemeBoundaries);
-    if (options && LayoutOptions::SingleLine || std::isinf(maxWidth) && !hasControlRuns(runs) ||
-        runs.empty()) {
+    if (options && TextOptions::SingleLine || std::isinf(maxWidth) && !hasControlRuns(runs) || runs.empty()) {
         result.runs = std::move(runs);
         result.visualOrder.resize(result.runs.size());
         std::iota(result.visualOrder.begin(), result.visualOrder.end(), 0u);
@@ -1955,11 +1947,10 @@ float FontMetrics::vertBounds() const noexcept {
     return -descender + ascender;
 }
 
-TextWithOptions::TextWithOptions(std::string_view text, LayoutOptions options,
-                                 TextDirection defaultDirection) {
-    this->options          = options & ~LayoutOptions::HTML;
+TextWithOptions::TextWithOptions(std::string_view text, TextOptions options, TextDirection defaultDirection) {
+    this->options          = options & ~TextOptions::HTML;
     this->defaultDirection = defaultDirection;
-    if (options && LayoutOptions::HTML) {
+    if (options && TextOptions::HTML) {
         auto rich = RichText::fromHtml(text);
         if (rich)
             std::tie(this->text, this->richText) = *rich;
@@ -1968,11 +1959,11 @@ TextWithOptions::TextWithOptions(std::string_view text, LayoutOptions options,
     }
 }
 
-TextWithOptions::TextWithOptions(std::u16string_view text, LayoutOptions options,
+TextWithOptions::TextWithOptions(std::u16string_view text, TextOptions options,
                                  TextDirection defaultDirection) {
-    this->options          = options & ~LayoutOptions::HTML;
+    this->options          = options & ~TextOptions::HTML;
     this->defaultDirection = defaultDirection;
-    if (options && LayoutOptions::HTML) {
+    if (options && TextOptions::HTML) {
         auto rich = RichText::fromHtml(utf16ToUtf8(text));
         if (rich)
             std::tie(this->text, this->richText) = *rich;
@@ -1981,11 +1972,11 @@ TextWithOptions::TextWithOptions(std::u16string_view text, LayoutOptions options
     }
 }
 
-TextWithOptions::TextWithOptions(std::u32string_view text, LayoutOptions options,
+TextWithOptions::TextWithOptions(std::u32string_view text, TextOptions options,
                                  TextDirection defaultDirection) {
-    this->options          = options & ~LayoutOptions::HTML;
+    this->options          = options & ~TextOptions::HTML;
     this->defaultDirection = defaultDirection;
-    if (options && LayoutOptions::HTML) {
+    if (options && TextOptions::HTML) {
         auto rich = RichText::fromHtml(utf32ToUtf8(text));
         if (rich)
             std::tie(this->text, this->richText) = *rich;
@@ -1994,10 +1985,10 @@ TextWithOptions::TextWithOptions(std::u32string_view text, LayoutOptions options
     }
 }
 
-TextWithOptions::TextWithOptions(std::u32string text, LayoutOptions options, TextDirection defaultDirection) {
-    this->options          = options & ~LayoutOptions::HTML;
+TextWithOptions::TextWithOptions(std::u32string text, TextOptions options, TextDirection defaultDirection) {
+    this->options          = options & ~TextOptions::HTML;
     this->defaultDirection = defaultDirection;
-    if (options && LayoutOptions::HTML) {
+    if (options && TextOptions::HTML) {
         auto rich = RichText::fromHtml(utf32ToUtf8(text));
         if (rich)
             std::tie(this->text, this->richText) = *rich;

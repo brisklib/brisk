@@ -55,6 +55,12 @@ public:
      */
     void close(bool result);
 
+    DeferredCallbacks<> onAccepted; ///< Callback triggered when the dialog is accepted.
+    DeferredCallbacks<> onRejected; ///< Callback triggered when the dialog is rejected.
+
+protected:
+    bool m_result = false; ///< The result of the dialog, true if accepted, false if rejected.
+
     /**
      * @brief Called when the dialog is accepted.
      *
@@ -69,12 +75,6 @@ public:
      */
     virtual void rejected();
 
-    bool result = false; ///< The result of the dialog, true if accepted, false if rejected.
-
-    DeferredCallbacks<> onAccepted; ///< Callback triggered when the dialog is accepted.
-    DeferredCallbacks<> onRejected; ///< Callback triggered when the dialog is rejected.
-
-protected:
     void unhandledEvent(Event& event) override;
 
     void configureWindow(RC<GUIWindow> window) override;
@@ -92,6 +92,11 @@ protected:
     RC<Widget> dialogButtons(DialogButtons buttons, std::string okBtn = "OK||Button"_tr,
                              std::string cancelBtn = "Cancel||Button"_tr);
     DialogComponent();
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<DialogComponent, const bool, &DialogComponent::m_result> result;
+    BRISK_PROPERTIES_END
 };
 
 /**
@@ -109,11 +114,17 @@ public:
      */
     TextInputDialog(std::string prompt, std::string defaultValue = {});
 
-    std::string prompt; ///< The prompt message displayed to the user.
-    std::string value;  ///< The input value entered by the user.
-
 protected:
+    std::string m_prompt; ///< The prompt message displayed to the user.
+    std::string m_value;  ///< The input value entered by the user.
+
     RC<Widget> build() override;
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<TextInputDialog, std::string, &TextInputDialog::m_prompt> prompt;
+    Property<TextInputDialog, std::string, &TextInputDialog::m_value> value;
+    BRISK_PROPERTIES_END
 };
 
 /**
@@ -131,11 +142,16 @@ public:
      */
     MessageDialog(std::string text, std::string icon);
 
-    std::string text; ///< The message text.
-    std::string icon; ///< The icon displayed alongside the message.
-
 protected:
+    std::string m_text; ///< The message text.
+    std::string m_icon; ///< The icon displayed alongside the message.
     RC<Widget> build() override;
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<MessageDialog, std::string, &MessageDialog::m_text> text;
+    Property<MessageDialog, std::string, &MessageDialog::m_icon> icon;
+    BRISK_PROPERTIES_END
 };
 
 /**
@@ -153,10 +169,15 @@ public:
      */
     ConfirmDialog(std::string text, std::string icon);
 
-    std::string text; ///< The confirmation message text.
-    std::string icon; ///< The icon displayed alongside the confirmation message.
-
 protected:
+    std::string m_text; ///< The message text.
+    std::string m_icon; ///< The icon displayed alongside the message.
     RC<Widget> build() override;
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<ConfirmDialog, std::string, &ConfirmDialog::m_text> text;
+    Property<ConfirmDialog, std::string, &ConfirmDialog::m_icon> icon;
+    BRISK_PROPERTIES_END
 };
 } // namespace Brisk

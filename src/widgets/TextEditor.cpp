@@ -174,6 +174,7 @@ void TextEditor::moveCursor(MoveCursor move, bool select) {
     } else {
         selectedLength = 0;
     }
+    selectionChanged();
 }
 
 void TextEditor::paint(Canvas& canvas) const {
@@ -218,18 +219,25 @@ void TextEditor::paint(Canvas& canvas) const {
 }
 
 void TextEditor::normalizeCursor(uint32_t textLen) {
-    cursor         = std::max(0u, std::min(cursor, textLen));
-    selectedLength = std::max(0u, std::min(cursor + selectedLength, textLen)) - cursor;
+    uint32_t newCursor         = std::clamp(cursor, 0u, textLen);
+    uint32_t newSelectedLength = std::clamp(cursor + selectedLength, 0u, textLen) - cursor;
+    if (newCursor != cursor || newSelectedLength != selectedLength) {
+        cursor         = newCursor;
+        selectedLength = newSelectedLength;
+        selectionChanged();
+    }
 }
 
 void TextEditor::makeCursorVisible(uint32_t textLen) {
     if (!m_preparedText.hasCaretData() || m_preparedText.caretPositions.size() <= 1) {
         m_visibleOffset = { 0, 0 };
+        invalidate();
         return;
     }
     SizeF bounds = m_preparedText.bounds().size();
     if (std::ceil(bounds.width) < m_clientRect.width() && std::ceil(bounds.height) < m_clientRect.height()) {
         m_visibleOffset = { 0, 0 };
+        invalidate();
         return;
     }
 
@@ -255,6 +263,7 @@ void TextEditor::makeCursorVisible(uint32_t textLen) {
     m_visibleOffset += m_alignmentOffset;
     m_visibleOffset.x = std::max(0, m_visibleOffset.x);
     m_visibleOffset.y = std::max(0, m_visibleOffset.y);
+    invalidate();
 }
 
 uint32_t TextEditor::caretToOffset(PointF pt) const {
@@ -289,6 +298,7 @@ void TextEditor::selectWordAtCursor() {
     }
     selectedLength = -selectedLength;
     cursor         = cursor - selectedLength;
+    selectionChanged();
     normalizeCursor(text.size());
 }
 
@@ -314,6 +324,7 @@ void TextEditor::onEvent(Event& event) {
         focus();
         cursor         = caretToOffset(Point(*event.as<EventMouse>()->downPoint));
         selectedLength = 0;
+        selectionChanged();
         normalizeCursor(text.size());
         m_startCursorDragging = caretToOffset(Point(*event.as<EventMouse>()->downPoint));
         event.stopPropagation();
@@ -324,7 +335,9 @@ void TextEditor::onEvent(Event& event) {
         const int endCursor = caretToOffset(Point(event.as<EventMouse>()->point));
         selectedLength      = m_startCursorDragging - endCursor;
         cursor              = endCursor;
+        selectionChanged();
         normalizeCursor(text.size());
+        invalidate();
         event.stopPropagation();
     } break;
     case DragEvent::Dropped:
@@ -418,6 +431,7 @@ void TextEditor::onEvent(Event& event) {
                     if (cursor > 0) {
                         text.erase(cursor - 1, 1);
                         cursor = cursor - 1; // no need to align
+                        selectionChanged();
                     }
                 }
                 event.stopPropagation();
@@ -434,6 +448,7 @@ void TextEditor::onEvent(Event& event) {
                                              m_preparedText.graphemeBoundaries.end(), cursor);
                         if (endOfGrapheme != m_preparedText.graphemeBoundaries.end())
                             text.erase(cursor, *endOfGrapheme - cursor);
+                        selectionChanged();
                     }
                 }
                 event.stopPropagation();
@@ -507,7 +522,15 @@ void TextEditor::cutToClipboard() {
 void TextEditor::selectAll(const std::u32string& text) {
     cursor         = text.size();
     selectedLength = -text.size();
+    selectionChanged();
 }
+
+void TextEditor::selectionChanged() {
+    onSelectionChanged();
+    invalidate();
+}
+
+void TextEditor::onSelectionChanged() {}
 
 void TextEditor::deleteSelection(std::u32string& text) {
     if (selectedLength) {
@@ -515,6 +538,7 @@ void TextEditor::deleteSelection(std::u32string& text) {
         text.erase(selection.min, selection.distance());
         cursor         = selection.min;
         selectedLength = 0;
+        selectionChanged();
     }
 }
 
@@ -526,6 +550,7 @@ void TextEditor::pasteFromClipboard(std::u32string& text) {
         text.insert(cursor, t32);
         cursor         = cursor + t32.size();
         selectedLength = 0;
+        selectionChanged();
     }
 }
 
@@ -551,12 +576,13 @@ void TextEditor::cutToClipboard(std::u32string& text) {
 void TextEditor::updateGraphemes() {
     m_preparedText = fonts->prepare(
         m_cachedFont, TextWithOptions{ m_text.empty() ? utf8ToUtf32(m_placeholder) : m_cachedText,
-                                       m_multiline ? LayoutOptions::Default : LayoutOptions::SingleLine });
+                                       m_multiline ? TextOptions::Default : TextOptions::SingleLine });
 
     m_preparedText.updateCaretData();
 }
 
 void TextEditor::updateState() {
+    invalidate();
     std::u32string text32 = utf8ToUtf32(m_text);
 
     if (m_passwordChar) {
@@ -586,6 +612,7 @@ void TextEditor::typeCharacter(std::u32string& text, char32_t character) {
     deleteSelection(text);
     text.insert(text.begin() + cursor, character);
     cursor = cursor + 1; // no need to align
+    selectionChanged();
     setTextInternal(utf32ToUtf8(normalizeCompose(text)));
 }
 
@@ -597,5 +624,15 @@ PasswordEditor::PasswordEditor(Construction construction, ArgumentsView<Password
 
 RC<Widget> PasswordEditor::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
+}
+
+void TextEditor::onRefresh() {
+    Base::onRefresh();
+    if (frameStartTime - m_blinkTime > 1.0) {
+        m_blinkTime = fmod(m_blinkTime, 1.0);
+        invalidate();
+    } else if (frameStartTime - m_blinkTime > 0.5) {
+        invalidate();
+    }
 }
 } // namespace Brisk

@@ -42,21 +42,15 @@ public:
 protected:
     void paint(Canvas& canvas) const override;
     void onEvent(Event& event) override;
-    void onLayoutUpdated() override;
-    void onChanged() override;
     Ptr cloneThis() const override;
     explicit Slider(Construction construction, ArgumentsView<Slider> args);
 
 private:
     bool m_drag                         = false;
-    float savedValue                    = NAN;
+    float m_savedValue                  = NAN;
     constexpr static int trackThickness = 4;
     constexpr static int thumbRadius    = 5;
     float m_distance                    = NAN;
-
-    Rectangle m_trackRect;
-    RectangleF m_thumbRect;
-    void updateSliderGeometry();
 };
 
 void sliderPainter(Canvas& canvas, const Widget& widget);

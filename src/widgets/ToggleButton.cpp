@@ -32,17 +32,31 @@ void ToggleButton::updateState() {
     }
 }
 
+void ToggleButton::onAnimationFrame() {
+    Button::onAnimationFrame();
+    if (m_interpolatedValueTransition.isActive()) {
+        requestAnimationFrame();
+    }
+    m_interpolatedValueTransition.tick(
+        m_interpolatedValue, m_value ? m_interpolatedValueTransitionOn : m_interpolatedValueTransitionOff,
+        &easeLinear);
+}
+
 void ToggleButton::onClicked() {
     value = !m_value;
     Button::onClicked();
 }
 
 void ToggleButton::onChanged() {
+    invalidate();
     updateState();
-}
-
-void ToggleButton::setValue(bool newValue) {
-    value = newValue;
+    m_interpolatedValueTransition.set(
+        m_interpolatedValue, m_value ? 1 : 0,
+        transitionAllowed() ? (m_value ? m_interpolatedValueTransitionOn : m_interpolatedValueTransitionOff)
+                            : 0);
+    bindings->notify(&m_interpolatedValue);
+    if (m_interpolatedValueTransition.isActive())
+        requestAnimationFrame();
 }
 
 RC<Widget> ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }

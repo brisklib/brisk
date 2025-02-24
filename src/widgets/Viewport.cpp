@@ -37,5 +37,11 @@ Viewport::Viewport(Construction construction, Renderer renderer, Controller cont
                    ArgumentsView<Viewport> args)
     : Widget{ construction, nullptr }, m_renderer(std::move(renderer)), m_controller(std::move(controller)) {
     args.apply(this);
+    requestAnimationFrame();
+}
+
+void Viewport::onAnimationFrame() {
+    invalidate();
+    requestAnimationFrame();
 }
 } // namespace Brisk

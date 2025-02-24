@@ -161,7 +161,16 @@ void GUIWindow::beforeFrame() {
     }
 }
 
-void GUIWindow::paint(RenderContext& context) {
+void GUIWindow::paintImmediate(RenderContext& context) {
+    if (Internal::debugDirtyRect) {
+        if (!m_savedPaintRect.empty()) {
+            RawCanvas canvas(context);
+            canvas.drawRectangle(m_savedPaintRect, 0.f, 0.f, fillColor = 0xFF8000'30_rgba, strokeWidth = 0);
+        }
+    }
+}
+
+void GUIWindow::paint(RenderContext& context, bool fullRepaint) {
     m_unhandledEvents.clear();
     Canvas canvas(context);
 
@@ -175,11 +184,9 @@ void GUIWindow::paint(RenderContext& context) {
     uint32_t layoutCounter = m_tree.layoutCounter();
     {
         Stopwatch w(m_drawingPerformance);
-        if (m_backgroundColor != ColorF(0, 0))
-            canvas.raw().drawRectangle(m_tree.viewportRectangle(), 0.f, 0.f, fillColor = m_backgroundColor);
         beforeDraw(canvas);
         if (m_tree.root()) {
-            m_tree.updateAndPaint(canvas);
+            m_savedPaintRect = m_tree.updateAndPaint(canvas, m_backgroundColor, fullRepaint);
             setCursor(m_inputQueue.getCursorAtMouse().value_or(Cursor::Arrow));
         }
         afterDraw(canvas);

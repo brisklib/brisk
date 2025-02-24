@@ -112,7 +112,7 @@ struct UniformBlock {
 
     stroke_width: f32,
     gradient: gradient_type,
-    shadow_flags: i32,
+    reserved_4: i32,
     reserved_5: f32,
 }
 
@@ -547,20 +547,52 @@ fn atlasSubpixel(sprite: i32, pos: vec2i, stride: u32) -> vec3f {
     }
 }
 
-fn shadow(signed_distance: f32) -> vec4f {
-    var op: f32 = 1.;
-    if (constants.shadow_flags & 1) == 0 && signed_distance < 0. {
-        op = 0.;
-    }
-    if (constants.shadow_flags & 2) == 0 && signed_distance > 0. {
-        op = 0.;
-    }
-    let shadow_size = constants.stroke_width / 2.0;
-    var sh = (signed_distance + shadow_size * 0.25) / (shadow_size * 0.5);
-    sh = clamp(exp(-sh * sh), 0.0, 1.0);
-    let col = vec4f(constants.fill_color1 * sh) * sign(shadow_size);
-    return op * col;
+// Code by Evan Wallace, CC0 license 
+
+fn gaussian(x: f32, sigma: f32) -> f32 {
+    let pi: f32 = 3.141592653589793;
+    return exp(-((x * x) / (2.0 * sigma * sigma))) / (sqrt(2.0 * pi) * sigma);
 }
+
+// This approximates the error function, needed for the gaussian integral
+fn erf(x: vec2<f32>) -> vec2<f32> {
+    let s: vec2<f32> = sign(x);
+    let a: vec2<f32> = abs(x);
+    let x1 = 1.0 + (0.278393 + (0.230389 + 0.078108 * (a * a)) * a) * a;
+    let x2 = x1 * x1;
+    return s - s / (x2 * x2);
+}
+
+// Return the blurred mask along the x dimension
+fn roundedBoxShadowX(x: f32, y: f32, sigma: f32, corner: f32, halfSize: vec2<f32>) -> f32 {
+    let delta: f32 = min(halfSize.y - corner - abs(y), 0.0);
+    let curved: f32 = halfSize.x - corner + sqrt(max(0.0, corner * corner - delta * delta));
+    let integral: vec2<f32> = 0.5 + 0.5 * erf((vec2<f32>(x) + vec2<f32>(-curved, curved)) * (sqrt(0.5) / sigma));
+    return integral.y - integral.x;
+}
+
+// Return the mask for the shadow of a box
+fn roundedBoxShadow(halfSize: vec2<f32>, point: vec2<f32>, sigma: f32, corner: f32) -> f32 {
+    // The signal is only non-zero in a limited range, so don't waste samples
+    let low: f32 = point.y - halfSize.y;
+    let high: f32 = point.y + halfSize.y;
+    let start: f32 = clamp(-3.0 * sigma, low, high);
+    let end: f32 = clamp(3.0 * sigma, low, high);
+
+    // Accumulate samples (we can get away with surprisingly few samples)
+    let step: f32 = (end - start) / 4.0;
+    var y: f32 = start + step * 0.5;
+    var value: f32 = 0.0;
+
+    for (var i: i32 = 0; i < 4; i = i + 1) {
+        value = value + roundedBoxShadowX(point.x, point.y - y, sigma, corner, halfSize) * gaussian(y, sigma) * step;
+        y = y + step;
+    }
+
+    return value;
+}
+
+// End of code by Evan Wallace, CC0 license
 
 fn applyGamma(in: vec4f, gamma: f32) -> vec4f {
     return pow(max(in, vec4f(0.)), vec4f(gamma));
@@ -636,7 +668,7 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2u) -> FragOu
         }
         outColor = signedDistanceToColor(sd, in.canvas_coord, in.uv, in.data0.xy);
     } else if constants.shader == shader_shadow {
-        outColor = shadow(sd_rectangle(in.uv, in.data0.xy, in.data1.y, i32(in.data1.z)));
+        outColor = constants.fill_color1 * (roundedBoxShadow(in.data0.xy * 0.5, in.uv, constants.stroke_width * 0.18, in.data1.y));
     } else if constants.shader == shader_mask || constants.shader == shader_color_mask || constants.shader == shader_text {
         let sprite = i32(in.data0.z);
         let stride = u32(in.data0.w);

@@ -32,20 +32,31 @@ void PopupButton::onChildAdded(Widget* w) {
     if (!popupBox)
         return;
     popupBox->visible = false;
+    bindings->listen(
+        Value{ &popupBox->visible }, lifetime() | [this](bool visible) {
+            toggleState(WidgetState::ForcePressed, visible);
+        });
 }
 
-void PopupButton::onClicked() {
+void PopupButton::onEvent(Event& event) {
     auto popupBox = this->popupBox();
-    if (!popupBox)
-        return;
-    if (inputQueue->passedThroughBy.lock() != popupBox)
-        popupBox->visible = true;
+    Widget::onEvent(event); // Skip Button::onEvent
+    if (event.pressed()) {
+        focus();
+        auto passedThroughBy = inputQueue->passedThroughBy.lock();
+        if (passedThroughBy != popupBox)
+            popupBox->visible = true;
+        event.stopPropagation();
+    } else if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::Space)) {
+        popupBox->visible = !popupBox->visible;
+        event.stopPropagation();
+    } else if (event.keyPressed(KeyCode::Escape)) {
+        popupBox->visible = false;
+        event.stopPropagation();
+    }
 }
 
-void PopupButton::onRefresh() {
-    auto popupBox = this->popupBox();
-    toggleState(WidgetState::Selected, popupBox && popupBox->visible.get());
-}
+void PopupButton::onRefresh() {}
 
 void PopupButton::close() {
     auto popupBox = this->popupBox();

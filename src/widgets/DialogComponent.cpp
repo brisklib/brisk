@@ -41,7 +41,7 @@ void DialogComponent::unhandledEvent(Event& event) {
 }
 
 void DialogComponent::close(bool result) {
-    this->result = result;
+    bindings->assign(this->m_result, result);
     if (result) {
         accepted();
         onAccepted();
@@ -96,7 +96,7 @@ void DialogComponent::configureWindow(RC<GUIWindow> window) {
 }
 
 TextInputDialog::TextInputDialog(std::string prompt, std::string defaultValue)
-    : prompt(std::move(prompt)), value(std::move(defaultValue)) {}
+    : m_prompt(std::move(prompt)), m_value(std::move(defaultValue)) {}
 
 RC<Widget> TextInputDialog::build() {
     return rcnew VLayout{
@@ -109,7 +109,7 @@ RC<Widget> TextInputDialog::build() {
 }
 
 MessageDialog::MessageDialog(std::string text, std::string icon)
-    : text(std::move(text)), icon(std::move(icon)) {}
+    : m_text(std::move(text)), m_icon(std::move(icon)) {}
 
 RC<Widget> MessageDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),
@@ -118,7 +118,7 @@ RC<Widget> MessageDialog::build() {
 }
 
 ConfirmDialog::ConfirmDialog(std::string text, std::string icon)
-    : text(std::move(text)), icon(std::move(icon)) {}
+    : m_text(std::move(text)), m_icon(std::move(icon)) {}
 
 RC<Widget> ConfirmDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),

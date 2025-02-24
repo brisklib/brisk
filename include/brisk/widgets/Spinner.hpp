@@ -26,6 +26,7 @@ namespace Brisk {
 
 class Spinner : public Widget {
 public:
+    using Base                                   = Widget;
     constexpr static std::string_view widgetType = "spinner";
 
     template <WidgetArgument... Args>
@@ -34,13 +35,15 @@ public:
     }
 
 protected:
-    bool m_active = true;
+    bool m_active = false;
+    void onAnimationFrame() override;
     void paint(Canvas& canvas) const override;
+    void start();
     explicit Spinner(Construction construction, ArgumentsView<Spinner> args);
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<Spinner, bool, &Spinner::m_active> active;
+    Property<Spinner, bool, &Spinner::m_active, nullptr, nullptr, &Spinner::start> active;
     BRISK_PROPERTIES_END
 };
 

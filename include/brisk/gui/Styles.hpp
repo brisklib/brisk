@@ -21,6 +21,7 @@
 #pragma once
 #include "GUI.hpp"
 #include <bit>
+#include <brisk/core/internal/cityhash.hpp>
 
 namespace Brisk {
 
@@ -102,7 +103,11 @@ struct StyleProperty {
         using Type = typename Tag::Type;
         name       = Tag::name();
         apply      = [](RuleOp op, const StyleValuePtr& rule, Widget* widget, WidgetState state) {
-            if ((widget->state() & state) == state) {
+            WidgetState widgetState = widget->state();
+            if (widgetState && WidgetState::ForcePressed) {
+                widgetState |= WidgetState::Pressed;
+            }
+            if ((widgetState & state) == state) {
                 if constexpr (PropertyTag<Tag>) {
                     if constexpr (MatchesExtraTypes<Inherit, Tag>) {
                         if (op == RuleOp::Inherit) {
@@ -329,6 +334,10 @@ inline auto scaleValue(Fn&& fn, float scale) {
 inline float contrastRatio(ColorF foreground, ColorF background) {
     float L1 = foreground.lightness();
     float L2 = background.lightness();
+    if (!linearColor) {
+        L1 = Internal::srgbGammaToLinear(L1);
+        L2 = Internal::srgbGammaToLinear(L2);
+    }
     if (L1 < L2)
         std::swap(L1, L2);
     return (L1 + 0.05f) / (L2 + 0.05f);
@@ -652,21 +661,19 @@ private:
     void stylizeInternal(Rules& rules, Widget* widget, bool isRoot) const;
 };
 
-template <typename T, int index>
+template <typename T, uint64_t Id>
 struct StyleVariableTag : Tag::StyleVarTag {
-    using Type              = T;
-    constexpr static int id = index;
+    using Type                   = T;
+    constexpr static uint64_t id = Id;
 
     static std::string_view name() noexcept {
         return "styleVar";
     }
 };
 
-constexpr inline Argument<StyleVariableTag<ColorF, 0>> windowColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, 1>> selectedColor{};
-constexpr inline Argument<StyleVariableTag<float, 2>> animationSpeed{};
-
-constexpr inline int styleVarCustomID = 3;
+constexpr inline Argument<StyleVariableTag<ColorF, "windowColor"_hash>> windowColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "selectedColor"_hash>> selectedColor{};
+constexpr inline Argument<StyleVariableTag<float, "animationSpeed"_hash>> animationSpeed{};
 
 } // namespace Brisk
 

@@ -35,23 +35,24 @@ void RenderEncoderD3D11::setVisualSettings(const VisualSettings& visualSettings)
     m_visualSettings = visualSettings;
 }
 
-void RenderEncoderD3D11::begin(RC<RenderTarget> target, ColorF clear, std::span<const Rectangle> rectangles) {
+void RenderEncoderD3D11::begin(RC<RenderTarget> target, std::optional<ColorF> clear) {
     ComPtr<ID3D11DeviceContext> context = m_device->m_context;
-    Size frameSize                      = target->size();
+    m_frameSize                         = target->size();
     if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(target)) {
-        win->resizeBackbuffer(frameSize);
+        win->resizeBackbuffer(m_frameSize);
     }
     D3D11_VIEWPORT viewport{}; // zero-initialize
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
-    viewport.Width    = frameSize.x;
-    viewport.Height   = frameSize.y;
+    viewport.Width    = m_frameSize.x;
+    viewport.Height   = m_frameSize.y;
     viewport.MinDepth = 0.f;
     viewport.MaxDepth = 1.f;
     context->RSSetViewports(1, &viewport);
 
     [[maybe_unused]] ConstantPerFrame constantPerFrame{
-        SIMD<float, 4>(frameSize.width, frameSize.height, 1.f / frameSize.width, 1.f / frameSize.height),
+        SIMD<float, 4>(m_frameSize.width, m_frameSize.height, 1.f / m_frameSize.width,
+                       1.f / m_frameSize.height),
         m_visualSettings.blueLightFilter,
         m_visualSettings.gamma,
         Internal::textRectPadding,
@@ -61,25 +62,17 @@ void RenderEncoderD3D11::begin(RC<RenderTarget> target, ColorF clear, std::span<
 
     updatePerFrameConstantBuffer(constantPerFrame);
 
-    if (rectangles.empty()) {
-        D3D11_RECT rects[1];
-        rects[0] = CD3D11_RECT(0, 0, frameSize.width, frameSize.height);
-        context->RSSetScissorRects(1, rects);
-    } else {
-        D3D11_RECT rects[16];
-        size_t numScissors = std::min(rectangles.size(), size_t(16));
-        for (size_t i = 0; i < numScissors; ++i) {
-            rects[i] = CD3D11_RECT(rectangles[i].x1, rectangles[i].y1, rectangles[i].x2, rectangles[i].y2);
-        }
-        context->RSSetScissorRects(numScissors, rects);
-    }
+    ID3D11ShaderResourceView* dataSRV[1] = { nullptr };
+    context->VSSetShaderResources(10, 1, dataSRV);
+    context->PSSetShaderResources(10, 1, dataSRV);
 
     const BackBufferD3D11& backBuf = dynamic_cast<BackBufferProviderD3D11*>(target.get())->getBackBuffer();
     ID3D11RenderTargetView* rtvList[1] = { backBuf.rtv.Get() };
     context->OMSetRenderTargets(1, rtvList, nullptr);
 
-    context->ClearRenderTargetView(backBuf.rtv.Get(), clear.array);
-    context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    if (clear)
+        context->ClearRenderTargetView(backBuf.rtv.Get(), clear->array);
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     static FLOAT blendFactor[4]{ 0.f, 0.f, 0.f, 0.f };
     context->OMSetBlendState(m_device->m_blendState.Get(), blendFactor, ~0);
     context->RSSetState(m_device->m_rasterizerState.Get());
@@ -131,6 +124,9 @@ void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<
 
     constexpr size_t constantsPerCommand = sizeof(RenderState) / 16;
 
+    Rectangle frameRect                  = Rectangle({}, m_frameSize);
+    Rectangle currentClipRect            = noClipRect;
+
     for (size_t i = 0; i < commands.size(); ++i) {
         auto& cmd                             = commands[i];
         [[maybe_unused]] size_t offsetInBatch = i % maxCommandsInBatch;
@@ -147,6 +143,13 @@ void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<
             }
             context->VSSetShaderResources(10, 1, resourceViews);
             context->PSSetShaderResources(10, 1, resourceViews);
+        }
+
+        Rectangle clampedRect = cmd.shaderClip.intersection(frameRect);
+        if (i == 0 || clampedRect != currentClipRect) {
+            CD3D11_RECT d3d11Rect(clampedRect.x1, clampedRect.y1, clampedRect.x2, clampedRect.y2);
+            context->RSSetScissorRects(1, &d3d11Rect);
+            currentClipRect = clampedRect;
         }
 
         ID3D11Buffer* const cbuffers[1] = { m_constantBuffer.Get() };

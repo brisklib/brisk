@@ -30,15 +30,21 @@ ImageBackendD3D11* getOrCreateBackend(RC<RenderDeviceD3D11> device, RC<Image> im
     ImageBackendD3D11* backend = dynamic_cast<ImageBackendD3D11*>(Internal::getBackend(image));
     if (backend)
         return backend;
-    ImageBackendD3D11* newBackend = new ImageBackendD3D11(std::move(device), image.get(), uploadImage);
+    ImageBackendD3D11* newBackend =
+        new ImageBackendD3D11(std::move(device), image.get(), uploadImage, renderTarget);
     Internal::setBackend(image, newBackend);
     return newBackend;
 }
 
-ImageBackendD3D11::ImageBackendD3D11(RC<RenderDeviceD3D11> device, Image* image, bool uploadImage)
+ImageBackendD3D11::ImageBackendD3D11(RC<RenderDeviceD3D11> device, Image* image, bool uploadImage,
+                                     bool renderTarget)
     : m_device(std::move(device)), m_image(image) {
-    D3D11_TEXTURE2D_DESC tex =
-        texDesc(dxFormatTypeless(m_image->pixelType(), m_image->pixelFormat()), image->size(), 1);
+    D3D11_TEXTURE2D_DESC tex = texDesc(
+        dxFormatTypeless(m_image->pixelType(), m_image->pixelFormat()), image->size(), 1, D3D11_USAGE_DEFAULT,
+        renderTarget ? D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE : D3D11_BIND_SHADER_RESOURCE);
+    if (renderTarget) {
+        tex.CPUAccessFlags = 0;
+    }
     HRESULT hr = m_device->m_device->CreateTexture2D(&tex, nullptr, m_texture.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return);
 

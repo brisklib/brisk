@@ -52,6 +52,8 @@ public:
      */
     explicit Canvas(RenderContext& context);
 
+    using RawCanvas::renderContext;
+
     /**
      * @brief Constructs a Canvas object using an existing RawCanvas.
      *

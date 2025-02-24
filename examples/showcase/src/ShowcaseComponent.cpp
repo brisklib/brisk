@@ -161,6 +161,8 @@ void ShowcaseComponent::unhandledEvent(Event& event) {
             t->setVSyncInterval(1 - t->vsyncInterval());
     } else if (event.keyPressed(KeyCode::F5)) {
         tree().root()->dump();
+    } else if (event.keyPressed(KeyCode::F6)) {
+        Internal::debugDirtyRect = !Internal::debugDirtyRect;
     }
 }
 

@@ -62,9 +62,12 @@ public:
 
     Rectangle viewportRectangle() const noexcept;
 
-    void updateAndPaint(Canvas& canvas);
+    Rectangle paintRect() const;
+    Rectangle updateAndPaint(Canvas& canvas, ColorF backgroundColor, bool fullRepaint);
     void requestLayer(Drawable drawable);
     void disableTransitions();
+
+    void invalidateRect(Rectangle rect);
 
     Callbacks<Widget*> onAttached;
     Callbacks<Widget*> onDetached;
@@ -82,6 +85,11 @@ private:
     void detach(Widget* widget);
     void addGroup(WidgetGroup* group);
     void removeGroup(WidgetGroup* group);
+    bool isDirty(Rectangle rect) const;
+    void groupsBeforeFrame();
+    void groupsBeforePaint();
+    void groupsAfterFrame();
+    void groupsBeforeLayout();
     std::shared_ptr<Widget> m_root;
     std::vector<std::weak_ptr<Widget>> m_animationQueue;
     std::vector<std::weak_ptr<Widget>> m_rebuildQueue;
@@ -93,5 +101,9 @@ private:
     std::set<WidgetGroup*> m_groups;
     Rectangle m_viewportRectangle{};
     bool m_viewportRectangleChanged = true;
+    std::optional<Rectangle> m_dirtyRect;
+    std::vector<Rectangle> m_dirtyRects;
+    bool m_fullRepaint = true;
+    bool m_painting    = false;
 };
 } // namespace Brisk

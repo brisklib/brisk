@@ -223,6 +223,7 @@ TEST_CASE("FontManager") {
                          FontFlags::Default);
 
     Font font;
+    font.fontSize       = 10;
     font.fontFamily     = "lato,noto";
     font.lineHeight     = 1.f;
     FontMetrics metrics = fontManager->metrics(font);
@@ -370,7 +371,7 @@ TEST_CASE("FontManager") {
     // CHECK(run.graphemeToCaret(2) == PointF{ 0, 12 });
     // CHECK(run.graphemeToCaret(3) == PointF{ run.runs[1].glyphs[0].right_caret, 12 });
 
-    run = fontManager->prepare(font, TextWithOptions{ U"ab"s, LayoutOptions::WrapAnywhere }, 1.f);
+    run = fontManager->prepare(font, TextWithOptions{ U"ab"s, TextOptions::WrapAnywhere }, 1.f);
     REQUIRE(run.runs.size() == 2);
     CHECK(run.runs[0].charRange() == Range{ 0u, 1u });
     CHECK(run.runs[0].glyphs.size() == 1);
@@ -454,7 +455,7 @@ TEST_CASE("FontManager") {
         CHECK(run.caretPositions[5] > run.caretPositions[3]);
         CHECK(run.caretPositions[6] > run.caretPositions[5]);
 
-        run = fontManager->prepare(font, TextWithOptions{ U"abאבcd"s, LayoutOptions::WrapAnywhere }, 22);
+        run = fontManager->prepare(font, TextWithOptions{ U"abאבcd"s, TextOptions::WrapAnywhere }, 22);
         REQUIRE(run.runs.size() == 4);
         CHECK(run.runs[0].charRange() == Range{ 0u, 2u });
         CHECK(run.runs[0].glyphs.size() == 2);
@@ -555,12 +556,12 @@ TEST_CASE("FontManager") {
 
     visualTestMono("nl-multi", { 256, 128 }, [&](RC<Image> image) {
         auto run =
-            fontManager->prepare(bigFont, TextWithOptions{ utf8ToUtf32("ABC\nDEF"), LayoutOptions::Default });
+            fontManager->prepare(bigFont, TextWithOptions{ utf8ToUtf32("ABC\nDEF"), TextOptions::Default });
         fontManager->testRender(image, run, { 5, 42 });
     });
     visualTestMono("nl-single", { 256, 128 }, [&](RC<Image> image) {
-        auto run = fontManager->prepare(
-            bigFont, TextWithOptions{ utf8ToUtf32("ABC\nDEF"), LayoutOptions::SingleLine });
+        auto run = fontManager->prepare(bigFont,
+                                        TextWithOptions{ utf8ToUtf32("ABC\nDEF"), TextOptions::SingleLine });
         fontManager->testRender(image, run, { 5, 42 });
     });
 
@@ -868,8 +869,8 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         FontAndColor fonts[2]{ { noto24 }, { noto36 } };
         uint32_t offsets[1]{ 3 };
 
-        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("ABCDEF"), LayoutOptions::Default },
-                                        fonts, offsets);
+        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("ABCDEF"), TextOptions::Default }, fonts,
+                                        offsets);
         fontManager->testRender(image, run, { 5, 42 });
     });
     visualTestMono("richtext2", { 256, 64 }, [&](RC<Image> image) {
@@ -877,15 +878,14 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         uint32_t offsets[2]{ 6, 11 };
 
         auto run = fontManager->prepare(
-            TextWithOptions{ utf8ToUtf32("Press Enter to continue"), LayoutOptions::Default }, fonts,
-            offsets);
+            TextWithOptions{ utf8ToUtf32("Press Enter to continue"), TextOptions::Default }, fonts, offsets);
         fontManager->testRender(image, run, { 5, 42 });
     });
     visualTestMono("richtext-liga", { 192, 64 }, [&](RC<Image> image) {
         FontAndColor fonts[2]{ { lato24 }, { lato26 } };
         uint32_t offsets[1]{ 4 };
 
-        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("fi fi fi"), LayoutOptions::Default },
+        auto run = fontManager->prepare(TextWithOptions{ utf8ToUtf32("fi fi fi"), TextOptions::Default },
                                         fonts, offsets);
         fontManager->testRender(image, run, { 5, 42 });
     });
@@ -895,7 +895,7 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
 
         auto run = fontManager->prepare(
             TextWithOptions{ utf8ToUtf32("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
-                             LayoutOptions::Default },
+                             TextOptions::Default },
             fonts, offsets, 170);
         fontManager->testRender(image, run, { 8, 32 });
     });

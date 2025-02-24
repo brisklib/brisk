@@ -30,8 +30,7 @@ public:
     VisualSettings visualSettings() const final;
     void setVisualSettings(const VisualSettings& visualSettings) final;
 
-    void begin(RC<RenderTarget> target, ColorF clear = Palette::transparent,
-               std::span<const Rectangle> rectangles = {}) final;
+    void begin(RC<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) final;
     void batch(std::span<const RenderState> commands, std::span<const float> data) final;
     void end() final;
     void wait() final;
@@ -56,6 +55,7 @@ private:
     ComPtr<ID3D11Texture2D> m_gradientTexture;
     GenerationStored m_atlas_generation;
     GenerationStored m_gradient_generation;
+    Size m_frameSize;
 
     void updatePerFrameConstantBuffer(const ConstantPerFrame& constants);
     void updateDataBuffer(std::span<const float> data);

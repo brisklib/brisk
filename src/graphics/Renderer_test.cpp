@@ -62,44 +62,6 @@ TEST_CASE("Renderer Info", "[gpu]") {
 #endif
 }
 
-template <typename Fn>
-static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn,
-                       ColorF backColor = Palette::transparent, float maximumDiff = 0.05f) {
-
-    for (RendererBackend bk : rendererBackends) {
-        INFO(fmt::to_string(bk));
-        expected<RC<RenderDevice>, RenderDeviceError> device_ =
-            createRenderDevice(bk, RendererDeviceSelection::Default);
-        REQUIRE(device_.has_value());
-        RC<RenderDevice> device = *device_;
-        auto info               = device->info();
-        REQUIRE(!info.api.empty());
-        REQUIRE(!info.vendor.empty());
-        REQUIRE(!info.device.empty());
-
-        RC<ImageRenderTarget> target = device->createImageTarget(size, PixelType::U8Gamma);
-
-        REQUIRE(!!target.get());
-        REQUIRE(target->size() == size);
-
-        RC<RenderEncoder> encoder = device->createEncoder();
-        encoder->setVisualSettings(VisualSettings{ .blueLightFilter = 0, .gamma = 1, .subPixelText = false });
-
-        visualTest(
-            referenceImageName, size,
-            [&](RC<Image> image) {
-                {
-                    RenderPipeline pipeline(encoder, target, backColor);
-                    fn(static_cast<RenderContext&>(pipeline));
-                }
-                encoder->wait();
-                RC<Image> out = target->image();
-                image->copyFrom(out);
-            },
-            maximumDiff);
-    }
-}
-
 TEST_CASE("Renderer devices", "[gpu]") {
     expected<RC<RenderDevice>, RenderDeviceError> d;
 #ifdef BRISK_WINDOWS
@@ -164,7 +126,7 @@ TEST_CASE("Renderer - fonts") {
             Rectangle{ 30, 30, 270, 120 }, 0.0f, 0.0f,
             TextWithOptions("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
                             "the <small>lazy</small> dog",
-                            LayoutOptions::HTML),
+                            TextOptions::HTML),
             Font{ "Lato", 25.f }, Palette::black);
     });
 }
@@ -453,7 +415,7 @@ TEST_CASE("TextureFill", "[gpu]") {
 TEST_CASE("Canvas::drawImage", "[gpu]") {
     renderTest("rotate-texture", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
-        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/graphics/testdata/16616460-rgba.png");
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
@@ -461,7 +423,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
     });
     renderTest("rotate-texture-rect", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
-        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/graphics/testdata/16616460-rgba.png");
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
@@ -470,7 +432,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
     });
     renderTest("rotate-rect", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
-        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/graphics/testdata/16616460-rgba.png");
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
@@ -531,6 +493,72 @@ TEST_CASE("Emoji") {
                             Font{ "Lato,Noto Emoji", 72.f }, Palette::black);
         },
         ColorF(0.5f));
+}
+
+TEST_CASE("SetClipRect") {
+    renderTest("SetClipRect0", Size{ 256, 256 }, [&](RenderContext& context) {
+        RawCanvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::cyan, Palette::magenta },
+                             linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f);
+    });
+    renderTest("SetClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
+        RawCanvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        context.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::cyan, Palette::magenta },
+                             linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f);
+    });
+}
+
+TEST_CASE("Multi-pass render") {
+    renderTest<true>(
+        "MultiPass1", Size{ 256, 256 }, [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
+            {
+                RenderPipeline pipeline(encoder, target, Palette::transparent);
+                RawCanvas canvas(pipeline);
+                Rectangle rect({}, Size{ 256, 256 });
+                canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::red, Palette::transparent },
+                                     linearGradient = { { 0, 0 }, { 0, 256 } }, strokeWidth = 0.f);
+            }
+            {
+                RenderPipeline pipeline(encoder, target, std::nullopt);
+                RawCanvas canvas(pipeline);
+                Rectangle rect({}, Size{ 256, 256 });
+                canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::blue, Palette::transparent },
+                                     linearGradient = { { 0, 0 }, { 256, 0 } }, strokeWidth = 0.f);
+            }
+        });
+}
+
+TEST_CASE("Shadow") {
+    renderTest(
+        "shadows", Size{ 1536, 256 },
+        [&](RenderContext& context) {
+            RawCanvas canvas(context);
+            for (int i = 0; i < 6; ++i) {
+                RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
+                context.setClipRect(box);
+                float shadowSize = 2 << i;
+                canvas.drawShadow(box.withPadding(64.f), 0.f, 0.f, contourSize = shadowSize,
+                                  contourColor = Palette::black);
+            }
+        },
+        Palette::white);
+
+    renderTest(
+        "shadows-rounded", Size{ 1536, 256 },
+        [&](RenderContext& context) {
+            RawCanvas canvas(context);
+            for (int i = 0; i < 6; ++i) {
+                RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
+                context.setClipRect(box);
+                float boxRadius = 2 << i;
+                canvas.drawShadow(box.withPadding(64.f), boxRadius, 0.f, contourSize = 16.f,
+                                  contourColor = Palette::black);
+            }
+        },
+        Palette::white);
 }
 
 } // namespace Brisk

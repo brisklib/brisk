@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Renderer.hpp>
+#include <brisk/core/Log.hpp>
 #include "Atlas.hpp"
 
 namespace Brisk {
@@ -89,11 +90,12 @@ void freeRenderDevice() {
     defaultDevice.reset();
 }
 
-RenderPipeline::RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target, ColorF clear,
-                               std::span<const Rectangle> rectangles)
+RenderPipeline::RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target,
+                               std::optional<ColorF> clear, Rectangle clipRect)
     : m_encoder(std::move(encoder)), m_resources(m_encoder->device()->resources()) {
     m_limits = m_encoder->device()->limits();
-    m_encoder->begin(std::move(target), clear, rectangles);
+    m_encoder->begin(std::move(target), clear);
+    m_clipRect = clipRect;
 }
 
 bool RenderPipeline::flush() {
@@ -104,7 +106,8 @@ bool RenderPipeline::flush() {
         return false;
     }
     m_numBatches++;
-    m_encoder->batch(m_commands, m_data);
+    if (!m_clipRect.empty())
+        m_encoder->batch(m_commands, m_data);
 
     m_textures.clear();
     m_commands.clear();
@@ -155,6 +158,8 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
     cmd.dataOffset = offs / 4;
     cmd.dataSize   = data.size();
 
+    cmd.shaderClip = cmd.shaderClip.intersection(m_clipRect);
+
     m_commands.push_back(static_cast<const RenderState&>(cmd));
     m_data.insert(m_data.end(), data.begin(), data.end());
     // Add padding needed to align m_data to a multiple of 4.
@@ -181,5 +186,21 @@ RenderPipeline::~RenderPipeline() {
 
 int RenderPipeline::numBatches() const {
     return m_numBatches;
+}
+
+void RenderPipeline::setClipRect(Rectangle clipRect) {
+    m_clipRect = clipRect;
+}
+
+void RenderPipeline::blit(RC<Image> image) {
+    RenderStateEx style(ShaderType::Rectangles, nullptr);
+    RectangleF rect{ {}, image->size() };
+    style.textureMatrix = Matrix{};
+    style.imageHandle   = std::move(image);
+    command(std::move(style), one(GeometryRectangle{ rect, 0.f, 0.f, 0.f, 0.f }));
+}
+
+Rectangle RenderPipeline::clipRect() const {
+    return m_clipRect;
 }
 } // namespace Brisk

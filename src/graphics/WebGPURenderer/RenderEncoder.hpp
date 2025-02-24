@@ -33,8 +33,7 @@ public:
     VisualSettings visualSettings() const final;
     void setVisualSettings(const VisualSettings& visualSettings) final;
 
-    void begin(RC<RenderTarget> target, ColorF clear = Palette::transparent,
-               std::span<const Rectangle> rectangles = {}) final;
+    void begin(RC<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) final;
     void batch(std::span<const RenderState> commands, std::span<const float> data) final;
     void end() final;
     void wait() final;
@@ -61,8 +60,8 @@ private:
     wgpu::Queue m_queue;
     wgpu::TextureFormat m_renderFormat;
     wgpu::RenderPassColorAttachment m_colorAttachment;
+    Size m_frameSize;
     wgpu::BindGroup createBindGroup(ImageBackendWebGPU* imageBackend);
-
     void updatePerFrameConstantBuffer(const ConstantPerFrame& constants);
     void updateDataBuffer(std::span<const float> data);
     void updateConstantBuffer(std::span<const RenderState> data);

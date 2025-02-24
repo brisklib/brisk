@@ -41,9 +41,9 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
                 rcnew Text{
                     "This widget's size is set to half of the window's width and a quarter of its height "
                     "<code>(width = 50_vw, height = 25_vh)</code>",
-                    wordWrap      = true,
-                    layoutOptions = LayoutOptions::HTML,
-                    fontSize      = 16_px,
+                    wordWrap    = true,
+                    textOptions = TextOptions::HTML,
+                    fontSize    = 16_px,
                 },
                 alignContent    = Align::Center,
                 justifyContent  = Justify::Center,

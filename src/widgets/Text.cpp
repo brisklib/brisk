@@ -24,6 +24,7 @@ namespace Brisk {
 
 Text::Text(Construction construction, std::string text, ArgumentsView<Text> args)
     : Widget{ construction, nullptr }, m_text(std::move(text)) {
+    registerBuiltinFonts();
     args.apply(this);
     onChanged();
     enableCustomMeasure();
@@ -40,6 +41,7 @@ void Text::onLayoutUpdated() {
 }
 
 void Text::onChanged() {
+    invalidate();
     Font font = this->font();
     if (!m_wordWrap && m_textAutoSize != TextAutoSize::None && !m_text.empty()) {
         font.fontSize = font.fontSize = calcFontSizeFor(font, m_text);
@@ -112,11 +114,6 @@ SizeF Text::measure(AvailableSize size) const {
 void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
     if (m_opacity > 0.f) {
-        auto&& state = canvas.raw().save();
-        if (m_clip == WidgetClip::None)
-            state->scissors = noScissors;
-        else
-            state.intersectScissors(m_rect);
         RectangleF inner = m_clientRect;
         ColorF color     = m_color.current.multiplyAlpha(m_opacity);
         auto prepared    = m_cache2->prepared;
@@ -129,6 +126,7 @@ void Text::paint(Canvas& canvas) const {
                            .rotate90(static_cast<int>(m_rotation))
                            .translate(inner.center().x, inner.center().y);
             PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
+            auto&& state  = canvas.raw().save();
             state->scissors = m.invert()->transform(state->scissors);
             canvas.raw().drawText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) +
                                       offset,
@@ -151,7 +149,7 @@ void Text::onFontChanged() {
 }
 
 Text::Cached Text::updateCache(const CacheKey& key) {
-    PreparedText shaped = fonts->prepare(key.font, TextWithOptions(key.text, m_layoutOptions));
+    PreparedText shaped = fonts->prepare(key.font, TextWithOptions(key.text, m_textOptions));
     return { std::move(shaped) };
 }
 
@@ -164,8 +162,9 @@ Text::Cached2 Text::updateCache2(const CacheKey2& key) {
 }
 
 void BackStrikedText::paint(Canvas& canvas) const {
+    ColorF color = m_color.current.multiplyAlpha(m_opacity);
     canvas.raw().drawText(m_clientRect, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign), m_text,
-                          font(), m_color.current);
+                          font(), color);
     const int p         = 10_idp;
     const float x_align = toFloatAlign(m_textAlign);
     const int tw        = m_cache2->textSize.x;
@@ -173,9 +172,9 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Rectangle r1{ m_rect.x1 + p, c.y, c.x - tw / 2 - p, c.y + 1_idp };
     Rectangle r2{ c.x + tw / 2 + p, c.y, m_rect.x2 - p, c.y + 1_idp };
     if (r1.width() > 0)
-        canvas.raw().drawRectangle(r1, 0.f, 0.f, fillColor = m_color.current, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r1, 0.f, 0.f, fillColor = color, strokeWidth = 0.f);
     if (r2.width() > 0)
-        canvas.raw().drawRectangle(r2, 0.f, 0.f, fillColor = m_color.current, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r2, 0.f, 0.f, fillColor = color, strokeWidth = 0.f);
     Widget::paint(canvas);
 }
 
@@ -185,7 +184,7 @@ RC<Widget> BackStrikedText::cloneThis() const {
 
 void HoveredDescription::paint(Canvas& canvas) const {
     Widget::paintBackground(canvas, m_rect);
-    std::string newText = inputQueue->getDescriptionAtMouse().value_or(m_text);
+    std::string newText = inputQueue->getHintAtMouse().value_or(m_text);
     if (newText != m_cachedText) {
         m_cachedText = std::move(newText);
         m_lastChange = frameStartTime;

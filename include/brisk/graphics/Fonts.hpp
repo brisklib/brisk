@@ -46,7 +46,7 @@ public:
 
 using GlyphID = uint32_t;
 
-enum class LayoutOptions : uint32_t {
+enum class TextOptions : uint32_t {
     Default      = 0,
     SingleLine   = 1,
     WrapAnywhere = 2,
@@ -54,7 +54,7 @@ enum class LayoutOptions : uint32_t {
 };
 
 template <>
-constexpr inline bool isBitFlags<LayoutOptions> = true;
+constexpr inline bool isBitFlags<TextOptions> = true;
 
 struct OpenTypeFeatureFlag {
     OpenTypeFeature feature;
@@ -633,7 +633,7 @@ struct PreparedText {
     /**
      * @brief Layout options applied during text preparation.
      */
-    LayoutOptions options = LayoutOptions::Default;
+    TextOptions options = TextOptions::Default;
 
     /**
      * @brief Caret offsets (grapheme boundaries) within the text.
@@ -810,9 +810,9 @@ struct PreparedText {
      * @param alignment_y Vertical alignment factor (0: top, 0.5: center, 1: bottom).
      * @return PointF Offsets for alignment.
      */
-    PointF alignLines(float alignment_x, float alignment_y = 0.f);
+    [[nodiscard]] PointF alignLines(float alignment_x, float alignment_y = 0.f);
 
-    PointF alignLines(PointF alignment);
+    [[nodiscard]] PointF alignLines(PointF alignment);
 
     /**
      * @brief Converts a character index to its corresponding grapheme index.
@@ -848,25 +848,24 @@ using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
  * @brief Represents font properties and settings for text rendering.
  */
 struct Font {
-    const static std::string Default;
-    const static std::string Monospace;
-    const static std::string Icons;
-    const static std::string Emoji;
+    constexpr static char Default[]               = "@default";
+    constexpr static char Monospace[]             = "@mono";
+    constexpr static char Icons[]                 = "@icons";
+    constexpr static char Emoji[]                 = "@emoji";
+    constexpr static char DefaultPlusIcons[]      = "@default,@icons";
+    constexpr static char DefaultPlusIconsEmoji[] = "@default,@icons,@emoji";
 
-    const static std::string DefaultPlusIcons;
-    const static std::string DefaultPlusIconsEmoji;
-
-    std::string fontFamily        = DefaultPlusIconsEmoji; ///< The font family.
-    float fontSize                = 10.f;                  ///< The size of the font in points.
-    FontStyle style               = FontStyle::Normal;     ///< The style of the font (e.g., normal, italic).
-    FontWeight weight             = FontWeight::Regular;   ///< The weight of the font (e.g., regular, bold).
-    TextDecoration textDecoration = TextDecoration::None;  ///< Text decoration (e.g., underline, none).
-    float lineHeight              = 1.2f;                  ///< Line height as a multiplier.
-    float tabWidth                = 8.f;                   ///< Tab width in space units.
-    float letterSpacing           = 0.f;                   ///< Additional space between letters.
-    float wordSpacing             = 0.f;                   ///< Additional space between words.
-    float verticalAlign           = 0.f;                   ///< Vertical alignment offset.
-    OpenTypeFeatureFlags features{};                       ///< OpenType features for advanced text styling.
+    std::string fontFamily                        = DefaultPlusIconsEmoji; ///< The font family.
+    float fontSize                                = 12.f; ///< The size of the font in points.
+    FontStyle style               = FontStyle::Normal;    ///< The style of the font (e.g., normal, italic).
+    FontWeight weight             = FontWeight::Regular;  ///< The weight of the font (e.g., regular, bold).
+    TextDecoration textDecoration = TextDecoration::None; ///< Text decoration (e.g., underline, none).
+    float lineHeight              = 1.2f;                 ///< Line height as a multiplier.
+    float tabWidth                = 8.f;                  ///< Tab width in space units.
+    float letterSpacing           = 0.f;                  ///< Additional space between letters.
+    float wordSpacing             = 0.f;                  ///< Additional space between words.
+    float verticalAlign           = 0.f;                  ///< Vertical alignment offset.
+    OpenTypeFeatureFlags features{};                      ///< OpenType features for advanced text styling.
 
     inline static const std::tuple reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
@@ -969,7 +968,7 @@ constexpr inline bool isBitFlags<Internal::FontFormatFlags> = true;
 
 struct TextWithOptions {
     std::u32string text;
-    LayoutOptions options;
+    TextOptions options;
     TextDirection defaultDirection;
     Internal::RichText richText;
 
@@ -979,27 +978,27 @@ struct TextWithOptions {
         ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },
     };
 
-    TextWithOptions(std::string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::string_view text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
-    TextWithOptions(std::u16string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u16string_view text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
-    TextWithOptions(std::u32string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u32string_view text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
-    TextWithOptions(std::u32string text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u32string text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
 
     template <std::convertible_to<std::string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(T&& text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : TextWithOptions(std::string_view(text), options, defaultDirection) {}
 
     template <std::convertible_to<std::u16string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(T&& text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : TextWithOptions(std::u16string_view(text), options, defaultDirection) {}
 
     template <std::convertible_to<std::u32string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(T&& text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : TextWithOptions(std::u32string_view(text), options, defaultDirection) {}
 

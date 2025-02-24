@@ -111,10 +111,6 @@ void Tag::TextureChannel::apply(const Tag::TextureChannel::Type& value, RenderSt
     state.textureChannel = value;
 }
 
-void Tag::ContourFlags::apply(const Tag::ContourFlags::Type& value, RenderStateEx& state) {
-    state.shadowFlags = value;
-}
-
 void Tag::CoordMatrix::apply(const Tag::CoordMatrix::Type& value, RenderStateEx& state) {
     state.coordMatrix = value;
 }

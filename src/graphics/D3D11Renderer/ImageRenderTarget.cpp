@@ -52,9 +52,11 @@ Size ImageRenderTargetD3D11::size() const {
 }
 
 void ImageRenderTargetD3D11::setSize(Size newSize) {
-    m_frameSize = newSize;
-    if (!updateImage()) {
-        return;
+    if (newSize != m_frameSize) {
+        m_frameSize = newSize;
+        if (!updateImage()) {
+            return;
+        }
     }
 }
 

@@ -78,6 +78,26 @@ inline uint64_t fastHash(const T& data, uint64_t seed = 0)
     return fastHash(asBytesView(data), seed);
 }
 
+template <size_t N>
+inline uint64_t fastHash(const char (&data)[N], uint64_t seed = 0) {
+    return fastHash(std::string_view(data), seed);
+}
+
+template <size_t N>
+inline uint64_t fastHash(const char16_t (&data)[N], uint64_t seed = 0) {
+    return fastHash(std::u16string_view(data), seed);
+}
+
+template <size_t N>
+inline uint64_t fastHash(const char32_t (&data)[N], uint64_t seed = 0) {
+    return fastHash(std::u32string_view(data), seed);
+}
+
+template <size_t N>
+inline uint64_t fastHash(const wchar_t (&data)[N], uint64_t seed = 0) {
+    return fastHash(std::wstring_view(data), seed);
+}
+
 namespace Internal {
 
 /// Computes a fast hash for a tuple.

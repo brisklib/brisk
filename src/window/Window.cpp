@@ -48,6 +48,8 @@ static BindingRegistration frameStartTime_reg{ &frameStartTime, nullptr };
 
 namespace Internal {
 
+constinit bool bufferedRendering = true;
+
 std::atomic_bool debugShowRenderTimeline{ false };
 BRISK_UI_THREAD Window* currentWindow = nullptr;
 
@@ -283,6 +285,8 @@ Window::Window() {
 
 using high_res_clock = std::chrono::steady_clock;
 
+void Window::paintImmediate(RenderContext& context) {}
+
 void Window::paintDebug(RenderContext& context) {
     RawCanvas canvas(context);
 
@@ -306,23 +310,28 @@ void Window::doPaint() {
     ObjCPool pool;
     high_res_clock::time_point renderStart;
 
-    renderStart                                 = high_res_clock::now();
+    renderStart                  = high_res_clock::now();
 
-    pixelRatio()                                = m_canvasPixelRatio;
+    pixelRatio()                 = m_canvasPixelRatio;
 
-    [[maybe_unused]] const Size framebufferSize = m_framebufferSize;
+    currentFramePresentationTime = m_nextFrameTime.value_or(now());
 
-    currentFramePresentationTime                = m_nextFrameTime.value_or(now());
+    RC<RenderTarget> target      = m_target;
+    bool bufferedRendering       = m_bufferedRendering || !m_captureCallback.empty();
+    bool textureReset            = false;
 
-    constexpr size_t reserveCommands            = 100;
-    constexpr size_t reserveData                = 65536;
-
-    RC<RenderTarget> target                     = m_target;
-    if (!m_captureCallback.empty()) {
-        auto device                       = getRenderDevice();
-        RC<ImageRenderTarget> imageTarget = (*device)->createImageTarget(m_target->size());
-        m_capturedFrame                   = imageTarget->image();
-        target                            = imageTarget;
+    if (bufferedRendering) {
+        auto device = getRenderDevice();
+        if (!m_bufferedFrameTarget) {
+            m_bufferedFrameTarget = (*device)->createImageTarget(m_target->size());
+            textureReset          = true;
+        } else {
+            if (m_target->size() != m_bufferedFrameTarget->size()) {
+                m_bufferedFrameTarget->setSize(m_target->size());
+                textureReset = true;
+            }
+        }
+        target = m_bufferedFrameTarget;
     }
     m_encoder->setVisualSettings(m_renderSettings);
 
@@ -330,16 +339,20 @@ void Window::doPaint() {
 
     PerformanceDuration gpuDuration = PerformanceDuration(0);
     {
-        RenderPipeline pipeline(m_encoder, target);
-        paint(pipeline);
+        RenderPipeline pipeline(m_encoder, target,
+                                bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
+                                noClipRect);
+        paint(pipeline, !bufferedRendering || textureReset);
         paintDebug(pipeline);
+        if (!bufferedRendering)
+            paintImmediate(pipeline);
     }
 
-    if (m_capturedFrame) {
+    if (bufferedRendering) {
         m_encoder->setVisualSettings(VisualSettings{});
-        RenderPipeline pipeline2(m_encoder, m_target);
-        RawCanvas canvas(pipeline2);
-        canvas.drawTexture(RectangleF(PointF(0, 0), m_target->size()), m_capturedFrame, Matrix{});
+        RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent, noClipRect);
+        pipeline2.blit(m_bufferedFrameTarget->image());
+        paintImmediate(pipeline2);
     }
 
     // region Print Performance Counters
@@ -370,12 +383,12 @@ void Window::doPaint() {
         Stopwatch w(m_swapPerformance);
         m_target->present();
     }
-    if (m_capturedFrame) {
+    if (m_captureCallback) {
+        BRISK_ASSERT(bufferedRendering);
         m_encoder->wait();
-        auto captureCallback = std::move(m_captureCallback);
-        m_captureCallback    = nullptr;
-        auto capturedFrame   = std::move(m_capturedFrame);
-        m_capturedFrame      = nullptr;
+        auto captureCallback    = std::move(m_captureCallback);
+        m_captureCallback       = nullptr;
+        RC<Image> capturedFrame = m_bufferedFrameTarget->image();
 
         std::move(captureCallback)(std::move(capturedFrame));
     }
@@ -667,7 +680,7 @@ void Window::onWindowResized(Size windowSize, Size framebufferSize) {}
 
 void Window::onWindowMoved(Point position) {}
 
-void Window::paint(RenderContext& context) {}
+void Window::paint(RenderContext& context, bool fullRepaint) {}
 
 void Window::beforeFrame() {}
 
@@ -738,5 +751,13 @@ void Window::onWindowStateChanged(bool isIconified, bool isMaximized) {}
 
 RC<WindowRenderTarget> Window::target() const {
     return m_target;
+}
+
+void Window::setBufferedRendering(bool bufferedRendering) {
+    m_bufferedRendering = bufferedRendering;
+}
+
+bool Window::bufferedRendering() const noexcept {
+    return m_bufferedRendering;
 }
 } // namespace Brisk

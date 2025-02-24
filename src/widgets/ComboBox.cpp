@@ -38,10 +38,15 @@ void ComboBox::onChildAdded(Widget* w) {
                 item->focus();
             }
         };
-        itemlist->visible          = false;
+        if (!itemlist->visible.isOverridden())
+            itemlist->visible = false;
         itemlist->absolutePosition = { 0, 100_perc };
         itemlist->anchor           = { 0_px, 0_px };
         itemlist->tabGroup         = true;
+        bindings->listen(
+            Value{ &itemlist->visible }, lifetime() | [this](bool visible) {
+                toggleState(WidgetState::ForcePressed, visible);
+            });
     }
     if (Item* selectedItem = this->selecteditem.matchesType(w)) {
         selectedItem->flexGrow         = 1;

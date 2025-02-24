@@ -21,6 +21,8 @@
 #include <brisk/core/Bytes.hpp>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
+#include "brisk/core/Hash.hpp"
+#include <brisk/core/internal/cityhash.hpp>
 
 namespace Brisk {
 
@@ -158,6 +160,30 @@ TEST_CASE("Convert FixedBytes of length 4 to Base64 (with padding)") {
 
 TEST_CASE("Format FixedBytes of length 3 to string") {
     CHECK(fmt::to_string(FixedBytes<3>("abcdef")) == "ABCDEF"s);
+}
+
+TEST_CASE("hash") {
+    CHECK(fastHash("") == 0);
+    CHECK(fastHash("123") == 0xb569baf6b7c11f1a);
+    CHECK(fastHash("12345") == 0x98fb61a2e1ad4c5);
+    CHECK(fastHash("1234567890") == 0x4fabad57d84b98c1);
+    CHECK(fastHash("12345678901234567890") == 0x92f1b6f853ec12d3);
+    CHECK(fastHash("1234567890123456789012345678901234567890") == 0xa9e75df98640032c);
+
+    CHECK(CityHash::CityHash64WithSeed("", 0) == 0);
+    CHECK(CityHash::CityHash64WithSeed("123", 0) == 0xb569baf6b7c11f1a);
+    CHECK(CityHash::CityHash64WithSeed("12345", 0) == 0x98fb61a2e1ad4c5);
+    CHECK(CityHash::CityHash64WithSeed("1234567890", 0) == 0x4fabad57d84b98c1);
+    CHECK(CityHash::CityHash64WithSeed("12345678901234567890", 0) == 0x92f1b6f853ec12d3);
+    CHECK(CityHash::CityHash64WithSeed("1234567890123456789012345678901234567890", 0) == 0xa9e75df98640032c);
+
+    static_assert(CityHash::CityHash64WithSeed("", 0) == 0);
+    static_assert(CityHash::CityHash64WithSeed("123", 0) == 0xb569baf6b7c11f1a);
+    static_assert(CityHash::CityHash64WithSeed("12345", 0) == 0x98fb61a2e1ad4c5);
+    static_assert(CityHash::CityHash64WithSeed("1234567890", 0) == 0x4fabad57d84b98c1);
+    static_assert(CityHash::CityHash64WithSeed("12345678901234567890", 0) == 0x92f1b6f853ec12d3);
+    static_assert(CityHash::CityHash64WithSeed("1234567890123456789012345678901234567890", 0) ==
+                  0xa9e75df98640032c);
 }
 
 } // namespace Brisk

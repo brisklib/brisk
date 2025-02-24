@@ -107,7 +107,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
             alignItems = AlignItems::FlexStart,
             rcnew Button{
                 rcnew Text{ "Button with color applied" },
-                Graphene::buttonColor = 0xFF4791_rgb,
+                Graphene::mainColor = 0xFF4791_rgb,
             },
             rcnew Button{
                 rcnew Text{ "Button with reduced padding" },

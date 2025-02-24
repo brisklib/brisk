@@ -29,7 +29,8 @@ class RenderEncoderD3D11;
 
 class ImageBackendD3D11 final : public Internal::ImageBackend {
 public:
-    explicit ImageBackendD3D11(RC<RenderDeviceD3D11> device, Image* image, bool uploadImage);
+    explicit ImageBackendD3D11(RC<RenderDeviceD3D11> device, Image* image, bool uploadImage,
+                               bool renderTarget);
     ~ImageBackendD3D11() final = default;
     void begin(AccessMode mode, Rectangle rect) final;
     void end(AccessMode mode, Rectangle rect) final;

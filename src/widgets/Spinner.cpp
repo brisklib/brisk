@@ -65,6 +65,17 @@ void Spinner::paint(Canvas& canvas_) const {
     spinnerPainter(canvas_, *this);
 }
 
+void Spinner::start() {
+    requestAnimationFrame();
+}
+
+void Spinner::onAnimationFrame() {
+    Base::onAnimationFrame();
+    invalidate();
+    if (m_active)
+        requestAnimationFrame();
+}
+
 Spinner::Spinner(Construction construction, ArgumentsView<Spinner> args) : Widget(construction, nullptr) {
     args.apply(this);
 }

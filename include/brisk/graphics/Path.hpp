@@ -19,11 +19,6 @@ struct RasterizedPath {
 };
 
 /**
- * @brief A constant rectangle that represents no clipping area.
- */
-const inline Rectangle noClipRect{ INT32_MIN, INT32_MIN, INT32_MAX, INT32_MAX };
-
-/**
  * @brief Enum representing the fill rules for paths.
  */
 enum class FillRule : uint8_t {
@@ -332,14 +327,14 @@ struct Path {
     /// Rasterizes the path for filling.
     /// @param fill Fill parameters.
     /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const FillParams& fill, Rectangle clipRect) {
+    RasterizedPath rasterize(const FillParams& fill, Rectangle clipRect = noClipRect) {
         return Internal::rasterizePath(*this, fill, clipRect);
     }
 
     /// Rasterizes the path for stroking.
     /// @param stroke Stroke parameters.
     /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const StrokeParams& stroke, Rectangle clipRect) {
+    RasterizedPath rasterize(const StrokeParams& stroke, Rectangle clipRect = noClipRect) {
         return Internal::rasterizePath(*this, stroke, clipRect);
     }
 

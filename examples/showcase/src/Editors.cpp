@@ -125,8 +125,8 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
             },
             gapColumn = 10_apx,
             rcnew Text{
-                text          = Value{ &m_html },
-                layoutOptions = LayoutOptions::HTML,
+                text        = Value{ &m_html },
+                textOptions = TextOptions::HTML,
             },
         },
 

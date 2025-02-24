@@ -34,16 +34,11 @@ public:
         endConstruction();
     }
 
-    std::optional<float>& animatedValue() const;
-
 protected:
     Ptr cloneThis() const override;
     void paint(Canvas& canvas) const override;
     void onEvent(Event& event) override;
     explicit Switch(Construction construction, ArgumentsView<Switch> args);
-
-private:
-    mutable std::optional<float> m_animatedValue;
 };
 
 void switchPainter(Canvas& canvas, const Widget& widget);

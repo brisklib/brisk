@@ -28,14 +28,14 @@ namespace Brisk {
 
 namespace Graphene {
 
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 0>> buttonColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 1>> linkColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 2>> editorColor{};
-constexpr inline Argument<StyleVariableTag<float, styleVarCustomID + 3>> boxRadius{};
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 4>> menuColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 5>> boxBorderColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 6>> shadeColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 7>> deepColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "mainColor"_hash>> mainColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "linkColor"_hash>> linkColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "editorColor"_hash>> editorColor{};
+constexpr inline Argument<StyleVariableTag<float, "boxRadius"_hash>> boxRadius{};
+constexpr inline Argument<StyleVariableTag<ColorF, "menuColor"_hash>> menuColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "boxBorderColor"_hash>> boxBorderColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "shadeColor"_hash>> shadeColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, "deepColor"_hash>> deepColor{};
 
 RC<const Stylesheet> stylesheet();
 Rules lightColors();

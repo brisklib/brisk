@@ -490,6 +490,7 @@ int shufflePalette(int x) {
 namespace Internal {
 std::atomic_bool debugRelayoutAndRegenerate{ false };
 std::atomic_bool debugBoundaries{ false };
+std::atomic_bool debugDirtyRect{ false };
 } // namespace Internal
 
 void Widget::requestUpdateLayout() {
@@ -610,6 +611,7 @@ IndexedBuilder::IndexedBuilder(IndexedBuilder::func builder)
       }) {}
 
 Widget::~Widget() noexcept {
+    invalidate();
     for (const Ptr& w : *this) {
         w->m_parent = nullptr;
         w->parentChanged();
@@ -717,6 +719,71 @@ Size Widget::viewportSize() const noexcept {
     return m_tree ? m_tree->viewportRectangle().size() : Size(0, 0);
 }
 
+static Rectangle widgetClipRect(WidgetClip clip, Rectangle selfRect, Rectangle parentRect,
+                                Rectangle parentClipRect) {
+    Rectangle result = noClipRect;
+    if (clip && WidgetClip::SelfRect) {
+        result = result.intersection(selfRect);
+    }
+    if (clip && WidgetClip::ParentRect) {
+        result = result.intersection(parentRect);
+    }
+    if (clip && WidgetClip::ParentClipRect) {
+        result = result.intersection(parentClipRect);
+    }
+    return result;
+}
+
+void Widget::computeClipRect() {
+    Widget* parent = m_parent;
+    if (m_zorder == ZOrder::TopMost)
+        parent = nullptr;
+    m_clipRect = widgetClipRect(m_clip, m_rect, parent ? parent->m_rect : noClipRect,
+                                parent ? parent->m_clipRect : noClipRect);
+}
+
+void Widget::prepareHint() {
+    if (m_hint.empty()) {
+        m_hintPrepared = {};
+        return;
+    }
+    Font font      = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
+    m_hintPrepared = fonts->prepare(font, m_hint);
+}
+
+void Widget::computeHintRect() {
+    if (m_hintPrepared.lines.empty()) {
+        m_hintRect = {};
+        return;
+    }
+    Size textSize = m_hintPrepared.bounds().size();
+    Point p       = m_rect.at(0.5f, 1.f);
+    m_hintRect    = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
+    if (m_tree && !m_tree->viewportRectangle().empty() && !m_hint.empty()) {
+        Size textSize          = m_hintPrepared.bounds().size();
+        Rectangle boundingRect = m_tree->viewportRectangle();
+
+        Point p                = m_rect.at(0.5f, 1.f);
+        if (m_hintRect.y2 > boundingRect.y2) {
+            p          = m_rect.at(0.5f, 0.f);
+            m_hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 1.f });
+        }
+
+        if (m_hintRect.x1 < boundingRect.x1)
+            m_hintRect.applyOffset(boundingRect.x1 - m_hintRect.x1, 0);
+        if (m_hintRect.x2 > boundingRect.x2)
+            m_hintRect.applyOffset(boundingRect.x2 - m_hintRect.x2, 0);
+        m_hintRect.x2 = std::min(m_hintRect.x2, boundingRect.x2);
+
+        if (m_hintRect.y2 > boundingRect.y2)
+            m_hintRect.applyOffset(0, boundingRect.y2 - m_hintRect.y2);
+        if (m_hintRect.y1 < boundingRect.y1)
+            m_hintRect.applyOffset(0, boundingRect.y1 - m_hintRect.y1);
+        m_hintRect.y2 = std::min(m_hintRect.y2, boundingRect.y2);
+    }
+    m_hintTextOffset = m_hintPrepared.alignLines(0.5f, 0.5f);
+}
+
 /// Returns the number of changes
 int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     int32_t counter                = 0;
@@ -791,6 +858,11 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     }
     Point bottomRight{ 0, 0 };
     RectangleF rectOffset = rect.withOffset(m_childrenOffset);
+    computeClipRect();
+    computeHintRect();
+
+    m_subtreeRect = fullPaintRect();
+
     for (const Ptr& w : *this) {
         if (w->m_ignoreChildrenOffset) {
             counter += w->applyLayoutRecursively(rect);
@@ -799,12 +871,16 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
             counter += w->applyLayoutRecursively(rectOffset);
             bottomRight = max(bottomRight, w->m_rect.p2 - m_childrenOffset);
         }
+        if (w->m_visible)
+            m_subtreeRect = m_subtreeRect.union_(w->m_subtreeRect);
     }
     if (assign(m_contentSize, Size((bottomRight - Point(rect.p1)).v))) {
         ++counter;
     }
-    if (counter)
+    if (counter) {
         updateScrollAxes();
+        invalidate();
+    }
     return counter;
 }
 
@@ -821,8 +897,15 @@ bool Widget::setChildrenOffset(Point offset) {
 }
 
 void Widget::reposition(Point relativeOffset) {
-    m_rect       = m_rect.withOffset(relativeOffset);
-    m_clientRect = m_clientRect.withOffset(relativeOffset);
+    if (relativeOffset == Point(0, 0))
+        return;
+    invalidate();
+    m_rect        = m_rect.withOffset(relativeOffset);
+    m_clientRect  = m_clientRect.withOffset(relativeOffset);
+    m_subtreeRect = m_subtreeRect.withOffset(relativeOffset);
+    m_hintRect    = m_hintRect.withOffset(relativeOffset);
+    computeClipRect();
+    computeHintRect();
     for (const Ptr& w : *this) {
         w->reposition(relativeOffset);
     }
@@ -830,7 +913,16 @@ void Widget::reposition(Point relativeOffset) {
         m_tree->requestUpdateGeometry();
 }
 
-static void show_debug_border(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color);
+static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color);
+
+void Widget::doRefresh() {
+    if (m_autoHint && !m_isHintVisible && !m_hint.empty() && m_hoverTime >= 0.0 &&
+        frameStartTime - m_hoverTime >= 0.6) {
+        m_isHintVisible = true;
+        requestHint();
+    }
+    onRefresh();
+}
 
 void Widget::refreshTree() {
     traverse(
@@ -839,7 +931,7 @@ void Widget::refreshTree() {
             return true;
         },
         [](const Ptr& current) {
-            current->onRefresh();
+            current->doRefresh();
         });
 }
 
@@ -1019,15 +1111,13 @@ void Widget::paint(Canvas& canvas) const {
     paintBackground(canvas, m_rect);
 }
 
-Drawable Widget::drawable(RectangleF scissors) const {
-    return [w = shared_from_this(), scissors](Canvas& canvas) {
-        auto&& state    = canvas.raw().save();
-        state->scissors = scissors;
+Drawable Widget::drawable() const {
+    return [w = shared_from_this()](Canvas& canvas) {
         w->doPaint(canvas);
     };
 }
 
-static void show_debug_border(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color) {
+static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color) {
     const double displayTime = 1.0;
 
     if (elapsed < displayTime) {
@@ -1072,34 +1162,33 @@ void Widget::paintScrollBars(Canvas& canvas) const {
     }
 }
 
+constexpr int hintShadowSize = 10;
+
 void Widget::doPaint(Canvas& canvas) const {
-    if (m_clip != WidgetClip::Inherit && m_clip != WidgetClip::Children) {
-        auto&& state = canvas.raw().save();
-        if (m_clip == WidgetClip::All) {
-            state.intersectScissors(m_rect);
-        } else if (m_clip == WidgetClip::None) {
-            state->scissors = noScissors;
-        }
+    // Skip whole subtree
+    if (m_tree && !m_tree->isDirty(m_subtreeRect)) {
+        return;
+    }
+
+    auto&& state    = canvas.raw().save();
+    state->scissors = m_clipRect;
+    bool needsPaint = !m_tree || m_tree->isDirty(adjustedRect()) ||
+                      (!m_hintRect.empty() && m_tree->isDirty(adjustedHintRect()));
+    if (needsPaint) {
         if (m_painter)
             m_painter.paint(canvas, *this);
         else
             paint(canvas);
-        paintChildren(canvas);
-        postPaint(canvas);
-        paintScrollBars(canvas);
-    } else {
-        if (m_painter)
-            m_painter.paint(canvas, *this);
-        else
-            paint(canvas);
-        paintChildren(canvas);
+    }
+    paintChildren(canvas);
+    if (needsPaint) {
         postPaint(canvas);
         paintScrollBars(canvas);
     }
 
     if (Internal::debugRelayoutAndRegenerate) {
-        show_debug_border(canvas.raw(), m_rect, frameStartTime - m_regenerateTime, Palette::Standard::amber);
-        show_debug_border(canvas.raw(), m_rect, frameStartTime - m_relayoutTime, Palette::Standard::cyan);
+        showDebugBorder(canvas.raw(), m_rect, frameStartTime - m_regenerateTime, Palette::Standard::amber);
+        showDebugBorder(canvas.raw(), m_rect, frameStartTime - m_relayoutTime, Palette::Standard::cyan);
     }
     if (Internal::debugBoundaries) {
         union {
@@ -1108,9 +1197,11 @@ void Widget::doPaint(Canvas& canvas) const {
         } u;
 
         u.ptr = this;
-        show_debug_border(canvas.raw(), m_rect, 0.0, Palette::Standard::index(crc32(u.bytes, 0)));
+        showDebugBorder(canvas.raw(), m_rect, 0.0, Palette::Standard::index(crc32(u.bytes, 0)));
     }
 }
+
+constexpr Range<float> focusFrameWidth = { 1.8f, 3.0f };
 
 static float remap(float x, float inmin, float inmax, float outmin, float outmax) {
     return (x - inmin) / (inmax - inmin) * (outmax - outmin) + outmin;
@@ -1121,7 +1212,7 @@ void Widget::paintFocusFrame(Canvas& canvas_) const {
         float t = std::sin(static_cast<float>(frameStartTime * 2.5f));
         if (!m_tree)
             return;
-        float val = dp(remap(t, -1.0f, +1.0f, 1.8f, 3.0f));
+        float val = dp(remap(t, -1.0f, +1.0f, focusFrameWidth.min, focusFrameWidth.max));
         m_tree->requestLayer([val, this](Canvas& canvas) {
             canvas.raw().drawShadow(RectangleF(m_rect).withMargin(val, val),
                                     std::copysign(std::min(RectangleF(m_rect).shortestSide() * 0.5f,
@@ -1133,52 +1224,21 @@ void Widget::paintFocusFrame(Canvas& canvas_) const {
 }
 
 void Widget::paintHint(Canvas& canvas_) const {
-    std::string hint = m_hint;
-    if (hint.empty() && !m_description.empty() && m_hoverTime >= 0.0 && frameStartTime - m_hoverTime >= 0.6) {
-        hint = m_description;
-        if (!m_hintShown) {
-            m_hintShown = true;
-            requestHint();
-        }
-    }
-
-    if ((m_isHintExclusive || isHintCurrent()) && !hint.empty() && m_tree) {
-        m_tree->requestLayer([hint, this](Canvas& canvas_) {
-            RawCanvas& canvas  = canvas_.raw();
-
-            Font font          = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
-            Size textSize      = fonts->bounds(font, utf8ToUtf32(hint)).size();
-            Point p            = m_rect.at(0.5f, 1.f);
-            Rectangle hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
-            if (m_tree && !m_tree->viewportRectangle().empty()) {
-                Rectangle boundingRect = m_tree->viewportRectangle();
-
-                if (hintRect.y2 > boundingRect.y2) {
-                    p        = m_rect.at(0.5f, 0.f);
-                    hintRect = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 1.f });
-                }
-
-                if (hintRect.x1 < boundingRect.x1)
-                    hintRect.applyOffset(boundingRect.x1 - hintRect.x1, 0);
-                if (hintRect.x2 > boundingRect.x2)
-                    hintRect.applyOffset(boundingRect.x2 - hintRect.x2, 0);
-                hintRect.x2 = std::min(hintRect.x2, boundingRect.x2);
-
-                if (hintRect.y2 > boundingRect.y2)
-                    hintRect.applyOffset(0, boundingRect.y2 - hintRect.y2);
-                if (hintRect.y1 < boundingRect.y1)
-                    hintRect.applyOffset(0, boundingRect.y1 - hintRect.y1);
-                hintRect.y2 = std::min(hintRect.y2, boundingRect.y2);
-            }
-
-            ColorF color = 0xFFE9AD_rgb;
+    if ((m_isHintExclusive || isHintCurrent()) && !m_hintPrepared.lines.empty() && m_tree &&
+        m_isHintVisible) {
+        m_tree->requestLayer([this](Canvas& canvas_) {
+            RawCanvas& canvas = canvas_.raw();
+            SizeF textSize    = m_hintPrepared.bounds().size();
+            ColorF color      = 0xFFE9AD_rgb;
             ColorF shadowColor =
                 getStyleVar<ColorF>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
                     ? 0x000000'55_rgba
                     : 0x000000'AA_rgba;
-            canvas.drawShadow(hintRect, 4._dp, 0.f, contourSize = 10._dp, contourColor = shadowColor);
-            canvas.drawRectangle(hintRect, -5._dp, 0.f, fillColor = color, strokeWidth = 0.f);
-            canvas.drawText(hintRect, 0.5f, 0.5f, hint, font, Palette::black);
+            canvas.drawShadow(m_hintRect, 4._dp, 0.f, contourSize = dp(hintShadowSize),
+                              contourColor = shadowColor);
+            canvas.drawRectangle(m_hintRect, -5._dp, 0.f, fillColor = color, strokeWidth = 0.f);
+            canvas.drawText(m_hintRect.center() + m_hintTextOffset, m_hintPrepared,
+                            fillColor = Palette::black);
         });
     }
 }
@@ -1205,22 +1265,13 @@ void Widget::paintChildren(Canvas& canvas) const {
     if (m_widgets.empty())
         return;
 
-    auto&& state           = canvas.raw().save();
-
-    RectangleF newScissors = state.savedState.scissors;
-    if (m_clip == WidgetClip::Children) {
-        newScissors = RectangleF(m_rect).intersection(newScissors);
-    }
-    state->scissors = newScissors;
     for (const RC<Widget>& w : *this) {
-        if (!w->m_visible || w->m_hidden)
+        if (!w->m_visible || w->m_hidden || w->m_clipRect.empty())
             continue;
         if (m_tree && w->m_zorder != ZOrder::Normal) {
-            m_tree->requestLayer(w->drawable(noScissors));
+            m_tree->requestLayer(w->drawable());
         } else {
-            if (!RectangleF(w->m_rect).intersection(newScissors).empty()) {
-                w->doPaint(canvas);
-            }
+            w->doPaint(canvas);
         }
     }
 }
@@ -1236,13 +1287,17 @@ void Widget::processEvent(Event& event) {
     if (event.type() == EventType::MouseExited) {
         m_mousePos  = std::nullopt;
         m_hoverTime = -1.0;
-        m_hintShown = false;
+        if (m_autoHint)
+            m_isHintVisible = false;
+        invalidate();
     } else if (event.type() == EventType::MouseEntered) {
         auto mouse = event.as<EventMouse>();
         m_mousePos = mouse->point;
         if (m_hoverTime < 0.0) {
             m_hoverTime = frameStartTime;
-            m_hintShown = false;
+            if (m_autoHint)
+                m_isHintVisible = false;
+            invalidate();
         }
     } else if (auto mouse = event.as<EventMouse>()) {
         m_mousePos = mouse->point;
@@ -1264,7 +1319,7 @@ void Widget::processEvent(Event& event) {
     } else {
         this->onEvent(event);
     }
-    if (m_autoMouseCapture) {
+    if (m_autoMouseCapture && inputQueue) {
         if (pressed) {
             inputQueue->captureMouse(shared_from_this());
         } else if (released) {
@@ -1371,51 +1426,57 @@ void Widget::bubbleEvent(Event& event, WidgetState enable, WidgetState disable, 
         includePopup);
 }
 
-void Widget::updateGeometry() {
-    auto self            = shared_from_this();
-    Rectangle mouse_rect = m_rect;
+void Widget::updateGeometry(HitTestMap::State& state) {
+    auto self                     = shared_from_this();
+    Rectangle mouse_rect          = m_rect;
 
-    auto saved_state     = inputQueue->hitTest.state;
+    HitTestMap::State saved_state = state;
     if (m_zorder != ZOrder::Normal)
-        inputQueue->hitTest.state.zindex--;
+        state.zindex--;
     if (m_zorder == ZOrder::Normal)
         mouse_rect = m_rect.intersection(saved_state.scissors);
-    inputQueue->hitTest.state.scissors = mouse_rect;
-    inputQueue->hitTest.state.visible  = inputQueue->hitTest.state.visible && m_visible && !m_hidden;
+    state.scissors = mouse_rect;
+    state.visible  = state.visible && m_visible && !m_hidden;
     if (m_mouseInteraction == MouseInteraction::Enable)
-        inputQueue->hitTest.state.mouseTransparent = false;
+        state.mouseTransparent = false;
     else if (m_mouseInteraction == MouseInteraction::Disable)
-        inputQueue->hitTest.state.mouseTransparent = true;
+        state.mouseTransparent = true;
 
-    processVisibility(inputQueue->hitTest.state.visible);
+    processVisibility(state.visible);
 
-    if (m_focusCapture && inputQueue->hitTest.state.visible) {
-        inputQueue->enterFocusCapture();
+    if (inputQueue) {
+        if (m_focusCapture && state.visible) {
+            inputQueue->enterFocusCapture();
+        }
+        if (m_tabStop && state.visible) {
+            if (!state.inTabGroup)
+                ++inputQueue->hitTest.tabGroupId;
+            m_tabGroupId = inputQueue->hitTest.tabGroupId;
+            if (!state.inTabGroup)
+                ++inputQueue->hitTest.tabGroupId;
+            inputQueue->addTabStop(self);
+        }
+        state.inTabGroup = m_tabGroup;
+        if (state.visible && !state.mouseTransparent)
+            inputQueue->hitTest.add(self, mouse_rect, m_mouseAnywhere, state.zindex);
     }
-    if (m_tabStop && inputQueue->hitTest.state.visible) {
-        if (!inputQueue->hitTest.state.inTabGroup)
-            ++inputQueue->hitTest.tabGroupId;
-        m_tabGroupId = inputQueue->hitTest.tabGroupId;
-        if (!inputQueue->hitTest.state.inTabGroup)
-            ++inputQueue->hitTest.tabGroupId;
-        inputQueue->addTabStop(self);
-    }
-    inputQueue->hitTest.state.inTabGroup = m_tabGroup;
-    inputQueue->hitTest.add(self, mouse_rect, m_mouseAnywhere);
+
     for (const Ptr& w : *this) {
-        w->updateGeometry();
+        w->updateGeometry(state);
     }
     onLayoutUpdated();
-
-    if (m_focusCapture && inputQueue->hitTest.state.visible) {
-        inputQueue->leaveFocusCapture();
-    }
     m_relayoutTime = frameStartTime;
 
-    if (m_autofocus && m_isVisible) {
-        inputQueue->setAutoFocus(self);
+    if (inputQueue) {
+        if (m_focusCapture && state.visible) {
+            inputQueue->leaveFocusCapture();
+        }
+
+        if (m_autofocus && m_isVisible) {
+            inputQueue->setAutoFocus(self);
+        }
     }
-    inputQueue->hitTest.state = std::move(saved_state);
+    state = std::move(saved_state);
 }
 
 bool Widget::hasScrollBar(Orientation orientation) const noexcept {
@@ -1466,6 +1527,7 @@ void Widget::processVisibility(bool isVisible) {
     m_previouslyVisible = m_isVisible;
     m_isVisible         = isVisible;
     if (m_isVisible != m_previouslyVisible) {
+        invalidate();
         if (m_isVisible) {
             rebuild(false);
             onVisible();
@@ -1605,6 +1667,15 @@ void Widget::setState(WidgetState newState) {
 
 void Widget::stateChanged(WidgetState oldState, WidgetState newState) {
     requestStateRestyle();
+    if (hasScrollBar(Orientation::Horizontal) || hasScrollBar(Orientation::Vertical)) {
+        invalidate();
+    }
+    // If KeyFocused flag changed
+    if ((oldState ^ newState) && WidgetState::KeyFocused) {
+        if (newState && WidgetState::KeyFocused)
+            requestAnimationFrame();
+        invalidate();
+    }
     onStateChanged(oldState, newState);
 }
 
@@ -1694,6 +1765,9 @@ BRISK_INLINE static T getFallback(Widget* widget, Internal::Resolve<T> Widget::*
 
 void Widget::requestUpdates(PropFlags flags) {
 
+    if (flags && AffectHint) {
+        prepareHint();
+    }
     if (flags && AffectLayout) {
         requestUpdateLayout();
     }
@@ -1702,6 +1776,9 @@ void Widget::requestUpdates(PropFlags flags) {
     }
     if (flags && AffectFont) {
         onFontChanged();
+    }
+    if (flags && AffectPaint) {
+        invalidate();
     }
 }
 
@@ -1896,27 +1973,37 @@ std::optional<PointF> Widget::mousePos() const {
 }
 
 bool Widget::isHintCurrent() const {
-    return inputQueue->activeHint.lock() == shared_from_this();
+    return inputQueue && inputQueue->activeHint.lock() == shared_from_this();
 }
 
 void Widget::requestHint() const {
-    inputQueue->activeHint = shared_from_this();
+    if (inputQueue)
+        inputQueue->activeHint = shared_from_this();
 }
 
 bool Widget::hasFocus() const {
-    return inputQueue->focused.lock() == shared_from_this();
+    return inputQueue && inputQueue->focused.lock() == shared_from_this();
 }
 
 void Widget::blur() {
-    inputQueue->resetFocus();
+    if (inputQueue)
+        inputQueue->resetFocus();
 }
 
 void Widget::focus(bool byKeyboard) {
-    inputQueue->setFocus(shared_from_this(), byKeyboard);
+    if (inputQueue)
+        inputQueue->setFocus(shared_from_this(), byKeyboard);
 }
 
 bool Widget::isVisible() const noexcept {
     return m_isVisible;
+}
+
+void Widget::treeSet() {
+    if (m_pendingAnimationRequest) {
+        m_pendingAnimationRequest = false;
+        requestAnimationFrame();
+    }
 }
 
 void Widget::setTree(WidgetTree* tree) {
@@ -1927,6 +2014,9 @@ void Widget::setTree(WidgetTree* tree) {
         m_tree = tree;
         if (m_tree) {
             m_tree->attach(this);
+        }
+        if (m_tree) {
+            treeSet();
         }
         for (const Ptr& w : *this) {
             w->setTree(tree);
@@ -1999,10 +2089,13 @@ SizeF Widget::computeSize(AvailableSize size) {
 void Widget::requestAnimationFrame() {
     if (m_animationRequested) [[unlikely]]
         return;
-    if (!m_tree) [[unlikely]]
+    if (!m_tree) [[unlikely]] {
+        m_pendingAnimationRequest = true;
         return;
+    }
     m_animationRequested = true;
     m_tree->requestAnimationFrame(shared_from_this());
+    invalidate();
 }
 
 void Widget::requestRebuild() {
@@ -2014,14 +2107,17 @@ void Widget::requestRebuild() {
 
 void Widget::animationFrame() {
     m_animationRequested = false;
+    if (m_color.isActive() || m_borderColor.isActive() || m_backgroundColor.isActive() ||
+        m_shadowColor.isActive() || isKeyFocused())
+        requestAnimationFrame();
+
     m_color.tick(m_colorTransition, m_colorEasing);
     m_borderColor.tick(m_borderColorTransition, m_borderColorEasing);
     m_backgroundColor.tick(m_backgroundColorTransition, m_backgroundColorEasing);
     m_shadowColor.tick(shadowColorTransition, m_shadowColorEasing);
-
-    if (m_color.isActive() || m_borderColor.isActive() || m_backgroundColor.isActive() ||
-        m_shadowColor.isActive())
-        requestAnimationFrame();
+    if (isKeyFocused()) {
+        invalidate();
+    }
 
     onAnimationFrame();
 }
@@ -2113,11 +2209,11 @@ Widget* Widget::parent() const noexcept {
 }
 
 template <typename T>
-std::optional<T> Widget::getStyleVar(unsigned id) const {
+std::optional<T> Widget::getStyleVar(uint64_t id) const {
     const Widget* self = this;
     do {
-        if (id < self->m_styleVars.size()) {
-            if (const T* val = std::get_if<T>(&self->m_styleVars[id])) {
+        if (auto it = self->m_styleVars.find(id); it != self->m_styleVars.end()) {
+            if (const T* val = std::get_if<T>(&it->second)) {
                 return *val;
             }
         }
@@ -2127,19 +2223,19 @@ std::optional<T> Widget::getStyleVar(unsigned id) const {
 }
 
 template <typename T>
-T Widget::getStyleVar(unsigned id, T fallback) const {
+T Widget::getStyleVar(uint64_t id, T fallback) const {
     return getStyleVar<T>(id).value_or(fallback);
 }
 
-template std::optional<ColorF> Widget::getStyleVar<ColorF>(unsigned) const;
-template std::optional<EdgesL> Widget::getStyleVar<EdgesL>(unsigned) const;
-template std::optional<float> Widget::getStyleVar<float>(unsigned) const;
-template std::optional<int> Widget::getStyleVar<int>(unsigned) const;
+template std::optional<ColorF> Widget::getStyleVar<ColorF>(uint64_t) const;
+template std::optional<EdgesL> Widget::getStyleVar<EdgesL>(uint64_t) const;
+template std::optional<float> Widget::getStyleVar<float>(uint64_t) const;
+template std::optional<int> Widget::getStyleVar<int>(uint64_t) const;
 
-template ColorF Widget::getStyleVar<ColorF>(unsigned, ColorF) const;
-template EdgesL Widget::getStyleVar<EdgesL>(unsigned, EdgesL) const;
-template float Widget::getStyleVar<float>(unsigned, float) const;
-template int Widget::getStyleVar<int>(unsigned, int) const;
+template ColorF Widget::getStyleVar<ColorF>(uint64_t, ColorF) const;
+template EdgesL Widget::getStyleVar<EdgesL>(uint64_t, EdgesL) const;
+template float Widget::getStyleVar<float>(uint64_t, float) const;
+template int Widget::getStyleVar<int>(uint64_t, int) const;
 
 const std::string& Widget::type() const noexcept {
     return m_type;
@@ -2209,13 +2305,18 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
     ColorF m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.get());
 
     if (widget.shadowSize.resolved() > 0) {
-        auto&& state    = canvas.save();
-        state->scissors = noScissors;
-        canvas.drawShadow(rect, std::max(std::abs(widget.borderRadius.resolved().max()), dp(8.f)), 0.f,
-                          contourSize  = widget.shadowSize.resolved(),
-                          contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()),
-                          contourFlags = 2 // outer shadow only
-        );
+        auto&& state = canvas.save();
+        if (widget.parent()) {
+            if (widget.zorder != ZOrder::Normal || widget.clip == WidgetClip::None)
+                state->scissors = noScissors;
+            else
+                state->scissors = widget.parent()->clipRect();
+        }
+        canvas.drawShadow(rect,
+                          std::max(std::abs(widget.borderRadius.resolved().max()),
+                                   std::min(widget.shadowSize.resolved(), dp(8.f))),
+                          0.f, contourSize = widget.shadowSize.resolved(),
+                          contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
     }
 
     if (m_backgroundColor != ColorF(0, 0, 0, 0) || !widget.computedBorderWidth().empty()) {
@@ -2616,11 +2717,11 @@ const std::string_view propNames[numProperties]{
     /*78*/ "autoMouseCapture",
     /*79*/ "mouseAnywhere",
     /*80*/ "focusCapture",
-    /*81*/ "description",
+    /*81*/ "isHintVisible",
     /*82*/ "tabStop",
     /*83*/ "tabGroup",
     /*84*/ "autofocus",
-    /*85*/ "",
+    /*85*/ "autoHint",
     /*86*/ "",
     /*87*/ "delegate",
     /*88*/ "hint",
@@ -2724,10 +2825,11 @@ template void instantiateProp<decltype(Widget::mousePassThrough)>();
 template void instantiateProp<decltype(Widget::autoMouseCapture)>();
 template void instantiateProp<decltype(Widget::mouseAnywhere)>();
 template void instantiateProp<decltype(Widget::focusCapture)>();
-template void instantiateProp<decltype(Widget::description)>();
+template void instantiateProp<decltype(Widget::isHintVisible)>();
 template void instantiateProp<decltype(Widget::tabStop)>();
 template void instantiateProp<decltype(Widget::tabGroup)>();
 template void instantiateProp<decltype(Widget::autofocus)>();
+template void instantiateProp<decltype(Widget::autoHint)>();
 template void instantiateProp<decltype(Widget::delegate)>();
 template void instantiateProp<decltype(Widget::hint)>();
 template void instantiateProp<decltype(Widget::zorder)>();
@@ -2828,10 +2930,11 @@ const Argument<Tag::PropArg<decltype(Widget::mousePassThrough)>> mousePassThroug
 const Argument<Tag::PropArg<decltype(Widget::autoMouseCapture)>> autoMouseCapture{};
 const Argument<Tag::PropArg<decltype(Widget::mouseAnywhere)>> mouseAnywhere{};
 const Argument<Tag::PropArg<decltype(Widget::focusCapture)>> focusCapture{};
-const Argument<Tag::PropArg<decltype(Widget::description)>> description{};
+const Argument<Tag::PropArg<decltype(Widget::isHintVisible)>> isHintVisible{};
 const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop{};
 const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup{};
 const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus{};
+const Argument<Tag::PropArg<decltype(Widget::autoHint)>> autoHint{};
 const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate{};
 const Argument<Tag::PropArg<decltype(Widget::hint)>> hint{};
 const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder{};
@@ -2898,5 +3001,50 @@ int Widget::scrollOffset(Orientation orientation) const {
 void Widget::apply(const WidgetActions& action) {
     if (action.onParentSet)
         m_onParentSet.push_back(action.onParentSet);
+}
+
+void Widget::invalidate() {
+    if (!m_isVisible)
+        return;
+    if (m_tree) {
+        m_tree->invalidateRect(adjustedRect());
+        m_tree->invalidateRect(adjustedHintRect());
+    }
+}
+
+Rectangle Widget::subtreeRect() const noexcept {
+    return m_subtreeRect;
+}
+
+Rectangle Widget::clipRect() const noexcept {
+    return m_clipRect;
+}
+
+static Rectangle adjustForShadowSize(RectangleF rect, float shadowSize) {
+    RectangleF result = rect.withMargin(std::ceil(shadowSize + 1.f));
+    return result.roundOutward();
+}
+
+Rectangle Widget::fullPaintRect() const {
+    Rectangle rect = adjustedRect();
+    if (m_isHintVisible)
+        rect = rect.union_(adjustedHintRect());
+    return rect;
+}
+
+Rectangle Widget::hintRect() const noexcept {
+    return m_hintRect;
+}
+
+Rectangle Widget::adjustedRect() const noexcept {
+    float shadowSize = m_shadowSize.resolved;
+    if (isKeyFocused()) {
+        shadowSize = std::max(shadowSize, dp(focusFrameWidth.max));
+    }
+    return adjustForShadowSize(m_rect, shadowSize);
+}
+
+Rectangle Widget::adjustedHintRect() const noexcept {
+    return adjustForShadowSize(m_hintRect, dp(hintShadowSize));
 }
 } // namespace Brisk

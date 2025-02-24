@@ -104,12 +104,15 @@ protected:
     void pasteFromClipboard(std::u32string& text);
     void copyToClipboard(const std::u32string& text);
     void cutToClipboard(std::u32string& text);
+    virtual void onSelectionChanged();
+    void onRefresh() override;
 
     explicit TextEditor(Construction, ArgumentsView<TextEditor> args);
 
 private:
     void normalizeCursor(uint32_t textLen);
     void createContextMenu();
+    void selectionChanged();
 
 public:
     BRISK_PROPERTIES_BEGIN
