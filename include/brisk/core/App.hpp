@@ -21,6 +21,7 @@
 #pragma once
 
 #include <string>
+#include <array>
 
 namespace Brisk {
 
@@ -55,6 +56,31 @@ struct AppVersion {
     std::string string() const {
         return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(release) + "." +
                std::to_string(patch) + suffix;
+    }
+
+    uint64_t linear(std::array<uint32_t, 3> factors = { 0x1'0000, 0x1'0000, 0x1'0000 }) const {
+        uint64_t result = 0;
+        result += major;
+        result *= factors[0];
+        result += minor;
+        result *= factors[1];
+        result += release;
+        result *= factors[2];
+        result += patch;
+        return result;
+    }
+
+    static AppVersion fromLinear(uint64_t linear,
+                                 std::array<uint32_t, 3> factors = { 0x1'0000, 0x1'0000, 0x1'0000 }) {
+        AppVersion result;
+        result.patch = linear % factors[2];
+        linear /= factors[2];
+        result.release = linear % factors[1];
+        linear /= factors[1];
+        result.minor = linear % factors[0];
+        linear /= factors[0];
+        result.major = linear;
+        return result;
     }
 };
 
