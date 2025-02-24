@@ -30,7 +30,7 @@ constexpr inline double defaultShadowSize = 25;
 
 Rules darkColors() {
     return Rules{
-        buttonColor    = 0x292E38_rgb,
+        mainColor      = 0x292E38_rgb,
         windowColor    = 0x131419_rgb,
         selectedColor  = ColorF(0x1976E8_rgb).adjust(0),
         linkColor      = 0x378AFF_rgb,
@@ -46,7 +46,7 @@ Rules darkColors() {
 
 Rules lightColors() {
     return {
-        buttonColor    = 0xEDF1F7_rgb,
+        mainColor      = 0xEDF1F7_rgb,
         windowColor    = 0xFAFAFA_rgb,
         selectedColor  = ColorF(0x1976E8_rgb).adjust(8),
         linkColor      = 0x004DB8_rgb,
@@ -232,22 +232,19 @@ RC<const Stylesheet> stylesheet() {
                 borderRadius              = 0.f, //
                 borderWidth               = 0,
                 borderWidth | Selected    = { 0, 0, 0, 2_apx },
-                color = textColorFor(styleVar<buttonColor>, textLightColor, textDarkColor),
-                color | Hover =
-                    adjustColor(textColorFor(styleVar<buttonColor>, textLightColor, textDarkColor),
-                                +20 * 0.2f /* 1.2f */),
-                color | Pressed =
-                    adjustColor(textColorFor(styleVar<buttonColor>, textLightColor, textDarkColor),
-                                -30 * 0.2f /* 0.7f */),
-                color | Selected =
-                    adjustColor(textColorFor(styleVar<buttonColor>, textLightColor, textDarkColor),
-                                +20 * 0.2f /* 1.2f */),
+                color                     = textColorFor(styleVar<mainColor>, textLightColor, textDarkColor),
+                color | Hover = adjustColor(textColorFor(styleVar<mainColor>, textLightColor, textDarkColor),
+                                            +20 * 0.2f /* 1.2f */),
+                color | Pressed = adjustColor(
+                    textColorFor(styleVar<mainColor>, textLightColor, textDarkColor), -30 * 0.2f /* 0.7f */),
+                color | Selected = adjustColor(
+                    textColorFor(styleVar<mainColor>, textLightColor, textDarkColor), +20 * 0.2f /* 1.2f */),
                 justifyContent             = Justify::SpaceAround,
                 padding                    = { 16_apx, 5_apx, 16_apx, 5_apx },
                 padding | Selected         = { 16_apx, 5_apx, 16_apx, 3_apx },
                 textAlign                  = TextAlign::Center,
                 color | Disabled           = 0x808080_rgb,
-                backgroundColor | Disabled = adjustColor(styleVar<buttonColor>, +2.f, 0.f),
+                backgroundColor | Disabled = adjustColor(styleVar<mainColor>, +2.f, 0.f),
             },
         },
         Style{
@@ -316,11 +313,14 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ Slider::widgetType },
             {
-                borderColor           = styleVar<selectedColor>,
-                borderColor | Hover   = adjustColor(styleVar<selectedColor>, +8),
-                borderColor | Pressed = adjustColor(styleVar<selectedColor>, -8),
-                backgroundColor       = transparency(styleVar<selectedColor>, 0.65f),
-                minDimensions         = { 15_apx, 15_apx },
+                borderColor                     = styleVar<selectedColor>,
+                borderColor | Hover             = adjustColor(styleVar<selectedColor>, +8),
+                borderColor | Pressed           = adjustColor(styleVar<selectedColor>, -8),
+                borderColorTransition           = scaleValue(styleVar<animationSpeed>, 0.25),
+                borderColorTransition | Hover   = scaleValue(styleVar<animationSpeed>, 0.15),
+                borderColorTransition | Pressed = scaleValue(styleVar<animationSpeed>, 0.02),
+                backgroundColor                 = transparency(styleVar<selectedColor>, 0.65f),
+                minDimensions                   = { 15_apx, 15_apx },
             },
         },
         Style{
@@ -425,7 +425,7 @@ RC<const Stylesheet> stylesheet() {
                 shadowColor     = styleVar<shadeColor>,
                 backgroundColor = styleVar<windowColor>,
                 borderRadius    = styleVar<boxRadius>,
-                borderColor     = styleVar<buttonColor>,
+                borderColor     = styleVar<mainColor>,
                 borderWidth     = 1_apx,
                 minWidth        = 180_apx,
             },
@@ -435,7 +435,7 @@ RC<const Stylesheet> stylesheet() {
             {
                 fontWeight      = FontWeight::Bold,
                 textAlign       = TextAlign::Center,
-                backgroundColor = styleVar<buttonColor>,
+                backgroundColor = styleVar<mainColor>,
             },
         },
         Style{
@@ -489,14 +489,14 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ SpinBox::widgetType },
             {
-                borderColor      = styleVar<boxBorderColor>,
-                borderRadius     = styleVar<boxRadius>, //
-                borderWidth      = 1.f,
-                padding          = EdgesL{ 0, 0 },
-                backgroundColor  = styleVar<buttonColor>,
-                color            = textColorFor(styleVar<buttonColor>, textLightColor, textDarkColor),
-                color | Disabled = 0x808080_rgb,
-                backgroundColor | Disabled = adjustColor(styleVar<buttonColor>, +2.f, 0.f),
+                borderColor                = styleVar<boxBorderColor>,
+                borderRadius               = styleVar<boxRadius>, //
+                borderWidth                = 1.f,
+                padding                    = EdgesL{ 0, 0 },
+                backgroundColor            = styleVar<mainColor>,
+                color                      = textColorFor(styleVar<mainColor>, textLightColor, textDarkColor),
+                color | Disabled           = 0x808080_rgb,
+                backgroundColor | Disabled = adjustColor(styleVar<mainColor>, +2.f, 0.f),
             },
         },
         Style{
@@ -526,18 +526,18 @@ RC<const Stylesheet> stylesheet() {
                 colorTransition | Pressed           = scaleValue(styleVar<animationSpeed>, 0.02),
                 padding                             = { 16_apx, 5_apx },
 
-                color            = textColorFor(styleVar<buttonColor>, textLightColor, textDarkColor),
+                color            = textColorFor(styleVar<mainColor>, textLightColor, textDarkColor),
                 color | Selected = textColorFor(styleVar<selectedColor>, textLightColor, textDarkColor),
                 color | Disabled = 0x808080_rgb,
-                backgroundColor  = styleVar<buttonColor>,
-                backgroundColor | Hover    = adjustColor(styleVar<buttonColor>, +50 * 0.2f /* 1.7f */),
-                backgroundColor | Pressed  = adjustColor(styleVar<buttonColor>, -40 * 0.2f /* 0.6f */),
+                backgroundColor  = styleVar<mainColor>,
+                backgroundColor | Hover    = adjustColor(styleVar<mainColor>, +50 * 0.2f /* 1.7f */),
+                backgroundColor | Pressed  = adjustColor(styleVar<mainColor>, -40 * 0.2f /* 0.6f */),
                 backgroundColor | Selected = styleVar<selectedColor>,
                 backgroundColor | Selected | Hover =
                     adjustColor(styleVar<selectedColor>, +50 * 0.2f /* 1.7f */),
                 backgroundColor | Selected | Pressed =
                     adjustColor(styleVar<selectedColor>, -40 * 0.2f /* 0.6f */),
-                backgroundColor | Disabled = adjustColor(styleVar<buttonColor>, +2.f, 0.f),
+                backgroundColor | Disabled = adjustColor(styleVar<mainColor>, +2.f, 0.f),
             },
         },
         Style{
@@ -588,10 +588,10 @@ RC<const Stylesheet> stylesheet() {
                 backgroundColor | Pressed = 0x000000'50_rgba,
             },
         },
-        Style{ Class{ "success" }, { buttonColor = Palette::Standard::green } },
-        Style{ Class{ "warning" }, { buttonColor = Palette::Standard::yellow } },
-        Style{ Class{ "danger" }, { buttonColor = Palette::Standard::red } },
-        Style{ Class{ "info" }, { buttonColor = Palette::Standard::blue } },
+        Style{ Class{ "success" }, { mainColor = Palette::Standard::green } },
+        Style{ Class{ "warning" }, { mainColor = Palette::Standard::yellow } },
+        Style{ Class{ "danger" }, { mainColor = Palette::Standard::red } },
+        Style{ Class{ "info" }, { mainColor = Palette::Standard::blue } },
 
         Style{ Class{ "white" }, { backgroundColor = Palette::white } },
         Style{ Class{ "black" }, { backgroundColor = Palette::black } },

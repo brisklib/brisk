@@ -28,7 +28,7 @@ namespace Brisk {
 
 namespace Graphene {
 
-constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 0>> buttonColor{};
+constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 0>> mainColor{};
 constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 1>> linkColor{};
 constexpr inline Argument<StyleVariableTag<ColorF, styleVarCustomID + 2>> editorColor{};
 constexpr inline Argument<StyleVariableTag<float, styleVarCustomID + 3>> boxRadius{};

@@ -8,7 +8,7 @@ void ShowcaseBinding::onTimer() {
     if (m_buttonPtr) {
         static int n = 0;
         if (++n % 10 == 0)
-            m_buttonPtr->apply(Graphene::buttonColor = Palette::Standard::index(n / 10));
+            m_buttonPtr->apply(Graphene::mainColor = Palette::Standard::index(n / 10));
     }
 }
 

@@ -102,11 +102,11 @@ public:
         return rcnew VLayout{
             stylesheet = Graphene::stylesheet(),
             Graphene::darkColors(),
-            minWidth              = 320_apx,
-            windowColor           = 0x2E3747_rgb,
-            animationSpeed        = 0.5,
-            Graphene::buttonColor = 0x555B6E_rgb,
-            alignItems            = AlignItems::Stretch,
+            minWidth            = 320_apx,
+            windowColor         = 0x2E3747_rgb,
+            animationSpeed      = 0.5,
+            Graphene::mainColor = 0x555B6E_rgb,
+            alignItems          = AlignItems::Stretch,
             rcnew Text{
                 text              = calc.valOutput(),
                 textAlign         = TextAlign::End,
@@ -122,8 +122,8 @@ public:
             rcnew CalcRow{
                 rcnew CalcBtn{
                     "CE",
-                    Graphene::buttonColor = 0x9A202A_rgb,
-                    onClick               = lifetime() |
+                    Graphene::mainColor = 0x9A202A_rgb,
+                    onClick             = lifetime() |
                               [this] {
                                   calc.clear();
                               },
@@ -174,8 +174,8 @@ public:
                 },
                 rcnew CalcBtn{
                     ICON_divide, // "÷",
-                    Graphene::buttonColor = 0x6B7183_rgb,
-                    onClick               = lifetime() |
+                    Graphene::mainColor = 0x6B7183_rgb,
+                    onClick             = lifetime() |
                               [this] {
                                   calc.operation(MultiplicativeOperator::Divide);
                               },
@@ -205,8 +205,8 @@ public:
                 },
                 rcnew CalcBtn{
                     ICON_x, // "×",
-                    Graphene::buttonColor = 0x6B7183_rgb,
-                    onClick               = lifetime() |
+                    Graphene::mainColor = 0x6B7183_rgb,
+                    onClick             = lifetime() |
                               [this] {
                                   calc.operation(MultiplicativeOperator::Multiply);
                               },
@@ -236,8 +236,8 @@ public:
                 },
                 rcnew CalcBtn{
                     ICON_minus, //  "−",
-                    Graphene::buttonColor = 0x6B7183_rgb,
-                    onClick               = lifetime() |
+                    Graphene::mainColor = 0x6B7183_rgb,
+                    onClick             = lifetime() |
                               [this] {
                                   calc.operation(AdditiveOperator::Subtract);
                               },
@@ -267,8 +267,8 @@ public:
                 },
                 rcnew CalcBtn{
                     ICON_plus, //    "+",
-                    Graphene::buttonColor = 0x6B7183_rgb,
-                    onClick               = lifetime() |
+                    Graphene::mainColor = 0x6B7183_rgb,
+                    onClick             = lifetime() |
                               [this] {
                                   calc.operation(AdditiveOperator::Add);
                               },
@@ -298,8 +298,8 @@ public:
                 },
                 rcnew CalcBtn{
                     ICON_equal, //  "=",
-                    Graphene::buttonColor = 0x297227_rgb,
-                    onClick               = lifetime() |
+                    Graphene::mainColor = 0x297227_rgb,
+                    onClick             = lifetime() |
                               [this] {
                                   calc.solve();
                               },

@@ -113,7 +113,7 @@ TEST_CASE("WidgetRendering") {
                                                 rcnew RadioButton{ rcnew Text{ "Off" }, value = false } });
 
     widgetTest("widget-button-color", rcnew Button{ rcnew Text{ "Button with color applied" },
-                                                    Graphene::buttonColor = Palette::Standard::amber });
+                                                    Graphene::mainColor = Palette::Standard::amber });
     widgetTest("widget-button-icon", rcnew Button{
                                          rcnew Text{ "Button with icon " ICON_calendar_1 },
                                      });
