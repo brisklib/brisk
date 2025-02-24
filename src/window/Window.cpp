@@ -48,6 +48,8 @@ static BindingRegistration frameStartTime_reg{ &frameStartTime, nullptr };
 
 namespace Internal {
 
+constinit bool bufferedRendering = true;
+
 std::atomic_bool debugShowRenderTimeline{ false };
 BRISK_UI_THREAD Window* currentWindow = nullptr;
 

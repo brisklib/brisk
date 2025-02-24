@@ -54,6 +54,10 @@ struct FrameTimePredictor;
 /// Current window instance. Available in UI thread. Set in uiThreadBody
 extern Window* currentWindow;
 RC<Window> currentWindowPtr();
+
+/// Default value for Window::bufferedRendering
+extern constinit bool bufferedRendering;
+
 } // namespace Internal
 
 class PlatformWindow;
@@ -231,7 +235,7 @@ protected:
     std::mutex m_mutex;
     VisualSettings m_renderSettings{};
     std::atomic_bool m_rendering{ false }; /// true if rendering is active
-    std::atomic_bool m_bufferedRendering{ true };
+    std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
     virtual void paint(RenderContext& context, bool fullRepaint);
     virtual void paintImmediate(RenderContext& context);
     virtual void beforeFrame();
