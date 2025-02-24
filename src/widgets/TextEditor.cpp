@@ -576,7 +576,7 @@ void TextEditor::cutToClipboard(std::u32string& text) {
 void TextEditor::updateGraphemes() {
     m_preparedText = fonts->prepare(
         m_cachedFont, TextWithOptions{ m_text.empty() ? utf8ToUtf32(m_placeholder) : m_cachedText,
-                                       m_multiline ? LayoutOptions::Default : LayoutOptions::SingleLine });
+                                       m_multiline ? TextOptions::Default : TextOptions::SingleLine });
 
     m_preparedText.updateCaretData();
 }

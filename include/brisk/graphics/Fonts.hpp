@@ -46,7 +46,7 @@ public:
 
 using GlyphID = uint32_t;
 
-enum class LayoutOptions : uint32_t {
+enum class TextOptions : uint32_t {
     Default      = 0,
     SingleLine   = 1,
     WrapAnywhere = 2,
@@ -54,7 +54,7 @@ enum class LayoutOptions : uint32_t {
 };
 
 template <>
-constexpr inline bool isBitFlags<LayoutOptions> = true;
+constexpr inline bool isBitFlags<TextOptions> = true;
 
 struct OpenTypeFeatureFlag {
     OpenTypeFeature feature;
@@ -633,7 +633,7 @@ struct PreparedText {
     /**
      * @brief Layout options applied during text preparation.
      */
-    LayoutOptions options = LayoutOptions::Default;
+    TextOptions options = TextOptions::Default;
 
     /**
      * @brief Caret offsets (grapheme boundaries) within the text.
@@ -968,7 +968,7 @@ constexpr inline bool isBitFlags<Internal::FontFormatFlags> = true;
 
 struct TextWithOptions {
     std::u32string text;
-    LayoutOptions options;
+    TextOptions options;
     TextDirection defaultDirection;
     Internal::RichText richText;
 
@@ -978,27 +978,27 @@ struct TextWithOptions {
         ReflectionField{ "defaultDirection", &TextWithOptions::defaultDirection },
     };
 
-    TextWithOptions(std::string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::string_view text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
-    TextWithOptions(std::u16string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u16string_view text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
-    TextWithOptions(std::u32string_view text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u32string_view text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
-    TextWithOptions(std::u32string text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(std::u32string text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR);
 
     template <std::convertible_to<std::string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(T&& text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : TextWithOptions(std::string_view(text), options, defaultDirection) {}
 
     template <std::convertible_to<std::u16string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(T&& text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : TextWithOptions(std::u16string_view(text), options, defaultDirection) {}
 
     template <std::convertible_to<std::u32string_view> T>
-    TextWithOptions(T&& text, LayoutOptions options = LayoutOptions::Default,
+    TextWithOptions(T&& text, TextOptions options = TextOptions::Default,
                     TextDirection defaultDirection = TextDirection::LTR)
         : TextWithOptions(std::u32string_view(text), options, defaultDirection) {}
 

@@ -126,7 +126,7 @@ TEST_CASE("Renderer - fonts") {
             Rectangle{ 30, 30, 270, 120 }, 0.0f, 0.0f,
             TextWithOptions("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
                             "the <small>lazy</small> dog",
-                            LayoutOptions::HTML),
+                            TextOptions::HTML),
             Font{ "Lato", 25.f }, Palette::black);
     });
 }

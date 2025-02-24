@@ -149,7 +149,7 @@ void Text::onFontChanged() {
 }
 
 Text::Cached Text::updateCache(const CacheKey& key) {
-    PreparedText shaped = fonts->prepare(key.font, TextWithOptions(key.text, m_layoutOptions));
+    PreparedText shaped = fonts->prepare(key.font, TextWithOptions(key.text, m_textOptions));
     return { std::move(shaped) };
 }
 
