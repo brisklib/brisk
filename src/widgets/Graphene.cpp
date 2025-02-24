@@ -153,10 +153,15 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ Knob::widgetType },
             {
-                minDimensions   = { 22_apx, 22_apx },
-                borderRadius    = 50_apx,
-                backgroundColor = styleVar<deepColor>,
-                borderColor     = styleVar<selectedColor>,
+                minDimensions                   = { 22_apx, 22_apx },
+                borderRadius                    = 50_apx,
+                backgroundColor                 = styleVar<deepColor>,
+                borderColor                     = styleVar<selectedColor>,
+                borderColor | Hover             = adjustColor(styleVar<selectedColor>, +8),
+                borderColor | Pressed           = adjustColor(styleVar<selectedColor>, -8),
+                borderColorTransition           = scaleValue(styleVar<animationSpeed>, 0.25),
+                borderColorTransition | Hover   = scaleValue(styleVar<animationSpeed>, 0.15),
+                borderColorTransition | Pressed = scaleValue(styleVar<animationSpeed>, 0.02),
             },
         },
         Style{
