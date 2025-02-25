@@ -81,7 +81,7 @@ Brisk is tested with the following triplets:
 Below is an example of how to use the Brisk library in a CMake project.
 
 ```cmake
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 project(yourproject)
 
 # Locate Brisk libraries and headers
@@ -139,7 +139,7 @@ Another method for including Brisk in your CMake-based project is by using `add_
 The `BRISK_DIR` CMake variable must be set to the Brisk source directory.
 
 ```cmake
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 # Initialize Brisk CMake modules. This must be done before the first project directive.
 include(${BRISK_DIR}/cmake/brisk.cmake)

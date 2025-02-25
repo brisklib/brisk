@@ -19,8 +19,8 @@
 #
 include_guard(GLOBAL)
 
-if (CMAKE_VERSION VERSION_LESS "3.16.0")
-    message(FATAL_ERROR "At least CMake 3.16 is required for Brisk. Your version is ${CMAKE_VERSION}")
+if (CMAKE_VERSION VERSION_LESS "3.22.0")
+    message(FATAL_ERROR "At least CMake 3.22 is required for Brisk. Your version is ${CMAKE_VERSION}")
 endif ()
 
 get_filename_component(BRISK_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
