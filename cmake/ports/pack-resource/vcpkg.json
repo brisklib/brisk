@@ -1,6 +1,6 @@
 {
   "name": "pack-resource",
-  "version": "2",
+  "version": "3",
   "homepage": "https://brisklib.com",
   "license": null,
   "description": "pack_resource compresses binary files and generates C source code for embedding resources",

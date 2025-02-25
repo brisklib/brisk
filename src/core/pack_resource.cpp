@@ -68,7 +68,7 @@ extern "C" {
                         this->ident));
     }
 
-    Transferred write(const uint8_t* data, size_t size) final {
+    Transferred write(const std::byte* data, size_t size) final {
         for (size_t i = 0; i < size; ++i) {
             bool firstOnLine = numWritten % 16 == 0;
             if (numWritten && firstOnLine) {
@@ -76,7 +76,8 @@ extern "C" {
                     return Transferred::Error;
             }
             if (this->dataWriter
-                    ->write(fmt::format(fmt::runtime(firstOnLine ? "0x{:02X}" : ",0x{:02X}"), data[i]))
+                    ->write(fmt::format(fmt::runtime(firstOnLine ? "0x{:02X}" : ",0x{:02X}"),
+                                        static_cast<uint8_t>(data[i])))
                     .isError()) {
                 return Transferred::Error;
             }
