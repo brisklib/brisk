@@ -54,8 +54,7 @@ if (NOT EXISTS ${ROOT}/vcpkg_exported)
     file(MAKE_DIRECTORY ${ROOT}/vcpkg_exported)
 
     # Extract the archive
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf ${DEST_FILE} WORKING_DIRECTORY ${ROOT}/vcpkg_exported
-                                                                                      COMMAND_ERROR_IS_FATAL ANY)
+    file(ARCHIVE_EXTRACT INPUT "${DEST_FILE}" DESTINATION "${ROOT}/vcpkg_exported" VERBOSE)
 
     file(GLOB VCPKG_INSTALLED_CONTENTS ${ROOT}/vcpkg_installed/*)
     if (NOT VCPKG_INSTALLED_CONTENTS STREQUAL "")
