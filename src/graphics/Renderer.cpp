@@ -209,4 +209,9 @@ void RenderPipeline::blit(RC<Image> image) {
 Rectangle RenderPipeline::clipRect() const {
     return m_clipRect;
 }
+
+void RenderResources::reset() {
+    spriteAtlas.reset();
+    gradientAtlas.reset();
+}
 } // namespace Brisk

@@ -91,6 +91,7 @@ private:
 
     RendererDeviceSelection m_deviceSelection;
     std::unique_ptr<dawn::native::Instance> m_nativeInstance;
+    dawn::native::Adapter m_nativeAdapter;
     wgpu::Instance m_instance;
     wgpu::Adapter m_adapter;
     wgpu::Device m_device;

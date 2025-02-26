@@ -74,8 +74,7 @@ bool RenderDeviceWebGPU::createDevice() {
 
     m_nativeInstance =
         std::make_unique<dawn::native::Instance>(reinterpret_cast<WGPUInstanceDescriptor*>(&instanceDesc));
-    wgpuInstanceReference(m_nativeInstance->Get());
-    m_instance = wgpu::Instance::Acquire(m_nativeInstance->Get());
+
     wgpu::RequestAdapterOptions opt;
 #ifdef BRISK_WINDOWS
     opt.backendType = wgpu::BackendType::D3D12;
@@ -95,9 +94,8 @@ bool RenderDeviceWebGPU::createDevice() {
     }
     if (adapters.empty())
         return false;
-    dawn::native::Adapter adapter = adapters[0];
-    wgpuAdapterReference(adapter.Get());
-    m_adapter = wgpu::Adapter::Acquire(adapter.Get());
+    m_nativeAdapter = adapters[0];
+    m_adapter       = wgpu::Adapter::Acquire(m_nativeAdapter.Get());
 
     wgpu::DeviceDescriptor deviceDesc{};
     static const wgpu::FeatureName feat[] = {
@@ -124,12 +122,9 @@ bool RenderDeviceWebGPU::createDevice() {
     deviceToggleDesc.enabledToggleCount = std::size(deviceToggles);
     deviceCache.nextInChain             = &deviceToggleDesc;
 #endif
-    WGPUDevice device = adapter.CreateDevice(&deviceDesc);
-    if (!device)
+    m_device = m_adapter.CreateDevice(&deviceDesc);
+    if (!m_device)
         return false;
-
-    wgpuDeviceReference(device);
-    m_device = wgpu::Device::Acquire(device);
 
     BRISK_ASSERT(m_device.HasFeature(wgpu::FeatureName::DawnNative));
     m_device.SetUncapturedErrorCallback(
@@ -143,6 +138,8 @@ bool RenderDeviceWebGPU::createDevice() {
             LOG_INFO(wgpu, "WGPU Info: {} {}", str(wgpu::LoggingType(type)), message);
         },
         nullptr);
+
+    m_instance = wgpu::Instance::Acquire(m_nativeInstance->Get());
 
 #if 0
     std::vector<wgpu::FeatureName> features;
@@ -378,7 +375,25 @@ RC<RenderEncoder> RenderDeviceWebGPU::createEncoder() {
 }
 
 RenderDeviceWebGPU::~RenderDeviceWebGPU() {
+    m_resources.reset();
+    m_pipelineCache          = {};
+    m_device                 = nullptr;
+    m_shader                 = nullptr;
+    m_atlasSampler           = nullptr;
+    m_gradientSampler        = nullptr;
+    m_boundSampler           = nullptr;
+    m_perFrameConstantBuffer = nullptr;
+    m_bindGroupLayout        = nullptr;
+    m_dummyTexture           = nullptr;
+    m_dummyTextureView       = nullptr;
+
     m_instance.ProcessEvents();
+
+    std::ignore     = m_adapter.MoveToCHandle(); // Avoid reference decrement
+    m_nativeAdapter = nullptr;
+
+    std::ignore     = m_instance.MoveToCHandle(); // Avoid reference decrement
+    m_nativeInstance.reset();
 }
 
 bool RenderDeviceWebGPU::updateBackBuffer(BackBufferWebGPU& buffer, PixelType type,
