@@ -17,6 +17,7 @@ env:
   AWS_ENDPOINT_URL_S3: https://fra1.digitaloceanspaces.com
   VCPKG_FEATURE_FLAGS: binarycaching
   VCPKG_BINARY_SOURCES: "clear;x-aws,s3://gh-bin/bincache/,readwrite"
+  WGPU_LONG_TIMEOUT: 1
 
 jobs:
   deps-linux:
@@ -258,7 +259,7 @@ jobs:
         cmake --build build
     - name: Test
       run: |
-        WGPU_LONG_TIMEOUT=1 ctest --test-dir build --output-on-failure -E "window_autotests"
+        ctest --test-dir build --output-on-failure -E "window_autotests"
     - name: Upload test artifacts
       if: failure()
       uses: actions/upload-artifact@v4
@@ -292,7 +293,7 @@ jobs:
         cmake --build build
     - name: Test
       run: |
-        WGPU_LONG_TIMEOUT=1 ctest --test-dir build --output-on-failure -E "window_autotests"
+        ctest --test-dir build --output-on-failure -E "window_autotests"
     - name: Upload test artifacts
       if: failure()
       uses: actions/upload-artifact@v4
