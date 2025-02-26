@@ -144,6 +144,7 @@ bool RenderDeviceWebGPU::createDevice() {
         },
         nullptr);
 
+#if 0
     std::vector<wgpu::FeatureName> features;
     size_t featureCount = m_device.EnumerateFeatures(nullptr);
     features.resize(featureCount);
@@ -151,6 +152,7 @@ bool RenderDeviceWebGPU::createDevice() {
     for (wgpu::FeatureName f : features) {
         LOG_INFO(wgpu, "feature {}", str(f));
     }
+#endif
 
     return true;
 }

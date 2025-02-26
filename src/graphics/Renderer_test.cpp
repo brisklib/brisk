@@ -60,6 +60,7 @@ TEST_CASE("Renderer Info", "[gpu]") {
     fmt::print("{}\n", info);
     fmt::print("#########################################################\n");
 #endif
+    freeRenderDevice();
 }
 
 TEST_CASE("Renderer devices", "[gpu]") {
@@ -298,6 +299,7 @@ rate = {:.1f}fps)",
             windows[i].waitTime          = frameTime - beforeFrameTime;
         }
     }
+    freeRenderDevice();
 }
 #endif
 
