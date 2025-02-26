@@ -115,6 +115,15 @@ struct CpuInfo {
  */
 CpuInfo cpuInfo();
 
+struct MemoryInfo {
+    uint64_t maxrss;  /* maximum resident set size, kilobytes */
+    uint64_t majflt;  /* page faults (hard page faults) */
+    uint64_t inblock; /* block input operations */
+    uint64_t oublock; /* block output operations */
+};
+
+MemoryInfo memoryInfo();
+
 #ifdef BRISK_WINDOWS
 
 /**

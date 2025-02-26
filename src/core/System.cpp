@@ -43,4 +43,17 @@ CpuInfo cpuInfo() {
     return { buf[0].model, buf[0].speed };
 }
 
+MemoryInfo memoryInfo() {
+    uv_rusage_t usage;
+    if (uv_getrusage(&usage) < 0) {
+        return {};
+    }
+    return {
+        .maxrss  = usage.ru_maxrss,
+        .majflt  = usage.ru_majflt,
+        .inblock = usage.ru_inblock,
+        .oublock = usage.ru_oublock,
+    };
+}
+
 } // namespace Brisk
