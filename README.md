@@ -29,8 +29,8 @@ Recommended reading:
 - **Stylesheets**: Offers declarative styles to easily modify the application's look and feel.
 - **Hardware-Accelerated Graphics**: Backends include D3D11, D3D12, Vulkan, OpenGL, Metal, and WebGPU.
 - **Color Processing**: Supports various color spaces and linear color blending for physically accurate rendering.
-- **Unicode Support**: Full Unicode support, including RTL text rendering and basic localization features.
-- **Modular Architecture**: Core, Graphics, Window, GUI, and Widgets modules for versatile application development.
+- **Font support**: OpenType support, advanced shaping for non-European languages, ligatures, rich text formatting, SVG fonts, emojis, and rendering for RTL and bidirectional text.
+- **Modular Architecture**: Core, Graphics, Window, GUI, Network, and Widgets modules for versatile application development.
 
 ### Code Example
 
@@ -131,16 +131,18 @@ private:
    - **Canvas & Path**: Supports drawing with paths and Bézier curves.
    - **SVG Rasterization**: Renders SVG images into raster formats.
    - **Image Processing**: Supports image encoding, decoding, resizing, and manipulation.
-   - **Font Handling**: Manages fonts, including loading, rendering, caching, and text layout. Supports advanced text shaping (using HarfBuzz).
+   - **Font Handling**: Manages fonts, including loading, rendering, caching, and text layout. Supports advanced text shaping (using HarfBuzz) and SVG fonts (emojis).
 
 #### **Window**
    - **Clipboard**: Provides clipboard access for copy/paste functionality.
    - **OS Dialogs**: Native dialogs for file open/save, folder selection, and message boxes.
    - **Display Information**: Retrieves and manages display/monitor information from the OS.
+   - **Buffered rendering** : Brisk supports both buffered rendering, which enables partial repaints, and direct rendering to the window backbuffer.
 
 #### **GUI**
    - **Widgets**: Includes a wide variety of widgets with CSS-style flex layout.
    - **Style Sheets**: Styles your widgets using a stylesheet system that supports property inheritance.
+   Viewport-relative units are supported (`vh`, `vw`, `vmin`, `vmax)
    - **Binding Support**: Data-binding between UI elements and application data. Supports transforming values using a function on-the-fly and compound values (e.g., sums of other values).
    - **Stateful and Stateless Modes**: Choose between stateful widgets for persistent state or stateless widgets for easily rebuilding widget subtrees.
    - **Drag-and-Drop**: Supports drag-and-drop within the GUI, with the option to attach a C++ object to represent the dragged data.
