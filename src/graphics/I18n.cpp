@@ -24,21 +24,65 @@
 #include <brisk/graphics/Fonts.hpp>
 #include <utf8proc.h>
 
-#ifndef ICUDT_SIZE
-#error ICUDT_SIZE must be defined
-#endif
-
 #include <brisk/core/Time.hpp>
 #include <unicode/putil.h>
 #include <unicode/uclean.h>
 #include <unicode/ubidi.h>
 #include <unicode/brkiter.h>
+#include <unicode/udata.h>
 #include <brisk/core/Resources.hpp>
 
-// Externally declare the ICU data array. This array will hold the ICU data.
-extern "C" {
-unsigned char icudt74_dat[ICUDT_SIZE];
-}
+#include "unicode/utypes.h"
+#include "unicode/udata.h"
+#include "unicode/uversion.h"
+
+typedef struct alignas(16) {
+    uint16_t headerSize;
+    uint8_t magic1, magic2;
+    UDataInfo info;
+    char padding[8];
+    uint32_t count, reserved;
+    /*
+    const struct {
+    const char *const name;
+    const void *const data;
+    } toc[1];
+    */
+    uint64_t fakeNameAndData[2]; /* TODO:  Change this header type from */
+                                 /*        pointerTOC to OffsetTOC.     */
+} ICU_Data_Header;
+
+extern "C" U_EXPORT const ICU_Data_Header U_ICUDATA_ENTRY_POINT alignas(16) = {
+    32,   /* headerSize */
+    0xda, /* magic1,  (see struct MappedData in udata.c)  */
+    0x27, /* magic2     */
+    {
+        /*UDataInfo   */
+        sizeof(UDataInfo), /* size        */
+        0,                 /* reserved    */
+
+#if U_IS_BIG_ENDIAN
+        1,
+#else
+        0,
+#endif
+
+        U_CHARSET_FAMILY,
+        sizeof(char16_t),
+        0,                          /* reserved      */
+        { 0x54, 0x6f, 0x43, 0x50 }, /* data format identifier: "ToCP" */
+        { 1, 0, 0, 0 },             /* format version major, minor, milli, micro */
+        { 0, 0, 0, 0 }              /* dataVersion   */
+    },
+    { 's', 't', 'u', 'b', 'd', 'a', 't', 'a' }, /* Padding[8] */
+    0,                                          /* count        */
+    0,                                          /* Reserved     */
+    {
+        /*  TOC structure */
+        0, 0 /* name and data entries.  Count says there are none,  */
+             /*  but put one in just in case.                       */
+    }
+};
 
 namespace Brisk {
 
@@ -51,23 +95,23 @@ static void uncompressICUData() {
         return;
 
     // Unpack the ICU data.
-    auto&& b = Resources::load("internal/icudt.dat");
+    static const Bytes icudt = Resources::load("internal/icudt.dat");
 
-    // Assert that the size of the retrieved data matches the expected size.
-    BRISK_ASSERT(b.size() == ICUDT_SIZE);
+    UErrorCode uerr          = U_ZERO_ERROR;
+    udata_setCommonData(icudt.data(), &uerr);
+    if (uerr != UErrorCode::U_ZERO_ERROR) {
+        // Throw an exception if there was an error, including the error name.
+        throwException(EUnicode("ICU setCommonData Error: {}", u_errorName(uerr)));
+    }
 
-    // Copy the uncompressed ICU data into the external data array.
-    memcpy(icudt74_dat, b.data(), b.size());
+    icuDataInit = true;
 
-    icuDataInit     = true;
-
-    // Initialize ICU with error checking.
-    UErrorCode uerr = U_ZERO_ERROR;
+    uerr        = U_ZERO_ERROR;
     u_init(&uerr);
 
     if (uerr != UErrorCode::U_ZERO_ERROR) {
         // Throw an exception if there was an error, including the error name.
-        throwException(EUnicode("ICU Error: {}", u_errorName(uerr)));
+        throwException(EUnicode("ICU Init Error: {}", u_errorName(uerr)));
     }
 }
 

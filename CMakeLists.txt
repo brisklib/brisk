@@ -18,7 +18,7 @@
 # licensing options, please visit: https://brisklib.com
 #
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 if (NOT BRISK_ROOT)
     set(BRISK_ROOT

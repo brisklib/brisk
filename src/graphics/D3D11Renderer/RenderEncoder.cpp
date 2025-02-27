@@ -165,6 +165,7 @@ void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<
 
         context->DrawInstanced(4, cmd.instances, 0, 0);
     }
+    context->Flush();
 }
 
 void RenderEncoderD3D11::wait() {

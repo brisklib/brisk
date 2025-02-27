@@ -7,7 +7,7 @@ if (DEFINED IN
 
         if ("${IN}" IS_NEWER_THAN "${OUT}")
             message(STATUS "Executing ${CMD}")
-            execute_process(COMMAND ${CMD})
+            execute_process(COMMAND ${CMD} COMMAND_ERROR_IS_FATAL ANY)
         endif ()
 
     endfunction ()

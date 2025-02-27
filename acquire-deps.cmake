@@ -34,13 +34,8 @@ if (NOT EXISTS ${DEST_FILE})
         endif ()
         message(WARNING "Download failed, dependencies will be built using vcpkg (Status ${DOWNLOAD_STATUS_CODE})")
 
-        execute_process(
-            COMMAND vcpkg install --x-install-root ${ROOT}/vcpkg_installed --x-feature=icu ${EXTRA_VCPKG_ARGS}
-            WORKING_DIRECTORY ${ROOT}
-            RESULT_VARIABLE RESULT)
-        if (NOT RESULT EQUAL 0)
-            message(FATAL_ERROR "vcpkg install failed with exit code ${RESULT}")
-        endif ()
+        execute_process(COMMAND vcpkg install --x-install-root ${ROOT}/vcpkg_installed --x-feature=icu
+                                ${EXTRA_VCPKG_ARGS} WORKING_DIRECTORY ${ROOT} COMMAND_ERROR_IS_FATAL ANY)
     endif ()
 
     file(REMOVE_RECURSE ${ROOT}/vcpkg_exported)
@@ -59,13 +54,7 @@ if (NOT EXISTS ${ROOT}/vcpkg_exported)
     file(MAKE_DIRECTORY ${ROOT}/vcpkg_exported)
 
     # Extract the archive
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E tar xf ${DEST_FILE}
-        WORKING_DIRECTORY ${ROOT}/vcpkg_exported
-        RESULT_VARIABLE RESULT)
-    if (NOT RESULT EQUAL 0)
-        message(FATAL_ERROR "cmake -E tar failed with exit code ${RESULT}")
-    endif ()
+    file(ARCHIVE_EXTRACT INPUT "${DEST_FILE}" DESTINATION "${ROOT}/vcpkg_exported" VERBOSE)
 
     file(GLOB VCPKG_INSTALLED_CONTENTS ${ROOT}/vcpkg_installed/*)
     if (NOT VCPKG_INSTALLED_CONTENTS STREQUAL "")

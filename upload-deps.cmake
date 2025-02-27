@@ -32,33 +32,19 @@ else ()
     message("Archive does not exist on S3, trying to build")
 
     # Install vcpkg dependencies with icu feature
-    execute_process(
-        COMMAND vcpkg install --x-feature=icu
-        WORKING_DIRECTORY ${ROOT} COMMAND_ECHO STDOUT
-        RESULT_VARIABLE RESULT)
-    if (NOT RESULT EQUAL 0)
-        message(FATAL_ERROR "vcpkg install failed with exit code ${RESULT}")
-    endif ()
+    execute_process(COMMAND vcpkg install --x-feature=icu WORKING_DIRECTORY ${ROOT} COMMAND_ECHO STDOUT
+                                                                            COMMAND_ERROR_IS_FATAL ANY)
 
     # Export the package to a .tar.xz archive
     execute_process(COMMAND vcpkg export --raw --output-dir=${TEMP_DIR} --output=${VCPKG_TARGET_TRIPLET}-${DEP_HASH}
-                            COMMAND_ECHO STDOUT RESULT_VARIABLE RESULT)
-    if (NOT RESULT EQUAL 0)
-        message(FATAL_ERROR "vcpkg export failed with exit code ${RESULT}")
-    endif ()
+                            COMMAND_ECHO STDOUT COMMAND_ERROR_IS_FATAL ANY)
 
     execute_process(
         COMMAND cmake -E tar cJf ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.tar.xz .
-        WORKING_DIRECTORY ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH} COMMAND_ECHO STDOUT
-        RESULT_VARIABLE RESULT)
-    if (NOT RESULT EQUAL 0)
-        message(FATAL_ERROR "tar failed with exit code ${RESULT}")
-    endif ()
+        WORKING_DIRECTORY ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH} COMMAND_ECHO STDOUT COMMAND_ERROR_IS_FATAL
+                          ANY)
 
     # Upload the archive to S3
     execute_process(COMMAND aws s3 cp --acl public-read ${TEMP_DIR}/${VCPKG_TARGET_TRIPLET}-${DEP_HASH}.tar.xz
-                            s3://gh-bin/brisk-deps/ COMMAND_ECHO STDOUT RESULT_VARIABLE RESULT)
-    if (NOT RESULT EQUAL 0)
-        message(FATAL_ERROR "aws s3 cp failed with exit code ${RESULT}")
-    endif ()
+                            s3://gh-bin/brisk-deps/ COMMAND_ECHO STDOUT COMMAND_ERROR_IS_FATAL ANY)
 endif ()

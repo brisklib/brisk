@@ -324,7 +324,9 @@ void Canvas::drawPath(const RasterizedPath& path, const Paint& paint) {
 }
 
 Rectangle Canvas::transformedClipRect(const Matrix& matrix, RectangleF clipRect) {
-    return clipRect == noClipRect ? noClipRect : Rectangle(matrix.transform(clipRect));
+    return horizontalMax(clipRect.p1.v) <= -16777216 && horizontalMin(clipRect.p2.v) >= 16777216
+               ? noClipRect
+               : Rectangle(matrix.transform(clipRect));
 }
 
 void Canvas::strokePath(Path path) {

@@ -19,8 +19,8 @@ The "Hello, World" project will consist of three main files:
 Create a `CMakeLists.txt` file in your project directory with the following contents:
 
 ```cmake
-# Minimum supported CMake version is 3.16
-cmake_minimum_required(VERSION 3.16)
+# Minimum supported CMake version is 3.22
+cmake_minimum_required(VERSION 3.22)
 
 project(HelloWorldApp)
 

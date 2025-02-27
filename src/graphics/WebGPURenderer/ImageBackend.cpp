@@ -106,15 +106,20 @@ void ImageBackendWebGPU::readFromGPU(const ImageData<UntypedPixel>& data, Point 
                                             },
                                     });
     static bool longTimeout = std::getenv("WGPU_LONG_TIMEOUT");
-    wgpu::WaitStatus status = m_device->m_instance.WaitAny(
-        1, &future, longTimeout ? 120'000'000'000 : 5'000'000'000); // 2 minutes / 5 seconds
+    auto time               = std::chrono::high_resolution_clock::now();
+    //  Timeout is 2 minutes or 5 seconds
+    std::chrono::nanoseconds timeout{ longTimeout ? 120'000'000'000 : 5'000'000'000 };
+    wgpu::WaitStatus status = m_device->m_instance.WaitAny(1, &future, timeout.count());
     if (status == wgpu::WaitStatus::Success) {
         const UntypedPixel* bufferData =
             reinterpret_cast<const UntypedPixel*>(buffer.GetConstMappedRange(0, bufDesc.size));
         data.copyFrom(ImageData<const UntypedPixel>{ bufferData, data.size, alignedStride, data.components });
         buffer.Unmap();
     } else {
-        LOG_ERROR(wgpu, "WaitAny for MapAsync failed: {:08X}", (uint32_t)status);
+        auto dur = std::chrono::high_resolution_clock::now() - time;
+        LOG_ERROR(wgpu, "WaitAny for MapAsync failed: {:08X} after {} (timeout={})", (uint32_t)status,
+                  std::chrono::duration_cast<std::chrono::microseconds>(dur),
+                  std::chrono::duration_cast<std::chrono::microseconds>(timeout));
     }
 }
 

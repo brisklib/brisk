@@ -141,7 +141,7 @@ int wmain(int argc, wchar_t** argv) {
         }
         if (size < pngMinimumSize) {
             // write mask
-            Bytes mask((((size + 31u) & ~31u) >> 3) * size, 0);
+            Bytes mask((((size + 31u) & ~31u) >> 3) * size, std::byte{ 0 });
             if (!(*out)->writeAll(mask)) {
                 fmt::println("Cannot write ico mask");
                 return 6;

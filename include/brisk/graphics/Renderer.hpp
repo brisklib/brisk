@@ -124,6 +124,8 @@ struct RenderResources {
     std::unique_ptr<GradientAtlas> gradientAtlas;
     uint64_t firstCommand   = 0;
     uint64_t currentCommand = 0;
+
+    void reset();
 };
 
 /**

@@ -151,6 +151,7 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
             BRISK_ASSERT_MSG("Resource is too large for atlas", spriteIndices[i] != spriteNull);
             BRISK_ASSERT(spriteIndices[i] <= 16777216);
         }
+        sprite.reset(); // Free memory
     }
 
     size_t offs    = m_data.size();
@@ -180,8 +181,13 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
 }
 
 RenderPipeline::~RenderPipeline() {
-    flush();
-    m_encoder->end();
+    if (std::uncaught_exceptions() == 0) {
+        flush();
+        m_encoder->end();
+    }
+    m_textures.clear();
+    m_commands.clear();
+    m_data.clear();
 }
 
 int RenderPipeline::numBatches() const {
@@ -202,5 +208,10 @@ void RenderPipeline::blit(RC<Image> image) {
 
 Rectangle RenderPipeline::clipRect() const {
     return m_clipRect;
+}
+
+void RenderResources::reset() {
+    spriteAtlas.reset();
+    gradientAtlas.reset();
 }
 } // namespace Brisk

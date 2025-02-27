@@ -23,7 +23,9 @@ set(_RESOURCES_DATA_DIR
 
 file(MAKE_DIRECTORY ${_RESOURCES_DATA_DIR})
 
-set(BRISK_SCRIPTS_DIR ${CMAKE_CURRENT_LIST_DIR} CACHE INTERNAL "Brisk script dir")
+set(BRISK_SCRIPTS_DIR
+    ${CMAKE_CURRENT_LIST_DIR}
+    CACHE INTERNAL "Brisk script dir")
 
 find_program(PACK_RESOURCE_TOOL NAMES pack_resource REQUIRED)
 
@@ -149,7 +151,7 @@ function (brisk_bundle_resources target)
     set(resource_entries_c "${resource_dir}/entries__${target_id}.c")
 
     file(
-        WRITE ${resource_entries_c}
+        WRITE ${resource_entries_c}-tmp
         [=[
 #include <brisk/core/internal/Resources.h>
 ]=])
@@ -225,21 +227,34 @@ function (brisk_bundle_resources target)
             endif ()
 
             if (IS_MSVC)
-                set_source_files_properties(${resource_key_c} PROPERTIES GENERATED TRUE)
+
             else ()
-                file(WRITE ${resource_key_c}
+                file(WRITE ${resource_key_c}-tmp
                      "#include <brisk/core/internal/incbin.h>\n\nINCBIN(${full_key}, \"${output_file}\");\n")
-                set_source_files_properties(${resource_key_c} OBJECT_DEPENDS ${output_file})
             endif ()
         else ()
             # no filters and not MSVC
-            file(WRITE ${resource_key_c}
+            file(WRITE ${resource_key_c}-tmp
                  "#include <brisk/core/internal/incbin.h>\n\nINCBIN(${full_key}, \"${full_path}\");\n")
+        endif ()
+
+        if (NOT IS_MSVC)
+            file(COPY_FILE ${resource_key_c}-tmp ${resource_key_c} ONLY_IF_DIFFERENT)
+            file(REMOVE ${resource_key_c}-tmp)
+        endif ()
+
+        if ((NOT "${filters}" STREQUAL "") OR IS_MSVC)
+            if (IS_MSVC)
+                set_source_files_properties(${resource_key_c} PROPERTIES GENERATED TRUE)
+            else ()
+                set_source_files_properties(${resource_key_c} OBJECT_DEPENDS ${output_file})
+            endif ()
+        else ()
             set_source_files_properties(${resource_key_c} OBJECT_DEPENDS ${full_path})
         endif ()
 
         set(entries "${entries}    {\"${key}\", rsrc__${full_key}_data, &rsrc__${full_key}_size, ${rsrc_flags}}, \n")
-        file(APPEND ${resource_entries_c} "INCBIN_EXTERN(${full_key});\n")
+        file(APPEND ${resource_entries_c}-tmp "INCBIN_EXTERN(${full_key});\n")
         target_sources(${target} PRIVATE ${resource_key_c})
     endforeach ()
 
@@ -249,8 +264,12 @@ function (brisk_bundle_resources target)
         set(entries "    {0}\n")
     endif ()
 
-    file(APPEND ${resource_entries_c} "const struct ResourceEntry resourceEntries[] = {\n${entries}};\n")
-    file(APPEND ${resource_entries_c} "const uint32_t resourceEntriesSize = ${resource_count};\n")
+    file(APPEND ${resource_entries_c}-tmp "const struct ResourceEntry resourceEntries[] = {\n${entries}};\n")
+    file(APPEND ${resource_entries_c}-tmp "const uint32_t resourceEntriesSize = ${resource_count};\n")
+
+    file(COPY_FILE ${resource_entries_c}-tmp ${resource_entries_c} ONLY_IF_DIFFERENT)
+    file(REMOVE ${resource_entries_c}-tmp)
+
     target_sources(${target} PRIVATE ${resource_entries_c})
 endfunction ()
 
