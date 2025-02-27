@@ -108,7 +108,7 @@ private:
 
 ### Screenshots
 
-<img src="docs/images/Brisk-screenshot1.png" width="400" alt="Brisk screenshot"/> <img src="docs/images/Brisk-screenshot2.png" width="400" alt="Brisk screenshot"/> <img src="docs/images/Brisk-screenshot3.png" width="400" alt="Brisk screenshot"/>
+<img src="docs/images/Brisk-screenshot1.png" width="400" alt="Brisk screenshot"/> <img src="docs/images/Brisk-screenshot2.png" width="400" alt="Brisk screenshot"/> <img src="docs/images/Brisk-screenshot3.png" width="400" alt="Brisk screenshot"/> <img src="docs/images/Brisk-screenshot4.png" width="400" alt="Brisk screenshot"/>
 
 ### Modules
 
