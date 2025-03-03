@@ -525,3 +525,4 @@ fs::path tempFilePath(std::string pattern);
 std::optional<fs::path> findDirNextToExe(std::string_view dirName);
 
 } // namespace Brisk
+

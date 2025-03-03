@@ -203,10 +203,10 @@ static TextDirection toDir(UBiDiLevel level) {
     return (level & 1) ? TextDirection::RTL : TextDirection::LTR;
 }
 
-#define HANDLE_UERROR(returncode)                                                                            \
+#define HANDLE_UERROR(...)                                                                                   \
     if (U_FAILURE(uerr)) {                                                                                   \
         handleICUErr(uerr);                                                                                  \
-        return returncode;                                                                                   \
+        return __VA_ARGS__;                                                                                  \
     }
 
 namespace Internal {

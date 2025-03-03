@@ -169,7 +169,7 @@ public:
         }
         if (!headerWritten) {
             if (!writeHeader())
-                return Transferred::Error;
+                return false;
             headerWritten = true;
         }
 

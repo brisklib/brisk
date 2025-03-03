@@ -70,6 +70,10 @@ struct const_pointer_or_const_ref<T,
 };
 
 namespace detail {
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4624)
+#endif
 /// Internal utility to detect trivial copy construction.
 template<typename T> union copy_construction_triviality_helper {
     T t;
@@ -84,6 +88,9 @@ template<typename T> union move_construction_triviality_helper {
     move_construction_triviality_helper(move_construction_triviality_helper&&) = default;
     ~move_construction_triviality_helper() = default;
 };
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 template<class T>
 union trivial_helper {

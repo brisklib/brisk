@@ -1820,7 +1820,8 @@ PreparedText PreparedText::wrap(float maxWidth, bool wrapAnywhere) && {
             line.baseline = y;
             if (result.runs.size() > oldSize) {
                 result.visualOrder.resize(result.runs.size());
-                std::iota(result.visualOrder.begin() + oldSize, result.visualOrder.end(), oldSize);
+                std::iota(result.visualOrder.begin() + oldSize, result.visualOrder.end(),
+                          static_cast<uint32_t>(oldSize));
 
                 std::span<uint32_t> lineOrder = std::span{ result.visualOrder }.subspan(oldSize);
                 sortVisualOrder(lineOrder, result.runs);
