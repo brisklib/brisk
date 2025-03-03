@@ -59,6 +59,13 @@ TEST_CASE("defaultPaths") {
     fmt::println("DefaultFolder::UserData = {}", defaultFolder(DefaultFolder::UserData).string());
     fmt::println("DefaultFolder::SystemData = {}", defaultFolder(DefaultFolder::SystemData).string());
     fmt::println("DefaultFolder::Home = {}", defaultFolder(DefaultFolder::Home).string());
+    fmt::println("DefaultFolder::VendorUserData = {}", defaultFolder(DefaultFolder::VendorUserData).string());
+    fmt::println("DefaultFolder::VendorSystemData = {}",
+                 defaultFolder(DefaultFolder::VendorSystemData).string());
+    fmt::println("DefaultFolder::VendorHome = {}", defaultFolder(DefaultFolder::VendorHome).string());
+    fmt::println("DefaultFolder::AppUserData = {}", defaultFolder(DefaultFolder::AppUserData).string());
+    fmt::println("DefaultFolder::AppSystemData = {}", defaultFolder(DefaultFolder::AppSystemData).string());
+    fmt::println("DefaultFolder::AppHome = {}", defaultFolder(DefaultFolder::AppHome).string());
 }
 
 TEST_CASE("executablePath") {

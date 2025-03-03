@@ -37,6 +37,7 @@
 #endif
 #include <brisk/core/Text.hpp>
 #include <brisk/core/Utilities.hpp>
+#include <brisk/core/App.hpp>
 #include <fmt/format.h>
 #include <mutex>
 
@@ -326,6 +327,41 @@ std::optional<fs::path> findDirNextToExe(std::string_view dirName) {
             return std::nullopt;
         if (fs::path dirPath = path / dirName; fs::is_directory(dirPath))
             return dirPath;
+    }
+}
+
+fs::path platformDefaultFolder(DefaultFolder folder);
+
+static std::string strOr(std::string a, std::string_view b) {
+    return a.empty() ? std::string(b) : std::move(a);
+}
+
+constexpr static std::string_view defaultVendor = "Brisk";
+constexpr static std::string_view defaultName   = "App";
+
+fs::path defaultFolder(DefaultFolder folder) {
+    switch (folder) {
+    case DefaultFolder::Documents:
+    case DefaultFolder::Pictures:
+    case DefaultFolder::Music:
+    case DefaultFolder::UserData:
+    case DefaultFolder::SystemData:
+    case DefaultFolder::Home:
+        return platformDefaultFolder(folder);
+    case DefaultFolder::VendorUserData:
+    case DefaultFolder::VendorSystemData:
+    case DefaultFolder::VendorHome:
+        return platformDefaultFolder(static_cast<DefaultFolder>(+folder - +DefaultFolder::VendorUserData +
+                                                                +DefaultFolder::UserData)) /
+               strOr(appMetadata.vendor, defaultVendor);
+    case DefaultFolder::AppUserData:
+    case DefaultFolder::AppSystemData:
+    case DefaultFolder::AppHome:
+        return platformDefaultFolder(static_cast<DefaultFolder>(+folder - +DefaultFolder::AppUserData +
+                                                                +DefaultFolder::UserData)) /
+               strOr(appMetadata.vendor, defaultVendor) / strOr(appMetadata.name, defaultName);
+    default:
+        BRISK_UNREACHABLE();
     }
 }
 

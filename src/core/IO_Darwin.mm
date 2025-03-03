@@ -28,7 +28,7 @@
 
 namespace Brisk {
 
-fs::path defaultFolder(DefaultFolder folder) {
+fs::path platformDefaultFolder(DefaultFolder folder) {
     struct passwd* pwd = getpwuid(getuid());
     fs::path home      = pwd->pw_dir;
     fs::path root      = "/";
@@ -55,7 +55,7 @@ std::vector<fs::path> fontFolders() {
     return {
         "/System/Library/Fonts", // System font folder must be first
         "/Library/Fonts",
-        defaultFolder(DefaultFolder::Home) / "Library/Fonts",
+        platformDefaultFolder(DefaultFolder::Home) / "Library/Fonts",
     };
 }
 

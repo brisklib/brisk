@@ -30,9 +30,8 @@
 
 namespace Brisk {
 
-static fs::path cacheFolder() {
-    fs::path folder =
-        defaultFolder(DefaultFolder::UserData) / appMetadata.vendor / appMetadata.name / "gpu_cache";
+static fs::path gpuCacheFolder() {
+    fs::path folder = defaultFolder(DefaultFolder::AppUserData) / "gpu_cache";
     std::error_code ec;
     fs::create_directories(folder, ec);
     return folder;
@@ -41,7 +40,7 @@ static fs::path cacheFolder() {
 static size_t loadCached(const void* key, size_t keySize, void* value, size_t valueSize, void* userdata) {
     BytesView keyBytes(reinterpret_cast<const std::byte*>(key), keySize);
     auto hash       = sha256(keyBytes);
-    auto valueBytes = readBytes(cacheFolder() / toHex(hash));
+    auto valueBytes = readBytes(gpuCacheFolder() / toHex(hash));
     if (!valueBytes) {
         return 0;
     }
@@ -56,7 +55,7 @@ static void storeCached(const void* key, size_t keySize, const void* value, size
     BytesView keyBytes(reinterpret_cast<const std::byte*>(key), keySize);
     BytesView valueBytes(reinterpret_cast<const std::byte*>(value), valueSize);
     auto hash   = sha256(keyBytes);
-    std::ignore = writeBytes(cacheFolder() / toHex(hash), valueBytes);
+    std::ignore = writeBytes(gpuCacheFolder() / toHex(hash), valueBytes);
 }
 
 bool RenderDeviceWebGPU::createDevice() {

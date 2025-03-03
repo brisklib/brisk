@@ -31,8 +31,7 @@ Settings* settings = nullptr;
 Settings::Settings() {}
 
 fs::path Settings::path() {
-    const fs::path configfolder =
-        defaultFolder(DefaultFolder::UserData) / appMetadata.vendor / appMetadata.name / "config";
+    const fs::path configfolder = defaultFolder(DefaultFolder::AppUserData) / "config";
     fs::create_directories(configfolder);
     return configfolder / "config.json";
 }

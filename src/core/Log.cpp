@@ -36,9 +36,7 @@
 namespace Brisk {
 
 fs::path logfolder() {
-    return defaultFolder(DefaultFolder::UserData) /
-           (appMetadata.vendor.empty() ? "Brisk" : appMetadata.vendor) /
-           (appMetadata.name.empty() ? "App" : appMetadata.name) / "logs";
+    return defaultFolder(DefaultFolder::AppUserData) / "logs";
 }
 
 static std::string logFilename() {

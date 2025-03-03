@@ -400,13 +400,25 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  * for storing user-related data.
  */
 enum class DefaultFolder {
-    Documents,  ///< Represents the Documents folder.
-    Pictures,   ///< Represents the Pictures folder.
-    Music,      ///< Represents the Music folder.
-    UserData,   ///< Represents the User Data folder.
-    SystemData, ///< Represents the System Data folder.
-    Home,       ///< Represents the Home folder.
+    Documents,  ///< The Documents folder.
+    Pictures,   ///< The Pictures folder.
+    Music,      ///< The Music folder.
+    UserData,   ///< The User Data folder.
+    SystemData, ///< The System Data folder.
+    Home,       ///< User's Home folder.
+
+    VendorUserData,   ///< Vendor-specific folder inside the User Data folder.
+    VendorSystemData, ///< Vendor-specific folder inside the System Data folder.
+    VendorHome,       ///< Vendor-specific folder inside user's Home folder.
+
+    AppUserData,   ///< App-specific folder inside the User Data folder.
+    AppSystemData, ///< App-specific folder inside the System Data folder.
+    AppHome,       ///< App-specific folder inside user's Home folder.
 };
+
+constexpr auto operator+(DefaultFolder value) noexcept {
+    return static_cast<std::underlying_type_t<decltype(value)>>(value);
+}
 
 /**
  * @brief Returns the path to a specified default folder.
