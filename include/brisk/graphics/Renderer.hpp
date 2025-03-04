@@ -187,6 +187,8 @@ public:
      * @brief Waits for the rendering to finish.
      */
     virtual void wait()                                                                             = 0;
+
+    virtual RC<RenderTarget> currentTarget()                                                        = 0;
 };
 
 /**
@@ -235,6 +237,12 @@ public:
         return m_encoder;
     }
 
+    /**
+     * @brief Flushes the pipeline to issue the batched commands.
+     * @return True if some commands were sent to underlying device.
+     */
+    bool flush();
+
 private:
     RC<RenderEncoder> m_encoder;         ///< The current rendering encoder.
     RenderLimits m_limits;               ///< Resource limits for the pipeline.
@@ -244,12 +252,6 @@ private:
     std::vector<RC<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
     Rectangle m_clipRect;
-
-    /**
-     * @brief Flushes the pipeline to issue the batched commands.
-     * @return True if successful, false otherwise.
-     */
-    bool flush();
 };
 
 /**

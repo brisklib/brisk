@@ -34,9 +34,10 @@ void RenderEncoderWebGPU::setVisualSettings(const VisualSettings& visualSettings
 }
 
 void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> clear) {
-    m_queue     = m_device->m_device.GetQueue();
-    m_frameSize = target->size();
-    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(target)) {
+    m_currentTarget = std::move(target);
+    m_queue         = m_device->m_device.GetQueue();
+    m_frameSize     = m_currentTarget->size();
+    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
         win->resizeBackbuffer(m_frameSize);
     }
     {
@@ -57,7 +58,8 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 
     updatePerFrameConstantBuffer(constantPerFrame);
 
-    const BackBufferWebGPU& backBuf = dynamic_cast<BackBufferProviderWebGPU*>(target.get())->getBackBuffer();
+    const BackBufferWebGPU& backBuf =
+        dynamic_cast<BackBufferProviderWebGPU*>(m_currentTarget.get())->getBackBuffer();
 
     wgpu::RenderPassColorAttachment renderPassColorAttachment{
         .view    = backBuf.colorView,
@@ -72,7 +74,8 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 }
 
 void RenderEncoderWebGPU::end() {
-    m_queue = nullptr;
+    m_queue         = nullptr;
+    m_currentTarget = nullptr;
 }
 
 void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span<const float> data) {

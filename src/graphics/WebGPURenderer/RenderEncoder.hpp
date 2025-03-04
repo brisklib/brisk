@@ -38,11 +38,16 @@ public:
     void end() final;
     void wait() final;
 
+    RC<RenderTarget> currentTarget() {
+        return m_currentTarget;
+    }
+
     explicit RenderEncoderWebGPU(RC<RenderDeviceWebGPU> device);
     ~RenderEncoderWebGPU();
 
 private:
     RC<RenderDeviceWebGPU> m_device;
+    RC<RenderTarget> m_currentTarget;
     VisualSettings m_visualSettings;
     wgpu::Buffer m_constantBuffer;
     wgpu::Buffer m_perFrameConstantBuffer;
