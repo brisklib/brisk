@@ -47,6 +47,11 @@ void SizeGroup::beforeLayout(bool dirty) {
 }
 
 void VisualGroup::beforeFrame() {
+    std::sort(widgets.begin(), widgets.end(),
+              [n = orientation == Orientation::Horizontal ? 0 : 1](Widget* a, Widget* b) {
+                  return a->rect().center()[n] < b->rect().center()[n];
+              });
+
     for (size_t i = 0; i < widgets.size(); ++i) {
         Widget* w = widgets[i];
         int c     = 0b0000;
@@ -55,16 +60,26 @@ void VisualGroup::beforeFrame() {
             c |= orientation == Orientation::Horizontal ? +CornerFlags::Left : +CornerFlags::Top;
         } else {
             // not the first one
-            w->marginLeft      = 0;
-            w->borderWidthLeft = 0;
+            if (orientation == Orientation::Horizontal) {
+                w->marginLeft      = 0;
+                w->borderWidthLeft = 0;
+            } else {
+                w->marginTop      = 0;
+                w->borderWidthTop = 0;
+            }
         }
         if (i == widgets.size() - 1) {
             // the last one
             c |= orientation == Orientation::Horizontal ? +CornerFlags::Right : +CornerFlags::Bottom;
         } else {
             // not the last one
-            w->marginRight      = 0;
-            w->borderWidthRight = 0;
+            if (orientation == Orientation::Horizontal) {
+                w->marginRight      = 0;
+                w->borderWidthRight = 0;
+            } else {
+                w->marginBottom      = 0;
+                w->borderWidthBottom = 0;
+            }
         }
 
         w->corners = c;
