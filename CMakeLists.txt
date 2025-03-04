@@ -56,7 +56,6 @@ option(BRISK_BROTLI "Enable Brotli compression" ON)
 cmake_dependent_option(BRISK_WEBGPU "Enable WebGPU" OFF "WIN32" ON)
 cmake_dependent_option(BRISK_D3D11 "Enable D3D11 backend (Windows only)" ON "WIN32" OFF)
 option(BRISK_ICU "Link to ICU by default for full Unicode support" ON)
-option(BRISK_GONOTO "Include GoNoto font" OFF)
 option(BRISK_LOG_TO_STDERR "Write log output to stderr (Windows-specific)" OFF)
 
 message(STATUS "BRISK_D3D11: ${BRISK_D3D11}")
