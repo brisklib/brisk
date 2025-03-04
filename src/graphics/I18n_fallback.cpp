@@ -67,7 +67,7 @@ public:
 
         for (; pos <= text.size(); ++pos) {
             if (pos == text.size() || isSplit(text[pos - 1], text[pos], mode)) {
-                return pos++;
+                return static_cast<uint32_t>(pos++);
             }
         }
         return std::nullopt;

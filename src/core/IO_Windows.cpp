@@ -190,7 +190,7 @@ static REFKNOWNFOLDERID folderId(DefaultFolder folder) {
     }
 }
 
-static fs::path defaultFolder(REFKNOWNFOLDERID folder) {
+static fs::path platformDefaultFolder(REFKNOWNFOLDERID folder) {
     PWSTR pstr = nullptr;
     SHGetKnownFolderPath(folder, 0, NULL, &pstr);
     std::wstring str(pstr);
@@ -198,13 +198,13 @@ static fs::path defaultFolder(REFKNOWNFOLDERID folder) {
     return wcsToUtf8(str);
 }
 
-fs::path defaultFolder(DefaultFolder folder) {
-    return defaultFolder(folderId(folder));
+fs::path platformDefaultFolder(DefaultFolder folder) {
+    return platformDefaultFolder(folderId(folder));
 }
 
 std::vector<fs::path> fontFolders() {
-    return { defaultFolder(FOLDERID_Fonts), // System font folder must be first
-             defaultFolder(FOLDERID_LocalAppData) / "Microsoft" / "Windows" / "Fonts" };
+    return { platformDefaultFolder(FOLDERID_Fonts), // System font folder must be first
+             platformDefaultFolder(FOLDERID_LocalAppData) / "Microsoft" / "Windows" / "Fonts" };
 }
 
 fs::path executablePath() {

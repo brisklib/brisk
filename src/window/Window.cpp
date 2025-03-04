@@ -724,8 +724,16 @@ void Window::enterModal() {
 }
 
 void Window::exitModal() {
-    setStyle(getStyle() & ~WindowStyle::Disabled);
-    focus();
+    mustBeUIThread();
+    if (m_style && WindowStyle::Disabled) {
+        m_style &= ~WindowStyle::Disabled;
+        mainScheduler->dispatch([style = m_style, this] {
+            if (m_platformWindow) {
+                m_platformWindow->setStyle(style);
+                m_platformWindow->focus();
+            }
+        });
+    }
 }
 
 ModalMode::~ModalMode() {

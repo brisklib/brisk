@@ -55,7 +55,7 @@ Bytes imageEncode(ImageCodec codec, RC<Image> image, std::optional<int> quality,
     case ImageCodec::JPEG:
         return jpegEncode(std::move(image), quality, ss);
     case ImageCodec::WEBP:
-        return webpEncode(std::move(image), quality);
+        return webpEncode(std::move(image), static_cast<std::optional<float>>(quality));
     default:
         return {};
     }

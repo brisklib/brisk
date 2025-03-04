@@ -77,7 +77,7 @@ fs::path get(std::string_view envName, std::string fallback) {
 
 } // namespace
 
-fs::path defaultFolder(DefaultFolder folder) {
+fs::path platformDefaultFolder(DefaultFolder folder) {
     switch (folder) {
     case DefaultFolder::Home:
         return userHome();
