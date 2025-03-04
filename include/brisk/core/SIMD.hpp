@@ -83,10 +83,10 @@ struct alignas(std::bit_ceil(N) * sizeof(T)) SIMD {
      * @tparam U The type of the other SIMD.
      * @param value The other SIMD to copy values from.
      */
-    template <typename U>
-    explicit constexpr SIMD(const SIMD<U, N>& value) noexcept {
+    template <SIMDCompatible U>
+    explicit constexpr SIMD(SIMD<U, N> value) noexcept {
         for (size_t i = 0; i < N; i++) {
-            m_data[i] = value.m_data[i];
+            m_data[i] = static_cast<T>(value.m_data[i]);
         }
     }
 
@@ -289,7 +289,7 @@ using SIMDIndices = std::array<size_t, N>;
  * @return SIMD<T, N>& A reference to the updated SIMD object after addition.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N>& operator+=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N>& operator+=(SIMD<T, N>& lhs, SIMD<T, N> rhs) noexcept {
     for (size_t i = 0; i < N; i++) {
         lhs.m_data[i] += rhs.m_data[i];
     }
@@ -306,7 +306,7 @@ constexpr SIMD<T, N>& operator+=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcep
  * @return SIMD<T, N> A new SIMD object containing the result of the addition.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator+(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator+(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     SIMD<T, N> result(lhs);
     return result += rhs;
 }
@@ -335,7 +335,7 @@ constexpr SIMD<T, N>& operator+=(SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the addition.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator+(const SIMD<T, N>& lhs, T rhs) noexcept {
+constexpr SIMD<T, N> operator+(SIMD<T, N> lhs, T rhs) noexcept {
     return lhs + SIMD<T, N>(rhs);
 }
 
@@ -349,7 +349,7 @@ constexpr SIMD<T, N> operator+(const SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the addition.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator+(T lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator+(T lhs, SIMD<T, N> rhs) noexcept {
     return SIMD<T, N>(lhs) + rhs;
 }
 
@@ -363,7 +363,7 @@ constexpr SIMD<T, N> operator+(T lhs, const SIMD<T, N>& rhs) noexcept {
  * @return SIMD<T, N>& A reference to the updated SIMD object after subtraction.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N>& operator-=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N>& operator-=(SIMD<T, N>& lhs, SIMD<T, N> rhs) noexcept {
     for (size_t i = 0; i < N; i++) {
         lhs.m_data[i] -= rhs.m_data[i];
     }
@@ -380,7 +380,7 @@ constexpr SIMD<T, N>& operator-=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcep
  * @return SIMD<T, N> A new SIMD object containing the result of the subtraction.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator-(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator-(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     SIMD<T, N> result(lhs);
     return result -= rhs;
 }
@@ -409,7 +409,7 @@ constexpr SIMD<T, N>& operator-=(SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the subtraction.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator-(const SIMD<T, N>& lhs, T rhs) noexcept {
+constexpr SIMD<T, N> operator-(SIMD<T, N> lhs, T rhs) noexcept {
     return lhs - SIMD<T, N>(rhs);
 }
 
@@ -423,7 +423,7 @@ constexpr SIMD<T, N> operator-(const SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the subtraction.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator-(T lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator-(T lhs, SIMD<T, N> rhs) noexcept {
     return SIMD<T, N>(lhs) - rhs;
 }
 
@@ -437,7 +437,7 @@ constexpr SIMD<T, N> operator-(T lhs, const SIMD<T, N>& rhs) noexcept {
  * @return SIMD<T, N>& A reference to the updated SIMD object after multiplication.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N>& operator*=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N>& operator*=(SIMD<T, N>& lhs, SIMD<T, N> rhs) noexcept {
     for (size_t i = 0; i < N; i++) {
         lhs.m_data[i] *= rhs.m_data[i];
     }
@@ -454,7 +454,7 @@ constexpr SIMD<T, N>& operator*=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcep
  * @return SIMD<T, N> A new SIMD object containing the result of the multiplication.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator*(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator*(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     SIMD<T, N> result(lhs);
     return result *= rhs;
 }
@@ -483,7 +483,7 @@ constexpr SIMD<T, N>& operator*=(SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the multiplication.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator*(const SIMD<T, N>& lhs, T rhs) noexcept {
+constexpr SIMD<T, N> operator*(SIMD<T, N> lhs, T rhs) noexcept {
     return lhs * SIMD<T, N>(rhs);
 }
 
@@ -497,7 +497,7 @@ constexpr SIMD<T, N> operator*(const SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the multiplication.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator*(T lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator*(T lhs, SIMD<T, N> rhs) noexcept {
     return SIMD<T, N>(lhs) * rhs;
 }
 
@@ -511,7 +511,7 @@ constexpr SIMD<T, N> operator*(T lhs, const SIMD<T, N>& rhs) noexcept {
  * @return SIMD<T, N>& A reference to the updated SIMD object after division.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N>& operator/=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N>& operator/=(SIMD<T, N>& lhs, SIMD<T, N> rhs) noexcept {
     for (size_t i = 0; i < N; i++) {
         lhs.m_data[i] /= rhs.m_data[i];
     }
@@ -528,7 +528,7 @@ constexpr SIMD<T, N>& operator/=(SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcep
  * @return SIMD<T, N> A new SIMD object containing the result of the division.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator/(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator/(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     SIMD<T, N> result(lhs);
     return result /= rhs;
 }
@@ -557,7 +557,7 @@ constexpr SIMD<T, N>& operator/=(SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the division.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator/(const SIMD<T, N>& lhs, T rhs) noexcept {
+constexpr SIMD<T, N> operator/(SIMD<T, N> lhs, T rhs) noexcept {
     return lhs / SIMD<T, N>(rhs);
 }
 
@@ -571,7 +571,7 @@ constexpr SIMD<T, N> operator/(const SIMD<T, N>& lhs, T rhs) noexcept {
  * @return SIMD<T, N> A new SIMD object containing the result of the division.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator/(T lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> operator/(T lhs, SIMD<T, N> rhs) noexcept {
     return SIMD<T, N>(lhs) / rhs;
 }
 
@@ -584,7 +584,7 @@ constexpr SIMD<T, N> operator/(T lhs, const SIMD<T, N>& rhs) noexcept {
  * @return SIMD<T, N> The input SIMD object, unchanged.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> operator+(const SIMD<T, N>& lhs) noexcept {
+constexpr SIMD<T, N> operator+(SIMD<T, N> lhs) noexcept {
     return lhs;
 }
 
@@ -614,7 +614,7 @@ constexpr SIMD<T, N> operator-(SIMD<T, N> lhs) noexcept {
  * @return true if all elements are equal, false otherwise.
  */
 template <typename T, size_t N>
-constexpr bool operator==(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr bool operator==(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     for (size_t i = 0; i < N; i++) {
         if (lhs.m_data[i] != rhs.m_data[i])
             return false;
@@ -632,7 +632,7 @@ constexpr bool operator==(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept
  * @return true if any element differs, false otherwise.
  */
 template <typename T, size_t N>
-constexpr bool operator!=(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr bool operator!=(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     return !operator==(lhs, rhs);
 }
 
@@ -646,7 +646,7 @@ constexpr bool operator!=(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept
  * @return SIMDMask<N> A mask indicating which elements are equal.
  */
 template <typename T, size_t N>
-constexpr SIMDMask<N> eq(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMDMask<N> eq(SIMD<T, N> lhs, SIMD<T, N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs.m_data[i] == rhs.m_data[i];
@@ -664,7 +664,7 @@ constexpr SIMDMask<N> eq(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
  * @return SIMDMask<N> A mask indicating which elements are not equal.
  */
 template <typename T, size_t N>
-constexpr SIMDMask<N> ne(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMDMask<N> ne(SIMD<T, N> lhs, SIMD<T, N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs.m_data[i] != rhs.m_data[i];
@@ -684,7 +684,7 @@ constexpr SIMDMask<N> ne(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
  * elements in the right-hand side.
  */
 template <typename T, size_t N>
-constexpr SIMDMask<N> lt(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMDMask<N> lt(SIMD<T, N> lhs, SIMD<T, N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs.m_data[i] < rhs.m_data[i];
@@ -704,7 +704,7 @@ constexpr SIMDMask<N> lt(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
  * corresponding elements in the right-hand side.
  */
 template <typename T, size_t N>
-constexpr SIMDMask<N> gt(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMDMask<N> gt(SIMD<T, N> lhs, SIMD<T, N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs.m_data[i] > rhs.m_data[i];
@@ -724,7 +724,7 @@ constexpr SIMDMask<N> gt(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
  * corresponding elements in the right-hand side.
  */
 template <typename T, size_t N>
-constexpr SIMDMask<N> le(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMDMask<N> le(SIMD<T, N> lhs, SIMD<T, N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs.m_data[i] <= rhs.m_data[i];
@@ -744,7 +744,7 @@ constexpr SIMDMask<N> le(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
  * corresponding elements in the right-hand side.
  */
 template <typename T, size_t N>
-constexpr SIMDMask<N> ge(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMDMask<N> ge(SIMD<T, N> lhs, SIMD<T, N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs.m_data[i] >= rhs.m_data[i];
@@ -761,7 +761,7 @@ constexpr SIMDMask<N> ge(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
  * @return SIMDMask<N> A mask with the result of the OR operation applied element-wise.
  */
 template <size_t N>
-constexpr SIMDMask<N> maskOr(const SIMDMask<N>& lhs, const SIMDMask<N>& rhs) {
+constexpr SIMDMask<N> maskOr(SIMDMask<N> lhs, SIMDMask<N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs[i] || rhs[i];
@@ -778,7 +778,7 @@ constexpr SIMDMask<N> maskOr(const SIMDMask<N>& lhs, const SIMDMask<N>& rhs) {
  * @return SIMDMask<N> A mask with the result of the AND operation applied element-wise.
  */
 template <size_t N>
-constexpr SIMDMask<N> maskAnd(const SIMDMask<N>& lhs, const SIMDMask<N>& rhs) {
+constexpr SIMDMask<N> maskAnd(SIMDMask<N> lhs, SIMDMask<N> rhs) {
     SIMDMask<N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = lhs[i] && rhs[i];
@@ -794,7 +794,7 @@ constexpr SIMDMask<N> maskAnd(const SIMDMask<N>& lhs, const SIMDMask<N>& rhs) {
  * @return true if all elements are true, false otherwise.
  */
 template <size_t N>
-constexpr bool horizontalAll(const SIMDMask<N>& value) {
+constexpr bool horizontalAll(SIMDMask<N> value) {
     return [&]<size_t... indices>(size_constants<indices...>) {
         return (value[indices] && ...);
     }(size_sequence<N>{});
@@ -808,7 +808,7 @@ constexpr bool horizontalAll(const SIMDMask<N>& value) {
  * @return true if any element is true, false otherwise.
  */
 template <size_t N>
-constexpr bool horizontalAny(const SIMDMask<N>& value) {
+constexpr bool horizontalAny(SIMDMask<N> value) {
     return [&]<size_t... indices>(size_constants<indices...>) {
         return (value[indices] || ...);
     }(size_sequence<N>{});
@@ -825,7 +825,7 @@ constexpr bool horizontalAny(const SIMDMask<N>& value) {
  * @return SIMD<T, N> The resulting SIMD object with selected elements.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> select(const SIMDMask<N>& mask, const SIMD<T, N>& trueval, const SIMD<T, N>& falseval) {
+constexpr SIMD<T, N> select(SIMDMask<N> mask, SIMD<T, N> trueval, SIMD<T, N> falseval) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = mask[i] ? trueval.m_data[i] : falseval.m_data[i];
@@ -843,7 +843,7 @@ constexpr SIMD<T, N> select(const SIMDMask<N>& mask, const SIMD<T, N>& trueval, 
  * @return SIMD<T, sizeof...(indices)> The shuffled SIMD object.
  */
 template <size_t... indices, typename T, size_t N>
-constexpr SIMD<T, sizeof...(indices)> shuffle(const SIMD<T, N>& source) noexcept {
+constexpr SIMD<T, sizeof...(indices)> shuffle(SIMD<T, N> source) noexcept {
     return SIMD<T, sizeof...(indices)>{ { source.m_data[indices]... } };
 }
 
@@ -878,7 +878,7 @@ constexpr SIMD<T, (Nin + ...)> concat(const SIMD<T, Nin>&... source) noexcept {
  * @return SIMD<T, N> A SIMD object containing the element-wise minimum values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> min(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> min(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     SIMD<T, N> result;
     for (size_t i = 0; i < N; i++) {
         result.m_data[i] = std::min(lhs.m_data[i], rhs.m_data[i]);
@@ -896,7 +896,7 @@ constexpr SIMD<T, N> min(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept 
  * @return SIMD<T, N> A SIMD object containing the element-wise maximum values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> max(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr SIMD<T, N> max(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     SIMD<T, N> result;
     for (size_t i = 0; i < N; i++) {
         result.m_data[i] = std::max(lhs.m_data[i], rhs.m_data[i]);
@@ -915,7 +915,7 @@ constexpr SIMD<T, N> max(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept 
  * @return SIMD<T, N> A SIMD object with elements clamped between the low and high values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> clamp(const SIMD<T, N>& x, const SIMD<T, N>& low, const SIMD<T, N>& high) noexcept {
+constexpr SIMD<T, N> clamp(SIMD<T, N> x, SIMD<T, N> low, SIMD<T, N> high) noexcept {
     SIMD<T, N> result;
     for (size_t i = 0; i < N; i++) {
         result.m_data[i] = std::clamp(x.m_data[i], low.m_data[i], high.m_data[i]);
@@ -934,7 +934,7 @@ constexpr SIMD<T, N> clamp(const SIMD<T, N>& x, const SIMD<T, N>& low, const SIM
  * @return SIMD<T, N> The blended SIMD object.
  */
 template <int... mask, typename T, size_t N>
-constexpr SIMD<T, N> blend(const SIMD<T, N>& val0, const SIMD<T, N>& val1) noexcept
+constexpr SIMD<T, N> blend(SIMD<T, N> val0, SIMD<T, N> val1) noexcept
     requires(sizeof...(mask) == N)
 {
     return [&]<size_t... indices>(std::index_sequence<indices...>) {
@@ -984,7 +984,7 @@ constexpr T constexprCopysign(T x, T s) {
  * @return T The minimum value across all elements in the SIMD object.
  */
 template <typename T, size_t N>
-constexpr T horizontalMin(const SIMD<T, N>& lhs) noexcept {
+constexpr T horizontalMin(SIMD<T, N> lhs) noexcept {
     T result = lhs[0];
     for (size_t i = 1; i < N; i++) {
         result = std::min(result, lhs.m_data[i]);
@@ -1001,7 +1001,7 @@ constexpr T horizontalMin(const SIMD<T, N>& lhs) noexcept {
  * @return T The maximum value across all elements in the SIMD object.
  */
 template <typename T, size_t N>
-constexpr T horizontalMax(const SIMD<T, N>& lhs) noexcept {
+constexpr T horizontalMax(SIMD<T, N> lhs) noexcept {
     T result = lhs[0];
     for (size_t i = 1; i < N; i++) {
         result = std::max(result, lhs.m_data[i]);
@@ -1018,7 +1018,7 @@ constexpr T horizontalMax(const SIMD<T, N>& lhs) noexcept {
  * @return T The maximum absolute value across all elements in the SIMD object.
  */
 template <typename T, size_t N>
-constexpr T horizontalAbsMax(const SIMD<T, N>& lhs) noexcept {
+constexpr T horizontalAbsMax(SIMD<T, N> lhs) noexcept {
     T result = Internal::constexprAbs(lhs[0]);
     for (size_t i = 1; i < N; i++) {
         result = std::max(result, Internal::constexprAbs(lhs.m_data[i]));
@@ -1035,7 +1035,7 @@ constexpr T horizontalAbsMax(const SIMD<T, N>& lhs) noexcept {
  * @return T The sum of all elements in the SIMD object.
  */
 template <typename T, size_t N>
-constexpr T horizontalSum(const SIMD<T, N>& lhs) noexcept {
+constexpr T horizontalSum(SIMD<T, N> lhs) noexcept {
     T result = lhs[0];
     for (size_t i = 1; i < N; i++) {
         result += lhs.m_data[i];
@@ -1052,7 +1052,7 @@ constexpr T horizontalSum(const SIMD<T, N>& lhs) noexcept {
  * @return T The RMS value across all elements in the SIMD object.
  */
 template <typename T, size_t N>
-constexpr T horizontalRMS(const SIMD<T, N>& lhs) noexcept {
+constexpr T horizontalRMS(SIMD<T, N> lhs) noexcept {
     T result = sqr(lhs[0]);
     for (size_t i = 1; i < N; i++) {
         result += sqr(lhs.m_data[i]);
@@ -1070,7 +1070,7 @@ constexpr T horizontalRMS(const SIMD<T, N>& lhs) noexcept {
  * @return T The dot product of the two SIMD objects.
  */
 template <typename T, size_t N>
-constexpr T dot(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
+constexpr T dot(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
     T result = lhs[0] * rhs[0];
     for (size_t i = 1; i < N; i++) {
         result += lhs.m_data[i] * rhs.m_data[i];
@@ -1089,7 +1089,7 @@ constexpr T dot(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) noexcept {
  * @return SIMD<T, N> The interpolated SIMD object.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> mix(float t, const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMD<T, N> mix(float t, SIMD<T, N> lhs, SIMD<T, N> rhs) {
     return lhs * (1 - t) + rhs * t;
 }
 
@@ -1124,7 +1124,7 @@ constexpr SIMD<U, N> pow(const SIMD<T1, N>& lhs, const SIMD<T2, N>& rhs) {
  * @return SIMD<T, N> A new SIMD object with absolute values of each element.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> abs(const SIMD<T, N>& val) {
+constexpr SIMD<T, N> abs(SIMD<T, N> val) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = Internal::constexprAbs(val.m_data[i]);
@@ -1141,7 +1141,7 @@ constexpr SIMD<T, N> abs(const SIMD<T, N>& val) {
  * @return SIMD<T, N> A new SIMD object with square roots of each element.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> sqrt(const SIMD<T, N>& val) {
+constexpr SIMD<T, N> sqrt(SIMD<T, N> val) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = std::sqrt(val.m_data[i]);
@@ -1160,7 +1160,7 @@ constexpr SIMD<T, N> sqrt(const SIMD<T, N>& val) {
  * @return SIMD<T, N> A new SIMD object with alternating sine and cosine values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> sincos(const SIMD<T, N>& val)
+constexpr SIMD<T, N> sincos(SIMD<T, N> val)
     requires(N % 2 == 0)
 {
     SIMD<T, N> result{};
@@ -1182,7 +1182,7 @@ constexpr SIMD<T, N> sincos(const SIMD<T, N>& val)
  * @return SIMD<T, N> A new SIMD object with alternating cosine and sine values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> cossin(const SIMD<T, N>& val)
+constexpr SIMD<T, N> cossin(SIMD<T, N> val)
     requires(N % 2 == 0)
 {
     SIMD<T, N> result{};
@@ -1203,7 +1203,7 @@ constexpr SIMD<T, N> cossin(const SIMD<T, N>& val)
  * @return SIMD<T, N> A new SIMD object where each element has the magnitude of lhs and the sign of rhs.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> copysign(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
+constexpr SIMD<T, N> copysign(SIMD<T, N> lhs, SIMD<T, N> rhs) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = Internal::constexprCopysign(lhs.m_data[i], rhs.m_data[i]);
@@ -1220,7 +1220,7 @@ constexpr SIMD<T, N> copysign(const SIMD<T, N>& lhs, const SIMD<T, N>& rhs) {
  * @return SIMD<T, N> A new SIMD object with each element rounded.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> round(const SIMD<T, N>& val) {
+constexpr SIMD<T, N> round(SIMD<T, N> val) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = std::round(val.m_data[i]);
@@ -1237,7 +1237,7 @@ constexpr SIMD<T, N> round(const SIMD<T, N>& val) {
  * @return SIMD<T, N> A new SIMD object with floored values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> floor(const SIMD<T, N>& val) {
+constexpr SIMD<T, N> floor(SIMD<T, N> val) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = std::floor(val.m_data[i]);
@@ -1254,7 +1254,7 @@ constexpr SIMD<T, N> floor(const SIMD<T, N>& val) {
  * @return SIMD<T, N> A new SIMD object with ceiling values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> ceil(const SIMD<T, N>& val) {
+constexpr SIMD<T, N> ceil(SIMD<T, N> val) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = std::ceil(val.m_data[i]);
@@ -1271,7 +1271,7 @@ constexpr SIMD<T, N> ceil(const SIMD<T, N>& val) {
  * @return SIMD<T, N> A new SIMD object with truncated values.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> trunc(const SIMD<T, N>& val) {
+constexpr SIMD<T, N> trunc(SIMD<T, N> val) {
     SIMD<T, N> result{};
     for (size_t i = 0; i < N; i++) {
         result[i] = std::trunc(val.m_data[i]);
@@ -1290,7 +1290,7 @@ constexpr SIMD<T, N> trunc(const SIMD<T, N>& val) {
  * @return SIMD<T, N> A new SIMD object with adjacent elements swapped.
  */
 template <typename T, size_t N>
-constexpr SIMD<T, N> swapAdjacent(const SIMD<T, N>& val)
+constexpr SIMD<T, N> swapAdjacent(SIMD<T, N> val)
     requires(N % 2 == 0)
 {
     return val.shuffle(size_sequence<N>{} ^ size_constant<1>{});
@@ -1306,7 +1306,7 @@ constexpr SIMD<T, N> swapAdjacent(const SIMD<T, N>& val)
  * @return SIMD<T, Ncount * N> A new SIMD object with repeated elements.
  */
 template <size_t Ncount, typename T, size_t N>
-constexpr SIMD<T, Ncount * N> repeat(const SIMD<T, N>& val) {
+constexpr SIMD<T, Ncount * N> repeat(SIMD<T, N> val) {
     return val.shuffle(size_sequence<Ncount * N>{} % size_constant<N>{});
 }
 
