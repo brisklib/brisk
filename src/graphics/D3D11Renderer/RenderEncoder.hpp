@@ -37,7 +37,7 @@ public:
 
     RenderDevice* device() const final;
 
-    RC<RenderTarget> currentTarget() {
+    RC<RenderTarget> currentTarget() const {
         return m_currentTarget;
     }
 

@@ -188,7 +188,7 @@ public:
      */
     virtual void wait()                                                                             = 0;
 
-    virtual RC<RenderTarget> currentTarget()                                                        = 0;
+    virtual RC<RenderTarget> currentTarget() const                                                  = 0;
 };
 
 /**

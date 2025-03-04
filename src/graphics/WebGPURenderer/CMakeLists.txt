@@ -25,14 +25,13 @@ add_library(
     ImageRenderTarget.hpp
     WindowRenderTarget.hpp
     ImageBackend.hpp
-    Common.hpp
     WebGPURenderer.cpp
     RenderDevice.cpp
     RenderEncoder.cpp
     ImageRenderTarget.cpp
     WindowRenderTarget.cpp
     ImageBackend.cpp
-    Common.cpp
+    WebGPU.cpp
     RenderDevice${PLATFORM_SPECIFIC_CPP}
     WindowRenderTarget${PLATFORM_SPECIFIC_CPP})
 
