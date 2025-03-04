@@ -65,7 +65,7 @@ TEST_CASE("Renderer Info", "[gpu]") {
 
 TEST_CASE("Renderer devices", "[gpu]") {
     expected<RC<RenderDevice>, RenderDeviceError> d;
-#ifdef BRISK_WINDOWS
+#ifdef BRISK_D3D11
     d = createRenderDevice(RendererBackend::D3D11, RendererDeviceSelection::HighPerformance);
     REQUIRE(d.has_value());
     fmt::print("[D3D11] HighPerformance: {}\n", (*d)->info().device);

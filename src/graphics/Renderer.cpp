@@ -33,10 +33,6 @@ ImageBackend::~ImageBackend() = default;
 
 static RC<RenderDevice> defaultDevice;
 
-#ifdef BRISK_WINDOWS
-#define BRISK_D3D11 1
-#endif
-
 #ifdef BRISK_D3D11
 expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(
     RendererDeviceSelection deviceSelection);
@@ -60,7 +56,7 @@ expected<RC<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend
 #endif
 
 #if !defined BRISK_D3D11 && !defined BRISK_WEBGPU
-#error "Either BRISK_D3D11 or BRISK_WEBGPU must be defined"
+#error "Either BRISK_D3D11 or BRISK_WEBGPU must be defined, or both"
 #endif
 }
 

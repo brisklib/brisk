@@ -13,7 +13,7 @@ namespace Brisk {
  * @brief Specifies the rendering backends available for the platform.
  */
 enum class RendererBackend {
-#ifdef BRISK_WINDOWS
+#ifdef BRISK_D3D11
     D3D11, ///< Direct3D 11 backend available on Windows.
 #endif
 #ifdef BRISK_WEBGPU
@@ -26,7 +26,7 @@ enum class RendererBackend {
  * @brief A list of available renderer backends based on platform compilation settings.
  */
 constexpr inline std::initializer_list<RendererBackend> rendererBackends{
-#ifdef BRISK_WINDOWS
+#ifdef BRISK_D3D11
     RendererBackend::D3D11,
 #endif
 #ifdef BRISK_WEBGPU
@@ -39,7 +39,7 @@ constexpr inline std::initializer_list<RendererBackend> rendererBackends{
  */
 template <>
 inline constexpr std::initializer_list<NameValuePair<RendererBackend>> defaultNames<RendererBackend>{
-#ifdef BRISK_WINDOWS
+#ifdef BRISK_D3D11
     { "D3D11", RendererBackend::D3D11 },
 #endif
 #ifdef BRISK_WEBGPU

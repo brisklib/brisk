@@ -34,6 +34,7 @@ include(CMakeFindDependencyMacro)
 
 set(BRISK_BROTLI @BRISK_BROTLI@)
 set(BRISK_WEBGPU @BRISK_WEBGPU@)
+set(BRISK_D3D11 @BRISK_D3D11@)
 
 if (BRISK_ICU)
     target_link_libraries(Brisk::Graphics INTERFACE Brisk::I18n-ICU)

@@ -24,7 +24,7 @@ if (BRISK_WEBGPU)
     endif ()
 endif ()
 
-if (WIN32)
+if (BRISK_D3D11)
     get_property(
         _BRISK_RENDERER_D3D11
         TARGET brisk-renderer-d3d11
@@ -94,7 +94,7 @@ brisk_target_link_resource(
     INPUT ${BRISK_RESOURCES_DIR}/icu/${ICU_DT}
     BROTLI)
 
-if (WIN32)
+if (BRISK_D3D11)
     if (_EXPORT_MODE)
         set(SHADER_DIR ${BRISK_RESOURCES_DIR}/shaders)
     else ()
