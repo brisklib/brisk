@@ -35,7 +35,7 @@ WindowRenderTargetD3D11::WindowRenderTargetD3D11(RC<RenderDeviceD3D11> device, c
     Size framebufferSize    = window->framebufferSize();
 
     // D3D11 doesn't use sRGB format for buffer itself, so we should specify sRGB for view
-    DXGI_FORMAT colorFormat = dxFormatNoSrgb(m_type);
+    DXGI_FORMAT colorFormat = dxFormatNoSrgb(m_type, PixelFormat::BGRA);
 
     HRESULT hr;
     if (m_device->m_factory2) {

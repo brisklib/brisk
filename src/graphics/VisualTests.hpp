@@ -83,7 +83,8 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
     auto refImgBytes  = readBytes(fileName);
     CHECK(refImgBytes.has_value());
     if (refImgBytes.has_value()) {
-        expected<RC<Image>, ImageIOError> decodedRefImg = pngDecode(*refImgBytes);
+        expected<RC<Image>, ImageIOError> decodedRefImg =
+            pngDecode(*refImgBytes, imageFormat(PixelType::U8Gamma, Format));
         REQUIRE(decodedRefImg.has_value());
         REQUIRE((*decodedRefImg)->size() == size);
         REQUIRE((*decodedRefImg)->pixelFormat() == Format);
@@ -123,7 +124,7 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
         RC<RenderEncoder> encoder = device->createEncoder();
         encoder->setVisualSettings(VisualSettings{ .blueLightFilter = 0, .gamma = 1, .subPixelText = false });
 
-        visualTest(
+        visualTest<PixelFormat::BGRA>(
             referenceImageName, size,
             [&](RC<Image> image) {
                 if constexpr (passRenderTarget) {

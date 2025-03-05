@@ -23,8 +23,6 @@
 
 namespace Brisk {
 
-constexpr static PixelFormat format = PixelFormat::RGBA;
-
 ImageRenderTargetD3D11::ImageRenderTargetD3D11(RC<RenderDeviceD3D11> device, Size frameSize, PixelType type,
                                                DepthStencilType depthStencil, int samples)
     : m_device(std::move(device)), m_frameSize(frameSize), m_type(type), m_depthStencilType(depthStencil),
@@ -38,7 +36,7 @@ ImageRenderTargetD3D11::ImageRenderTargetD3D11(RC<RenderDeviceD3D11> device, Siz
 ImageRenderTargetD3D11::~ImageRenderTargetD3D11() = default;
 
 bool ImageRenderTargetD3D11::updateImage() {
-    m_image                    = rcnew Image(m_frameSize, imageFormat(m_type, format));
+    m_image                    = rcnew Image(m_frameSize, imageFormat(m_type, backBufferFormat));
     ImageBackendD3D11* backend = getOrCreateBackend(m_device, m_image, false, true);
     m_backBuffer.colorBuffer   = backend->m_texture;
     if (!m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilType, m_samples)) {

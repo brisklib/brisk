@@ -278,7 +278,7 @@ bool RenderDeviceD3D11::updateBackBuffer(BackBufferD3D11& buffer, PixelType type
                                          int samples) {
     D3D11_RENDER_TARGET_VIEW_DESC rtvDesc{}; // zero-initialize
     rtvDesc.ViewDimension = samples > 1 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
-    rtvDesc.Format        = linearColor ? dxFormat(type) : dxFormatNoSrgb(type);
+    rtvDesc.Format = linearColor ? dxFormat(type, backBufferFormat) : dxFormatNoSrgb(type, backBufferFormat);
 
     D3D11_TEXTURE2D_DESC colorDesc;
     buffer.colorBuffer->GetDesc(&colorDesc);

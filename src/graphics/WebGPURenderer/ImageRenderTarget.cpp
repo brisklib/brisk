@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-constexpr static PixelFormat format = PixelFormat::RGBA;
+constexpr static PixelFormat format = PixelFormat::BGRA;
 
 ImageRenderTargetWebGPU::ImageRenderTargetWebGPU(RC<RenderDeviceWebGPU> device, Size frameSize,
                                                  PixelType type, DepthStencilType depthStencil, int samples)
