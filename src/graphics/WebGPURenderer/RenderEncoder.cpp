@@ -40,11 +40,6 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
     if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
         win->resizeBackbuffer(m_frameSize);
     }
-    {
-        std::lock_guard lk(m_device->m_resources.mutex);
-        updateAtlasTexture();
-        updateGradientTexture();
-    }
 
     [[maybe_unused]] ConstantPerFrame constantPerFrame{
         SIMD<float, 4>(m_frameSize.width, m_frameSize.height, 1.f / m_frameSize.width,
@@ -71,16 +66,19 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 
     m_colorAttachment                    = renderPassColorAttachment;
     m_renderFormat                       = backBuf.color.GetFormat();
+    m_encoder                            = m_device->m_device.CreateCommandEncoder();
 }
 
 void RenderEncoderWebGPU::end() {
+    wgpu::CommandBuffer commandBuffer = m_encoder.Finish();
+    m_queue.Submit(1, &commandBuffer);
+    m_encoder       = nullptr;
     m_queue         = nullptr;
     m_currentTarget = nullptr;
 }
 
 void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span<const float> data) {
     // Preparing things
-    m_encoder = m_device->m_device.CreateCommandEncoder();
     {
         std::lock_guard lk(m_device->m_resources.mutex);
         updateAtlasTexture();
@@ -129,10 +127,7 @@ void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span
 
     // Finishing things
     m_pass.End();
-    m_pass                            = nullptr;
-    wgpu::CommandBuffer commandBuffer = m_encoder.Finish();
-    m_queue.Submit(1, &commandBuffer);
-    m_encoder                = nullptr;
+    m_pass                   = nullptr;
 
     m_colorAttachment.loadOp = wgpu::LoadOp::Load;
 }
