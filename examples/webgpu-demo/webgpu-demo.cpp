@@ -5,41 +5,12 @@
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/Graphene.hpp>
+#include <brisk/widgets/WebGPU.hpp>
 #include <brisk/gui/Component.hpp>
 #include <brisk/graphics/Fonts.hpp>
 #include "brisk/gui/Icons.hpp"
 
-#include <brisk/graphics/WebGPU.hpp>
-
 namespace Brisk {
-
-class WebGPUWidget : public Widget {
-public:
-    using Base                                   = Widget;
-    constexpr static std::string_view widgetType = "webgpu";
-
-    template <WidgetArgument... Args>
-    explicit WebGPUWidget(const Args&... args)
-        : WebGPUWidget{ Construction{ widgetType }, std::tuple{ args... } } {
-        endConstruction();
-    }
-
-protected:
-    explicit WebGPUWidget(Construction construction, ArgumentsView<WebGPUWidget> args)
-        : Base(construction, nullptr) {
-        args.apply(this);
-    }
-
-    virtual void render(wgpu::Device device, wgpu::TextureView backBuffer) const = 0;
-
-    void paint(Canvas& canvas) const override {
-        wgpu::Device device;
-        wgpu::TextureView backBuffer;
-        if (webgpuFromContext(canvas.renderContext(), device, backBuffer)) {
-            render(device, backBuffer);
-        }
-    }
-};
 
 class WebGPUCubes final : public WebGPUWidget {
 public:
