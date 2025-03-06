@@ -25,6 +25,7 @@
 #endif
 
 #include <brisk/graphics/Renderer.hpp>
+#include <brisk/graphics/Canvas.hpp>
 #include <dawn/webgpu_cpp.h>
 
 namespace Brisk {
@@ -59,15 +60,17 @@ public:
 };
 
 /**
- * Interface for providing a WebGPU command encoder. Implemented by RenderEncoder
+ * Interface for providing a WebGPU devide. Implemented by RenderEncoder
  */
-class CommandEncoderProviderWebGPU {
+class DeviceProviderWebGPU {
 public:
     /**
      * Gets the command encoder.
      * @return The WebGPU command encoder.
      */
-    virtual wgpu::CommandEncoder getEncoder() const = 0;
+    virtual wgpu::Device getDevice() const = 0;
 };
+
+bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer);
 
 } // namespace Brisk

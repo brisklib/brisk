@@ -16,8 +16,24 @@
 #ifdef BRISK_LINUX
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
-#include <wayland-client.h>
+
 #undef None
+#undef Status
+#undef True
+#undef False
+#undef Bool
+#undef RootWindow
+#undef CurrentTime
+#undef Success
+#undef DestroyAll
+#undef COUNT
+#undef CREATE
+#undef DeviceAdded
+#undef DeviceRemoved
+#undef Always
+
+#include <wayland-client.h>
+
 #endif
 
 namespace Brisk {

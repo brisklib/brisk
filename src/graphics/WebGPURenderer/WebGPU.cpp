@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/WebGPU.hpp>
+#include <brisk/core/Log.hpp>
 
 namespace Brisk {
 wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format) {
@@ -43,6 +44,48 @@ wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format) {
         // clang-format on
     };
     return formats[+format][+type];
+}
+
+bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer) {
+    RenderPipeline* pipeline = dynamic_cast<RenderPipeline*>(&context);
+    if (!pipeline) {
+        LOG_WARN(webgpu, "RenderContext doesn't implement RenderPipeline");
+        return false;
+    }
+    auto renderEncoder = pipeline->encoder();
+    if (!renderEncoder) {
+        LOG_WARN(webgpu, "RenderEncoder is null");
+        return false;
+    }
+    DeviceProviderWebGPU* encoder = dynamic_cast<DeviceProviderWebGPU*>(renderEncoder.get());
+    if (!encoder) {
+        LOG_WARN(webgpu, "RenderEncoder doesn't implement DeviceProviderWebGPU");
+        return false;
+    }
+    wgDevice = encoder->getDevice();
+    if (!wgDevice) {
+        LOG_WARN(webgpu, "encoder->getDevice() is null");
+        return false;
+    }
+
+    RC<RenderTarget> currentTarget = renderEncoder->currentTarget();
+    if (!currentTarget) {
+        LOG_WARN(webgpu, "encoder->currentTarget() is null");
+        return false;
+    }
+    BackBufferProviderWebGPU* backBufferProv = dynamic_cast<BackBufferProviderWebGPU*>(currentTarget.get());
+    if (!backBufferProv) {
+        LOG_WARN(webgpu, "RenderTarget doesn't implement BackBufferProviderWebGPU");
+        return false;
+    }
+    auto backBuf = backBufferProv->getBackBuffer();
+    if (!backBuf.color || !backBuf.colorView) {
+        LOG_WARN(webgpu, "BackBufferWebGPU has null texture");
+        return false;
+    }
+    backBuffer = backBuf.colorView;
+    pipeline->flush();
+    return true;
 }
 
 } // namespace Brisk

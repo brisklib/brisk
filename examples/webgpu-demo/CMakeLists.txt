@@ -17,10 +17,18 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
+cmake_minimum_required(VERSION 3.22)
 
-add_subdirectory(calc)
-add_subdirectory(showcase)
+project(webgpu-demo)
 
-if (BRISK_WEBGPU)
-    add_subdirectory(webgpu-demo)
+if (NOT _BRISK_INCLUDE_DIR)
+    find_package(Brisk CONFIG REQUIRED)
 endif ()
+
+add_executable(webgpu-demo webgpu-demo.cpp)
+
+target_link_libraries(webgpu-demo PRIVATE brisk-widgets brisk-executable decNumber)
+
+brisk_target_remove_resources(webgpu-demo fonts/default/bold.ttf fonts/default/light.ttf)
+
+brisk_setup_executable(webgpu-demo)

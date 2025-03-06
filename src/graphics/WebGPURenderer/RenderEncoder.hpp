@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-class RenderEncoderWebGPU final : public RenderEncoder, public CommandEncoderProviderWebGPU {
+class RenderEncoderWebGPU final : public RenderEncoder, public DeviceProviderWebGPU {
 public:
     RenderDevice* device() const final {
         return m_device.get();
@@ -42,8 +42,8 @@ public:
         return m_currentTarget;
     }
 
-    wgpu::CommandEncoder getEncoder() const {
-        return m_encoder;
+    wgpu::Device getDevice() const {
+        return m_device->m_device;
     }
 
     explicit RenderEncoderWebGPU(RC<RenderDeviceWebGPU> device);

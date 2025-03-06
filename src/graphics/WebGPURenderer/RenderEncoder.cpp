@@ -66,18 +66,15 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 
     m_colorAttachment                    = renderPassColorAttachment;
     m_renderFormat                       = backBuf.color.GetFormat();
-    m_encoder                            = m_device->m_device.CreateCommandEncoder();
 }
 
 void RenderEncoderWebGPU::end() {
-    wgpu::CommandBuffer commandBuffer = m_encoder.Finish();
-    m_queue.Submit(1, &commandBuffer);
-    m_encoder       = nullptr;
     m_queue         = nullptr;
     m_currentTarget = nullptr;
 }
 
 void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span<const float> data) {
+    m_encoder                            = m_device->m_device.CreateCommandEncoder();
     // Preparing things
     {
         std::lock_guard lk(m_device->m_resources.mutex);
@@ -128,6 +125,9 @@ void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span
     // Finishing things
     m_pass.End();
     m_pass                   = nullptr;
+    wgpu::CommandBuffer commandBuffer = m_encoder.Finish();
+    m_queue.Submit(1, &commandBuffer);
+    m_encoder       = nullptr;
 
     m_colorAttachment.loadOp = wgpu::LoadOp::Load;
 }
