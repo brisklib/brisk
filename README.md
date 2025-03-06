@@ -151,6 +151,7 @@ private:
    - **Widgets**: Includes buttons, lists, comboboxes, toggle switches, radio buttons, progress bars, sliders, scroll boxes, checkboxes, popup buttons, tabs, tables, spin boxes, dialogs, and more. All public properties are styleable and bindable.
    - **Layouts**: Supports CSS flexbox-style layouts.
    - **Text Editors**: Provides text editing widgets with LTR and RTL text support.
+   - **WebGPU**: Ability to render 3D content to the window using the WebGPU API (backed by Google's Dawn), with full support for composition with the UI.
 
 ### Requirements ⚙️
 - **C++20 Compiler**: Brisk requires a C++20-compatible compiler such as MSVC 2022, Clang, XCode, or GCC.

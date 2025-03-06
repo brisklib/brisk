@@ -83,7 +83,8 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
     auto refImgBytes  = readBytes(fileName);
     CHECK(refImgBytes.has_value());
     if (refImgBytes.has_value()) {
-        expected<RC<Image>, ImageIOError> decodedRefImg = pngDecode(*refImgBytes);
+        expected<RC<Image>, ImageIOError> decodedRefImg =
+            pngDecode(*refImgBytes, imageFormat(PixelType::U8Gamma, Format));
         REQUIRE(decodedRefImg.has_value());
         REQUIRE((*decodedRefImg)->size() == size);
         REQUIRE((*decodedRefImg)->pixelFormat() == Format);
@@ -100,11 +101,15 @@ static void visualTestMono(const std::string& referenceImageName, Size size, Fn&
     visualTest<PixelFormat::Greyscale>(referenceImageName, size, std::forward<Fn>(fn), maximumDiff);
 }
 
+inline ColorF defaultBackColor  = Palette::transparent;
+inline float defaultMaximumDiff = 0.05f;
+
 template <bool passRenderTarget = false, typename Fn>
 static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn,
-                       ColorF backColor = Palette::transparent, float maximumDiff = 0.05f) {
+                       ColorF backColor = defaultBackColor, float maximumDiff = defaultMaximumDiff,
+                       std::initializer_list<RendererBackend> backends = rendererBackends) {
 
-    for (RendererBackend bk : rendererBackends) {
+    for (RendererBackend bk : backends) {
         INFO(fmt::to_string(bk));
         expected<RC<RenderDevice>, RenderDeviceError> device_ =
             createRenderDevice(bk, RendererDeviceSelection::Default);
@@ -123,7 +128,7 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
         RC<RenderEncoder> encoder = device->createEncoder();
         encoder->setVisualSettings(VisualSettings{ .blueLightFilter = 0, .gamma = 1, .subPixelText = false });
 
-        visualTest(
+        visualTest<PixelFormat::BGRA>(
             referenceImageName, size,
             [&](RC<Image> image) {
                 if constexpr (passRenderTarget) {

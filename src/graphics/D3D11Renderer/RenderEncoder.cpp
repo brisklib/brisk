@@ -36,9 +36,10 @@ void RenderEncoderD3D11::setVisualSettings(const VisualSettings& visualSettings)
 }
 
 void RenderEncoderD3D11::begin(RC<RenderTarget> target, std::optional<ColorF> clear) {
+    m_currentTarget                     = std::move(target);
     ComPtr<ID3D11DeviceContext> context = m_device->m_context;
-    m_frameSize                         = target->size();
-    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(target)) {
+    m_frameSize                         = m_currentTarget->size();
+    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
         win->resizeBackbuffer(m_frameSize);
     }
     D3D11_VIEWPORT viewport{}; // zero-initialize
@@ -66,7 +67,8 @@ void RenderEncoderD3D11::begin(RC<RenderTarget> target, std::optional<ColorF> cl
     context->VSSetShaderResources(10, 1, dataSRV);
     context->PSSetShaderResources(10, 1, dataSRV);
 
-    const BackBufferD3D11& backBuf = dynamic_cast<BackBufferProviderD3D11*>(target.get())->getBackBuffer();
+    const BackBufferD3D11& backBuf =
+        dynamic_cast<BackBufferProviderD3D11*>(m_currentTarget.get())->getBackBuffer();
     ID3D11RenderTargetView* rtvList[1] = { backBuf.rtv.Get() };
     context->OMSetRenderTargets(1, rtvList, nullptr);
 
@@ -96,6 +98,7 @@ void RenderEncoderD3D11::end() {
     HRESULT hr = m_device->m_device->CreateQuery(&queryDesc, m_query.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return);
     context->End(m_query.Get());
+    m_currentTarget = nullptr;
 }
 
 void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<const float> data) {

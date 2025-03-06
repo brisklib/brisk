@@ -20,16 +20,31 @@
  */
 #pragma once
 
-#include <brisk/graphics/Renderer.hpp>
-#include "dawn/webgpu_cpp.h"
+#ifndef BRISK_WEBGPU
+#error "Brisk was compiled without WebGPU support"
+#endif
+
+#include <brisk/gui/GUI.hpp>
+#include <brisk/graphics/WebGPU.hpp>
 
 namespace Brisk {
 
-wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format = PixelFormat::RGBA);
+class WebGPUWidget : public Widget {
+public:
+    using Base                                   = Widget;
+    constexpr static std::string_view widgetType = "webgpu";
 
-struct BackBufferWebGPU {
-    wgpu::Texture color;
-    wgpu::TextureView colorView;
+    template <WidgetArgument... Args>
+    explicit WebGPUWidget(const Args&... args)
+        : WebGPUWidget{ Construction{ widgetType }, std::tuple{ args... } } {
+        endConstruction();
+    }
+
+protected:
+    explicit WebGPUWidget(Construction construction, ArgumentsView<WebGPUWidget> args);
+
+    virtual void render(wgpu::Device device, wgpu::TextureView backBuffer) const = 0;
+
+    void paint(Canvas& canvas) const override;
 };
-
 } // namespace Brisk

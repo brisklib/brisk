@@ -37,11 +37,16 @@ public:
 
     RenderDevice* device() const final;
 
+    RC<RenderTarget> currentTarget() const {
+        return m_currentTarget;
+    }
+
     explicit RenderEncoderD3D11(RC<RenderDeviceD3D11> device);
     ~RenderEncoderD3D11();
 
 private:
     RC<RenderDeviceD3D11> m_device;
+    RC<RenderTarget> m_currentTarget;
     VisualSettings m_visualSettings;
     ComPtr<ID3D11Query> m_query;
     ComPtr<ID3D11Buffer> m_constantBuffer;

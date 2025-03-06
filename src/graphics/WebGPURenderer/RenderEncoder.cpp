@@ -34,15 +34,11 @@ void RenderEncoderWebGPU::setVisualSettings(const VisualSettings& visualSettings
 }
 
 void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> clear) {
-    m_queue     = m_device->m_device.GetQueue();
-    m_frameSize = target->size();
-    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(target)) {
+    m_currentTarget = std::move(target);
+    m_queue         = m_device->m_device.GetQueue();
+    m_frameSize     = m_currentTarget->size();
+    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
         win->resizeBackbuffer(m_frameSize);
-    }
-    {
-        std::lock_guard lk(m_device->m_resources.mutex);
-        updateAtlasTexture();
-        updateGradientTexture();
     }
 
     [[maybe_unused]] ConstantPerFrame constantPerFrame{
@@ -57,7 +53,8 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 
     updatePerFrameConstantBuffer(constantPerFrame);
 
-    const BackBufferWebGPU& backBuf = dynamic_cast<BackBufferProviderWebGPU*>(target.get())->getBackBuffer();
+    const BackBufferWebGPU& backBuf =
+        dynamic_cast<BackBufferProviderWebGPU*>(m_currentTarget.get())->getBackBuffer();
 
     wgpu::RenderPassColorAttachment renderPassColorAttachment{
         .view    = backBuf.colorView,
@@ -72,12 +69,13 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 }
 
 void RenderEncoderWebGPU::end() {
-    m_queue = nullptr;
+    m_queue         = nullptr;
+    m_currentTarget = nullptr;
 }
 
 void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span<const float> data) {
+    m_encoder                            = m_device->m_device.CreateCommandEncoder();
     // Preparing things
-    m_encoder = m_device->m_device.CreateCommandEncoder();
     {
         std::lock_guard lk(m_device->m_resources.mutex);
         updateAtlasTexture();
@@ -126,10 +124,10 @@ void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span
 
     // Finishing things
     m_pass.End();
-    m_pass                            = nullptr;
+    m_pass                   = nullptr;
     wgpu::CommandBuffer commandBuffer = m_encoder.Finish();
     m_queue.Submit(1, &commandBuffer);
-    m_encoder                = nullptr;
+    m_encoder       = nullptr;
 
     m_colorAttachment.loadOp = wgpu::LoadOp::Load;
 }

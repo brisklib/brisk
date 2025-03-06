@@ -80,11 +80,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 endif ()
 target_compile_definitions(brisk-graphics PRIVATE V_NAMESPACE=Brisk)
 
-if (WIN32)
-
+if (BRISK_D3D11)
     set(D3D11_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR})
     add_subdirectory(D3D11Renderer)
     target_link_libraries(brisk-graphics PUBLIC brisk-renderer-d3d11)
+    target_compile_definitions(brisk-renderer-d3d11 PUBLIC BRISK_D3D11=1)
 endif ()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")

@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include "Common.hpp"
+#include <brisk/graphics/WebGPU.hpp>
 
 #include <brisk/graphics/Renderer.hpp>
 #include <dawn/native/DawnNative.h>
@@ -115,11 +115,6 @@ private:
     void wait();
     wgpu::RenderPipeline createPipeline(wgpu::TextureFormat renderFormat, bool dualSourceBlending);
     bool updateBackBuffer(BackBufferWebGPU& buffer, PixelType type, DepthStencilType depthType, int samples);
-};
-
-class BackBufferProviderWebGPU {
-public:
-    virtual const BackBufferWebGPU& getBackBuffer() const = 0;
 };
 
 } // namespace Brisk

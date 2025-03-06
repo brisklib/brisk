@@ -17,29 +17,18 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
-add_library(
-    brisk-renderer-webgpu STATIC
-    WebGPURenderer.hpp
-    RenderDevice.hpp
-    RenderEncoder.hpp
-    ImageRenderTarget.hpp
-    WindowRenderTarget.hpp
-    ImageBackend.hpp
-    WebGPURenderer.cpp
-    RenderDevice.cpp
-    RenderEncoder.cpp
-    ImageRenderTarget.cpp
-    WindowRenderTarget.cpp
-    ImageBackend.cpp
-    WebGPU.cpp
-    RenderDevice${PLATFORM_SPECIFIC_CPP}
-    WindowRenderTarget${PLATFORM_SPECIFIC_CPP})
+cmake_minimum_required(VERSION 3.22)
 
-target_link_libraries(brisk-renderer-webgpu PUBLIC brisk-core)
+project(webgpu-demo)
 
-if (WIN32)
-    target_link_libraries(brisk-renderer-webgpu PUBLIC d3d11 dxgi)
+if (NOT _BRISK_INCLUDE_DIR)
+    find_package(Brisk CONFIG REQUIRED)
 endif ()
-if (APPLE)
-    target_link_libraries(brisk-renderer-webgpu PUBLIC "-framework IOSurface")
-endif ()
+
+add_executable(webgpu-demo webgpu-demo.cpp)
+
+target_link_libraries(webgpu-demo PRIVATE brisk-widgets brisk-executable decNumber)
+
+brisk_target_remove_resources(webgpu-demo fonts/default/bold.ttf fonts/default/light.ttf)
+
+brisk_setup_executable(webgpu-demo)

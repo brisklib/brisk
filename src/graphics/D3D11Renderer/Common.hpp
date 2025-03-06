@@ -29,12 +29,14 @@
 
 namespace Brisk {
 
+constexpr inline PixelFormat backBufferFormat = PixelFormat::BGRA;
+
 constexpr inline size_t maxD3D11ResourceBytes = 128 * 1048576; // Guaranteed in D3D11.0
 
-DXGI_FORMAT dxFormat(PixelType type, PixelFormat format = PixelFormat::RGBA);
-DXGI_FORMAT dxFormatTypeless(PixelType type, PixelFormat format = PixelFormat::RGBA);
+DXGI_FORMAT dxFormat(PixelType type, PixelFormat format);
+DXGI_FORMAT dxFormatTypeless(PixelType type, PixelFormat format);
 
-inline DXGI_FORMAT dxFormatNoSrgb(PixelType type, PixelFormat format = PixelFormat::RGBA) {
+inline DXGI_FORMAT dxFormatNoSrgb(PixelType type, PixelFormat format) {
     return dxFormat(noGamma(type), format);
 }
 

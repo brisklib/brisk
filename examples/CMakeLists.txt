@@ -20,3 +20,7 @@
 
 add_subdirectory(calc)
 add_subdirectory(showcase)
+
+if (BRISK_WEBGPU)
+    add_subdirectory(webgpu-demo)
+endif ()
