@@ -343,15 +343,17 @@ void Window::doPaint() {
                                 bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
                                 noClipRect);
         paint(pipeline, !bufferedRendering || textureReset);
-        paintDebug(pipeline);
-        if (!bufferedRendering)
+        if (!bufferedRendering) {
+            paintDebug(pipeline);
             paintImmediate(pipeline);
+        }
     }
 
     if (bufferedRendering) {
         m_encoder->setVisualSettings(VisualSettings{});
         RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent, noClipRect);
         pipeline2.blit(m_bufferedFrameTarget->image());
+        paintDebug(pipeline2);
         paintImmediate(pipeline2);
     }
 
