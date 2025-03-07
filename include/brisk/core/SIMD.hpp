@@ -1090,7 +1090,7 @@ constexpr T dot(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
  */
 template <typename T, size_t N>
 constexpr SIMD<T, N> mix(float t, SIMD<T, N> lhs, SIMD<T, N> rhs) {
-    return lhs * (1 - t) + rhs * t;
+    return lhs * SIMD<T, N>(1 - t) + rhs * SIMD<T, N>(t);
 }
 
 /**
