@@ -697,6 +697,29 @@ return in.color;
     renderPass.End();
 }
 
+TEST_CASE("Canvas opacity") {
+    renderTest("canvas-opacity", Size{ 256, 192 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setOpacity(0.5f);
+        canvas.setFillColor(Palette::black);
+        canvas.fillRect({ 0, 0, 256, 64 });
+        RC<Gradient> gradient = rcnew Gradient(GradientType::Linear);
+        gradient->setStartPoint({ 0, 0 });
+        gradient->setEndPoint({ 256, 0 });
+        gradient->addStop(0.f, Palette::green);
+        gradient->addStop(1.f, Palette::red);
+        canvas.setFillPaint(gradient);
+        canvas.fillRect({ 0, 64, 256, 128 });
+        RC<Image> image = rcnew Image(Size{ 4, 4 });
+        {
+            auto wr = image->mapWrite();
+            wr.clear(Palette::blue);
+        }
+        canvas.setFillPaint(Texture{ std::move(image), {}, SamplerMode::Clamp });
+        canvas.fillRect({ 0, 128, 256, 192 });
+    });
+}
+
 #ifdef BRISK_WEBGPU
 TEST_CASE("WebGPU") {
     renderTest("webgpu", Size{ 256, 256 },

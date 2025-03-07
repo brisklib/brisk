@@ -280,6 +280,8 @@ public:
      */
     void fillPath(Path path);
 
+    void drawPath(Path path);
+
     /**
      * @brief Strokes a rectangle with the current stroke settings.
      *
@@ -293,6 +295,8 @@ public:
      * @param rect The RectangleF struct defining the rectangle to fill.
      */
     void fillRect(RectangleF rect);
+    
+    void drawRect(RectangleF rect);
 
     /**
      * @brief Strokes an ellipse defined by the bounding rectangle.

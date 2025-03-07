@@ -93,6 +93,8 @@ void BasicCanvas::drawPath(Path path, const Paint& strokePaint, const StrokePara
 
 void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams,
                            const Matrix& matrix, RectangleF clipRect, float opacity) {
+    if (opacity == 0 || clipRect.empty())
+        return;
     path = std::move(path).transformed(matrix);
     drawRasterizedPath(path.rasterize(fillParams, transformedClipRect(matrix, clipRect)),
                        Internal::PaintAndTransform{ fillPaint, matrix, opacity });
@@ -100,6 +102,8 @@ void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& 
 
 void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams& params,
                              const Matrix& matrix, RectangleF clipRect, float opacity) {
+    if (opacity == 0 || clipRect.empty())
+        return;
     if (!params.dashArray.empty()) {
         path = path.dashed(params.dashArray, params.dashOffset);
     }
@@ -336,13 +340,18 @@ void Canvas::resetClipRect() {
 }
 
 void Canvas::strokePath(Path path) {
-    strokePath(std::move(path), m_state.strokePaint, m_state.strokeParams, m_state.transform,
-               m_state.clipRect, m_state.opacity);
+    BasicCanvas::strokePath(std::move(path), m_state.strokePaint, m_state.strokeParams, m_state.transform,
+                            m_state.clipRect, m_state.opacity);
 }
 
 void Canvas::fillPath(Path path) {
-    fillPath(std::move(path), m_state.fillPaint, m_state.fillParams, m_state.transform, m_state.clipRect,
-             m_state.opacity);
+    BasicCanvas::fillPath(std::move(path), m_state.fillPaint, m_state.fillParams, m_state.transform,
+                          m_state.clipRect, m_state.opacity);
+}
+
+void Canvas::drawPath(Path path) {
+    fillPath(path);
+    strokePath(path);
 }
 
 static void applier(RenderState* target, Matrix* matrix) {
@@ -378,5 +387,4 @@ void Canvas::fillText(std::string_view text, RectangleF position, PointF alignme
     PointF offset         = prepared.alignLines(alignment.x, alignment.y);
     return fillText(position.at(alignment) + offset, prepared);
 }
-
 } // namespace Brisk
