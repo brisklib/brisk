@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorF color, float interpolatedValue) {
+static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorW color, float interpolatedValue) {
     canvas.drawRectangle(markRect.withPadding(1_dp), 2_dp, 0.f, strokeColor = color.multiplyAlpha(0.35f),
                          fillColor = Palette::transparent, strokeWidth = 1._dp);
 

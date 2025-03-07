@@ -332,11 +332,11 @@ struct ColorOf {
      * @return A `ColorOf` object representing the adjusted color.
      */
     constexpr ColorOf adjust(Tfloat lightnessOffset, Tfloat chromaMultiplier = 1.f) const noexcept {
-        ColorOKLAB lab = static_cast<ColorOKLAB>(*this);
+        ColorOKLAB lab = static_cast<ColorOKLAB>(ColorF(*this));
         lab[0]         = std::clamp(lab[0] + lightnessOffset, 0.f, 100.f);
         lab[1]         = lab[1] * chromaMultiplier;
         lab[2]         = lab[2] * chromaMultiplier;
-        return ColorF(lab, alpha);
+        return ColorF(lab, ColorF(alpha).a);
     }
 
     /**

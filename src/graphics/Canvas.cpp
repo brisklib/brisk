@@ -43,7 +43,7 @@ void Gradient::setEndPoint(PointF pt) {
     m_endPoint = pt;
 }
 
-void Gradient::addStop(float position, ColorF color) {
+void Gradient::addStop(float position, ColorW color) {
     m_colorStops.push_back({ position, color });
 }
 
@@ -54,8 +54,8 @@ const ColorStopArray& Gradient::colorStops() const {
 const Canvas::State Canvas::defaultState{
     noClipRect,             /* clipRect */
     Matrix{},               /* transform */
-    ColorF(Palette::black), /* strokePaint */
-    ColorF(Palette::white), /* fillPaint */
+    ColorW(Palette::black), /* strokePaint */
+    ColorW(Palette::white), /* fillPaint */
     StrokeParams{},         /* dashArray */
     1.f,                    /* opacity */
     FillParams{},           /* fillRule */
@@ -97,23 +97,23 @@ void Canvas::setOpacity(float opacity) {
     m_state.opacity = opacity;
 }
 
-ColorF Canvas::getStrokeColor() const {
-    if (auto* c = get_if<ColorF>(&m_state.strokePaint))
+ColorW Canvas::getStrokeColor() const {
+    if (auto* c = get_if<ColorW>(&m_state.strokePaint))
         return *c;
     return Palette::transparent;
 }
 
-void Canvas::setStrokeColor(ColorF color) {
+void Canvas::setStrokeColor(ColorW color) {
     m_state.strokePaint = color;
 }
 
-ColorF Canvas::getFillColor() const {
-    if (auto* c = get_if<ColorF>(&m_state.fillPaint))
+ColorW Canvas::getFillColor() const {
+    if (auto* c = get_if<ColorW>(&m_state.fillPaint))
         return *c;
     return Palette::transparent;
 }
 
-void Canvas::setFillColor(ColorF color) {
+void Canvas::setFillColor(ColorW color) {
     m_state.fillPaint = color;
 }
 
@@ -280,7 +280,7 @@ void Canvas::resetClipRect() {
 void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
     switch (paint.index()) {
     case 0: { // Color
-        renderState.fillColor1 = renderState.fillColor2 = ColorF(get<ColorF>(paint));
+        renderState.fillColor1 = renderState.fillColor2 = ColorF(get<ColorW>(paint));
         break;
     }
     case 1: { // Gradient
@@ -295,8 +295,8 @@ void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
         if (gradient.m_colorStops.size() == 1) {
             renderState.fillColor1 = renderState.fillColor2 = ColorF(gradient.m_colorStops.front().color);
         } else if (gradient.m_colorStops.size() == 2) {
-            renderState.fillColor1 = ColorF(gradient.m_colorStops.front().color);
-            renderState.fillColor2 = ColorF(gradient.m_colorStops.back().color);
+            renderState.fillColor1 = ColorW(gradient.m_colorStops.front().color);
+            renderState.fillColor2 = ColorW(gradient.m_colorStops.back().color);
         } else {
             renderState.gradientHandle = gradient.rasterize();
         }

@@ -104,15 +104,14 @@ GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPa
     return result;
 }
 
-RawCanvas& RawCanvas::drawText(PointF pos, const TextWithOptions& text, const Font& font,
-                               const ColorF& textColor) {
+RawCanvas& RawCanvas::drawText(PointF pos, const TextWithOptions& text, const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     drawText(pos, run, fillColor = textColor);
     return *this;
 }
 
 RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
-                               const Font& font, const ColorF& textColor) {
+                               const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
     drawText(pos + offset, run, fillColor = textColor);
@@ -120,7 +119,7 @@ RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment,
 }
 
 RawCanvas& RawCanvas::drawText(RectangleF rect, float x_alignment, float y_alignment,
-                               const TextWithOptions& text, const Font& font, const ColorF& textColor) {
+                               const TextWithOptions& text, const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
     drawText(rect.at(x_alignment, y_alignment) + offset, run, fillColor = textColor);
@@ -148,7 +147,7 @@ void RawCanvas::prepareStateInplace(RenderStateEx& state) {
     state.premultiply();
 }
 
-RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, const ColorF& color, LineEnd end) {
+RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, ColorW color, LineEnd end) {
     return drawLine(p1, p2, thickness, end, fillColor = color, strokeWidth = 0.f);
 }
 

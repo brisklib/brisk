@@ -17,7 +17,7 @@ private:
     std::string m_html          = "The <b>quick</b> <font color=\"brown\">brown</font> <u>fox jumps</u> over "
                                   "the <small>lazy</small> dog";
     std::string m_multilineText = "abc\ndef\nghijklmnopqrstuvwxyz";
-    ColorF m_color              = Palette::Standard::indigo;
+    ColorW m_color              = Palette::Standard::indigo;
     std::string m_password      = "";
     bool m_hidePassword         = true;
 };

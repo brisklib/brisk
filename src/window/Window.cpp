@@ -544,8 +544,7 @@ void Window::renderDebugTimeline(const std::string& title, RawCanvas& canvas,
         float sliceEnd = sliceOffset + (toSeconds(slice.stop) - toSeconds(slice.start)) * dp(pixelsPerSecond);
         RectangleF r(sliceOffset, laneY, sliceEnd, laneY + idp(laneHeight) - 1);
         r.x2 = std::max(r.x1 + 1.0_dp, r.x2);
-        canvas.drawRectangle(r, 0.f, 0.f,
-                             fillColor   = ColorF(Palette::Standard::index(color)).multiplyAlpha(0.75f),
+        canvas.drawRectangle(r, 0.f, 0.f, fillColor = Palette::Standard::index(color).multiplyAlpha(0.75f),
                              strokeWidth = 0.f);
         --index;
         ++counter;

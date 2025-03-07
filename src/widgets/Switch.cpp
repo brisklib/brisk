@@ -65,7 +65,7 @@ void switchPainter(Canvas& canvas_, const Widget& widget_) {
         outerRectWithPadding.height(), outerRectWithPadding.height(), interpolatedValue, 0.5f);
     canvas.drawRectangle(outerRect, outerRect.shortestSide() * 0.5f, 0.f,
                          fillColor =
-                             mix(interpolatedValue, ColorF(0.f, 0.f), widget.backgroundColor.current()),
+                             mix(interpolatedValue, ColorW(0.f, 0.f), widget.backgroundColor.current()),
                          strokeWidth = 1._dp, strokeColor = widget.color.current().multiplyAlpha(0.35f));
     canvas.drawRectangle(innerRect, innerRect.shortestSide() * 0.5f, 0.f,
                          fillColor = widget.color.current().multiplyAlpha(0.75f), strokeWidth = 0.f);

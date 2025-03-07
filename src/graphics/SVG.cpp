@@ -56,13 +56,13 @@ void SVGImage::renderTo(const RC<Image>& destination) const {
     m_impl->render(bmp);
 }
 
-RC<Image> SVGImage::render(Size size, ColorF background, ImageFormat format) const {
+RC<Image> SVGImage::render(Size size, Color background, ImageFormat format) const {
     if (toPixelType(format) != PixelType::U8Gamma) {
         throwException(EImageError("Image format must be 8-bit gamma-corrected"));
     }
-    Color color         = background;
-    lunasvg::Bitmap bmp = m_impl->renderToBitmap(size.width, size.height, std::bit_cast<uint32_t>(color));
-    RC<Image> image     = rcnew Image(size, format);
+    lunasvg::Bitmap bmp =
+        m_impl->renderToBitmap(size.width, size.height, std::bit_cast<uint32_t>(background));
+    RC<Image> image = rcnew Image(size, format);
     convertPixels(image->pixelFormat(), image->data().to<uint8_t>(), toPixelFormat(lunaFormat),
                   StridedData<const uint8_t>{
                       reinterpret_cast<const uint8_t*>(bmp.data()),

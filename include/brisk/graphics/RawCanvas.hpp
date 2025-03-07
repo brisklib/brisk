@@ -162,8 +162,7 @@ public:
     RawCanvas& drawColorMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                              RenderStateExArgs args);
 
-    RawCanvas& drawLine(PointF p1, PointF p2, float thickness, const ColorF& color,
-                        LineEnd end = LineEnd::Butt);
+    RawCanvas& drawLine(PointF p1, PointF p2, float thickness, ColorW color, LineEnd end = LineEnd::Butt);
 
     template <typename... Args>
     RawCanvas& drawLine(PointF p1, PointF p2, float thickness, LineEnd end, const Args&... args) {
@@ -212,15 +211,15 @@ public:
     }
 
     /// Draw text at the given point
-    RawCanvas& drawText(PointF pos, const TextWithOptions& text, const Font& f, const ColorF& textColor);
+    RawCanvas& drawText(PointF pos, const TextWithOptions& text, const Font& f, ColorW textColor);
 
     /// Draw text aligned inside the given rectangle
     RawCanvas& drawText(RectangleF rect, float x_alignment, float y_alignment, const TextWithOptions& text,
-                        const Font& f, const ColorF& textColor);
+                        const Font& f, ColorW textColor);
 
     /// Draw text aligned around the given point
     RawCanvas& drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
-                        const Font& f, const ColorF& textColor);
+                        const Font& f, ColorW textColor);
 
     template <typename... Args>
     RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, const Args&... args) {

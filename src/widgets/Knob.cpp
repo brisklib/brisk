@@ -98,8 +98,8 @@ void knobPainter(Canvas& canvas_, const Widget& widget_) {
     RawCanvas& canvas      = canvas_.raw();
     RectangleF rect        = widget.rect();
 
-    ColorF selectColor     = widget.borderColor.current();
-    ColorF backColor       = selectColor.multiplyAlpha(0.33f);
+    ColorW selectColor     = widget.borderColor.current();
+    ColorW backColor       = selectColor.multiplyAlpha(0.33f);
     constexpr float spread = 0.75f * std::numbers::pi_v<float>;
     const PointF center    = rect.center().round();
     const float side       = rect.shortestSide() * 0.5f;

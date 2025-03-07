@@ -115,7 +115,7 @@ void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
     if (m_opacity > 0.f) {
         RectangleF inner = m_clientRect;
-        ColorF color     = m_color.current.multiplyAlpha(m_opacity);
+        ColorW color     = m_color.current.multiplyAlpha(m_opacity);
         auto prepared    = m_cache2->prepared;
 
         if (m_rotation != Rotation::NoRotation) {
@@ -162,7 +162,7 @@ Text::Cached2 Text::updateCache2(const CacheKey2& key) {
 }
 
 void BackStrikedText::paint(Canvas& canvas) const {
-    ColorF color = m_color.current.multiplyAlpha(m_opacity);
+    ColorW color = m_color.current.multiplyAlpha(m_opacity);
     canvas.raw().drawText(m_clientRect, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign), m_text,
                           font(), color);
     const int p         = 10_idp;

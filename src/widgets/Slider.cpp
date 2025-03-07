@@ -43,7 +43,7 @@ void sliderPainter(Canvas& canvas_, const Widget& widget_) {
     const Slider& widget = static_cast<const Slider&>(widget_);
     RawCanvas& canvas    = canvas_.raw();
 
-    ColorF backColor     = widget.backgroundColor.current();
+    ColorW backColor     = widget.backgroundColor.current();
 
     PointF pt      = widget.orientation() == Orientation::Horizontal ? PointF{ +1, 0 } : PointF{ 0, -1 };
 

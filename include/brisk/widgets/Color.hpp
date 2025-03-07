@@ -31,28 +31,28 @@ public:
     constexpr static std::string_view widgetType = "colorview";
 
     template <WidgetArgument... Args>
-    explicit ColorView(Value<ColorF> color, const Args&... args)
-        : ColorView(Construction{ widgetType }, ColorF{}, std::tuple{ args... }) {
+    explicit ColorView(Value<ColorW> color, const Args&... args)
+        : ColorView(Construction{ widgetType }, ColorW{}, std::tuple{ args... }) {
         endConstruction();
         bindings->connect(Value{ &value }, std::move(color));
     }
 
     template <WidgetArgument... Args>
-    explicit ColorView(ColorF color, const Args&... args)
+    explicit ColorView(ColorW color, const Args&... args)
         : ColorView(Construction{ widgetType }, std::move(color), std::tuple{ args... }) {
         endConstruction();
     }
 
 protected:
-    ColorF m_value = Palette::black;
+    ColorW m_value = Palette::black;
 
     void paint(Canvas& canvas) const override;
     Ptr cloneThis() const override;
-    ColorView(Construction construction, ColorF color, ArgumentsView<ColorView> args);
+    ColorView(Construction construction, ColorW color, ArgumentsView<ColorView> args);
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<ColorView, ColorF, &ColorView::m_value> value;
+    Property<ColorView, ColorW, &ColorView::m_value> value;
     BRISK_PROPERTIES_END
 };
 
@@ -62,28 +62,28 @@ public:
     constexpr static std::string_view widgetType = "colorsliders";
 
     template <WidgetArgument... Args>
-    explicit ColorSliders(Value<ColorF> color, bool alpha, const Args&... args)
-        : ColorSliders(Construction{ widgetType }, ColorF{}, alpha, std::tuple{ args... }) {
+    explicit ColorSliders(Value<ColorW> color, bool alpha, const Args&... args)
+        : ColorSliders(Construction{ widgetType }, ColorW{}, alpha, std::tuple{ args... }) {
         endConstruction();
         bindings->connectBidir(Value{ &value }, std::move(color));
     }
 
     template <WidgetArgument... Args>
-    explicit ColorSliders(ColorF color, bool alpha, const Args&... args)
+    explicit ColorSliders(ColorW color, bool alpha, const Args&... args)
         : ColorSliders(Construction{ widgetType }, color, alpha, std::tuple{ args... }) {
         endConstruction();
     }
 
 protected:
-    ColorF m_value = Palette::black;
+    ColorW m_value = Palette::black;
 
     Ptr cloneThis() const override;
-    explicit ColorSliders(Construction construction, ColorF color, bool alpha,
+    explicit ColorSliders(Construction construction, ColorW color, bool alpha,
                           ArgumentsView<ColorSliders> args);
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<ColorSliders, ColorF, &ColorSliders::m_value> value;
+    Property<ColorSliders, ColorW, &ColorSliders::m_value> value;
     BRISK_PROPERTIES_END
 };
 
@@ -93,25 +93,25 @@ public:
     constexpr static std::string_view widgetType = "colorpalette";
 
     template <WidgetArgument... Args>
-    explicit ColorPalette(Value<ColorF> color, const Args&... args)
-        : ColorPalette(Construction{ widgetType }, ColorF{}, std::tuple{ args... }) {
+    explicit ColorPalette(Value<ColorW> color, const Args&... args)
+        : ColorPalette(Construction{ widgetType }, ColorW{}, std::tuple{ args... }) {
         bindings->connectBidir(Value{ &value }, std::move(color));
     }
 
     template <WidgetArgument... Args>
-    explicit ColorPalette(ColorF color, const Args&... args)
+    explicit ColorPalette(ColorW color, const Args&... args)
         : ColorPalette(Construction{ widgetType }, std::move(color), std::tuple{ args... }) {}
 
 protected:
-    ColorF m_value = Palette::black;
+    ColorW m_value = Palette::black;
 
-    RC<Widget> addColor(const ColorF& swatch, float brightness = 0.f, float chroma = 1.f);
+    RC<Widget> addColor(ColorW swatch, float brightness = 0.f, float chroma = 1.f);
     Ptr cloneThis() const override;
-    explicit ColorPalette(Construction construction, ColorF color, ArgumentsView<ColorPalette> args);
+    explicit ColorPalette(Construction construction, ColorW color, ArgumentsView<ColorPalette> args);
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<ColorPalette, ColorF, &ColorPalette::m_value> value;
+    Property<ColorPalette, ColorW, &ColorPalette::m_value> value;
     BRISK_PROPERTIES_END
 };
 
@@ -121,7 +121,7 @@ public:
     using Button::widgetType;
 
     template <WidgetArgument... Args>
-    explicit ColorButton(Value<ColorF> prop, bool alpha, const Args&... args)
+    explicit ColorButton(Value<ColorW> prop, bool alpha, const Args&... args)
         : ColorButton(Construction{ widgetType }, std::move(prop), alpha, std::tuple{ args... }) {
         endConstruction();
     }
@@ -129,7 +129,7 @@ public:
 protected:
     Ptr cloneThis() const override;
 
-    explicit ColorButton(Construction construction, Value<ColorF> prop, bool alpha,
+    explicit ColorButton(Construction construction, Value<ColorW> prop, bool alpha,
                          ArgumentsView<ColorButton> args);
 };
 

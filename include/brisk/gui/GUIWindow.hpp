@@ -54,7 +54,7 @@ public:
 
 protected:
     RC<Component> m_component;
-    ColorF m_backgroundColor = Palette::black;
+    ColorW m_backgroundColor = Palette::black;
     WindowFit m_windowFit    = WindowFit::MinimumSize;
 
     virtual void rescale();

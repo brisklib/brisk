@@ -131,7 +131,7 @@ void WidgetTree::groupsBeforeLayout() {
     }
 }
 
-Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, bool fullRepaint) {
+Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint) {
     if (!m_root)
         return {};
     m_fullRepaint = fullRepaint;

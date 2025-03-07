@@ -152,7 +152,7 @@ void GUIWindow::rebuildRoot() {
     BRISK_ASSERT(m_component);
     m_tree.setRoot(RC<Widget>(m_component->build()));
     BRISK_ASSERT(m_tree.root());
-    m_backgroundColor = m_tree.root()->getStyleVar<ColorF>(windowColor.id).value_or(ColorF(0.f, 0.f));
+    m_backgroundColor = m_tree.root()->getStyleVar<ColorW>(windowColor.id).value_or(ColorW(0.f, 0.f));
 }
 
 void GUIWindow::beforeFrame() {

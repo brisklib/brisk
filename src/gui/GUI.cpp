@@ -913,7 +913,7 @@ void Widget::reposition(Point relativeOffset) {
         m_tree->requestUpdateGeometry();
 }
 
-static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color);
+static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, ColorW color);
 
 void Widget::doRefresh() {
     if (m_autoHint && !m_isHintVisible && !m_hint.empty() && m_hoverTime >= 0.0 &&
@@ -1117,7 +1117,7 @@ Drawable Widget::drawable() const {
     };
 }
 
-static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, const ColorF& color) {
+static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, ColorW color) {
     const double displayTime = 1.0;
 
     if (elapsed < displayTime) {
@@ -1229,9 +1229,9 @@ void Widget::paintHint(Canvas& canvas_) const {
         m_tree->requestLayer([this](Canvas& canvas_) {
             RawCanvas& canvas = canvas_.raw();
             SizeF textSize    = m_hintPrepared.bounds().size();
-            ColorF color      = 0xFFE9AD_rgb;
-            ColorF shadowColor =
-                getStyleVar<ColorF>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
+            ColorW color      = 0xFFE9AD_rgb;
+            ColorW shadowColor =
+                getStyleVar<ColorW>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
                     ? 0x000000'55_rgba
                     : 0x000000'AA_rgba;
             canvas.drawShadow(m_hintRect, 4._dp, 0.f, contourSize = dp(hintShadowSize),
@@ -2227,12 +2227,12 @@ T Widget::getStyleVar(uint64_t id, T fallback) const {
     return getStyleVar<T>(id).value_or(fallback);
 }
 
-template std::optional<ColorF> Widget::getStyleVar<ColorF>(uint64_t) const;
+template std::optional<ColorW> Widget::getStyleVar<ColorW>(uint64_t) const;
 template std::optional<EdgesL> Widget::getStyleVar<EdgesL>(uint64_t) const;
 template std::optional<float> Widget::getStyleVar<float>(uint64_t) const;
 template std::optional<int> Widget::getStyleVar<int>(uint64_t) const;
 
-template ColorF Widget::getStyleVar<ColorF>(uint64_t, ColorF) const;
+template ColorW Widget::getStyleVar<ColorW>(uint64_t, ColorW) const;
 template EdgesL Widget::getStyleVar<EdgesL>(uint64_t, EdgesL) const;
 template float Widget::getStyleVar<float>(uint64_t, float) const;
 template int Widget::getStyleVar<int>(uint64_t, int) const;
@@ -2301,8 +2301,8 @@ void boxPainter(Canvas& canvas_, const Widget& widget) {
 void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
     RawCanvas& canvas        = canvas_.raw();
 
-    ColorF m_backgroundColor = widget.backgroundColor.current().multiplyAlpha(widget.opacity.get());
-    ColorF m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.get());
+    ColorW m_backgroundColor = widget.backgroundColor.current().multiplyAlpha(widget.opacity.get());
+    ColorW m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.get());
 
     if (widget.shadowSize.resolved() > 0) {
         auto&& state = canvas.save();
@@ -2319,7 +2319,7 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
                           contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
     }
 
-    if (m_backgroundColor != ColorF(0, 0, 0, 0) || !widget.computedBorderWidth().empty()) {
+    if (m_backgroundColor != ColorW(0, 0, 0, 0) || !widget.computedBorderWidth().empty()) {
         float borderRadius = widget.borderRadius.resolved().max();
         borderRadius =
             std::copysign(std::min(std::abs(borderRadius), rect.shortestSide() * 0.5f), borderRadius);

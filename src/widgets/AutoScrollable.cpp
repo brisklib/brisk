@@ -56,7 +56,7 @@ void AutoScrollable::onLayoutUpdated() {
 void AutoScrollable::postPaint(Canvas& canvas_) const {
     Widget::postPaint(canvas_);
     RawCanvas& canvas = canvas_.raw();
-    ColorF selection  = getStyleVar<ColorF>(selectedColor.id).value_or(Palette::Standard::blue);
+    ColorW selection  = getStyleVar<ColorW>(selectedColor.id).value_or(Palette::Standard::blue);
     if (m_enableAutoScroll) {
         if (m_scrollSize > 0) {
             if (m_offset > 0) {

@@ -1090,7 +1090,8 @@ constexpr T dot(SIMD<T, N> lhs, SIMD<T, N> rhs) noexcept {
  */
 template <typename T, size_t N>
 constexpr SIMD<T, N> mix(float t, SIMD<T, N> lhs, SIMD<T, N> rhs) {
-    return lhs * SIMD<T, N>(1 - t) + rhs * SIMD<T, N>(t);
+    using SIMDf = SIMD<std::common_type_t<T, float>, N>;
+    return SIMD<T, N>(SIMDf(lhs) * SIMDf(1 - t) + SIMDf(rhs) * SIMDf(t));
 }
 
 /**
@@ -1357,7 +1358,7 @@ constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
     using Tcommon =
         findIntegralType<std::numeric_limits<Tin>::min() * Mout, std::numeric_limits<Tin>::max() * Mout>;
     SIMD<Tcommon, N> x = static_cast<SIMD<Tcommon, N>>(value);
-    x                  = x * Tcommon(Mout) / Tcommon(Min);
+    x                  = (x * Tcommon(Mout) + Tcommon(Min) / 2) / Tcommon(Min);
     if constexpr (Internal::fitsIntType<Tcommon>(std::numeric_limits<Tout>::max())) {
         x = min(x, SIMD<Tcommon, N>(std::numeric_limits<Tout>::max()));
     }

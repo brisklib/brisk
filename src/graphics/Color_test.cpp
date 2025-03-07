@@ -52,6 +52,14 @@ TEST_CASE("ColorW") {
     CHECK(ColorW(Color(255, 128, 0)).v == ColorW(8192, 4112, 0, 8192).v);
     CHECK_THAT(ColorF(ColorW(32767, -32767, 32767, 8192)).v,
                Catch::Matchers::SIMDWithinMatcher(ColorF(25.312836, -25.312836, 25.312836, 1.f).v, 0.001));
+
+    for (int i = 0; i <= 255; i++) {
+        Color orig(i, 255);
+        Color convf = ColorF(orig);
+        CHECK(static_cast<int>(orig.r) == static_cast<int>(convf.r));
+        Color convw = ColorW(orig);
+        CHECK(static_cast<int>(orig.r) == static_cast<int>(convw.r));
+    }
 }
 
 TEST_CASE("rgbToColor") {

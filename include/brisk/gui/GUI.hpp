@@ -617,7 +617,7 @@ inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, U>&
     prop.set(value.value);
 }
 
-using StyleVarType = std::variant<std::monostate, ColorF, EdgesL, float, int>;
+using StyleVarType = std::variant<std::monostate, ColorW, EdgesL, float, int>;
 
 class WIDGET Widget : public BindingObject<Widget, &uiScheduler> {
 public:
@@ -1063,11 +1063,11 @@ protected:
     EdgesL m_padding{ 0, 0, 0, 0 };
     EdgesL m_borderWidth{ 0, 0, 0, 0 };
 
-    Internal::Transition<ColorF> m_backgroundColor{ Palette::transparent };
-    Internal::Transition<ColorF> m_borderColor{ Palette::transparent };
-    Internal::Transition<ColorF> m_color{ Palette::white };
-    Internal::Transition<ColorF> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
-    Internal::Transition<ColorF> m_scrollBarColor{ Palette::grey };
+    Internal::Transition<ColorW> m_backgroundColor{ Palette::transparent };
+    Internal::Transition<ColorW> m_borderColor{ Palette::transparent };
+    Internal::Transition<ColorW> m_color{ Palette::white };
+    Internal::Transition<ColorW> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
+    Internal::Transition<ColorW> m_scrollBarColor{ Palette::grey };
     float m_backgroundColorTransition      = 0;
     float m_borderColorTransition          = 0;
     float m_colorTransition                = 0;
@@ -1373,10 +1373,10 @@ public:
     GUIProperty<5, OptFloat, AffectLayout, &This::m_aspect> aspect;
     GUIProperty<6, EasingFunction, None, &This::m_backgroundColorEasing> backgroundColorEasing;
     GUIProperty<7, float, None, &This::m_backgroundColorTransition> backgroundColorTransition;
-    GUIProperty<8, ColorF, Transition | AffectPaint, &This::m_backgroundColor> backgroundColor;
+    GUIProperty<8, ColorW, Transition | AffectPaint, &This::m_backgroundColor> backgroundColor;
     GUIProperty<9, EasingFunction, None, &This::m_borderColorEasing> borderColorEasing;
     GUIProperty<10, float, None, &This::m_borderColorTransition> borderColorTransition;
-    GUIProperty<11, ColorF, Transition | AffectPaint, &This::m_borderColor> borderColor;
+    GUIProperty<11, ColorW, Transition | AffectPaint, &This::m_borderColor> borderColor;
     GUIProperty<12, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 0>
         borderRadiusTopLeft;
     GUIProperty<13, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 1>
@@ -1392,7 +1392,7 @@ public:
     GUIProperty<20, WidgetClip, AffectLayout | AffectPaint, &This::m_clip> clip;
     GUIProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
     GUIProperty<22, float, None, &This::m_colorTransition> colorTransition;
-    GUIProperty<23, ColorF, Transition | Inheritable | AffectPaint, &This::m_color> color;
+    GUIProperty<23, ColorW, Transition | Inheritable | AffectPaint, &This::m_color> color;
     GUIProperty<24, int, AffectPaint, &This::m_corners> corners;
     GUIProperty<25, Cursor, None, &This::m_cursor> cursor;
     GUIProperty<26, SizeL, AffectLayout, &This::m_dimensions, 0> width;
@@ -1437,7 +1437,7 @@ public:
     GUIProperty<56, EdgesL, AffectLayout, &This::m_padding, 3> paddingBottom;
     GUIProperty<57, Placement, AffectLayout, &This::m_placement> placement;
     GUIProperty<58, Length, Resolvable | Inheritable | AffectPaint, &This::m_shadowSize> shadowSize;
-    GUIProperty<59, ColorF, Transition | AffectPaint, &This::m_shadowColor> shadowColor;
+    GUIProperty<59, ColorW, Transition | AffectPaint, &This::m_shadowColor> shadowColor;
     GUIProperty<60, float, None, &This::m_shadowColorTransition> shadowColorTransition;
     GUIProperty<61, EasingFunction, None, &This::m_shadowColorEasing> shadowColorEasing;
     GUIProperty<62, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
@@ -1504,7 +1504,7 @@ public:
                 &This::m_fontFeatures>
         fontFeatures;
 
-    GUIProperty<101, ColorF, Transition | Inheritable | AffectPaint, &This::m_scrollBarColor> scrollBarColor;
+    GUIProperty<101, ColorW, Transition | Inheritable | AffectPaint, &This::m_scrollBarColor> scrollBarColor;
     GUIProperty<102, Length, Resolvable | AffectPaint, &This::m_scrollBarThickness> scrollBarThickness;
     GUIProperty<103, Length, Resolvable | AffectPaint, &This::m_scrollBarRadius> scrollBarRadius;
 

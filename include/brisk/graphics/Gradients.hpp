@@ -16,7 +16,7 @@ namespace Brisk {
  */
 struct ColorStop {
     float position; ///< The position of the color stop within the gradient, ranging from 0.0 to 1.0.
-    ColorF color;   ///< The color associated with this color stop.
+    ColorW color;   ///< The color associated with this color stop.
 };
 
 /**
@@ -64,22 +64,22 @@ struct GradientData {
     explicit GradientData(const Gradient& gradient);
 
     /**
-     * @brief Constructs GradientData from a function mapping float to ColorF.
+     * @brief Constructs GradientData from a function mapping float to ColorW.
      * @param func The function to map positions to colors.
      */
-    explicit GradientData(const function<ColorF(float)>& func);
+    explicit GradientData(const function<ColorW(float)>& func);
 
     /**
      * @brief Constructs GradientData from a vector of colors and a gamma correction factor.
      * @param list A vector of colors to use in the gradient.
      * @param gamma The gamma correction factor to apply.
      */
-    explicit GradientData(const std::vector<ColorF>& list, float gamma);
+    explicit GradientData(const std::vector<ColorW>& list, float gamma);
 
     /**
      * @brief Gets the color at a specified position.
      * @param x The position (between 0.0 and 1.0) to query.
-     * @return The color at the specified position in the gradient.
+     * @return The color at the specified position in the gradient with premultiplied alpha.
      */
     ColorF operator()(float x) const;
 };
@@ -149,7 +149,7 @@ public:
      * @param position The position of the color stop (between 0.0 and 1.0).
      * @param color The color of the stop.
      */
-    void addStop(float position, ColorF color);
+    void addStop(float position, ColorW color);
 
     /**
      * @brief Gets the array of color stops defined in the gradient.

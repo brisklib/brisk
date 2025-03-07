@@ -193,14 +193,14 @@ void TextEditor::paint(Canvas& canvas) const {
 
     PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
 
-    ColorF textColor  = m_color.current;
+    ColorW textColor  = m_color.current;
     m_alignmentOffset = m_preparedText.alignLines(alignment);
     if (isPlaceholder)
         textColor = textColor.multiplyAlpha(0.5f);
     canvas.raw().drawText(m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset),
                           m_preparedText, selection, fillColor = textColor,
                           strokeColor =
-                              ColorF(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
+                              ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
 
     if (isFocused() && std::fmod(frameStartTime - m_blinkTime, 1.0) < 0.5) {
         uint32_t caretGrapheme =

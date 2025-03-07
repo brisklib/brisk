@@ -28,14 +28,14 @@ namespace Brisk {
 
 namespace Graphene {
 
-constexpr inline Argument<StyleVariableTag<ColorF, "mainColor"_hash>> mainColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, "linkColor"_hash>> linkColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, "editorColor"_hash>> editorColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "mainColor"_hash>> mainColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "linkColor"_hash>> linkColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "editorColor"_hash>> editorColor{};
 constexpr inline Argument<StyleVariableTag<float, "boxRadius"_hash>> boxRadius{};
-constexpr inline Argument<StyleVariableTag<ColorF, "menuColor"_hash>> menuColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, "boxBorderColor"_hash>> boxBorderColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, "shadeColor"_hash>> shadeColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, "deepColor"_hash>> deepColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "menuColor"_hash>> menuColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "boxBorderColor"_hash>> boxBorderColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "shadeColor"_hash>> shadeColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "deepColor"_hash>> deepColor{};
 
 RC<const Stylesheet> stylesheet();
 Rules lightColors();

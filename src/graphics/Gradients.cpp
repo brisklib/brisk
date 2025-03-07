@@ -41,8 +41,8 @@ GradientData::GradientData(const Gradient& gradient) {
     });
     colorStops.front().position = 0.f;
     colorStops.back().position  = 1.f;
-    data.front()                = colorStops.front().color;
-    data.back()                 = colorStops.back().color;
+    data.front()                = ColorF(colorStops.front().color).premultiply();
+    data.back()                 = ColorF(colorStops.back().color).premultiply();
     for (size_t i = 1; i < gradientResolution - 1; i++) {
         float val = static_cast<float>(i) / (gradientResolution - 1);
         auto gt = std::upper_bound(colorStops.begin(), colorStops.end(), val, [](float val, ColorStop elem) {
@@ -58,13 +58,13 @@ GradientData::GradientData(const Gradient& gradient) {
     }
 }
 
-GradientData::GradientData(const function<ColorF(float)>& func) {
+GradientData::GradientData(const function<ColorW(float)>& func) {
     for (size_t i = 0; i < gradientResolution; i++) {
         data[i] = ColorF(func(static_cast<float>(i) / (gradientResolution - 1))).premultiply();
     }
 }
 
-GradientData::GradientData(const std::vector<ColorF>& list, float gamma) {
+GradientData::GradientData(const std::vector<ColorW>& list, float gamma) {
     for (size_t i = 0; i < gradientResolution; i++) {
         const float x          = std::pow(static_cast<float>(i) / (gradientResolution - 1), gamma);
         const size_t max_index = list.size() - 1;

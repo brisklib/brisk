@@ -44,8 +44,7 @@ public:
      *
      * @return A smart pointer to an Image object representing the rendered image.
      */
-    RC<Image> render(Size size, ColorF background = ColorF(0.f, 0.f),
-                     ImageFormat format = ImageFormat::RGBA) const;
+    RC<Image> render(Size size, Color background = Color(0, 0), ImageFormat format = ImageFormat::RGBA) const;
 
     /**
      * @brief Renders SVG to a destination image, preserving existing content.

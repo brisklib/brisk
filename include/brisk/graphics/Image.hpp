@@ -758,7 +758,7 @@ struct ImageAccess {
      * @brief Clears the image with a specified fill color.
      * @param fillColor The color to fill the image with.
      */
-    void clear(ColorF fillColor)
+    void clear(ColorW fillColor)
         requires(Mode != AccessMode::R)
     {
         forPixels([fillColor](int32_t, int32_t, auto& pix) {
@@ -865,7 +865,7 @@ struct ImageAccess {
         if (pixelAlpha(pixelFormat()) != PixelFlagAlpha::None && pixelFormat() != PixelFormat::Alpha) {
             // Iterate over each pixel and premultiply the alpha value.
             forPixels([](int32_t, int32_t, auto& pix) {
-                ColorF color;
+                ColorW color;
                 pixelToColor(color, pix);    // Convert pixel to color
                 color = color.premultiply(); // Premultiply alpha
                 colorToPixel(pix, color);    // Convert back to pixel format
@@ -888,7 +888,7 @@ struct ImageAccess {
         if (pixelAlpha(pixelFormat()) != PixelFlagAlpha::None && pixelFormat() != PixelFormat::Alpha) {
             // Iterate over each pixel and unpremultiply the alpha value.
             forPixels([](int32_t, int32_t, auto& pix) {
-                ColorF color;
+                ColorW color;
                 pixelToColor(color, pix);      // Convert pixel to color
                 color = color.unpremultiply(); // Unpremultiply alpha
                 colorToPixel(pix, color);      // Convert back to pixel format
@@ -1257,7 +1257,7 @@ public:
      *
      * @param value The color to clear the image with.
      */
-    void clear(ColorF value) {
+    void clear(ColorW value) {
         auto w = mapWrite();
         w.clear(value);
     }
@@ -1322,7 +1322,7 @@ public:
      * @param format The pixel format of the image.
      * @param fillColor The color to fill the image with.
      */
-    explicit Image(Size size, ImageFormat format, ColorF fillColor) : Image(size, format) {
+    explicit Image(Size size, ImageFormat format, ColorW fillColor) : Image(size, format) {
         auto w = mapWrite();
         w.forPixels([fillColor](int32_t, int32_t, auto& pix) {
             colorToPixel(pix, fillColor);

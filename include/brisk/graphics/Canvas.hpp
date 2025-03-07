@@ -28,10 +28,10 @@ struct Texture {
  * @brief A versatile type representing various fill and stroke styles.
  *
  * Paint can hold one of several types representing
- * different kinds of paints: a solid color (ColorF), a gradient (RC<Gradient>),
+ * different kinds of paints: a solid color (ColorW), a gradient (RC<Gradient>),
  * or a texture (Texture).
  */
-using Paint = std::variant<ColorF, RC<Gradient>, Texture>;
+using Paint = std::variant<ColorW, RC<Gradient>, Texture>;
 
 void applier(RenderStateEx*, const std::pair<Canvas*, Paint*>);
 
@@ -129,30 +129,30 @@ public:
     /**
      * @brief Retrieves the current stroke color.
      *
-     * @return The stroke color as a ColorF struct.
+     * @return The stroke color as a ColorW struct.
      */
-    [[nodiscard]] ColorF getStrokeColor() const;
+    [[nodiscard]] ColorW getStrokeColor() const;
 
     /**
      * @brief Sets the stroke color.
      *
-     * @param color The ColorF struct representing the stroke color.
+     * @param color The ColorW struct representing the stroke color.
      */
-    void setStrokeColor(ColorF color);
+    void setStrokeColor(ColorW color);
 
     /**
      * @brief Retrieves the current fill color.
      *
-     * @return The fill color as a ColorF struct.
+     * @return The fill color as a ColorW struct.
      */
-    [[nodiscard]] ColorF getFillColor() const;
+    [[nodiscard]] ColorW getFillColor() const;
 
     /**
      * @brief Sets the fill color.
      *
-     * @param color The ColorF struct representing the fill color.
+     * @param color The ColorW struct representing the fill color.
      */
-    void setFillColor(ColorF color);
+    void setFillColor(ColorW color);
 
     /**
      * @brief Retrieves the current miter limit for strokes.

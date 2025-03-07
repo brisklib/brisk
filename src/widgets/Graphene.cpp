@@ -32,7 +32,7 @@ Rules darkColors() {
     return Rules{
         mainColor      = 0x292E38_rgb,
         windowColor    = 0x131419_rgb,
-        selectedColor  = ColorF(0x1976E8_rgb).adjust(0),
+        selectedColor  = (0x1976E8_rgb).adjust(0),
         linkColor      = 0x378AFF_rgb,
         editorColor    = 0xFDFDFD_rgb,
         boxRadius      = -5.f,
@@ -48,7 +48,7 @@ Rules lightColors() {
     return {
         mainColor      = 0xEDF1F7_rgb,
         windowColor    = 0xFAFAFA_rgb,
-        selectedColor  = ColorF(0x1976E8_rgb).adjust(8),
+        selectedColor  = (0x1976E8_rgb).adjust(8),
         linkColor      = 0x004DB8_rgb,
         editorColor    = 0xFDFDFD_rgb,
         boxRadius      = -5.f,
