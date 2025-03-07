@@ -22,33 +22,91 @@
 
 namespace Brisk {
 
-Gradient::Gradient(GradientType type) : m_type(type) {}
+namespace Internal {
+struct PaintAndTransform {
+    const Paint& paint;
+    const Matrix& transform;
+    float opacity;
+};
+} // namespace Internal
 
-Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint)
-    : m_type(type), m_startPoint(startPoint), m_endPoint(endPoint) {}
+void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& paint) {
+    switch (paint.paint.index()) {
+    case 0: { // Color
+        renderState->fillColor1 = renderState->fillColor2 = ColorF(get<ColorW>(paint.paint));
+        renderState->opacity                              = paint.opacity;
+        break;
+    }
+    case 1: { // Gradient
+        const Gradient& gradient = *get<RC<Gradient>>(paint.paint);
+        if (gradient.colorStops().empty()) {
+            break;
+        }
+        renderState->gradientPoint1 = paint.transform.transform(gradient.getStartPoint());
+        renderState->gradientPoint2 = paint.transform.transform(gradient.getEndPoint());
+        renderState->gradient       = gradient.type();
+        renderState->opacity        = paint.opacity;
+        if (gradient.colorStops().size() == 1) {
+            renderState->fillColor1 = renderState->fillColor2 = ColorF(gradient.colorStops().front().color);
+        } else if (gradient.colorStops().size() == 2) {
+            renderState->fillColor1 = ColorW(gradient.colorStops().front().color);
+            renderState->fillColor2 = ColorW(gradient.colorStops().back().color);
+        } else {
+            renderState->gradientHandle = gradient.rasterize();
+        }
 
-PointF Gradient::getStartPoint() const {
-    return m_startPoint;
+        break;
+    }
+    case 2: { // Texture
+        const Texture& texture     = std::get<Texture>(paint.paint);
+        renderState->textureMatrix = texture.matrix.invert().value_or(Matrix{});
+        renderState->imageHandle   = texture.image;
+        renderState->samplerMode   = texture.mode;
+        renderState->opacity       = paint.opacity;
+        break;
+    }
+    }
 }
 
-void Gradient::setStartPoint(PointF pt) {
-    m_startPoint = pt;
+void BasicCanvas::drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint) {
+    RenderStateEx renderState(ShaderType::Mask, 1, nullptr);
+    applier(&renderState, paint);
+    prepareStateInplace(renderState);
+    GeometryGlyphs data = Internal::pathLayout(renderState.sprites, path);
+    if (!data.empty()) {
+        m_context.command(std::move(renderState), std::span{ data });
+    }
 }
 
-PointF Gradient::getEndPoint() const {
-    return m_endPoint;
+Rectangle BasicCanvas::transformedClipRect(const Matrix& matrix, RectangleF clipRect) {
+    return horizontalMax(clipRect.p1.v) <= -16777216 && horizontalMin(clipRect.p2.v) >= 16777216
+               ? noClipRect
+               : Rectangle(matrix.transform(clipRect));
 }
 
-void Gradient::setEndPoint(PointF pt) {
-    m_endPoint = pt;
+void BasicCanvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+                           const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                           RectangleF clipRect, float opacity) {
+    fillPath(path, fillPaint, fillParams, matrix, clipRect, opacity);
+    strokePath(std::move(path), strokePaint, strokeParams, matrix, clipRect, opacity);
 }
 
-void Gradient::addStop(float position, ColorW color) {
-    m_colorStops.push_back({ position, color });
+void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams,
+                           const Matrix& matrix, RectangleF clipRect, float opacity) {
+    path = std::move(path).transformed(matrix);
+    drawRasterizedPath(path.rasterize(fillParams, transformedClipRect(matrix, clipRect)),
+                       Internal::PaintAndTransform{ fillPaint, matrix, opacity });
 }
 
-const ColorStopArray& Gradient::colorStops() const {
-    return m_colorStops;
+void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams& params,
+                             const Matrix& matrix, RectangleF clipRect, float opacity) {
+    if (!params.dashArray.empty()) {
+        path = path.dashed(params.dashArray, params.dashOffset);
+    }
+    path        = std::move(path).transformed(matrix);
+    float scale = matrix.estimateScale();
+    drawRasterizedPath(path.rasterize(params.scale(scale), transformedClipRect(matrix, clipRect)),
+                       Internal::PaintAndTransform{ strokePaint, matrix, opacity });
 }
 
 const Canvas::State Canvas::defaultState{
@@ -61,9 +119,9 @@ const Canvas::State Canvas::defaultState{
     FillParams{},           /* fillRule */
 };
 
-Canvas::Canvas(RenderContext& context) : RawCanvas(context), m_state(defaultState) {}
+Canvas::Canvas(RenderContext& context) : BasicCanvas(context), m_state(defaultState) {}
 
-Canvas::Canvas(RawCanvas& canvas) : RawCanvas(canvas), m_state(defaultState) {}
+Canvas::Canvas(RawCanvas& canvas) : BasicCanvas(canvas.renderContext()), m_state(defaultState) {}
 
 const Paint& Canvas::getStrokePaint() const {
     return m_state.strokePaint;
@@ -277,88 +335,14 @@ void Canvas::resetClipRect() {
     m_state.clipRect = noClipRect;
 }
 
-void Canvas::setPaint(RenderStateEx& renderState, const Paint& paint) {
-    switch (paint.index()) {
-    case 0: { // Color
-        renderState.fillColor1 = renderState.fillColor2 = ColorF(get<ColorW>(paint));
-        break;
-    }
-    case 1: { // Gradient
-        const Gradient& gradient = *get<RC<Gradient>>(paint);
-        if (gradient.m_colorStops.empty()) {
-            break;
-        }
-        renderState.gradientPoint1 = m_state.transform.transform(gradient.m_startPoint);
-        renderState.gradientPoint2 = m_state.transform.transform(gradient.m_endPoint);
-        renderState.gradient       = gradient.m_type;
-        renderState.opacity        = m_state.opacity;
-        if (gradient.m_colorStops.size() == 1) {
-            renderState.fillColor1 = renderState.fillColor2 = ColorF(gradient.m_colorStops.front().color);
-        } else if (gradient.m_colorStops.size() == 2) {
-            renderState.fillColor1 = ColorW(gradient.m_colorStops.front().color);
-            renderState.fillColor2 = ColorW(gradient.m_colorStops.back().color);
-        } else {
-            renderState.gradientHandle = gradient.rasterize();
-        }
-
-        break;
-    }
-    case 2: { // Texture
-        const Texture& texture    = std::get<Texture>(paint);
-        renderState.textureMatrix = texture.matrix.invert().value_or(Matrix{});
-        renderState.imageHandle   = texture.image;
-        renderState.samplerMode   = texture.mode;
-        break;
-    }
-    }
-}
-
-void Canvas::drawPath(const RasterizedPath& path, const Paint& paint) {
-    RenderStateEx renderState(ShaderType::Mask, 1, nullptr);
-    prepareStateInplace(renderState);
-    setPaint(renderState, paint);
-    GeometryGlyphs data = Internal::pathLayout(renderState.sprites, path);
-    if (!data.empty()) {
-        m_context.command(std::move(renderState), std::span{ data });
-    }
-}
-
-Rectangle Canvas::transformedClipRect(const Matrix& matrix, RectangleF clipRect) {
-    return horizontalMax(clipRect.p1.v) <= -16777216 && horizontalMin(clipRect.p2.v) >= 16777216
-               ? noClipRect
-               : Rectangle(matrix.transform(clipRect));
-}
-
 void Canvas::strokePath(Path path) {
     strokePath(std::move(path), m_state.strokePaint, m_state.strokeParams, m_state.transform,
-               m_state.clipRect);
+               m_state.clipRect, m_state.opacity);
 }
 
 void Canvas::fillPath(Path path) {
-    fillPath(std::move(path), m_state.fillPaint, m_state.fillParams, m_state.transform, m_state.clipRect);
-}
-
-void Canvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
-                        RectangleF clipRect) {
-    if (!params.dashArray.empty()) {
-        path = path.dashed(params.dashArray, params.dashOffset);
-    }
-    path        = std::move(path).transformed(matrix);
-    float scale = matrix.estimateScale();
-    drawPath(path.rasterize(params.scale(scale), transformedClipRect(matrix, clipRect)), strokePaint);
-}
-
-void Canvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
-                      const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                      RectangleF clipRect) {
-    fillPath(path, fillPaint, fillParams, matrix, clipRect);
-    strokePath(std::move(path), strokePaint, strokeParams, matrix, clipRect);
-}
-
-void Canvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                      RectangleF clipRect) {
-    path = std::move(path).transformed(matrix);
-    drawPath(path.rasterize(fillParams, transformedClipRect(matrix, clipRect)), fillPaint);
+    fillPath(std::move(path), m_state.fillPaint, m_state.fillParams, m_state.transform, m_state.clipRect,
+             m_state.opacity);
 }
 
 static void applier(RenderState* target, Matrix* matrix) {
@@ -378,7 +362,9 @@ void Canvas::fillText(PointF position, PointF alignment, const PreparedText& tex
     if (alignment != PointF{}) {
         position -= text.bounds().size() * alignment;
     }
-    drawText(position, text, std::pair{ this, &m_state.fillPaint }, &m_state.transform);
+    drawText(position, text,
+             Internal::PaintAndTransform{ m_state.fillPaint, m_state.transform, m_state.opacity },
+             &m_state.transform);
 }
 
 void Canvas::fillText(std::string_view text, PointF position, PointF alignment) {
@@ -391,10 +377,6 @@ void Canvas::fillText(std::string_view text, RectangleF position, PointF alignme
     PreparedText prepared = fonts->prepare(m_state.font, text);
     PointF offset         = prepared.alignLines(alignment.x, alignment.y);
     return fillText(position.at(alignment) + offset, prepared);
-}
-
-void applier(RenderStateEx* target, const std::pair<Canvas*, Paint*> canvasAndPaint) {
-    canvasAndPaint.first->setPaint(*target, *canvasAndPaint.second);
 }
 
 } // namespace Brisk

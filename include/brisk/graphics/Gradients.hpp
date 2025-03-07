@@ -120,6 +120,8 @@ public:
      */
     explicit Gradient(GradientType type, PointF startPoint, PointF endPoint);
 
+    GradientType type() const noexcept;
+
     /**
      * @brief Gets the starting point of the gradient.
      * @return The starting point of the gradient.
@@ -166,8 +168,6 @@ public:
     }
 
 private:
-    friend class Canvas; ///< Allows Canvas to access private members.
-
     GradientType m_type;         ///< The type of the gradient.
     PointF m_startPoint;         ///< The starting point of the gradient.
     PointF m_endPoint;           ///< The ending point of the gradient.

@@ -96,4 +96,37 @@ ColorF GradientData::operator()(float x) const {
     }
 }
 
+Gradient::Gradient(GradientType type) : m_type(type) {}
+
+Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint)
+    : m_type(type), m_startPoint(startPoint), m_endPoint(endPoint) {}
+
+PointF Gradient::getStartPoint() const {
+    return m_startPoint;
+}
+
+void Gradient::setStartPoint(PointF pt) {
+    m_startPoint = pt;
+}
+
+PointF Gradient::getEndPoint() const {
+    return m_endPoint;
+}
+
+void Gradient::setEndPoint(PointF pt) {
+    m_endPoint = pt;
+}
+
+void Gradient::addStop(float position, ColorW color) {
+    m_colorStops.push_back({ position, color });
+}
+
+GradientType Gradient::type() const noexcept {
+    return m_type;
+}
+
+const ColorStopArray& Gradient::colorStops() const {
+    return m_colorStops;
+}
+
 } // namespace Brisk

@@ -33,17 +33,38 @@ struct Texture {
  */
 using Paint = std::variant<ColorW, RC<Gradient>, Texture>;
 
-void applier(RenderStateEx*, const std::pair<Canvas*, Paint*>);
+namespace Internal {
+struct PaintAndTransform;
+} // namespace Internal
+
+class BasicCanvas : protected RawCanvas {
+public:
+    using RawCanvas::RawCanvas;
+
+    void strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
+                    RectangleF clipRect, float opacity);
+    void fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                  RectangleF clipRect, float opacity);
+    void drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+                  const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                  RectangleF clipRect, float opacity);
+
+    using RawCanvas::renderContext;
+
+private:
+    void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint);
+    static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect);
+};
 
 /**
  * @class Canvas
  * @brief A high-level class for rendering graphical elements on a canvas.
  *
  * The Canvas class provides an interface for drawing various shapes, text, and images
- * onto a canvas. It extends the functionality of RawCanvas by adding state management
+ * onto a canvas. It extends the functionality of BasicCanvas by adding state management
  * and more sophisticated drawing operations.
  */
-class Canvas : protected RawCanvas {
+class Canvas : public BasicCanvas {
 public:
     /**
      * @brief Constructs a Canvas object using a RenderContext.
@@ -52,7 +73,11 @@ public:
      */
     explicit Canvas(RenderContext& context);
 
-    using RawCanvas::renderContext;
+    using BasicCanvas::renderContext;
+
+    using BasicCanvas::drawPath;
+    using BasicCanvas::fillPath;
+    using BasicCanvas::strokePath;
 
     /**
      * @brief Constructs a Canvas object using an existing RawCanvas.
@@ -255,14 +280,6 @@ public:
      */
     void fillPath(Path path);
 
-    void strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
-                    RectangleF clipRect);
-    void fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                  RectangleF clipRect);
-    void drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
-                  const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                  RectangleF clipRect);
-
     /**
      * @brief Strokes a rectangle with the current stroke settings.
      *
@@ -446,11 +463,6 @@ private:
     static const State defaultState;
     State m_state;              ///< The current state of the Canvas.
     std::vector<State> m_stack; ///< The stack of saved Canvas states.
-    void drawPath(const RasterizedPath& path, const Paint& paint);
-
-    static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect);
-    void setPaint(RenderStateEx& renderState, const Paint& paint);
-    friend void applier(RenderStateEx*, const std::pair<Canvas*, Paint*>);
 };
 
 } // namespace Brisk
