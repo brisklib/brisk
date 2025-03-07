@@ -30,7 +30,7 @@ GradientData::GradientData(const Gradient& gradient) {
         return;
     }
     if (colorStops.size() == 1) {
-        std::fill(data.begin(), data.end(), colorStops.front().color);
+        std::fill(data.begin(), data.end(), ColorF(colorStops.front().color).premultiply());
         return;
     }
     for (auto& stop : colorStops) {
@@ -53,13 +53,14 @@ GradientData::GradientData(const Gradient& gradient) {
         }
         auto lt = std::prev(gt);
         float t = (val - lt->position) / (gt->position - lt->position + 0.001f);
-        data[i] = mix(t, ColorF(lt->color), ColorF(gt->color));
+        data[i] = mix(t, ColorF(lt->color).premultiply(), ColorF(gt->color).premultiply(),
+                      AlphaMode::Premultiplied);
     }
 }
 
 GradientData::GradientData(const function<ColorF(float)>& func) {
     for (size_t i = 0; i < gradientResolution; i++) {
-        data[i] = func(static_cast<float>(i) / (gradientResolution - 1));
+        data[i] = ColorF(func(static_cast<float>(i) / (gradientResolution - 1))).premultiply();
     }
 }
 
@@ -69,12 +70,14 @@ GradientData::GradientData(const std::vector<ColorF>& list, float gamma) {
         const size_t max_index = list.size() - 1;
         float index            = x * max_index;
         if (index <= 0)
-            data[i] = list[0];
+            data[i] = ColorF(list[0]).premultiply();
         else if (index >= max_index)
-            data[i] = list[max_index];
+            data[i] = ColorF(list[max_index]).premultiply();
         else {
             const float mu = fract(index);
-            data[i]        = mix(mu, list[static_cast<size_t>(index)], list[static_cast<size_t>(index) + 1]);
+            data[i] =
+                mix(mu, ColorF(list[static_cast<size_t>(index)]).premultiply(),
+                    ColorF(list[static_cast<size_t>(index) + 1]).premultiply(), AlphaMode::Premultiplied);
         }
     }
 }
@@ -88,7 +91,8 @@ ColorF GradientData::operator()(float x) const {
         return data[max_index];
     else {
         const float mu = fract(index);
-        return ColorF(mix(mu, data[static_cast<size_t>(index)].v, data[static_cast<size_t>(index) + 1].v));
+        return mix(mu, data[static_cast<size_t>(index)], data[static_cast<size_t>(index) + 1],
+                   AlphaMode::Premultiplied);
     }
 }
 
