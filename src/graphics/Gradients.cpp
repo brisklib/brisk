@@ -96,10 +96,18 @@ ColorF GradientData::operator()(float x) const {
     }
 }
 
-Gradient::Gradient(GradientType type) : m_type(type) {}
+Gradient::Gradient(GradientType type) : Gradient(type, {}, {}, {}) {}
 
 Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint)
-    : m_type(type), m_startPoint(startPoint), m_endPoint(endPoint) {}
+    : Gradient(type, startPoint, endPoint, {}) {}
+
+Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint,
+                   std::initializer_list<ColorStop> colors)
+    : m_type(type), m_startPoint(startPoint), m_endPoint(endPoint) {
+    for (ColorStop color : colors) {
+        addStop(color);
+    }
+}
 
 PointF Gradient::getStartPoint() const {
     return m_startPoint;
@@ -118,15 +126,18 @@ void Gradient::setEndPoint(PointF pt) {
 }
 
 void Gradient::addStop(float position, ColorW color) {
-    m_colorStops.push_back({ position, color });
+    addStop({ position, color });
 }
 
-GradientType Gradient::type() const noexcept {
+void Gradient::addStop(ColorStop colorStop) {
+    m_colorStops.push_back(colorStop);
+}
+
+GradientType Gradient::getType() const noexcept {
     return m_type;
 }
 
 const ColorStopArray& Gradient::colorStops() const {
     return m_colorStops;
 }
-
 } // namespace Brisk

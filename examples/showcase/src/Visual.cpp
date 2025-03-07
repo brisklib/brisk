@@ -135,10 +135,9 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 // Create a linear gradient from one corner to another and define two color stops
                 // (red at 0% and green at 100%).
-                RC<Gradient> gradient =
-                    rcnew Gradient{ GradientType::Linear, rect.at(0.25, 0.25), rect.at(0.75, 0.75) };
-                gradient->addStop(0.f, Palette::Standard::red);
-                gradient->addStop(1.f, Palette::Standard::green);
+                Gradient gradient{ GradientType::Linear, rect.at(0.25, 0.25), rect.at(0.75, 0.75) };
+                gradient.addStop(0.f, Palette::Standard::red);
+                gradient.addStop(1.f, Palette::Standard::green);
 
                 // Apply the gradient as the fill paint for the path and fill the shape 'p' with this
                 // gradient.

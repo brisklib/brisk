@@ -28,10 +28,10 @@ struct Texture {
  * @brief A versatile type representing various fill and stroke styles.
  *
  * Paint can hold one of several types representing
- * different kinds of paints: a solid color (ColorW), a gradient (RC<Gradient>),
+ * different kinds of paints: a solid color (ColorW), a gradient (Gradient),
  * or a texture (Texture).
  */
-using Paint = std::variant<ColorW, RC<Gradient>, Texture>;
+using Paint = std::variant<ColorW, Gradient, Texture>;
 
 namespace Internal {
 struct PaintAndTransform;
@@ -295,7 +295,7 @@ public:
      * @param rect The RectangleF struct defining the rectangle to fill.
      */
     void fillRect(RectangleF rect);
-    
+
     void drawRect(RectangleF rect);
 
     /**

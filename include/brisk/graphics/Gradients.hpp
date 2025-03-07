@@ -34,7 +34,7 @@ enum class GradientType : int {
 /**
  * @brief A small vector type for storing an array of color stops.
  */
-using ColorStopArray                       = SmallVector<ColorStop, 3>;
+using ColorStopArray                       = SmallVector<ColorStop, 2>;
 
 /**
  * @brief The resolution for the gradient, used in shader calculations.
@@ -43,7 +43,7 @@ using ColorStopArray                       = SmallVector<ColorStop, 3>;
  */
 constexpr inline size_t gradientResolution = 1024;
 
-class Gradient;
+struct Gradient;
 
 /**
  * @brief Struct for storing gradient data.
@@ -104,7 +104,7 @@ inline RC<GradientResource> makeGradient(const GradientData& data) {
 /**
  * @brief Represents a gradient for rendering.
  */
-class Gradient final {
+struct Gradient {
 public:
     /**
      * @brief Constructs a gradient of a specified type.
@@ -120,7 +120,10 @@ public:
      */
     explicit Gradient(GradientType type, PointF startPoint, PointF endPoint);
 
-    GradientType type() const noexcept;
+    explicit Gradient(GradientType type, PointF startPoint, PointF endPoint,
+                      std::initializer_list<ColorStop> colors);
+
+    GradientType getType() const noexcept;
 
     /**
      * @brief Gets the starting point of the gradient.
@@ -152,6 +155,8 @@ public:
      * @param color The color of the stop.
      */
     void addStop(float position, ColorW color);
+
+    void addStop(ColorStop colorStop);
 
     /**
      * @brief Gets the array of color stops defined in the gradient.

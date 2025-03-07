@@ -167,7 +167,7 @@ TEST_CASE("Renderer", "[gpu]") {
                 Gradient grad(GradientType::Linear, frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f));
                 grad.addStop(0.f, Palette::Standard::green);
                 grad.addStop(1.f, Palette::Standard::red);
-                canvas.setFillPaint(notManaged(&grad));
+                canvas.setFillPaint(grad);
                 canvas.fillPath(path);
                 canvas.strokePath(path);
             },
@@ -380,19 +380,19 @@ TEST_CASE("Gradients", "[gpu]") {
     constexpr Size canvasSize{ 1000, 100 };
     blendingTest("gradients1", canvasSize, [&](RenderContext& context) {
         Canvas canvas(context);
-        auto grad = rcnew Gradient{ GradientType::Linear, PointF{ 0, 0 }, PointF{ 1000, 0 } };
-        grad->addStop(0.000f, Palette::black);
-        grad->addStop(0.333f, Palette::white);
-        grad->addStop(0.667f, Palette::black);
-        grad->addStop(1.000f, Palette::white);
-        canvas.setFillPaint(grad);
+        Gradient grad{ GradientType::Linear, PointF{ 0, 0 }, PointF{ 1000, 0 } };
+        grad.addStop(0.000f, Palette::black);
+        grad.addStop(0.333f, Palette::white);
+        grad.addStop(0.667f, Palette::black);
+        grad.addStop(1.000f, Palette::white);
+        canvas.setFillPaint(std::move(grad));
         canvas.fillRect(RectangleF{ 0, 0, 1000.f, 50.f });
-        grad = rcnew Gradient{ GradientType::Linear, PointF{ 0, 0 }, PointF{ 1000, 0 } };
-        grad->addStop(0.000f, Palette::red);
-        grad->addStop(0.333f, Palette::green);
-        grad->addStop(0.667f, Palette::red);
-        grad->addStop(1.000f, Palette::green);
-        canvas.setFillPaint(grad);
+        grad = Gradient{ GradientType::Linear, PointF{ 0, 0 }, PointF{ 1000, 0 } };
+        grad.addStop(0.000f, Palette::red);
+        grad.addStop(0.333f, Palette::green);
+        grad.addStop(0.667f, Palette::red);
+        grad.addStop(1.000f, Palette::green);
+        canvas.setFillPaint(std::move(grad));
         canvas.fillRect(RectangleF{ 0, 50.f, 1000.f, 100.f });
     });
 }
@@ -703,11 +703,11 @@ TEST_CASE("Canvas opacity") {
         canvas.setOpacity(0.5f);
         canvas.setFillColor(Palette::black);
         canvas.fillRect({ 0, 0, 256, 64 });
-        RC<Gradient> gradient = rcnew Gradient(GradientType::Linear);
-        gradient->setStartPoint({ 0, 0 });
-        gradient->setEndPoint({ 256, 0 });
-        gradient->addStop(0.f, Palette::green);
-        gradient->addStop(1.f, Palette::red);
+        Gradient gradient(GradientType::Linear);
+        gradient.setStartPoint({ 0, 0 });
+        gradient.setEndPoint({ 256, 0 });
+        gradient.addStop(0.f, Palette::green);
+        gradient.addStop(1.f, Palette::red);
         canvas.setFillPaint(gradient);
         canvas.fillRect({ 0, 64, 256, 128 });
         RC<Image> image = rcnew Image(Size{ 4, 4 });

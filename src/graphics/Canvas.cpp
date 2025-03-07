@@ -38,13 +38,13 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
         break;
     }
     case 1: { // Gradient
-        const Gradient& gradient = *get<RC<Gradient>>(paint.paint);
+        const Gradient& gradient = get<Gradient>(paint.paint);
         if (gradient.colorStops().empty()) {
             break;
         }
         renderState->gradientPoint1 = paint.transform.transform(gradient.getStartPoint());
         renderState->gradientPoint2 = paint.transform.transform(gradient.getEndPoint());
-        renderState->gradient       = gradient.type();
+        renderState->gradient       = gradient.getType();
         renderState->opacity        = paint.opacity;
         if (gradient.colorStops().size() == 1) {
             renderState->fillColor1 = renderState->fillColor2 = ColorF(gradient.colorStops().front().color);
