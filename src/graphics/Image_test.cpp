@@ -22,7 +22,6 @@
 #include <brisk/core/IO.hpp>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
-#include "VisualTests.hpp"
 
 namespace Brisk {
 TEST_CASE("Image") {

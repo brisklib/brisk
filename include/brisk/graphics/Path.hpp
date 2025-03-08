@@ -5,7 +5,7 @@
 #include <brisk/core/RC.hpp>
 #include <mutex>
 #include <variant>
-#include "brisk/core/internal/InlineVector.hpp"
+#include <brisk/core/internal/InlineVector.hpp>
 #include "internal/Sprites.hpp"
 
 namespace Brisk {

@@ -1,5 +1,5 @@
 #include "Buttons.hpp"
-#include "brisk/gui/Icons.hpp"
+#include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>

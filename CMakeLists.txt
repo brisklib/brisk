@@ -290,3 +290,73 @@ install(
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/DEP_HASH ${CMAKE_CURRENT_BINARY_DIR}/VCPKG_TARGET_TRIPLET
         DESTINATION ${BRISK_INSTALL_CMAKEDIR})
+
+if (BRISK_VERIFY_HEADERS)
+
+    function (create_header_object_library library_name source_dir binary_dir link_libraries)
+        # Find all header files recursively
+        file(GLOB_RECURSE header_files "${source_dir}/*.hpp" "${source_dir}/*.h")
+        list(FILTER header_files EXCLUDE REGEX "\\.inc\\.")
+
+        # Create a list to store generated cpp files
+        set(generated_cpp_files "")
+
+        # Create binary directory if it doesn't exist
+        file(MAKE_DIRECTORY ${binary_dir})
+
+        # Process each header file
+        foreach (header_file ${header_files})
+            # Get the relative path from source_dir to header_file
+            file(RELATIVE_PATH relative_path ${source_dir} ${header_file})
+
+            # Get the filename without extension
+            get_filename_component(header_name ${relative_path} NAME_WE)
+
+            # Get the directory path (if any)
+            get_filename_component(header_dir ${relative_path} PATH)
+
+            # Create a unique filename by incorporating the directory structure
+            if (header_dir)
+                # Replace path separators with underscores and create unique name
+                string(REPLACE "/" "_" unique_prefix "${header_dir}")
+                set(unique_name "${unique_prefix}_${header_name}")
+            else ()
+                set(unique_name "${header_name}")
+            endif ()
+
+            # Create the corresponding cpp filename
+            set(cpp_file "${binary_dir}/${unique_name}_generated.cpp")
+
+            # Generate the cpp file that includes the header using absolute path
+            file(
+                GENERATE
+                OUTPUT ${cpp_file}
+                CONTENT "#include \"${header_file}\"\n")
+
+            # Add to list of generated files
+            list(APPEND generated_cpp_files ${cpp_file})
+        endforeach ()
+
+        # Create object library from generated cpp files
+        if (generated_cpp_files)
+            add_library(${library_name} OBJECT ${generated_cpp_files})
+            target_link_libraries(${library_name} PUBLIC ${link_libraries})
+        else ()
+            message(WARNING "No header files found in ${source_dir}")
+        endif ()
+    endfunction ()
+
+    create_header_object_library(inc-test-core ${CMAKE_SOURCE_DIR}/include/brisk/core ${CMAKE_BINARY_DIR}/inc-core
+                                 brisk-core)
+    create_header_object_library(inc-test-graphics ${CMAKE_SOURCE_DIR}/include/brisk/graphics
+                                 ${CMAKE_BINARY_DIR}/inc-graphics brisk-graphics)
+    create_header_object_library(inc-test-network ${CMAKE_SOURCE_DIR}/include/brisk/network
+                                 ${CMAKE_BINARY_DIR}/inc-network brisk-network)
+    create_header_object_library(inc-test-window ${CMAKE_SOURCE_DIR}/include/brisk/window
+                                 ${CMAKE_BINARY_DIR}/inc-window brisk-window)
+    create_header_object_library(inc-test-gui ${CMAKE_SOURCE_DIR}/include/brisk/gui ${CMAKE_BINARY_DIR}/inc-gui
+                                 brisk-gui)
+    create_header_object_library(inc-test-widgets ${CMAKE_SOURCE_DIR}/include/brisk/widgets
+                                 ${CMAKE_BINARY_DIR}/inc-widgets brisk-widgets)
+
+endif ()

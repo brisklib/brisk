@@ -1,6 +1,6 @@
 #include "Dialogs.hpp"
-#include "brisk/gui/Component.hpp"
-#include "brisk/widgets/DialogComponent.hpp"
+#include <brisk/gui/Component.hpp>
+#include <brisk/widgets/DialogComponent.hpp>
 #include <brisk/window/OSDialogs.hpp>
 #include <brisk/widgets/Graphene.hpp>
 

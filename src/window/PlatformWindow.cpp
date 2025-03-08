@@ -22,7 +22,7 @@
 #include <brisk/graphics/SVG.hpp>
 #include <brisk/window/Window.hpp>
 #include "Cursors.hpp"
-#include "KeyCodes.hpp"
+#include <brisk/window/Types.hpp>
 
 namespace Brisk {
 

@@ -1,10 +1,6 @@
 #include <brisk/graphics/Html.hpp>
-#include <brisk/core/internal/SmallVector.hpp>
-#include <brisk/core/Log.hpp>
 #include <brisk/core/Encoding.hpp>
 #include <tao/pegtl.hpp>
-#include <tao/pegtl/contrib/analyze.hpp>
-#include <utf8proc.h>
 #include <charconv>
 
 namespace Brisk {

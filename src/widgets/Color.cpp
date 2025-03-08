@@ -20,7 +20,6 @@
  */
 #include <brisk/widgets/Color.hpp>
 #include <brisk/widgets/Slider.hpp>
-#include <brisk/widgets/Widgets.hpp>
 #include <brisk/graphics/Palette.hpp>
 
 namespace Brisk {

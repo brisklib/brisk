@@ -23,7 +23,7 @@
 #include "ImageRenderTarget.hpp"
 #include "RenderEncoder.hpp"
 #include "ImageBackend.hpp"
-#include "brisk/core/Threading.hpp"
+#include <brisk/core/Threading.hpp>
 #include <brisk/core/Encoding.hpp>
 
 #include <brisk/core/Resources.hpp>

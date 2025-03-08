@@ -28,7 +28,7 @@
 #include <brisk/core/Log.hpp>
 
 #include "PlatformWindow.hpp"
-#include "brisk/graphics/Fonts.hpp"
+#include <brisk/graphics/Fonts.hpp>
 
 namespace Brisk {
 

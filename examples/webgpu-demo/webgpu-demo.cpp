@@ -8,7 +8,7 @@
 #include <brisk/widgets/WebGPU.hpp>
 #include <brisk/gui/Component.hpp>
 #include <brisk/graphics/Fonts.hpp>
-#include "brisk/gui/Icons.hpp"
+#include <brisk/gui/Icons.hpp>
 
 namespace Brisk {
 

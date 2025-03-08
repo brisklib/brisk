@@ -21,6 +21,7 @@
 #pragma once
 
 #include <brisk/gui/Component.hpp>
+#include <brisk/window/OSDialogs.hpp>
 
 namespace Brisk {
 

@@ -23,7 +23,6 @@
 #include <vraster.h>
 
 #include <brisk/graphics/Path.hpp>
-#include <brisk/core/internal/Lock.hpp>
 #include "vdasher.h"
 #include <brisk/graphics/Image.hpp>
 

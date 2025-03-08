@@ -51,10 +51,8 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/Compression_GZip.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Compression_LZ4.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Cryptography.cpp
-    ${PROJECT_SOURCE_DIR}/src/core/Exceptions.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Hash.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Encoding.cpp
-    ${PROJECT_SOURCE_DIR}/src/core/Process.cpp
     ${PROJECT_SOURCE_DIR}/src/core/IO.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Log.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Settings.cpp
@@ -64,7 +62,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/Stream.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Time.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Initialization.cpp
-    ${PROJECT_SOURCE_DIR}/src/core/SingleHeaderTest.cpp
     ${PROJECT_SOURCE_DIR}/src/core/uv.hpp
     ${PROJECT_SOURCE_DIR}/src/core/uv.cpp
     ${PROJECT_SOURCE_DIR}/src/core/App.cpp

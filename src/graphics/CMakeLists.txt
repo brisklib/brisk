@@ -49,7 +49,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/Atlas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Atlas.hpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Fonts.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/SingleHeaderTest.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Image.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Path.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Renderer.cpp

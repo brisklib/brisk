@@ -22,7 +22,6 @@
 #include <brisk/core/RC.hpp>
 #include <brisk/core/Stream.hpp>
 #include "Catch2Utils.hpp"
-#include <type_traits>
 
 namespace Brisk {
 

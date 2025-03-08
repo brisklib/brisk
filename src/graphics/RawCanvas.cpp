@@ -20,9 +20,6 @@
  */
 #include <brisk/graphics/RawCanvas.hpp>
 #include <brisk/core/Encoding.hpp>
-#include <vpath.h>
-#include <vrle.h>
-#include <vraster.h>
 
 namespace Brisk {
 

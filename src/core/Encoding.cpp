@@ -19,8 +19,6 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/Encoding.hpp>
-#include <codecvt>
-#include <locale>
 #include <bit>
 #include <string_view>
 #include "utf8proc.h"

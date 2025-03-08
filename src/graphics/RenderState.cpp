@@ -18,11 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#define _ENABLE_EXTENDED_ALIGNED_STORAGE 1
-
 #include <brisk/graphics/RenderState.hpp>
-#include <brisk/core/Hash.hpp>
-#include <brisk/graphics/Renderer.hpp>
 #include <cstring>
 
 namespace Brisk {

@@ -20,7 +20,6 @@
  */
 #include <brisk/graphics/ImageTransform.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/Utilities.hpp>
 
 #define STB_IMAGE_RESIZE_STATIC 1
 #define STB_IMAGE_RESIZE_IMPLEMENTATION 1

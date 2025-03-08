@@ -22,7 +22,6 @@
 
 #include <brisk/gui/GUI.hpp>
 #include <brisk/gui/GUIWindow.hpp>
-#include <brisk/window/OSDialogs.hpp>
 
 namespace Brisk {
 

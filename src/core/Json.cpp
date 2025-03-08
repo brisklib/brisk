@@ -19,7 +19,6 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/Json.hpp>
-#include <sstream>
 #include <fmt/format.h>
 
 #define RAPIDJSON_WRITE_DEFAULT_FLAGS rapidjson::kWriteNanAndInfFlag

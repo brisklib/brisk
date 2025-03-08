@@ -1,6 +1,6 @@
 #pragma once
 
-#include "brisk/gui/Icons.hpp"
+#include <brisk/gui/Icons.hpp>
 #include <brisk/core/Binding.hpp>
 #include <brisk/gui/GUIWindow.hpp>
 #include <brisk/gui/Component.hpp>

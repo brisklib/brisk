@@ -20,7 +20,6 @@
  */
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/Utilities.hpp>
 
 #include <png.h>
 

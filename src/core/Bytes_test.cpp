@@ -21,7 +21,7 @@
 #include <brisk/core/Bytes.hpp>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
-#include "brisk/core/Hash.hpp"
+#include <brisk/core/Hash.hpp>
 #include <brisk/core/internal/cityhash.hpp>
 
 namespace Brisk {

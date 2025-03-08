@@ -18,8 +18,8 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <catch2/catch_all.hpp>
 #include <brisk/core/internal/InlineVector.hpp>
+#include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 
 namespace Brisk {

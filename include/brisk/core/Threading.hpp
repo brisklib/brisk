@@ -22,7 +22,7 @@
 
 #include "Time.hpp"
 #include "BasicTypes.hpp"
-#include "brisk/core/Utilities.hpp"
+#include <brisk/core/Utilities.hpp>
 #include "internal/Function.hpp"
 #include <functional>
 #include <future>

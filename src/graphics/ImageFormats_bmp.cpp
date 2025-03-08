@@ -20,7 +20,6 @@
  */
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/Utilities.hpp>
 #define STBI_WRITE_NO_STDIO 1
 #define STB_IMAGE_WRITE_STATIC 1
 #define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -36,7 +35,6 @@ BRISK_GNU_ATTR_PRAGMA(GCC diagnostic ignored "-Wunused-function")
 #include <stb_image_write.h>
 BRISK_GNU_ATTR_PRAGMA(GCC diagnostic pop)
 
-#include <brisk/core/Log.hpp>
 #include <brisk/core/Stream.hpp>
 
 namespace Brisk {

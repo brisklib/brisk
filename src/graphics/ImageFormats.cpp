@@ -20,8 +20,6 @@
  */
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Log.hpp>
 #include <brisk/core/Stream.hpp>
 
 namespace Brisk {

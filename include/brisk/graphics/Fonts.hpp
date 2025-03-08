@@ -25,7 +25,7 @@
 #include <brisk/core/Hash.hpp>
 #include <mutex>
 #include "Color.hpp"
-#include "brisk/core/internal/SmallVector.hpp"
+#include <brisk/core/internal/SmallVector.hpp>
 #include "internal/OpenType.hpp"
 #include "Image.hpp"
 #include <brisk/core/IO.hpp>
