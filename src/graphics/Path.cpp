@@ -155,6 +155,15 @@ void Path::close() {
     v(this)->close();
 }
 
+bool Path::isClosed() const {
+    int closeNum   = 0;
+    const VPath* r = v(this);
+    for (VPath::Element el : r->elements()) {
+        closeNum += el == VPath::Element::Close;
+    }
+    return closeNum == r->segments();
+}
+
 void Path::reset() {
     v(this)->reset();
 }
@@ -268,6 +277,17 @@ std::optional<RectangleF> Path::asRectangle() const {
         std::min(pts[0].y(), pts[1].y()),
         std::max(pts[0].x(), pts[3].x()),
         std::max(pts[0].y(), pts[1].y()),
+    };
+}
+
+std::optional<std::array<PointF, 2>> Path::asLine() const {
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || r->elements().size() != 2 || r->points().size() != 2)
+        return std::nullopt;
+    return std::array<PointF, 2>{
+        w(r->points()[0]),
+        w(r->points()[1]),
     };
 }
 

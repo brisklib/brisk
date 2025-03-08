@@ -57,7 +57,7 @@ using DashArray = inline_vector<float, 7>;
  * @brief Structure representing stroke parameters.
  */
 struct StrokeParams {
-    JoinStyle joinStyle = JoinStyle::Bevel; ///< The join style of the stroke.
+    JoinStyle joinStyle = JoinStyle::Miter; ///< The join style of the stroke.
     CapStyle capStyle   = CapStyle::Flat;   ///< The cap style of the stroke.
     float strokeWidth   = 1.f;              ///< The width of the stroke.
     float miterLimit    = 10.f;             ///< The limit for miter joins.
@@ -196,6 +196,8 @@ struct Path {
      */
     void close();
 
+    bool isClosed() const;
+
     /**
      * @brief Resets the path to an empty state.
      */
@@ -325,6 +327,7 @@ struct Path {
     RectangleF boundingBoxApprox() const;
 
     std::optional<RectangleF> asRectangle() const;
+    std::optional<std::array<PointF, 2>> asLine() const;
 
     /// Rasterizes the path for filling.
     /// @param fill Fill parameters.

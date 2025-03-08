@@ -601,6 +601,13 @@ inline constexpr std::initializer_list<NameValuePair<TestMode>> defaultNames<Tes
     { "stroke", TestMode::Stroke },
     { "draw", TestMode::Draw },
 };
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<CapStyle>> defaultNames<CapStyle>{
+    { "flat", CapStyle::Flat },
+    { "square", CapStyle::Square },
+    { "round", CapStyle::Round },
+};
 using enum TestMode;
 
 static void drawRect(Canvas& canvas, TestMode mode, RectangleF r) {
@@ -625,7 +632,6 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setCapStyle(CapStyle::Round);
                 canvas.setFillColor(Palette::Standard::cyan);
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -636,7 +642,6 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setCapStyle(CapStyle::Round);
                 canvas.setFillColor(Palette::Standard::cyan);
                 canvas.setTransform(Matrix::translation(+4.5f, -3.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
@@ -648,7 +653,6 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setCapStyle(CapStyle::Round);
                 canvas.setFillPaint(Gradient(GradientType::Linear, { 20, 20 }, { 80, 80 },
                                              Palette::Standard::cyan, Palette::Standard::fuchsia));
                 canvas.setTransform(Matrix().scale(0.75f, 0.75f, 50.f, 50.f));
@@ -661,7 +665,6 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setCapStyle(CapStyle::Round);
                 canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
                                              Palette::Standard::cyan, Palette::Standard::fuchsia));
                 canvas.setTransform(Matrix().rotate(60.f, 50.f, 50.f));
@@ -674,7 +677,6 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setCapStyle(CapStyle::Round);
                 canvas.setStrokeWidth(0.15f);
                 canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
                                              Palette::Standard::cyan, Palette::Standard::fuchsia));
@@ -688,11 +690,35 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setCapStyle(CapStyle::Round);
                 canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
                                              Palette::Standard::cyan, Palette::Standard::fuchsia));
                 canvas.setTransform(Matrix::scaling(10.f));
                 drawRect(canvas, mode, { 2, 2, 8, 8 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+        renderTest(
+            "canvas-sdf7-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Miter);
+                canvas.setStrokeWidth(15.f);
+                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
+                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                drawRect(canvas, mode, { 20, 20, 80, 80 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+    }
+    for (CapStyle style : { CapStyle::Flat, CapStyle::Round, CapStyle::Square }) {
+        renderTest(
+            "canvas-sdf8-{}"_fmt(style), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setCapStyle(style);
+                canvas.setStrokeWidth(15.f);
+                canvas.setStrokeColor(Palette::Standard::amber);
+                canvas.strokeLine({ 20, 20 }, { 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
