@@ -473,15 +473,30 @@ struct MatrixOf {
     /**
      * @brief Estimates the average scaling factor of the matrix.
      *
-     * This method calculates an average scale by computing the hypotenuse of
-     * the matrix's first two columns and averaging them.
-     *
      * @return T The estimated scaling factor.
      */
     constexpr T estimateScale() const {
-        T x = std::hypot(v[0][0], v[1][0]);
-        T y = std::hypot(v[0][1], v[1][1]);
-        return T(0.5) * (x + y);
+        return std::sqrt(a * a + c * c);
+    }
+
+    constexpr bool isUniformScale() const {
+        constexpr float epsilon = 1e-6f;
+
+        // Check if it's a pure scaling matrix (no rotation/shear)
+        if (std::abs(b) < epsilon && std::abs(c) < epsilon) {
+            return std::abs(std::abs(a) - std::abs(d)) < epsilon;
+        }
+
+        // For matrices with rotation, check if it's a scaled rotation matrix
+        // A rotation matrix scaled by k has form [k*cosθ  -k*sinθ]
+        //                               [k*sinθ   k*cosθ]
+        // So a*d + b*c should be close to zero
+        // And scale factors should match: a² + c² ≈ b² + d²
+        float scale1_sq = a * a + c * c;
+        float scale2_sq = b * b + d * d;
+
+        return std::abs(a * d + b * c) < epsilon &&       // Orthogonality check
+               std::abs(scale1_sq - scale2_sq) < epsilon; // Equal scale check
     }
 
     /**
