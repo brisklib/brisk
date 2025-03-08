@@ -100,6 +100,9 @@ Gradient::Gradient(GradientType type) : Gradient(type, {}, {}, {}) {}
 Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint)
     : Gradient(type, startPoint, endPoint, {}) {}
 
+Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorW color1, ColorW color2)
+    : Gradient(type, startPoint, endPoint, { { 0.f, color1 }, { 1.f, color2 } }) {}
+
 Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint,
                    std::initializer_list<ColorStop> colors)
     : m_type(type), m_startPoint(startPoint), m_endPoint(endPoint) {
