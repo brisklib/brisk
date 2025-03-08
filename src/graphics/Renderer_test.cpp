@@ -26,6 +26,7 @@
 #include "Catch2Utils.hpp"
 #include "VisualTests.hpp"
 #include <brisk/core/Time.hpp>
+#include <brisk/core/Text.hpp>
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/RawCanvas.hpp>
 #include <brisk/graphics/Canvas.hpp>
@@ -718,6 +719,115 @@ TEST_CASE("Canvas opacity") {
         canvas.setFillPaint(Texture{ std::move(image), {}, SamplerMode::Clamp });
         canvas.fillRect({ 0, 128, 256, 192 });
     });
+}
+
+enum class TestMode {
+    Fill   = 1,
+    Stroke = 2,
+    Draw   = 3,
+};
+template <>
+inline constexpr std::initializer_list<NameValuePair<TestMode>> defaultNames<TestMode>{
+    { "fill", TestMode::Fill },
+    { "stroke", TestMode::Stroke },
+    { "draw", TestMode::Draw },
+};
+using enum TestMode;
+
+static void drawRect(Canvas& canvas, TestMode mode, RectangleF r) {
+    switch (mode) {
+    case Fill:
+        canvas.fillRect(r);
+        break;
+    case Stroke:
+        canvas.strokeRect(r);
+        break;
+    case Draw:
+        canvas.drawRect(r);
+        break;
+    }
+}
+
+TEST_CASE("Canvas optimization") {
+    constexpr CanvasFlags flags = CanvasFlags::SDF;
+    for (TestMode mode : { Fill, Stroke, Draw }) {
+        renderTest(
+            "canvas-sdf1-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Round);
+                canvas.setCapStyle(CapStyle::Round);
+                canvas.setFillColor(Palette::Standard::cyan);
+                drawRect(canvas, mode, { 20, 20, 80, 80 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+        renderTest(
+            "canvas-sdf2-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Round);
+                canvas.setCapStyle(CapStyle::Round);
+                canvas.setFillColor(Palette::Standard::cyan);
+                canvas.setTransform(Matrix::translation(+4.5f, -3.f));
+                drawRect(canvas, mode, { 20, 20, 80, 80 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+        renderTest(
+            "canvas-sdf3-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Round);
+                canvas.setCapStyle(CapStyle::Round);
+                canvas.setFillPaint(Gradient(GradientType::Linear, { 20, 20 }, { 80, 80 },
+                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setTransform(Matrix().scale(0.75f, 0.75f, 50.f, 50.f));
+                drawRect(canvas, mode, { 20, 20, 80, 80 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+        renderTest(
+            "canvas-sdf4-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Round);
+                canvas.setCapStyle(CapStyle::Round);
+                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
+                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setTransform(Matrix().rotate(60.f, 50.f, 50.f));
+                drawRect(canvas, mode, { 20, 20, 80, 80 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+        renderTest(
+            "canvas-sdf5-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Round);
+                canvas.setCapStyle(CapStyle::Round);
+                canvas.setStrokeWidth(0.15f);
+                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
+                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setTransform(Matrix::scaling(100.f));
+                drawRect(canvas, mode, { 0.2f, 0.2f, 0.8f, 0.8f });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+        renderTest(
+            "canvas-sdf6-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Round);
+                canvas.setCapStyle(CapStyle::Round);
+                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
+                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setTransform(Matrix::scaling(10.f));
+                drawRect(canvas, mode, { 2, 2, 8, 8 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+    }
 }
 
 #ifdef BRISK_WEBGPU

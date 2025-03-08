@@ -324,6 +324,8 @@ struct Path {
      */
     RectangleF boundingBoxApprox() const;
 
+    std::optional<RectangleF> asRectangle() const;
+
     /// Rasterizes the path for filling.
     /// @param fill Fill parameters.
     /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.

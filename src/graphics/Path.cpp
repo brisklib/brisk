@@ -250,6 +250,27 @@ RectangleF Path::boundingBoxApprox() const {
     return result;
 }
 
+std::optional<RectangleF> Path::asRectangle() const {
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || r->elements().size() != 6 || r->points().size() != 5 ||
+        !fuzzyCompare(pts[4], pts[0]))
+        return std::nullopt;
+    if (r->elements()[0] != VPath::Element::MoveTo || r->elements()[1] != VPath::Element::LineTo ||
+        r->elements()[2] != VPath::Element::LineTo || r->elements()[3] != VPath::Element::LineTo ||
+        r->elements()[4] != VPath::Element::LineTo || r->elements()[5] != VPath::Element::Close)
+        return std::nullopt;
+    if (!(vCompare(pts[1].x(), pts[0].x()) || vCompare(pts[3].x(), pts[2].x()) ||
+          vCompare(pts[3].y(), pts[0].y()) || vCompare(pts[2].y(), pts[1].y())))
+        return std::nullopt;
+    return RectangleF{
+        std::min(pts[0].x(), pts[3].x()),
+        std::min(pts[0].y(), pts[1].y()),
+        std::max(pts[0].x(), pts[3].x()),
+        std::max(pts[0].y(), pts[1].y()),
+    };
+}
+
 BRISK_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint32_t len) {
     for (uint32_t j = 0; j < len; ++j) {
         dst->grey = dst->grey + (src * (255 - dst->grey) >> 8);

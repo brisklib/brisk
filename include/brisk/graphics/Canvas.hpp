@@ -37,6 +37,15 @@ namespace Internal {
 struct PaintAndTransform;
 } // namespace Internal
 
+enum class CanvasFlags {
+    None    = 0,
+    SDF     = 1,
+    Default = SDF,
+};
+
+template <>
+constexpr inline bool isBitFlags<CanvasFlags> = true;
+
 class BasicCanvas : protected RawCanvas {
 public:
     using RawCanvas::RawCanvas;
@@ -51,7 +60,13 @@ public:
 
     using RawCanvas::renderContext;
 
+    int rasterizedPaths() const noexcept;
+
+protected:
+    CanvasFlags m_flags = CanvasFlags::Default;
+
 private:
+    int m_rasterizedPaths = 0;
     void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint);
     static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect);
 };
@@ -71,7 +86,7 @@ public:
      *
      * @param context The rendering context used for drawing operations.
      */
-    explicit Canvas(RenderContext& context);
+    explicit Canvas(RenderContext& context, CanvasFlags flags = CanvasFlags::Default);
 
     using BasicCanvas::renderContext;
 

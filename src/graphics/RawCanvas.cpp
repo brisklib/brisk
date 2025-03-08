@@ -28,10 +28,6 @@ float& pixelRatio() noexcept {
     return ratio;
 }
 
-static float uintToFloatSafe(uint32_t x) noexcept {
-    return std::bit_cast<float>((x & 0x0FFF'FFFFu) | 0x3000'0000u);
-}
-
 static int32_t findOrAdd(SpriteResources& container, RC<SpriteResource> value) {
     if (!value)
         return -1;
