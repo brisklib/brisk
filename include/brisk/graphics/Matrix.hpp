@@ -480,23 +480,16 @@ struct MatrixOf {
     }
 
     constexpr bool isUniformScale() const {
-        constexpr float epsilon = 1e-6f;
-
-        // Check if it's a pure scaling matrix (no rotation/shear)
+        constexpr float epsilon = 1e-4f;
+        float scale1_sq         = a * a + c * c;
+        float scale2_sq         = b * b + d * d;
         if (std::abs(b) < epsilon && std::abs(c) < epsilon) {
             return std::abs(std::abs(a) - std::abs(d)) < epsilon;
         }
-
-        // For matrices with rotation, check if it's a scaled rotation matrix
-        // A rotation matrix scaled by k has form [k*cosθ  -k*sinθ]
-        //                               [k*sinθ   k*cosθ]
-        // So a*d + b*c should be close to zero
-        // And scale factors should match: a² + c² ≈ b² + d²
-        float scale1_sq = a * a + c * c;
-        float scale2_sq = b * b + d * d;
-
-        return std::abs(a * d + b * c) < epsilon &&       // Orthogonality check
-               std::abs(scale1_sq - scale2_sq) < epsilon; // Equal scale check
+        if (std::abs(scale1_sq - scale2_sq) > epsilon)
+            return false;
+        float dot_product = a * b + c * d;
+        return std::abs(dot_product) < epsilon;
     }
 
     /**
