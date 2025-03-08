@@ -567,137 +567,6 @@ TEST_CASE("Shadow") {
         Palette::white);
 }
 
-static void triangle(wgpu::Device device, wgpu::CommandEncoder encoder, wgpu::TextureView backBuffer,
-                     float rotation = 0.f) {
-    wgpu::RenderPipeline pipeline;
-    wgpu::Buffer uniformBuffer;
-    wgpu::BindGroupLayout bindGroupLayout;
-    wgpu::BindGroup bindGroup;
-
-    const char* shaderSource = R"Wgsl(
-
-@group(0) @binding(0) var<uniform> rotation: f32;
-
-struct VertexOutput {
-@builtin(position) position: vec4f,
-@location(0) @interpolate(linear) color: vec4f,
-};
-
-fn rotate2D(point: vec2<f32>, rotation: f32) -> vec2<f32> {
-let s = sin(rotation);
-let c = cos(rotation);
-let rotationMatrix = mat2x2<f32>(
-c, -s,
-s,  c
-);
-return rotationMatrix * point;
-}
-
-@vertex
-fn vs_main(
-@builtin(vertex_index) VertexIndex : u32
-) -> VertexOutput {
-var pos = array<vec2f, 3>(
-vec2(0.0, 1.0) * 0.75,
-vec2(-0.866, -0.5) * 0.75,
-vec2(0.866, -0.5) * 0.75
-);
-var col = array<vec3f, 3>(
-vec3(1.0, 0.0, 0.0),
-vec3(0.0, 1.0, 0.0),
-vec3(0.0, 0.0, 1.0)
-);
-var output: VertexOutput;
-output.position = vec4f(rotate2D(pos[VertexIndex], rotation), 0.0, 1.0);
-output.color    = vec4f(col[VertexIndex], 1.0);
-return output;
-}
-
-@fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4f {
-return in.color;
-}
-
-)Wgsl";
-
-    wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
-    wgslDesc.code = shaderSource;
-    wgpu::ShaderModuleDescriptor shaderDesc{ .nextInChain = &wgslDesc };
-    wgpu::ShaderModule shaderModule = device.CreateShaderModule(&shaderDesc);
-
-    wgpu::BindGroupLayoutEntry bindEntries{
-        .binding    = 0,
-        .visibility = wgpu::ShaderStage::Vertex,
-        .buffer =
-            wgpu::BufferBindingLayout{
-                .type           = wgpu::BufferBindingType::Uniform,
-                .minBindingSize = sizeof(float),
-            },
-    };
-
-    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc;
-    bindGroupLayoutDesc.entryCount = 1;
-    bindGroupLayoutDesc.entries    = &bindEntries;
-    bindGroupLayout                = device.CreateBindGroupLayout(&bindGroupLayoutDesc);
-
-    wgpu::PipelineLayoutDescriptor pipelineLayoutDesc;
-    pipelineLayoutDesc.bindGroupLayoutCount = 1;
-    pipelineLayoutDesc.bindGroupLayouts     = &bindGroupLayout;
-
-    wgpu::PipelineLayout pipelineLayout     = device.CreatePipelineLayout(&pipelineLayoutDesc);
-
-    // Create pipeline
-    wgpu::RenderPipelineDescriptor pipelineDesc{
-        .layout    = pipelineLayout,
-        .vertex    = { .module = shaderModule, .entryPoint = "vs_main" },
-        .primitive = { .topology = wgpu::PrimitiveTopology::TriangleList, .cullMode = wgpu::CullMode::Back },
-    };
-
-    wgpu::ColorTargetState colorTarget{ .format    = wgpu::TextureFormat::BGRA8Unorm,
-                                        .writeMask = wgpu::ColorWriteMask::All };
-
-    wgpu::FragmentState fragmentState{
-        .module = shaderModule, .entryPoint = "fs_main", .targetCount = 1, .targets = &colorTarget
-    };
-    pipelineDesc.fragment = &fragmentState;
-
-    pipeline              = device.CreateRenderPipeline(&pipelineDesc);
-
-    wgpu::BufferDescriptor bufferDesc;
-    bufferDesc.size  = sizeof(float);
-    bufferDesc.usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
-    uniformBuffer    = device.CreateBuffer(&bufferDesc);
-
-    wgpu::BindGroupEntry bindGroupEntry{};
-    bindGroupEntry.binding = 0;
-    bindGroupEntry.buffer  = uniformBuffer;
-    bindGroupEntry.size    = sizeof(float);
-
-    wgpu::BindGroupDescriptor bindGroupDesc{};
-    bindGroupDesc.layout     = bindGroupLayout;
-    bindGroupDesc.entryCount = 1;
-    bindGroupDesc.entries    = &bindGroupEntry;
-    bindGroup                = device.CreateBindGroup(&bindGroupDesc);
-
-    // Setup render pass
-    wgpu::RenderPassColorAttachment colorAttachment{ .view       = backBuffer,
-                                                     .loadOp     = wgpu::LoadOp::Clear,
-                                                     .storeOp    = wgpu::StoreOp::Store,
-                                                     .clearValue = { 0.0f, 0.0f, 0.0f, 1.0f } };
-
-    wgpu::RenderPassDescriptor renderPassDesc{ .colorAttachmentCount = 1,
-                                               .colorAttachments     = &colorAttachment };
-
-    device.GetQueue().WriteBuffer(uniformBuffer, 0, &rotation, sizeof(rotation));
-
-    wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
-
-    renderPass.SetPipeline(pipeline);
-    renderPass.SetBindGroup(0, bindGroup);
-    renderPass.Draw(3, 1);
-    renderPass.End();
-}
-
 TEST_CASE("Canvas opacity") {
     renderTest("canvas-opacity", Size{ 256, 192 }, [&](RenderContext& context) {
         Canvas canvas(context);
@@ -831,6 +700,138 @@ TEST_CASE("Canvas optimization") {
 }
 
 #ifdef BRISK_WEBGPU
+
+static void triangle(wgpu::Device device, wgpu::CommandEncoder encoder, wgpu::TextureView backBuffer,
+                     float rotation = 0.f) {
+    wgpu::RenderPipeline pipeline;
+    wgpu::Buffer uniformBuffer;
+    wgpu::BindGroupLayout bindGroupLayout;
+    wgpu::BindGroup bindGroup;
+
+    const char* shaderSource = R"Wgsl(
+
+@group(0) @binding(0) var<uniform> rotation: f32;
+
+struct VertexOutput {
+    @builtin(position) position: vec4f,
+    @location(0) @interpolate(linear) color: vec4f,
+};
+
+fn rotate2D(point: vec2<f32>, rotation: f32) -> vec2<f32> {
+    let s = sin(rotation);
+    let c = cos(rotation);
+    let rotationMatrix = mat2x2<f32>(
+        c, -s,
+        s,  c
+    );
+    return rotationMatrix * point;
+}
+
+@vertex
+fn vs_main(
+    @builtin(vertex_index) VertexIndex : u32
+    ) -> VertexOutput {
+    var pos = array<vec2f, 3>(
+        vec2(0.0, 1.0) * 0.75,
+        vec2(-0.866, -0.5) * 0.75,
+        vec2(0.866, -0.5) * 0.75
+    );
+    var col = array<vec3f, 3>(
+        vec3(1.0, 0.0, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        vec3(0.0, 0.0, 1.0)
+    );
+    var output: VertexOutput;
+    output.position = vec4f(rotate2D(pos[VertexIndex], rotation), 0.0, 1.0);
+    output.color    = vec4f(col[VertexIndex], 1.0);
+    return output;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+    return in.color;
+}
+
+)Wgsl";
+
+    wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
+    wgslDesc.code = shaderSource;
+    wgpu::ShaderModuleDescriptor shaderDesc{ .nextInChain = &wgslDesc };
+    wgpu::ShaderModule shaderModule = device.CreateShaderModule(&shaderDesc);
+
+    wgpu::BindGroupLayoutEntry bindEntries{
+        .binding    = 0,
+        .visibility = wgpu::ShaderStage::Vertex,
+        .buffer =
+            wgpu::BufferBindingLayout{
+                .type           = wgpu::BufferBindingType::Uniform,
+                .minBindingSize = sizeof(float),
+            },
+    };
+
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc;
+    bindGroupLayoutDesc.entryCount = 1;
+    bindGroupLayoutDesc.entries    = &bindEntries;
+    bindGroupLayout                = device.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    wgpu::PipelineLayoutDescriptor pipelineLayoutDesc;
+    pipelineLayoutDesc.bindGroupLayoutCount = 1;
+    pipelineLayoutDesc.bindGroupLayouts     = &bindGroupLayout;
+
+    wgpu::PipelineLayout pipelineLayout     = device.CreatePipelineLayout(&pipelineLayoutDesc);
+
+    // Create pipeline
+    wgpu::RenderPipelineDescriptor pipelineDesc{
+        .layout    = pipelineLayout,
+        .vertex    = { .module = shaderModule, .entryPoint = "vs_main" },
+        .primitive = { .topology = wgpu::PrimitiveTopology::TriangleList, .cullMode = wgpu::CullMode::Back },
+    };
+
+    wgpu::ColorTargetState colorTarget{ .format    = wgpu::TextureFormat::BGRA8Unorm,
+                                        .writeMask = wgpu::ColorWriteMask::All };
+
+    wgpu::FragmentState fragmentState{
+        .module = shaderModule, .entryPoint = "fs_main", .targetCount = 1, .targets = &colorTarget
+    };
+    pipelineDesc.fragment = &fragmentState;
+
+    pipeline              = device.CreateRenderPipeline(&pipelineDesc);
+
+    wgpu::BufferDescriptor bufferDesc;
+    bufferDesc.size  = sizeof(float);
+    bufferDesc.usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
+    uniformBuffer    = device.CreateBuffer(&bufferDesc);
+
+    wgpu::BindGroupEntry bindGroupEntry{};
+    bindGroupEntry.binding = 0;
+    bindGroupEntry.buffer  = uniformBuffer;
+    bindGroupEntry.size    = sizeof(float);
+
+    wgpu::BindGroupDescriptor bindGroupDesc{};
+    bindGroupDesc.layout     = bindGroupLayout;
+    bindGroupDesc.entryCount = 1;
+    bindGroupDesc.entries    = &bindGroupEntry;
+    bindGroup                = device.CreateBindGroup(&bindGroupDesc);
+
+    // Setup render pass
+    wgpu::RenderPassColorAttachment colorAttachment{ .view       = backBuffer,
+                                                     .loadOp     = wgpu::LoadOp::Clear,
+                                                     .storeOp    = wgpu::StoreOp::Store,
+                                                     .clearValue = { 0.0f, 0.0f, 0.0f, 1.0f } };
+
+    wgpu::RenderPassDescriptor renderPassDesc{ .colorAttachmentCount = 1,
+                                               .colorAttachments     = &colorAttachment };
+
+    device.GetQueue().WriteBuffer(uniformBuffer, 0, &rotation, sizeof(rotation));
+
+    wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
+
+    renderPass.SetPipeline(pipeline);
+    renderPass.SetBindGroup(0, bindGroup);
+    renderPass.Draw(3, 1);
+    renderPass.End();
+}
+
 TEST_CASE("WebGPU") {
     renderTest("webgpu", Size{ 256, 256 },
                [&](RenderContext& context) {
