@@ -70,8 +70,10 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
     bool testOk = false;
     SCOPE_EXIT {
         if (!testOk) {
-            fs::path savePath = uniqueFileName(PROJECT_BINARY_DIR "/" + referenceImageName + ".png",
-                                               PROJECT_BINARY_DIR "/" + referenceImageName + " {}.png");
+            fs::create_directories(PROJECT_BINARY_DIR "/visualTest");
+            fs::path savePath =
+                uniqueFileName(PROJECT_BINARY_DIR "/visualTest/" + referenceImageName + ".png",
+                               PROJECT_BINARY_DIR "/visualTest/" + referenceImageName + " {}.png");
             WARN("PNG saved at " << savePath.string());
             REQUIRE(writeBytes(savePath, pngEncode(testImage)));
         }
