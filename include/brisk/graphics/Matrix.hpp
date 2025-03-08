@@ -108,6 +108,20 @@ struct MatrixOf {
     }
 
     /**
+     * @brief Scales the matrix by the given scaling factor.
+     *
+     * @param x The scaling factor.
+     * @return MatrixOf The scaled matrix.
+     */
+    [[nodiscard]] constexpr MatrixOf scale(T xy) const {
+        vec_type m = v;
+        m[0] *= xy;
+        m[1] *= xy;
+        m[2] *= xy;
+        return MatrixOf(m);
+    }
+
+    /**
      * @brief Scales the matrix by the given x and y scaling factors with respect to an origin point.
      *
      * @param x The x-axis scaling factor.
@@ -319,6 +333,16 @@ struct MatrixOf {
      */
     [[nodiscard]] static constexpr MatrixOf scaling(T x, T y) {
         return MatrixOf{ x, 0, 0, y, 0, 0 };
+    }
+
+    /**
+     * @brief Creates a scaling matrix.
+     *
+     * @param xy Scaling factor.
+     * @return MatrixOf The scaling matrix.
+     */
+    [[nodiscard]] static constexpr MatrixOf scaling(T xy) {
+        return MatrixOf{ xy, 0, 0, xy, 0, 0 };
     }
 
     /**
