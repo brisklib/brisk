@@ -310,7 +310,7 @@ rate = {:.1f}fps)",
 TEST_CASE("Atlas overflow", "[gpu]") {
     constexpr Size size{ 2048, 2048 };
     renderTest("overflow-lines", size, [&](RenderContext& context) {
-        Canvas canvas(context);
+        Canvas canvas(context, CanvasFlags::None);
         canvas.setFillColor(Palette::white);
         canvas.fillRect(RectangleF(PointF{}, size));
         for (int i = 0; i < 200; ++i) {
