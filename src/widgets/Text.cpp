@@ -172,9 +172,9 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Rectangle r1{ m_rect.x1 + p, c.y, c.x - tw / 2 - p, c.y + 1_idp };
     Rectangle r2{ c.x + tw / 2 + p, c.y, m_rect.x2 - p, c.y + 1_idp };
     if (r1.width() > 0)
-        canvas.raw().drawRectangle(r1, 0.f, 0.f, fillColor = color, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r1, 0.f, fillColor = color, strokeWidth = 0.f);
     if (r2.width() > 0)
-        canvas.raw().drawRectangle(r2, 0.f, 0.f, fillColor = color, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r2, 0.f, fillColor = color, strokeWidth = 0.f);
     Widget::paint(canvas);
 }
 

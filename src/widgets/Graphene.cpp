@@ -250,7 +250,6 @@ RC<const Stylesheet> stylesheet() {
             Type{ "tabs" },
             {
                 backgroundColor = styleVar<windowColor>,
-                corners         = +CornerFlags::Top,
                 borderRadius    = styleVar<boxRadius>,
                 layout          = Layout::Horizontal,
             },

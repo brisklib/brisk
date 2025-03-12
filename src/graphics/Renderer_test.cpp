@@ -112,12 +112,12 @@ TEST_CASE("Renderer - fonts") {
             for (int i = 0; i < 10; ++i) {
                 c    = ColorOf<float, ColorGamma::sRGB>(i / 9.f);
                 rect = Rectangle{ 0, i * 60, 600, (i + 1) * 60 };
-                canvas.drawRectangle(rect, 0.f, 0.f, fillColor = c, strokeWidth = 0);
+                canvas.drawRectangle(rect, 0.f, fillColor = c, strokeWidth = 0);
                 canvas.drawText(rect, 0.5f, 0.5f, "The quick brown fox jumps over the lazy dog",
                                 Font{ "Lato", 27.f }, Palette::white);
                 c    = ColorOf<float, ColorGamma::sRGB>(1.f - i / 9.f);
                 rect = Rectangle{ 600, i * 60, 1200, (i + 1) * 60 };
-                canvas.drawRectangle(rect, 0.f, 0.f, fillColor = c, strokeWidth = 0);
+                canvas.drawRectangle(rect, 0.f, fillColor = c, strokeWidth = 0);
                 canvas.drawText(rect, 0.5f, 0.5f, "The quick brown fox jumps over the lazy dog",
                                 Font{ "Lato", 27.f }, Palette::black);
             }
@@ -126,7 +126,7 @@ TEST_CASE("Renderer - fonts") {
 
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
         RawCanvas canvas(context);
-        canvas.drawRectangle({ 0, 0, 300, 150 }, 0.f, 0.f, fillColor = Palette::white, strokeWidth = 0);
+        canvas.drawRectangle({ 0, 0, 300, 150 }, 0.f, fillColor = Palette::white, strokeWidth = 0);
         canvas.drawText(
             Rectangle{ 30, 30, 270, 120 }, 0.0f, 0.0f,
             TextWithOptions("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
@@ -148,9 +148,8 @@ TEST_CASE("Renderer", "[gpu]") {
             [&](RenderContext& context) {
                 RawCanvas canvas(context);
                 canvas.drawRectangle(
-                    rect, radius, 0.f,
-                    linearGradient = { frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f) },
-                    fillColors     = { Palette::Standard::green, Palette::Standard::red },
+                    rect, radius, linearGradient = { frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f) },
+                    fillColors  = { Palette::Standard::green, Palette::Standard::red },
                     strokeColor = Palette::black, Arg::strokeWidth = strokeWidth);
             },
             ColorF{ 0.5f, 0.5f, 0.5f, 1.f });
@@ -160,7 +159,7 @@ TEST_CASE("Renderer", "[gpu]") {
         renderTest(
             "rr", frameBounds.size(),
             [&](RenderContext& context) {
-                Canvas canvas(context);
+                Canvas canvas(context, CanvasFlags::None);
                 Path path;
                 path.addRoundRect(rect, radius);
                 canvas.setStrokeWidth(strokeWidth);
@@ -277,7 +276,7 @@ TEST_CASE("Renderer: window", "[gpu]") {
                 static int frame = 0;
                 ++frame;
                 RawCanvas canvas(pipeline);
-                canvas.drawRectangle(inner, inner.shortestSide() * 0.5f, frame * 0.02f,
+                canvas.drawRectangle(inner, inner.shortestSide() * 0.5f,
                                      linearGradient = { inner.at(0.f, 0.f), inner.at(1.f, 1.f) },
                                      fillColors     = { Palette::Standard::green, Palette::Standard::red },
                                      strokeColor = Palette::black, strokeWidth = 16.f);
@@ -290,7 +289,7 @@ rate = {:.1f}fps)",
                                             1000 * sumWaitTime, 1.0 / sumWaitTime),
                                 Font{ Font::Default, 40.f }, Palette::white);
                 canvas.drawRectangle(Rectangle{ Point{ frame % winSize.x, 0 }, Size{ 5, winSize.y } }, 0.f,
-                                     0.f, strokeWidth = 0, fillColor = Palette::black);
+                                     strokeWidth = 0, fillColor = Palette::black);
             }
         }
         for (int i = 0; i < numWindows; ++i) {
@@ -345,21 +344,21 @@ TEST_CASE("Blending", "[gpu]") {
         auto bands = [&canvas BRISK_IF_GCC(, canvasSize)](int index, int count, Color background,
                                                           Color foreground) {
             canvas.drawRectangle(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)),
-                                 0.f, 0.f, fillColor = background, strokeWidth = 0);
+                                 0.f, fillColor = background, strokeWidth = 0);
             for (int i = 0; i <= count; ++i) {
-                canvas.drawRectangle(
-                    RectangleF(i * canvasSize.width / (count + 1), index * rowHeight,
-                               (i + 1) * canvasSize.width / (count + 1), (index + 1) * rowHeight),
-                    0.f, 0.f, fillColor = foreground.multiplyAlpha(static_cast<float>(i) / count),
-                    strokeWidth = 0);
+                canvas.drawRectangle(RectangleF(i * canvasSize.width / (count + 1), index * rowHeight,
+                                                (i + 1) * canvasSize.width / (count + 1),
+                                                (index + 1) * rowHeight),
+                                     0.f, fillColor = foreground.multiplyAlpha(static_cast<float>(i) / count),
+                                     strokeWidth = 0);
             }
         };
         auto gradient = [&canvas BRISK_IF_GCC(, canvasSize)](int index, Color background, Color start,
                                                              Color end) {
             canvas.drawRectangle(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)),
-                                 0.f, 0.f, fillColor = background, strokeWidth = 0);
+                                 0.f, fillColor = background, strokeWidth = 0);
             canvas.drawRectangle(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)),
-                                 0.f, 0.f, linearGradient = { Point{ 0, 0 }, Point{ canvasSize.width, 0 } },
+                                 0.f, linearGradient = { Point{ 0, 0 }, Point{ canvasSize.width, 0 } },
                                  fillColors = { start, end }, strokeWidth = 0);
         };
         bands(0, 10, Palette::black, Palette::white);
@@ -505,14 +504,14 @@ TEST_CASE("SetClipRect") {
     renderTest("SetClipRect0", Size{ 256, 256 }, [&](RenderContext& context) {
         RawCanvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
-        canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::cyan, Palette::magenta },
+        canvas.drawRectangle(rect, 0.f, fillColors = { Palette::cyan, Palette::magenta },
                              linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f);
     });
     renderTest("SetClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
         RawCanvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
         context.setClipRect(Rectangle{ 10, 20, 100, 200 });
-        canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::cyan, Palette::magenta },
+        canvas.drawRectangle(rect, 0.f, fillColors = { Palette::cyan, Palette::magenta },
                              linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f);
     });
 }
@@ -524,14 +523,14 @@ TEST_CASE("Multi-pass render") {
                 RenderPipeline pipeline(encoder, target, Palette::transparent);
                 RawCanvas canvas(pipeline);
                 Rectangle rect({}, Size{ 256, 256 });
-                canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::red, Palette::transparent },
+                canvas.drawRectangle(rect, 0.f, fillColors = { Palette::red, Palette::transparent },
                                      linearGradient = { { 0, 0 }, { 0, 256 } }, strokeWidth = 0.f);
             }
             {
                 RenderPipeline pipeline(encoder, target, std::nullopt);
                 RawCanvas canvas(pipeline);
                 Rectangle rect({}, Size{ 256, 256 });
-                canvas.drawRectangle(rect, 0.f, 0.f, fillColors = { Palette::blue, Palette::transparent },
+                canvas.drawRectangle(rect, 0.f, fillColors = { Palette::blue, Palette::transparent },
                                      linearGradient = { { 0, 0 }, { 256, 0 } }, strokeWidth = 0.f);
             }
         });
@@ -546,7 +545,7 @@ TEST_CASE("Shadow") {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
                 context.setClipRect(box);
                 float shadowSize = 2 << i;
-                canvas.drawShadow(box.withPadding(64.f), 0.f, 0.f, contourSize = shadowSize,
+                canvas.drawShadow(box.withPadding(64.f), 0.f, contourSize = shadowSize,
                                   contourColor = Palette::black);
             }
         },
@@ -560,7 +559,7 @@ TEST_CASE("Shadow") {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
                 context.setClipRect(box);
                 float boxRadius = 2 << i;
-                canvas.drawShadow(box.withPadding(64.f), boxRadius, 0.f, contourSize = 16.f,
+                canvas.drawShadow(box.withPadding(64.f), boxRadius, contourSize = 16.f,
                                   contourColor = Palette::black);
             }
         },
@@ -620,6 +619,20 @@ static void drawRect(Canvas& canvas, TestMode mode, RectangleF r) {
         break;
     case Draw:
         canvas.drawRect(r);
+        break;
+    }
+}
+
+static void drawPath(Canvas& canvas, TestMode mode, Path p) {
+    switch (mode) {
+    case Fill:
+        canvas.fillPath(p);
+        break;
+    case Stroke:
+        canvas.strokePath(p);
+        break;
+    case Draw:
+        canvas.drawPath(p);
         break;
     }
 }
@@ -706,6 +719,18 @@ TEST_CASE("Canvas optimization") {
                 canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
                                              Palette::Standard::cyan, Palette::Standard::fuchsia));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            defaultBackColor, 0.075f);
+        renderTest(
+            "canvas-sdf8-{}"_fmt(mode), Size{ 100, 100 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, flags);
+                canvas.setJoinStyle(JoinStyle::Round);
+                canvas.setFillColor(Palette::Standard::orange);
+                Path path;
+                path.addRoundRect({ 20, 20, 80, 80 }, 10.f);
+                drawPath(canvas, mode, path);
                 CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);

@@ -414,25 +414,6 @@ enum class LogicalDirection {
     DownOrRight = 1,
 };
 
-enum class CornerFlags {
-    All         = 0b1111,
-    None        = 0b0000,
-
-    TopLeft     = 0b0001,
-    TopRight    = 0b0010,
-    BottomLeft  = 0b0100,
-    BottomRight = 0b1000,
-
-    Top         = TopLeft | TopRight,
-    Bottom      = BottomLeft | BottomRight,
-    Left        = TopLeft | BottomLeft,
-    Right       = TopRight | BottomRight,
-};
-
-constexpr int operator+(CornerFlags o) {
-    return static_cast<int>(o);
-}
-
 constexpr Orientation toOrientation(Direction d) {
     return static_cast<Orientation>(static_cast<int>(d) >> 1);
 }

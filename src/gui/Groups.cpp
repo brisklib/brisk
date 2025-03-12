@@ -54,35 +54,34 @@ void VisualGroup::beforeFrame() {
 
     for (size_t i = 0; i < widgets.size(); ++i) {
         Widget* w = widgets[i];
-        int c     = 0b0000;
-        if (i == 0) {
-            // the first one
-            c |= orientation == Orientation::Horizontal ? +CornerFlags::Left : +CornerFlags::Top;
-        } else {
+        if (i > 0) {
             // not the first one
             if (orientation == Orientation::Horizontal) {
-                w->marginLeft      = 0;
-                w->borderWidthLeft = 0;
+                w->marginLeft             = 0;
+                w->borderWidthLeft        = 0;
+                w->borderRadiusTopLeft    = 0;
+                w->borderRadiusBottomLeft = 0;
             } else {
-                w->marginTop      = 0;
-                w->borderWidthTop = 0;
+                w->marginTop            = 0;
+                w->borderWidthTop       = 0;
+                w->borderRadiusTopLeft  = 0;
+                w->borderRadiusTopRight = 0;
             }
         }
-        if (i == widgets.size() - 1) {
-            // the last one
-            c |= orientation == Orientation::Horizontal ? +CornerFlags::Right : +CornerFlags::Bottom;
-        } else {
+        if (i < widgets.size() - 1) {
             // not the last one
             if (orientation == Orientation::Horizontal) {
-                w->marginRight      = 0;
-                w->borderWidthRight = 0;
+                w->marginRight             = 0;
+                w->borderWidthRight        = 0;
+                w->borderRadiusTopRight    = 0;
+                w->borderRadiusBottomRight = 0;
             } else {
-                w->marginBottom      = 0;
-                w->borderWidthBottom = 0;
+                w->marginBottom            = 0;
+                w->borderWidthBottom       = 0;
+                w->borderRadiusBottomLeft  = 0;
+                w->borderRadiusBottomRight = 0;
             }
         }
-
-        w->corners = c;
     }
 }
 } // namespace Brisk

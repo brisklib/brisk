@@ -57,15 +57,11 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
     float m = margin();
     float4 rect = norm_rect(asfloat(data.Load4((16u * (constants[0].x + (inst * 2u))))));
     output.data0 = float4((rect.zw - rect.xy), 0.0f, 0.0f);
-    float4 dat = asfloat(data.Load4((16u * ((constants[0].x + (inst * 2u)) + 1u))));
-    output.data1 = dat;
-    float angle = dat.x;
-    float angle_sin = sin(angle);
-    float angle_cos = cos(angle);
+    float4 radii = asfloat(data.Load4((16u * ((constants[0].x + (inst * 2u)) + 1u))));
+    output.data1 = radii;
     float2 center = ((rect.xy + rect.zw) * 0.5f);
-    float2 pt = (lerp((rect.xy - float2((m).xx)), (rect.zw + float2((m).xx)), uv_coord) - center);
-    float2 pt2 = float2(((angle_cos * pt.x) - (angle_sin * pt.y)), ((angle_sin * pt.x) + (angle_cos * pt.y)));
-    outPosition = float4((pt2 + center), 0.0f, 1.0f);
+    float2 pt = lerp((rect.xy - float2((m).xx)), (rect.zw + float2((m).xx)), uv_coord);
+    outPosition = float4(pt, 0.0f, 1.0f);
     output.uv = (position * (((m + m) + rect.zw) - rect.xy));
   } else {
     if ((asint(constants[1].x) == 1)) {

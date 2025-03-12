@@ -213,7 +213,7 @@ void TextEditor::paint(Canvas& canvas) const {
                                     Point(m_preparedText.caretPositions[caretGrapheme], line.baseline) +
                                     Point(0, -line.ascDesc.ascender),
                                 Size(1_idp, line.ascDesc.height()));
-            canvas.raw().drawRectangle(caretRect, 0.f, 0.f, fillColor = textColor, strokeWidth = 0);
+            canvas.raw().drawRectangle(caretRect, 0.f, fillColor = textColor, strokeWidth = 0);
         }
     }
 }

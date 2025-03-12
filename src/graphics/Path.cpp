@@ -259,11 +259,49 @@ RectangleF Path::boundingBoxApprox() const {
     return result;
 }
 
+std::optional<std::tuple<RectangleF, float>> Path::asRoundRectangle() const {
+    if (auto rect = asRectangle()) {
+        return std::make_tuple(*rect, 0.f);
+    }
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || pts.size() != 17 || r->elements().size() != 10 ||
+        !fuzzyCompare(pts[16], pts[0]))
+        return std::nullopt;
+    if (r->elements()[0] != VPath::Element::MoveTo     //
+        || r->elements()[1] != VPath::Element::LineTo  //
+        || r->elements()[2] != VPath::Element::CubicTo //
+        || r->elements()[3] != VPath::Element::LineTo  //
+        || r->elements()[4] != VPath::Element::CubicTo //
+        || r->elements()[5] != VPath::Element::LineTo  //
+        || r->elements()[6] != VPath::Element::CubicTo //
+        || r->elements()[7] != VPath::Element::LineTo  //
+        || r->elements()[8] != VPath::Element::CubicTo //
+        || r->elements()[9] != VPath::Element::Close)
+        return std::nullopt;
+    RectangleF rect{
+        PointF(pts[8].x(), pts[12].y()),
+        PointF(pts[0].x(), pts[4].y()),
+    };
+    if (rect.width() < 0)
+        return std::nullopt;
+    float rx = pts[5].x() - pts[8].x();
+    float ry = pts[4].y() - pts[1].y();
+    if (rx != ry)
+        return std::nullopt;
+    VPath path;
+    path.addRoundRect(v(rect), rx);
+    for (size_t i = 0; i < 17; ++i) {
+        if (!fuzzyCompare(path.points()[i], r->points()[i]))
+            return std::nullopt;
+    }
+    return std::make_tuple(rect, rx);
+}
+
 std::optional<RectangleF> Path::asRectangle() const {
     auto r    = v(this);
     auto& pts = r->points();
-    if (r->segments() != 1 || r->elements().size() != 6 || r->points().size() != 5 ||
-        !fuzzyCompare(pts[4], pts[0]))
+    if (r->segments() != 1 || r->elements().size() != 6 || pts.size() != 5 || !fuzzyCompare(pts[4], pts[0]))
         return std::nullopt;
     if (r->elements()[0] != VPath::Element::MoveTo || r->elements()[1] != VPath::Element::LineTo ||
         r->elements()[2] != VPath::Element::LineTo || r->elements()[3] != VPath::Element::LineTo ||

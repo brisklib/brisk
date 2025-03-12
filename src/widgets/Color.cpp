@@ -105,7 +105,7 @@ void ColorView::paint(Canvas& canvas_) const {
     float radius      = horizontalAbsMax(m_borderRadius.resolved.v);
     if (radius == 0)
         radius = 0.001f;
-    canvas.drawRectangle(m_rect, radius, 0.f, fillColor = m_value, strokeWidth = 0);
+    canvas.drawRectangle(m_rect, radius, fillColor = m_value, strokeWidth = 0);
 }
 
 #ifdef OKLAB_PALETTE
@@ -246,7 +246,7 @@ ColorButton::ColorButton(Construction construction, Value<ColorW> prop, bool alp
 void GradientItem::paint(Canvas& canvas_) const {
     RawCanvas& canvas = canvas_.raw();
     canvas.drawRectangle(
-        m_rect, 0.f, 0.f, fillColors = GradientColors{ Palette::red, Palette::yellow },
+        m_rect, 0.f, fillColors = GradientColors{ Palette::red, Palette::yellow },
         linearGradient = GradientPoints{ RectangleF(m_rect).at(0.f, 0.5f), RectangleF(m_rect).at(1.f, 0.5f) },
         strokeWidth = 0, multigradient = gradient);
 }

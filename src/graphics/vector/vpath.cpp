@@ -245,8 +245,6 @@ void VPath::VPathData::addRect(const VRectF &rect, VPath::Direction dir)
 void VPath::VPathData::addRoundRect(const VRectF &rect, float roundness,
                                     VPath::Direction dir)
 {
-    if (2 * roundness > rect.width()) roundness = rect.width() / 2.0f;
-    if (2 * roundness > rect.height()) roundness = rect.height() / 2.0f;
     addRoundRect(rect, roundness, roundness, dir);
 }
 
@@ -258,32 +256,30 @@ void VPath::VPathData::addRoundRect(const VRectF &rect, float rx, float ry,
         return;
     }
 
-    float x = rect.x();
-    float y = rect.y();
-    float w = rect.width();
-    float h = rect.height();
+    float x1 = rect.x();
+    float y1 = rect.y();
+    float x2 = rect.right();
+    float y2 = rect.bottom();
     // clamp the rx and ry radius value.
-    rx = 2 * rx;
-    ry = 2 * ry;
-    if (rx > w) rx = w;
-    if (ry > h) ry = h;
+    if (rx > rect.width() * 0.5f) rx = rect.width() * 0.5f;
+    if (ry > rect.height() * 0.5f) ry = rect.height() * 0.5f;
+
+    float ikappa = 1.f - PATH_KAPPA;
 
     reserve(17, 10);  // 1Move + 4Cubic + 1Close
-    if (dir == VPath::Direction::CW) {
-        moveTo(x + w, y + ry / 2.f);
-        arcTo(VRectF(x + w - rx, y + h - ry, rx, ry), 0, -90, false);
-        arcTo(VRectF(x, y + h - ry, rx, ry), -90, -90, false);
-        arcTo(VRectF(x, y, rx, ry), -180, -90, false);
-        arcTo(VRectF(x + w - rx, y, rx, ry), -270, -90, false);
-        close();
-    } else {
-        moveTo(x + w, y + ry / 2.f);
-        arcTo(VRectF(x + w - rx, y, rx, ry), 0, 90, false);
-        arcTo(VRectF(x, y, rx, ry), 90, 90, false);
-        arcTo(VRectF(x, y + h - ry, rx, ry), 180, 90, false);
-        arcTo(VRectF(x + w - rx, y + h - ry, rx, ry), 270, 90, false);
-        close();
+    if (dir != VPath::Direction::CW) {
+        std::swap(x1, x2);
     }
+    moveTo(x2, y1 + ry);
+    lineTo(x2, y2 - ry);
+    cubicTo(x2, y2 - ry * ikappa, x2 - rx * ikappa, y2, x2 - rx, y2);
+    lineTo(x1 + rx, y2);
+    cubicTo(x1 + rx * ikappa, y2, x1, y2 - ry * ikappa, x1, y2 - ry);
+    lineTo(x1, y1 + rx);
+    cubicTo(x1, y1 + ry * ikappa, x1 + rx * ikappa, y1, x1 + rx, y1);
+    lineTo(x2 - rx, y1);
+    cubicTo(x2 - rx * ikappa, y1, x2, y1 + ry * ikappa, x2, y1 + ry);
+    close();
 }
 
 static float tForArcAngle(float angle);

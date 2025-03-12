@@ -35,9 +35,9 @@ void Guide::paint(Canvas& canvas_) const {
             m_tree->requestLayer([this, src, tgt](Canvas& canvas_) {
                 RawCanvas& canvas = canvas_.raw();
                 canvas.drawLine(src, tgt, 3_dp, m_backgroundColor.current);
-                canvas.drawEllipse(src.alignedRect(7_dp, 7_dp, 0.5f, 0.5f), 0.f, strokeWidth = 0,
+                canvas.drawEllipse(src.alignedRect(7_dp, 7_dp, 0.5f, 0.5f), strokeWidth = 0,
                                    fillColor = m_backgroundColor.current);
-                canvas.drawEllipse(tgt.alignedRect(7_dp, 7_dp, 0.5f, 0.5f), 0.f, strokeWidth = 0,
+                canvas.drawEllipse(tgt.alignedRect(7_dp, 7_dp, 0.5f, 0.5f), strokeWidth = 0,
                                    fillColor = m_backgroundColor.current);
             });
         }

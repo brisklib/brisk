@@ -185,8 +185,7 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorW backgroundColor, boo
     ++frameNumber;
     canvas.renderContext().setClipRect(paintRect);
     if (backgroundColor.a != 0) {
-        canvas.raw().drawRectangle(m_viewportRectangle, 0.f, 0.f, fillColor = backgroundColor,
-                                   strokeWidth = 0.f);
+        canvas.raw().drawRectangle(m_viewportRectangle, 0.f, fillColor = backgroundColor, strokeWidth = 0.f);
     }
 
     m_painting = true;
@@ -218,7 +217,7 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorW backgroundColor, boo
             return w->rect();
         });
         if (rect) {
-            canvas.raw().drawRectangle(*rect, 0.f, 0.f, fillColor = 0x102040'40_rgba, strokeWidth = 0.f);
+            canvas.raw().drawRectangle(*rect, 0.f, fillColor = 0x102040'40_rgba, strokeWidth = 0.f);
         }
     }
     groupsAfterFrame();

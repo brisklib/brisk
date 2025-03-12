@@ -124,8 +124,8 @@ static void applier(RenderState* target, const Matrix* matrix) {
     target->clipInScreenspace = 1;
 }
 
-static float roundRadius(const StrokeParams& strokeParams) {
-    return strokeParams.joinStyle == JoinStyle::Miter ? 0.f : 0.5f;
+static float roundRadius(JoinStyle joinStyle, float radius) {
+    return std::max(radius, joinStyle == JoinStyle::Miter ? 0.f : 0.5f);
 }
 
 void BasicCanvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
@@ -135,16 +135,13 @@ void BasicCanvas::drawPath(Path path, const Paint& strokePaint, const StrokePara
         return;
     if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() &&
         sdfCompat(fillPaint, fillParams, strokePaint, strokeParams, path.isClosed())) {
-        if (auto rect = path.asRectangle()) {
-            float scale           = matrix.estimateScale();
-            Matrix unscaledMatrix = matrix.scale(1.f / scale);
-            Matrix invertMatrix   = (matrix * *unscaledMatrix.invert());
-
-            *rect                 = invertMatrix.transform(*rect);
-            drawRectangle(*rect, roundRadius(strokeParams), 0.f,
-                          strokeWidth = strokeParams.strokeWidth * scale, scissor = clipRect,
-                          Internal::PaintAndTransform{ strokePaint, invertMatrix, opacity, true },
-                          Internal::PaintAndTransform{ fillPaint, invertMatrix, opacity }, &unscaledMatrix);
+        if (auto rrect = path.asRoundRectangle()) {
+            float scale = matrix.estimateScale();
+            drawRectangle(std::get<0>(*rrect),
+                          roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
+                          strokeWidth = strokeParams.strokeWidth, scissor = clipRect,
+                          Internal::PaintAndTransform{ strokePaint, Matrix{}, opacity, true },
+                          Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix);
             return;
         }
     }
@@ -157,14 +154,11 @@ void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& 
     if (opacity == 0 || clipRect.empty())
         return;
     if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() && sdfCompat(fillParams)) {
-        if (auto rect = path.asRectangle()) {
-            float scale           = matrix.estimateScale();
-            Matrix unscaledMatrix = matrix.scale(1.f / scale);
-            Matrix invertMatrix   = (matrix * *unscaledMatrix.invert());
-
-            *rect                 = invertMatrix.transform(*rect);
-            drawRectangle(*rect, 0.5f, 0.f, strokeWidth = 0.f, scissor = clipRect,
-                          Internal::PaintAndTransform{ fillPaint, invertMatrix, opacity }, &unscaledMatrix);
+        if (auto rrect = path.asRoundRectangle()) {
+            float scale = matrix.estimateScale();
+            drawRectangle(std::get<0>(*rrect), roundRadius(JoinStyle::Round, std::get<1>(*rrect)) / scale,
+                          strokeWidth = 0.f, scissor = clipRect,
+                          Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix);
             return;
         }
     }
@@ -179,29 +173,20 @@ void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokePa
         return;
     if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() &&
         sdfCompat(strokeParams, path.isClosed())) {
-        if (auto rect = path.asRectangle()) {
-            float scale           = matrix.estimateScale();
-            Matrix unscaledMatrix = matrix.scale(1.f / scale);
-            Matrix invertMatrix   = (matrix * *unscaledMatrix.invert());
-
-            *rect                 = invertMatrix.transform(*rect);
+        if (auto rrect = path.asRoundRectangle()) {
+            float scale = matrix.estimateScale();
             drawRectangle(
-                *rect, roundRadius(strokeParams), 0.f, strokeWidth = strokeParams.strokeWidth * scale,
-                fillColor = Palette::transparent, scissor = clipRect,
-                Internal::PaintAndTransform{ strokePaint, invertMatrix, opacity, true }, &unscaledMatrix);
+                std::get<0>(*rrect), roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
+                strokeWidth = strokeParams.strokeWidth, fillColor = Palette::transparent, scissor = clipRect,
+                Internal::PaintAndTransform{ strokePaint, matrix, opacity, true }, &matrix);
             return;
         }
         if (auto line = path.asLine()) {
-            float scale           = matrix.estimateScale();
-            Matrix unscaledMatrix = matrix.scale(1.f / scale);
-            Matrix invertMatrix   = (matrix * *unscaledMatrix.invert());
-
-            invertMatrix.transform(*line);
-            drawLine((*line)[0], (*line)[1], strokeParams.strokeWidth * scale,
+            drawLine((*line)[0], (*line)[1], strokeParams.strokeWidth,
                      staticMap(strokeParams.capStyle, CapStyle::Flat, LineEnd::Butt, CapStyle::Square,
                                LineEnd::Square, LineEnd::Round),
                      strokeWidth = 0.f, scissor = clipRect,
-                     Internal::PaintAndTransform{ strokePaint, invertMatrix, opacity }, &unscaledMatrix);
+                     Internal::PaintAndTransform{ strokePaint, matrix, opacity }, &matrix);
             return;
         }
     }

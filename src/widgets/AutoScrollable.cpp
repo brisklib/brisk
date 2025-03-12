@@ -61,7 +61,7 @@ void AutoScrollable::postPaint(Canvas& canvas_) const {
         if (m_scrollSize > 0) {
             if (m_offset > 0) {
                 Rectangle chevron = chevronRect(LogicalDirection::UpOrLeft);
-                canvas.drawRectangle(chevron, 0.f, 0.f, strokeWidth = 0.f,
+                canvas.drawRectangle(chevron, 0.f, strokeWidth = 0.f,
                                      fillColor = selection.multiplyAlpha(0.9f));
                 canvas.drawText(chevron, 0.5f, 0.5f,
                                 m_orientation == Orientation::Vertical ? ICON_chevron_up : ICON_chevron_left,
@@ -70,7 +70,7 @@ void AutoScrollable::postPaint(Canvas& canvas_) const {
 
             if (m_scrollSize - m_offset > 0) {
                 Rectangle chevron = chevronRect(LogicalDirection::DownOrRight);
-                canvas.drawRectangle(chevron, 0.f, 0.f, strokeWidth = 0.f,
+                canvas.drawRectangle(chevron, 0.f, strokeWidth = 0.f,
                                      fillColor = selection.multiplyAlpha(0.9f));
                 canvas.drawText(chevron, 0.5f, 0.5f,
                                 m_orientation == Orientation::Vertical ? ICON_chevron_down

@@ -1125,7 +1125,7 @@ static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, C
         alpha           = std::pow(alpha, 4.0);
         auto&& state    = canvas.save();
         state->scissors = noScissors;
-        canvas.drawRectangle(rect, dp(5), 0.f, fillColor = Palette::transparent,
+        canvas.drawRectangle(rect, dp(5), fillColor = Palette::transparent,
                              strokeColor = color.multiplyAlpha(alpha), strokeWidth = 0.5_dp);
         canvas.drawLine(rect.at(0, 0), rect.at(1, 1), 0.5_dp, color.multiplyAlpha(alpha));
         canvas.drawLine(rect.at(1, 0), rect.at(0, 1), 0.5_dp, color.multiplyAlpha(alpha));
@@ -1147,9 +1147,9 @@ void Widget::paintScrollBar(Canvas& canvas_, Orientation orientation,
                             const ScrollBarGeometry& geometry) const {
     RawCanvas& canvas = canvas_.raw();
     if (isHovered())
-        canvas.drawRectangle(geometry.track, 0.f, 0.f,
-                             fillColor = m_scrollBarColor.current.multiplyAlpha(0.25f), strokeWidth = 0);
-    canvas.drawRectangle(geometry.thumb, m_scrollBarRadius.resolved, 0.f,
+        canvas.drawRectangle(geometry.track, 0.f, fillColor = m_scrollBarColor.current.multiplyAlpha(0.25f),
+                             strokeWidth = 0);
+    canvas.drawRectangle(geometry.thumb, m_scrollBarRadius.resolved,
                          fillColor   = m_scrollBarColor.current.multiplyAlpha(isHovered() ? 1.f : 0.5f),
                          strokeWidth = 0);
 }
@@ -1218,7 +1218,7 @@ void Widget::paintFocusFrame(Canvas& canvas_) const {
                                     std::copysign(std::min(RectangleF(m_rect).shortestSide() * 0.5f,
                                                            val + std::abs(m_borderRadius.resolved.max())),
                                                   m_borderRadius.resolved.max()),
-                                    0.f, contourSize = val, contourColor = 0x03a1fc_rgb);
+                                    contourSize = val, contourColor = 0x03a1fc_rgb);
         });
     }
 }
@@ -1234,9 +1234,9 @@ void Widget::paintHint(Canvas& canvas_) const {
                 getStyleVar<ColorW>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
                     ? 0x000000'55_rgba
                     : 0x000000'AA_rgba;
-            canvas.drawShadow(m_hintRect, 4._dp, 0.f, contourSize = dp(hintShadowSize),
+            canvas.drawShadow(m_hintRect, 4._dp, contourSize = dp(hintShadowSize),
                               contourColor = shadowColor);
-            canvas.drawRectangle(m_hintRect, -5._dp, 0.f, fillColor = color, strokeWidth = 0.f);
+            canvas.drawRectangle(m_hintRect, -5._dp, fillColor = color, strokeWidth = 0.f);
             canvas.drawText(m_hintRect.center() + m_hintTextOffset, m_hintPrepared,
                             fillColor = Palette::black);
         });
@@ -2315,63 +2315,49 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
         canvas.drawShadow(rect,
                           std::max(std::abs(widget.borderRadius.resolved().max()),
                                    std::min(widget.shadowSize.resolved(), dp(8.f))),
-                          0.f, contourSize = widget.shadowSize.resolved(),
+                          contourSize  = widget.shadowSize.resolved(),
                           contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
     }
 
     if (m_backgroundColor != ColorW(0, 0, 0, 0) || !widget.computedBorderWidth().empty()) {
-        float borderRadius = widget.borderRadius.resolved().max();
-        borderRadius =
-            std::copysign(std::min(std::abs(borderRadius), rect.shortestSide() * 0.5f), borderRadius);
+        CornersF borderRadius = widget.borderRadius.resolved();
 
-        float maxBorderWidth = widget.computedBorderWidth().max();
-        RectangleF innerRect = rect.withPadding(widget.computedBorderWidth() * 0.5f);
+        float maxBorderWidth  = widget.computedBorderWidth().max();
+        RectangleF innerRect  = rect.withPadding(widget.computedBorderWidth() * 0.5f);
 
         if (maxBorderWidth == widget.computedBorderWidth().min()) {
             // Edges widths are equal
-            canvas.drawRectangle(
-                GeometryRectangle{ innerRect, 0.f, borderRadius,
-                                   static_cast<float>(widget.corners.get() | (0b1111 << 4)), 0.f },
-                fillColor = m_backgroundColor, strokeColor = m_borderColor, strokeWidth = maxBorderWidth);
+            canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius }, fillColor = m_backgroundColor,
+                                 strokeColor = m_borderColor, strokeWidth = maxBorderWidth);
         } else if (SIMDMask<4> mask = eq(widget.computedBorderWidth().v, SIMD<float, 4>(maxBorderWidth));
                    select(mask, SIMD<float, 4>(0), widget.computedBorderWidth().v) == SIMD<float, 4>(0)) {
             // If Edges are either maxBorderWidth or zero
             uint8_t bitmask = mask[0] << 0 | mask[1] << 1 | mask[2] << 2 | mask[3] << 3;
-            canvas.drawRectangle(
-                GeometryRectangle{ innerRect, 0.f, borderRadius,
-                                   static_cast<float>(widget.corners.get() | (bitmask << 4)), 0.f },
-                fillColor = m_backgroundColor, strokeColor = m_borderColor, strokeWidth = maxBorderWidth);
+            canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius }, fillColor = m_backgroundColor,
+                                 strokeColor = m_borderColor, strokeWidth = maxBorderWidth);
         } else {
-            canvas.drawRectangle(rect, borderRadius, 0.f, fillColor = m_backgroundColor, strokeWidth = 0.f);
+            canvas.drawRectangle(rect, borderRadius, fillColor = m_backgroundColor, strokeWidth = 0.f);
 
             // left
             if (widget.computedBorderWidth().x1 > 0)
-                canvas.drawRectangle(
-                    GeometryRectangle{ innerRect, 0.f, borderRadius,
-                                       static_cast<float>(widget.corners.get() | (0b0001 << 4)), 0.f },
-                    fillColor = Palette::transparent, strokeColor = m_borderColor,
-                    strokeWidth = widget.computedBorderWidth().x1);
+                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
+                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+                                     strokeWidth = widget.computedBorderWidth().x1);
             // right
             if (widget.computedBorderWidth().x2 > 0)
-                canvas.drawRectangle(
-                    GeometryRectangle{ innerRect, 0.f, borderRadius,
-                                       static_cast<float>(widget.corners.get() | (0b0100 << 4)), 0.f },
-                    fillColor = Palette::transparent, strokeColor = m_borderColor,
-                    strokeWidth = widget.computedBorderWidth().x2);
+                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
+                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+                                     strokeWidth = widget.computedBorderWidth().x2);
             // top
             if (widget.computedBorderWidth().y1 > 0)
-                canvas.drawRectangle(
-                    GeometryRectangle{ innerRect, 0.f, borderRadius,
-                                       static_cast<float>(widget.corners.get() | (0b0010 << 4)), 0.f },
-                    fillColor = Palette::transparent, strokeColor = m_borderColor,
-                    strokeWidth = widget.computedBorderWidth().y1);
+                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
+                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+                                     strokeWidth = widget.computedBorderWidth().y1);
             // bottom
             if (widget.computedBorderWidth().y2 > 0)
-                canvas.drawRectangle(
-                    GeometryRectangle{ innerRect, 0.f, borderRadius,
-                                       static_cast<float>(widget.corners.get() | (0b1000 << 4)), 0.f },
-                    fillColor = Palette::transparent, strokeColor = m_borderColor,
-                    strokeWidth = widget.computedBorderWidth().y2);
+                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
+                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+                                     strokeWidth = widget.computedBorderWidth().y2);
         }
     }
 }
@@ -2786,7 +2772,6 @@ template void instantiateProp<decltype(Widget::clip)>();
 template void instantiateProp<decltype(Widget::colorEasing)>();
 template void instantiateProp<decltype(Widget::colorTransition)>();
 template void instantiateProp<decltype(Widget::color)>();
-template void instantiateProp<decltype(Widget::corners)>();
 template void instantiateProp<decltype(Widget::cursor)>();
 template void instantiateProp<decltype(Widget::flexBasis)>();
 template void instantiateProp<decltype(Widget::flexGrow)>();
@@ -2885,7 +2870,6 @@ const Argument<Tag::PropArg<decltype(Widget::clip)>> clip{};
 const Argument<Tag::PropArg<decltype(Widget::colorEasing)>> colorEasing{};
 const Argument<Tag::PropArg<decltype(Widget::colorTransition)>> colorTransition{};
 const Argument<Tag::PropArg<decltype(Widget::color)>> color{};
-const Argument<Tag::PropArg<decltype(Widget::corners)>> corners{};
 const Argument<Tag::PropArg<decltype(Widget::cursor)>> cursor{};
 const Argument<Tag::PropArg<decltype(Widget::dimensions)>> dimensions{};
 const Argument<Tag::PropArg<decltype(Widget::flexBasis)>> flexBasis{};

@@ -157,13 +157,13 @@ RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, LineEnd en
             center.x + length * 0.5f + extension,
             center.y + thickness * 0.5f,
         },
-        end == LineEnd::Round ? thickness * 0.5f : 0.f, angle, args);
+        end == LineEnd::Round ? thickness * 0.5f : 0.f, args,
+        coordMatrix = Matrix{}.rotate(rad2deg<float> * angle, center));
 }
 
-RawCanvas& RawCanvas::drawRectangle(RectangleF rect, float borderRadius, float angle,
-                                    RenderStateExArgs args) {
-    m_context.command(prepareState(RenderStateEx(ShaderType::Rectangles, args)),
-                      one(GeometryRectangle{ rect, angle, borderRadius, 255.f, 0.f }));
+RawCanvas& RawCanvas::drawRectangle(RectangleF rect, CornersF borderRadius, RenderStateExArgs args) {
+    RenderStateEx state(ShaderType::Rectangles, args);
+    m_context.command(prepareState(std::move(state)), one(GeometryRectangle{ rect, borderRadius }));
     return *this;
 }
 
@@ -183,7 +183,7 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
             const auto& line = prepared.lines[lineIndex];
             drawRectangle(Rectangle(pos + PointF(range.min, line.baseline - line.ascDesc.ascender),
                                     pos + PointF(range.max, line.baseline + line.ascDesc.descender)),
-                          0.f, 0.f, fillColor = tempState.strokeColor1, strokeWidth = 0);
+                          0.f, fillColor = tempState.strokeColor1, strokeWidth = 0);
         }
     }
 
@@ -238,16 +238,15 @@ RawCanvas& RawCanvas::drawRectangle(const GeometryRectangle& rect, RenderStateEx
     return *this;
 }
 
-RawCanvas& RawCanvas::drawShadow(RectangleF rect, float borderRadius, float angle, RenderStateExArgs args) {
+RawCanvas& RawCanvas::drawShadow(RectangleF rect, CornersF borderRadius, RenderStateExArgs args) {
     m_context.command(prepareState(RenderStateEx(ShaderType::Shadow, args)),
-                      one(GeometryRectangle{ rect, angle, borderRadius, 255.f, 0.f }));
+                      one(GeometryRectangle{ rect, borderRadius }));
     return *this;
 }
 
-RawCanvas& RawCanvas::drawEllipse(RectangleF rect, float angle, RenderStateExArgs args) {
-    m_context.command(
-        prepareState(RenderStateEx(ShaderType::Rectangles, args)),
-        one(GeometryRectangle{ rect, angle, std::min(rect.width(), rect.height()) * 0.5f, 255.f, 0.f }));
+RawCanvas& RawCanvas::drawEllipse(RectangleF rect, RenderStateExArgs args) {
+    m_context.command(prepareState(RenderStateEx(ShaderType::Rectangles, args)),
+                      one(GeometryRectangle{ rect, std::min(rect.width(), rect.height()) * 0.5f }));
     return *this;
 }
 
@@ -260,7 +259,8 @@ RawCanvas& RawCanvas::drawTexture(RectangleF rect, RC<Image> tex, const Matrix& 
                               .invert()
                               .value_or(Matrix{});
     style.imageHandle = std::move(tex);
-    m_context.command(std::move(style), one(GeometryRectangle{ rect, 0.f, 0.f, 0.f, 0.f }));
+    style.strokeWidth = 0.f;
+    m_context.command(std::move(style), one(GeometryRectangle{ rect, 0.f }));
     return *this;
 }
 

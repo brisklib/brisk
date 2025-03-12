@@ -108,7 +108,7 @@ void Tag::TextureChannel::apply(const Tag::TextureChannel::Type& value, RenderSt
 }
 
 void Tag::CoordMatrix::apply(const Tag::CoordMatrix::Type& value, RenderStateEx& state) {
-    state.coordMatrix = value;
+    state.coordMatrix = state.coordMatrix * value;
 }
 
 void Tag::SamplerMode::apply(const Tag::SamplerMode::Type& value, RenderStateEx& state) {

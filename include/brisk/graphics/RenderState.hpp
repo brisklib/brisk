@@ -68,15 +68,8 @@ struct GeometryGlyph {
 
 struct GeometryRectangle {
     RectangleF rectangle;
-    float angle;        // x
-    float borderRadius; // z
-    float corners;      // y, static_cast<float>()
-    float reserved1;    // w
+    CornersF borderRadii;
 };
-
-inline GeometryRectangle makeGeometryRect(RectangleF rectangle) {
-    return GeometryRectangle{ rectangle };
-}
 
 struct GeometryArc {
     PointF center;
@@ -266,10 +259,10 @@ public:
 
 public:
     // ---------------- GLOBAL [5] ----------------
-    ShaderType shader          = ShaderType::Rectangles; ///< Type of geometry to generate
-    TextureId textureId        = textureIdNone;          ///<
-    float scissorsBorderRadius = 0.f;                    ///<
-    int scissorsCorners        = 0;                      ///<
+    ShaderType shader   = ShaderType::Rectangles; ///< Type of geometry to generate
+    TextureId textureId = textureIdNone;          ///<
+    float reserved_1    = 0.f;                    ///<
+    int reserved_2      = 0;                      ///<
 
     Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     int spriteOversampling    = 1;
@@ -307,21 +300,14 @@ public:
 
     float strokeWidth     = 1.f; ///< Stroke or shadow width. Defaults to 1. Set to 0 to disable
     GradientType gradient = GradientType::Linear;
-    int reserved4         = 0;
-    float reserved5       = 0;
 
     union {
         Internal::ImageBackend* imageBackend = nullptr;
         uint64_t dummy;
     };
 
-    float reserved6 = 0;
-    float reserved7 = 0;
-
 public:
     Rectangle shaderClip = noClipRect;
-
-    SIMD<float, 4> padding[15]{ 0, 0, 0, 0, 0, 0, 0 };
 
     bool compare(const RenderState& second) const;
     void premultiply();

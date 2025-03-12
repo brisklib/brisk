@@ -27,10 +27,10 @@ void Line::paint(Canvas& canvas_) const {
     RectangleF r      = m_clientRect;
     float thickness   = m_computedBorderWidth.y1;
     if (m_orientation == Orientation::Horizontal)
-        canvas.drawRectangle(r.alignedRect(r.width(), thickness, 0.5f, 0.5f), 0.f, 0.f,
+        canvas.drawRectangle(r.alignedRect(r.width(), thickness, 0.5f, 0.5f), 0.f,
                              fillColor = m_color.current.multiplyAlpha(m_opacity), strokeWidth = 0.f);
     else
-        canvas.drawRectangle(r.alignedRect(thickness, r.height(), 0.5f, 0.5f), 0.f, 0.f,
+        canvas.drawRectangle(r.alignedRect(thickness, r.height(), 0.5f, 0.5f), 0.f,
                              fillColor = m_color.current.multiplyAlpha(m_opacity), strokeWidth = 0.f);
 }
 

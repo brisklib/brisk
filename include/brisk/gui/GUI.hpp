@@ -1100,7 +1100,6 @@ protected:
     float m_opacity                = 1.f;
 
     // int
-    int m_corners                  = +CornerFlags::All;
     Cursor m_cursor                = Cursor::NotSet;
     int m_tabGroupId               = -1;
 
@@ -1393,7 +1392,6 @@ public:
     GUIProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
     GUIProperty<22, float, None, &This::m_colorTransition> colorTransition;
     GUIProperty<23, ColorW, Transition | Inheritable | AffectPaint, &This::m_color> color;
-    GUIProperty<24, int, AffectPaint, &This::m_corners> corners;
     GUIProperty<25, Cursor, None, &This::m_cursor> cursor;
     GUIProperty<26, SizeL, AffectLayout, &This::m_dimensions, 0> width;
     GUIProperty<27, SizeL, AffectLayout, &This::m_dimensions, 1> height;
@@ -1562,7 +1560,6 @@ extern const Argument<Tag::PropArg<decltype(Widget::clip)>> clip;
 extern const Argument<Tag::PropArg<decltype(Widget::colorEasing)>> colorEasing;
 extern const Argument<Tag::PropArg<decltype(Widget::colorTransition)>> colorTransition;
 extern const Argument<Tag::PropArg<decltype(Widget::color)>> color;
-extern const Argument<Tag::PropArg<decltype(Widget::corners)>> corners;
 extern const Argument<Tag::PropArg<decltype(Widget::cursor)>> cursor;
 extern const Argument<Tag::PropArg<decltype(Widget::dimensions)>> dimensions;
 extern const Argument<Tag::PropArg<decltype(Widget::flexBasis)>> flexBasis;

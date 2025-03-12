@@ -87,7 +87,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
-                canvas.raw().drawRectangle(rect, 0.f, 0.f, fillColor = Palette::transparent,
+                canvas.raw().drawRectangle(rect, 0.f, fillColor = Palette::transparent,
                                            strokeColor = Palette::Standard::amber, strokeWidth = 1);
 
                 // Creates a rectangle 'frect' based on 'rect' for further operations.

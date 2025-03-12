@@ -148,10 +148,10 @@ public:
     RawCanvas& drawLine(PointF p1, PointF p2, float thickness, LineEnd end, RenderStateExArgs args);
     RawCanvas& drawText(PointF pos, const PreparedText& run, Range<uint32_t> selection,
                         RenderStateExArgs args);
-    RawCanvas& drawRectangle(RectangleF rect, float borderRadius, float angle, RenderStateExArgs args);
+    RawCanvas& drawRectangle(RectangleF rect, CornersF borderRadius, RenderStateExArgs args);
     RawCanvas& drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args);
-    RawCanvas& drawShadow(RectangleF rect, float borderRadius, float angle, RenderStateExArgs args);
-    RawCanvas& drawEllipse(RectangleF rect, float angle, RenderStateExArgs args);
+    RawCanvas& drawShadow(RectangleF rect, CornersF borderRadius, RenderStateExArgs args);
+    RawCanvas& drawEllipse(RectangleF rect, RenderStateExArgs args);
     RawCanvas& drawArc(PointF center, float outerRadius, float innerRadius, float startAngle, float endEngle,
                        RenderStateExArgs args);
     RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, RenderStateExArgs args);
@@ -171,8 +171,8 @@ public:
 
     /// @brief Draw rounded rectangle
     template <typename... Args>
-    RawCanvas& drawRectangle(RectangleF rect, float borderRadius, float angle, const Args&... args) {
-        return drawRectangle(rect, borderRadius, angle, RenderStateExArgs{ std::make_tuple(args...) });
+    RawCanvas& drawRectangle(RectangleF rect, CornersF borderRadius, const Args&... args) {
+        return drawRectangle(rect, borderRadius, RenderStateExArgs{ std::make_tuple(args...) });
     }
 
     template <typename... Args>
@@ -182,14 +182,14 @@ public:
 
     /// @brief Draw rounded rectangle
     template <typename... Args>
-    RawCanvas& drawShadow(RectangleF rect, float borderRadius, float angle, const Args&... args) {
-        return drawShadow(rect, borderRadius, angle, RenderStateExArgs{ std::make_tuple(args...) });
+    RawCanvas& drawShadow(RectangleF rect, CornersF borderRadius, const Args&... args) {
+        return drawShadow(rect, borderRadius, RenderStateExArgs{ std::make_tuple(args...) });
     }
 
     /// @brief Draw ellipse
     template <typename... Args>
-    RawCanvas& drawEllipse(RectangleF rect, float angle, const Args&... args) {
-        return drawEllipse(rect, angle, RenderStateExArgs{ std::make_tuple(args...) });
+    RawCanvas& drawEllipse(RectangleF rect, const Args&... args) {
+        return drawEllipse(rect, RenderStateExArgs{ std::make_tuple(args...) });
     }
 
     /// @brief Draw ellipse

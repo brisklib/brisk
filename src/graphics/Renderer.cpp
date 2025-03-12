@@ -198,7 +198,7 @@ void RenderPipeline::blit(RC<Image> image) {
     RectangleF rect{ {}, image->size() };
     style.textureMatrix = Matrix{};
     style.imageHandle   = std::move(image);
-    command(std::move(style), one(GeometryRectangle{ rect, 0.f, 0.f, 0.f, 0.f }));
+    command(std::move(style), one(GeometryRectangle{ rect, CornersF(0.f) }));
 }
 
 Rectangle RenderPipeline::clipRect() const {
