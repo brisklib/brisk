@@ -135,8 +135,7 @@ RenderStateEx RawCanvas::prepareState(RenderStateEx&& state) {
 }
 
 void RawCanvas::prepareStateInplace(RenderStateEx& state) {
-    state.scissor     = m_state.scissors;
-    state.coordMatrix = state.coordMatrix.translate(m_state.offset);
+    state.scissorQuad = m_state.scissors;
     state.premultiply();
 }
 

@@ -63,8 +63,10 @@ struct UniformBlock {
 
     shader: shader_type,
     texture_index: i32,
-    reserved_1: f32,
-    reserved_2: i32,
+    
+    scissorPoint1: vec2<f32>,
+    scissorPoint2: vec2<f32>,
+    scissorPoint3: vec2<f32>,
 
     coord_matrix_a: f32,
     coord_matrix_b: f32,
@@ -80,8 +82,6 @@ struct UniformBlock {
     vpattern: u32,
     pattern_scale: i32,
     opacity: f32,
-
-    scissor: vec4<f32>,
 
     multigradient: i32,
     blur_directions: i32,
@@ -161,6 +161,19 @@ fn max2(pt: vec2<f32>) -> f32 {
 
 fn map(p1: vec2<f32>, p2: vec2<f32>) -> vec2<f32> {
     return vec2<f32>(p1.x * p2.x + p1.y * p2.y, p1.x * p2.y - p1.y * p2.x);
+}
+
+// Function to check if point p is inside convex quad defined by q1, q2, q3, q4
+fn isPointInQuad(p: vec2<f32>, q1: vec2<f32>, q2: vec2<f32>, q3: vec2<f32>, q4: vec2<f32>) -> bool {
+    let xx = vec4<f32>(q1.x, q2.x, q3.x, q4.x);
+    let yy = vec4<f32>(q1.y, q2.y, q3.y, q4.y);
+    let result = (xx.yzwx - xx) * (p.y - yy) - (yy.yzwx - yy) * (p.x - xx) > vec4<f32>(0.0);
+    return all(result);
+}
+
+fn scissorTest(p: vec2<f32>) -> bool {
+    let scissorPoint4 = constants.scissorPoint1 + (constants.scissorPoint3 - constants.scissorPoint2);
+    return isPointInQuad(p, constants.scissorPoint1, constants.scissorPoint2, constants.scissorPoint3, scissorPoint4);
 }
 
 fn transform2D(pos: vec2<f32>) -> vec2<f32> {
@@ -408,12 +421,6 @@ fn get_pattern(x: u32, pattern: u32) -> u32 {
     return (pattern >> (x % 24u)) & 1u;
 }
 
-fn mask(pt: vec2<f32>) -> f32 {
-    let scissor_size = constants.scissor.zw - constants.scissor.xy;
-    return toCoverage(signedDistanceRectangle(pt - (constants.scissor.xy + scissor_size * 0.5), scissor_size,
-        vec4<f32>(0.0)));
-}
-
 fn atlas(sprite: i32, pos: vec2<i32>, stride: u32) -> f32 {
     if pos.x < 0 || pos.x >= i32(stride) {
         return 0.;
@@ -546,9 +553,9 @@ fn useBlending() -> bool {
     return (constants.shader == shader_text || constants.shader == shader_mask) && constants.subpixel != subpixel_off;
 }
 
-fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2<u32>) -> FragOut {
+fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
     var out: FragOut = in;
-    var opacity = constants.opacity * mask_value;
+    var opacity = constants.opacity;
 
     if (constants.hpattern | constants.vpattern) != 0u {
         let p = get_pattern(canvas_coord.x / u32(constants.pattern_scale), constants.hpattern) & get_pattern(canvas_coord.y / u32(constants.pattern_scale), constants.vpattern);
@@ -580,14 +587,7 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2<u32>) -> Fr
 
 @fragment /**/fn fragmentMain(in: VertexOutput) -> FragOut {
 
-    var pt: vec2<f32>;
-    if constants.clipInScreenspace != 0 {
-        pt = in.position.xy;
-    } else {
-        pt = in.canvas_coord;
-    }
-    let mask_value = mask(pt);
-    if mask_value <= 0. {
+    if !scissorTest(in.position.xy) {
         discard;
     }
     var outColor: vec4<f32>;
@@ -622,5 +622,5 @@ fn postprocessColor(in: FragOut, mask_value: f32, canvas_coord: vec2<u32>) -> Fr
         }
     }
 
-    return postprocessColor(FragOut(outColor, outBlend), mask_value, vec2<u32>(in.canvas_coord));
+    return postprocessColor(FragOut(outColor, outBlend), vec2<u32>(in.canvas_coord));
 }

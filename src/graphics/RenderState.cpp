@@ -86,7 +86,7 @@ void Tag::Multigradient::apply(const Tag::Multigradient::Type& value, RenderStat
 }
 
 void Tag::Scissor::apply(const Tag::Scissor::Type& value, RenderStateEx& state) {
-    state.scissor = value;
+    state.scissorQuad = value;
 }
 
 void Tag::Patterns::apply(const Tag::Patterns::Type& value, RenderStateEx& state) {

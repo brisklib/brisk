@@ -120,8 +120,7 @@ static bool sdfCompat(const Paint& fillPaint, const FillParams& fillParams, cons
 }
 
 static void applier(RenderState* target, const Matrix* matrix) {
-    target->coordMatrix       = *matrix;
-    target->clipInScreenspace = 1;
+    target->coordMatrix = *matrix;
 }
 
 static float roundRadius(JoinStyle joinStyle, float radius) {
@@ -136,10 +135,12 @@ void BasicCanvas::drawPath(Path path, const Paint& strokePaint, const StrokePara
     if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() &&
         sdfCompat(fillPaint, fillParams, strokePaint, strokeParams, path.isClosed())) {
         if (auto rrect = path.asRoundRectangle()) {
-            float scale = matrix.estimateScale();
+            float scale     = matrix.estimateScale();
+            auto&& state    = this->save();
+            state->scissors = clipRect;
             drawRectangle(std::get<0>(*rrect),
                           roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
-                          strokeWidth = strokeParams.strokeWidth, scissor = clipRect,
+                          strokeWidth = strokeParams.strokeWidth,
                           Internal::PaintAndTransform{ strokePaint, Matrix{}, opacity, true },
                           Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix);
             return;
@@ -155,10 +156,12 @@ void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& 
         return;
     if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() && sdfCompat(fillParams)) {
         if (auto rrect = path.asRoundRectangle()) {
-            float scale = matrix.estimateScale();
+            float scale     = matrix.estimateScale();
+            auto&& state    = this->save();
+            state->scissors = clipRect;
             drawRectangle(std::get<0>(*rrect), roundRadius(JoinStyle::Round, std::get<1>(*rrect)) / scale,
-                          strokeWidth = 0.f, scissor = clipRect,
-                          Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix);
+                          strokeWidth = 0.f, Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity },
+                          &matrix);
             return;
         }
     }
@@ -174,19 +177,22 @@ void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokePa
     if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() &&
         sdfCompat(strokeParams, path.isClosed())) {
         if (auto rrect = path.asRoundRectangle()) {
-            float scale = matrix.estimateScale();
-            drawRectangle(
-                std::get<0>(*rrect), roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
-                strokeWidth = strokeParams.strokeWidth, fillColor = Palette::transparent, scissor = clipRect,
-                Internal::PaintAndTransform{ strokePaint, matrix, opacity, true }, &matrix);
+            float scale     = matrix.estimateScale();
+            auto&& state    = this->save();
+            state->scissors = clipRect;
+            drawRectangle(std::get<0>(*rrect),
+                          roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
+                          strokeWidth = strokeParams.strokeWidth, fillColor = Palette::transparent,
+                          Internal::PaintAndTransform{ strokePaint, matrix, opacity, true }, &matrix);
             return;
         }
         if (auto line = path.asLine()) {
+            auto&& state    = this->save();
+            state->scissors = clipRect;
             drawLine((*line)[0], (*line)[1], strokeParams.strokeWidth,
                      staticMap(strokeParams.capStyle, CapStyle::Flat, LineEnd::Butt, CapStyle::Square,
                                LineEnd::Square, LineEnd::Round),
-                     strokeWidth = 0.f, scissor = clipRect,
-                     Internal::PaintAndTransform{ strokePaint, matrix, opacity }, &matrix);
+                     strokeWidth = 0.f, Internal::PaintAndTransform{ strokePaint, matrix, opacity }, &matrix);
             return;
         }
     }

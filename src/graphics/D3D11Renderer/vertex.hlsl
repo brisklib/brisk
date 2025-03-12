@@ -19,7 +19,7 @@ float2 to_screen(float2 xy) {
 }
 
 float2 transform2D(float2 pos) {
-  float3x2 coord_matrix = float3x2(float2(asfloat(constants[2].x), asfloat(constants[2].y)), float2(asfloat(constants[2].z), asfloat(constants[2].w)), float2(asfloat(constants[3].x), asfloat(constants[3].y)));
+  float3x2 coord_matrix = float3x2(float2(asfloat(constants[3].x), asfloat(constants[3].y)), float2(asfloat(constants[3].z), asfloat(constants[3].w)), float2(asfloat(constants[4].x), asfloat(constants[4].y)));
   return mul(float3(pos, 1.0f), coord_matrix).xy;
 }
 
@@ -82,7 +82,7 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
         rect.x = (rect.x - asfloat(perFrame[1].z));
         rect.z = (rect.z + asfloat(perFrame[1].z));
         outPosition = float4(lerp(rect.xy, rect.zw, uv_coord), 0.0f, 1.0f);
-        output.uv = (((outPosition.xy - float2(base, rect.y)) + float2(-(asfloat(perFrame[1].z)), 0.0f)) * float2(float(asint(constants[3].z)), 1.0f));
+        output.uv = (((outPosition.xy - float2(base, rect.y)) + float2(-(asfloat(perFrame[1].z)), 0.0f)) * float2(float(asint(constants[4].z)), 1.0f));
         output.data0 = glyph_data;
       } else {
         bool tint_tmp_1 = (asint(constants[1].x) == 4);

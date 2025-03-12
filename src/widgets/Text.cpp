@@ -127,7 +127,7 @@ void Text::paint(Canvas& canvas) const {
                            .translate(inner.center().x, inner.center().y);
             PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
             auto&& state  = canvas.raw().save();
-            state->scissors = m.invert()->transform(state->scissors);
+            m.invert()->transform(state->scissors.points);
             canvas.raw().drawText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) +
                                       offset,
                                   prepared, fillColor = color, coordMatrix = m);

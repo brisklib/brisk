@@ -118,6 +118,21 @@ enum class SamplerMode : int32_t {
     Wrap  = 1,
 };
 
+struct Quad3 {
+    std::array<PointF, 3> points;
+    constexpr Quad3()             = default;
+    constexpr Quad3(const Quad3&) = default;
+
+    constexpr Quad3(PointF p1, PointF p2, PointF p3) : points{ p1, p2, p3 } {}
+
+    constexpr Quad3(RectangleF rect)
+        : points{
+              rect.p1,
+              PointF(rect.p2.x, rect.p1.y),
+              rect.p2,
+          } {}
+};
+
 namespace Tag {
 
 struct SubpixelMode {
@@ -177,7 +192,7 @@ struct FillGradient {
 };
 
 struct Scissor {
-    using Type = RectangleF;
+    using Type = Quad3;
     static void apply(const Type& value, RenderStateEx& state);
 };
 
@@ -228,7 +243,6 @@ constexpr inline Argument<Tag::FillGradient<GradientType::Radial>> radialGradien
 constexpr inline Argument<Tag::FillGradient<GradientType::Angle>> angleGradient{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Reflected>> reflectedGradient{};
 constexpr inline Argument<Tag::Multigradient> multigradient{};
-constexpr inline Argument<Tag::Scissor> scissor{};
 constexpr inline Argument<Tag::Patterns> patterns{};
 constexpr inline Argument<Tag::BlurRadius> blurRadius{};
 constexpr inline Argument<Tag::BlurDirections> blurDirections{};
@@ -261,8 +275,8 @@ public:
     // ---------------- GLOBAL [5] ----------------
     ShaderType shader   = ShaderType::Rectangles; ///< Type of geometry to generate
     TextureId textureId = textureIdNone;          ///<
-    float reserved_1    = 0.f;                    ///<
-    int reserved_2      = 0;                      ///<
+
+    Quad3 scissorQuad   = noScissors;
 
     Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     int spriteOversampling    = 1;
@@ -273,15 +287,13 @@ public:
     int patternScale          = 1;
     float opacity             = 1.f; ///< Opacity. Defaults to 1
 
-    RectangleF scissor        = noScissors; ///< Clip area in screen space
-
 public:
     // ---------------- texture [4] ----------------
 
     int32_t multigradient = -1; ///< Gradient (-1 - disabled)
     int blurDirections    = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
     int textureChannel    = 0;  ///<
-    int clipInScreenspace = 0;
+    int reserved_1        = 0;
 
     Matrix textureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     SamplerMode samplerMode = SamplerMode::Clamp;         ///<

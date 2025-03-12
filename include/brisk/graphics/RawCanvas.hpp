@@ -227,10 +227,7 @@ public:
     }
 
     struct State {
-        RectangleF scissors        = noScissors;
-        float scissorsBorderRadius = 0.f;
-        int scissorsCorners        = 15;
-        PointF offset              = PointF{};
+        Quad3 scissors = noScissors;
     };
 
     struct Save {
@@ -249,10 +246,6 @@ public:
 
         State* operator->() {
             return &canvas.m_state;
-        }
-
-        void intersectScissors(RectangleF scissors) {
-            canvas.m_state.scissors = canvas.m_state.scissors.intersection(scissors);
         }
 
         RawCanvas& canvas;

@@ -1171,7 +1171,7 @@ void Widget::doPaint(Canvas& canvas) const {
     }
 
     auto&& state    = canvas.raw().save();
-    state->scissors = m_clipRect;
+    state->scissors = RectangleF(m_clipRect);
     bool needsPaint = !m_tree || m_tree->isDirty(adjustedRect()) ||
                       (!m_hintRect.empty() && m_tree->isDirty(adjustedHintRect()));
     if (needsPaint) {
@@ -2310,7 +2310,7 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
             if (widget.zorder != ZOrder::Normal || widget.clip == WidgetClip::None)
                 state->scissors = noScissors;
             else
-                state->scissors = widget.parent()->clipRect();
+                state->scissors = RectangleF(widget.parent()->clipRect());
         }
         canvas.drawShadow(rect,
                           std::max(std::abs(widget.borderRadius.resolved().max()),
@@ -2327,36 +2327,31 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
 
         if (maxBorderWidth == widget.computedBorderWidth().min()) {
             // Edges widths are equal
-            canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius }, fillColor = m_backgroundColor,
-                                 strokeColor = m_borderColor, strokeWidth = maxBorderWidth);
-        } else if (SIMDMask<4> mask = eq(widget.computedBorderWidth().v, SIMD<float, 4>(maxBorderWidth));
-                   select(mask, SIMD<float, 4>(0), widget.computedBorderWidth().v) == SIMD<float, 4>(0)) {
-            // If Edges are either maxBorderWidth or zero
-            uint8_t bitmask = mask[0] << 0 | mask[1] << 1 | mask[2] << 2 | mask[3] << 3;
-            canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius }, fillColor = m_backgroundColor,
+            canvas.drawRectangle(innerRect, borderRadius, fillColor = m_backgroundColor,
                                  strokeColor = m_borderColor, strokeWidth = maxBorderWidth);
         } else {
             canvas.drawRectangle(rect, borderRadius, fillColor = m_backgroundColor, strokeWidth = 0.f);
 
             // left
-            if (widget.computedBorderWidth().x1 > 0)
-                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
-                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+            if (widget.computedBorderWidth().x1 > 0) {
+                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
+                                     strokeColor = m_borderColor,
                                      strokeWidth = widget.computedBorderWidth().x1);
+            }
             // right
             if (widget.computedBorderWidth().x2 > 0)
-                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
-                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
+                                     strokeColor = m_borderColor,
                                      strokeWidth = widget.computedBorderWidth().x2);
             // top
             if (widget.computedBorderWidth().y1 > 0)
-                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
-                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
+                                     strokeColor = m_borderColor,
                                      strokeWidth = widget.computedBorderWidth().y1);
             // bottom
             if (widget.computedBorderWidth().y2 > 0)
-                canvas.drawRectangle(GeometryRectangle{ innerRect, borderRadius },
-                                     fillColor = Palette::transparent, strokeColor = m_borderColor,
+                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
+                                     strokeColor = m_borderColor,
                                      strokeWidth = widget.computedBorderWidth().y2);
         }
     }

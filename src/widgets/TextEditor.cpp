@@ -184,12 +184,9 @@ void TextEditor::paint(Canvas& canvas) const {
     std::u32string placeholder = utf8ToUtf32(this->m_placeholder);
     bool isPlaceholder         = m_text.empty();
 
-    auto&& state               = canvas.raw().save();
-    state.intersectScissors(m_rect.withPadding(1_idp));
-
-    Range<uint32_t> selection = this->selection();
-    selection.min             = std::clamp(selection.min, 0u, (uint32_t)m_cachedText.size());
-    selection.max             = std::clamp(selection.max, 0u, (uint32_t)m_cachedText.size());
+    Range<uint32_t> selection  = this->selection();
+    selection.min              = std::clamp(selection.min, 0u, (uint32_t)m_cachedText.size());
+    selection.max              = std::clamp(selection.max, 0u, (uint32_t)m_cachedText.size());
 
     PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
 
