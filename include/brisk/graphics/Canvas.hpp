@@ -467,7 +467,6 @@ public:
      */
     void restoreNoPop();
 
-private:
     struct State {
         Rectangle clipRect;
         Matrix transform;
@@ -480,6 +479,16 @@ private:
     };
 
     static const State defaultState;
+
+    const State& state() const noexcept {
+        return m_state;
+    }
+
+    void setState(State state) {
+        m_state = std::move(state);
+    }
+
+private:
     State m_state;              ///< The current state of the Canvas.
     std::vector<State> m_stack; ///< The stack of saved Canvas states.
 };

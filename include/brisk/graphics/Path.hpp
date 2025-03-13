@@ -6,6 +6,7 @@
 #include <mutex>
 #include <variant>
 #include <brisk/core/internal/InlineVector.hpp>
+#include <brisk/core/internal/SmallVector.hpp>
 #include "internal/Sprites.hpp"
 
 namespace Brisk {
@@ -51,7 +52,7 @@ enum class CapStyle : uint8_t {
  * DashArray holds a sequence of floats,
  * representing the lengths of dashes and gaps in a dashed line pattern.
  */
-using DashArray = inline_vector<float, 7>;
+using DashArray = SmallVector<float, 2>;
 
 /**
  * @brief Structure representing stroke parameters.
@@ -61,8 +62,8 @@ struct StrokeParams {
     CapStyle capStyle   = CapStyle::Flat;   ///< The cap style of the stroke.
     float strokeWidth   = 1.f;              ///< The width of the stroke.
     float miterLimit    = 10.f;             ///< The limit for miter joins.
+    float dashOffset    = 0.f;
     DashArray dashArray{};
-    float dashOffset = 0.f;
 
     StrokeParams scale(float value) const noexcept {
         StrokeParams copy = *this;
