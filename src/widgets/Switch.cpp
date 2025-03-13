@@ -50,7 +50,7 @@ void Switch::onEvent(Event& event) {
     }
 }
 
-void switchPainter(Canvas& canvas_, const Widget& widget_) {
+void switchPainter(Canvas& canvas, const Widget& widget_) {
     if (!dynamic_cast<const Switch*>(&widget_)) {
         LOG_ERROR(widgets, "switchPainter called for a non-Switch widget");
         return;
@@ -58,18 +58,16 @@ void switchPainter(Canvas& canvas_, const Widget& widget_) {
     const Switch& widget    = static_cast<const Switch&>(widget_);
     float interpolatedValue = widget.interpolatedValue.get();
 
-    RawCanvas& canvas       = canvas_.raw();
     RectangleF outerRect = widget.rect().alignedRect({ idp(24), idp(14) }, { 0.0f, 0.5f }).withPadding(dp(1));
     RectangleF outerRectWithPadding = outerRect.withPadding(dp(2));
     RectangleF innerRect            = outerRectWithPadding.alignedRect(
         outerRectWithPadding.height(), outerRectWithPadding.height(), interpolatedValue, 0.5f);
-    canvas.drawRectangle(
-        outerRect, outerRect.shortestSide() * 0.5f,
-        std::tuple{ fillColor   = mix(interpolatedValue, ColorW(0.f, 0.f), widget.backgroundColor.current()),
-                    strokeWidth = 1._dp, strokeColor = widget.color.current().multiplyAlpha(0.35f) });
-    canvas.drawRectangle(
-        innerRect, innerRect.shortestSide() * 0.5f,
-        std::tuple{ fillColor = widget.color.current().multiplyAlpha(0.75f), strokeWidth = 0.f });
+    canvas.setFillColor(mix(interpolatedValue, ColorW(0.f, 0.f), widget.backgroundColor.current()));
+    canvas.setStrokeWidth(1._dp);
+    canvas.setStrokeColor(widget.color.current().multiplyAlpha(0.35f));
+    canvas.drawRect(outerRect, outerRect.shortestSide() * 0.5f);
+    canvas.setFillColor(widget.color.current().multiplyAlpha(0.75f));
+    canvas.fillRect(innerRect, innerRect.shortestSide() * 0.5f);
 }
 
 void Switch::paint(Canvas& canvas_) const {
