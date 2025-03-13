@@ -323,22 +323,43 @@ void Canvas::setDashArray(const DashArray& array) {
     m_state.strokeParams.dashArray = array;
 }
 
-void Canvas::strokeRect(RectangleF rect) {
+void Canvas::strokeRect(RectangleF rect, CornersF borderRadius, bool squircle) {
     Path path;
-    path.addRect(rect);
+    if (borderRadius.max() == 0.f)
+        path.addRect(rect);
+    else
+        path.addRoundRect(rect, borderRadius, squircle);
     strokePath(path);
 }
 
-void Canvas::fillRect(RectangleF rect) {
+void Canvas::fillRect(RectangleF rect, CornersF borderRadius, bool squircle) {
     Path path;
-    path.addRect(rect);
+    if (borderRadius.max() == 0.f)
+        path.addRect(rect);
+    else
+        path.addRoundRect(rect, borderRadius, squircle);
     fillPath(path);
 }
 
-void Canvas::drawRect(RectangleF rect) {
+void Canvas::drawRect(RectangleF rect, CornersF borderRadius, bool squircle) {
     Path path;
-    path.addRect(rect);
+    if (borderRadius.max() == 0.f)
+        path.addRect(rect);
+    else
+        path.addRoundRect(rect, borderRadius, squircle);
     drawPath(path);
+}
+
+void Canvas::blurRect(RectangleF rect, float blurRadius, CornersF borderRadius, bool squircle) {
+    Path path;
+    if (borderRadius.max() == 0.f)
+        path.addRect(rect);
+    else
+        path.addRoundRect(rect, borderRadius, squircle);
+    drawShadow(rect, borderRadius,
+               std::tuple{ contourSize = blurRadius, strokeWidth = 0.f,
+                           Internal::PaintAndTransform{ m_state.fillPaint, Matrix{}, m_state.opacity },
+                           &m_state.transform });
 }
 
 void Canvas::strokeEllipse(RectangleF rect) {

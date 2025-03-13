@@ -72,11 +72,6 @@ void Tag::ContourSize::apply(const Tag::ContourSize::Type& value, RenderStateEx&
     state.strokeWidth = value * 2;
 }
 
-void Tag::ContourColor::apply(const Tag::ContourColor::Type& value, RenderStateEx& state) {
-    state.fillColor1 = value;
-    state.fillColor2 = value;
-}
-
 void Tag::StrokeWidth::apply(const Tag::StrokeWidth::Type& value, RenderStateEx& state) {
     state.strokeWidth = value;
 }

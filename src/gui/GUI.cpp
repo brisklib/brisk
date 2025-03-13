@@ -1221,7 +1221,7 @@ void Widget::paintFocusFrame(Canvas& canvas_) const {
                                     std::copysign(std::min(RectangleF(m_rect).shortestSide() * 0.5f,
                                                            val + std::abs(m_borderRadius.resolved.max())),
                                                   m_borderRadius.resolved.max()),
-                                    std::tuple{ contourSize = val, contourColor = 0x03a1fc_rgb });
+                                    std::tuple{ contourSize = val, fillColor = 0x03a1fc_rgb });
         });
     }
 }
@@ -1238,7 +1238,7 @@ void Widget::paintHint(Canvas& canvas_) const {
                     ? 0x000000'55_rgba
                     : 0x000000'AA_rgba;
             canvas.drawShadow(m_hintRect, 4._dp,
-                              std::tuple{ contourSize = dp(hintShadowSize), contourColor = shadowColor });
+                              std::tuple{ contourSize = dp(hintShadowSize), fillColor = shadowColor });
             canvas.drawRectangle(m_hintRect, -5._dp, std::tuple{ fillColor = color, strokeWidth = 0.f });
             canvas.drawText(m_hintRect.center() + m_hintTextOffset, m_hintPrepared,
                             std::tuple{ fillColor = Palette::black });
@@ -2324,8 +2324,8 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
             rect,
             std::max(std::abs(widget.borderRadius.resolved().max()),
                      std::min(widget.shadowSize.resolved(), dp(8.f))),
-            std::tuple{ contourSize  = widget.shadowSize.resolved(),
-                        contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()) });
+            std::tuple{ contourSize = widget.shadowSize.resolved(),
+                        fillColor   = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()) });
     }
 
     EdgesF borderWidth = widget.computedBorderWidth();

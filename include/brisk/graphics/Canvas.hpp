@@ -302,16 +302,18 @@ public:
      *
      * @param rect The RectangleF struct defining the rectangle to stroke.
      */
-    void strokeRect(RectangleF rect);
+    void strokeRect(RectangleF rect, CornersF borderRadius = 0.f, bool squircle = false);
 
     /**
      * @brief Fills a rectangle with the current fill settings.
      *
      * @param rect The RectangleF struct defining the rectangle to fill.
      */
-    void fillRect(RectangleF rect);
+    void fillRect(RectangleF rect, CornersF borderRadius = 0.f, bool squircle = false);
 
-    void drawRect(RectangleF rect);
+    void drawRect(RectangleF rect, CornersF borderRadius = 0.f, bool squircle = false);
+
+    void blurRect(RectangleF rect, float blurRadius, CornersF borderRadius = 0.f, bool squircle = false);
 
     /**
      * @brief Strokes an ellipse defined by the bounding rectangle.

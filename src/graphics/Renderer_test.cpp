@@ -557,7 +557,7 @@ TEST_CASE("Shadow") {
                 context.setClipRect(box);
                 float shadowSize = 2 << i;
                 canvas.drawShadow(box.withPadding(64.f), 0.f,
-                                  std::tuple{ contourSize = shadowSize, contourColor = Palette::black });
+                                  std::tuple{ contourSize = shadowSize, fillColor = Palette::black });
             }
         },
         Palette::white);
@@ -571,7 +571,7 @@ TEST_CASE("Shadow") {
                 context.setClipRect(box);
                 float boxRadius = 2 << i;
                 canvas.drawShadow(box.withPadding(64.f), boxRadius,
-                                  std::tuple{ contourSize = 16.f, contourColor = Palette::black });
+                                  std::tuple{ contourSize = 16.f, fillColor = Palette::black });
             }
         },
         Palette::white);
@@ -584,7 +584,7 @@ TEST_CASE("Shadow") {
                 context.setClipRect(box);
                 float shadowSize = 1 << i;
                 canvas.drawShadow(box.withPadding(64.f), { 0.f, 32.f, 8.f, 0.f },
-                                  std::tuple{ contourSize = shadowSize, contourColor = Palette::black });
+                                  std::tuple{ contourSize = shadowSize, fillColor = Palette::black });
             }
         },
         Palette::white);
