@@ -56,7 +56,7 @@ void spinnerPainter(Canvas& canvas_, const Widget& widget) {
             canvas.drawRectangle(rect.at((i + 0.5f) / (num), (j + 0.5f) / (num))
                                      .alignedRect(SizeF{ factor * side, factor * side }, { 0.5f, 0.5f })
                                      .withOffset({ -fract(time) * side, 0.f }),
-                                 0.f, fillColor = Palette::Standard::blue, strokeWidth = 0);
+                                 0.f, std::tuple{ fillColor = Palette::Standard::blue, strokeWidth = 0 });
         }
     }
 }

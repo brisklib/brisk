@@ -63,12 +63,13 @@ void switchPainter(Canvas& canvas_, const Widget& widget_) {
     RectangleF outerRectWithPadding = outerRect.withPadding(dp(2));
     RectangleF innerRect            = outerRectWithPadding.alignedRect(
         outerRectWithPadding.height(), outerRectWithPadding.height(), interpolatedValue, 0.5f);
-    canvas.drawRectangle(outerRect, outerRect.shortestSide() * 0.5f,
-                         fillColor =
-                             mix(interpolatedValue, ColorW(0.f, 0.f), widget.backgroundColor.current()),
-                         strokeWidth = 1._dp, strokeColor = widget.color.current().multiplyAlpha(0.35f));
-    canvas.drawRectangle(innerRect, innerRect.shortestSide() * 0.5f,
-                         fillColor = widget.color.current().multiplyAlpha(0.75f), strokeWidth = 0.f);
+    canvas.drawRectangle(
+        outerRect, outerRect.shortestSide() * 0.5f,
+        std::tuple{ fillColor   = mix(interpolatedValue, ColorW(0.f, 0.f), widget.backgroundColor.current()),
+                    strokeWidth = 1._dp, strokeColor = widget.color.current().multiplyAlpha(0.35f) });
+    canvas.drawRectangle(
+        innerRect, innerRect.shortestSide() * 0.5f,
+        std::tuple{ fillColor = widget.color.current().multiplyAlpha(0.75f), strokeWidth = 0.f });
 }
 
 void Switch::paint(Canvas& canvas_) const {

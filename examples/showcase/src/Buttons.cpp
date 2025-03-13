@@ -144,6 +144,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
         },
         rcnew HLayout{
             rcnew Widget{
+                squircleCorners = false,
                 rcnew Button{ rcnew Text{ "First" }, &m_btnGroup, borderRadius = 15_px },
                 rcnew Button{ rcnew Text{ "Second" }, &m_btnGroup, borderRadius = 15_px },
                 rcnew Button{ rcnew Text{ "Third" }, &m_btnGroup, borderRadius = 15_px },

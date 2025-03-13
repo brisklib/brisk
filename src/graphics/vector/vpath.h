@@ -23,6 +23,7 @@
 #ifndef VPATH_H
 #define VPATH_H
 #include <vector>
+#include <array>
 #include "vcowptr.h"
 #include "vmatrix.h"
 #include "vpoint.h"
@@ -55,9 +56,11 @@ public:
                     VPath::Direction dir = Direction::CW);
     void  addOval(const VRectF &rect, VPath::Direction dir = Direction::CW);
     void  addRoundRect(const VRectF &rect, float rx, float ry,
-                       VPath::Direction dir = Direction::CW);
+                       bool squircleBorders = false, VPath::Direction dir = Direction::CW);
     void  addRoundRect(const VRectF &rect, float roundness,
-                       VPath::Direction dir = Direction::CW);
+                       bool squircleBorders = false, VPath::Direction dir = Direction::CW);
+    void  addRoundRect(const VRectF &rect, std::array<float, 4> rx, std::array<float, 4> ry,
+                       bool squircleBorders = false, VPath::Direction dir = Direction::CW);
     void  addRect(const VRectF &rect, VPath::Direction dir = Direction::CW);
     void  addPolystar(float points, float innerRadius, float outerRadius,
                       float innerRoundness, float outerRoundness,
@@ -91,8 +94,9 @@ private:
         size_t segments() const;
         void  transform(const VMatrix &m);
         float length() const;
-        void  addRoundRect(const VRectF &, float, float, VPath::Direction);
-        void  addRoundRect(const VRectF &, float, VPath::Direction);
+        void  addRoundRect(const VRectF &, float, float, bool, VPath::Direction);
+        void  addRoundRect(const VRectF &, float, bool, VPath::Direction);
+        void  addRoundRect(const VRectF &, std::array<float, 4>, std::array<float, 4>, bool, VPath::Direction);
         void  addRect(const VRectF &, VPath::Direction);
         void  arcTo(const VRectF &, float, float, bool);
         void  addCircle(float, float, float, VPath::Direction);
@@ -210,16 +214,22 @@ inline void VPath::addRect(const VRectF &rect, VPath::Direction dir)
     d.write().addRect(rect, dir);
 }
 
-inline void VPath::addRoundRect(const VRectF &rect, float rx, float ry,
+inline void VPath::addRoundRect(const VRectF &rect, float rx, float ry, bool squircle,
                                 VPath::Direction dir)
 {
-    d.write().addRoundRect(rect, rx, ry, dir);
+    d.write().addRoundRect(rect, rx, ry, squircle, dir);
 }
 
-inline void VPath::addRoundRect(const VRectF &rect, float roundness,
+inline void VPath::addRoundRect(const VRectF &rect, float roundness, bool squircle,
                                 VPath::Direction dir)
 {
-    d.write().addRoundRect(rect, roundness, dir);
+    d.write().addRoundRect(rect, roundness, squircle, dir);
+}
+
+inline void VPath::addRoundRect(const VRectF &rect, std::array<float, 4> rx, std::array<float, 4> ry,
+                                bool squircle, VPath::Direction dir)
+{
+    d.write().addRoundRect(rect, rx, ry, squircle, dir);
 }
 
 inline void VPath::addCircle(float cx, float cy, float radius,

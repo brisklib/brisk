@@ -50,8 +50,7 @@ float2 map(float2 p1, float2 p2) {
   return float2(((p1.x * p2.x) + (p1.y * p2.y)), ((p1.x * p2.y) - (p1.y * p2.x)));
 }
 
-bool isPointInQuad(float2 p, float2 q1, float2 q2, float2 q3) {
-  float2 q4 = (q1 + (q3 - q2));
+bool isPointInQuad(float2 p, float2 q1, float2 q2, float2 q3, float2 q4) {
   float4 xx = float4(q1.x, q2.x, q3.x, q4.x);
   float4 yy = float4(q1.y, q2.y, q3.y, q4.y);
   bool4 result = ((((xx.yzwx - xx) * (p.y - yy)) - ((yy.yzwx - yy) * (p.x - xx))) > (0.0f).xxxx);
@@ -59,7 +58,8 @@ bool isPointInQuad(float2 p, float2 q1, float2 q2, float2 q3) {
 }
 
 bool scissorTest(float2 p) {
-  return isPointInQuad(p, asfloat(constants[1].zw), asfloat(constants[2].xy), asfloat(constants[2].zw));
+  float2 scissorPoint4 = (asfloat(constants[1].zw) + (asfloat(constants[2].zw) - asfloat(constants[2].xy)));
+  return isPointInQuad(p, asfloat(constants[1].zw), asfloat(constants[2].xy), asfloat(constants[2].zw), scissorPoint4);
 }
 
 float superLength(float2 pt) {

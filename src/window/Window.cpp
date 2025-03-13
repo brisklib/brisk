@@ -295,7 +295,7 @@ void Window::paintDebug(RenderContext& context) {
         const int lanes      = 6;
         canvas.drawRectangle(Rectangle{ 0, framebufferSize.height - lanes * idp(laneHeight),
                                         framebufferSize.width, framebufferSize.height },
-                             0.f, strokeWidth = 0.f, fillColor = 0x000000'D0_rgba);
+                             0.f, std::tuple{ strokeWidth = 0.f, fillColor = 0x000000'D0_rgba });
         renderDebugTimeline("updateAndPaint ", canvas, m_drawingPerformance, 0, 0, 50.f * 60.f);
         renderDebugTimeline("render         ", canvas, m_renderPerformance, 1, 2, 50.f * 60.f);
         renderDebugTimeline("swap           ", canvas, m_swapPerformance, 2, 4, 50.f * 60.f);
@@ -544,8 +544,9 @@ void Window::renderDebugTimeline(const std::string& title, RawCanvas& canvas,
         float sliceEnd = sliceOffset + (toSeconds(slice.stop) - toSeconds(slice.start)) * dp(pixelsPerSecond);
         RectangleF r(sliceOffset, laneY, sliceEnd, laneY + idp(laneHeight) - 1);
         r.x2 = std::max(r.x1 + 1.0_dp, r.x2);
-        canvas.drawRectangle(r, 0.f, fillColor = Palette::Standard::index(color).multiplyAlpha(0.75f),
-                             strokeWidth = 0.f);
+        canvas.drawRectangle(r, 0.f,
+                             std::tuple{ fillColor   = Palette::Standard::index(color).multiplyAlpha(0.75f),
+                                         strokeWidth = 0.f });
         --index;
         ++counter;
     }

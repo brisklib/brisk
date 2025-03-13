@@ -28,11 +28,11 @@ void paintProgressIndicator(RawCanvas& canvas, RectangleF rect, int circles) {
         const float s = std::sin(t);
         const float c = std::cos(t);
         canvas.drawArc(PointF(rect.center()), idp(20 + i * 5), idp(15 + i * 5), 0, 10.f,
-                       fillColors    = { ColorF{ 1, 1, 1, 0 }, ColorF{ 0, 0, 0, 0 } },
-                       angleGradient = {
-                           rect.center(),
-                           PointF(rect.center()) + PointOf<float>{ c, s },
-                       });
+                       std::tuple{ fillColors    = { ColorF{ 1, 1, 1, 0 }, ColorF{ 0, 0, 0, 0 } },
+                                   angleGradient = {
+                                       rect.center(),
+                                       PointF(rect.center()) + PointOf<float>{ c, s },
+                                   } });
     }
 }
 

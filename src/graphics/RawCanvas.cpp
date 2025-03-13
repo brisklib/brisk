@@ -99,7 +99,7 @@ GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPa
 
 RawCanvas& RawCanvas::drawText(PointF pos, const TextWithOptions& text, const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
-    drawText(pos, run, fillColor = textColor);
+    drawText(pos, run, Range<uint32_t>{}, std::tuple{ fillColor = textColor });
     return *this;
 }
 
@@ -107,7 +107,7 @@ RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment,
                                const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
-    drawText(pos + offset, run, fillColor = textColor);
+    drawText(pos + offset, run, Range<uint32_t>{}, std::tuple{ fillColor = textColor });
     return *this;
 }
 
@@ -115,19 +115,12 @@ RawCanvas& RawCanvas::drawText(RectangleF rect, float x_alignment, float y_align
                                const TextWithOptions& text, const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
-    drawText(rect.at(x_alignment, y_alignment) + offset, run, fillColor = textColor);
+    drawText(rect.at(x_alignment, y_alignment) + offset, run, Range<uint32_t>{},
+             std::tuple{ fillColor = textColor });
     return *this;
 }
 
 RawCanvas::RawCanvas(RenderContext& context) : m_context(context) {}
-
-RectangleF RawCanvas::align(RectangleF rect) const {
-    return RectangleF{ PointF(round(rect.p1.v)), SizeF(max(SIMD{ 1.f, 1.f }, round(rect.size().v))) };
-}
-
-PointF RawCanvas::align(PointF v) const {
-    return PointF(round(v.v));
-}
 
 RenderStateEx RawCanvas::prepareState(RenderStateEx&& state) {
     prepareStateInplace(state);
@@ -140,7 +133,7 @@ void RawCanvas::prepareStateInplace(RenderStateEx& state) {
 }
 
 RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, ColorW color, LineEnd end) {
-    return drawLine(p1, p2, thickness, end, fillColor = color, strokeWidth = 0.f);
+    return drawLine(p1, p2, thickness, end, std::tuple{ fillColor = color, strokeWidth = 0.f });
 }
 
 RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, LineEnd end, RenderStateExArgs args) {
@@ -156,14 +149,27 @@ RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, LineEnd en
             center.x + length * 0.5f + extension,
             center.y + thickness * 0.5f,
         },
-        end == LineEnd::Round ? thickness * 0.5f : 0.f, args,
-        coordMatrix = Matrix{}.rotate(rad2deg<float> * angle, center));
+        end == LineEnd::Round ? thickness * 0.5f : 0.f,
+        std::tuple{ args, coordMatrix = Matrix{}.rotate(rad2deg<float> * angle, center) });
 }
 
 RawCanvas& RawCanvas::drawRectangle(RectangleF rect, CornersF borderRadius, RenderStateExArgs args) {
+    return drawRectangle(rect, borderRadius, false, args);
+}
+
+RawCanvas& RawCanvas::drawRectangle(RectangleF rect, CornersF borderRadius, bool squircle,
+                                    RenderStateExArgs args) {
     RenderStateEx state(ShaderType::Rectangles, args);
+    borderRadius.v = abs(borderRadius.v);
+    if (squircle) {
+        borderRadius.v = -borderRadius.v;
+    }
     m_context.command(prepareState(std::move(state)), one(GeometryRectangle{ rect, borderRadius }));
     return *this;
+}
+
+RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, RenderStateExArgs args) {
+    return drawText(pos, prepared, Range<uint32_t>{}, args);
 }
 
 RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<uint32_t> selection,
@@ -182,7 +188,7 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
             const auto& line = prepared.lines[lineIndex];
             drawRectangle(Rectangle(pos + PointF(range.min, line.baseline - line.ascDesc.ascender),
                                     pos + PointF(range.max, line.baseline + line.ascDesc.descender)),
-                          0.f, fillColor = tempState.strokeColor1, strokeWidth = 0);
+                          0.f, std::tuple{ fillColor = tempState.strokeColor1, strokeWidth = 0 });
         }
     }
 
@@ -216,15 +222,15 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
                 if (run.decoration && TextDecoration::Underline)
                     drawLine(p1 + PointF{ 0.f, run.metrics.underlineOffset() },
                              p2 + PointF{ 0.f, run.metrics.underlineOffset() }, run.metrics.lineThickness,
-                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                             LineEnd::Butt, std::tuple{ strokeWidth = 0.f, runArgs });
                 if (run.decoration && TextDecoration::Overline)
                     drawLine(p1 + PointF{ 0.f, run.metrics.overlineOffset() },
                              p2 + PointF{ 0.f, run.metrics.overlineOffset() }, run.metrics.lineThickness,
-                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                             LineEnd::Butt, std::tuple{ strokeWidth = 0.f, runArgs });
                 if (run.decoration && TextDecoration::LineThrough)
                     drawLine(p1 + PointF{ 0.f, run.metrics.lineThroughOffset() },
                              p2 + PointF{ 0.f, run.metrics.lineThroughOffset() }, run.metrics.lineThickness,
-                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                             LineEnd::Butt, std::tuple{ strokeWidth = 0.f, runArgs });
             }
         }
     }

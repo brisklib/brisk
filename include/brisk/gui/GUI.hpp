@@ -1150,6 +1150,7 @@ protected:
     bool m_isHintExclusive              = false;
     bool m_isHintVisible                = false;
     bool m_autoHint                     = true;
+    bool m_squircleCorners              = false;
 
     std::array<bool, 2> m_scrollBarDrag{ false, false };
     int m_savedScrollOffset = 0;
@@ -1453,7 +1454,6 @@ public:
     GUIProperty<69, AlignToViewport, AffectLayout, &This::m_alignToViewport> alignToViewport;
     GUIProperty<70, BoxSizingPerAxis, AffectLayout, &This::m_boxSizing> boxSizing;
     GUIProperty<71, ZOrder, AffectLayout, &This::m_zorder> zorder;
-
     GUIProperty<72, bool, AffectStyle, &This::m_stateTriggersRestyle> stateTriggersRestyle;
     GUIProperty<73, std::string, AffectStyle, &This::m_id> id;
     GUIProperty<74, std::string_view, AffectStyle, &This::m_role> role;
@@ -1468,7 +1468,7 @@ public:
     GUIProperty<83, bool, None, &This::m_tabGroup> tabGroup;
     GUIProperty<84, bool, None, &This::m_autofocus> autofocus;
     GUIProperty<85, bool, None, &This::m_autoHint> autoHint;
-    /* 86 unused */
+    GUIProperty<86, bool, AffectPaint | Inheritable, &This::m_squircleCorners> squircleCorners;
     GUIProperty<87, EventDelegate*, None, &This::m_delegate> delegate;
     GUIProperty<88, std::string, AffectLayout | AffectPaint | AffectHint, &This::m_hint> hint;
     GUIProperty<89, std::shared_ptr<const Stylesheet>, AffectStyle, &This::m_stylesheet> stylesheet;
@@ -1609,6 +1609,7 @@ extern const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop;
 extern const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup;
 extern const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus;
 extern const Argument<Tag::PropArg<decltype(Widget::autoHint)>> autoHint;
+extern const Argument<Tag::PropArg<decltype(Widget::squircleCorners)>> squircleCorners;
 extern const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate;
 extern const Argument<Tag::PropArg<decltype(Widget::hint)>> hint;
 extern const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder;

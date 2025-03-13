@@ -23,8 +23,9 @@
 namespace Brisk {
 
 static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorW color, float interpolatedValue) {
-    canvas.drawRectangle(markRect.withPadding(1_dp), 2_dp, strokeColor = color.multiplyAlpha(0.35f),
-                         fillColor = Palette::transparent, strokeWidth = 1._dp);
+    canvas.drawRectangle(markRect.withPadding(1_dp), 2_dp,
+                         std::tuple{ strokeColor = color.multiplyAlpha(0.35f),
+                                     fillColor = Palette::transparent, strokeWidth = 1._dp });
 
     if (interpolatedValue == 0)
         return;

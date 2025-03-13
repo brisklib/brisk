@@ -14,7 +14,8 @@ static void backgroundPainter(Canvas& canvas, const Widget& widget) {
     y /= m;
     canvas.raw().drawTexture(widget.rect(), img,
                              Matrix::scaling(x, y).translate(0.5f * (1 - x) * widget.rect().width(),
-                                                             0.5f * (1 - y) * widget.rect().height()));
+                                                             0.5f * (1 - y) * widget.rect().height()),
+                             std::tuple{});
 }
 
 void ShowcaseMessenger::messagesBuilder(Widget* target) {

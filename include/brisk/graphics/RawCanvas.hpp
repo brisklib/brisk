@@ -142,73 +142,33 @@ class RawCanvas {
 public:
     explicit RawCanvas(RenderContext& context);
 
-    RectangleF align(RectangleF rect) const;
-    PointF align(PointF v) const;
-
     RawCanvas& drawLine(PointF p1, PointF p2, float thickness, LineEnd end, RenderStateExArgs args);
+
     RawCanvas& drawText(PointF pos, const PreparedText& run, Range<uint32_t> selection,
                         RenderStateExArgs args);
-    RawCanvas& drawRectangle(RectangleF rect, CornersF borderRadius, RenderStateExArgs args);
-    RawCanvas& drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args);
-    RawCanvas& drawShadow(RectangleF rect, CornersF borderRadius, RenderStateExArgs args);
-    RawCanvas& drawEllipse(RectangleF rect, RenderStateExArgs args);
-    RawCanvas& drawArc(PointF center, float outerRadius, float innerRadius, float startAngle, float endEngle,
-                       RenderStateExArgs args);
-    RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, RenderStateExArgs args);
+    RawCanvas& drawText(PointF pos, const PreparedText& run, RenderStateExArgs args);
     RawCanvas& drawText(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                         RenderStateExArgs args);
+
+    RawCanvas& drawRectangle(RectangleF rect, CornersF borderRadius, RenderStateExArgs args);
+    RawCanvas& drawRectangle(RectangleF rect, CornersF borderRadius, bool squircle, RenderStateExArgs args);
+    RawCanvas& drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args);
+
+    RawCanvas& drawShadow(RectangleF rect, CornersF borderRadius, RenderStateExArgs args);
+
+    RawCanvas& drawEllipse(RectangleF rect, RenderStateExArgs args);
+
+    RawCanvas& drawArc(PointF center, float outerRadius, float innerRadius, float startAngle, float endEngle,
+                       RenderStateExArgs args);
+
+    RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, RenderStateExArgs args);
+
     RawCanvas& drawMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                         RenderStateExArgs args);
     RawCanvas& drawColorMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                              RenderStateExArgs args);
 
     RawCanvas& drawLine(PointF p1, PointF p2, float thickness, ColorW color, LineEnd end = LineEnd::Butt);
-
-    template <typename... Args>
-    RawCanvas& drawLine(PointF p1, PointF p2, float thickness, LineEnd end, const Args&... args) {
-        return drawLine(p1, p2, thickness, end, RenderStateExArgs{ std::make_tuple(args...) });
-    }
-
-    /// @brief Draw rounded rectangle
-    template <typename... Args>
-    RawCanvas& drawRectangle(RectangleF rect, CornersF borderRadius, const Args&... args) {
-        return drawRectangle(rect, borderRadius, RenderStateExArgs{ std::make_tuple(args...) });
-    }
-
-    template <typename... Args>
-    RawCanvas& drawRectangle(const GeometryRectangle& rect, const Args&... args) {
-        return drawRectangle(rect, RenderStateExArgs{ std::make_tuple(args...) });
-    }
-
-    /// @brief Draw rounded rectangle
-    template <typename... Args>
-    RawCanvas& drawShadow(RectangleF rect, CornersF borderRadius, const Args&... args) {
-        return drawShadow(rect, borderRadius, RenderStateExArgs{ std::make_tuple(args...) });
-    }
-
-    /// @brief Draw ellipse
-    template <typename... Args>
-    RawCanvas& drawEllipse(RectangleF rect, const Args&... args) {
-        return drawEllipse(rect, RenderStateExArgs{ std::make_tuple(args...) });
-    }
-
-    /// @brief Draw ellipse
-    template <typename... Args>
-    RawCanvas& drawArc(PointF center, float outerRadius, float innerRadius, float startAngle, float endEngle,
-                       const Args&... args) {
-        return drawArc(center, outerRadius, innerRadius, startAngle, endEngle,
-                       RenderStateExArgs{ std::make_tuple(args...) });
-    }
-
-    template <typename... Args>
-    RawCanvas& drawText(PointF pos, const PreparedText& run, const Args&... args) {
-        return drawText(pos, run, {}, RenderStateExArgs{ std::make_tuple(args...) });
-    }
-
-    template <typename... Args>
-    RawCanvas& drawText(PointF pos, const PreparedText& run, Range<uint32_t> selection, const Args&... args) {
-        return drawText(pos, run, selection, RenderStateExArgs{ std::make_tuple(args...) });
-    }
 
     /// Draw text at the given point
     RawCanvas& drawText(PointF pos, const TextWithOptions& text, const Font& f, ColorW textColor);
@@ -220,11 +180,6 @@ public:
     /// Draw text aligned around the given point
     RawCanvas& drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
                         const Font& f, ColorW textColor);
-
-    template <typename... Args>
-    RawCanvas& drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, const Args&... args) {
-        return drawTexture(rect, std::move(tex), matrix, RenderStateExArgs{ std::make_tuple(args...) });
-    }
 
     struct State {
         Quad3 scissors = noScissors;

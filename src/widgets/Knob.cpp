@@ -108,11 +108,11 @@ void knobPainter(Canvas& canvas_, const Widget& widget_) {
     float gap              = 0.f;
 
     canvas.drawArc(center, side, side * innerRadius, 0.0f, 2 * std::numbers::pi_v<float>,
-                   fillColor = backColor, strokeWidth = 0.0f);
+                   std::tuple{ fillColor = backColor, strokeWidth = 0.0f });
 
     canvas.drawArc(center, side * (1.f - gap), side * (innerRadius + gap), -spread,
-                   -spread + 2 * (widget.normalizedValue * 0.98f + 0.02f) * spread, fillColor = selectColor,
-                   strokeWidth = 0.0f);
+                   -spread + 2 * (widget.normalizedValue * 0.98f + 0.02f) * spread,
+                   std::tuple{ fillColor = selectColor, strokeWidth = 0.0f });
 }
 
 void Knob::paint(Canvas& canvas_) const {

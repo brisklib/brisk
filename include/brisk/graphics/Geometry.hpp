@@ -1514,6 +1514,8 @@ struct CornersOf<T> {
     /// @param x2y2 The coordinate of the bottom-right corner.
     constexpr CornersOf(T x1y1, T x2y1, T x1y2, T x2y2) noexcept : v(x1y1, x2y1, x1y2, x2y2) {}
 
+    constexpr CornersOf(SIMD<T, 4> v) noexcept : v(v) {}
+
     /// @brief Copy constructor.
     /// @param b The CornersOf instance to copy from.
     constexpr CornersOf(const CornersOf& b) noexcept = default;

@@ -165,7 +165,8 @@ void GUIWindow::paintImmediate(RenderContext& context) {
     if (Internal::debugDirtyRect) {
         if (!m_savedPaintRect.empty()) {
             RawCanvas canvas(context);
-            canvas.drawRectangle(m_savedPaintRect, 0.f, fillColor = 0xFF8000'30_rgba, strokeWidth = 0);
+            canvas.drawRectangle(m_savedPaintRect, 0.f,
+                                 std::tuple{ fillColor = 0xFF8000'30_rgba, strokeWidth = 0 });
         }
     }
 }

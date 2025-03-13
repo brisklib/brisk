@@ -87,8 +87,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
-                canvas.raw().drawRectangle(rect, 0.f, fillColor = Palette::transparent,
-                                           strokeColor = Palette::Standard::amber, strokeWidth = 1);
+                canvas.raw().drawRectangle(rect, 0.f,
+                                           std::tuple{ fillColor   = Palette::transparent,
+                                                       strokeColor = Palette::Standard::amber,
+                                                       strokeWidth = 1 });
 
                 // Creates a rectangle 'frect' based on 'rect' for further operations.
                 // 'angle' is a static float variable initialized at 0 and incremented by 0.2 in every render
@@ -291,6 +293,66 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 clip        = WidgetClip::None,
             },
             rcnew Slider{ value = Value{ &m_shadowSize }, minimum = 0.f, maximum = 40.f, width = 300_apx },
+        },
+
+        rcnew Text{ "Widget borders", classes = { "section-header" } },
+
+        rcnew HLayout{
+            padding   = 12_apx,
+            gapColumn = 10_apx,
+            rcnew Widget{
+                borderWidth  = 5,
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = 15,
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = 1,
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = 11,
+                borderRadius = 2,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+        },
+
+        rcnew HLayout{
+            padding   = 12_apx,
+            gapColumn = 10_apx,
+            rcnew Widget{
+                borderWidth  = 5,
+                borderRadius = { 0, 15, 0, 15 },
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = { 0, 15, 0, 15 },
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = { 2, 4, 8, 16 },
+                borderRadius = 0,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = { 2, 4, 8, 16 },
+                borderRadius = 10,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
         },
 
     };

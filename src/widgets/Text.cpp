@@ -130,12 +130,12 @@ void Text::paint(Canvas& canvas) const {
             m.invert()->transform(state->scissors.points);
             canvas.raw().drawText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) +
                                       offset,
-                                  prepared, fillColor = color, coordMatrix = m);
+                                  prepared, std::tuple{ fillColor = color, coordMatrix = m });
         } else {
             PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
             prepared.updateCaretData();
             offset += inner.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            canvas.raw().drawText(offset, prepared, fillColor = color);
+            canvas.raw().drawText(offset, prepared, std::tuple{ fillColor = color });
         }
     }
 }
@@ -172,9 +172,9 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Rectangle r1{ m_rect.x1 + p, c.y, c.x - tw / 2 - p, c.y + 1_idp };
     Rectangle r2{ c.x + tw / 2 + p, c.y, m_rect.x2 - p, c.y + 1_idp };
     if (r1.width() > 0)
-        canvas.raw().drawRectangle(r1, 0.f, fillColor = color, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r1, 0.f, std::tuple{ fillColor = color, strokeWidth = 0.f });
     if (r2.width() > 0)
-        canvas.raw().drawRectangle(r2, 0.f, fillColor = color, strokeWidth = 0.f);
+        canvas.raw().drawRectangle(r2, 0.f, std::tuple{ fillColor = color, strokeWidth = 0.f });
     Widget::paint(canvas);
 }
 

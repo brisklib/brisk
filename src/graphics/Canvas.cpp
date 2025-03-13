@@ -140,9 +140,9 @@ void BasicCanvas::drawPath(Path path, const Paint& strokePaint, const StrokePara
             state->scissors = clipRect;
             drawRectangle(std::get<0>(*rrect),
                           roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
-                          strokeWidth = strokeParams.strokeWidth,
-                          Internal::PaintAndTransform{ strokePaint, Matrix{}, opacity, true },
-                          Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix);
+                          std::tuple{ strokeWidth = strokeParams.strokeWidth,
+                                      Internal::PaintAndTransform{ strokePaint, Matrix{}, opacity, true },
+                                      Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix });
             return;
         }
     }
@@ -160,8 +160,8 @@ void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& 
             auto&& state    = this->save();
             state->scissors = clipRect;
             drawRectangle(std::get<0>(*rrect), roundRadius(JoinStyle::Round, std::get<1>(*rrect)) / scale,
-                          strokeWidth = 0.f, Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity },
-                          &matrix);
+                          std::tuple{ strokeWidth = 0.f,
+                                      Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix });
             return;
         }
     }
@@ -180,10 +180,10 @@ void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokePa
             float scale     = matrix.estimateScale();
             auto&& state    = this->save();
             state->scissors = clipRect;
-            drawRectangle(std::get<0>(*rrect),
-                          roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
-                          strokeWidth = strokeParams.strokeWidth, fillColor = Palette::transparent,
-                          Internal::PaintAndTransform{ strokePaint, matrix, opacity, true }, &matrix);
+            drawRectangle(
+                std::get<0>(*rrect), roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
+                std::tuple{ strokeWidth = strokeParams.strokeWidth, fillColor = Palette::transparent,
+                            Internal::PaintAndTransform{ strokePaint, matrix, opacity, true }, &matrix });
             return;
         }
         if (auto line = path.asLine()) {
@@ -192,7 +192,8 @@ void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokePa
             drawLine((*line)[0], (*line)[1], strokeParams.strokeWidth,
                      staticMap(strokeParams.capStyle, CapStyle::Flat, LineEnd::Butt, CapStyle::Square,
                                LineEnd::Square, LineEnd::Round),
-                     strokeWidth = 0.f, Internal::PaintAndTransform{ strokePaint, matrix, opacity }, &matrix);
+                     std::tuple{ strokeWidth = 0.f,
+                                 Internal::PaintAndTransform{ strokePaint, matrix, opacity }, &matrix });
             return;
         }
     }
@@ -456,7 +457,7 @@ void Canvas::drawPath(Path path) {
 }
 
 void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix matrix, SamplerMode samplerMode) {
-    drawTexture(rect, image, matrix, &m_state.transform, Arg::samplerMode = samplerMode);
+    drawTexture(rect, image, matrix, std::tuple{ &m_state.transform, Arg::samplerMode = samplerMode });
 }
 
 void Canvas::fillText(PointF position, const PreparedText& text) {
@@ -468,8 +469,8 @@ void Canvas::fillText(PointF position, PointF alignment, const PreparedText& tex
         position -= text.bounds().size() * alignment;
     }
     drawText(position, text,
-             Internal::PaintAndTransform{ m_state.fillPaint, m_state.transform, m_state.opacity },
-             &m_state.transform);
+             std::tuple{ Internal::PaintAndTransform{ m_state.fillPaint, m_state.transform, m_state.opacity },
+                         &m_state.transform });
 }
 
 void Canvas::fillText(std::string_view text, PointF position, PointF alignment) {

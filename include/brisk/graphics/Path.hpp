@@ -226,7 +226,10 @@ struct Path {
      * @param ry The radius of the vertical corners.
      * @param dir The direction in which the rectangle is added (default is clockwise).
      */
-    void addRoundRect(RectangleF rect, float rx, float ry, Direction dir = Direction::CW);
+    void addRoundRect(RectangleF rect, float rx, float ry, bool squircle = false,
+                      Direction dir = Direction::CW);
+
+    void addRoundRect(RectangleF rect, CornersF r, bool squircle = false, Direction dir = Direction::CW);
 
     /**
      * @brief Adds a rounded rectangle to the path with uniform corner rounding.
@@ -234,7 +237,7 @@ struct Path {
      * @param roundness The uniform rounding radius for all corners.
      * @param dir The direction in which the rectangle is added (default is clockwise).
      */
-    void addRoundRect(RectangleF rect, float roundness, Direction dir = Direction::CW);
+    void addRoundRect(RectangleF rect, float roundness, bool squircle = false, Direction dir = Direction::CW);
 
     /**
      * @brief Adds a rectangle to the path.

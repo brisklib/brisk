@@ -1125,8 +1125,9 @@ static void showDebugBorder(RawCanvas& canvas, Rectangle rect, double elapsed, C
         alpha           = std::pow(alpha, 4.0);
         auto&& state    = canvas.save();
         state->scissors = noScissors;
-        canvas.drawRectangle(rect, dp(5), fillColor = Palette::transparent,
-                             strokeColor = color.multiplyAlpha(alpha), strokeWidth = 0.5_dp);
+        canvas.drawRectangle(rect, dp(5),
+                             std::tuple{ fillColor   = Palette::transparent,
+                                         strokeColor = color.multiplyAlpha(alpha), strokeWidth = 0.5_dp });
         canvas.drawLine(rect.at(0, 0), rect.at(1, 1), 0.5_dp, color.multiplyAlpha(alpha));
         canvas.drawLine(rect.at(1, 0), rect.at(0, 1), 0.5_dp, color.multiplyAlpha(alpha));
     }
@@ -1147,11 +1148,13 @@ void Widget::paintScrollBar(Canvas& canvas_, Orientation orientation,
                             const ScrollBarGeometry& geometry) const {
     RawCanvas& canvas = canvas_.raw();
     if (isHovered())
-        canvas.drawRectangle(geometry.track, 0.f, fillColor = m_scrollBarColor.current.multiplyAlpha(0.25f),
-                             strokeWidth = 0);
-    canvas.drawRectangle(geometry.thumb, m_scrollBarRadius.resolved,
-                         fillColor   = m_scrollBarColor.current.multiplyAlpha(isHovered() ? 1.f : 0.5f),
-                         strokeWidth = 0);
+        canvas.drawRectangle(
+            geometry.track, 0.f,
+            std::tuple{ fillColor = m_scrollBarColor.current.multiplyAlpha(0.25f), strokeWidth = 0 });
+    canvas.drawRectangle(
+        geometry.thumb, m_scrollBarRadius.resolved,
+        std::tuple{ fillColor   = m_scrollBarColor.current.multiplyAlpha(isHovered() ? 1.f : 0.5f),
+                    strokeWidth = 0 });
 }
 
 void Widget::paintScrollBars(Canvas& canvas) const {
@@ -1218,7 +1221,7 @@ void Widget::paintFocusFrame(Canvas& canvas_) const {
                                     std::copysign(std::min(RectangleF(m_rect).shortestSide() * 0.5f,
                                                            val + std::abs(m_borderRadius.resolved.max())),
                                                   m_borderRadius.resolved.max()),
-                                    contourSize = val, contourColor = 0x03a1fc_rgb);
+                                    std::tuple{ contourSize = val, contourColor = 0x03a1fc_rgb });
         });
     }
 }
@@ -1234,11 +1237,11 @@ void Widget::paintHint(Canvas& canvas_) const {
                 getStyleVar<ColorW>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
                     ? 0x000000'55_rgba
                     : 0x000000'AA_rgba;
-            canvas.drawShadow(m_hintRect, 4._dp, contourSize = dp(hintShadowSize),
-                              contourColor = shadowColor);
-            canvas.drawRectangle(m_hintRect, -5._dp, fillColor = color, strokeWidth = 0.f);
+            canvas.drawShadow(m_hintRect, 4._dp,
+                              std::tuple{ contourSize = dp(hintShadowSize), contourColor = shadowColor });
+            canvas.drawRectangle(m_hintRect, -5._dp, std::tuple{ fillColor = color, strokeWidth = 0.f });
             canvas.drawText(m_hintRect.center() + m_hintTextOffset, m_hintPrepared,
-                            fillColor = Palette::black);
+                            std::tuple{ fillColor = Palette::black });
         });
     }
 }
@@ -1803,6 +1806,10 @@ void Widget::resolveProperties(PropFlags flags) {
                                              ResolveParameters{ resolvedFontHeight, viewportSize });
     }
 
+    if (getPropState(squircleCorners.index) && PropState::Inherited) {
+        m_squircleCorners = getFallback(m_parent, &Widget::m_squircleCorners, false);
+    }
+
     if (flags && AffectFont) {
         if (getPropState(letterSpacing.index) && PropState::Inherited) {
             m_letterSpacing = getFallback(m_parent, &Widget::m_letterSpacing, { 0_px, 0 });
@@ -1963,6 +1970,7 @@ Widget::Widget(Construction construction) : m_layoutEngine{ this } {
     setPropState(scrollBarColor.index, PropState::Inherited);
     setPropState(scrollBarThickness.index, PropState::Inherited);
     setPropState(scrollBarRadius.index, PropState::Inherited);
+    setPropState(squircleCorners.index, PropState::Inherited);
 
     beginConstruction();
     m_type = construction.type;
@@ -2312,47 +2320,46 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
             else
                 state->scissors = RectangleF(widget.parent()->clipRect());
         }
-        canvas.drawShadow(rect,
-                          std::max(std::abs(widget.borderRadius.resolved().max()),
-                                   std::min(widget.shadowSize.resolved(), dp(8.f))),
-                          contourSize  = widget.shadowSize.resolved(),
-                          contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
+        canvas.drawShadow(
+            rect,
+            std::max(std::abs(widget.borderRadius.resolved().max()),
+                     std::min(widget.shadowSize.resolved(), dp(8.f))),
+            std::tuple{ contourSize  = widget.shadowSize.resolved(),
+                        contourColor = widget.shadowColor.current().multiplyAlpha(widget.opacity.get()) });
     }
 
-    if (m_backgroundColor != ColorW(0, 0, 0, 0) || !widget.computedBorderWidth().empty()) {
+    EdgesF borderWidth = widget.computedBorderWidth();
+
+    if (m_backgroundColor != ColorW(0, 0, 0, 0) || !borderWidth.empty()) {
         CornersF borderRadius = widget.borderRadius.resolved();
+        bool squircle         = widget.squircleCorners.get();
+        float maxBorderWidth  = borderWidth.max();
+        float maxBorderRadius = borderRadius.max();
+        RectangleF innerRect  = rect.withPadding(borderWidth * 0.5f);
 
-        float maxBorderWidth  = widget.computedBorderWidth().max();
-        RectangleF innerRect  = rect.withPadding(widget.computedBorderWidth() * 0.5f);
-
-        if (maxBorderWidth == widget.computedBorderWidth().min()) {
+        if (maxBorderWidth == borderWidth.min() &&
+            (maxBorderRadius == 0 || maxBorderRadius > maxBorderWidth * 0.5f)) {
             // Edges widths are equal
-            canvas.drawRectangle(innerRect, borderRadius, fillColor = m_backgroundColor,
-                                 strokeColor = m_borderColor, strokeWidth = maxBorderWidth);
+            canvas.drawRectangle(
+                innerRect, CornersF(max(borderRadius.v - maxBorderWidth * 0.5f, SIMD<float, 4>(0))), squircle,
+                std::tuple{ fillColor = m_backgroundColor, strokeColor = m_borderColor,
+                            strokeWidth = maxBorderWidth });
         } else {
-            canvas.drawRectangle(rect, borderRadius, fillColor = m_backgroundColor, strokeWidth = 0.f);
-
-            // left
-            if (widget.computedBorderWidth().x1 > 0) {
-                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
-                                     strokeColor = m_borderColor,
-                                     strokeWidth = widget.computedBorderWidth().x1);
-            }
-            // right
-            if (widget.computedBorderWidth().x2 > 0)
-                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
-                                     strokeColor = m_borderColor,
-                                     strokeWidth = widget.computedBorderWidth().x2);
-            // top
-            if (widget.computedBorderWidth().y1 > 0)
-                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
-                                     strokeColor = m_borderColor,
-                                     strokeWidth = widget.computedBorderWidth().y1);
-            // bottom
-            if (widget.computedBorderWidth().y2 > 0)
-                canvas.drawRectangle(innerRect, borderRadius, fillColor = Palette::transparent,
-                                     strokeColor = m_borderColor,
-                                     strokeWidth = widget.computedBorderWidth().y2);
+            SIMD<float, 4> corr;
+            corr[0] = (borderWidth[0] + borderWidth[1]);
+            corr[1] = (borderWidth[1] + borderWidth[2]);
+            corr[2] = (borderWidth[3] + borderWidth[0]);
+            corr[3] = (borderWidth[2] + borderWidth[3]);
+            corr *= 0.5f;
+            canvas.drawRectangle(innerRect, CornersF(max(borderRadius.v - corr * 0.5f, SIMD<float, 4>(0))),
+                                 squircle, std::tuple{ fillColor = m_backgroundColor, strokeWidth = 0.f });
+            Path path;
+            path.addRoundRect(rect, CornersF(borderRadius.v), squircle, Path::Direction::CW);
+            path.addRoundRect(rect.withPadding(borderWidth),
+                              CornersF(max(borderRadius.v - corr, SIMD<float, 4>(0))), squircle,
+                              Path::Direction::CCW);
+            canvas_.fillPath(path, m_borderColor, FillParams{ FillRule::Winding }, {}, noClipRect,
+                             widget.opacity.get());
         }
     }
 }
@@ -2703,7 +2710,7 @@ const std::string_view propNames[numProperties]{
     /*83*/ "tabGroup",
     /*84*/ "autofocus",
     /*85*/ "autoHint",
-    /*86*/ "",
+    /*86*/ "squircleCorners",
     /*87*/ "delegate",
     /*88*/ "hint",
     /*89*/ "stylesheet",
@@ -2810,6 +2817,7 @@ template void instantiateProp<decltype(Widget::tabStop)>();
 template void instantiateProp<decltype(Widget::tabGroup)>();
 template void instantiateProp<decltype(Widget::autofocus)>();
 template void instantiateProp<decltype(Widget::autoHint)>();
+template void instantiateProp<decltype(Widget::squircleCorners)>();
 template void instantiateProp<decltype(Widget::delegate)>();
 template void instantiateProp<decltype(Widget::hint)>();
 template void instantiateProp<decltype(Widget::zorder)>();
@@ -2914,6 +2922,7 @@ const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop{};
 const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup{};
 const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus{};
 const Argument<Tag::PropArg<decltype(Widget::autoHint)>> autoHint{};
+const Argument<Tag::PropArg<decltype(Widget::squircleCorners)>> squircleCorners{};
 const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate{};
 const Argument<Tag::PropArg<decltype(Widget::hint)>> hint{};
 const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder{};

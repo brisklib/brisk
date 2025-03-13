@@ -176,12 +176,17 @@ void Path::addEllipse(RectangleF rect, Direction dir) {
     v(this)->addOval(v(rect), v(dir));
 }
 
-void Path::addRoundRect(RectangleF rect, float rx, float ry, Direction dir) {
-    v(this)->addRoundRect(v(rect), rx, ry, v(dir));
+void Path::addRoundRect(RectangleF rect, float rx, float ry, bool squircle, Direction dir) {
+    v(this)->addRoundRect(v(rect), rx, ry, squircle, v(dir));
 }
 
-void Path::addRoundRect(RectangleF rect, float roundness, Direction dir) {
-    v(this)->addRoundRect(v(rect), roundness, v(dir));
+void Path::addRoundRect(RectangleF rect, float roundness, bool squircle, Direction dir) {
+    v(this)->addRoundRect(v(rect), roundness, squircle, v(dir));
+}
+
+void Path::addRoundRect(RectangleF rect, CornersF r, bool squircle, Direction dir) {
+    v(this)->addRoundRect(v(rect), std::bit_cast<std::array<float, 4>>(r),
+                          std::bit_cast<std::array<float, 4>>(r), squircle, v(dir));
 }
 
 void Path::addRect(RectangleF rect, Direction dir) {

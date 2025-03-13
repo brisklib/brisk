@@ -50,11 +50,12 @@ void sliderPainter(Canvas& canvas_, const Widget& widget_) {
     auto trackRect = widget.trackRect();
     auto thumbRect = widget.thumbRect();
 
-    canvas.drawRectangle(trackRect, 0.f, fillColors = { backColor, backColor.multiplyAlpha(0.33f) },
-                         linearGradient = { thumbRect.center() - pt, thumbRect.center() + pt },
-                         strokeWidth    = 0);
+    canvas.drawRectangle(trackRect, 0.f,
+                         std::tuple{ fillColors     = { backColor, backColor.multiplyAlpha(0.33f) },
+                                     linearGradient = { thumbRect.center() - pt, thumbRect.center() + pt },
+                                     strokeWidth    = 0 });
 
-    canvas.drawEllipse(thumbRect, fillColor = widget.borderColor.current(), strokeWidth = 0);
+    canvas.drawEllipse(thumbRect, std::tuple{ fillColor = widget.borderColor.current(), strokeWidth = 0 });
 }
 
 void Slider::paint(Canvas& canvas_) const {

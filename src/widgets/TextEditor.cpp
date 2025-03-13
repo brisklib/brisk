@@ -194,10 +194,11 @@ void TextEditor::paint(Canvas& canvas) const {
     m_alignmentOffset = m_preparedText.alignLines(alignment);
     if (isPlaceholder)
         textColor = textColor.multiplyAlpha(0.5f);
-    canvas.raw().drawText(m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset),
-                          m_preparedText, selection, fillColor = textColor,
-                          strokeColor =
-                              ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
+    canvas.raw().drawText(
+        m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset), m_preparedText, selection,
+        std::tuple{ fillColor = textColor,
+                    strokeColor =
+                        ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f) });
 
     if (isFocused() && std::fmod(frameStartTime - m_blinkTime, 1.0) < 0.5) {
         uint32_t caretGrapheme =
@@ -210,7 +211,7 @@ void TextEditor::paint(Canvas& canvas) const {
                                     Point(m_preparedText.caretPositions[caretGrapheme], line.baseline) +
                                     Point(0, -line.ascDesc.ascender),
                                 Size(1_idp, line.ascDesc.height()));
-            canvas.raw().drawRectangle(caretRect, 0.f, fillColor = textColor, strokeWidth = 0);
+            canvas.raw().drawRectangle(caretRect, 0.f, std::tuple{ fillColor = textColor, strokeWidth = 0 });
         }
     }
 }
