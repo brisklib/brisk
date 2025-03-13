@@ -252,8 +252,8 @@ uint tint_mod(uint lhs, uint rhs) {
   return (lhs % ((rhs == 0u) ? 1u : rhs));
 }
 
-uint get_pattern(uint x, uint pattern) {
-  return ((pattern >> (tint_mod(x, 24u) & 31u)) & 1u);
+uint samplePattern(uint x, uint pattern) {
+  return ((pattern >> (tint_mod(x, 12u) & 31u)) & 1u);
 }
 
 uint tint_div(uint lhs, uint rhs) {
@@ -411,9 +411,12 @@ bool useBlending() {
 FragOut postprocessColor(FragOut tint_symbol_2, uint2 canvas_coord) {
   FragOut tint_symbol_3 = tint_symbol_2;
   float opacity = asfloat(constants[5].w);
-  if (((constants[5].x | constants[5].y) != 0u)) {
-    uint tint_symbol_29 = get_pattern(tint_div(canvas_coord.x, uint(asint(constants[5].z))), constants[5].x);
-    uint tint_symbol_30 = get_pattern(tint_div(canvas_coord.y, uint(asint(constants[5].z))), constants[5].y);
+  if ((constants[5].x != 0u)) {
+    uint pattern_scale = (constants[5].x >> 24u);
+    uint hpattern = (constants[5].x & 4095u);
+    uint vpattern = (constants[5].x >> 12u);
+    uint tint_symbol_29 = samplePattern(tint_div(canvas_coord.x, pattern_scale), hpattern);
+    uint tint_symbol_30 = samplePattern(tint_div(canvas_coord.y, pattern_scale), vpattern);
     uint p = (tint_symbol_29 & tint_symbol_30);
     opacity = (opacity * float(p));
   }

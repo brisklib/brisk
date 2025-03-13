@@ -90,9 +90,7 @@ void Tag::Scissor::apply(const Tag::Scissor::Type& value, RenderStateEx& state) 
 }
 
 void Tag::Patterns::apply(const Tag::Patterns::Type& value, RenderStateEx& state) {
-    state.hpattern     = value.hpattern;
-    state.vpattern     = value.vpattern;
-    state.patternScale = std::max(1, value.scale);
+    state.pattern = value;
 }
 
 void Tag::BlurRadius::apply(const Tag::BlurRadius::Type& value, RenderStateEx& state) {

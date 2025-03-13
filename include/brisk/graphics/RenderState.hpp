@@ -90,9 +90,15 @@ inline bool fromJson(const Json& b, GradientColors& v) {
 }
 
 struct PatternCodes {
-    int hpattern;
-    int vpattern;
-    int scale = 1;
+    PatternCodes() : value(0) {}
+
+    PatternCodes(uint16_t hpattern, uint16_t vpattern, uint8_t scale = 1) {
+        value = hpattern & 0xFFF;
+        value |= (vpattern & 0xFFF) << 12;
+        value |= (scale & 0xFF) << 24;
+    }
+
+    uint32_t value;
 };
 
 enum class SubpixelMode : int32_t {
@@ -282,10 +288,10 @@ public:
     int spriteOversampling    = 1;
     SubpixelMode subpixelMode = SubpixelMode::Off;
 
-    int hpattern              = 0;
-    int vpattern              = 0;
-    int patternScale          = 1;
-    float opacity             = 1.f; ///< Opacity. Defaults to 1
+    PatternCodes pattern{};
+    int reserved1 = 0;
+    int reserved2 = 0;
+    float opacity = 1.f; ///< Opacity. Defaults to 1
 
 public:
     // ---------------- texture [4] ----------------
@@ -293,7 +299,7 @@ public:
     int32_t multigradient = -1; ///< Gradient (-1 - disabled)
     int blurDirections    = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
     int textureChannel    = 0;  ///<
-    int reserved_1        = 0;
+    int reserved3         = 0;
 
     Matrix textureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     SamplerMode samplerMode = SamplerMode::Clamp;         ///<

@@ -78,9 +78,9 @@ struct UniformBlock {
     sprite_oversampling: i32,
     subpixel: subpixel_mode,
 
-    hpattern: u32,
-    vpattern: u32,
-    pattern_scale: i32,
+    pattern: u32,
+    reserved_1: i32,
+    reserved_2: i32,
     opacity: f32,
 
     multigradient: i32,
@@ -112,8 +112,6 @@ struct UniformBlock {
 
     stroke_width: f32,
     gradient: gradient_type,
-    reserved_4: i32,
-    reserved_5: f32,
 }
 
 struct UniformBlockPerFrame {
@@ -417,8 +415,8 @@ fn signedDistanceToColor(sd: f32, canvas_coord: vec2<f32>, uv: vec2<f32>, rectSi
     }
 }
 
-fn get_pattern(x: u32, pattern: u32) -> u32 {
-    return (pattern >> (x % 24u)) & 1u;
+fn samplePattern(x: u32, pattern: u32) -> u32 {
+    return (pattern >> (x % 12u)) & 1u;
 }
 
 fn atlas(sprite: i32, pos: vec2<i32>, stride: u32) -> f32 {
@@ -557,8 +555,11 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
     var out: FragOut = in;
     var opacity = constants.opacity;
 
-    if (constants.hpattern | constants.vpattern) != 0u {
-        let p = get_pattern(canvas_coord.x / u32(constants.pattern_scale), constants.hpattern) & get_pattern(canvas_coord.y / u32(constants.pattern_scale), constants.vpattern);
+    if constants.pattern != 0u {
+        let pattern_scale = constants.pattern >> 24u;
+        let hpattern = constants.pattern & 0xFFFu;
+        let vpattern = constants.pattern >> 12u;
+        let p: u32 = samplePattern(canvas_coord.x / pattern_scale, hpattern) & samplePattern(canvas_coord.y / pattern_scale, vpattern);
         opacity = opacity * f32(p);
     }
     out.color = out.color * opacity;
