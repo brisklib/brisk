@@ -97,7 +97,7 @@ constexpr int colorScale() {
     else if constexpr (std::is_unsigned_v<T>)
         return std::numeric_limits<T>::max();
     else if constexpr (std::is_same_v<T, int16_t>)
-        return 8192; // 16-bit Extended range sRGB
+        return 8160; // 16-bit Extended range sRGB
 }
 } // namespace Internal
 

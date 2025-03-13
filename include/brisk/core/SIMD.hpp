@@ -1325,7 +1325,7 @@ constexpr SIMD<T, Ncount * N> repeat(SIMD<T, N> val) {
  * @return SIMD<Tout, N> A rescaled SIMD object.
  */
 template <SIMDCompatible Tout, int Mout, int Min, SIMDCompatible Tin, size_t N>
-constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
+constexpr SIMD<Tout, N> rescale(SIMD<Tin, N> value)
     requires(Mout != Min && (std::is_floating_point<Tin>::value || std::is_floating_point<Tout>::value))
 {
     using Tcommon      = std::common_type_t<Tin, Tout>;
@@ -1352,13 +1352,22 @@ constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
  * @return SIMD<Tout, N> A rescaled SIMD object.
  */
 template <SIMDCompatible Tout, int Mout, int Min, SIMDCompatible Tin, size_t N>
-constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
+constexpr SIMD<Tout, N> rescale(SIMD<Tin, N> value)
     requires(Mout != Min && !(std::is_floating_point<Tin>::value || std::is_floating_point<Tout>::value))
 {
     using Tcommon =
         findIntegralType<std::numeric_limits<Tin>::min() * Mout, std::numeric_limits<Tin>::max() * Mout>;
     SIMD<Tcommon, N> x = static_cast<SIMD<Tcommon, N>>(value);
-    x                  = (x * Tcommon(Mout) + Tcommon(Min) / 2) / Tcommon(Min);
+    if constexpr (Tcommon(std::max(Mout, Min)) % Tcommon(std::min(Mout, Min)) == 0) {
+        constexpr Tcommon scale = std::max(Mout, Min) / std::min(Mout, Min);
+        if constexpr (Mout > Min) {
+            x = x * scale;
+        } else {
+            x = (x + scale / 2) / scale;
+        }
+    } else {
+        x = (x * Tcommon(Mout) + Tcommon(Min) / 2) / Tcommon(Min);
+    }
     if constexpr (Internal::fitsIntType<Tcommon>(std::numeric_limits<Tout>::max())) {
         x = min(x, SIMD<Tcommon, N>(std::numeric_limits<Tout>::max()));
     }
@@ -1378,7 +1387,7 @@ constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
  * @return SIMD<Tout, N> The rescaled value or SIMD object.
  */
 template <SIMDCompatible Tout, int Mout, int Min, SIMDCompatible Tin, size_t N>
-constexpr SIMD<Tout, N> rescale(const SIMD<Tin, N>& value)
+constexpr SIMD<Tout, N> rescale(SIMD<Tin, N> value)
     requires(Mout == Min)
 {
     if constexpr (!std::is_floating_point_v<Tout>) {

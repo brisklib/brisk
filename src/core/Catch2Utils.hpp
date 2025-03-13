@@ -98,6 +98,13 @@ struct StringMaker<char32_t> {
         return unicodeChar(value);
     }
 };
+
+template <typename T, size_t N>
+struct StringMaker<Brisk::SIMD<T, N>> {
+    static std::string convert(Brisk::SIMD<T, N> value) {
+        return fmt::format("{}", fmt::join(std::span<const T>(value.data(), N), ","));
+    }
+};
 } // namespace Catch
 
 template <>
