@@ -363,7 +363,7 @@ float roundedBoxShadowX(float x, float y, float sigma, float corner, float2 half
   return (integral.y - integral.x);
 }
 
-float roundedBoxShadow(float2 halfSize, float2 tint_symbol, float sigma, float corner) {
+float roundedBoxShadow(float2 halfSize, float2 tint_symbol, float sigma, float4 border_radii) {
   float low = (tint_symbol.y - halfSize.y);
   float high = (tint_symbol.y + halfSize.y);
   float start = clamp((-3.0f * sigma), low, high);
@@ -371,6 +371,8 @@ float roundedBoxShadow(float2 halfSize, float2 tint_symbol, float sigma, float c
   float step = ((end - start) / 4.0f);
   float y = (start + (step * 0.5f));
   float value = 0.0f;
+  uint quadrant = (uint((tint_symbol.x >= 0.0f)) + (2u * uint((tint_symbol.y >= 0.0f))));
+  float corner = abs(border_radii[quadrant]);
   {
     for(int i = 0; (i < 4); i = (i + 1)) {
       float tint_symbol_26 = value;
@@ -475,7 +477,7 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_2) {
     outColor = signedDistanceToColor(sd, tint_symbol_2.canvas_coord, tint_symbol_2.uv, tint_symbol_2.data0.xy);
   } else {
     if ((asint(constants[1].x) == 3)) {
-      float tint_symbol_31 = roundedBoxShadow((tint_symbol_2.data0.xy * 0.5f), tint_symbol_2.uv, (asfloat(constants[14].x) * 0.18000000715255737305f), tint_symbol_2.data1.y);
+      float tint_symbol_31 = roundedBoxShadow((tint_symbol_2.data0.xy * 0.5f), tint_symbol_2.uv, (asfloat(constants[14].x) * 0.18000000715255737305f), tint_symbol_2.data1);
       outColor = (asfloat(constants[9]) * tint_symbol_31);
     } else {
       bool tint_tmp_8 = (asint(constants[1].x) == 4);

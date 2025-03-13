@@ -512,7 +512,7 @@ fn roundedBoxShadowX(x: f32, y: f32, sigma: f32, corner: f32, halfSize: vec2<f32
 }
 
 // Return the mask for the shadow of a box
-fn roundedBoxShadow(halfSize: vec2<f32>, point: vec2<f32>, sigma: f32, corner: f32) -> f32 {
+fn roundedBoxShadow(halfSize: vec2<f32>, point: vec2<f32>, sigma: f32, border_radii: vec4<f32>) -> f32 {
     // The signal is only non-zero in a limited range, so don't waste samples
     let low: f32 = point.y - halfSize.y;
     let high: f32 = point.y + halfSize.y;
@@ -523,6 +523,9 @@ fn roundedBoxShadow(halfSize: vec2<f32>, point: vec2<f32>, sigma: f32, corner: f
     let step: f32 = (end - start) / 4.0;
     var y: f32 = start + step * 0.5;
     var value: f32 = 0.0;
+    
+    let quadrant = u32(point.x >= 0.) + 2u * u32(point.y >= 0.);
+    let corner: f32 = abs(border_radii[quadrant]);
 
     for (var i: i32 = 0; i < 4; i = i + 1) {
         value = value + roundedBoxShadowX(point.x, point.y - y, sigma, corner, halfSize) * gaussian(y, sigma) * step;
@@ -604,7 +607,7 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
         }
         outColor = signedDistanceToColor(sd, in.canvas_coord, in.uv, in.data0.xy);
     } else if constants.shader == shader_shadow {
-        outColor = constants.fill_color1 * (roundedBoxShadow(in.data0.xy * 0.5, in.uv, constants.stroke_width * 0.18, in.data1.y));
+        outColor = constants.fill_color1 * (roundedBoxShadow(in.data0.xy * 0.5, in.uv, constants.stroke_width * 0.18, in.data1));
     } else if constants.shader == shader_mask || constants.shader == shader_color_mask || constants.shader == shader_text {
         let sprite = i32(in.data0.z);
         let stride = u32(in.data0.w);

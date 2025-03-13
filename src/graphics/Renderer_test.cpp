@@ -575,6 +575,19 @@ TEST_CASE("Shadow") {
             }
         },
         Palette::white);
+    renderTest(
+        "shadows-rounded2", Size{ 1536, 256 },
+        [&](RenderContext& context) {
+            RawCanvas canvas(context);
+            for (int i = 0; i < 6; ++i) {
+                RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
+                context.setClipRect(box);
+                float shadowSize = 1 << i;
+                canvas.drawShadow(box.withPadding(64.f), { 0.f, 32.f, 8.f, 0.f },
+                                  std::tuple{ contourSize = shadowSize, contourColor = Palette::black });
+            }
+        },
+        Palette::white);
 }
 
 TEST_CASE("Canvas opacity") {
