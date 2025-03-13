@@ -31,7 +31,7 @@
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/graphics/RawCanvas.hpp>
+#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/SVG.hpp>
 #include <brisk/window/WindowApplication.hpp>
 #include <brisk/graphics/Palette.hpp>
@@ -288,14 +288,14 @@ using high_res_clock = std::chrono::steady_clock;
 void Window::paintImmediate(RenderContext& context) {}
 
 void Window::paintDebug(RenderContext& context) {
-    RawCanvas canvas(context);
+    Canvas canvas(context);
 
     if (Internal::debugShowRenderTimeline) {
         Size framebufferSize = m_framebufferSize;
         const int lanes      = 6;
-        canvas.drawRectangle(Rectangle{ 0, framebufferSize.height - lanes * idp(laneHeight),
-                                        framebufferSize.width, framebufferSize.height },
-                             0.f, std::tuple{ strokeWidth = 0.f, fillColor = 0x000000'D0_rgba });
+        canvas.setFillColor(0x000000'D0_rgba);
+        canvas.fillRect(Rectangle{ 0, framebufferSize.height - lanes * idp(laneHeight), framebufferSize.width,
+                                   framebufferSize.height });
         renderDebugTimeline("updateAndPaint ", canvas, m_drawingPerformance, 0, 0, 50.f * 60.f);
         renderDebugTimeline("render         ", canvas, m_renderPerformance, 1, 2, 50.f * 60.f);
         renderDebugTimeline("swap           ", canvas, m_swapPerformance, 2, 4, 50.f * 60.f);
@@ -517,20 +517,21 @@ void Window::setWindowPlacement(BytesView data) {
     });
 }
 
-void Window::renderDebugInfo(RawCanvas& canvas, int lane) {
+void Window::renderDebugInfo(Canvas& canvas, int lane) {
     const int laneY    = getFramebufferSize().height - (lane + 1) * idp(laneHeight);
     auto info          = (*getRenderDevice())->info();
     std::string status = fmt::format("{}x{} pixel={} device=[{}] {} commands={} distinct={} data={}kb",
                                      getFramebufferSize().width, getFramebufferSize().height,
                                      m_canvasPixelRatio.load(), info.api, info.device, 0, 0, 0);
 
-    canvas.drawText(RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1), 0.f, 0.5f,
-                    status, Font{ Font::Default, dp(12) }, Palette::white);
+    canvas.setFillColor(Palette::white);
+    canvas.setFont({ Font::Default, dp(12) });
+    canvas.fillText(status, RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1),
+                    PointF(0.f, 0.5f));
 }
 
-void Window::renderDebugTimeline(const std::string& title, RawCanvas& canvas,
-                                 const PerformanceStatistics& stat, int lane, int color,
-                                 double pixelsPerSecond) {
+void Window::renderDebugTimeline(const std::string& title, Canvas& canvas, const PerformanceStatistics& stat,
+                                 int lane, int color, double pixelsPerSecond) {
     const int laneY = getFramebufferSize().height - (lane + 1) * idp(laneHeight);
     int index       = stat.slicesPos() - 1;
     int counter     = 0;
@@ -544,14 +545,16 @@ void Window::renderDebugTimeline(const std::string& title, RawCanvas& canvas,
         float sliceEnd = sliceOffset + (toSeconds(slice.stop) - toSeconds(slice.start)) * dp(pixelsPerSecond);
         RectangleF r(sliceOffset, laneY, sliceEnd, laneY + idp(laneHeight) - 1);
         r.x2 = std::max(r.x1 + 1.0_dp, r.x2);
-        canvas.drawRectangle(r, 0.f,
-                             std::tuple{ fillColor   = Palette::Standard::index(color).multiplyAlpha(0.75f),
-                                         strokeWidth = 0.f });
+        canvas.setFillColor(Palette::Standard::index(color).multiplyAlpha(0.75f));
+        canvas.fillRect(r);
         --index;
         ++counter;
     }
-    canvas.drawText(RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1), 0.f, 0.5f,
-                    title + ": " + stat.lastReport(), Font{ Font::Default, dp(12) }, Palette::white);
+    canvas.setFont(Font{ Font::Default, dp(12) });
+    canvas.setFillColor(Palette::white);
+    canvas.fillText(title + ": " + stat.lastReport(),
+                    RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1),
+                    PointF(0.f, 0.5f));
 }
 
 void Window::disableKeyHandling() {

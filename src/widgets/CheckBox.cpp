@@ -22,10 +22,10 @@
 
 namespace Brisk {
 
-static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorW color, float interpolatedValue) {
-    canvas.drawRectangle(markRect.withPadding(1_dp), 2_dp,
-                         std::tuple{ strokeColor = color.multiplyAlpha(0.35f),
-                                     fillColor = Palette::transparent, strokeWidth = 1._dp });
+static void checkMark(Canvas& canvas, RectangleF markRect, ColorW color, float interpolatedValue) {
+    canvas.setStrokeColor(color.multiplyAlpha(0.35f));
+    canvas.setStrokeWidth(1._dp);
+    canvas.strokeRect(markRect.withPadding(1_dp), 2_dp);
 
     if (interpolatedValue == 0)
         return;
@@ -34,8 +34,13 @@ static void checkMark(RawCanvas& canvas, RectangleF markRect, ColorW color, floa
     PointF p3 = markRect.at(4 / 24.f, 12 / 24.f);
     p1.v      = mix(interpolatedValue, p2.v, p1.v);
     p3.v      = mix(interpolatedValue, p2.v, p3.v);
-    canvas.drawLine(p1, p2, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
-    canvas.drawLine(p2, p3, 1_dp, color.multiplyAlpha(0.75f), LineEnd::Round);
+    Path path;
+    path.moveTo(p1);
+    path.lineTo(p2);
+    path.lineTo(p3);
+    canvas.setStrokeColor(color.multiplyAlpha(0.75f));
+    canvas.setCapStyle(CapStyle::Round);
+    canvas.strokePath(std::move(path));
 }
 
 void checkBoxPainter(Canvas& canvas, const Widget& widget_) {
@@ -48,7 +53,7 @@ void checkBoxPainter(Canvas& canvas, const Widget& widget_) {
 
     Rectangle markRect      = widget.rect().alignedRect({ idp(14), idp(14) }, { 0.0f, 0.5f });
     boxPainter(canvas, widget, markRect);
-    checkMark(canvas.raw(), markRect, widget.color.current(), interpolatedValue);
+    checkMark(canvas, markRect, widget.color.current(), interpolatedValue);
 }
 
 void CheckBox::paint(Canvas& canvas) const {

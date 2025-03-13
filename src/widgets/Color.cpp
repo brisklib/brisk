@@ -100,12 +100,12 @@ ColorSliders::ColorSliders(Construction construction, ColorW color, bool alpha,
     }
 }
 
-void ColorView::paint(Canvas& canvas_) const {
-    RawCanvas& canvas = canvas_.raw();
-    float radius      = horizontalAbsMax(m_borderRadius.resolved.v);
+void ColorView::paint(Canvas& canvas) const {
+    float radius = horizontalAbsMax(m_borderRadius.resolved.v);
     if (radius == 0)
         radius = 0.001f;
-    canvas.drawRectangle(m_rect, radius, std::tuple{ fillColor = m_value, strokeWidth = 0 });
+    canvas.setFillColor(m_value);
+    canvas.fillRect(m_rect, radius);
 }
 
 #ifdef OKLAB_PALETTE
@@ -243,13 +243,10 @@ ColorButton::ColorButton(Construction construction, Value<ColorW> prop, bool alp
                           rcnew ColorPalette(prop) });
 }
 
-void GradientItem::paint(Canvas& canvas_) const {
-    RawCanvas& canvas = canvas_.raw();
-    canvas.drawRectangle(m_rect, 0.f,
-                         std::tuple{ fillColors     = GradientColors{ Palette::red, Palette::yellow },
-                                     linearGradient = GradientPoints{ RectangleF(m_rect).at(0.f, 0.5f),
-                                                                      RectangleF(m_rect).at(1.f, 0.5f) },
-                                     strokeWidth = 0, multigradient = gradient });
+void GradientItem::paint(Canvas& canvas) const {
+    canvas.setFillPaint(Gradient{ GradientType::Linear, RectangleF(m_rect).at(0.f, 0.5f),
+                                  RectangleF(m_rect).at(1.f, 0.5f), gradient });
+    canvas.fillRect(m_rect);
 }
 
 RC<Widget> GradientItem::cloneThis() const {

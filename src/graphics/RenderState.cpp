@@ -108,4 +108,7 @@ void Tag::SamplerMode::apply(const Tag::SamplerMode::Type& value, RenderStateEx&
     state.samplerMode = value;
 }
 
+void Tag::Scissors::apply(const Type& value, RenderStateEx& state) {
+    state.scissorQuad = value;
+}
 } // namespace Brisk

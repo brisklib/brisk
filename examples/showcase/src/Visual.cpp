@@ -87,10 +87,9 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
-                canvas.raw().drawRectangle(rect, 0.f,
-                                           std::tuple{ fillColor   = Palette::transparent,
-                                                       strokeColor = Palette::Standard::amber,
-                                                       strokeWidth = 1 });
+                canvas.setStrokeColor(Palette::Standard::amber);
+                canvas.setStrokeWidth(1);
+                canvas.strokeRect(rect);
 
                 // Creates a rectangle 'frect' based on 'rect' for further operations.
                 // 'angle' is a static float variable initialized at 0 and incremented by 0.2 in every render

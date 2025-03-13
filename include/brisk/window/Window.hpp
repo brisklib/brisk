@@ -34,7 +34,7 @@ namespace Brisk {
 // Binding enabled
 extern double frameStartTime;
 
-class RawCanvas;
+class Canvas;
 
 class WindowApplication;
 class Window;
@@ -277,9 +277,9 @@ protected:
     PerformanceStatistics m_gpuPerformance;
     PerformanceStatistics m_vblankPerformance;
 
-    void renderDebugTimeline(const std::string& title, RawCanvas& canvas, const PerformanceStatistics& stat,
+    void renderDebugTimeline(const std::string& title, Canvas& canvas, const PerformanceStatistics& stat,
                              int lane, int color, double pixelsPerSecond);
-    void renderDebugInfo(RawCanvas& canvas, int lane);
+    void renderDebugInfo(Canvas& canvas, int lane);
 
     constexpr static int laneHeight = 20;
 };

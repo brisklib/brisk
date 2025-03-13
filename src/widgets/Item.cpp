@@ -27,9 +27,11 @@ void Item::postPaint(Canvas& canvas) const {
     Base::postPaint(canvas);
     std::string icon = m_checked ? ICON_check : m_icon;
     if (!icon.empty()) {
-        canvas.raw().drawText(
-            m_rect.alignedRect({ m_clientRect.x1 - m_rect.x1, m_rect.height() }, { 0.f, m_iconAlignY }), 0.5f,
-            0.5f, icon, font()(dp(FontSize::Normal)), m_color.current);
+        canvas.setFillColor(m_color.current);
+        canvas.setFont(font()(dp(FontSize::Normal)));
+        canvas.fillText(
+            icon, m_rect.alignedRect({ m_clientRect.x1 - m_rect.x1, m_rect.height() }, { 0.f, m_iconAlignY }),
+            PointF(0.5f, 0.5f));
     }
 }
 

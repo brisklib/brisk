@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include <brisk/graphics/RawCanvas.hpp>
+#include <brisk/graphics/Canvas.hpp>
 #include <memory>
 #include <brisk/core/internal/Function.hpp>
 #include <brisk/core/Binding.hpp>

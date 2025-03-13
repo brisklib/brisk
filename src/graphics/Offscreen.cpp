@@ -19,7 +19,6 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Offscreen.hpp>
-#include <brisk/graphics/RawCanvas.hpp>
 #include <brisk/graphics/Renderer.hpp>
 #include <brisk/graphics/Pixel.hpp>
 #include <brisk/core/Exceptions.hpp>
@@ -40,10 +39,6 @@ OffscreenRendering::OffscreenRendering(Size size, float pixelRatio) {
 Rectangle OffscreenRendering::rect() const {
     Size size = m_target->size();
     return { 0, 0, size.width, size.height };
-}
-
-RawCanvas& OffscreenRendering::rawCanvas() {
-    return canvas().raw();
 }
 
 Canvas& OffscreenRendering::canvas() {

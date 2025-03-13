@@ -118,6 +118,7 @@ void Text::paint(Canvas& canvas) const {
         ColorW color     = m_color.current.multiplyAlpha(m_opacity);
         auto prepared    = m_cache2->prepared;
 
+        canvas.setFillColor(color);
         if (m_rotation != Rotation::NoRotation) {
             RectangleF rotated = RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
                 toOrientation(m_rotation) == Orientation::Vertical);
@@ -126,16 +127,15 @@ void Text::paint(Canvas& canvas) const {
                            .rotate90(static_cast<int>(m_rotation))
                            .translate(inner.center().x, inner.center().y);
             PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            auto&& state  = canvas.raw().save();
-            m.invert()->transform(state->scissors.points);
-            canvas.raw().drawText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) +
-                                      offset,
-                                  prepared, std::tuple{ fillColor = color, coordMatrix = m });
+            auto&& state  = canvas.saveState();
+            state->transform = m;
+            canvas.fillText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) + offset,
+                            prepared);
         } else {
             PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
             prepared.updateCaretData();
             offset += inner.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            canvas.raw().drawText(offset, prepared, std::tuple{ fillColor = color });
+            canvas.fillText(offset, prepared);
         }
     }
 }
@@ -163,8 +163,10 @@ Text::Cached2 Text::updateCache2(const CacheKey2& key) {
 
 void BackStrikedText::paint(Canvas& canvas) const {
     ColorW color = m_color.current.multiplyAlpha(m_opacity);
-    canvas.raw().drawText(m_clientRect, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign), m_text,
-                          font(), color);
+    canvas.setFillColor(color);
+    canvas.setFont(font());
+    canvas.fillText(m_text, m_clientRect,
+                    PointF(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)));
     const int p         = 10_idp;
     const float x_align = toFloatAlign(m_textAlign);
     const int tw        = m_cache2->textSize.x;
@@ -172,9 +174,9 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Rectangle r1{ m_rect.x1 + p, c.y, c.x - tw / 2 - p, c.y + 1_idp };
     Rectangle r2{ c.x + tw / 2 + p, c.y, m_rect.x2 - p, c.y + 1_idp };
     if (r1.width() > 0)
-        canvas.raw().drawRectangle(r1, 0.f, std::tuple{ fillColor = color, strokeWidth = 0.f });
+        canvas.fillRect(r1);
     if (r2.width() > 0)
-        canvas.raw().drawRectangle(r2, 0.f, std::tuple{ fillColor = color, strokeWidth = 0.f });
+        canvas.fillRect(r2);
     Widget::paint(canvas);
 }
 
@@ -190,8 +192,10 @@ void HoveredDescription::paint(Canvas& canvas) const {
         m_lastChange = frameStartTime;
     }
     if (m_lastChange && frameStartTime - *m_lastChange > hoverDelay) {
-        canvas.raw().drawText(m_clientRect, toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign),
-                              *m_cachedText, font(), m_color.current);
+        canvas.setFont(font());
+        canvas.setFillColor(m_color.current);
+        canvas.fillText(*m_cachedText, m_clientRect,
+                        PointF(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)));
     }
     paintHint(canvas);
 }

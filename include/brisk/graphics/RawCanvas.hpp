@@ -144,8 +144,8 @@ public:
 
     RawCanvas& drawLine(PointF p1, PointF p2, float thickness, LineEnd end, RenderStateExArgs args);
 
-    RawCanvas& drawText(PointF pos, const PreparedText& run, Range<uint32_t> selection,
-                        RenderStateExArgs args);
+    RawCanvas& drawTextSelection(PointF pos, const PreparedText& prepared, Range<uint32_t> selection,
+                                 RenderStateExArgs args);
     RawCanvas& drawText(PointF pos, const PreparedText& run, RenderStateExArgs args);
     RawCanvas& drawText(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                         RenderStateExArgs args);
@@ -181,48 +181,11 @@ public:
     RawCanvas& drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
                         const Font& f, ColorW textColor);
 
-    struct State {
-        Quad3 scissors = noScissors;
-    };
-
-    struct Save {
-        Save(const Save&)            = delete;
-        Save(Save&&)                 = delete;
-        Save& operator=(const Save&) = delete;
-        Save& operator=(Save&&)      = delete;
-
-        explicit Save(RawCanvas& canvas) noexcept : canvas(canvas) {
-            savedState = canvas.m_state;
-        }
-
-        ~Save() noexcept {
-            canvas.m_state = savedState;
-        }
-
-        State* operator->() {
-            return &canvas.m_state;
-        }
-
-        RawCanvas& canvas;
-        State savedState;
-    };
-
-    Save save() {
-        return Save{ *this };
-    }
-
-    const State& state() const {
-        return m_state;
-    }
-
-    RenderContext& renderContext() {
-        return m_context;
-    }
+    RenderContext& renderContext();
 
 protected:
     friend class Canvas;
     RenderContext& m_context;
-    State m_state;
     void prepareStateInplace(RenderStateEx& state);
     RenderStateEx prepareState(RenderStateEx&& state);
 };

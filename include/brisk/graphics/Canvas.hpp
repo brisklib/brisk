@@ -329,6 +329,8 @@ public:
      */
     void fillEllipse(RectangleF rect);
 
+    void drawEllipse(RectangleF rect);
+
     /**
      * @brief Strokes a polygon defined by a series of points.
      *
@@ -431,14 +433,14 @@ public:
      * @return An optional Rectangle object representing the clipping area. If no clipping is applied, the
      * optional is empty.
      */
-    std::optional<Rectangle> getClipRect() const;
+    std::optional<RectangleF> getClipRect() const;
 
     /**
      * @brief Sets the clipping rectangle.
      *
      * @param rect The Rectangle object defining the new clipping area.
      */
-    void setClipRect(Rectangle rect);
+    void setClipRect(RectangleF rect);
 
     /**
      * @brief Resets the clipping rectangle to cover the entire canvas.
@@ -470,7 +472,7 @@ public:
     void restoreNoPop();
 
     struct State {
-        Rectangle clipRect;
+        RectangleF clipRect;
         Matrix transform;
         Paint strokePaint;
         Paint fillPaint;
@@ -482,13 +484,33 @@ public:
 
     static const State defaultState;
 
-    const State& state() const noexcept {
-        return m_state;
-    }
+    const State& state() const noexcept;
 
-    void setState(State state) {
-        m_state = std::move(state);
-    }
+    void setState(State state);
+
+    struct StateSaver {
+        Canvas& canvas;
+        State saved;
+
+        StateSaver(Canvas& canvas);
+        State& operator*();
+        State* operator->();
+        ~StateSaver();
+    };
+
+    StateSaver saveState() &;
+
+    struct ClipRectSaver {
+        Canvas& canvas;
+        RectangleF saved;
+
+        ClipRectSaver(Canvas& canvas);
+        RectangleF& operator*();
+        RectangleF* operator->();
+        ~ClipRectSaver();
+    };
+
+    ClipRectSaver saveClipRect() &;
 
 private:
     State m_state;              ///< The current state of the Canvas.

@@ -777,17 +777,15 @@ TEST_CASE("Canvas optimization") {
 TEST_CASE("Canvas scissors") {
     renderTest("canvas-scissors1", Size{ 256, 256 }, [](RenderContext& context) {
         RawCanvas canvas(context);
-        auto&& state    = canvas.save();
-        state->scissors = RectangleF{ 0, 0, 128, 128 };
         canvas.drawRectangle(Rectangle{ 10, 10, 246, 246 }, 0.f,
-                             std::tuple{ fillColor = Palette::Standard::lime, strokeWidth = 2.f });
+                             std::tuple{ scissors  = RectangleF{ 0, 0, 128, 128 },
+                                         fillColor = Palette::Standard::lime, strokeWidth = 2.f });
     });
     renderTest("canvas-scissors2", Size{ 256, 256 }, [](RenderContext& context) {
         RawCanvas canvas(context);
-        auto&& state    = canvas.save();
-        state->scissors = Quad3{ PointF(256, 0), PointF(128, 128), PointF(0, 0) };
         canvas.drawRectangle(Rectangle{ 10, 10, 246, 246 }, 0.f,
-                             std::tuple{ fillColor = Palette::Standard::lime, strokeWidth = 2.f });
+                             std::tuple{ scissors  = Quad3{ PointF(256, 0), PointF(128, 128), PointF(0, 0) },
+                                         fillColor = Palette::Standard::lime, strokeWidth = 2.f });
     });
 }
 

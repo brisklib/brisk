@@ -22,17 +22,17 @@
 
 namespace Brisk {
 
-void paintProgressIndicator(RawCanvas& canvas, RectangleF rect, int circles) {
+void paintProgressIndicator(Canvas& canvas, RectangleF rect, int circles) {
     for (int i = 0; i < circles; ++i) {
         const float t = frameStartTime * std::numbers::pi_v<float> * 2 * 0.25f * (1 + i);
         const float s = std::sin(t);
         const float c = std::cos(t);
-        canvas.drawArc(PointF(rect.center()), idp(20 + i * 5), idp(15 + i * 5), 0, 10.f,
-                       std::tuple{ fillColors    = { ColorF{ 1, 1, 1, 0 }, ColorF{ 0, 0, 0, 0 } },
-                                   angleGradient = {
-                                       rect.center(),
-                                       PointF(rect.center()) + PointOf<float>{ c, s },
-                                   } });
+        canvas.raw().drawArc(PointF(rect.center()), idp(20 + i * 5), idp(15 + i * 5), 0, 10.f,
+                             std::tuple{ fillColors    = { ColorF{ 1, 1, 1, 0 }, ColorF{ 0, 0, 0, 0 } },
+                                         angleGradient = {
+                                             rect.center(),
+                                             PointF(rect.center()) + PointOf<float>{ c, s },
+                                         } });
     }
 }
 

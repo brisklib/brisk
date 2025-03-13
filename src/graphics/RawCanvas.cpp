@@ -99,7 +99,7 @@ GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPa
 
 RawCanvas& RawCanvas::drawText(PointF pos, const TextWithOptions& text, const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
-    drawText(pos, run, Range<uint32_t>{}, std::tuple{ fillColor = textColor });
+    drawText(pos, run, std::tuple{ fillColor = textColor });
     return *this;
 }
 
@@ -107,7 +107,7 @@ RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment,
                                const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
-    drawText(pos + offset, run, Range<uint32_t>{}, std::tuple{ fillColor = textColor });
+    drawText(pos + offset, run, std::tuple{ fillColor = textColor });
     return *this;
 }
 
@@ -115,8 +115,7 @@ RawCanvas& RawCanvas::drawText(RectangleF rect, float x_alignment, float y_align
                                const TextWithOptions& text, const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
-    drawText(rect.at(x_alignment, y_alignment) + offset, run, Range<uint32_t>{},
-             std::tuple{ fillColor = textColor });
+    drawText(rect.at(x_alignment, y_alignment) + offset, run, std::tuple{ fillColor = textColor });
     return *this;
 }
 
@@ -128,7 +127,6 @@ RenderStateEx RawCanvas::prepareState(RenderStateEx&& state) {
 }
 
 void RawCanvas::prepareStateInplace(RenderStateEx& state) {
-    state.scissorQuad = m_state.scissors;
     state.premultiply();
 }
 
@@ -168,16 +166,9 @@ RawCanvas& RawCanvas::drawRectangle(RectangleF rect, CornersF borderRadius, bool
     return *this;
 }
 
-RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, RenderStateExArgs args) {
-    return drawText(pos, prepared, Range<uint32_t>{}, args);
-}
-
-RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<uint32_t> selection,
-                               RenderStateExArgs args) {
-
+RawCanvas& RawCanvas::drawTextSelection(PointF pos, const PreparedText& prepared, Range<uint32_t> selection,
+                                        RenderStateExArgs args) {
     if (selection.distance() != 0) {
-        RenderStateEx tempState{ ShaderType::Text, args };
-
         selection.min = prepared.characterToGrapheme(selection.min);
         selection.max = prepared.characterToGrapheme(selection.max);
         for (uint32_t gr : selection) {
@@ -188,9 +179,13 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
             const auto& line = prepared.lines[lineIndex];
             drawRectangle(Rectangle(pos + PointF(range.min, line.baseline - line.ascDesc.ascender),
                                     pos + PointF(range.max, line.baseline + line.ascDesc.descender)),
-                          0.f, std::tuple{ fillColor = tempState.strokeColor1, strokeWidth = 0 });
+                          0.f, args);
         }
     }
+    return *this;
+}
+
+RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, RenderStateExArgs args) {
 
     SpriteResources sprites;
     uint32_t runIndex = 0;
@@ -307,5 +302,9 @@ RawCanvas& RawCanvas::drawText(SpriteResources sprites, std::span<const Geometry
     prepareStateInplace(style);
     m_context.command(std::move(style), glyphs);
     return *this;
+}
+
+RenderContext& RawCanvas::renderContext() {
+    return m_context;
 }
 } // namespace Brisk

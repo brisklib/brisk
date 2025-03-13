@@ -53,29 +53,30 @@ void AutoScrollable::onLayoutUpdated() {
     }
 }
 
-void AutoScrollable::postPaint(Canvas& canvas_) const {
-    Widget::postPaint(canvas_);
-    RawCanvas& canvas = canvas_.raw();
-    ColorW selection  = getStyleVar<ColorW>(selectedColor.id).value_or(Palette::Standard::blue);
+void AutoScrollable::postPaint(Canvas& canvas) const {
+    Widget::postPaint(canvas);
+    ColorW selection = getStyleVar<ColorW>(selectedColor.id).value_or(Palette::Standard::blue);
     if (m_enableAutoScroll) {
         if (m_scrollSize > 0) {
             if (m_offset > 0) {
                 Rectangle chevron = chevronRect(LogicalDirection::UpOrLeft);
-                canvas.drawRectangle(
-                    chevron, 0.f, std::tuple{ strokeWidth = 0.f, fillColor = selection.multiplyAlpha(0.9f) });
-                canvas.drawText(chevron, 0.5f, 0.5f,
-                                m_orientation == Orientation::Vertical ? ICON_chevron_up : ICON_chevron_left,
-                                font()(12_dp), Palette::white);
+                canvas.setFillColor(selection.multiplyAlpha(0.9f));
+                canvas.fillRect(chevron);
+                canvas.setFillColor(Palette::white);
+                canvas.setFont(font()(12_dp));
+                canvas.fillText(m_orientation == Orientation::Vertical ? ICON_chevron_up : ICON_chevron_left,
+                                chevron, PointF(0.5f, 0.5f));
             }
 
             if (m_scrollSize - m_offset > 0) {
                 Rectangle chevron = chevronRect(LogicalDirection::DownOrRight);
-                canvas.drawRectangle(
-                    chevron, 0.f, std::tuple{ strokeWidth = 0.f, fillColor = selection.multiplyAlpha(0.9f) });
-                canvas.drawText(chevron, 0.5f, 0.5f,
-                                m_orientation == Orientation::Vertical ? ICON_chevron_down
+                canvas.setFillColor(selection.multiplyAlpha(0.9f));
+                canvas.fillRect(chevron);
+                canvas.setFont(font()(12_dp));
+                canvas.setFillColor(Palette::white);
+                canvas.fillText(m_orientation == Orientation::Vertical ? ICON_chevron_down
                                                                        : ICON_chevron_right,
-                                font()(12_dp), Palette::white);
+                                chevron, PointF(0.5f, 0.5f));
             }
         }
     }

@@ -35,7 +35,6 @@ BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 #include <brisk/core/Settings.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/Typename.hpp>
-#include <brisk/graphics/RawCanvas.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Color.hpp>
 #include <set>
@@ -1336,7 +1335,6 @@ private:
     void processVisibility(bool isVisible);
     void reposition(Point relativeOffset);
     void refreshTree();
-    void paintTree(RawCanvas& canvas);
 
     void doRestyle();
     void doRestyle(std::shared_ptr<const Stylesheet> stylesheet, bool root);

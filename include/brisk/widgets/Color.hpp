@@ -139,12 +139,12 @@ public:
     constexpr static std::string_view widgetType = "gradientitem";
 
     template <WidgetArgument... Args>
-    explicit GradientItem(RC<GradientResource> gradient, const Args&... args)
-        : Widget(Construction{ widgetType }, args...), gradient(gradient) {
+    explicit GradientItem(ColorStopArray gradient, const Args&... args)
+        : Widget(Construction{ widgetType }, args...), gradient(std::move(gradient)) {
         endConstruction();
     }
 
-    RC<GradientResource> gradient = nullptr;
+    ColorStopArray gradient;
 
 protected:
     void paint(Canvas& canvas) const override;

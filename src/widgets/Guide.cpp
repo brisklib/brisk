@@ -32,13 +32,13 @@ void Guide::paint(Canvas& canvas_) const {
         PointF tgt   = w->rect().at(f.targetAnchor);
 
         if (m_tree) {
-            m_tree->requestLayer([this, src, tgt](Canvas& canvas_) {
-                RawCanvas& canvas = canvas_.raw();
-                canvas.drawLine(src, tgt, 3_dp, m_backgroundColor.current);
-                canvas.drawEllipse(src.alignedRect(7_dp, 7_dp, 0.5f, 0.5f),
-                                   std::tuple{ strokeWidth = 0, fillColor = m_backgroundColor.current });
-                canvas.drawEllipse(tgt.alignedRect(7_dp, 7_dp, 0.5f, 0.5f),
-                                   std::tuple{ strokeWidth = 0, fillColor = m_backgroundColor.current });
+            m_tree->requestLayer([this, src, tgt](Canvas& canvas) {
+                canvas.setStrokeColor(m_backgroundColor.current);
+                canvas.setFillColor(m_backgroundColor.current);
+                canvas.setStrokeWidth(3_dp);
+                canvas.strokeLine(src, tgt);
+                canvas.fillEllipse(src.alignedRect(7_dp, 7_dp, 0.5f, 0.5f));
+                canvas.fillEllipse(tgt.alignedRect(7_dp, 7_dp, 0.5f, 0.5f));
             });
         }
     }

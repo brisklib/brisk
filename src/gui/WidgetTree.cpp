@@ -185,8 +185,8 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorW backgroundColor, boo
     ++frameNumber;
     canvas.renderContext().setClipRect(paintRect);
     if (backgroundColor.a != 0) {
-        canvas.raw().drawRectangle(m_viewportRectangle, 0.f,
-                                   std::tuple{ fillColor = backgroundColor, strokeWidth = 0.f });
+        canvas.setFillColor(backgroundColor);
+        canvas.fillRect(m_viewportRectangle);
     }
 
     m_painting = true;
@@ -218,8 +218,8 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorW backgroundColor, boo
             return w->rect();
         });
         if (rect) {
-            canvas.raw().drawRectangle(*rect, 0.f,
-                                       std::tuple{ fillColor = 0x102040'40_rgba, strokeWidth = 0.f });
+            canvas.setFillColor(0x102040'40_rgba);
+            canvas.fillRect(*rect);
         }
     }
     groupsAfterFrame();

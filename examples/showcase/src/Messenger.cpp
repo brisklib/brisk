@@ -12,10 +12,9 @@ static void backgroundPainter(Canvas& canvas, const Widget& widget) {
     float m         = std::min(x, y);
     x /= m;
     y /= m;
-    canvas.raw().drawTexture(widget.rect(), img,
-                             Matrix::scaling(x, y).translate(0.5f * (1 - x) * widget.rect().width(),
-                                                             0.5f * (1 - y) * widget.rect().height()),
-                             std::tuple{});
+    canvas.drawImage(widget.rect(), img,
+                     Matrix::scaling(x, y).translate(0.5f * (1 - x) * widget.rect().width(),
+                                                     0.5f * (1 - y) * widget.rect().height()));
 }
 
 void ShowcaseMessenger::messagesBuilder(Widget* target) {
@@ -56,7 +55,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
             width           = 360_apx,
             backgroundColor = 0xe5f7df'F0_rgba,
             borderWidth     = 1_apx,
-            borderRadius    = -12,
+            borderRadius    = 12,
         });
     }
 }
@@ -94,7 +93,7 @@ RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
             },
             rcnew HLayout{
                 backgroundColor = Palette::white,
-                borderRadius    = -5.f,
+                borderRadius    = 5.f,
                 rcnew Button{
                     rcnew Text{ ICON_paperclip },
                     classes = { "flat" },

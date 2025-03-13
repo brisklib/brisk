@@ -1,7 +1,6 @@
 #pragma once
 
 #include <brisk/graphics/Renderer.hpp>
-#include <brisk/graphics/RawCanvas.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/RenderState.hpp>
 
@@ -36,12 +35,6 @@ public:
      * @return The rectangle of the rendering target.
      */
     Rectangle rect() const;
-
-    /**
-     * @brief Provides access to the raw canvas used for rendering.
-     * @return A reference to the raw canvas.
-     */
-    RawCanvas& rawCanvas();
 
     /**
      * @brief Provides access to the canvas used for rendering.

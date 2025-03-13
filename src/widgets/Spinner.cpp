@@ -35,9 +35,7 @@ static auto interp(float v, std::span<const float> list) -> float {
     return x;
 };
 
-void spinnerPainter(Canvas& canvas_, const Widget& widget) {
-    RawCanvas& canvas      = canvas_.raw();
-
+void spinnerPainter(Canvas& canvas, const Widget& widget) {
     const Spinner* spinner = dynamic_cast<const Spinner*>(&widget);
     bool active            = spinner ? spinner->active.get() : true;
     const float time       = active ? frameStartTime * 0.25f : 0;
@@ -48,15 +46,15 @@ void spinnerPainter(Canvas& canvas_, const Widget& widget) {
 
     constexpr int num = 3;
     float side        = (rect.width() / num) + 0.5_dp;
+    canvas.setFillColor(Palette::Standard::blue);
     for (int i = 0; i < num + 1; ++i) {
         for (int j = 0; j < num; ++j) {
             int k        = (std::floor(time) + i) * num + j;
             auto a       = std::array{ 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f };
             float factor = interp(time - float(k) / num / num, a);
-            canvas.drawRectangle(rect.at((i + 0.5f) / (num), (j + 0.5f) / (num))
-                                     .alignedRect(SizeF{ factor * side, factor * side }, { 0.5f, 0.5f })
-                                     .withOffset({ -fract(time) * side, 0.f }),
-                                 0.f, std::tuple{ fillColor = Palette::Standard::blue, strokeWidth = 0 });
+            canvas.fillRect(rect.at((i + 0.5f) / (num), (j + 0.5f) / (num))
+                                .alignedRect(SizeF{ factor * side, factor * side }, { 0.5f, 0.5f })
+                                .withOffset({ -fract(time) * side, 0.f }));
         }
     }
 }

@@ -120,8 +120,7 @@ public:
      */
     explicit Gradient(GradientType type, PointF startPoint, PointF endPoint);
 
-    explicit Gradient(GradientType type, PointF startPoint, PointF endPoint,
-                      std::initializer_list<ColorStop> colors);
+    explicit Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorStopArray colorStops);
 
     explicit Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorW color1, ColorW color2);
 
