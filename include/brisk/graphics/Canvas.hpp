@@ -1,11 +1,158 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */                                                                                                          \
 #pragma once
 
-#include "RawCanvas.hpp"
+#include "Renderer.hpp"
+#include "Fonts.hpp"
+#include "Path.hpp"
+#include <brisk/core/internal/Span.hpp>
 #include "Gradients.hpp"
 #include <brisk/core/internal/InlineVector.hpp>
 #include "Image.hpp"
 
 namespace Brisk {
+
+float& pixelRatio() noexcept;
+
+template <typename T>
+inline float dp(T value) noexcept {
+    return static_cast<float>(value) * pixelRatio();
+}
+
+template <typename T>
+inline int idp(T value) noexcept {
+    return static_cast<int>(std::round(static_cast<float>(value) * pixelRatio()));
+}
+
+template <typename T>
+inline float invertdp(T value) noexcept {
+    return static_cast<float>(value) / pixelRatio();
+}
+
+template <typename T>
+inline int invertidp(T value) noexcept {
+    return static_cast<int>(std::round(static_cast<float>(value) / pixelRatio()));
+}
+
+inline float operator""_dp(long double value) noexcept {
+    return dp(value);
+}
+
+inline int operator""_idp(long double value) noexcept {
+    return idp(value);
+}
+
+inline float operator""_dp(unsigned long long value) noexcept {
+    return dp(value);
+}
+
+inline int operator""_idp(unsigned long long value) noexcept {
+    return idp(value);
+}
+
+inline float scalePixels(float x) noexcept {
+    return dp(x);
+}
+
+inline int scalePixels(int x) noexcept {
+    return idp(x);
+}
+
+inline PointF scalePixels(PointF x) noexcept {
+    return { dp(x.x), dp(x.y) };
+}
+
+inline Point scalePixels(Point x) noexcept {
+    return { idp(x.x), idp(x.y) };
+}
+
+inline SizeF scalePixels(SizeF x) noexcept {
+    return { dp(x.x), dp(x.y) };
+}
+
+inline Size scalePixels(Size x) noexcept {
+    return { idp(x.x), idp(x.y) };
+}
+
+inline EdgesF scalePixels(const EdgesF& x) noexcept {
+    return { dp(x.x1), dp(x.y1), dp(x.x2), dp(x.y2) };
+}
+
+inline Edges scalePixels(const Edges& x) noexcept {
+    return { idp(x.x1), idp(x.y1), idp(x.x2), idp(x.y2) };
+}
+
+inline Font scalePixels(Font x) noexcept {
+    Font result          = std::move(x);
+    result.fontSize      = dp(result.fontSize);
+    result.letterSpacing = dp(result.letterSpacing);
+    result.wordSpacing   = dp(result.wordSpacing);
+    return result;
+}
+
+inline float unscalePixels(float x) noexcept {
+    return invertdp(x);
+}
+
+inline int unscalePixels(int x) noexcept {
+    return invertidp(x);
+}
+
+inline PointF unscalePixels(PointF x) noexcept {
+    return { invertdp(x.x), invertdp(x.y) };
+}
+
+inline Point unscalePixels(Point x) noexcept {
+    return { invertidp(x.x), invertidp(x.y) };
+}
+
+inline SizeF unscalePixels(SizeF x) noexcept {
+    return { invertdp(x.x), invertdp(x.y) };
+}
+
+inline Size unscalePixels(Size x) noexcept {
+    return { invertidp(x.x), invertidp(x.y) };
+}
+
+inline EdgesF unscalePixels(const EdgesF& x) noexcept {
+    return { invertdp(x.x1), invertdp(x.y1), invertdp(x.x2), invertdp(x.y2) };
+}
+
+inline Edges unscalePixels(const Edges& x) noexcept {
+    return { invertidp(x.x1), invertidp(x.y1), invertidp(x.x2), invertidp(x.y2) };
+}
+
+inline Font unscalePixels(Font x) noexcept {
+    Font result          = std::move(x);
+    result.fontSize      = invertdp(result.fontSize);
+    result.letterSpacing = invertdp(result.letterSpacing);
+    result.wordSpacing   = invertdp(result.wordSpacing);
+    return result;
+}
+
+using GeometryGlyphs = std::vector<GeometryGlyph>;
+
+namespace Internal {
+GeometryGlyphs pathLayout(SpriteResources& sprites, const RasterizedPath& path);
+}
 
 class Canvas;
 
@@ -46,32 +193,6 @@ enum class CanvasFlags {
 template <>
 constexpr inline bool isBitFlags<CanvasFlags> = true;
 
-class BasicCanvas : protected RawCanvas {
-public:
-    using RawCanvas::RawCanvas;
-
-    void strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
-                    RectangleF clipRect, float opacity);
-    void fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                  RectangleF clipRect, float opacity);
-    void drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
-                  const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                  RectangleF clipRect, float opacity);
-
-    using RawCanvas::renderContext;
-
-    int rasterizedPaths() const noexcept;
-
-protected:
-    CanvasFlags m_flags = CanvasFlags::Default;
-
-private:
-    int m_rasterizedPaths = 0;
-    void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint,
-                            Quad3 scissors);
-    static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect);
-};
-
 /**
  * @class Canvas
  * @brief A high-level class for rendering graphical elements on a canvas.
@@ -80,7 +201,7 @@ private:
  * onto a canvas. It extends the functionality of BasicCanvas by adding state management
  * and more sophisticated drawing operations.
  */
-class Canvas : public BasicCanvas {
+class Canvas {
 public:
     /**
      * @brief Constructs a Canvas object using a RenderContext.
@@ -89,27 +210,21 @@ public:
      */
     explicit Canvas(RenderContext& context, CanvasFlags flags = CanvasFlags::Default);
 
-    using BasicCanvas::renderContext;
-
-    using BasicCanvas::drawPath;
-    using BasicCanvas::fillPath;
-    using BasicCanvas::strokePath;
-
-    /**
-     * @brief Constructs a Canvas object using an existing RawCanvas.
-     *
-     * @param canvas The RawCanvas instance to wrap.
-     */
-    explicit Canvas(RawCanvas& canvas);
-
-    /**
-     * @brief Provides access to the underlying RawCanvas object.
-     *
-     * @return A reference to the underlying RawCanvas.
-     */
-    BRISK_INLINE RawCanvas& raw() noexcept {
-        return static_cast<RawCanvas&>(*this);
+    RenderContext& renderContext() const {
+        return m_context;
     }
+
+    CanvasFlags flags() const noexcept {
+        return m_flags;
+    }
+
+    void strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
+                    RectangleF clipRect, float opacity);
+    void fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                  RectangleF clipRect, float opacity);
+    void drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+                  const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
+                  RectangleF clipRect, float opacity);
 
     /**
      * @brief Retrieves the current stroke paint configuration.
@@ -369,7 +484,7 @@ public:
      * @param position The PointF struct representing the text position.
      * @param alignment The alignment of the text relative to the position. Defaults to {0.f, 0.f}.
      */
-    void fillText(std::string_view text, PointF position, PointF alignment = PointF{ 0.f, 0.f });
+    void fillText(TextWithOptions text, PointF position, PointF alignment = PointF{ 0.f, 0.f });
 
     /**
      * @brief Fills text within a specified rectangular area with alignment.
@@ -378,7 +493,7 @@ public:
      * @param position The RectangleF struct representing the area to fill the text within.
      * @param alignment The alignment of the text relative to the rectangle. Defaults to {0.f, 0.f}.
      */
-    void fillText(std::string_view text, RectangleF position, PointF alignment = PointF{ 0.f, 0.f });
+    void fillText(TextWithOptions text, RectangleF position, PointF alignment = PointF{ 0.f, 0.f });
 
     /**
      * @brief Fills pre-rendered text.
@@ -518,9 +633,17 @@ public:
 
     ClipRectSaver saveClipRect() &;
 
+    int rasterizedPaths() const noexcept;
+
 private:
+    RenderContext& m_context;
+    CanvasFlags m_flags = CanvasFlags::Default;
     State m_state;              ///< The current state of the Canvas.
     std::vector<State> m_stack; ///< The stack of saved Canvas states.
+
+    int m_rasterizedPaths = 0;
+    void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint,
+                            Quad3 scissors);
 };
 
 } // namespace Brisk

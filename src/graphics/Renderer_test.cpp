@@ -28,7 +28,6 @@
 #include <brisk/core/Time.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/graphics/Image.hpp>
-#include <brisk/graphics/RawCanvas.hpp>
 #include <brisk/graphics/Canvas.hpp>
 
 #include <brisk/graphics/OSWindowHandle.hpp>
@@ -105,35 +104,42 @@ TEST_CASE("Renderer - fonts") {
     renderTest(
         "rr-fonts", { 1200, 600 },
         [&](RenderContext& context) {
-            RawCanvas canvas(context);
+            Canvas canvas(context, CanvasFlags::SDF);
 
             Rectangle rect;
             ColorF c;
+            canvas.setFont(Font{ "Lato", 27.f });
             for (int i = 0; i < 10; ++i) {
                 c    = ColorOf<float, ColorGamma::sRGB>(i / 9.f);
                 rect = Rectangle{ 0, i * 60, 600, (i + 1) * 60 };
-                canvas.drawRectangle(rect, 0.f, std::tuple{ fillColor = c, strokeWidth = 0 });
-                canvas.drawText(rect, 0.5f, 0.5f, "The quick brown fox jumps over the lazy dog",
-                                Font{ "Lato", 27.f }, Palette::white);
+                canvas.setFillColor(c);
+                canvas.fillRect(rect);
+                canvas.setFillColor(Palette::white);
+                canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
                 c    = ColorOf<float, ColorGamma::sRGB>(1.f - i / 9.f);
                 rect = Rectangle{ 600, i * 60, 1200, (i + 1) * 60 };
-                canvas.drawRectangle(rect, 0.f, std::tuple{ fillColor = c, strokeWidth = 0 });
-                canvas.drawText(rect, 0.5f, 0.5f, "The quick brown fox jumps over the lazy dog",
-                                Font{ "Lato", 27.f }, Palette::black);
+                canvas.setFillColor(c);
+                canvas.fillRect(rect);
+                canvas.setFillColor(Palette::black);
+                canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
             }
+            CHECK(canvas.rasterizedPaths() == 0);
         },
         ColorF{ 1.f, 1.f });
+}
 
+TEST_CASE("Html text") {
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
-        RawCanvas canvas(context);
-        canvas.drawRectangle({ 0, 0, 300, 150 }, 0.f,
-                             std::tuple{ fillColor = Palette::white, strokeWidth = 0 });
-        canvas.drawText(
-            Rectangle{ 30, 30, 270, 120 }, 0.0f, 0.0f,
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect({ 0, 0, 300, 150 });
+        canvas.setFillColor(Palette::black);
+        canvas.setFont(Font{ "Lato", 25.f });
+        canvas.fillText(
             TextWithOptions("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
                             "the <small>lazy</small> dog",
                             TextOptions::HTML),
-            Font{ "Lato", 25.f }, Palette::black);
+            Rectangle{ 30, 30, 270, 120 });
     });
 }
 
@@ -143,16 +149,18 @@ TEST_CASE("Renderer", "[gpu]") {
     float radius                = frameBounds.shortestSide() * 0.2f;
     float strokeWidth           = frameBounds.shortestSide() * 0.05f;
 
-    SECTION("RawCanvas") {
+    SECTION("Canvas-SDF") {
         renderTest(
             "rr-ll", frameBounds.size(),
             [&](RenderContext& context) {
-                RawCanvas canvas(context);
-                canvas.drawRectangle(
-                    rect, radius,
-                    std::tuple{ linearGradient = { frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f) },
-                                fillColors     = { Palette::Standard::green, Palette::Standard::red },
-                                strokeColor = Palette::black, Arg::strokeWidth = strokeWidth });
+                Canvas canvas(context, CanvasFlags::SDF);
+                canvas.setFillPaint(Gradient(GradientType::Linear, frameBounds.at(0.1f, 0.1f),
+                                             frameBounds.at(0.9f, 0.9f), Palette::Standard::green,
+                                             Palette::Standard::red));
+                canvas.setStrokeColor(Palette::black);
+                canvas.setStrokeWidth(strokeWidth);
+                canvas.drawRect(rect, radius);
+                CHECK(canvas.rasterizedPaths() == 0);
             },
             ColorF{ 0.5f, 0.5f, 0.5f, 1.f });
     }
@@ -277,22 +285,23 @@ TEST_CASE("Renderer: window", "[gpu]") {
                 RenderPipeline pipeline(encoder, windows[i].target, 0x222426_rgb);
                 static int frame = 0;
                 ++frame;
-                RawCanvas canvas(pipeline);
-                canvas.drawRectangle(
-                    inner, inner.shortestSide() * 0.5f,
-                    std::tuple{ linearGradient = { inner.at(0.f, 0.f), inner.at(1.f, 1.f) },
-                                fillColors     = { Palette::Standard::green, Palette::Standard::red },
-                                strokeColor = Palette::black, strokeWidth = 16.f });
-                canvas.drawText(inner, 0.5f, 0.5f,
-                                fmt::format(R"({}x{}
+                Canvas canvas(pipeline);
+                canvas.setStrokeColor(Palette::black);
+                canvas.setStrokeWidth(16.f);
+                canvas.setFillPaint(Gradient(GradientType::Linear, inner.at(0.f, 0.f), inner.at(1.f, 1.f),
+                                             Palette::Standard::green, Palette::Standard::red));
+                canvas.drawRect(inner, inner.shortestSide() * 0.5f);
+                canvas.setFillColor(Palette::white);
+                canvas.setFont(Font{ Font::Default, 40.f });
+                canvas.fillText(fmt::format(R"({}x{}
 wait = {:.1f}ms
 total = {:.1f}ms 
 rate = {:.1f}fps)",
                                             winSize.x, winSize.y, 1000 * windows[i].waitTime,
                                             1000 * sumWaitTime, 1.0 / sumWaitTime),
-                                Font{ Font::Default, 40.f }, Palette::white);
-                canvas.drawRectangle(Rectangle{ Point{ frame % winSize.x, 0 }, Size{ 5, winSize.y } }, 0.f,
-                                     std::tuple{ strokeWidth = 0, fillColor = Palette::black });
+                                inner, PointF(0.5f, 0.5f));
+                canvas.setFillColor(Palette::black);
+                canvas.fillRect(Rectangle{ Point{ frame % winSize.x, 0 }, Size{ 5, winSize.y } }, );
             }
         }
         for (int i = 0; i < numWindows; ++i) {
@@ -343,28 +352,25 @@ TEST_CASE("Blending", "[gpu]") {
     constexpr Size canvasSize{ 1200, 1200 };
     constexpr int rowHeight = 100;
     blendingTest("blending1", canvasSize, [&](RenderContext& context) {
-        RawCanvas canvas(context);
+        Canvas canvas(context);
         auto bands = [&canvas BRISK_IF_GCC(, canvasSize)](int index, int count, Color background,
                                                           Color foreground) {
-            canvas.drawRectangle(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)),
-                                 0.f, std::tuple{ fillColor = background, strokeWidth = 0 });
+            canvas.setFillColor(background);
+            canvas.fillRect(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)));
             for (int i = 0; i <= count; ++i) {
-                canvas.drawRectangle(
-                    RectangleF(i * canvasSize.width / (count + 1), index * rowHeight,
-                               (i + 1) * canvasSize.width / (count + 1), (index + 1) * rowHeight),
-                    0.f,
-                    std::tuple{ fillColor   = foreground.multiplyAlpha(static_cast<float>(i) / count),
-                                strokeWidth = 0 });
+                canvas.setFillColor(foreground.multiplyAlpha(static_cast<float>(i) / count));
+                canvas.fillRect(RectangleF(i * canvasSize.width / (count + 1), index * rowHeight,
+                                           (i + 1) * canvasSize.width / (count + 1),
+                                           (index + 1) * rowHeight));
             }
         };
         auto gradient = [&canvas BRISK_IF_GCC(, canvasSize)](int index, Color background, Color start,
                                                              Color end) {
-            canvas.drawRectangle(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)),
-                                 0.f, std::tuple{ fillColor = background, strokeWidth = 0 });
-            canvas.drawRectangle(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)),
-                                 0.f,
-                                 std::tuple{ linearGradient = { Point{ 0, 0 }, Point{ canvasSize.width, 0 } },
-                                             fillColors = { start, end }, strokeWidth = 0 });
+            canvas.setFillColor(background);
+            canvas.fillRect(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)));
+            canvas.setFillPaint(
+                Gradient(GradientType::Linear, Point{ 0, 0 }, Point{ canvasSize.width, 0 }, start, end));
+            canvas.fillRect(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)));
         };
         bands(0, 10, Palette::black, Palette::white);
         bands(1, 50, Palette::black, Palette::white);
@@ -378,6 +384,7 @@ TEST_CASE("Blending", "[gpu]") {
         bands(9, 50, Palette::cyan, Palette::red);
         gradient(10, Palette::cyan, Palette::transparent, Palette::red);
         gradient(11, Palette::cyan, Palette::cyan, Palette::red);
+        CHECK(canvas.rasterizedPaths() == 0);
     });
 }
 
@@ -452,32 +459,6 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
     });
 }
 
-TEST_CASE("Canvas::drawColorMask", "[gpu]") {
-    renderTest("drawColorMask", Size{ 31, 23 }, [](RenderContext& context) {
-        RawCanvas canvas(context);
-        constexpr Size size{ 29, 21 };
-        std::array<uint8_t, size.area() * 4> pixels;
-        for (int y = 0; y < size.height; ++y) {
-            for (int x = 0; x < size.width; ++x) {
-                uint8_t alpha                        = ((x & 1) + (y & 1)) * 0xFF / 2;
-                pixels[(y * size.width + x) * 4 + 0] = x * alpha / (size.width - 1);
-                pixels[(y * size.width + x) * 4 + 1] = alpha / 2;
-                pixels[(y * size.width + x) * 4 + 2] = y * alpha / (size.height - 1);
-                pixels[(y * size.width + x) * 4 + 3] = alpha;
-            }
-        }
-        auto sprite = makeSprite(Size{ size.width * 4, size.height }, toBytesView(pixels));
-        canvas.drawColorMask({ std::move(sprite) },
-                             one(GeometryGlyph{
-                                 { { 1, 1 }, size },
-                                 size,
-                                 0,
-                                 float(size.width * 4),
-                             }),
-                             std::tuple{ fillColor = Palette::white });
-    });
-}
-
 TEST_CASE("Emoji") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
     REQUIRE(ttf.has_value());
@@ -488,63 +469,63 @@ TEST_CASE("Emoji") {
 
     const Size size{ 1200, 200 };
     renderTest("emoji-only", size, [&](RenderContext& context) {
-        RawCanvas canvas(context);
+        Canvas canvas(context);
         Rectangle rect({}, size);
-        canvas.drawText(rect, 0.5f, 0.5f, "🐢👑🌟🧿📸🚨🏡🕊️🏆😻✌️🍀🎨🌴🍜", Font{ "Noto Emoji", 60.f },
-                        Palette::black);
+        canvas.setFont({ "Noto Emoji", 60.f });
+        canvas.setFillColor(Palette::black);
+        canvas.fillText("🐢👑🌟🧿📸🚨🏡🕊️🏆😻✌️🍀🎨🌴🍜", rect, PointF(0.5f, 0.5f));
     });
 
     renderTest(
         "emoji-text", size,
         [&](RenderContext& context) {
-            RawCanvas canvas(context);
+            Canvas canvas(context);
             Rectangle rect({}, size);
-            canvas.drawText(rect, 0.5f, 0.5f, "Crown: 👑, Star: 🌟 Camera: 📸",
-                            Font{ "Lato,Noto Emoji", 72.f }, Palette::black);
+            canvas.setFont({ "Lato,Noto Emoji", 72.f });
+            canvas.setFillColor(Palette::black);
+            canvas.fillText("Crown: 👑, Star: 🌟 Camera: 📸", rect, PointF(0.5f, 0.5f));
         },
         ColorF(0.5f));
 }
 
 TEST_CASE("SetClipRect") {
     renderTest("SetClipRect0", Size{ 256, 256 }, [&](RenderContext& context) {
-        RawCanvas canvas(context);
+        Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
-        canvas.drawRectangle(rect, 0.f,
-                             std::tuple{ fillColors     = { Palette::cyan, Palette::magenta },
-                                         linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f });
+        canvas.setFillPaint(
+            Gradient(GradientType::Linear, { 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
     });
     renderTest("SetClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
-        RawCanvas canvas(context);
+        Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
         context.setClipRect(Rectangle{ 10, 20, 100, 200 });
-        canvas.drawRectangle(rect, 0.f,
-                             std::tuple{ fillColors     = { Palette::cyan, Palette::magenta },
-                                         linearGradient = { { 0, 0 }, { 256, 256 } }, strokeWidth = 0.f });
+        canvas.setFillPaint(
+            Gradient(GradientType::Linear, { 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
     });
 }
 
 TEST_CASE("Multi-pass render") {
-    renderTest<true>(
-        "MultiPass1", Size{ 256, 256 }, [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
-            {
-                RenderPipeline pipeline(encoder, target, Palette::transparent);
-                RawCanvas canvas(pipeline);
-                Rectangle rect({}, Size{ 256, 256 });
-                canvas.drawRectangle(rect, 0.f,
-                                     std::tuple{ fillColors     = { Palette::red, Palette::transparent },
-                                                 linearGradient = { { 0, 0 }, { 0, 256 } },
-                                                 strokeWidth    = 0.f });
-            }
-            {
-                RenderPipeline pipeline(encoder, target, std::nullopt);
-                RawCanvas canvas(pipeline);
-                Rectangle rect({}, Size{ 256, 256 });
-                canvas.drawRectangle(rect, 0.f,
-                                     std::tuple{ fillColors     = { Palette::blue, Palette::transparent },
-                                                 linearGradient = { { 0, 0 }, { 256, 0 } },
-                                                 strokeWidth    = 0.f });
-            }
-        });
+    renderTest<true>("MultiPass1", Size{ 256, 256 },
+                     [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
+                         {
+                             RenderPipeline pipeline(encoder, target, Palette::transparent);
+                             Canvas canvas(pipeline);
+                             Rectangle rect({}, Size{ 256, 256 });
+                             canvas.setFillPaint(Gradient(GradientType::Linear, { 0, 0 }, { 0, 256 },
+                                                          Palette::red, Palette::transparent));
+                             canvas.fillRect(rect);
+                         }
+                         {
+                             RenderPipeline pipeline(encoder, target, std::nullopt);
+                             Canvas canvas(pipeline);
+                             Rectangle rect({}, Size{ 256, 256 });
+                             canvas.setFillPaint(Gradient(GradientType::Linear, { 0, 0 }, { 256, 0 },
+                                                          Palette::blue, Palette::transparent));
+                             canvas.fillRect(rect);
+                         }
+                     });
 }
 
 TEST_CASE("Shadow") {
@@ -776,16 +757,12 @@ TEST_CASE("Canvas optimization") {
 
 TEST_CASE("Canvas scissors") {
     renderTest("canvas-scissors1", Size{ 256, 256 }, [](RenderContext& context) {
-        RawCanvas canvas(context);
-        canvas.drawRectangle(Rectangle{ 10, 10, 246, 246 }, 0.f,
-                             std::tuple{ scissors  = RectangleF{ 0, 0, 128, 128 },
-                                         fillColor = Palette::Standard::lime, strokeWidth = 2.f });
-    });
-    renderTest("canvas-scissors2", Size{ 256, 256 }, [](RenderContext& context) {
-        RawCanvas canvas(context);
-        canvas.drawRectangle(Rectangle{ 10, 10, 246, 246 }, 0.f,
-                             std::tuple{ scissors  = Quad3{ PointF(256, 0), PointF(128, 128), PointF(0, 0) },
-                                         fillColor = Palette::Standard::lime, strokeWidth = 2.f });
+        Canvas canvas(context);
+        canvas.setStrokeColor(Palette::black);
+        canvas.setStrokeWidth(2.f);
+        canvas.setFillColor(Palette::Standard::lime);
+        canvas.setClipRect(RectangleF{ 0, 0, 128, 128 });
+        canvas.drawRect(Rectangle{ 10, 10, 246, 246 });
     });
 }
 

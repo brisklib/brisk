@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #pragma once
 
 #include "Matrix.hpp"
@@ -140,119 +160,6 @@ struct Quad3 {
           } {}
 };
 
-namespace Tag {
-
-struct SubpixelMode {
-    using Type = Brisk::SubpixelMode;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct FillColor {
-    using Type = ColorF;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct StrokeColor {
-    using Type = ColorF;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct FillColors {
-    using Type = GradientColors;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct StrokeColors {
-    using Type = GradientColors;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct PaintOpacity {
-    using Type = float;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct StrokeWidth {
-    using Type = float;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct Multigradient {
-    using Type = RC<GradientResource>;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-template <GradientType grad_type>
-struct FillGradient {
-    using Type = GradientPoints;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct Scissor {
-    using Type = Quad3;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct Patterns {
-    using Type = PatternCodes;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct BlurRadius {
-    using Type = float;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct BlurDirections {
-    using Type = int;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct TextureChannel {
-    using Type = int;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct CoordMatrix {
-    using Type = Matrix;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct SamplerMode {
-    using Type = Brisk::SamplerMode;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-struct Scissors {
-    using Type = Quad3;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
-} // namespace Tag
-
-inline namespace Arg {
-
-constexpr inline Argument<Tag::FillColor> fillColor{};
-constexpr inline Argument<Tag::StrokeColor> strokeColor{};
-constexpr inline Argument<Tag::FillColors> fillColors{};
-constexpr inline Argument<Tag::StrokeColors> strokeColors{};
-constexpr inline Argument<Tag::StrokeWidth> strokeWidth{};
-constexpr inline Argument<Tag::PaintOpacity> paintOpacity{};
-constexpr inline Argument<Tag::FillGradient<GradientType::Linear>> linearGradient{};
-constexpr inline Argument<Tag::FillGradient<GradientType::Radial>> radialGradient{};
-constexpr inline Argument<Tag::FillGradient<GradientType::Angle>> angleGradient{};
-constexpr inline Argument<Tag::FillGradient<GradientType::Reflected>> reflectedGradient{};
-constexpr inline Argument<Tag::Multigradient> multigradient{};
-constexpr inline Argument<Tag::Patterns> patterns{};
-constexpr inline Argument<Tag::BlurRadius> blurRadius{};
-constexpr inline Argument<Tag::BlurDirections> blurDirections{};
-constexpr inline Argument<Tag::TextureChannel> textureChannel{};
-constexpr inline Argument<Tag::CoordMatrix> coordMatrix{};
-constexpr inline Argument<Tag::SamplerMode> samplerMode{};
-constexpr inline Argument<Tag::Scissors> scissors{};
-
-} // namespace Arg
-
 constexpr int multigradientColorMix      = -10;
 
 using TextureId                          = uint32_t;
@@ -264,14 +171,14 @@ struct RenderState {
     bool operator==(const RenderState& state) const;
 
 public:
-    // ---------------- SPECIAL [1] ----------------
+    // ---------------- CONTROL ----------------
     int dataOffset = 0; ///< Offset in data4 for current operation (multiply by 4 to get offset in data1)
     int dataSize   = 0; ///< Data size in floats
     int instances  = 1; ///< Number of quads to render
     int unused     = 0;
 
 public:
-    // ---------------- GLOBAL [5] ----------------
+    // ---------------- SHADER -----------------
     ShaderType shader   = ShaderType::Rectangles; ///< Type of geometry to generate
     TextureId textureId = textureIdNone;          ///<
 
@@ -282,12 +189,9 @@ public:
     SubpixelMode subpixelMode = SubpixelMode::Off;
 
     PatternCodes pattern{};
-    int reserved1 = 0;
-    int reserved2 = 0;
-    float opacity = 1.f; ///< Opacity. Defaults to 1
-
-public:
-    // ---------------- texture [4] ----------------
+    int reserved1         = 0;
+    int reserved2         = 0;
+    float opacity         = 1.f; ///< Opacity. Defaults to 1
 
     int32_t multigradient = -1; ///< Gradient (-1 - disabled)
     int blurDirections    = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
@@ -298,28 +202,25 @@ public:
     SamplerMode samplerMode = SamplerMode::Clamp;         ///<
     float blurRadius        = 0.f;                        ///<
 
-public:
-    // ---------------- rectangles, arcs [6] ----------------
+    ColorF fillColor1       = Palette::white; ///< Fill (brush) color for gradient at 0%
+    ColorF fillColor2       = Palette::white; ///< Fill (brush) color for gradient at 100%
+    ColorF strokeColor1     = Palette::black; ///< Stroke (pen) color for gradient at 0%
+    ColorF strokeColor2     = Palette::black; ///< Stroke (pen) color for gradient at 100%
 
-    ColorF fillColor1     = Palette::white; ///< Fill (brush) color for gradient at 0%
-    ColorF fillColor2     = Palette::white; ///< Fill (brush) color for gradient at 100%
-    ColorF strokeColor1   = Palette::black; ///< Stroke (pen) color for gradient at 0%
-    ColorF strokeColor2   = Palette::black; ///< Stroke (pen) color for gradient at 100%
+    PointF gradientPoint1   = { 0.f, 0.f };     ///< 0% Gradient point
+    PointF gradientPoint2   = { 100.f, 100.f }; ///< 100% Gradient point
 
-    PointF gradientPoint1 = { 0.f, 0.f };     ///< 0% Gradient point
-    PointF gradientPoint2 = { 100.f, 100.f }; ///< 100% Gradient point
-
-    float strokeWidth     = 1.f; ///< Stroke or shadow width. Defaults to 1. Set to 0 to disable
-    GradientType gradient = GradientType::Linear;
+    float strokeWidth       = 1.f; ///< Stroke or shadow width. Defaults to 1. Set to 0 to disable
+    GradientType gradient   = GradientType::Linear;
 
     union {
         Internal::ImageBackend* imageBackend = nullptr;
         uint64_t dummy;
     };
 
-public:
     Rectangle shaderClip = noClipRect;
 
+public:
     bool compare(const RenderState& second) const;
     void premultiply();
 
@@ -355,13 +256,6 @@ struct RenderStateEx : RenderState {
     RC<GradientResource> gradientHandle;
     SpriteResources sprites;
 };
-
-template <GradientType grad_type>
-void Tag::FillGradient<grad_type>::apply(const GradientPoints& value, RenderStateEx& state) {
-    state.gradient       = grad_type;
-    state.gradientPoint1 = value.point1;
-    state.gradientPoint2 = value.point2;
-}
 
 static_assert(sizeof(RenderState) % 256 == 0, "sizeof(RenderState) % 256 == 0");
 

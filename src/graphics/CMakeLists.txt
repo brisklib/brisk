@@ -25,7 +25,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/ImageTransform.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Color.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Matrix.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/graphics/RawCanvas.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Canvas.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/SVG.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/RenderState.hpp
@@ -41,7 +40,8 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageTransform.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Html.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/RawCanvas.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.hpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Canvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/RenderState.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/OpenType.cpp
