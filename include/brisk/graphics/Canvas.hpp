@@ -67,7 +67,8 @@ protected:
 
 private:
     int m_rasterizedPaths = 0;
-    void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint);
+    void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint,
+                            Quad3 scissors);
     static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect);
 };
 
@@ -387,6 +388,11 @@ public:
     void fillText(PointF position, const PreparedText& text);
 
     void fillText(PointF position, PointF alignment, const PreparedText& text);
+
+    void fillTextSelection(PointF position, const PreparedText& text, Range<uint32_t> selection);
+
+    void fillTextSelection(PointF position, PointF alignment, const PreparedText& text,
+                           Range<uint32_t> selection);
 
     /**
      * @brief Strokes a line between two points.

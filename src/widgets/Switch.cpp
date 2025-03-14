@@ -70,8 +70,8 @@ void switchPainter(Canvas& canvas, const Widget& widget_) {
     canvas.fillRect(innerRect, innerRect.shortestSide() * 0.5f);
 }
 
-void Switch::paint(Canvas& canvas_) const {
-    switchPainter(canvas_, *this);
+void Switch::paint(Canvas& canvas) const {
+    switchPainter(canvas, *this);
 }
 
 RC<Widget> Switch::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }

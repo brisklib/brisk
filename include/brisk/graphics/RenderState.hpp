@@ -131,7 +131,8 @@ struct Quad3 {
 
     constexpr Quad3(PointF p1, PointF p2, PointF p3) : points{ p1, p2, p3 } {}
 
-    constexpr Quad3(RectangleF rect)
+    template <typename T>
+    constexpr Quad3(RectangleOf<T> rect)
         : points{
               rect.p1,
               PointF(rect.p2.x, rect.p1.y),
@@ -259,8 +260,6 @@ constexpr inline TextureId textureIdNone = static_cast<TextureId>(-1);
 
 struct RenderBuffer;
 
-constexpr inline RectangleF noScissors{ -16777216, -16777216, 16777216, 16777216 };
-
 struct RenderState {
     bool operator==(const RenderState& state) const;
 
@@ -276,7 +275,7 @@ public:
     ShaderType shader   = ShaderType::Rectangles; ///< Type of geometry to generate
     TextureId textureId = textureIdNone;          ///<
 
-    Quad3 scissorQuad   = noScissors;
+    Quad3 scissorQuad   = noClipRect;
 
     Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     int spriteOversampling    = 1;

@@ -81,10 +81,12 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
     }
 }
 
-void BasicCanvas::drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint) {
+void BasicCanvas::drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint,
+                                     Quad3 scissors) {
     ++m_rasterizedPaths;
     RenderStateEx renderState(ShaderType::Mask, 1, nullptr);
     applier(&renderState, paint);
+    renderState.scissorQuad = scissors;
     prepareStateInplace(renderState);
     GeometryGlyphs data = Internal::pathLayout(renderState.sprites, path);
     if (!data.empty()) {
@@ -93,9 +95,10 @@ void BasicCanvas::drawRasterizedPath(const RasterizedPath& path, const Internal:
 }
 
 Rectangle BasicCanvas::transformedClipRect(const Matrix& matrix, RectangleF clipRect) {
-    return horizontalMax(clipRect.p1.v) <= -16777216 && horizontalMin(clipRect.p2.v) >= 16777216
+    return horizontalMax(clipRect.p1.v) <= float(INT32_MIN) &&
+                   horizontalMin(clipRect.p2.v) >= float(INT32_MAX)
                ? noClipRect
-               : Rectangle(matrix.transform(clipRect));
+               : Rectangle(matrix.transform(clipRect).roundOutward());
 }
 
 static bool sdfCompat(const FillParams& fillParams) {
@@ -164,7 +167,7 @@ void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& 
     }
     path = std::move(path).transformed(matrix);
     drawRasterizedPath(path.rasterize(fillParams, transformedClipRect(matrix, clipRect)),
-                       Internal::PaintAndTransform{ fillPaint, matrix, opacity });
+                       Internal::PaintAndTransform{ fillPaint, matrix, opacity }, clipRect);
 }
 
 void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
@@ -199,7 +202,7 @@ void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokePa
     path        = std::move(path).transformed(matrix);
     float scale = matrix.estimateScale();
     drawRasterizedPath(path.rasterize(strokeParams.scale(scale), transformedClipRect(matrix, clipRect)),
-                       Internal::PaintAndTransform{ strokePaint, matrix, opacity });
+                       Internal::PaintAndTransform{ strokePaint, matrix, opacity }, clipRect);
 }
 
 const Canvas::State Canvas::defaultState{
@@ -347,7 +350,8 @@ void Canvas::drawRect(RectangleF rect, CornersF borderRadius, bool squircle) {
 
 void Canvas::blurRect(RectangleF rect, float blurRadius, CornersF borderRadius, bool squircle) {
     drawShadow(rect, borderRadius,
-               std::tuple{ scissors = m_state.clipRect, Arg::blurRadius = blurRadius * 0.36f, strokeWidth = 0.f,
+               std::tuple{ scissors = m_state.clipRect, Arg::blurRadius = blurRadius * 0.36f,
+                           strokeWidth = 0.f,
                            Internal::PaintAndTransform{ m_state.fillPaint, Matrix{}, m_state.opacity },
                            &m_state.transform });
 }
@@ -555,5 +559,20 @@ Canvas::ClipRectSaver::~ClipRectSaver() {
 
 Canvas::ClipRectSaver Canvas::saveClipRect() & {
     return { *this };
+}
+
+void Canvas::fillTextSelection(PointF position, const PreparedText& text, Range<uint32_t> selection) {
+    drawTextSelection(position, text, selection,
+                      std::tuple{ scissors = m_state.clipRect, strokeWidth = 0.f,
+                                  Internal::PaintAndTransform{ m_state.fillPaint, Matrix{}, m_state.opacity },
+                                  &m_state.transform });
+}
+
+void Canvas::fillTextSelection(PointF position, PointF alignment, const PreparedText& text,
+                               Range<uint32_t> selection) {
+    if (alignment != PointF{}) {
+        position -= text.bounds().size() * alignment;
+    }
+    fillTextSelection(position, text, selection);
 }
 } // namespace Brisk

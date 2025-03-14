@@ -59,8 +59,8 @@ void spinnerPainter(Canvas& canvas, const Widget& widget) {
     }
 }
 
-void Spinner::paint(Canvas& canvas_) const {
-    spinnerPainter(canvas_, *this);
+void Spinner::paint(Canvas& canvas) const {
+    spinnerPainter(canvas, *this);
 }
 
 void Spinner::start() {

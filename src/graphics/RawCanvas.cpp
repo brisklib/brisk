@@ -186,7 +186,6 @@ RawCanvas& RawCanvas::drawTextSelection(PointF pos, const PreparedText& prepared
 }
 
 RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, RenderStateExArgs args) {
-
     SpriteResources sprites;
     uint32_t runIndex = 0;
     while (runIndex < prepared.runs.size()) {

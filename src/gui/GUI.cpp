@@ -1157,6 +1157,7 @@ void Widget::paintScrollBar(Canvas& canvas, Orientation orientation,
 }
 
 void Widget::paintScrollBars(Canvas& canvas) const {
+    canvas.setClipRect(m_clipRect);
     for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
         if (hasScrollBar(orientation)) {
             paintScrollBar(canvas, orientation, scrollBarGeometry(orientation));
@@ -1182,6 +1183,7 @@ void Widget::doPaint(Canvas& canvas) const {
             paint(canvas);
     }
     paintChildren(canvas);
+    canvas.setClipRect(m_clipRect);
     if (needsPaint) {
         postPaint(canvas);
         paintScrollBars(canvas);
@@ -1202,24 +1204,22 @@ void Widget::doPaint(Canvas& canvas) const {
     }
 }
 
-constexpr Range<float> focusFrameWidth = { 1.8f, 3.0f };
+constexpr Range<float> focusFrameWidth = { 0, 0.75f };
 
 static float remap(float x, float inmin, float inmax, float outmin, float outmax) {
     return (x - inmin) / (inmax - inmin) * (outmax - outmin) + outmin;
 }
 
-void Widget::paintFocusFrame(Canvas& canvas_) const {
+void Widget::paintFocusFrame(Canvas& canvas) const {
     if (isKeyFocused()) {
         float t = std::sin(static_cast<float>(frameStartTime * 2.5f));
         if (!m_tree)
             return;
         float val = dp(remap(t, -1.0f, +1.0f, focusFrameWidth.min, focusFrameWidth.max));
         m_tree->requestLayer([val, this](Canvas& canvas) {
-            canvas.raw().drawShadow(RectangleF(m_rect).withMargin(val, val),
-                                    std::copysign(std::min(RectangleF(m_rect).shortestSide() * 0.5f,
-                                                           val + std::abs(m_borderRadius.resolved.max())),
-                                                  m_borderRadius.resolved.max()),
-                                    std::tuple{ blurRadius = val * 0.36f, fillColor = 0x03a1fc_rgb });
+            canvas.setStrokeColor(0x03a1fc'C0_rgba);
+            canvas.setStrokeWidth(1_dp);
+            canvas.strokeRect(RectangleF(m_rect).withMargin(val), m_borderRadius.resolved, m_squircleCorners);
         });
     }
 }
@@ -1237,15 +1237,15 @@ void Widget::paintHint(Canvas& canvas) const {
             canvas.setFillColor(shadowColor);
             canvas.blurRect(m_hintRect, dp(hintShadowSize), 4._dp, m_squircleCorners);
             canvas.setFillColor(color);
-            canvas.fillRect(m_hintRect, -5._dp);
+            canvas.fillRect(m_hintRect, 5._dp, m_squircleCorners);
             canvas.setFillColor(Palette::black);
             canvas.fillText(m_hintRect.center() + m_hintTextOffset, m_hintPrepared);
         });
     }
 }
 
-void Widget::paintBackground(Canvas& canvas_, Rectangle rect) const {
-    boxPainter(canvas_, *this, rect);
+void Widget::paintBackground(Canvas& canvas, Rectangle rect) const {
+    boxPainter(canvas, *this, rect);
 }
 
 void Widget::updateState(WidgetState& state, const Event& event, Rectangle rect) {
@@ -2300,25 +2300,25 @@ void Painter::paint(Canvas& canvas, const Widget& w) const {
     }
 }
 
-void boxPainter(Canvas& canvas_, const Widget& widget) {
-    boxPainter(canvas_, widget, widget.rect());
+void boxPainter(Canvas& canvas, const Widget& widget) {
+    boxPainter(canvas, widget, widget.rect());
 }
 
-void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
+void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
     ColorW m_backgroundColor = widget.backgroundColor.current().multiplyAlpha(widget.opacity.get());
     ColorW m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.get());
 
     if (widget.shadowSize.resolved() > 0) {
-        auto&& clipRect = canvas_.saveClipRect();
+        auto&& clipRect = canvas.saveClipRect();
         if (widget.parent()) {
             if (widget.zorder != ZOrder::Normal || widget.clip == WidgetClip::None)
-                *clipRect = noScissors;
+                *clipRect = noClipRect;
             else
                 *clipRect = RectangleF(widget.parent()->clipRect());
         }
 
-        canvas_.setFillColor(widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
-        canvas_.blurRect(rect, widget.shadowSize.resolved(), widget.borderRadius.resolved());
+        canvas.setFillColor(widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
+        canvas.blurRect(rect, widget.shadowSize.resolved(), widget.borderRadius.resolved());
     }
 
     EdgesF borderWidth = widget.computedBorderWidth();
@@ -2330,28 +2330,28 @@ void boxPainter(Canvas& canvas_, const Widget& widget, RectangleF rect) {
         float maxBorderRadius = borderRadius.max();
         RectangleF innerRect  = rect.withPadding(borderWidth * 0.5f);
 
-        canvas_.setFillColor(m_backgroundColor);
+        canvas.setFillColor(m_backgroundColor);
         if (maxBorderWidth == borderWidth.min() &&
             (maxBorderRadius == 0 || maxBorderRadius > maxBorderWidth * 0.5f)) {
             // Edges widths are equal
-            canvas_.setStrokeColor(m_borderColor);
-            canvas_.setStrokeWidth(maxBorderWidth);
-            canvas_.drawRect(innerRect,
-                             CornersF(max(borderRadius.v - maxBorderWidth * 0.5f, SIMD<float, 4>(0))),
-                             squircle);
+            canvas.setStrokeColor(m_borderColor);
+            canvas.setStrokeWidth(maxBorderWidth);
+            canvas.drawRect(innerRect,
+                            CornersF(max(borderRadius.v - maxBorderWidth * 0.5f, SIMD<float, 4>(0))),
+                            squircle);
         } else {
             SIMD<float, 4> corr = borderWidth.v.shuffle(size_constants<0, 1, 3, 2>{}) +
                                   borderWidth.v.shuffle(size_constants<1, 2, 0, 3>{});
             corr *= 0.5f;
-            canvas_.fillRect(innerRect, CornersF(max(borderRadius.v - corr * 0.5f, SIMD<float, 4>(0))),
-                             squircle);
+            canvas.fillRect(innerRect, CornersF(max(borderRadius.v - corr * 0.5f, SIMD<float, 4>(0))),
+                            squircle);
             Path path;
             path.addRoundRect(rect, CornersF(borderRadius.v), squircle, Path::Direction::CW);
             path.addRoundRect(rect.withPadding(borderWidth),
                               CornersF(max(borderRadius.v - corr, SIMD<float, 4>(0))), squircle,
                               Path::Direction::CCW);
-            canvas_.setFillColor(m_borderColor);
-            canvas_.fillPath(path);
+            canvas.setFillColor(m_borderColor);
+            canvas.fillPath(path);
         }
     }
 }

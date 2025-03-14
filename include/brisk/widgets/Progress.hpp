@@ -98,6 +98,4 @@ protected:
     void onLayoutUpdated() override;
 };
 
-void paintProgressIndicator(Canvas& canvas, RectangleF rect, int circles = 3);
-
 } // namespace Brisk

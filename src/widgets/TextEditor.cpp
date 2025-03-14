@@ -197,12 +197,7 @@ void TextEditor::paint(Canvas& canvas) const {
 
     canvas.setFillColor(ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
     Point pos = m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset);
-    canvas.raw().drawTextSelection(
-        pos, m_preparedText, selection,
-        std::tuple{ scissors = canvas.getClipRect().value_or(noScissors), strokeWidth = 0.f,
-                    fillColor =
-                        ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f) });
-
+    canvas.fillTextSelection(pos, m_preparedText, selection);
     canvas.setFillColor(textColor);
     canvas.fillText(pos, m_preparedText);
 

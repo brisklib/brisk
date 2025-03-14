@@ -22,8 +22,8 @@
 
 namespace Brisk {
 
-void Guide::paint(Canvas& canvas_) const {
-    Widget::paint(canvas_);
+void Guide::paint(Canvas& canvas) const {
+    Widget::paint(canvas);
     if (!m_tree)
         return;
     for (auto& f : m_focus) {
