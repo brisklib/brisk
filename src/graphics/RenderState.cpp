@@ -68,10 +68,6 @@ void Tag::PaintOpacity::apply(const Tag::PaintOpacity::Type& value, RenderStateE
     state.opacity = value;
 }
 
-void Tag::ContourSize::apply(const Tag::ContourSize::Type& value, RenderStateEx& state) {
-    state.strokeWidth = value * 2;
-}
-
 void Tag::StrokeWidth::apply(const Tag::StrokeWidth::Type& value, RenderStateEx& state) {
     state.strokeWidth = value;
 }

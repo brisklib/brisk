@@ -551,13 +551,13 @@ TEST_CASE("Shadow") {
     renderTest(
         "shadows", Size{ 1536, 256 },
         [&](RenderContext& context) {
-            RawCanvas canvas(context);
+            Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
                 context.setClipRect(box);
                 float shadowSize = 2 << i;
-                canvas.drawShadow(box.withPadding(64.f), 0.f,
-                                  std::tuple{ contourSize = shadowSize, fillColor = Palette::black });
+                canvas.setFillColor(Palette::black);
+                canvas.blurRect(box.withPadding(64.f), shadowSize);
             }
         },
         Palette::white);
@@ -565,26 +565,26 @@ TEST_CASE("Shadow") {
     renderTest(
         "shadows-rounded", Size{ 1536, 256 },
         [&](RenderContext& context) {
-            RawCanvas canvas(context);
+            Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
                 context.setClipRect(box);
                 float boxRadius = 2 << i;
-                canvas.drawShadow(box.withPadding(64.f), boxRadius,
-                                  std::tuple{ contourSize = 16.f, fillColor = Palette::black });
+                canvas.setFillColor(Palette::black);
+                canvas.blurRect(box.withPadding(64.f), 16.f, boxRadius);
             }
         },
         Palette::white);
     renderTest(
         "shadows-rounded2", Size{ 1536, 256 },
         [&](RenderContext& context) {
-            RawCanvas canvas(context);
+            Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
                 context.setClipRect(box);
                 float shadowSize = 1 << i;
-                canvas.drawShadow(box.withPadding(64.f), { 0.f, 32.f, 8.f, 0.f },
-                                  std::tuple{ contourSize = shadowSize, fillColor = Palette::black });
+                canvas.setFillColor(Palette::black);
+                canvas.blurRect(box.withPadding(64.f), shadowSize, { 0.f, 32.f, 8.f, 0.f });
             }
         },
         Palette::white);
@@ -787,6 +787,32 @@ TEST_CASE("Canvas scissors") {
                              std::tuple{ scissors  = Quad3{ PointF(256, 0), PointF(128, 128), PointF(0, 0) },
                                          fillColor = Palette::Standard::lime, strokeWidth = 2.f });
     });
+}
+
+TEST_CASE("Semitransparent fill and stroke") {
+    for (CanvasFlags flags : { CanvasFlags::None, CanvasFlags::SDF }) {
+        renderTest("canvas-semitransparent-fs", Size{ 64, 64 }, [flags](RenderContext& context) {
+            Canvas canvas(context, flags);
+            canvas.setFillColor(Palette::white.multiplyAlpha(0.5f));
+            canvas.setStrokeColor(Palette::black.multiplyAlpha(0.5f));
+            canvas.setStrokeWidth(8);
+            canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+        });
+        renderTest("canvas-semitransparent2-s", Size{ 64, 64 }, [flags](RenderContext& context) {
+            Canvas canvas(context, flags);
+            canvas.setFillColor(Palette::white);
+            canvas.setStrokeColor(Palette::black.multiplyAlpha(0.5f));
+            canvas.setStrokeWidth(8);
+            canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+        });
+        renderTest("canvas-semitransparent-f", Size{ 64, 64 }, [flags](RenderContext& context) {
+            Canvas canvas(context, flags);
+            canvas.setFillColor(Palette::white.multiplyAlpha(0.5f));
+            canvas.setStrokeColor(Palette::black);
+            canvas.setStrokeWidth(8);
+            canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+        });
+    }
 }
 
 #ifdef BRISK_WEBGPU

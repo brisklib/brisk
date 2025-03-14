@@ -264,9 +264,22 @@ RectangleF Path::boundingBoxApprox() const {
     return result;
 }
 
-std::optional<std::tuple<RectangleF, float>> Path::asRoundRectangle() const {
+static bool comparePoints(const std::vector<VPointF>& a, const std::vector<VPointF>& b) {
+    if (a.size() != b.size())
+        return false;
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (!fuzzyCompare(a[i], b[i]))
+            return false;
+    }
+    return true;
+}
+
+std::optional<std::tuple<RectangleF, float, bool>> Path::asRoundRectangle() const {
     if (auto rect = asRectangle()) {
-        return std::make_tuple(*rect, 0.f);
+        return std::make_tuple(*rect, 0.f, false);
+    }
+    if (auto rect = asCircle()) {
+        return std::make_tuple(*rect, rect->size().longestSide() * 0.5f, false);
     }
     auto r    = v(this);
     auto& pts = r->points();
@@ -292,15 +305,16 @@ std::optional<std::tuple<RectangleF, float>> Path::asRoundRectangle() const {
         return std::nullopt;
     float rx = pts[5].x() - pts[8].x();
     float ry = pts[4].y() - pts[1].y();
-    if (rx != ry)
+    if (!vCompare(rx, ry))
         return std::nullopt;
+    float kappa   = (pts[14].x() - pts[13].x()) / (pts[15].x() - pts[13].x());
+    bool squircle = kappa > 0.6f;
     VPath path;
-    path.addRoundRect(v(rect), rx);
-    for (size_t i = 0; i < 17; ++i) {
-        if (!fuzzyCompare(path.points()[i], r->points()[i]))
-            return std::nullopt;
-    }
-    return std::make_tuple(rect, rx);
+    path.addRoundRect(v(rect), rx, squircle);
+    if (comparePoints(path.points(), r->points()))
+        return std::make_tuple(rect, rx, squircle);
+
+    return std::nullopt;
 }
 
 std::optional<RectangleF> Path::asRectangle() const {
@@ -321,6 +335,26 @@ std::optional<RectangleF> Path::asRectangle() const {
         std::max(pts[0].x(), pts[3].x()),
         std::max(pts[0].y(), pts[1].y()),
     };
+}
+
+std::optional<RectangleF> Path::asCircle() const {
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || r->elements().size() != 6 || pts.size() != 13 || !fuzzyCompare(pts[12], pts[0]))
+        return std::nullopt;
+
+    RectangleF rect{
+        pts[9].x(),
+        pts[0].y(),
+        pts[3].x(),
+        pts[6].y(),
+    };
+    VPath path;
+    path.addOval(v(rect));
+    if (comparePoints(path.points(), r->points()))
+        return rect;
+
+    return std::nullopt;
 }
 
 std::optional<std::array<PointF, 2>> Path::asLine() const {

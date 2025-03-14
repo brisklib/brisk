@@ -95,31 +95,64 @@ static Event mousePress(float x, float y) {
     return event;
 }
 
-TEST_CASE("WidgetRendering") {
+TEST_CASE("Widget Text") {
     widgetTest("widget-text", rcnew Text{ "Text" });
+}
+
+TEST_CASE("Widget Button") {
     widgetTest("widget-button", rcnew Button{ rcnew Text{ "Button" } });
+}
 
+TEST_CASE("Widget Button Hovered") {
     widgetTest("widget-button-hovered", rcnew Button{ rcnew Text{ "Button" } }, { mouseMove(180, 60) });
-    widgetTest("widget-button-pressed", rcnew Button{ rcnew Text{ "Button" } }, { mousePress(180, 60) });
-    widgetTest("widget-button-disabled", rcnew Button{ rcnew Text{ "Button" }, disabled = true });
+}
 
+TEST_CASE("Widget Button Pressed") {
+    widgetTest("widget-button-pressed", rcnew Button{ rcnew Text{ "Button" } }, { mousePress(180, 60) });
+}
+
+TEST_CASE("Widget Button Disabled") {
+    widgetTest("widget-button-disabled", rcnew Button{ rcnew Text{ "Button" }, disabled = true });
+}
+
+TEST_CASE("Widget ToggleButton") {
     widgetTest("widget-togglebutton", rcnew Row{ rcnew ToggleButton{ rcnew Text{ "On" }, value = true },
                                                  rcnew ToggleButton{ rcnew Text{ "Off" }, value = false } });
+}
+
+TEST_CASE("Widget CheckBox") {
     widgetTest("widget-checkbox", rcnew Row{ rcnew CheckBox{ rcnew Text{ "On" }, value = true },
                                              rcnew CheckBox{ rcnew Text{ "Off" }, value = false } });
+}
+
+TEST_CASE("Widget Switch") {
     widgetTest("widget-switch", rcnew Row{ rcnew Switch{ rcnew Text{ "On" }, value = true },
                                            rcnew Switch{ rcnew Text{ "Off" }, value = false } });
+}
+
+TEST_CASE("Widget RadioButton") {
     widgetTest("widget-radiobutton", rcnew Row{ rcnew RadioButton{ rcnew Text{ "On" }, value = true },
                                                 rcnew RadioButton{ rcnew Text{ "Off" }, value = false } });
+}
 
+TEST_CASE("Widget Button with color") {
     widgetTest("widget-button-color", rcnew Button{ rcnew Text{ "Button with color applied" },
                                                     Graphene::mainColor = Palette::Standard::amber });
+}
+
+TEST_CASE("Widget Button with icon") {
     widgetTest("widget-button-icon", rcnew Button{
                                          rcnew Text{ "Button with icon " ICON_calendar_1 },
                                      });
+}
+
+TEST_CASE("Widget Button with emoji") {
     widgetTest("widget-button-emoji", rcnew Button{
                                           rcnew Text{ "Button with emoji 🏆" },
                                       });
+}
+
+TEST_CASE("Widget Button with SVG") {
     widgetTest("widget-button-svg",
                rcnew Button{ rcnew SVGImageView{
                    R"SVG(<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
@@ -133,7 +166,9 @@ TEST_CASE("WidgetRendering") {
     fill="#b5dcff"/></svg>)SVG",
                    dimensions = { 24, 24 },
                } });
+}
 
+TEST_CASE("Widget ComboBox Text") {
     widgetTest("widget-combobox",
                rcnew ComboBox{
                    value     = 2,
@@ -148,6 +183,9 @@ TEST_CASE("WidgetRendering") {
                    },
                },
                {}, { 360, 360 });
+}
+
+TEST_CASE("Widget ComboBox Color") {
     widgetTest("widget-combobox-color",
                rcnew ComboBox{
                    value     = 1,
@@ -162,8 +200,13 @@ TEST_CASE("WidgetRendering") {
                    },
                },
                {}, { 360, 360 });
+}
 
+TEST_CASE("Widget Knob") {
     widgetTest("widget-knob", rcnew Knob{ value = 0.5f, minimum = 0, maximum = 1 });
+}
+
+TEST_CASE("Widget Slider") {
     widgetTest("widget-slider", rcnew Slider{ width = 160_apx, value = 50, minimum = 0, maximum = 100 });
 }
 } // namespace Brisk

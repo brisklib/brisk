@@ -39,7 +39,7 @@ Rules darkColors() {
         squircleCorners = true,
         menuColor       = 0xFDFDFD_rgb,
         animationSpeed  = 1.f,
-        boxBorderColor  = 0x000000'A0_rgba,
+        boxBorderColor  = 0x070709_rgb,
         shadeColor      = 0x000000'88_rgba,
         deepColor       = 0x000000_rgb,
     };
@@ -56,7 +56,7 @@ Rules lightColors() {
         squircleCorners = true,
         menuColor       = 0xFDFDFD_rgb,
         animationSpeed  = 1.f,
-        boxBorderColor  = 0x000000'1F_rgba,
+        boxBorderColor  = 0xDCDCDC_rgb,
         shadeColor      = 0x000000'54_rgba,
         deepColor       = 0x8D8D8D_rgb,
     };

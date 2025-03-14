@@ -171,11 +171,6 @@ struct PaintOpacity {
     static void apply(const Type& value, RenderStateEx& state);
 };
 
-struct ContourSize {
-    using Type = float;
-    static void apply(const Type& value, RenderStateEx& state);
-};
-
 struct StrokeWidth {
     using Type = float;
     static void apply(const Type& value, RenderStateEx& state);
@@ -241,7 +236,6 @@ constexpr inline Argument<Tag::StrokeColor> strokeColor{};
 constexpr inline Argument<Tag::FillColors> fillColors{};
 constexpr inline Argument<Tag::StrokeColors> strokeColors{};
 constexpr inline Argument<Tag::StrokeWidth> strokeWidth{};
-constexpr inline Argument<Tag::ContourSize> contourSize{};
 constexpr inline Argument<Tag::PaintOpacity> paintOpacity{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Linear>> linearGradient{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Radial>> radialGradient{};

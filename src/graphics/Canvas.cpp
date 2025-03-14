@@ -137,6 +137,7 @@ void BasicCanvas::drawPath(Path path, const Paint& strokePaint, const StrokePara
             float scale = matrix.estimateScale();
             drawRectangle(std::get<0>(*rrect),
                           roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
+                          std::get<2>(*rrect),
                           std::tuple{ strokeWidth = strokeParams.strokeWidth, scissors = clipRect,
                                       Internal::PaintAndTransform{ strokePaint, Matrix{}, opacity, true },
                                       Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix });
@@ -155,6 +156,7 @@ void BasicCanvas::fillPath(Path path, const Paint& fillPaint, const FillParams& 
         if (auto rrect = path.asRoundRectangle()) {
             float scale = matrix.estimateScale();
             drawRectangle(std::get<0>(*rrect), roundRadius(JoinStyle::Round, std::get<1>(*rrect)) / scale,
+                          std::get<2>(*rrect),
                           std::tuple{ strokeWidth = 0.f, scissors = clipRect,
                                       Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix });
             return;
@@ -175,6 +177,7 @@ void BasicCanvas::strokePath(Path path, const Paint& strokePaint, const StrokePa
             float scale = matrix.estimateScale();
             drawRectangle(
                 std::get<0>(*rrect), roundRadius(strokeParams.joinStyle, std::get<1>(*rrect)) / scale,
+                std::get<2>(*rrect),
                 std::tuple{ strokeWidth = strokeParams.strokeWidth, fillColor = Palette::transparent,
                             scissors = clipRect,
                             Internal::PaintAndTransform{ strokePaint, matrix, opacity, true }, &matrix });
@@ -343,13 +346,8 @@ void Canvas::drawRect(RectangleF rect, CornersF borderRadius, bool squircle) {
 }
 
 void Canvas::blurRect(RectangleF rect, float blurRadius, CornersF borderRadius, bool squircle) {
-    Path path;
-    if (borderRadius.max() == 0.f)
-        path.addRect(rect);
-    else
-        path.addRoundRect(rect, borderRadius, squircle);
     drawShadow(rect, borderRadius,
-               std::tuple{ scissors = m_state.clipRect, contourSize = blurRadius, strokeWidth = 0.f,
+               std::tuple{ scissors = m_state.clipRect, Arg::blurRadius = blurRadius * 0.36f, strokeWidth = 0.f,
                            Internal::PaintAndTransform{ m_state.fillPaint, Matrix{}, m_state.opacity },
                            &m_state.transform });
 }

@@ -182,7 +182,12 @@ fn transform2D(pos: vec2<f32>) -> vec2<f32> {
 }
 
 fn margin() -> f32 {
-    return ceil(1.0 + constants.stroke_width * 0.5);
+    if constants.shader == shader_shadow {
+        return ceil(1.0 + constants.blur_radius / 0.18 * 0.5);
+    }
+    else {
+        return ceil(1.0 + constants.stroke_width * 0.5);
+    }
 }
 
 fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
@@ -395,21 +400,24 @@ fn toCoverage(sd: f32) -> f32 {
 }
 
 fn fillOnly(signed_distance: f32, colors: Colors) -> vec4<f32> {
-    let alpha = toCoverage(signed_distance);
-    return colors.brush * alpha;
+    return colors.brush * toCoverage(signed_distance);
 }
 
-fn fillAndStroke(stroke_signed_distance: f32, mask_signed_distance: f32, colors: Colors) -> vec4<f32> {
-    let border_alpha = toCoverage(stroke_signed_distance);
-    let mask_alpha = toCoverage(mask_signed_distance);
-    return mix(colors.brush, colors.stroke, border_alpha) * mask_alpha;
+fn blendNormalPremultiplied(src: vec4<f32>, dst: vec4<f32>) -> vec4<f32> {    
+    return vec4<f32>(src.rgb + dst.rgb * (1.0 - src.a), src.a + dst.a * (1.0 - src.a));
+}
+
+fn fillAndStroke(stroke_sd: f32, fill_sd: f32, colors: Colors) -> vec4<f32> {
+    let backColor = colors.brush * toCoverage(fill_sd);
+    let foreColor = colors.stroke * toCoverage(stroke_sd);
+    return blendNormalPremultiplied(foreColor, backColor);
 }
 
 fn signedDistanceToColor(sd: f32, canvas_coord: vec2<f32>, uv: vec2<f32>, rectSize: vec2<f32>) -> vec4<f32> {
     let colors: Colors = calcColors(canvas_coord);
     if constants.stroke_width > 0.0 {
-        var stroke_sd = -(constants.stroke_width * 0.5 + sd);
-        return fillAndStroke(stroke_sd, sd - constants.stroke_width * 0.5, colors);
+        let stroke_sd = abs(sd) - constants.stroke_width * 0.5;
+        return fillAndStroke(stroke_sd, sd, colors);
     } else {
         return fillOnly(sd, colors);
     }
@@ -607,7 +615,7 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
         }
         outColor = signedDistanceToColor(sd, in.canvas_coord, in.uv, in.data0.xy);
     } else if constants.shader == shader_shadow {
-        outColor = constants.fill_color1 * (roundedBoxShadow(in.data0.xy * 0.5, in.uv, constants.stroke_width * 0.18, in.data1));
+        outColor = constants.fill_color1 * (roundedBoxShadow(in.data0.xy * 0.5, in.uv, constants.blur_radius, in.data1));
     } else if constants.shader == shader_mask || constants.shader == shader_color_mask || constants.shader == shader_text {
         let sprite = i32(in.data0.z);
         let stride = u32(in.data0.w);

@@ -24,18 +24,22 @@ float2 transform2D(float2 pos) {
 }
 
 float margin() {
-  return ceil((1.0f + (asfloat(constants[14].x) * 0.5f)));
+  if ((asint(constants[1].x) == 3)) {
+    return ceil((1.0f + ((asfloat(constants[8].w) / 0.18000000715255737305f) * 0.5f)));
+  } else {
+    return ceil((1.0f + (asfloat(constants[14].x) * 0.5f)));
+  }
 }
 
 float4 norm_rect(float4 rect) {
   return float4(min(rect.xy, rect.zw), max(rect.xy, rect.zw));
 }
 
-struct tint_symbol_7 {
+struct tint_symbol_8 {
   uint vidx : SV_VertexID;
   uint inst : SV_InstanceID;
 };
-struct tint_symbol_8 {
+struct tint_symbol_9 {
   noperspective float4 data0 : TEXCOORD0;
   noperspective float4 data1 : TEXCOORD1;
   noperspective float2 uv : TEXCOORD2;
@@ -45,8 +49,8 @@ struct tint_symbol_8 {
 
 VertexOutput vertexMain_inner(uint vidx, uint inst) {
   VertexOutput output = (VertexOutput)0;
-  float2 tint_symbol_9[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
-  float2 position = tint_symbol_9[vidx];
+  float2 tint_symbol_10[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
+  float2 position = tint_symbol_10[vidx];
   float2 uv_coord = (position + (0.5f).xx);
   float4 outPosition = (0.0f).xxxx;
   bool tint_tmp = (asint(constants[1].x) == 0);
@@ -100,15 +104,15 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
     }
   }
   output.canvas_coord = outPosition.xy;
-  float2 tint_symbol_4 = transform2D(outPosition.xy);
-  float2 tint_symbol_5 = to_screen(tint_symbol_4);
-  output.position = float4(tint_symbol_5, outPosition.zw);
+  float2 tint_symbol_5 = transform2D(outPosition.xy);
+  float2 tint_symbol_6 = to_screen(tint_symbol_5);
+  output.position = float4(tint_symbol_6, outPosition.zw);
   return output;
 }
 
-tint_symbol_8 vertexMain(tint_symbol_7 tint_symbol_6) {
-  VertexOutput inner_result = vertexMain_inner(tint_symbol_6.vidx, tint_symbol_6.inst);
-  tint_symbol_8 wrapper_result = (tint_symbol_8)0;
+tint_symbol_9 vertexMain(tint_symbol_8 tint_symbol_7) {
+  VertexOutput inner_result = vertexMain_inner(tint_symbol_7.vidx, tint_symbol_7.inst);
+  tint_symbol_9 wrapper_result = (tint_symbol_9)0;
   wrapper_result.position = inner_result.position;
   wrapper_result.data0 = inner_result.data0;
   wrapper_result.data1 = inner_result.data1;

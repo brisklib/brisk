@@ -331,7 +331,8 @@ struct Path {
     RectangleF boundingBoxApprox() const;
 
     std::optional<RectangleF> asRectangle() const;
-    std::optional<std::tuple<RectangleF, float>> asRoundRectangle() const;
+    std::optional<RectangleF> asCircle() const;
+    std::optional<std::tuple<RectangleF, float, bool>> asRoundRectangle() const;
     std::optional<std::array<PointF, 2>> asLine() const;
 
     /// Rasterizes the path for filling.

@@ -1219,7 +1219,7 @@ void Widget::paintFocusFrame(Canvas& canvas_) const {
                                     std::copysign(std::min(RectangleF(m_rect).shortestSide() * 0.5f,
                                                            val + std::abs(m_borderRadius.resolved.max())),
                                                   m_borderRadius.resolved.max()),
-                                    std::tuple{ contourSize = val, fillColor = 0x03a1fc_rgb });
+                                    std::tuple{ blurRadius = val * 0.36f, fillColor = 0x03a1fc_rgb });
         });
     }
 }
