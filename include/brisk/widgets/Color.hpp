@@ -52,7 +52,7 @@ protected:
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<ColorView, ColorW, &ColorView::m_value> value;
+    Property<ColorView, ColorW, &ColorView::m_value, nullptr, nullptr, &ColorView::invalidate> value;
     BRISK_PROPERTIES_END
 };
 

@@ -45,7 +45,7 @@ static Value<float> colorSubvalue(Value<ColorW> color) {
                 return ColorF(color).array[+comp];
         },
         [](ColorW color, float value) -> ColorW {
-            ColorF colorf;
+            ColorF colorf = color;
             if (linearColor)
                 colorf.array[+comp] = Internal::srgbGammaToLinear(value);
             else
