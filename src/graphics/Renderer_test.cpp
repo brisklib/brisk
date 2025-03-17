@@ -300,7 +300,7 @@ rate = {:.1f}fps)",
                                             1000 * sumWaitTime, 1.0 / sumWaitTime),
                                 inner, PointF(0.5f, 0.5f));
                 canvas.setFillColor(Palette::black);
-                canvas.fillRect(Rectangle{ Point{ frame % winSize.x, 0 }, Size{ 5, winSize.y } }, );
+                canvas.fillRect(Rectangle{ Point{ frame % winSize.x, 0 }, Size{ 5, winSize.y } });
             }
         }
         for (int i = 0; i < numWindows; ++i) {
