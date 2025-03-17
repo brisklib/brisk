@@ -766,6 +766,21 @@ TEST_CASE("Canvas scissors") {
     });
 }
 
+TEST_CASE("Canvas transform") {
+    renderTest("canvas-transform", Size{ 128, 64 }, [](RenderContext& context) {
+        Canvas canvas(context, CanvasFlags::SDF);
+        canvas.setFillColor(Palette::Standard::green);
+        canvas.setStrokeColor(Palette::Standard::fuchsia);
+        canvas.setStrokeWidth(4.f);
+        canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+        canvas.transform(Matrix().rotate(10.f, { 32.f, 32.f }));
+        canvas.transform(Matrix::translation(64.f, 0));
+        canvas.setFillColor(Palette::Standard::fuchsia);
+        canvas.setStrokeColor(Palette::Standard::green);
+        canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+    });
+}
+
 TEST_CASE("Semitransparent fill and stroke") {
     for (CanvasFlags flags : { CanvasFlags::None, CanvasFlags::SDF }) {
         renderTest("canvas-semitransparent-fs", Size{ 64, 64 }, [flags](RenderContext& context) {
