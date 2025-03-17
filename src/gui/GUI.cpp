@@ -2256,9 +2256,14 @@ Rectangle Widget::rect() const noexcept {
 }
 
 void Widget::setRect(Rectangle rect) {
+    invalidate();
     m_rect        = rect;
     m_clientRect  = rect;
     m_contentSize = rect.size();
+    computeClipRect();
+    computeHintRect();
+    m_subtreeRect = fullPaintRect();
+    invalidate();
 }
 
 void Widget::reveal() {
