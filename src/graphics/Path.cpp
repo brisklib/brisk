@@ -368,9 +368,13 @@ std::optional<std::array<PointF, 2>> Path::asLine() const {
     };
 }
 
-BRISK_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint32_t len) {
+BRISK_ALWAYS_INLINE uint32_t div255(uint32_t n) {
+    return (n + 1 + (n >> 8)) >> 8;
+}
+
+BRISK_ALWAYS_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint32_t len) {
     for (uint32_t j = 0; j < len; ++j) {
-        dst->grey = dst->grey + (src * (255 - dst->grey) >> 8);
+        dst->grey = dst->grey + div255(src * (255 - dst->grey));
         ++dst;
     }
 }
