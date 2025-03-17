@@ -779,6 +779,16 @@ TEST_CASE("Canvas transform") {
         canvas.setStrokeColor(Palette::Standard::green);
         canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
     });
+    renderTest("canvas-transform2", Size{ 10, 30 }, [](RenderContext& context) {
+        Canvas canvas(context, CanvasFlags::SDF);
+        canvas.setStrokeColor(Palette::black);
+        canvas.setStrokeWidth(1.f);
+        canvas.strokeLine({ 1.f, 1.f }, { 9.f, 9.f });
+        canvas.transform(Matrix::translation(0, 10));
+        canvas.strokeLine({ 1.f, 1.f }, { 9.f, 9.f });
+        canvas.transform(Matrix::translation(0, 10));
+        canvas.strokeLine({ 1.f, 1.f }, { 9.f, 9.f });
+    });
 }
 
 TEST_CASE("Semitransparent fill and stroke") {

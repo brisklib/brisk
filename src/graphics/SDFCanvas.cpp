@@ -140,7 +140,7 @@ void SDFCanvas::drawLine(PointF p1, PointF p2, float thickness, LineEnd end, Ren
             center.y + thickness * 0.5f,
         },
         end == LineEnd::Round ? thickness * 0.5f : 0.f,
-        std::tuple{ args, coordMatrix = Matrix{}.rotate(rad2deg<float> * angle, center) });
+        std::tuple{ coordMatrix = Matrix{}.rotate(rad2deg<float> * angle, center), args });
 }
 
 void SDFCanvas::drawRectangle(RectangleF rect, CornersF borderRadius, RenderStateExArgs args) {

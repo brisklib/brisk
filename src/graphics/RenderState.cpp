@@ -39,4 +39,15 @@ void RenderState::premultiply() {
     strokeColor1 = strokeColor1.premultiply();
     strokeColor2 = strokeColor2.premultiply();
 }
+
+RenderStateEx::RenderStateEx(ShaderType shader, RenderStateExArgs args) {
+    this->shader = shader;
+    args.apply(this);
+}
+
+RenderStateEx::RenderStateEx(ShaderType shader, int instances, RenderStateExArgs args) {
+    this->instances = instances;
+    this->shader    = shader;
+    args.apply(this);
+}
 } // namespace Brisk

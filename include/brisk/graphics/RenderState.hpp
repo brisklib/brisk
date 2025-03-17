@@ -241,16 +241,9 @@ void applier(RenderStateEx* target, const ArgVal<Tag, U>& arg) {
 using SpriteResources = SmallVector<RC<SpriteResource>, 1>;
 
 struct RenderStateEx : RenderState {
-    explicit RenderStateEx(ShaderType shader, RenderStateExArgs args) {
-        this->shader = shader;
-        args.apply(this);
-    }
+    explicit RenderStateEx(ShaderType shader, RenderStateExArgs args);
 
-    explicit RenderStateEx(ShaderType shader, int instances, RenderStateExArgs args) {
-        this->instances = instances;
-        this->shader    = shader;
-        args.apply(this);
-    }
+    explicit RenderStateEx(ShaderType shader, int instances, RenderStateExArgs args);
 
     RC<Image> imageHandle;
     RC<GradientResource> gradientHandle;

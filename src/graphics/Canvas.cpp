@@ -124,10 +124,6 @@ static bool sdfCompat(const Paint& fillPaint, const FillParams& fillParams, cons
     return colorOrSimpleGradient(fillPaint) && colorOrSimpleGradient(strokePaint);
 }
 
-static void applier(RenderState* target, const Matrix* matrix) {
-    target->coordMatrix = *matrix;
-}
-
 static float roundRadius(JoinStyle joinStyle, float radius) {
     return std::max(radius, joinStyle == JoinStyle::Miter ? 0.f : 0.5f);
 }
@@ -146,7 +142,8 @@ void Canvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& s
                 std::get<2>(*rrect),
                 std::tuple{ strokeWidth = strokeParams.strokeWidth, scissors = clipRect,
                             Internal::PaintAndTransform{ strokePaint, Matrix{}, opacity, true },
-                            Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix });
+                            Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity },
+                            coordMatrix = matrix });
             return;
         }
     }
@@ -168,11 +165,12 @@ void Canvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillP
     if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() && sdfCompat(fillParams)) {
         if (auto rrect = path.asRoundRectangle()) {
             float scale = matrix.estimateScale();
-            sdf(this).drawRectangle(
-                std::get<0>(*rrect), roundRadius(JoinStyle::Round, std::get<1>(*rrect)) / scale,
-                std::get<2>(*rrect),
-                std::tuple{ strokeWidth = 0.f, scissors = clipRect,
-                            Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity }, &matrix });
+            sdf(this).drawRectangle(std::get<0>(*rrect),
+                                    roundRadius(JoinStyle::Round, std::get<1>(*rrect)) / scale,
+                                    std::get<2>(*rrect),
+                                    std::tuple{ strokeWidth = 0.f, scissors = clipRect,
+                                                Internal::PaintAndTransform{ fillPaint, Matrix{}, opacity },
+                                                coordMatrix = matrix });
             return;
         }
     }
@@ -194,16 +192,18 @@ void Canvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams&
                 std::get<2>(*rrect),
                 std::tuple{ strokeWidth = strokeParams.strokeWidth, fillColor = Palette::transparent,
                             scissors = clipRect,
-                            Internal::PaintAndTransform{ strokePaint, matrix, opacity, true }, &matrix });
+                            Internal::PaintAndTransform{ strokePaint, matrix, opacity, true },
+                            coordMatrix = matrix });
             return;
         }
         if (auto line = path.asLine()) {
-            sdf(this).drawLine(
-                (*line)[0], (*line)[1], strokeParams.strokeWidth,
-                staticMap(strokeParams.capStyle, CapStyle::Flat, SDFCanvas::LineEnd::Butt, CapStyle::Square,
-                          SDFCanvas::LineEnd::Square, SDFCanvas::LineEnd::Round),
-                std::tuple{ strokeWidth = 0.f, scissors = clipRect,
-                            Internal::PaintAndTransform{ strokePaint, matrix, opacity }, &matrix });
+            sdf(this).drawLine((*line)[0], (*line)[1], strokeParams.strokeWidth,
+                               staticMap(strokeParams.capStyle, CapStyle::Flat, SDFCanvas::LineEnd::Butt,
+                                         CapStyle::Square, SDFCanvas::LineEnd::Square,
+                                         SDFCanvas::LineEnd::Round),
+                               std::tuple{ strokeWidth = 0.f, scissors = clipRect,
+                                           Internal::PaintAndTransform{ strokePaint, matrix, opacity },
+                                           coordMatrix = matrix });
             return;
         }
     }
@@ -362,7 +362,7 @@ void Canvas::blurRect(RectangleF rect, float blurRadius, CornersF borderRadius, 
         rect, borderRadius,
         std::tuple{ scissors = m_state.clipRect, Arg::blurRadius = blurRadius * 0.36f, strokeWidth = 0.f,
                     Internal::PaintAndTransform{ m_state.fillPaint, Matrix{}, m_state.opacity },
-                    &m_state.transform });
+                    coordMatrix = m_state.transform });
 }
 
 void Canvas::strokeEllipse(RectangleF rect) {
@@ -487,9 +487,9 @@ void Canvas::drawPath(Path path) {
 }
 
 void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix matrix, SamplerMode samplerMode) {
-    sdf(this).drawTexture(
-        rect, image, matrix,
-        std::tuple{ scissors = m_state.clipRect, &m_state.transform, Arg::samplerMode = samplerMode });
+    sdf(this).drawTexture(rect, image, matrix,
+                          std::tuple{ scissors = m_state.clipRect, coordMatrix = m_state.transform,
+                                      Arg::samplerMode = samplerMode });
 }
 
 void Canvas::fillText(PointF position, const PreparedText& text) {
@@ -504,7 +504,7 @@ void Canvas::fillText(PointF position, PointF alignment, const PreparedText& tex
         position, text,
         std::tuple{ scissors = m_state.clipRect,
                     Internal::PaintAndTransform{ m_state.fillPaint, m_state.transform, m_state.opacity },
-                    &m_state.transform });
+                    coordMatrix = m_state.transform });
 }
 
 void Canvas::fillText(TextWithOptions text, PointF position, PointF alignment) {
@@ -576,7 +576,7 @@ void Canvas::fillTextSelection(PointF position, const PreparedText& text, Range<
         position, text, selection,
         std::tuple{ scissors = m_state.clipRect, strokeWidth = 0.f,
                     Internal::PaintAndTransform{ m_state.fillPaint, Matrix{}, m_state.opacity },
-                    &m_state.transform });
+                    coordMatrix = m_state.transform });
 }
 
 void Canvas::fillTextSelection(PointF position, PointF alignment, const PreparedText& text,
