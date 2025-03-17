@@ -146,12 +146,14 @@
 #define BRISK_CLANG_PRAGMA(...)
 #endif
 
-#ifdef NDEBUG
 #ifdef BRISK_GNU_ATTR
-#define BRISK_INLINE __attribute__((__always_inline__))
+#define BRISK_ALWAYS_INLINE __attribute__((__always_inline__))
 #else
-#define BRISK_INLINE __forceinline
+#define BRISK_ALWAYS_INLINE __forceinline
 #endif
+
+#ifdef NDEBUG
+#define BRISK_INLINE BRISK_ALWAYS_INLINE
 #else
 #define BRISK_INLINE
 #endif
