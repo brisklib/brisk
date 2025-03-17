@@ -86,6 +86,7 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
         renderState->imageHandle   = texture.image;
         renderState->samplerMode   = texture.mode;
         renderState->opacity       = paint.opacity;
+        renderState->blurRadius    = texture.blurRadius;
         break;
     }
     }
@@ -486,10 +487,11 @@ void Canvas::drawPath(Path path) {
              m_state.fillParams, m_state.transform, m_state.clipRect, m_state.opacity);
 }
 
-void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix matrix, SamplerMode samplerMode) {
+void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix matrix, SamplerMode samplerMode,
+                       float blurRadius) {
     sdf(this).drawTexture(rect, image, matrix,
                           std::tuple{ scissors = m_state.clipRect, coordMatrix = m_state.transform,
-                                      Arg::samplerMode = samplerMode });
+                                      Arg::samplerMode = samplerMode, Arg::blurRadius = blurRadius });
 }
 
 void Canvas::fillText(PointF position, const PreparedText& text) {

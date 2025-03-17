@@ -84,7 +84,7 @@ struct UniformBlock {
     opacity: f32,
 
     multigradient: i32,
-    blur_directions: i32,
+    blur_directions: u32,
     texture_channel: i32,
     clipInScreenspace: i32,
 
@@ -184,8 +184,7 @@ fn transform2D(pos: vec2<f32>) -> vec2<f32> {
 fn margin() -> f32 {
     if constants.shader == shader_shadow {
         return ceil(1.0 + constants.blur_radius / 0.18 * 0.5);
-    }
-    else {
+    } else {
         return ceil(1.0 + constants.stroke_width * 0.5);
     }
 }
@@ -337,15 +336,115 @@ fn simpleCalcColors(canvas_coord: vec2<f32>) -> Colors {
     return result;
 }
 
+fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
+    let texSize: vec2<u32> = textureDimensions(boundTexture_t);
+
+    if constants.blur_directions == 3u {
+        let scale: vec2<f32> = vec2<f32>(1.0, 1.0) / vec2<f32>(texSize);
+        switch (i32(round(constants.blur_radius * 2.0))) {
+            case 0, 1: {
+                // sigma = 0.1667 size=3x3
+                return textureSample(boundTexture_t, boundTexture_s, pos);
+            }
+            case 2: {
+                // sigma = 0.3333 size=3x3
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.010987, -0.010987)) * 0.97838 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.010987, 1.0)) * 0.010749 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.0, -0.010987)) * 0.010749 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.0, 1.0)) * 0.0001181;
+            }
+            case 3: {
+                // sigma = 0.5000 size=5x5
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.0025, -1.0025)) * 0.011388 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.0025, 0.1192)) * 0.095298 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.1192, -1.0025)) * 0.095298 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.1192, 0.1192)) * 0.79749 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.1192, 2.0)) * 0.00023565 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.0, 0.1192)) * 0.00023565;
+            }
+            case 4: {
+                // sigma = 0.6667 size=5x5
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.0331, -1.0331)) * 0.040349 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.0331, 0.24509)) * 0.15919 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.0331, 2.0036)) * 0.0013398 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.24509, -1.0331)) * 0.15919 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.24509, 0.24509)) * 0.62803 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.24509, 2.0036)) * 0.0052859 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.0036, -1.0331)) * 0.0013398 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.0036, 0.24509)) * 0.0052859;
+            }
+            case 5: {
+                // sigma = 0.8333 size=7x7
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.0266, -2.0266)) * 0.0007622 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.0266, -0.32739)) * 0.01965 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.0266, 1.1034)) * 0.0071753 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.32739, -2.0266)) * 0.01965 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.32739, -0.32739)) * 0.5066 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.32739, 1.1034)) * 0.18499 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.32739, 3.0064)) * 0.00052602 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1034, -2.0266)) * 0.0071753 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1034, -0.32739)) * 0.18499 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1034, 1.1034)) * 0.067547 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1034, 3.0064)) * 0.00019208 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.0064, -0.32739)) * 0.00052602 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.0064, 1.1034)) * 0.00019208;
+            }
+            case 6: {
+                // sigma = 1.0000 size=7x7
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.0759, -2.0759)) * 0.0034151 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.0759, -0.37754)) * 0.037464 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.0759, 1.1824)) * 0.0173 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.0759, 3.0293)) * 0.00026688 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.37754, -2.0759)) * 0.037464 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.37754, -0.37754)) * 0.41099 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.37754, 1.1824)) * 0.18979 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.37754, 3.0293)) * 0.0029278 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1824, -2.0759)) * 0.0173 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1824, -0.37754)) * 0.18979 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1824, 1.1824)) * 0.087641 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.1824, 3.0293)) * 0.001352 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.0293, -2.0759)) * 0.00026688 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.0293, -0.37754)) * 0.0029278 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.0293, 1.1824)) * 0.001352;
+            }
+            case 7: {
+                // sigma = 1.1667 size=9x9
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.071, -3.071)) * 0.00018209 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.071, -1.2494)) * 0.0042577 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.071, 0.40918)) * 0.0078107 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.071, 2.1374)) * 0.0012308 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.2494, -3.071)) * 0.0042577 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.2494, -1.2494)) * 0.099552 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.2494, 0.40918)) * 0.18263 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.2494, 2.1374)) * 0.028779 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.2494, 4.0354)) * 0.00031338 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.40918, -3.071)) * 0.0078107 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.40918, -1.2494)) * 0.18263 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.40918, 0.40918)) * 0.33503 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.40918, 2.1374)) * 0.052796 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.40918, 4.0354)) * 0.00057489 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1374, -3.071)) * 0.0012308 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1374, -1.2494)) * 0.028779 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1374, 0.40918)) * 0.052796 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1374, 2.1374)) * 0.0083198 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(4.0354, -1.2494)) * 0.00031338 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(4.0354, 0.40918)) * 0.00057489;
+            }
+            case 8: {
+                // sigma = 1.3333 size=9x9
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.1225, -3.1225)) * 0.00073678 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.1225, -1.3007)) * 0.008772 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.1225, 0.43015)) * 0.01426 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-3.1225, 2.1968)) * 0.0032847 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.3007, -3.1225)) * 0.008772 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.3007, -1.3007)) * 0.10444 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.3007, 0.43015)) * 0.16978 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.3007, 2.1968)) * 0.039107 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-1.3007, 4.0737)) * 0.0011603 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.43015, -3.1225)) * 0.01426 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.43015, -1.3007)) * 0.16978 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.43015, 0.43015)) * 0.27599 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.43015, 2.1968)) * 0.063573 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(0.43015, 4.0737)) * 0.0018862 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1968, -3.1225)) * 0.0032847 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1968, -1.3007)) * 0.039107 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1968, 0.43015)) * 0.063573 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1968, 2.1968)) * 0.014643 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(2.1968, 4.0737)) * 0.00043446 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(4.0737, -1.3007)) * 0.0011603 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(4.0737, 0.43015)) * 0.0018862 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(4.0737, 2.1968)) * 0.00043446;
+            }
+            default: {
+                // sigma = 1.5000 size=11x11
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-4.1192, -2.2477)) * 0.0012541 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-4.1192, -0.44467)) * 0.0041325 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-4.1192, 1.3392)) * 0.0027811 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-4.1192, 3.1743)) * 0.00037614 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.2477, -4.1192)) * 0.0012541 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.2477, -2.2477)) * 0.02113 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.2477, -0.44467)) * 0.069631 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.2477, 1.3392)) * 0.04686 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.2477, 3.1743)) * 0.0063377 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-2.2477, 5.0798)) * 0.00016246 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.44467, -4.1192)) * 0.0041325 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.44467, -2.2477)) * 0.069631 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.44467, -0.44467)) * 0.22946 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.44467, 1.3392)) * 0.15442 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.44467, 3.1743)) * 0.020885 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(-0.44467, 5.0798)) * 0.00053536 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.3392, -4.1192)) * 0.0027811 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.3392, -2.2477)) * 0.04686 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.3392, -0.44467)) * 0.15442 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.3392, 1.3392)) * 0.10392 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.3392, 3.1743)) * 0.014055 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(1.3392, 5.0798)) * 0.00036028 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.1743, -4.1192)) * 0.00037614 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.1743, -2.2477)) * 0.0063377 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.1743, -0.44467)) * 0.020885 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.1743, 1.3392)) * 0.014055 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(3.1743, 3.1743)) * 0.0019009 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(5.0798, -2.2477)) * 0.00016246 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(5.0798, -0.44467)) * 0.00053536 + textureSample(boundTexture_t, boundTexture_s, pos + scale * vec2<f32>(5.0798, 1.3392)) * 0.00036028;
+            }
+        }
+    } else {
+        let scale: vec2<f32> = select(vec2<f32>(0.0, 1.0), vec2<f32>(1.0, 0.0), constants.blur_directions == 1u) / vec2<f32>(texSize);
+        switch (i32(round(constants.blur_radius * 2.0))) {
+            case 0, 1: {
+                // sigma = 0.1667 size=3x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -1.523e-08) * 1.0;
+            }
+            case 2: {
+                // sigma = 0.3333 size=3x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -0.010987) * 0.98913 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 1.0) * 0.010868;
+            }
+            case 3: {
+                // sigma = 0.5000 size=5x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -1.0025) * 0.10671 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 0.1192) * 0.89302 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 2.0) * 0.00026388;
+            }
+            case 4: {
+                // sigma = 0.6667 size=5x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -1.0331) * 0.20087 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 0.24509) * 0.79248 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 2.0036) * 0.00667;
+            }
+            case 5: {
+                // sigma = 0.8333 size=7x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -2.0266) * 0.027608 + textureSample(boundTexture_t, boundTexture_s, pos + scale * -0.32739) * 0.71176 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 1.1034) * 0.2599 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 3.0064) * 0.00073904;
+            }
+            case 6: {
+                // sigma = 1.0000 size=7x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -2.0759) * 0.058439 + textureSample(boundTexture_t, boundTexture_s, pos + scale * -0.37754) * 0.64109 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 1.1824) * 0.29604 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 3.0293) * 0.0045669;
+            }
+            case 7: {
+                // sigma = 1.1667 size=9x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -3.071) * 0.013494 + textureSample(boundTexture_t, boundTexture_s, pos + scale * -1.2494) * 0.31552 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 0.40918) * 0.57882 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 2.1374) * 0.091213 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 4.0354) * 0.00099321;
+            }
+            case 8: {
+                // sigma = 1.3333 size=9x1
+                return textureSample(boundTexture_t, boundTexture_s, pos + scale * -3.1225) * 0.027144 + textureSample(boundTexture_t, boundTexture_s, pos + scale * -1.3007) * 0.32317 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 0.43015) * 0.52535 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 2.1968) * 0.12101 + textureSample(boundTexture_t, boundTexture_s, pos + scale * 4.0737) * 0.0035903;
+            }
+            default: {
+                var sum: vec4<f32> = vec4<f32>(0.0);
+                let s: f32 = constants.blur_radius * 0.33333333333333 / 2.0;
+                let half_size: i32 = i32(s * 2.5);
+                let g1: f32 = 1.0 / sqrt(2.0 * 3.1415926535897932384626433832795 * s * s);
+                let g2: f32 = 1.0 / (2.0 * s * s);
+
+                let ipos: vec2<i32> = vec2<i32>(pos * vec2<f32>(texSize));
+                sum = textureLoad(boundTexture_t, ipos, 0) * g1;
+
+                let step: vec2<i32> = select(vec2<i32>(0, 1), vec2<i32>(1, 0), constants.blur_directions == 1u);
+
+                for (var i: i32 = 1; i <= half_size; i = i + 1) {
+                    let g: f32 = g1 * exp(-f32(i * i) * g2);
+                    sum = sum + (textureLoad(boundTexture_t, ipos + step * i, 0) + textureLoad(boundTexture_t, ipos - step * i, 0)) * g;
+                }
+                return sum;
+            }
+        }
+    }
+}
+
 fn calcColors(canvas_coord: vec2<f32>) -> Colors {
     var result: Colors;
     if constants.texture_index != -1 { // texture
         let transformed_uv = transformedTexCoord(canvas_coord);
-        // if constants.blur_radius > 0.0 {
-            // brush = sampleBlur(transformed_uv);
-        // } else {
-        result.brush = textureSample(boundTexture_t, boundTexture_s, transformed_uv);
-        // }
+        if constants.blur_radius > 0.0 {
+            result.brush = sampleBlur(transformed_uv);
+        } else {
+            result.brush = textureSample(boundTexture_t, boundTexture_s, transformed_uv);
+        }
         result.brush = clamp(result.brush, vec4<f32>(0.0), vec4<f32>(1.0));
         if constants.multigradient == -10 {
             result.brush = remixColors(result.brush);
@@ -403,7 +502,7 @@ fn fillOnly(signed_distance: f32, colors: Colors) -> vec4<f32> {
     return colors.brush * toCoverage(signed_distance);
 }
 
-fn blendNormalPremultiplied(src: vec4<f32>, dst: vec4<f32>) -> vec4<f32> {    
+fn blendNormalPremultiplied(src: vec4<f32>, dst: vec4<f32>) -> vec4<f32> {
     return vec4<f32>(src.rgb + dst.rgb * (1.0 - src.a), src.a + dst.a * (1.0 - src.a));
 }
 
@@ -531,7 +630,7 @@ fn roundedBoxShadow(halfSize: vec2<f32>, point: vec2<f32>, sigma: f32, border_ra
     let step: f32 = (end - start) / 4.0;
     var y: f32 = start + step * 0.5;
     var value: f32 = 0.0;
-    
+
     let quadrant = u32(point.x >= 0.) + 2u * u32(point.y >= 0.);
     let corner: f32 = abs(border_radii[quadrant]);
 

@@ -168,6 +168,7 @@ struct Texture {
     RC<Image> image;                      ///< The image used as the texture.
     Matrix matrix;                        ///< The transformation matrix applied to the texture.
     SamplerMode mode = SamplerMode::Wrap; ///< The sampler mode (Clamp or Wrap).
+    float blurRadius = 0.f;               ///< The radius of the blur applied to the image.
 };
 
 /**
@@ -525,7 +526,7 @@ public:
      * @param matrix The transformation matrix to apply to the image. Defaults to the identity matrix.
      */
     void drawImage(RectangleF rect, RC<Image> image, Matrix matrix = {},
-                   SamplerMode samplerMode = SamplerMode::Clamp);
+                   SamplerMode samplerMode = SamplerMode::Clamp, float blurRadius = 0.f);
 
     /**
      * @brief Retrieves the current transformation matrix.

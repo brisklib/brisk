@@ -812,6 +812,17 @@ TEST_CASE("Semitransparent fill and stroke") {
     }
 }
 
+TEST_CASE("Canvas blur") {
+    renderTest("canvas-blur1", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+}
+
 #ifdef BRISK_WEBGPU
 
 static void triangle(wgpu::Device device, wgpu::CommandEncoder encoder, wgpu::TextureView backBuffer,
