@@ -167,7 +167,7 @@ class Canvas;
 struct Texture {
     RC<Image> image;                      ///< The image used as the texture.
     Matrix matrix;                        ///< The transformation matrix applied to the texture.
-    SamplerMode mode = SamplerMode::Wrap; ///< The sampler mode.
+    SamplerMode mode = SamplerMode::Wrap; ///< The sampler mode (Clamp or Wrap).
 };
 
 /**

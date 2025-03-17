@@ -22,8 +22,22 @@
 
 #if defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__x86_64__) || defined(__wasm)
 #define BRISK_X86 1
+
+#ifdef _M_IX86_FP
+#if _M_IX86_FP != 2
+#error "SSE2 is required for Brisk on x86"
+#endif
+#elif !defined _M_X64
+#ifndef __SSE2__
+#error "SSE2 is required for Brisk on x86"
+#endif
+#endif
+
 #elif defined(__arm__) || defined(__arm64__) || defined(_M_ARM) || defined(__aarch64__)
 #define BRISK_ARM 1
+#ifndef __ARM_NEON
+#error "NEON is required for Brisk on ARM*"
+#endif
 #endif
 
 #if defined(_M_X64) || defined(__x86_64__) || defined(__wasm64) || defined(__aarch64__)
