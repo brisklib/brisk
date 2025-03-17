@@ -150,8 +150,16 @@ struct ColorOf {
      *
      * @return The color space (sRGB or linear).
      */
-    static ColorSpace colorSpace() {
-        return gamma == ColorGamma::sRGB || !linearColor ? ColorSpace::sRGBGamma : ColorSpace::sRGBLinear;
+    static constexpr ColorSpace colorSpace() {
+        if constexpr (gamma == ColorGamma::sRGB) {
+            return ColorSpace::sRGBGamma;
+        } else {
+            return defaultColorSpace();
+        }
+    }
+
+    static ColorSpace defaultColorSpace() {
+        return !linearColor ? ColorSpace::sRGBGamma : ColorSpace::sRGBLinear;
     }
 
     static_assert(std::is_floating_point_v<T> || std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
