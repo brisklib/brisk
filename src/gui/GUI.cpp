@@ -1204,7 +1204,8 @@ void Widget::doPaint(Canvas& canvas) const {
     }
 }
 
-constexpr Range<float> focusFrameWidth = { 0, 0.75f };
+constexpr Range<float> focusFrameRange = { 0, 0.75f };
+constexpr inline float focusFrameWidth = 1;
 
 static float remap(float x, float inmin, float inmax, float outmin, float outmax) {
     return (x - inmin) / (inmax - inmin) * (outmax - outmin) + outmin;
@@ -1215,10 +1216,10 @@ void Widget::paintFocusFrame(Canvas& canvas) const {
         float t = std::sin(static_cast<float>(frameStartTime * 2.5f));
         if (!m_tree)
             return;
-        float val = dp(remap(t, -1.0f, +1.0f, focusFrameWidth.min, focusFrameWidth.max));
+        float val = dp(remap(t, -1.0f, +1.0f, focusFrameRange.min, focusFrameRange.max));
         m_tree->requestLayer([val, this](Canvas& canvas) {
-            canvas.setStrokeColor(0x03a1fc'C0_rgba);
-            canvas.setStrokeWidth(1_dp);
+            canvas.setStrokeColor(getStyleVar<ColorW>(focusFrameColor.id).value_or(Palette::blue));
+            canvas.setStrokeWidth(dp(focusFrameWidth));
             canvas.strokeRect(RectangleF(m_rect).withMargin(val), m_borderRadius.resolved, m_squircleCorners);
         });
     }
@@ -1228,17 +1229,14 @@ void Widget::paintHint(Canvas& canvas) const {
     if ((m_isHintExclusive || isHintCurrent()) && !m_hintPrepared.lines.empty() && m_tree &&
         m_isHintVisible) {
         m_tree->requestLayer([this](Canvas& canvas) {
-            SizeF textSize = m_hintPrepared.bounds().size();
-            ColorW color   = 0xFFE9AD_rgb;
-            ColorW shadowColor =
-                getStyleVar<ColorW>(windowColor.id).value_or(Palette::black).lightness() > 0.5f
-                    ? 0x000000'55_rgba
-                    : 0x000000'AA_rgba;
+            SizeF textSize     = m_hintPrepared.bounds().size();
+            ColorW color       = getStyleVar<ColorW>(hintBackgroundColor.id).value_or(Palette::white);
+            ColorW shadowColor = getStyleVar<ColorW>(hintShadowColor.id).value_or(Palette::black);
             canvas.setFillColor(shadowColor);
             canvas.blurRect(m_hintRect, dp(hintShadowSize), 4._dp, m_squircleCorners);
             canvas.setFillColor(color);
             canvas.fillRect(m_hintRect, 5._dp, m_squircleCorners);
-            canvas.setFillColor(Palette::black);
+            canvas.setFillColor(getStyleVar<ColorW>(hintTextColor.id).value_or(Palette::black));
             canvas.fillText(m_hintRect.center() + m_hintTextOffset, m_hintPrepared);
         });
     }
@@ -3024,7 +3022,7 @@ Rectangle Widget::hintRect() const noexcept {
 Rectangle Widget::adjustedRect() const noexcept {
     float shadowSize = m_shadowSize.resolved;
     if (isKeyFocused()) {
-        shadowSize = std::max(shadowSize, dp(focusFrameWidth.max));
+        shadowSize = std::max(shadowSize, dp(focusFrameRange.max));
     }
     return adjustForShadowSize(m_rect, shadowSize);
 }

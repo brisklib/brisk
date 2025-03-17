@@ -674,6 +674,10 @@ struct StyleVariableTag : Tag::StyleVarTag {
 constexpr inline Argument<StyleVariableTag<ColorW, "windowColor"_hash>> windowColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "selectedColor"_hash>> selectedColor{};
 constexpr inline Argument<StyleVariableTag<float, "animationSpeed"_hash>> animationSpeed{};
+constexpr inline Argument<StyleVariableTag<ColorW, "focusFrameColor"_hash>> focusFrameColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "hintBackgroundColor"_hash>> hintBackgroundColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "hintTextColor"_hash>> hintTextColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "hintShadowColor"_hash>> hintShadowColor{};
 
 } // namespace Brisk
 
