@@ -154,9 +154,8 @@ TEST_CASE("Renderer", "[gpu]") {
             "rr-ll", frameBounds.size(),
             [&](RenderContext& context) {
                 Canvas canvas(context, CanvasFlags::SDF);
-                canvas.setFillPaint(Gradient(GradientType::Linear, frameBounds.at(0.1f, 0.1f),
-                                             frameBounds.at(0.9f, 0.9f), Palette::Standard::green,
-                                             Palette::Standard::red));
+                canvas.setFillPaint(LinearGradient(frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f),
+                                                   Palette::Standard::green, Palette::Standard::red));
                 canvas.setStrokeColor(Palette::black);
                 canvas.setStrokeWidth(strokeWidth);
                 canvas.drawRect(rect, radius);
@@ -288,8 +287,8 @@ TEST_CASE("Renderer: window", "[gpu]") {
                 Canvas canvas(pipeline);
                 canvas.setStrokeColor(Palette::black);
                 canvas.setStrokeWidth(16.f);
-                canvas.setFillPaint(Gradient(GradientType::Linear, inner.at(0.f, 0.f), inner.at(1.f, 1.f),
-                                             Palette::Standard::green, Palette::Standard::red));
+                canvas.setFillPaint(LinearGradient(inner.at(0.f, 0.f), inner.at(1.f, 1.f),
+                                                   Palette::Standard::green, Palette::Standard::red));
                 canvas.drawRect(inner, inner.shortestSide() * 0.5f);
                 canvas.setFillColor(Palette::white);
                 canvas.setFont(Font{ Font::Default, 40.f });
@@ -368,8 +367,7 @@ TEST_CASE("Blending", "[gpu]") {
                                                              Color end) {
             canvas.setFillColor(background);
             canvas.fillRect(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)));
-            canvas.setFillPaint(
-                Gradient(GradientType::Linear, Point{ 0, 0 }, Point{ canvasSize.width, 0 }, start, end));
+            canvas.setFillPaint(LinearGradient(Point{ 0, 0 }, Point{ canvasSize.width, 0 }, start, end));
             canvas.fillRect(RectangleF(Point(0, index * rowHeight), Size(canvasSize.width, rowHeight)));
         };
         bands(0, 10, Palette::black, Palette::white);
@@ -492,40 +490,37 @@ TEST_CASE("SetClipRect") {
     renderTest("SetClipRect0", Size{ 256, 256 }, [&](RenderContext& context) {
         Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
-        canvas.setFillPaint(
-            Gradient(GradientType::Linear, { 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
         canvas.fillRect(rect);
     });
     renderTest("SetClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
         Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
         context.setClipRect(Rectangle{ 10, 20, 100, 200 });
-        canvas.setFillPaint(
-            Gradient(GradientType::Linear, { 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
         canvas.fillRect(rect);
     });
 }
 
 TEST_CASE("Multi-pass render") {
-    renderTest<true>("MultiPass1", Size{ 256, 256 },
-                     [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
-                         {
-                             RenderPipeline pipeline(encoder, target, Palette::transparent);
-                             Canvas canvas(pipeline);
-                             Rectangle rect({}, Size{ 256, 256 });
-                             canvas.setFillPaint(Gradient(GradientType::Linear, { 0, 0 }, { 0, 256 },
-                                                          Palette::red, Palette::transparent));
-                             canvas.fillRect(rect);
-                         }
-                         {
-                             RenderPipeline pipeline(encoder, target, std::nullopt);
-                             Canvas canvas(pipeline);
-                             Rectangle rect({}, Size{ 256, 256 });
-                             canvas.setFillPaint(Gradient(GradientType::Linear, { 0, 0 }, { 256, 0 },
-                                                          Palette::blue, Palette::transparent));
-                             canvas.fillRect(rect);
-                         }
-                     });
+    renderTest<true>(
+        "MultiPass1", Size{ 256, 256 }, [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
+            {
+                RenderPipeline pipeline(encoder, target, Palette::transparent);
+                Canvas canvas(pipeline);
+                Rectangle rect({}, Size{ 256, 256 });
+                canvas.setFillPaint(LinearGradient({ 0, 0 }, { 0, 256 }, Palette::red, Palette::transparent));
+                canvas.fillRect(rect);
+            }
+            {
+                RenderPipeline pipeline(encoder, target, std::nullopt);
+                Canvas canvas(pipeline);
+                Rectangle rect({}, Size{ 256, 256 });
+                canvas.setFillPaint(
+                    LinearGradient({ 0, 0 }, { 256, 0 }, Palette::blue, Palette::transparent));
+                canvas.fillRect(rect);
+            }
+        });
 }
 
 TEST_CASE("Shadow") {
@@ -671,8 +666,8 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setFillPaint(Gradient(GradientType::Linear, { 20, 20 }, { 80, 80 },
-                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setFillPaint(LinearGradient({ 20, 20 }, { 80, 80 }, Palette::Standard::cyan,
+                                                   Palette::Standard::fuchsia));
                 canvas.setTransform(Matrix().scale(0.75f, 0.75f, 50.f, 50.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -683,8 +678,8 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
-                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setFillPaint(
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
                 canvas.setTransform(Matrix().rotate(60.f, 50.f, 50.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -696,8 +691,8 @@ TEST_CASE("Canvas optimization") {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setStrokeWidth(0.15f);
-                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
-                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setFillPaint(
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
                 canvas.setTransform(Matrix::scaling(100.f));
                 drawRect(canvas, mode, { 0.2f, 0.2f, 0.8f, 0.8f });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -708,8 +703,8 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
-                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setFillPaint(
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
                 canvas.setTransform(Matrix::scaling(10.f));
                 drawRect(canvas, mode, { 2, 2, 8, 8 });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -721,8 +716,8 @@ TEST_CASE("Canvas optimization") {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Miter);
                 canvas.setStrokeWidth(15.f);
-                canvas.setFillPaint(Gradient(GradientType::Radial, { 20, 20 }, { 80, 80 },
-                                             Palette::Standard::cyan, Palette::Standard::fuchsia));
+                canvas.setFillPaint(
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
             },

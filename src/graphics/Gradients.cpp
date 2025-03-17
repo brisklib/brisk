@@ -100,8 +100,8 @@ Gradient::Gradient(GradientType type) : Gradient(type, {}, {}, {}) {}
 Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint)
     : Gradient(type, startPoint, endPoint, {}) {}
 
-Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorW color1, ColorW color2)
-    : Gradient(type, startPoint, endPoint, { { 0.f, color1 }, { 1.f, color2 } }) {}
+Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorW startColor, ColorW endColor)
+    : Gradient(type, startPoint, endPoint, { { 0.f, startColor }, { 1.f, endColor } }) {}
 
 Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorStopArray colorStops)
     : m_type(type), m_startPoint(startPoint), m_endPoint(endPoint), m_colorStops(std::move(colorStops)) {}
@@ -137,4 +137,26 @@ GradientType Gradient::getType() const noexcept {
 const ColorStopArray& Gradient::colorStops() const {
     return m_colorStops;
 }
+
+LinearGradient::LinearGradient() : Gradient{ GradientType::Linear } {}
+
+LinearGradient::LinearGradient(PointF startPoint, PointF endPoint)
+    : Gradient{ GradientType::Linear, startPoint, endPoint } {}
+
+LinearGradient::LinearGradient(PointF startPoint, PointF endPoint, ColorStopArray colorStops)
+    : Gradient{ GradientType::Linear, startPoint, endPoint, std::move(colorStops) } {}
+
+LinearGradient::LinearGradient(PointF startPoint, PointF endPoint, ColorW startColor, ColorW endColor)
+    : Gradient{ GradientType::Linear, startPoint, endPoint, startColor, endColor } {}
+
+RadialGradient::RadialGradient() : Gradient{ GradientType::Radial } {}
+
+RadialGradient::RadialGradient(PointF point, float radius)
+    : Gradient{ GradientType::Radial, point, point + PointF(radius, 0.f) } {}
+
+RadialGradient::RadialGradient(PointF point, float radius, ColorStopArray colorStops)
+    : Gradient{ GradientType::Radial, point, point + PointF(radius, 0.f), std::move(colorStops) } {}
+
+RadialGradient::RadialGradient(PointF point, float radius, ColorW startColor, ColorW endColor)
+    : Gradient{ GradientType::Radial, point, point + PointF(radius, 0.f), startColor, endColor } {}
 } // namespace Brisk

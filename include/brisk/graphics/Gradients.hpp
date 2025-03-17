@@ -43,12 +43,10 @@ struct ColorStop {
  * @brief Enumeration for different types of gradients.
  */
 enum class GradientType : int {
-    Linear,        ///< A linear gradient.
-    Radial,        ///< A radial gradient.
-    Angle,         ///< An angular gradient.
-    Reflected,     ///< A reflected gradient.
-    Diamond,       ///< A diamond gradient.
-    InsideOutside, ///< An inside-outside gradient.
+    Linear,    ///< A linear gradient.
+    Radial,    ///< A radial gradient.
+    Angle,     ///< An angular (conic) gradient.
+    Reflected, ///< A reflected gradient.
 };
 
 /**
@@ -140,10 +138,30 @@ public:
      */
     explicit Gradient(GradientType type, PointF startPoint, PointF endPoint);
 
+    /**
+     * @brief Constructs a gradient with color stops.
+     * @param type The type of the gradient.
+     * @param startPoint The starting point of the gradient.
+     * @param endPoint The ending point of the gradient.
+     * @param colorStops Array of color stops.
+     */
     explicit Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorStopArray colorStops);
 
-    explicit Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorW color1, ColorW color2);
+    /**
+     * @brief Constructs a gradient with start and end colors.
+     * @param type The type of the gradient.
+     * @param startPoint The starting point of the gradient.
+     * @param endPoint The ending point of the gradient.
+     * @param startColor The starting color.
+     * @param endColor The ending color.
+     */
+    explicit Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorW startColor,
+                      ColorW endColor);
 
+    /**
+     * @brief Gets the type of the gradient.
+     * @return The gradient type.
+     */
     GradientType getType() const noexcept;
 
     /**
@@ -177,6 +195,10 @@ public:
      */
     void addStop(float position, ColorW color);
 
+    /**
+     * @brief Adds a color stop to the gradient.
+     * @param colorStop The color stop to add.
+     */
     void addStop(ColorStop colorStop);
 
     /**
@@ -198,6 +220,68 @@ private:
     PointF m_startPoint;         ///< The starting point of the gradient.
     PointF m_endPoint;           ///< The ending point of the gradient.
     ColorStopArray m_colorStops; ///< The color stops for the gradient.
+};
+
+struct LinearGradient : public Gradient {
+    /**
+     * @brief Constructs an empty linear gradient.
+     */
+    explicit LinearGradient();
+
+    /**
+     * @brief Constructs a linear gradient between two points.
+     * @param startPoint The starting point of the gradient.
+     * @param endPoint The ending point of the gradient.
+     */
+    explicit LinearGradient(PointF startPoint, PointF endPoint);
+
+    /**
+     * @brief Constructs a linear gradient with color stops.
+     * @param startPoint The starting point of the gradient.
+     * @param endPoint The ending point of the gradient.
+     * @param colorStops Array of color stops.
+     */
+    explicit LinearGradient(PointF startPoint, PointF endPoint, ColorStopArray colorStops);
+
+    /**
+     * @brief Constructs a linear gradient with start and end colors.
+     * @param startPoint The starting point of the gradient.
+     * @param endPoint The ending point of the gradient.
+     * @param startColor The starting color.
+     * @param endColor The ending color.
+     */
+    explicit LinearGradient(PointF startPoint, PointF endPoint, ColorW startColor, ColorW endColor);
+};
+
+struct RadialGradient : public Gradient {
+    /**
+     * @brief Constructs an empty radial gradient.
+     */
+    explicit RadialGradient();
+
+    /**
+     * @brief Constructs a radial gradient with a center point and radius.
+     * @param point The center point of the gradient.
+     * @param radius The radius of the gradient.
+     */
+    explicit RadialGradient(PointF point, float radius);
+
+    /**
+     * @brief Constructs a radial gradient with color stops.
+     * @param point The center point of the gradient.
+     * @param radius The radius of the gradient.
+     * @param colorStops Array of color stops.
+     */
+    explicit RadialGradient(PointF point, float radius, ColorStopArray colorStops);
+
+    /**
+     * @brief Constructs a radial gradient with start and end colors.
+     * @param point The center point of the gradient.
+     * @param radius The radius of the gradient.
+     * @param startColor The starting color.
+     * @param endColor The ending color.
+     */
+    explicit RadialGradient(PointF point, float radius, ColorW startColor, ColorW endColor);
 };
 
 } // namespace Brisk
