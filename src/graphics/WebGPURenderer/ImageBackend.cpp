@@ -96,25 +96,34 @@ void ImageBackendWebGPU::readFromGPU(const ImageData<UntypedPixel>& data, Point 
     wgpu::CommandBuffer commands = encoder.Finish();
     m_device->m_device.GetQueue().Submit(1, &commands);
 
+    wgpu::BufferMapAsyncStatus mapResult;
     wgpu::FutureWaitInfo future{};
-    future.future           = buffer.MapAsync(wgpu::MapMode::Read, 0, bufDesc.size,
-                                              wgpu::BufferMapCallbackInfo{
-                                                  .mode = wgpu::CallbackMode::AllowProcessEvents,
-                                                  .callback =
-                                            [](WGPUBufferMapAsyncStatus status, void* userdata) {
-
-                                            },
-                                    });
+    future.future = buffer.MapAsync(
+        wgpu::MapMode::Read, 0, bufDesc.size,
+        wgpu::BufferMapCallbackInfo{ .mode = wgpu::CallbackMode::AllowProcessEvents,
+                                     .callback =
+                                         [](WGPUBufferMapAsyncStatus status, void* userdata) {
+                                             *reinterpret_cast<WGPUBufferMapAsyncStatus*>(userdata) = status;
+                                         },
+                                     .userdata = &mapResult });
     static bool longTimeout = std::getenv("WGPU_LONG_TIMEOUT");
     auto time               = std::chrono::high_resolution_clock::now();
     //  Timeout is 2 minutes or 5 seconds
     std::chrono::nanoseconds timeout{ longTimeout ? 120'000'000'000 : 5'000'000'000 };
     wgpu::WaitStatus status = m_device->m_instance.WaitAny(1, &future, timeout.count());
     if (status == wgpu::WaitStatus::Success) {
-        const UntypedPixel* bufferData =
-            reinterpret_cast<const UntypedPixel*>(buffer.GetConstMappedRange(0, bufDesc.size));
-        data.copyFrom(ImageData<const UntypedPixel>{ bufferData, data.size, alignedStride, data.components });
-        buffer.Unmap();
+        if (mapResult == wgpu::BufferMapAsyncStatus::Success) {
+            const UntypedPixel* bufferData =
+                reinterpret_cast<const UntypedPixel*>(buffer.GetConstMappedRange(0, bufDesc.size));
+            BRISK_ASSERT(bufferData);
+            if (bufferData) {
+                data.copyFrom(
+                    ImageData<const UntypedPixel>{ bufferData, data.size, alignedStride, data.components });
+            }
+            buffer.Unmap();
+        } else {
+            LOG_ERROR(webgpu, "mapResult = 0x{:08X}", static_cast<uint32_t>(mapResult));
+        }
     } else {
         auto dur = std::chrono::high_resolution_clock::now() - time;
         LOG_ERROR(wgpu, "WaitAny for MapAsync failed: {:08X} after {} (timeout={})", (uint32_t)status,

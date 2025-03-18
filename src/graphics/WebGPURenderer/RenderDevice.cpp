@@ -93,8 +93,10 @@ bool RenderDeviceWebGPU::createDevice() {
     }
     if (adapters.empty())
         return false;
-    m_nativeAdapter = adapters[0];
-    m_adapter       = wgpu::Adapter::Acquire(m_nativeAdapter.Get());
+    m_nativeAdapter = std::move(adapters.front());
+
+    adapters.clear();
+    m_adapter = wgpu::Adapter::Acquire(m_nativeAdapter.Get());
 
     wgpu::DeviceDescriptor deviceDesc{};
     static const wgpu::FeatureName feat[] = {

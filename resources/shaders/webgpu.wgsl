@@ -135,22 +135,18 @@ fn distanceScale() -> f32 {
 
 @group(0) @binding(3) var<storage, read> data: array<vec4<f32>>;
 
-@group(0) @binding(6) var boundTexture_s: sampler;
-
-@group(0) @binding(7) var gradTex_s: sampler;
-
 @group(0) @binding(8) var gradTex_t: texture_2d<f32>;
 
 @group(0) @binding(9) var fontTex_t: texture_2d<f32>;
 
 @group(0) @binding(10) var boundTexture_t: texture_2d<f32>;
 
+@group(0) @binding(6) var boundTexture_s: sampler;
+
+@group(0) @binding(7) var gradTex_s: sampler;
+
 fn to_screen(xy: vec2<f32>) -> vec2<f32> {
     return xy * perFrame.viewport.zw * vec2<f32>(2., -2.) + vec2<f32>(-1., 1.);
-}
-
-fn from_screen(xy: vec2<f32>) -> vec2<f32> {
-    return (xy - vec2<f32>(-1., 1.)) * vec2<f32>(0.5, -0.5) * perFrame.viewport.xy;
 }
 
 fn max2(pt: vec2<f32>) -> f32 {
@@ -276,12 +272,12 @@ fn signedDistanceArc(pt: vec2<f32>, outer_radius: f32, inner_radius: f32, start_
     let inner_d = length(pt) - inner_radius;
     var circle = max(outer_d, -inner_d);
 
-    if end_angle - start_angle < 2.0 * 3.141592653589793238 {
+    if end_angle - start_angle < 2.0 * PI {
         let start_sincos = -vec2<f32>(cos(start_angle), sin(start_angle));
         let end_sincos = vec2<f32>(cos(end_angle), sin(end_angle));
         var pie: f32;
         let add = vec2<f32>(dot(pt, start_sincos), dot(pt, end_sincos));
-        if end_angle - start_angle > 3.141592653589793238 {
+        if end_angle - start_angle > PI {
             pie = min(add.x, add.y); // union
         } else {
             pie = max(add.x, add.y); // intersect
@@ -306,10 +302,6 @@ fn multiGradient(pos: f32) -> vec4<f32> {
     let invDims = vec2<f32>(1.) / vec2<f32>(textureDimensions(gradTex_t));
     return textureSample(gradTex_t, gradTex_s,
         vec2<f32>(0.5 + pos * f32(gradientResolution - 1), 0.5 + f32(constants.multigradient)) * invDims);
-}
-
-fn remixColors(value: vec4<f32>) -> vec4<f32> {
-    return constants.fill_color1 * value.x + constants.fill_color2 * value.y + constants.stroke_color1 * value.z + constants.stroke_color2 * value.w;
 }
 
 fn transformedTexCoord(uv: vec2<f32>) -> vec2<f32> {
@@ -349,48 +341,42 @@ fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
     let max_square: i32 = half_size * half_size;
     let g1: f32 = 1.0 / (2. * 3.141592 * sigma * sigma);
     let g2: f32 = -0.5 / (sigma * sigma);
-    let ipos: vec2<i32> = vec2<i32>(pos * vec2<f32>(texSize));
-    if constants.blur_directions == 3u {
-        var sum: vec4<f32> = g1 * textureLoad(boundTexture_t, ipos, 0);
+    let w: vec2<f32> = 1.0 / vec2<f32>(texSize);
+    let lo = vec2<f32>(0.5) / vec2<f32>(texSize);
+    let hi = vec2<f32>(vec2<f32>(texSize) - 0.5) / vec2<f32>(texSize);
+    var sum: vec4<f32> = g1 * textureSample(boundTexture_t, boundTexture_s, pos);
 
-        for (var i: i32 = 1; i <= half_size; i = i + 1) {
-            for (var j: i32 = 0; j <= half_size; j = j + 1) {
-                if i * i + j * j <= max_square {
-                    let g: f32 = g1 * exp(sqr(length(vec2<f32>(f32(i), f32(j)))) * g2);
-                    let v1 = textureLoad(boundTexture_t, clamp(ipos + vec2<i32>(i, j), vec2<i32>(0), limit), 0);
-                    let v2 = textureLoad(boundTexture_t, clamp(ipos + vec2<i32>(-j, i), vec2<i32>(0), limit), 0);
-                    let v3 = textureLoad(boundTexture_t, clamp(ipos + vec2<i32>(-i, -j), vec2<i32>(0), limit), 0);
-                    let v4 = textureLoad(boundTexture_t, clamp(ipos + vec2<i32>(j, -i), vec2<i32>(0), limit), 0);
-                    sum = sum + (v1 + v2 + v3 + v4) * g;
-                }
+    for (var i: i32 = 1; i <= half_size; i = i + 1) {
+        for (var j: i32 = 0; j <= half_size; j = j + 1) {
+            if i * i + j * j <= max_square {
+                let g: f32 = g1 * exp(sqr(length(vec2<f32>(f32(i), f32(j)))) * g2);
+                let v1 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(i, j)), lo, hi));
+                let v2 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(-j, i)), lo, hi));
+                let v3 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(-i, -j)), lo, hi));
+                let v4 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(j, -i)), lo, hi));
+                sum = sum + (v1 + v2 + v3 + v4) * g;
             }
         }
-        return sum;
-    } else {
-        return vec4<f32>(0.);
     }
+    return sum;
 }
 
 fn calcColors(canvas_coord: vec2<f32>) -> Colors {
-    var result: Colors;
-    if constants.texture_index != -1 { // texture
-        let transformed_uv = transformedTexCoord(canvas_coord);
-        if constants.blur_radius > 0.0 {
-            result.brush = sampleBlur(transformed_uv);
-        } else {
-            result.brush = textureSample(boundTexture_t, boundTexture_s, transformed_uv);
-        }
-        result.brush = clamp(result.brush, vec4<f32>(0.0), vec4<f32>(1.0));
-        if constants.multigradient == -10 {
-            result.brush = remixColors(result.brush);
-        } else if constants.multigradient != -1 {
-            result.brush = multiGradient(result.brush[constants.texture_channel]);
-        }
-        result.stroke = vec4(0.0);
-    } else { // gradients
-        result = simpleCalcColors(canvas_coord);
+    if constants.texture_index == -1 {
+        return simpleCalcColors(canvas_coord);
     }
-
+    var result: Colors;
+    let transformed_uv = transformedTexCoord(canvas_coord);
+    if constants.blur_radius > 0.0 {
+        result.brush = sampleBlur(transformed_uv);
+    } else {
+        result.brush = textureSample(boundTexture_t, boundTexture_s, transformed_uv);
+    }
+    result.brush = clamp(result.brush, vec4<f32>(0.0), vec4<f32>(1.0));
+    if constants.multigradient != -1 {
+        result.brush = multiGradient(result.brush[constants.texture_channel]);
+    }
+    result.stroke = vec4(0.0);
     return result;
 }
 
@@ -532,8 +518,7 @@ fn atlasSubpixel(sprite: i32, pos: vec2<i32>, stride: u32) -> vec3<f32> {
 // Code by Evan Wallace, CC0 license 
 
 fn gaussian(x: f32, sigma: f32) -> f32 {
-    let pi: f32 = 3.141592653589793;
-    return exp(-((x * x) / (2.0 * sigma * sigma))) / (sqrt(2.0 * pi) * sigma);
+    return exp(-((x * x) / (2.0 * sigma * sigma))) / (sqrt(2.0 * PI) * sigma);
 }
 
 // This approximates the error function, needed for the gaussian integral
