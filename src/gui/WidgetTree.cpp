@@ -131,11 +131,7 @@ void WidgetTree::groupsBeforeLayout() {
     }
 }
 
-Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint) {
-    if (!m_root)
-        return {};
-    m_fullRepaint = fullRepaint;
-
+void WidgetTree::update() {
     bindings->assign(frameStartTime, currentTime());
 
     groupsBeforeFrame();
@@ -172,8 +168,11 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorW backgroundColor, boo
 
     m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
     m_viewportRectangleChanged = false;
+}
 
-    Rectangle paintRect        = this->paintRect();
+Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint) {
+    m_fullRepaint       = fullRepaint;
+    Rectangle paintRect = this->paintRect();
 
     if (paintRect.empty()) {
         groupsAfterFrame();

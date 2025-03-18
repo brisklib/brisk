@@ -63,7 +63,8 @@ public:
     Rectangle viewportRectangle() const noexcept;
 
     Rectangle paintRect() const;
-    Rectangle updateAndPaint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint);
+    Rectangle paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint);
+    void update();
     void requestLayer(Drawable drawable);
     void disableTransitions();
 

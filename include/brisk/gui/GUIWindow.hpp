@@ -38,8 +38,6 @@ class Component;
 
 class GUIWindow : public Window {
 public:
-    void paint(RenderContext& context, bool fullRepaint) override;
-    void paintImmediate(RenderContext& context) override;
     void dpiChanged() override;
     void rebuild();
     const std::string& getId() const;
@@ -57,10 +55,11 @@ protected:
     ColorW m_backgroundColor = Palette::black;
     WindowFit m_windowFit    = WindowFit::MinimumSize;
 
+    void update() override;
+    void paint(RenderContext& context, bool fullRepaint) override;
+    void paintImmediate(RenderContext& context) override;
     virtual void rescale();
-
-    virtual void unhandledEvent(Event& event) {}
-
+    virtual void unhandledEvent(Event& event);
     virtual void beforeDraw(Canvas& canvas);
     virtual void afterDraw(Canvas& canvas);
     RC<Widget> root() const;
@@ -68,17 +67,7 @@ protected:
     void rebuildRoot();
     void beforeFrame() override;
     void beforeOpeningWindow() override;
-
-private:
-    WidgetTree m_tree;
-    std::string m_id;
-    bool m_frameSkipTestState = false;
-    std::vector<uint32_t> m_unhandledEvents;
-    Rectangle m_savedPaintRect{};
-
-    void updateWindowLimits();
-
-protected:
+    
     void onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) override;
     void onCharEvent(char32_t character) override;
     void onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
@@ -89,6 +78,15 @@ protected:
     void onMouseLeave() override;
     void attachedToApplication() final;
     InputQueue m_inputQueue;
+
+private:
+    WidgetTree m_tree;
+    std::string m_id;
+    bool m_frameSkipTestState = false;
+    std::vector<uint32_t> m_unhandledEvents;
+    Rectangle m_savedPaintRect{};
+
+    void updateWindowLimits();
 
 public:
     BRISK_PROPERTIES_BEGIN

@@ -319,15 +319,19 @@ void Window::doPaint() {
     RC<RenderTarget> target      = m_target;
     bool bufferedRendering       = m_bufferedRendering || !m_captureCallback.empty();
     bool textureReset            = false;
+    Size targetSize              = m_target->size();
+    if (targetSize.area() <= 0) {
+        return;
+    }
 
     if (bufferedRendering) {
         auto device = getRenderDevice();
         if (!m_bufferedFrameTarget) {
-            m_bufferedFrameTarget = (*device)->createImageTarget(m_target->size());
+            m_bufferedFrameTarget = (*device)->createImageTarget(targetSize);
             textureReset          = true;
         } else {
-            if (m_target->size() != m_bufferedFrameTarget->size()) {
-                m_bufferedFrameTarget->setSize(m_target->size());
+            if (targetSize != m_bufferedFrameTarget->size()) {
+                m_bufferedFrameTarget->setSize(targetSize);
                 textureReset = true;
             }
         }
@@ -339,6 +343,7 @@ void Window::doPaint() {
 
     PerformanceDuration gpuDuration = PerformanceDuration(0);
     {
+        update();
         RenderPipeline pipeline(m_encoder, target,
                                 bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
                                 noClipRect);
@@ -686,6 +691,8 @@ void Window::onVisibilityChanged(bool newVisible) {}
 void Window::onWindowResized(Size windowSize, Size framebufferSize) {}
 
 void Window::onWindowMoved(Point position) {}
+
+void Window::update() {}
 
 void Window::paint(RenderContext& context, bool fullRepaint) {}
 

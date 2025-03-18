@@ -78,7 +78,8 @@ static void widgetTest(const std::string& name, RC<Widget> widget, std::initiali
     });
     renderTest(name, tree.viewportRectangle().size(), [&](RenderContext& context) {
         Canvas canvas(context);
-        tree.updateAndPaint(canvas, Palette::black, true);
+        tree.update();
+        tree.paint(canvas, Palette::black, true);
     });
 }
 

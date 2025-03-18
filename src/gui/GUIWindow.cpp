@@ -171,30 +171,33 @@ void GUIWindow::paintImmediate(RenderContext& context) {
     }
 }
 
-void GUIWindow::paint(RenderContext& context, bool fullRepaint) {
+void GUIWindow::update() {
     m_unhandledEvents.clear();
-    Canvas canvas(context);
-
     InputQueueScope inputQueueScope(&m_inputQueue);
-
     m_tree.setViewportRectangle(getFramebufferBounds());
-
     if (!m_tree.root()) {
         rebuild();
     }
     uint32_t layoutCounter = m_tree.layoutCounter();
-    {
-        Stopwatch w(m_drawingPerformance);
-        beforeDraw(canvas);
-        if (m_tree.root()) {
-            m_savedPaintRect = m_tree.updateAndPaint(canvas, m_backgroundColor, fullRepaint);
-            setCursor(m_inputQueue.getCursorAtMouse().value_or(Cursor::Arrow));
-        }
-        afterDraw(canvas);
+
+    if (m_tree.root()) {
+        m_tree.update();
+        setCursor(m_inputQueue.getCursorAtMouse().value_or(Cursor::Arrow));
     }
     if (m_tree.layoutCounter() != layoutCounter && m_tree.root() && m_windowFit != WindowFit::None) {
         updateWindowLimits();
     }
+}
+
+void GUIWindow::paint(RenderContext& context, bool fullRepaint) {
+    Canvas canvas(context);
+
+    Stopwatch w(m_drawingPerformance);
+    beforeDraw(canvas);
+    if (m_tree.root()) {
+        m_savedPaintRect = m_tree.paint(canvas, m_backgroundColor, fullRepaint);
+    }
+    afterDraw(canvas);
 }
 
 void GUIWindow::updateWindowLimits() {
@@ -267,4 +270,6 @@ void GUIWindow::beforeOpeningWindow() {
 WidgetTree& GUIWindow::tree() {
     return m_tree;
 }
+
+void GUIWindow::unhandledEvent(Event& event) {}
 } // namespace Brisk

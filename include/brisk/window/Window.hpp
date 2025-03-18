@@ -236,6 +236,7 @@ protected:
     VisualSettings m_renderSettings{};
     std::atomic_bool m_rendering{ false }; /// true if rendering is active
     std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
+    virtual void update();
     virtual void paint(RenderContext& context, bool fullRepaint);
     virtual void paintImmediate(RenderContext& context);
     virtual void beforeFrame();
