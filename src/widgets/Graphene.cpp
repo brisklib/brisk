@@ -429,7 +429,7 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ "popupdialog" },
             {
-                backgroundColor = styleVar<boxBorderColor>,
+                backgroundColor = transparency(styleVar<windowColor>, 0.75f),
             },
         },
         Style{
