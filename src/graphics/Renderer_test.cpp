@@ -813,7 +813,23 @@ TEST_CASE("Semitransparent fill and stroke") {
 }
 
 TEST_CASE("Canvas blur") {
-    renderTest("canvas-blur1", Size{ 320, 213 }, [](RenderContext& context) {
+    renderTest("canvas-blur1", Size{ 512, 512 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.drawImage({ 0, 0, 512, 512 }, *image, Matrix{}, SamplerMode::Clamp, 1.f);
+    });
+    renderTest("canvas-blur2", Size{ 512, 512 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.drawImage({ 0, 0, 512, 512 }, *image, Matrix{}, SamplerMode::Clamp, 13.f);
+    });
+    renderTest("canvas-blur3", Size{ 320, 213 }, [](RenderContext& context) {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
         REQUIRE(bytes.has_value());
