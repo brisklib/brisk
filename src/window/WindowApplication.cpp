@@ -178,7 +178,8 @@ void WindowApplication::start() {
 void WindowApplication::updateAndWait() {
     mustBeMainThread();
     removeClosed();
-    afterRenderQueue->waitForCompletion();
+    if (!afterRenderQueue->isOnThread())
+        afterRenderQueue->waitForCompletion();
 }
 
 void WindowApplication::removeClosed() {
@@ -300,7 +301,9 @@ void WindowApplication::addWindow(RC<Window> window, bool makeVisible) {
 }
 
 void WindowApplication::mustBeUIThread() {
-    BRISK_ASSERT(std::this_thread::get_id() == m_uiThread.get_id());
+    if (m_uiThread.get_id() != std::thread::id{}) {
+        BRISK_ASSERT(std::this_thread::get_id() == m_uiThread.get_id());
+    }
 }
 
 bool WindowApplication::hasQuit() const {

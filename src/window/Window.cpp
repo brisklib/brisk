@@ -51,7 +51,7 @@ namespace Internal {
 constinit bool bufferedRendering = true;
 
 std::atomic_bool debugShowRenderTimeline{ false };
-BRISK_UI_THREAD Window* currentWindow = nullptr;
+Window* currentWindow = nullptr;
 
 RC<Window> currentWindowPtr() {
     return currentWindow ? currentWindow->shared_from_this() : nullptr;
@@ -468,8 +468,10 @@ void Window::hide() {
 void Window::close() {
     hide();
     m_closing = true; // forces application to remove this window from the windows list
-    mainScheduler->dispatch([this]() {
-        closeWindow(); // destroys m_platformWindow
+    auto wk   = weak_from_this();
+    mainScheduler->dispatch([wk]() {
+        if (auto lk = std::static_pointer_cast<Window>(wk.lock()))
+            lk->closeWindow(); // destroys m_platformWindow
     });
 }
 

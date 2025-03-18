@@ -101,8 +101,9 @@ bool RenderPipeline::flush() {
         return false;
     }
     m_numBatches++;
-    if (!m_clipRect.empty())
+    if (!m_clipRect.empty()) {
         m_encoder->batch(m_commands, m_data);
+    }
 
     m_textures.clear();
     m_commands.clear();

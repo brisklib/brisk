@@ -25,7 +25,7 @@ namespace Brisk {
 
 std::atomic_uint32_t eventCookie{ 0 };
 
-ImplicitContext<InputQueue*, InputQueue*, briskMultithreadRender> inputQueue;
+InputQueueImplicitContext inputQueue;
 
 const char* const eventTypeNames[+EventType::Count] = {
     "Undefined",

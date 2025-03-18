@@ -34,9 +34,12 @@ void RenderEncoderWebGPU::setVisualSettings(const VisualSettings& visualSettings
 }
 
 void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> clear) {
+    BRISK_ASSERT(static_cast<bool>(m_currentTarget == nullptr));
+    BRISK_ASSERT(static_cast<bool>(!m_queue.Get()));
     m_currentTarget = std::move(target);
     m_queue         = m_device->m_device.GetQueue();
-    m_frameSize     = m_currentTarget->size();
+    BRISK_ASSERT(static_cast<bool>(m_queue.Get()));
+    m_frameSize = m_currentTarget->size();
     if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
         win->resizeBackbuffer(m_frameSize);
     }
@@ -69,11 +72,15 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 }
 
 void RenderEncoderWebGPU::end() {
+    BRISK_ASSERT(m_currentTarget);
+    BRISK_ASSERT(m_queue.Get());
     m_queue         = nullptr;
     m_currentTarget = nullptr;
 }
 
 void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span<const float> data) {
+    BRISK_ASSERT(m_currentTarget);
+    BRISK_ASSERT(m_queue.Get());
     m_encoder = m_device->m_device.CreateCommandEncoder();
     // Preparing things
     {

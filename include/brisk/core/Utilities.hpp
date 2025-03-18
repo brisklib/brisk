@@ -303,7 +303,7 @@ struct CacheWithInvalidation {
     }
 };
 
-template <typename T, typename Tag = T>
+template <typename T, typename Tag = T, bool thread = true>
 struct ImplicitContextScope;
 
 namespace Internal {
@@ -323,6 +323,8 @@ struct ImplicitContextStorage<T, Tag, false> {
 
 template <typename T, typename Tag = T, bool thread = true>
 struct ImplicitContext : private Internal::ImplicitContextStorage<T, Tag, thread> {
+    using Scope = ImplicitContextScope<T, Tag, thread>;
+
     T& get() const {
         return Internal::ImplicitContextStorage<T, Tag, thread>::instance;
     }
@@ -336,11 +338,13 @@ struct ImplicitContext : private Internal::ImplicitContextStorage<T, Tag, thread
     }
 
 private:
-    friend struct ImplicitContextScope<T, Tag>;
+    friend struct ImplicitContextScope<T, Tag, thread>;
 };
 
 template <typename T, typename Tag, bool thread>
 struct ImplicitContext<T*, Tag, thread> : private Internal::ImplicitContextStorage<T*, Tag, thread> {
+    using Scope = ImplicitContextScope<T*, Tag, thread>;
+
     T* get() const {
         T* ptr = get(nullptr);
         BRISK_ASSERT(ptr);
@@ -370,18 +374,18 @@ struct ImplicitContext<T*, Tag, thread> : private Internal::ImplicitContextStora
     }
 
 private:
-    friend struct ImplicitContextScope<T*, Tag>;
+    friend struct ImplicitContextScope<T*, Tag, thread>;
 };
 
-template <typename T, typename Tag>
+template <typename T, typename Tag, bool thread>
 struct ImplicitContextScope {
     ImplicitContextScope(std::remove_const_t<T> newCtx) {
-        oldCtx                            = std::move(ImplicitContext<T, Tag>::instance);
-        ImplicitContext<T, Tag>::instance = std::move(newCtx);
+        oldCtx                                    = std::move(ImplicitContext<T, Tag, thread>::instance);
+        ImplicitContext<T, Tag, thread>::instance = std::move(newCtx);
     }
 
     ~ImplicitContextScope() {
-        ImplicitContext<T, Tag>::instance = std::move(oldCtx);
+        ImplicitContext<T, Tag, thread>::instance = std::move(oldCtx);
     }
 
 private:

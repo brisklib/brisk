@@ -284,7 +284,7 @@ protected:
     constexpr static int laneHeight = 20;
 };
 
-BRISK_UI_THREAD inline Clock::time_point currentFramePresentationTime{};
+inline Clock::time_point currentFramePresentationTime{};
 
 struct ModalMode {
     ModalMode();
