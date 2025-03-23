@@ -114,6 +114,10 @@ void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<
 
     updateDataBuffer(data);
 
+    if (m_frameTimingIndex < m_frameTiming.size() && m_batchIndex < maxDurations) {
+        m_frameTiming[m_frameTimingIndex].begin(m_device->m_device.Get(), m_device->m_context.Get());
+    }
+
     ID3D11ShaderResourceView* dataSRV[1] = { m_dataSRV.Get() };
     context->VSSetShaderResources(3, 1, dataSRV);
     context->PSSetShaderResources(3, 1, dataSRV);
@@ -168,15 +172,22 @@ void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<
 
         context->DrawInstanced(4, cmd.instances, 0, 0);
     }
+    if (m_frameTimingIndex < m_frameTiming.size() && m_batchIndex < maxDurations) {
+        m_frameTiming[m_frameTimingIndex].end(m_device->m_context.Get());
+    }
     context->Flush();
+
+    ++m_batchIndex;
 }
 
 void RenderEncoderD3D11::wait() {
+    processQueries();
     if (!m_query.Get())
         return;
     while (m_device->m_context->GetData(m_query.Get(), nullptr, 0, 0) == S_FALSE) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    processQueries();
 }
 
 void RenderEncoderD3D11::updatePerFrameConstantBuffer(const ConstantPerFrame& constants) {
@@ -318,4 +329,108 @@ RenderEncoderD3D11::~RenderEncoderD3D11() = default;
 RenderDevice* RenderEncoderD3D11::device() const {
     return m_device.get();
 }
+
+RC<RenderTarget> RenderEncoderD3D11::currentTarget() const {
+    return m_currentTarget;
+}
+
+size_t RenderEncoderD3D11::findFrameTimingSlot() {
+    for (size_t i = 0; i < m_frameTiming.size(); ++i) {
+        if (!m_frameTiming[i].pending) {
+            m_frameTiming[i].pending = true;
+            m_frameTiming[i].frameId = m_frameId;
+            return i;
+        }
+    }
+    BRISK_ASSERT_MSG("All frame timing slots are busy", m_frameTiming.size() < maxFrameTimings);
+
+    m_frameTiming.emplace_back(m_frameId, m_device->m_device.Get());
+    return m_frameTiming.size() - 1;
+}
+
+void RenderEncoderD3D11::beginFrame(uint64_t frameId) {
+    m_frameId          = frameId;
+    m_batchIndex       = 0;
+    m_frameTimingIndex = findFrameTimingSlot();
+}
+
+void RenderEncoderD3D11::processQueries() {
+    auto ctx = m_device->m_context;
+    for (size_t i = 0; i < m_frameTiming.size(); ++i) {
+        FrameTiming& timing = m_frameTiming[i];
+        if (!timing.pending)
+            continue;
+        if (auto durations = timing.time(m_device->m_context.Get())) {
+            if (m_durationCallback)
+                m_durationCallback(timing.frameId, *durations);
+        }
+    }
+}
+
+void RenderEncoderD3D11::endFrame(DurationCallback callback) {
+    m_durationCallback = std::move(callback);
+    processQueries();
+}
+
+RenderEncoderD3D11::BatchTiming::BatchTiming(ID3D11Device* device) {
+    D3D11_QUERY_DESC queryDesc{};
+    queryDesc.Query = D3D11_QUERY_TIMESTAMP;
+    device->CreateQuery(&queryDesc, startQuery.ReleaseAndGetAddressOf());
+    device->CreateQuery(&queryDesc, endQuery.ReleaseAndGetAddressOf());
+    queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+    device->CreateQuery(&queryDesc, disjointQuery.ReleaseAndGetAddressOf());
+}
+
+std::optional<std::chrono::nanoseconds> RenderEncoderD3D11::BatchTiming::time(ID3D11DeviceContext* ctx) {
+    uint64_t startTime = 0, endTime = 0;
+    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData{};
+    if (ctx->GetData(endQuery.Get(), &endTime, sizeof(endTime), 0) == S_OK &&
+        ctx->GetData(startQuery.Get(), &startTime, sizeof(startTime), 0) == S_OK &&
+        ctx->GetData(disjointQuery.Get(), &disjointData, sizeof(disjointData), 0) == S_OK) {
+        double ns = 1'000'000'000.0 * static_cast<double>(endTime - startTime) / disjointData.Frequency;
+        return std::chrono::nanoseconds(static_cast<int64_t>(ns));
+    }
+    return std::nullopt;
+}
+
+void RenderEncoderD3D11::FrameTiming::begin(ID3D11Device* device, ID3D11DeviceContext* ctx) {
+    BRISK_ASSERT(pending);
+    batches.emplace_back(device);
+    ctx->Begin(batches.back().disjointQuery.Get());
+    ctx->End(batches.back().startQuery.Get());
+}
+
+void RenderEncoderD3D11::FrameTiming::end(ID3D11DeviceContext* ctx) {
+    BRISK_ASSERT(pending);
+    ctx->End(batches.back().endQuery.Get());
+    ctx->End(batches.back().disjointQuery.Get());
+}
+
+RenderEncoderD3D11::FrameTiming::FrameTiming(uint64_t frameId, ID3D11Device* device) {
+    this->frameId = frameId;
+    pending       = true;
+}
+
+std::optional<std::vector<std::chrono::nanoseconds>> RenderEncoderD3D11::FrameTiming::time(
+    ID3D11DeviceContext* ctx) {
+    BRISK_ASSERT(pending);
+    if (batches.empty())
+        return std::nullopt;
+    auto t = batches.front().time(ctx);
+    if (!t) // Return early if not ready
+        return std::nullopt;
+    std::vector<std::chrono::nanoseconds> result(batches.size());
+    result.front() = *t;
+    for (size_t i = 1; i < result.size(); ++i) {
+        if (auto t = batches[i].time(ctx)) {
+            result[i] = *t;
+        } else {
+            return std::nullopt;
+        }
+    }
+    pending = false;
+    batches.clear();
+    return result;
+}
+
 } // namespace Brisk

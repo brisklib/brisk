@@ -332,6 +332,14 @@ fn sqr(x: f32) -> f32 {
     return x * x;
 }
 
+fn sqr4(x: vec4<f32>) -> vec4<f32> {
+    return x * x;
+}
+
+fn conj(xy: vec2<f32>) -> vec2<f32> {
+    return vec2<f32>(xy.x, -xy.y);
+}
+
 fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
     let texSize: vec2<i32> = vec2<i32>(textureDimensions(boundTexture_t));
 
@@ -346,16 +354,27 @@ fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
     let hi = vec2<f32>(vec2<f32>(texSize) - 0.5) / vec2<f32>(texSize);
     var sum: vec4<f32> = g1 * textureSample(boundTexture_t, boundTexture_s, pos);
 
-    for (var i: i32 = 1; i <= half_size; i = i + 1) {
-        for (var j: i32 = 0; j <= half_size; j = j + 1) {
-            if i * i + j * j <= max_square {
-                let g: f32 = g1 * exp(sqr(length(vec2<f32>(f32(i), f32(j)))) * g2);
-                let v1 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(i, j)), lo, hi));
-                let v2 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(-j, i)), lo, hi));
-                let v3 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(-i, -j)), lo, hi));
-                let v4 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * vec2<f32>(vec2<i32>(j, -i)), lo, hi));
-                sum = sum + (v1 + v2 + v3 + v4) * g;
-            }
+    for (var i: i32 = 1; i <= half_size; i = i + 2) {
+        for (var j: i32 = 0; j <= half_size; j = j + 2) {
+            let abcd = g1 * exp((sqr4(vec2<f32>(f32(i), f32(i + 1)).xyxy) + sqr4(vec2<f32>(f32(j), f32(j + 1)).xxyy)) * g2);
+
+            let ab_sum = abcd[0] + abcd[1];
+            let cd_sum = abcd[2] + abcd[3];
+            let abcd_sum = ab_sum + cd_sum;
+
+            let ab_y = abcd[1] / ab_sum;
+            let cd_y = abcd[3] / cd_sum;
+            let abcd_y = cd_sum / abcd_sum;
+
+            let o = vec2<f32>((1.0 - abcd_y) * ab_y + abcd_y * cd_y, abcd_y);
+
+            let xy = vec2<f32>(f32(i), f32(j)) + o;
+
+            let v1 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * xy, lo, hi));
+            let v2 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * conj(xy).yx, lo, hi));
+            let v3 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * -xy, lo, hi));
+            let v4 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * conj(xy.yx), lo, hi));
+            sum = sum + (v1 + v2 + v3 + v4) * abcd_sum;
         }
     }
     return sum;

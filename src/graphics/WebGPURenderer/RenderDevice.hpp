@@ -109,6 +109,7 @@ private:
     std::map<PipelineCacheKey, wgpu::RenderPipeline> m_pipelineCache;
     RenderResources m_resources;
     RenderLimits m_limits;
+    bool m_timestampQuerySupported = false;
 
     bool createDevice();
     void createSamplers();

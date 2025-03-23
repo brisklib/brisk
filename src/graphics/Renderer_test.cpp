@@ -503,7 +503,7 @@ TEST_CASE("SetClipRect") {
 }
 
 TEST_CASE("Multi-pass render") {
-    renderTest<true>(
+    renderTest<true, true>(
         "MultiPass1", Size{ 256, 256 }, [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
             {
                 RenderPipeline pipeline(encoder, target, Palette::transparent);
@@ -813,7 +813,22 @@ TEST_CASE("Semitransparent fill and stroke") {
 }
 
 TEST_CASE("Canvas blur") {
-    renderTest("canvas-blur1", Size{ 512, 512 }, [](RenderContext& context) {
+    renderTest<true>("canvas-blur0", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 0.f);
+        static_cast<RenderPipeline&>(canvas.renderContext()).flush();
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 0.f);
+        static_cast<RenderPipeline&>(canvas.renderContext()).flush();
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 0.f);
+        static_cast<RenderPipeline&>(canvas.renderContext()).flush();
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 0.f);
+    });
+    renderTest<true>("canvas-blur1", Size{ 512, 512 }, [](RenderContext& context) {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
         REQUIRE(bytes.has_value());
@@ -821,7 +836,7 @@ TEST_CASE("Canvas blur") {
         REQUIRE(image.has_value());
         canvas.drawImage({ 0, 0, 512, 512 }, *image, Matrix{}, SamplerMode::Clamp, 1.f);
     });
-    renderTest("canvas-blur2", Size{ 512, 512 }, [](RenderContext& context) {
+    renderTest<true>("canvas-blur2", Size{ 512, 512 }, [](RenderContext& context) {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
         REQUIRE(bytes.has_value());
@@ -829,7 +844,7 @@ TEST_CASE("Canvas blur") {
         REQUIRE(image.has_value());
         canvas.drawImage({ 0, 0, 512, 512 }, *image, Matrix{}, SamplerMode::Clamp, 13.f);
     });
-    renderTest("canvas-blur3", Size{ 320, 213 }, [](RenderContext& context) {
+    renderTest<true>("canvas-blur3", Size{ 320, 213 }, [](RenderContext& context) {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
         REQUIRE(bytes.has_value());

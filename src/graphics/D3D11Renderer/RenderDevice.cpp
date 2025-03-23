@@ -168,7 +168,7 @@ status<RenderDeviceError> RenderDeviceD3D11::init() {
     createPerFrameConstantBuffer();
 
     m_resources.spriteAtlas.reset(
-        new SpriteAtlas(4 * 1048576, maxD3D11ResourceBytes, 4 * 1048576, &m_resources.mutex));
+        new SpriteAtlas(256 * 1024, maxD3D11ResourceBytes, 256 * 1024, &m_resources.mutex));
 
     m_resources.gradientAtlas.reset(new GradientAtlas(1024, &m_resources.mutex));
 

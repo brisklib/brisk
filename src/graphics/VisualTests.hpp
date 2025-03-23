@@ -106,7 +106,7 @@ static void visualTestMono(const std::string& referenceImageName, Size size, Fn&
 inline ColorF defaultBackColor  = Palette::transparent;
 inline float defaultMaximumDiff = 0.05f;
 
-template <bool passRenderTarget = false, typename Fn>
+template <bool profile = false, bool passRenderTarget = false, typename Fn>
 static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn,
                        ColorF backColor = defaultBackColor, float maximumDiff = defaultMaximumDiff,
                        std::initializer_list<RendererBackend> backends = rendererBackends) {
@@ -133,12 +133,33 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
         visualTest<PixelFormat::BGRA>(
             referenceImageName, size,
             [&](RC<Image> image) {
+                if constexpr (profile) {
+                    encoder->beginFrame(0);
+                }
                 if constexpr (passRenderTarget) {
                     fn(encoder, target);
                 } else {
                     RenderPipeline pipeline(encoder, target, backColor);
+
                     fn(static_cast<RenderContext&>(pipeline));
+
+                    pipeline.flush();
                 }
+
+                if constexpr (profile) {
+                    encoder->endFrame(
+                        [referenceImageName](uint64_t frame,
+                                             std::span<const std::chrono::nanoseconds> durations) {
+                            using dur = std::chrono::duration<double, std::micro>;
+                            SmallVector<dur, RenderEncoder::maxDurations> durations_us(durations.size());
+                            for (size_t i = 0; i < durations_us.size(); ++i) {
+                                durations_us[i] = std::chrono::duration_cast<dur>(durations[i]);
+                            }
+                            fmt::println("{} GPU execution times: {}\n", referenceImageName,
+                                         fmt::join(durations_us, ", "));
+                        });
+                }
+
                 encoder->wait();
                 RC<Image> out = target->image();
                 image->copyFrom(out);

@@ -208,34 +208,59 @@ public:
      */
     virtual void wait()                                                                             = 0;
 
+    /**
+     * @brief Gets current bound target (the target passed to `begin` function).
+     * @return Pointer to the current RenderTarget, or nullptr if `begin` has not been called or `end` has
+     * been called.
+     */
     virtual RC<RenderTarget> currentTarget() const                                                  = 0;
+
+    constexpr static uint32_t maxDurations                                                          = 256;
+
+    using DurationCallback = std::function<void(uint64_t, std::span<const std::chrono::nanoseconds>)>;
+
+    virtual void beginFrame(uint64_t frameId)        = 0;
+    virtual void endFrame(DurationCallback callback) = 0;
 };
 
 /**
  * @class RenderPipeline
- * @brief Represents the rendering pipeline.
+ * @brief Represents the rendering pipeline responsible for managing and executing rendering operations.
  */
 class RenderPipeline final : public RenderContext {
 public:
     /**
      * @brief Constructs a RenderPipeline with an encoder and target.
-     * @param encoder The render encoder to execute.
+     * @param encoder The render encoder.
      * @param target The render target.
-     * @param clear The clear color.
-     * @param clipRect The clipping rectangle. Pass noClipRect to disable clipping
+     * @param clear Optional clear color for the render target (defaults to transparent); if
+     * std::nullopt is passed, the target is not cleared, enabling blending with previous content.
+     * @param clipRect The clipping rectangle in screen coordinates; use noClipRect to disable clipping.
      */
     RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target,
                    std::optional<ColorF> clear = Palette::transparent, Rectangle clipRect = noClipRect);
 
+    /**
+     * @brief Blits an image to the render target.
+     * @param image The image to blit; its size must match the target size.
+     */
     void blit(RC<Image> image);
 
     /**
-     * @brief Destructor for the RenderPipeline.
+     * @brief Destroys the RenderPipeline instance.
      */
     ~RenderPipeline();
 
+    /**
+     * @brief Retrieves the current clipping rectangle.
+     * @return The current clipping rectangle in screen coordinates.
+     */
     Rectangle clipRect() const;
 
+    /**
+     * @brief Sets the clipping rectangle for rendering operations.
+     * @param clipRect The new clipping rectangle in screen coordinates (origin at top-left).
+     */
     void setClipRect(Rectangle clipRect) final;
 
     using RenderContext::command;
@@ -243,16 +268,20 @@ public:
     /**
      * @brief Issues a rendering command.
      * @param cmd The render state command.
-     * @param data Associated data.
+     * @param data Optional associated data.
      */
     void command(RenderStateEx&& cmd, std::span<const float> data = {}) final;
 
     /**
-     * @brief Returns the number of batches processed.
+     * @brief Retrieves the number of batches processed.
      * @return The number of batches.
      */
     int numBatches() const final;
 
+    /**
+     * @brief Retrieves the render encoder associated with this pipeline.
+     * @return A reference-counted pointer to the render encoder.
+     */
     RC<RenderEncoder> encoder() const {
         return m_encoder;
     }
@@ -267,11 +296,11 @@ private:
     RC<RenderEncoder> m_encoder;         ///< The current rendering encoder.
     RenderLimits m_limits;               ///< Resource limits for the pipeline.
     RenderResources& m_resources;        ///< Rendering resources.
-    std::vector<RenderState> m_commands; ///< List of rendering commands.
+    std::vector<RenderState> m_commands; ///< List of rendering commands queued for execution.
     std::vector<float> m_data;           ///< Buffer for associated rendering data.
     std::vector<RC<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
-    Rectangle m_clipRect;
+    Rectangle m_clipRect;                ///< The current clipping rectangle.
 };
 
 /**

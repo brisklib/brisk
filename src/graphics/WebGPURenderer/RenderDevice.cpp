@@ -91,6 +91,18 @@ bool RenderDeviceWebGPU::createDevice() {
         opt.powerPreference = wgpu::PowerPreference::Undefined;
         adapters            = m_nativeInstance->EnumerateAdapters(&opt);
     }
+
+#ifdef BRISK_DEBUG_GPU
+    for (size_t i = 0; i < adapters.size(); ++i) {
+        wgpu::AdapterProperties props;
+        adapters[i].GetProperties(&props);
+        fmt::println("GPU adapter [{}] {} {} {}", i, props.vendorName, props.name, props.driverDescription);
+    }
+    if (adapters.empty()) {
+        fmt::println("No GPU adapters found");
+    }
+#endif
+
     if (adapters.empty())
         return false;
     m_nativeAdapter = std::move(adapters.front());
@@ -103,9 +115,14 @@ bool RenderDeviceWebGPU::createDevice() {
         wgpu::FeatureName::DualSourceBlending,
         wgpu::FeatureName::DawnNative,
         wgpu::FeatureName::Float32Filterable,
+        wgpu::FeatureName::TimestampQuery,
     };
     deviceDesc.requiredFeatureCount = std::size(feat);
     deviceDesc.requiredFeatures     = feat;
+    m_timestampQuerySupported       = m_adapter.HasFeature(wgpu::FeatureName::TimestampQuery);
+    if (!m_timestampQuerySupported) {
+        --deviceDesc.requiredFeatureCount;
+    }
 
     wgpu::DawnCacheDeviceDescriptor deviceCache{};
     deviceCache.loadDataFunction  = &loadCached;
@@ -113,17 +130,21 @@ bool RenderDeviceWebGPU::createDevice() {
     deviceCache.functionUserdata  = nullptr;
     deviceDesc.nextInChain        = &deviceCache;
 
-#if BRISK_DEBUG_GPU
-    const char* deviceToggles[] = {
+    wgpu::DawnTogglesDescriptor deviceToggleDesc;
+#ifdef BRISK_DEBUG_GPU
+    const char* deviceTogglesEnable[] = {
         "dump_shaders",
         "disable_symbol_renaming",
     };
-    wgpu::DawnTogglesDescriptor deviceToggleDesc;
-    deviceToggleDesc.enabledToggles     = deviceToggles;
-    deviceToggleDesc.enabledToggleCount = std::size(deviceToggles);
-    deviceCache.nextInChain             = &deviceToggleDesc;
+    deviceToggleDesc.enabledToggles     = deviceTogglesEnable;
+    deviceToggleDesc.enabledToggleCount = std::size(deviceTogglesEnable);
 #endif
-    m_device = m_adapter.CreateDevice(&deviceDesc);
+    const char* deviceTogglesDisable[]   = { "timestamp_quantization" };
+    deviceToggleDesc.disabledToggles     = deviceTogglesDisable;
+    deviceToggleDesc.disabledToggleCount = std::size(deviceTogglesDisable);
+
+    deviceCache.nextInChain              = &deviceToggleDesc;
+    m_device                             = m_adapter.CreateDevice(&deviceDesc);
     if (!m_device)
         return false;
 
@@ -141,6 +162,7 @@ bool RenderDeviceWebGPU::createDevice() {
         nullptr);
 
     m_instance = wgpu::Instance::Acquire(m_nativeInstance->Get());
+    m_instance.ProcessEvents();
 
 #if 0
     std::vector<wgpu::FeatureName> features;
@@ -272,7 +294,7 @@ status<RenderDeviceError> RenderDeviceWebGPU::init() {
     m_limits.maxDataSize = limits.limits.maxBufferSize / sizeof(float);
 
     m_resources.spriteAtlas.reset(
-        new SpriteAtlas(4 * 1048576, m_limits.maxAtlasSize, 4 * 1048576, &m_resources.mutex));
+        new SpriteAtlas(256 * 1024, m_limits.maxAtlasSize, 256 * 1024, &m_resources.mutex));
 
     m_resources.gradientAtlas.reset(new GradientAtlas(m_limits.maxGradients, &m_resources.mutex));
 
@@ -409,7 +431,9 @@ void RenderDeviceWebGPU::wait() {
         .callback = [](WGPUQueueWorkDoneStatus status, void* userdata) {},
         .userdata = nullptr,
     });
+    m_instance.ProcessEvents();
     m_instance.WaitAny(1, &future, 1'000'000'000); // 1 second
+    m_instance.ProcessEvents();
 }
 
 void RenderDeviceWebGPU::createImageBackend(RC<Image> image) {
