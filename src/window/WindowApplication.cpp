@@ -33,7 +33,7 @@
 namespace Brisk {
 
 bool isStandaloneApp                 = false;
-bool separateRenderThread            = true;
+bool separateUIThread            = true;
 
 WindowApplication* windowApplication = nullptr;
 
@@ -63,7 +63,7 @@ void WindowApplication::serialize(const Serialization& serialization) {
     serialization(Value{ &subPixelText }, "subPixelText");
 }
 
-WindowApplication::WindowApplication() : m_separateRenderThread(separateRenderThread) {
+WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
     BRISK_ASSERT(windowApplication == nullptr);
     windowApplication = this;
     mustBeMainThread();
@@ -81,7 +81,7 @@ WindowApplication::WindowApplication() : m_separateRenderThread(separateRenderTh
 
     PlatformWindow::initialize();
 
-    if (m_separateRenderThread) {
+    if (m_separateUIThread) {
         m_uiThread = std::thread(&WindowApplication::uiThreadBody, this);
         m_uiThreadStarted.acquire();
     } else {
@@ -105,7 +105,7 @@ WindowApplication::~WindowApplication() {
         settings->setData("/display", data);
     }
 
-    if (m_separateRenderThread) {
+    if (m_separateUIThread) {
         m_uiThreadTerminate = true;
         while (!m_uiThreadTerminated) {
             mainScheduler->process();
@@ -213,7 +213,7 @@ void WindowApplication::cycle(bool wait) {
     {
         mainScheduler->process();
         processTimers();
-        if (!m_separateRenderThread)
+        if (!m_separateUIThread)
             renderWindows();
     }
 }
@@ -256,7 +256,7 @@ bool WindowApplication::hasWindow(const RC<Window>& window) {
 
 VoidFunc WindowApplication::idleFunc() {
     VoidFunc func;
-    if (m_separateRenderThread && uiScheduler->isOnThread())
+    if (m_separateUIThread && uiScheduler->isOnThread())
         func = [this]() {
             renderWindows();
         };

@@ -306,6 +306,7 @@ void Window::paintDebug(RenderContext& context) {
 }
 
 void Window::doPaint() {
+    BRISK_ASSERT(m_encoder);
     PerformanceDuration start_time = perfNow();
     ObjCPool pool;
     high_res_clock::time_point renderStart;
@@ -344,6 +345,8 @@ void Window::doPaint() {
     PerformanceDuration gpuDuration = PerformanceDuration(0);
     {
         update();
+        if (!m_encoder || !m_target) // The window stopped rendering
+            return;
         RenderPipeline pipeline(m_encoder, target,
                                 bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
                                 noClipRect);

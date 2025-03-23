@@ -212,7 +212,7 @@ Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRep
 
     m_painting  = false;
 
-    if (Internal::debugBoundaries && inputQueue.get()) {
+    if (Internal::debugBoundaries && inputQueue.get(nullptr)) {
         std::optional<Rectangle> rect = inputQueue->getAtMouse<Rectangle>([](Widget* w) {
             return w->rect();
         });
