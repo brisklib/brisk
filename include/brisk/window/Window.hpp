@@ -31,6 +31,42 @@
 
 namespace Brisk {
 
+struct FrameStat {
+    std::chrono::nanoseconds windowUpdate;
+    std::chrono::nanoseconds windowPaint;
+    std::chrono::nanoseconds gpuRender;
+    std::chrono::nanoseconds fullFrame;
+    uint32_t numRenderPasses;
+    uint32_t numQuads;
+    // uint64_t uniformTransferred;
+    // uint64_t textureTransferred;
+};
+
+class RenderStat {
+public:
+    FrameStat& operator[](uint64_t frameIndex) noexcept;
+
+    const FrameStat& operator[](uint64_t frameIndex) const noexcept;
+
+    FrameStat sum() const noexcept;
+
+    bool hasFrame(uint64_t frameIndex) const noexcept;
+
+    void beginFrame(uint64_t frameIndex);
+
+    std::optional<uint64_t> lastFrame() const noexcept;
+
+    FrameStat& back() noexcept;
+
+    const FrameStat& back() const noexcept;
+
+    constexpr static size_t capacity = 128;
+
+private:
+    uint64_t m_lastFrame = UINT64_MAX;
+    std::array<FrameStat, capacity> m_frames{};
+};
+
 // Binding enabled
 extern double frameStartTime;
 
@@ -155,6 +191,10 @@ public:
 
     RC<WindowRenderTarget> target() const;
 
+    RenderStat& renderStat() noexcept;
+
+    const RenderStat& renderStat() const noexcept;
+
 protected:
     friend class WindowApplication;
     void beforeDestroying();
@@ -230,12 +270,13 @@ protected:
     std::chrono::microseconds m_lastFrameRenderTime{ 0 };
     Internal::DisplaySyncPoint m_syncPoint;
     std::atomic_llong m_frameNumber{ 0 };
-    std::optional<Clock::time_point> m_nextFrameTime;
+    std::optional<double> m_nextFrameTime;
     std::unique_ptr<Internal::FrameTimePredictor> m_frameTimePredictor;
     std::mutex m_mutex;
     VisualSettings m_renderSettings{};
     std::atomic_bool m_rendering{ false }; /// true if rendering is active
     std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
+    RenderStat m_renderStat;
     virtual void update();
     virtual void paint(RenderContext& context, bool fullRepaint);
     virtual void paintImmediate(RenderContext& context);
@@ -269,23 +310,10 @@ protected:
     void closeWindow();
 
 protected:
-    PeriodicTimer m_statTimer;
-    PerformanceStatistics m_drawingPerformance;
-    PerformanceStatistics m_uiThreadPerformance;
-    PerformanceStatistics m_renderPerformance;
-    PerformanceStatistics m_blitPerformance;
-    PerformanceStatistics m_swapPerformance;
-    PerformanceStatistics m_gpuPerformance;
-    PerformanceStatistics m_vblankPerformance;
-
-    void renderDebugTimeline(const std::string& title, Canvas& canvas, const PerformanceStatistics& stat,
-                             int lane, int color, double pixelsPerSecond);
-    void renderDebugInfo(Canvas& canvas, int lane);
-
-    constexpr static int laneHeight = 20;
+    void paintStat(Canvas& canvas, Rectangle rect);
 };
 
-inline Clock::time_point currentFramePresentationTime{};
+inline double currentFramePresentationTime{};
 
 struct ModalMode {
     ModalMode();

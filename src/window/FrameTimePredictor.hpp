@@ -26,31 +26,38 @@ namespace Brisk {
 namespace Internal {
 
 struct FrameTimePredictor {
-    using MeasurementArray = std::array<double, 64>;
-    MeasurementArray frameDeltas{};
+    using MeasurementArray = std::array<double, 32>;
+    MeasurementArray frameDurations{};
     int64_t frameIndex{ 0 };
-    std::optional<Clock::time_point> lastFrameTime;
+    std::optional<double> lastFrameTime;
+    double fps = 0;
 
-    void markFrameTime() {
-        const Clock::time_point thisFrameTime = now();
+    double markFrameTime() {
+        double thisFrameTime = currentTime();
         if (lastFrameTime) {
-            frameDeltas[frameIndex % frameDeltas.size()] = toSeconds(thisFrameTime - *lastFrameTime);
+            double dur                                         = thisFrameTime - *lastFrameTime;
+            frameDurations[frameIndex % frameDurations.size()] = dur;
+            lastFrameTime                                      = thisFrameTime;
+            ++frameIndex;
+            return dur;
+        } else {
+            lastFrameTime = thisFrameTime;
+            ++frameIndex;
+            return 0.0;
         }
-        lastFrameTime = thisFrameTime;
-
-        ++frameIndex;
     }
 
-    Clock::time_point predictNextFrameTime() const {
+    double predictNextFrameTime() {
         if (!lastFrameTime)
-            return now();
-        MeasurementArray d = frameDeltas;
+            return currentTime();
+        MeasurementArray d = frameDurations;
         std::sort(d.begin(), d.end());
         size_t i = std::upper_bound(d.begin(), d.end(), 0.0) - d.begin();
         if (i == d.size())
-            return now();
-        return *lastFrameTime +
-               std::chrono::duration_cast<Clock::duration>(FractionalSeconds(d[i + (d.size() - i) / 2]));
+            return currentTime();
+        double medianTime = d[i + (d.size() - i) / 2];
+        fps               = 1.0 / medianTime;
+        return *lastFrameTime + medianTime;
     }
 };
 } // namespace Internal

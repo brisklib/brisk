@@ -192,7 +192,6 @@ void GUIWindow::update() {
 void GUIWindow::paint(RenderContext& context, bool fullRepaint) {
     Canvas canvas(context);
 
-    Stopwatch w(m_drawingPerformance);
     beforeDraw(canvas);
     if (m_tree.root()) {
         m_savedPaintRect = m_tree.paint(canvas, m_backgroundColor, fullRepaint);
