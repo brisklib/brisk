@@ -35,25 +35,25 @@ namespace Material {
 /**
  * @brief Color definitions for Material design.
  */
-constexpr inline Color red         = 0xF44336_rgb; ///< Red color.
-constexpr inline Color pink        = 0xE91E63_rgb; ///< Pink color.
-constexpr inline Color purple      = 0x9C27B0_rgb; ///< Purple color.
-constexpr inline Color deep_purple = 0x673AB7_rgb; ///< Deep purple color.
-constexpr inline Color indigo      = 0x3F51B5_rgb; ///< Indigo color.
-constexpr inline Color blue        = 0x2196F3_rgb; ///< Blue color.
-constexpr inline Color light_blue  = 0x03A9F4_rgb; ///< Light blue color.
-constexpr inline Color cyan        = 0x00BCD4_rgb; ///< Cyan color.
-constexpr inline Color teal        = 0x009688_rgb; ///< Teal color.
-constexpr inline Color green       = 0x4CAF50_rgb; ///< Green color.
-constexpr inline Color light_green = 0x8BC34A_rgb; ///< Light green color.
-constexpr inline Color lime        = 0xCDDC39_rgb; ///< Lime color.
-constexpr inline Color yellow      = 0xFFEB3B_rgb; ///< Yellow color.
-constexpr inline Color amber       = 0xFFC107_rgb; ///< Amber color.
-constexpr inline Color orange      = 0xFF9800_rgb; ///< Orange color.
-constexpr inline Color deep_orange = 0xFF5722_rgb; ///< Deep orange color.
-constexpr inline Color brown       = 0x795548_rgb; ///< Brown color.
-constexpr inline Color grey        = 0x9E9E9E_rgb; ///< Grey color.
-constexpr inline Color blue_grey   = 0x607D8B_rgb; ///< Blue-grey color.
+constexpr inline Color red        = 0xF44336_rgb; ///< Red color.
+constexpr inline Color pink       = 0xE91E63_rgb; ///< Pink color.
+constexpr inline Color purple     = 0x9C27B0_rgb; ///< Purple color.
+constexpr inline Color deepPurple = 0x673AB7_rgb; ///< Deep purple color.
+constexpr inline Color indigo     = 0x3F51B5_rgb; ///< Indigo color.
+constexpr inline Color blue       = 0x2196F3_rgb; ///< Blue color.
+constexpr inline Color lightBlue  = 0x03A9F4_rgb; ///< Light blue color.
+constexpr inline Color cyan       = 0x00BCD4_rgb; ///< Cyan color.
+constexpr inline Color teal       = 0x009688_rgb; ///< Teal color.
+constexpr inline Color green      = 0x4CAF50_rgb; ///< Green color.
+constexpr inline Color lightGreen = 0x8BC34A_rgb; ///< Light green color.
+constexpr inline Color lime       = 0xCDDC39_rgb; ///< Lime color.
+constexpr inline Color yellow     = 0xFFEB3B_rgb; ///< Yellow color.
+constexpr inline Color amber      = 0xFFC107_rgb; ///< Amber color.
+constexpr inline Color orange     = 0xFF9800_rgb; ///< Orange color.
+constexpr inline Color deepOrange = 0xFF5722_rgb; ///< Deep orange color.
+constexpr inline Color brown      = 0x795548_rgb; ///< Brown color.
+constexpr inline Color grey       = 0x9E9E9E_rgb; ///< Grey color.
+constexpr inline Color blueGrey   = 0x607D8B_rgb; ///< Blue-grey color.
 
 } // namespace Material
 

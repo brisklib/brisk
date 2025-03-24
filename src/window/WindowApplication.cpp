@@ -33,7 +33,7 @@
 namespace Brisk {
 
 bool isStandaloneApp                 = false;
-bool separateUIThread            = true;
+bool separateUIThread                = true;
 
 WindowApplication* windowApplication = nullptr;
 

@@ -67,7 +67,7 @@ protected:
     void rebuildRoot();
     void beforeFrame() override;
     void beforeOpeningWindow() override;
-    
+
     void onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) override;
     void onCharEvent(char32_t character) override;
     void onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
