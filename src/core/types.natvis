@@ -34,4 +34,101 @@
             </ArrayItems>
         </Expand>
     </Type>
+    <Type Name="Brisk::SIMD&lt;*,*&gt;">
+        <DisplayString IncludeView ="elt0" Condition="$T2 == 0"></DisplayString>
+        <DisplayString IncludeView ="elt0">{m_data[0]}{*this,view(elt1)}</DisplayString>
+        <DisplayString IncludeView ="elt1" Condition="$T2 == 1"></DisplayString>
+        <DisplayString IncludeView ="elt1">, {m_data[1]}{*this,view(elt2)}</DisplayString>
+        <DisplayString IncludeView ="elt2" Condition="$T2 == 2"></DisplayString>
+        <DisplayString IncludeView ="elt2">, {m_data[2]}{*this,view(elt3)}</DisplayString>
+        <DisplayString IncludeView ="elt3" Condition="$T2 == 3"></DisplayString>
+        <DisplayString IncludeView ="elt3">, {m_data[3]}{*this,view(elt4)}</DisplayString>
+        <DisplayString IncludeView ="elt4" Condition="$T2 == 4"></DisplayString>
+        <DisplayString IncludeView ="elt4">, /* {$T2 - 4} more*/ </DisplayString>
+        <DisplayString Condition="$T2 != 0">{{{*this,view(elt0)}}}</DisplayString>
+        <Expand HideRawView="true">
+            <ArrayItems>
+                <Size>$T2</Size>
+                <ValuePointer>m_data</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::PointOf&lt;*&gt;">
+        <DisplayString>{{{x}, {y}}}</DisplayString>
+        <Expand HideRawView="true">
+            <Item Name="x">x</Item>
+            <Item Name="y">y</Item>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::SizeOf&lt;*&gt;">
+        <DisplayString>{{{x}, {y}}}</DisplayString>
+        <Expand HideRawView="true">
+            <Item Name="x">x</Item>
+            <Item Name="y">y</Item>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::RectangleOf&lt;*&gt;">
+        <DisplayString>{{{x1}, {y1}, {x2}, {y2}}}</DisplayString>
+        <Expand HideRawView="true">
+            <Item Name="x1">x1</Item>
+            <Item Name="y1">y1</Item>
+            <Item Name="x2">x2</Item>
+            <Item Name="y2">y2</Item>
+            <Item Name="width()">x2-x1</Item>
+            <Item Name="height()">y2-y1</Item>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::EdgesOf&lt;*&gt;">
+        <DisplayString>{{{x1}, {y1}, {x2}, {y2}}}</DisplayString>
+        <Expand HideRawView="true">
+            <Item Name="x1">x1</Item>
+            <Item Name="y1">y1</Item>
+            <Item Name="x2">x2</Item>
+            <Item Name="y2">y2</Item>
+            <Item Name="horizontal()">x1+x2</Item>
+            <Item Name="vertical()">y1+y2</Item>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::CornersOf&lt;*&gt;">
+        <DisplayString>{{{x1y1}, {x2y1}, {x1y2}, {x2y2}}}</DisplayString>
+        <Expand HideRawView="true">
+            <Item Name="x1y1">x1y1</Item>
+            <Item Name="x2y1">x2y1</Item>
+            <Item Name="x1y2">x1y2</Item>
+            <Item Name="x2y2">x2y2</Item>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::ColorOf&lt;*,*&gt;">
+        <DisplayString>{{{r}, {g}, {b}, {a}}}</DisplayString>
+        <Expand HideRawView="true">
+            <Item Name="r">r</Item>
+            <Item Name="g">g</Item>
+            <Item Name="b">b</Item>
+            <Item Name="a">a</Item>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::MatrixOf&lt;*&gt;">
+        <DisplayString>{{{a}, {b}, {c}, {d}, {e}, {f}}}</DisplayString>
+        <Expand HideRawView="true">
+            <Item Name="a">a</Item>
+            <Item Name="b">b</Item>
+            <Item Name="c">c</Item>
+            <Item Name="d">d</Item>
+            <Item Name="e">e</Item>
+            <Item Name="f">f</Item>
+        </Expand>
+    </Type>
+    <Type Name="Brisk::LengthOf&lt;Brisk::LengthUnit&gt;">
+        <DisplayString Condition="m_packed == 0x7fc00000">Undefined</DisplayString>
+        <DisplayString Condition="m_packed == 0x7fc00001">Auto</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 0">{value()}px</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 1">{value()}dpx</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 2">{value()}apx</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 3">{value()}em</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 4">{value()}vw</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 5">{value()}vh</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 6">{value()}vmin</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 7">{value()}vmax</DisplayString>
+        <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 8">{value()}%</DisplayString>
+    </Type>
 </AutoVisualizer>
