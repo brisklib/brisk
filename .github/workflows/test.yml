@@ -267,7 +267,7 @@ jobs:
         name: test-artifacts-${{github.job}}
         retention-days: 10
         path: |
-          build/*.png
+          build/visualTest
           build/*.log
 
   ubuntu-make-gcc-x86_64:
@@ -301,7 +301,7 @@ jobs:
         name: test-artifacts-${{github.job}}
         retention-days: 10
         path: |
-          build/*.png
+          build/visualTest
           build/*.log
 
   windows-ninja-clang-x86-64:
@@ -338,7 +338,7 @@ jobs:
         name: test-artifacts-${{github.job}}
         retention-days: 10
         path: |
-          build/*.png
+          build/visualTest
           build/*.log
 
   windows-vs-x86:
@@ -370,7 +370,7 @@ jobs:
         name: test-artifacts-${{github.job}}
         retention-days: 10
         path: |
-          build/*.png
+          build/visualTest
           build/*.log
 
   windows-vs-clangcl-x86_64:
@@ -402,7 +402,7 @@ jobs:
         name: test-artifacts-${{github.job}}
         retention-days: 10
         path: |
-          build/*.png
+          build/visualTest
           build/*.log
 
   macos-ninja-clang-arm64:
@@ -440,7 +440,7 @@ jobs:
         name: test-artifacts-${{github.job}}
         retention-days: 10
         path: |
-          build/*.png
+          build/visualTest
           build/*.log
 
   macos-ninja-clang-x86_64:
@@ -474,7 +474,7 @@ jobs:
         name: test-artifacts-${{github.job}}
         retention-days: 10
         path: |
-          build/*.png
+          build/visualTest
           build/*.log
 
   usage-linux:
