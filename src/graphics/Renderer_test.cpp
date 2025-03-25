@@ -607,6 +607,21 @@ inline constexpr std::initializer_list<NameValuePair<CapStyle>> defaultNames<Cap
     { "square", CapStyle::Square },
     { "round", CapStyle::Round },
 };
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<JoinStyle>> defaultNames<JoinStyle>{
+    { "bevel", JoinStyle::Bevel },
+    { "miter", JoinStyle::Miter },
+    { "round", JoinStyle::Round },
+};
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<GradientType>> defaultNames<GradientType>{
+    { "linear", GradientType::Linear },
+    { "radial", GradientType::Radial },
+    { "angle", GradientType::Angle },
+    { "reflected", GradientType::Reflected },
+};
 using enum TestMode;
 
 static void drawRect(Canvas& canvas, TestMode mode, RectangleF r) {
@@ -852,6 +867,80 @@ TEST_CASE("Canvas blur") {
         REQUIRE(image.has_value());
         canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
     });
+}
+
+TEST_CASE("CapStyle") {
+    for (CapStyle capStyle : { CapStyle::Flat, CapStyle::Square, CapStyle::Round }) {
+
+        renderTest("canvas-capStyle-" + fmt::to_string(capStyle), Size{ 320, 160 },
+                   [capStyle](RenderContext& context) {
+                       PointF pt1{ 40, 80 };
+                       PointF pt2{ 280, 80 };
+                       Canvas canvas(context);
+                       canvas.setStrokeColor(Palette::Standard::green);
+                       canvas.setCapStyle(capStyle);
+                       canvas.setStrokeWidth(40.f);
+                       canvas.strokeLine(pt1, pt2);
+                       canvas.setFillColor(Palette::black);
+                       for (PointF p : { pt1, pt2 })
+                           canvas.fillEllipse(p.alignedRect({ 6.f, 6.f }, { 0.5f, 0.5f }));
+                       canvas.setStrokeColor(Palette::black);
+                       canvas.setStrokeWidth(2.f);
+                       canvas.strokeLine(pt1, pt2);
+                   });
+    }
+}
+
+TEST_CASE("JoinStyle") {
+    for (JoinStyle joinStyle : { JoinStyle::Miter, JoinStyle::Bevel, JoinStyle::Round }) {
+
+        renderTest("canvas-joinStyle-" + fmt::to_string(joinStyle), Size{ 320, 160 },
+                   [joinStyle](RenderContext& context) {
+                       PointF pt1{ 50, 40 };
+                       PointF pt2{ 50, 120 };
+                       PointF pt3{ 240, 120 };
+                       PointF pt4{ 120, 40 };
+                       Canvas canvas(context);
+                       canvas.setStrokeColor(Palette::Standard::cyan);
+                       canvas.setJoinStyle(joinStyle);
+
+                       Path path;
+                       path.moveTo(pt1);
+                       path.lineTo(pt2);
+                       path.lineTo(pt3);
+                       path.lineTo(pt4);
+                       canvas.strokePath(path);
+
+                       canvas.setStrokeWidth(40.f);
+                       canvas.strokePath(path);
+                       canvas.setFillColor(Palette::black);
+                       for (PointF p : { pt1, pt2, pt3, pt4 })
+                           canvas.fillEllipse(p.alignedRect({ 6.f, 6.f }, { 0.5f, 0.5f }));
+                       canvas.setStrokeColor(Palette::black);
+                       canvas.setStrokeWidth(2.f);
+                       canvas.strokePath(path);
+                   });
+    }
+}
+
+TEST_CASE("GradientType") {
+    for (GradientType gradientType :
+         { GradientType::Linear, GradientType::Radial, GradientType::Angle, GradientType::Reflected }) {
+
+        renderTest("canvas-gradientType-" + fmt::to_string(gradientType), Size{ 320, 320 },
+                   [gradientType](RenderContext& context) {
+                       PointF pt1{ 160, 160 };
+                       PointF pt2{ 260, 260 };
+                       Canvas canvas(context);
+                       canvas.setFillPaint(Gradient(gradientType, pt1, pt2, Palette::Standard::yellow,
+                                                    Palette::Standard::violet));
+
+                       canvas.fillRect({ 0, 0, 320, 320 });
+                       canvas.setFillColor(Palette::black);
+                       for (PointF p : { pt1, pt2 })
+                           canvas.fillEllipse(p.alignedRect({ 6.f, 6.f }, { 0.5f, 0.5f }));
+                   });
+    }
 }
 
 #ifdef BRISK_WEBGPU
