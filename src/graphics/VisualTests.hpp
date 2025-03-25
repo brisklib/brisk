@@ -75,6 +75,10 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
                 uniqueFileName(PROJECT_BINARY_DIR "/visualTest/" + referenceImageName + ".png",
                                PROJECT_BINARY_DIR "/visualTest/" + referenceImageName + " {}.png");
             WARN("PNG saved at " << savePath.string());
+            {
+                auto rw = testImage->mapReadWrite();
+                rw.unpremultiplyAlpha();
+            }
             REQUIRE(writeBytes(savePath, pngEncode(testImage)));
         }
     };
@@ -86,7 +90,7 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
     CHECK(refImgBytes.has_value());
     if (refImgBytes.has_value()) {
         expected<RC<Image>, ImageIOError> decodedRefImg =
-            pngDecode(*refImgBytes, imageFormat(PixelType::U8Gamma, Format));
+            pngDecode(*refImgBytes, imageFormat(PixelType::U8Gamma, Format), true);
         REQUIRE(decodedRefImg.has_value());
         REQUIRE((*decodedRefImg)->size() == size);
         REQUIRE((*decodedRefImg)->pixelFormat() == Format);

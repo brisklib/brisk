@@ -432,7 +432,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
-        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        auto image = pngDecode(*bytes, ImageFormat::RGBA, true);
         REQUIRE(image.has_value());
         canvas.drawImage({ 100, 100, 200, 200 }, *image, Matrix{}.rotate(15, 50.f, 50.f));
     });
@@ -440,7 +440,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
-        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        auto image = pngDecode(*bytes, ImageFormat::RGBA, true);
         REQUIRE(image.has_value());
         canvas.setTransform(Matrix{}.rotate(15, 150.f, 150.f));
         canvas.drawImage({ 100, 100, 200, 200 }, *image);
@@ -449,7 +449,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
         REQUIRE(bytes.has_value());
-        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        auto image = pngDecode(*bytes, ImageFormat::RGBA, true);
         REQUIRE(image.has_value());
         canvas.setTransform(Matrix{}.rotate(15, 150.f, 150.f));
         canvas.setFillColor(Palette::Standard::green);
