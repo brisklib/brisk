@@ -142,7 +142,8 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
  */
 [[nodiscard]] expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes,
-                                                          ImageFormat format = ImageFormat::Unknown);
+                                                          ImageFormat format    = ImageFormat::Unknown,
+                                                          bool premultiplyAlpha = false);
 
 /**
  * @brief Decodes a BMP image from the provided byte data.
@@ -152,7 +153,8 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
  */
 [[nodiscard]] expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes,
-                                                          ImageFormat format = ImageFormat::Unknown);
+                                                          ImageFormat format    = ImageFormat::Unknown,
+                                                          bool premultiplyAlpha = false);
 
 /**
  * @brief Decodes a JPEG image from the provided byte data.
@@ -172,7 +174,8 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
  */
 [[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(BytesView bytes,
-                                                           ImageFormat format = ImageFormat::Unknown);
+                                                           ImageFormat format    = ImageFormat::Unknown,
+                                                           bool premultiplyAlpha = false);
 
 /**
  * @brief Decodes an image from the provided byte data using the specified codec.
@@ -183,9 +186,11 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
  */
 [[nodiscard]] expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, BytesView bytes,
-                                                            ImageFormat format = ImageFormat::Unknown);
+                                                            ImageFormat format    = ImageFormat::Unknown,
+                                                            bool premultiplyAlpha = false);
 
 [[nodiscard]] expected<RC<Image>, ImageIOError> imageDecode(BytesView bytes,
-                                                            ImageFormat format = ImageFormat::Unknown);
+                                                            ImageFormat format    = ImageFormat::Unknown,
+                                                            bool premultiplyAlpha = false);
 
 } // namespace Brisk

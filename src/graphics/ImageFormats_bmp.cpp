@@ -68,7 +68,8 @@ struct stbi_delete {
     }
 };
 
-static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat format) {
+static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat format,
+                                                    bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("BMP codec doesn't support decoding to {} format", format));
     }
@@ -89,11 +90,13 @@ static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat
     RC<Image> image = rcnew Image(Size{ width, height }, imageFormat(PixelType::U8Gamma, fmt));
     auto w          = image->mapWrite();
     w.readFrom(BytesView{ (const std::byte*)mem.get(), size_t(width * height * comp) });
+    if (premultiplyAlpha)
+        w.premultiplyAlpha();
     return image;
 }
 
-expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes, ImageFormat format) {
-    return stbiDecode(bytes, format);
+expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
+    return stbiDecode(bytes, format, premultiplyAlpha);
 }
 
 } // namespace Brisk

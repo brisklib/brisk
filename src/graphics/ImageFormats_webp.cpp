@@ -95,7 +95,8 @@ struct webp_deleter {
     return result;
 }
 
-[[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(BytesView bytes, ImageFormat format) {
+[[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(BytesView bytes, ImageFormat format,
+                                                           bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("Webp codec doesn't support decoding to {} format", format));
     }
@@ -123,6 +124,8 @@ struct webp_deleter {
     RC<Image> img = rcnew Image(Size{ width, height }, format);
     auto wr       = img->mapWrite();
     wr.readFrom({ (const std::byte*)pixels.get(), size_t(width * height * 4) });
+    if (premultiplyAlpha)
+        wr.premultiplyAlpha();
     return img;
 }
 
