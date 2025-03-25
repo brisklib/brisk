@@ -459,7 +459,7 @@ void Canvas::transform(const Matrix& matrix) {
 }
 
 std::optional<RectangleF> Canvas::getClipRect() const {
-    if (m_state.clipRect == noClipRect)
+    if (Rectangle(m_state.clipRect) == noClipRect)
         return std::nullopt;
     return m_state.clipRect;
 }

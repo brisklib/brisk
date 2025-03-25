@@ -415,13 +415,27 @@ fn mapLine(from_: vec2<f32>, to: vec2<f32>, point: vec2<f32>) -> vec3<f32> {
     return vec3<f32>(map(point - from_, dir), len);
 }
 
+fn sdfInfLine(p: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>) -> f32 {
+    let dir: vec2<f32> = normalize(p2 - p1);
+    let normal: vec2<f32> = vec2<f32>(-dir.y, dir.x);
+    return dot(p - p1, normal);
+}
+
+fn angleGradient(p: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>) -> f32 {
+    let sd = sdfInfLine(p, p1, p2);
+    let n = map(normalize(p - p1), normalize(p2 - p1));
+    let first = atan2(n.x, n.y) * 0.15915494309 + 0.75;
+    let second = atan2(-n.x, -n.y) * 0.15915494309 + 0.25;
+    return mix(first, second, clamp(sd + 0.5, 0., 1.));
+}
+
 fn gradientPositionForPoint(point: vec2<f32>) -> f32 {
     if constants.gradient == gradient_linear {
         return positionAlongLine(constants.gradient_point1, constants.gradient_point2, point);
     } else if constants.gradient == gradient_radial {
         return length(point - constants.gradient_point1) / length(constants.gradient_point2 - constants.gradient_point1);
     } else if constants.gradient == gradient_angle {
-        return getAngle(mapLine(constants.gradient_point1, constants.gradient_point2, point).xy);
+        return angleGradient(point, constants.gradient_point1, constants.gradient_point2);
     } else if constants.gradient == gradient_reflected {
         return 1.0 - abs(fract(positionAlongLine(constants.gradient_point1, constants.gradient_point2, point)) * 2.0 - 1.0);
     } else {
