@@ -128,11 +128,11 @@ unset(_DEP_PUBLIC)
 unset(_DEP_PRIVATE)
 
 if (BRISK_WEBGPU)
-    if (TARGET Dawn)
+    if (TARGET dawn::webgpu_dawn)
         target_link_libraries(brisk-graphics PUBLIC brisk-renderer-webgpu)
         target_compile_definitions(brisk-renderer-webgpu PUBLIC BRISK_WEBGPU=1)
     else ()
-        message(FATAL_ERROR "BRISK_WEBGPU is ON but Dawn target is missing")
+        message(FATAL_ERROR "BRISK_WEBGPU is ON but dawn::webgpu_dawn target is missing")
     endif ()
 endif ()
 

@@ -76,7 +76,7 @@ target_link_libraries(${_BRISK_I18N_ICU} ${_DEP_PRIVATE} ICU::uc)
 
 if (BRISK_WEBGPU)
     find_package(Dawn CONFIG REQUIRED)
-    target_link_libraries(${_BRISK_RENDERER_WEBGPU} ${_DEP_PRIVATE} Dawn)
+    target_link_libraries(${_BRISK_RENDERER_WEBGPU} ${_DEP_PRIVATE} dawn::webgpu_dawn)
 
     brisk_target_link_resource(
         ${_BRISK_RENDERER_WEBGPU} PUBLIC "webgpu/webgpu.wgsl"

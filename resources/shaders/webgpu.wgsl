@@ -18,7 +18,7 @@
 // If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
 // license. For commercial licensing options, please visit: https://brisklib.com
 // 
-enable chromium_internal_dual_source_blending;
+enable dual_source_blending;
 
 alias shader_type = i32;
 alias gradient_type = i32;

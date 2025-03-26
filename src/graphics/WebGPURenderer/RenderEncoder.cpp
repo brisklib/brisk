@@ -258,9 +258,9 @@ void RenderEncoderWebGPU::updateAtlasTexture() {
             m_atlasTextureView = m_atlasTexture.CreateView(&viewDesc);
         }
 
-        wgpu::ImageCopyTexture destination{};
+        wgpu::TexelCopyTextureInfo destination{};
         destination.texture = m_atlasTexture;
-        wgpu::TextureDataLayout source{};
+        wgpu::TexelCopyBufferLayout source{};
         source.bytesPerRow = Internal::max2DTextureSize;
         wgpu::Extent3D texSize{ uint32_t(newSize.width), uint32_t(newSize.height), 1u };
         m_queue.WriteTexture(&destination, atlas->data().data(), atlas->data().size(), &source, &texSize);
@@ -287,9 +287,9 @@ void RenderEncoderWebGPU::updateGradientTexture() {
             m_gradientTextureView = m_gradientTexture.CreateView(&viewDesc);
         }
 
-        wgpu::ImageCopyTexture destination{};
+        wgpu::TexelCopyTextureInfo destination{};
         destination.texture = m_gradientTexture;
-        wgpu::TextureDataLayout source{};
+        wgpu::TexelCopyBufferLayout source{};
         source.bytesPerRow = sizeof(GradientData);
         wgpu::Extent3D texSize{ uint32_t(newSize.width), uint32_t(newSize.height), 1u };
         m_queue.WriteTexture(&destination, atlas->data().data(), atlas->data().size() * sizeof(GradientData),
@@ -348,13 +348,12 @@ void RenderEncoderWebGPU::endFrame(DurationCallback callback) {
             new CallbackData{ m_flag, std::move(callback), &timing, m_frameId, m_timestampIndex };
 
         timing.resultBuffer.MapAsync(
-            wgpu::MapMode::Read, 0, maxTimestamps * sizeof(uint64_t),
-            [](WGPUBufferMapAsyncStatus status, void* userdata) {
-                const CallbackData* callbackData = static_cast<const CallbackData*>(userdata);
+            wgpu::MapMode::Read, 0, maxTimestamps * sizeof(uint64_t), wgpu::CallbackMode::AllowProcessEvents,
+            [](wgpu::MapAsyncStatus status, wgpu::StringView, CallbackData* callbackData) {
                 if (auto lk = callbackData->flag.lock(); !lk) {
                     return;
                 }
-                if (status == WGPUBufferMapAsyncStatus_Success) {
+                if (status == wgpu::MapAsyncStatus::Success) {
                     std::span<const std::chrono::nanoseconds> timestamps{
                         static_cast<const std::chrono::nanoseconds*>(
                             callbackData->frameTiming->resultBuffer.GetConstMappedRange()),

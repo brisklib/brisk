@@ -82,13 +82,13 @@ void ImageBackendWebGPU::readFromGPU(const ImageData<UntypedPixel>& data, Point 
     wgpu::Buffer buffer   = m_device->m_device.CreateBuffer(&bufDesc);
 
     auto encoder          = m_device->m_device.CreateCommandEncoder();
-    wgpu::ImageCopyTexture source{};
+    wgpu::TexelCopyTextureInfo source{};
     source.texture  = m_texture;
     source.origin.x = origin.x;
     source.origin.y = origin.y;
     source.origin.z = 0;
     source.mipLevel = 0;
-    wgpu::ImageCopyBuffer destination{};
+    wgpu::TexelCopyBufferInfo destination{};
     destination.buffer             = buffer;
     destination.layout.bytesPerRow = alignedStride;
     wgpu::Extent3D copySize{ uint32_t(data.size.width), uint32_t(data.size.height) };
@@ -96,23 +96,21 @@ void ImageBackendWebGPU::readFromGPU(const ImageData<UntypedPixel>& data, Point 
     wgpu::CommandBuffer commands = encoder.Finish();
     m_device->m_device.GetQueue().Submit(1, &commands);
 
-    wgpu::BufferMapAsyncStatus mapResult;
+    wgpu::MapAsyncStatus mapResult;
     wgpu::FutureWaitInfo future{};
     future.future = buffer.MapAsync(
-        wgpu::MapMode::Read, 0, bufDesc.size,
-        wgpu::BufferMapCallbackInfo{ .mode = wgpu::CallbackMode::AllowProcessEvents,
-                                     .callback =
-                                         [](WGPUBufferMapAsyncStatus status, void* userdata) {
-                                             *reinterpret_cast<WGPUBufferMapAsyncStatus*>(userdata) = status;
-                                         },
-                                     .userdata = &mapResult });
+        wgpu::MapMode::Read, 0, bufDesc.size, wgpu::CallbackMode::AllowProcessEvents,
+        [](wgpu::MapAsyncStatus status, wgpu::StringView msg, wgpu::MapAsyncStatus* userdata) {
+            *userdata = status;
+        },
+        &mapResult);
     static bool longTimeout = std::getenv("WGPU_LONG_TIMEOUT");
     auto time               = std::chrono::high_resolution_clock::now();
     //  Timeout is 2 minutes or 5 seconds
     std::chrono::nanoseconds timeout{ longTimeout ? 120'000'000'000 : 5'000'000'000 };
     wgpu::WaitStatus status = m_device->m_instance.WaitAny(1, &future, timeout.count());
     if (status == wgpu::WaitStatus::Success) {
-        if (mapResult == wgpu::BufferMapAsyncStatus::Success) {
+        if (mapResult == wgpu::MapAsyncStatus::Success) {
             const UntypedPixel* bufferData =
                 reinterpret_cast<const UntypedPixel*>(buffer.GetConstMappedRange(0, bufDesc.size));
             BRISK_ASSERT(bufferData);
@@ -133,11 +131,11 @@ void ImageBackendWebGPU::readFromGPU(const ImageData<UntypedPixel>& data, Point 
 }
 
 void ImageBackendWebGPU::writeToGPU(const ImageData<UntypedPixel>& data, Point origin) {
-    wgpu::ImageCopyTexture destination;
+    wgpu::TexelCopyTextureInfo destination;
     destination.texture  = m_texture;
     destination.origin.x = origin.x;
     destination.origin.y = origin.y;
-    wgpu::TextureDataLayout source;
+    wgpu::TexelCopyBufferLayout source;
     source.bytesPerRow = data.byteStride;
     wgpu::Extent3D writeSize{ uint32_t(data.size.width), uint32_t(data.size.height) };
     m_device->m_device.GetQueue().WriteTexture(&destination, data.data, data.byteSize(), &source, &writeSize);

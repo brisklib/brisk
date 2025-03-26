@@ -21,8 +21,6 @@
 #include "WindowRenderTarget.hpp"
 #include <brisk/graphics/OSWindowHandle.hpp>
 
-#include <dawn/platform/DawnPlatform.h>
-
 namespace Brisk {
 
 void WindowRenderTargetWebGPU::createSurface(const OSWindow* window) {

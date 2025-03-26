@@ -46,7 +46,6 @@ private:
     int m_samples;
 
     wgpu::Surface m_surface;
-    wgpu::SwapChain m_swapChain;
 
     mutable BackBufferWebGPU m_backBuffer;
     int m_vsyncInterval = 1;
