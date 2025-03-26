@@ -23,7 +23,7 @@
 namespace Brisk {
 
 void ProgressBar::updateValue() {
-    if (Progress* progress = dynamic_cast<Progress*>(parent())) {
+    if (Progress* progress = dynamicCast<Progress*>(parent())) {
         float value = progress->normalizedValue.get();
         setRect(progress->clientRect().slice(progress->clientRect().orientation(), 0.f, value));
     }

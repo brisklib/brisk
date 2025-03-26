@@ -36,7 +36,7 @@ RectangleF Slider::thumbRect() const noexcept {
 }
 
 void sliderPainter(Canvas& canvas, const Widget& widget_) {
-    if (!dynamic_cast<const Slider*>(&widget_)) {
+    if (!dynamicCast<const Slider*>(&widget_)) {
         LOG_ERROR(widgets, "sliderPainter called for a non-Slider widget");
         return;
     }

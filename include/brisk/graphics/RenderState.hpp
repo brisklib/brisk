@@ -22,6 +22,7 @@
 
 #include "Matrix.hpp"
 #include "Gradients.hpp"
+#include <brisk/core/MetaClass.hpp>
 #include <brisk/core/Json.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/graphics/Image.hpp>
@@ -253,6 +254,7 @@ struct RenderStateEx : RenderState {
 static_assert(sizeof(RenderState) % 256 == 0, "sizeof(RenderState) % 256 == 0");
 
 class RenderContext {
+    BRISK_DYNAMIC_CLASS_ROOT(RenderContext)
 public:
     virtual void command(RenderStateEx&& cmd, std::span<const float> data = {}) = 0;
 

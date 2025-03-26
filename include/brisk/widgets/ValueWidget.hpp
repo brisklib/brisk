@@ -56,6 +56,7 @@ struct ValueFormatter {
 };
 
 class WIDGET ValueWidget : public Widget {
+    BRISK_DYNAMIC_CLASS(ValueWidget, Widget)
 public:
     using Base = Widget;
     void increment(int amount = 1);

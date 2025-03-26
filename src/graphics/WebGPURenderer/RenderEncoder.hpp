@@ -24,7 +24,12 @@
 
 namespace Brisk {
 
-class RenderEncoderWebGPU final : public RenderEncoder, public DeviceProviderWebGPU {
+class WindowRenderTargetWebGPU;
+class ImageRenderTargetWebGPU;
+
+const BackBufferWebGPU& getBackBuffer(RenderTarget* target);
+
+class RenderEncoderWebGPU final : public RenderEncoder {
 public:
     RenderDevice* device() const final {
         return m_device.get();
@@ -38,7 +43,6 @@ public:
     void end() final;
     void wait() final;
     RC<RenderTarget> currentTarget() const;
-    wgpu::Device getDevice() const;
     void beginFrame(uint64_t frameId);
     void endFrame(DurationCallback callback);
 
@@ -48,6 +52,8 @@ public:
     constexpr static size_t maxTimestamps = maxDurations * 2;
 
 private:
+    friend bool webgpuFromContext(RenderContext&, wgpu::Device&, wgpu::TextureView&);
+
     struct FrameTiming {
         wgpu::QuerySet querySet;    // Timestamp queries for this frame
         wgpu::Buffer resolveBuffer; // Resolved timestamps (GPU-only)

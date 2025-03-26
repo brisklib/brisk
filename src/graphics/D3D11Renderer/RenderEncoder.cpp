@@ -24,6 +24,8 @@
 #include "../Atlas.hpp"
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Time.hpp>
+#include "ImageRenderTarget.hpp"
+#include "WindowRenderTarget.hpp"
 
 namespace Brisk {
 
@@ -39,8 +41,8 @@ void RenderEncoderD3D11::begin(RC<RenderTarget> target, std::optional<ColorF> cl
     m_currentTarget                     = std::move(target);
     ComPtr<ID3D11DeviceContext> context = m_device->m_context;
     m_frameSize                         = m_currentTarget->size();
-    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
-        win->resizeBackbuffer(m_frameSize);
+    if (m_currentTarget->type() == RenderTargetType::Window) {
+        static_cast<WindowRenderTarget*>(m_currentTarget.get())->resizeBackbuffer(m_frameSize);
     }
     D3D11_VIEWPORT viewport{}; // zero-initialize
     viewport.TopLeftX = 0;
@@ -67,8 +69,7 @@ void RenderEncoderD3D11::begin(RC<RenderTarget> target, std::optional<ColorF> cl
     context->VSSetShaderResources(10, 1, dataSRV);
     context->PSSetShaderResources(10, 1, dataSRV);
 
-    const BackBufferD3D11& backBuf =
-        dynamic_cast<BackBufferProviderD3D11*>(m_currentTarget.get())->getBackBuffer();
+    const BackBufferD3D11& backBuf     = getBackBuffer(m_currentTarget.get());
     ID3D11RenderTargetView* rtvList[1] = { backBuf.rtv.Get() };
     context->OMSetRenderTargets(1, rtvList, nullptr);
 
@@ -431,6 +432,17 @@ std::optional<std::vector<std::chrono::nanoseconds>> RenderEncoderD3D11::FrameTi
     pending = false;
     batches.clear();
     return result;
+}
+
+const BackBufferD3D11& getBackBuffer(RenderTarget* target) {
+    switch (target->type()) {
+    case RenderTargetType::Window:
+        return static_cast<WindowRenderTargetD3D11*>(target)->getBackBuffer();
+    case RenderTargetType::Image:
+        return static_cast<ImageRenderTargetD3D11*>(target)->getBackBuffer();
+    default:
+        BRISK_UNREACHABLE();
+    }
 }
 
 } // namespace Brisk

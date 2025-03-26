@@ -34,7 +34,7 @@ namespace Brisk {
  */
 class Component : public BindingObject<Component, &uiScheduler> {
 public:
-    virtual ~Component();
+    ~Component() override {}
 
     /**
      * @brief Gets the `GUIWindow` associated with this component.

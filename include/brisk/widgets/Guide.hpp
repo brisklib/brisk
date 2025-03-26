@@ -30,8 +30,11 @@ struct GuideFocus {
     PointF targetAnchor;
 };
 
-class Guide final : public Widget {
+class WIDGET Guide final : public Widget {
+    BRISK_DYNAMIC_CLASS(Guide, Widget)
 public:
+    using Base = Widget;
+
     template <WidgetArgument... Args>
     explicit Guide(std::vector<GuideFocus> focus, const Args&... args)
         : Widget{ Construction{ "guide" },

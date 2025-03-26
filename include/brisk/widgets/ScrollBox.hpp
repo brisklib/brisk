@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET ScrollBox : public Widget {
+    BRISK_DYNAMIC_CLASS(ScrollBox, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "scrollbox";
@@ -41,6 +42,7 @@ protected:
 };
 
 class WIDGET VScrollBox final : public ScrollBox {
+    BRISK_DYNAMIC_CLASS(VScrollBox, ScrollBox)
 public:
     using Base = ScrollBox;
     using ScrollBox::widgetType;
@@ -56,6 +58,7 @@ protected:
 };
 
 class WIDGET HScrollBox final : public ScrollBox {
+    BRISK_DYNAMIC_CLASS(HScrollBox, ScrollBox)
 public:
     using Base = ScrollBox;
     using ScrollBox::widgetType;

@@ -23,6 +23,7 @@
 #include <brisk/core/Binding.hpp>
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Utilities.hpp>
+#include <brisk/core/MetaClass.hpp>
 
 BRISK_CLANG_PRAGMA(clang diagnostic push)
 BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
@@ -619,6 +620,7 @@ inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, U>&
 using StyleVarType = std::variant<std::monostate, ColorW, EdgesL, float, int>;
 
 class WIDGET Widget : public BindingObject<Widget, &uiScheduler> {
+    BRISK_DYNAMIC_CLASS_ROOT(Widget)
 public:
     using Ptr                 = std::shared_ptr<Widget>;
     using WidgetPtrs          = std::vector<Ptr>;
@@ -736,7 +738,7 @@ public:
     template <std::derived_from<Widget> Type = Widget, typename Fn>
     void enumerate(Fn&& fn, bool recursive = false, bool recursiveForMatching = true) {
         for (const Ptr& w : *this) {
-            if (Type* t = dynamic_cast<Type*>(w.get())) {
+            if (Type* t = dynamicCast<Type*>(w.get())) {
                 fn(t);
                 if (recursive && recursiveForMatching)
                     w->enumerate<Type>(fn, recursive, recursiveForMatching);
@@ -754,7 +756,7 @@ public:
         std::shared_ptr<Type> firstMatch;
 
         for (auto it = m_parent->begin(order == Order::Previous); it != m_parent->end(); ++it) {
-            std::shared_ptr<Type> typed = std::dynamic_pointer_cast<Type>(*it);
+            std::shared_ptr<Type> typed = dynamicPointerCast<Type>(*it);
             if (typed && !firstMatch) {
                 firstMatch = typed;
             }
@@ -817,7 +819,7 @@ public:
         requires std::is_invocable_r_v<bool, Matcher, std::shared_ptr<WidgetClass>>
     {
         for (const Ptr& w : *this) {
-            std::shared_ptr<WidgetClass> ww = std::dynamic_pointer_cast<WidgetClass>(w);
+            std::shared_ptr<WidgetClass> ww = dynamicPointerCast<WidgetClass>(w);
             if (ww && matcher(ww))
                 return ww;
         }
@@ -830,7 +832,7 @@ public:
                  std::is_invocable_r_v<bool, Matcher, std::shared_ptr<Widget>>
     {
         for (const Ptr& w : *this) {
-            std::shared_ptr<WidgetClass> ww = std::dynamic_pointer_cast<WidgetClass>(w);
+            std::shared_ptr<WidgetClass> ww = dynamicPointerCast<WidgetClass>(w);
             if (ww && matcher(ww))
                 return ww;
             if (parentMatcher(w)) {
@@ -1524,7 +1526,7 @@ inline WidgetActions storeWidget(std::shared_ptr<WidgetType>* ptr) {
     return WidgetActions{
         .onParentSet =
             [ptr](Widget* w) {
-                *ptr = std::dynamic_pointer_cast<WidgetType>(w->shared_from_this());
+                *ptr = dynamicPointerCast<WidgetType>(w->shared_from_this());
             },
     };
 }
@@ -1533,7 +1535,7 @@ template <std::derived_from<Widget> WidgetType>
 inline WidgetActions storeWidget(std::weak_ptr<WidgetType>* ptr) {
     return WidgetActions{
         [ptr](Widget* w) {
-            *ptr = std::dynamic_pointer_cast<WidgetType>(w->shared_from_this());
+            *ptr = dynamicPointerCast<WidgetType>(w->shared_from_this());
         },
     };
 }
@@ -1680,7 +1682,7 @@ struct Argument<Tag::WithRole<WidgetType, Name>> {
     }
 
     static WidgetType* matchesType(Widget* widget) {
-        if (WidgetType* typed = dynamic_cast<WidgetType*>(widget)) {
+        if (WidgetType* typed = dynamicCast<WidgetType*>(widget)) {
             typed->role.set(Name.string());
             return typed;
         }
@@ -1688,7 +1690,7 @@ struct Argument<Tag::WithRole<WidgetType, Name>> {
     }
 
     static WidgetType* matchesRole(Widget* widget) {
-        if (WidgetType* typed = dynamic_cast<WidgetType*>(widget);
+        if (WidgetType* typed = dynamicCast<WidgetType*>(widget);
             typed && typed->role.get() == Name.string()) {
             return typed;
         }

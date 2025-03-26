@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET Line : public Widget {
+    BRISK_DYNAMIC_CLASS(Line, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "line";
@@ -43,6 +44,7 @@ protected:
 };
 
 class WIDGET HLine final : public Line {
+    BRISK_DYNAMIC_CLASS(HLine, Line)
 public:
     using Base                                   = Line;
     constexpr static std::string_view widgetType = "hline";
@@ -58,6 +60,7 @@ protected:
 };
 
 class WIDGET VLine final : public Line {
+    BRISK_DYNAMIC_CLASS(VLine, Line)
 public:
     using Base                                   = Line;
     constexpr static std::string_view widgetType = "vline";
@@ -73,6 +76,7 @@ protected:
 };
 
 class WIDGET MenuLine final : public Line {
+    BRISK_DYNAMIC_CLASS(MenuLine, Line)
 public:
     using Base                                   = Line;
     constexpr static std::string_view widgetType = "menuline";

@@ -270,4 +270,5 @@ void Bindings::internalDisconnect(const BindingAddresses& addresses, BindDir dir
         }
     }
 }
+
 } // namespace Brisk

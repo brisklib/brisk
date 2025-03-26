@@ -26,6 +26,7 @@
 namespace Brisk {
 
 class WIDGET PopupButton : public Button {
+    BRISK_DYNAMIC_CLASS(PopupButton, Button)
 public:
     using Base = Button;
     using Button::widgetType;

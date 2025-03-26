@@ -29,6 +29,7 @@
 #include <fmt/format.h>
 #include <brisk/core/Exceptions.hpp>
 #include <brisk/core/Memory.hpp>
+#include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
 
@@ -980,13 +981,18 @@ private:
 
 class Image;
 
+class RenderDevice;
+
 namespace Internal {
-struct ImageBackend {
+class ImageBackend {
+public:
     virtual ~ImageBackend()                             = 0;
     /// Can transfer image data from backend if the image is changed on GPU since previous call to update
     virtual void begin(AccessMode mode, Rectangle rect) = 0;
     /// Can transfer image data to backend
     virtual void end(AccessMode mode, Rectangle rect)   = 0;
+
+    virtual RC<RenderDevice> device() const noexcept    = 0;
 };
 
 ImageBackend* getBackend(RC<Image> image);

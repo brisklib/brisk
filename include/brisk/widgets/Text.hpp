@@ -26,6 +26,7 @@
 namespace Brisk {
 
 class WIDGET Text : public Widget {
+    BRISK_DYNAMIC_CLASS(Text, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "text";
@@ -139,6 +140,7 @@ constexpr inline Argument<Tag::PropArg<decltype(Text::textOptions)>> textOptions
 } // namespace Arg
 
 class WIDGET BackStrikedText final : public Text {
+    BRISK_DYNAMIC_CLASS(BackStrikedText, Text)
 public:
     using Base                                   = Text;
     constexpr static std::string_view widgetType = "backstrikedtext";
@@ -170,6 +172,7 @@ struct TextBuilder : IndexedBuilder {
 };
 
 class WIDGET HoveredDescription final : public Text {
+    BRISK_DYNAMIC_CLASS(HoveredDescription, Text)
 public:
     using Base = Text;
     using Text::Text;

@@ -1896,12 +1896,7 @@ void Widget::close(Widget* sender) {
 }
 
 std::string Widget::name() const {
-    std::string n = typeid(*this).name();
-    if (n.substr(0, 6) == "class ")
-        n.erase(0, 6);
-    if (n.substr(0, 7) == "Brisk::")
-        n.erase(0, 7);
-    return n;
+    return std::string(dynamicMetaClass()->className);
 }
 
 std::optional<size_t> Widget::indexOf(const Widget* widget) const {

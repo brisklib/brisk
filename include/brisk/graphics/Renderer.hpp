@@ -25,6 +25,7 @@
 #include "RenderState.hpp"
 #include "Color.hpp"
 #include "Geometry.hpp"
+#include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
 
@@ -32,14 +33,18 @@ namespace Brisk {
  * @enum RendererBackend
  * @brief Specifies the rendering backends available for the platform.
  */
-enum class RendererBackend {
+enum class RendererBackend : int {
 #ifdef BRISK_D3D11
-    D3D11, ///< Direct3D 11 backend available on Windows.
+    D3D11 = 1, ///< Direct3D 11 backend available on Windows.
 #endif
 #ifdef BRISK_WEBGPU
-    WebGPU, ///< WebGPU backend.
+    WebGPU = 2, ///< WebGPU backend.
 #endif
-    Default = 0, ///< Default backend option.
+#ifdef BRISK_D3D11
+    Default = D3D11, ///< Default backend option.
+#else
+    Default = WebGPU,
+#endif
 };
 
 /**
@@ -115,6 +120,11 @@ struct RenderDeviceInfo {
     };
 };
 
+enum class RenderTargetType {
+    Window,
+    Image,
+};
+
 /**
  * @class RenderTarget
  * @brief Abstract base class representing a render target.
@@ -125,7 +135,9 @@ public:
      * @brief Returns the size of the render target.
      * @return The size of the render target.
      */
-    virtual Size size() const = 0;
+    virtual Size size() const                      = 0;
+
+    virtual RenderTargetType type() const noexcept = 0;
 };
 
 class SpriteAtlas;
@@ -228,6 +240,7 @@ public:
  * @brief Represents the rendering pipeline responsible for managing and executing rendering operations.
  */
 class RenderPipeline final : public RenderContext {
+    BRISK_DYNAMIC_CLASS(RenderPipeline, RenderContext)
 public:
     /**
      * @brief Constructs a RenderPipeline with an encoder and target.
@@ -309,6 +322,10 @@ private:
  */
 class WindowRenderTarget : public RenderTarget {
 public:
+    RenderTargetType type() const noexcept final {
+        return RenderTargetType::Window;
+    }
+
     /**
      * @brief Resizes the backbuffer.
      * @param size The new size of the backbuffer.
@@ -339,6 +356,10 @@ public:
  */
 class ImageRenderTarget : public RenderTarget {
 public:
+    RenderTargetType type() const noexcept final {
+        return RenderTargetType::Image;
+    }
+
     /**
      * @brief Sets the size of the render target.
      * @param newSize The new size.
@@ -464,6 +485,8 @@ public:
      * @return RenderDeviceInfo object.
      */
     virtual RenderDeviceInfo info() const                              = 0;
+
+    virtual RendererBackend backend() const noexcept                   = 0;
 
     /**
      * @brief Creates a render target for a window.

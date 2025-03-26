@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-class WindowRenderTargetWebGPU final : public WindowRenderTarget, public BackBufferProviderWebGPU {
+class WindowRenderTargetWebGPU final : public WindowRenderTarget {
 public:
     void resizeBackbuffer(Size size) final;
     Size size() const final;
@@ -36,7 +36,7 @@ public:
                              PixelType type                = PixelType::U8Gamma,
                              DepthStencilType depthStencil = DepthStencilType::None, int samples = 1);
 
-    const BackBufferWebGPU& getBackBuffer() const final;
+    const BackBufferWebGPU& getBackBuffer() const;
 
 private:
     RC<RenderDeviceWebGPU> m_device;

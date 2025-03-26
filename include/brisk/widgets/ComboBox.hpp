@@ -29,6 +29,7 @@
 namespace Brisk {
 
 class WIDGET ComboBox : public ValueWidget {
+    BRISK_DYNAMIC_CLASS(ComboBox, ValueWidget)
 public:
     using Base                                   = ValueWidget;
     constexpr static std::string_view widgetType = "combobox";

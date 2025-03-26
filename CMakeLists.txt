@@ -58,6 +58,7 @@ cmake_dependent_option(BRISK_D3D11 "Enable D3D11 backend (Windows only)" ON "WIN
 option(BRISK_ICU "Link to ICU by default for full Unicode support" ON)
 option(BRISK_LOG_TO_STDERR "Write log output to stderr (Windows-specific)" OFF)
 option(BRISK_INTERACTIVE_TESTS "Enable interactive tests" OFF)
+option(BRISK_RTTI "Enable RTTI for Brisk builds" ON)
 
 message(STATUS "BRISK_D3D11: ${BRISK_D3D11}")
 message(STATUS "BRISK_WEBGPU: ${BRISK_WEBGPU}")
@@ -93,6 +94,14 @@ endif ()
 if (BRISK_SAN)
     add_compile_options(-fsanitize=${BRISK_SAN})
     add_link_options(-fsanitize=${BRISK_SAN})
+endif ()
+
+if (NOT BRISK_RTTI)
+    if (MSVC OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC"))
+        add_compile_options(/GR-)
+    else ()
+        add_compile_options(-fno-rtti)
+    endif ()
 endif ()
 
 set(DEPS_DIR

@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-WidgetGroup::~WidgetGroup() {
+void WidgetGroup::clean() {
     for (Widget* w : widgets) {
         w->removeFromGroup(this);
     }

@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET ContextPopup : public PopupBox {
+    BRISK_DYNAMIC_CLASS(ContextPopup, PopupBox)
 public:
     using Base                                   = PopupBox;
     constexpr static std::string_view widgetType = "contextpopup";

@@ -32,6 +32,9 @@ public:
     explicit ImageBackendWebGPU(RC<RenderDeviceWebGPU> device, Image* image, bool uploadImage,
                                 bool renderTarget);
     ~ImageBackendWebGPU() final = default;
+
+    RC<RenderDevice> device() const noexcept;
+
     void begin(AccessMode mode, Rectangle rect) final;
     void end(AccessMode mode, Rectangle rect) final;
 

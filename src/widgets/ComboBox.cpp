@@ -83,7 +83,7 @@ std::shared_ptr<Item> ComboBox::findSelected() const {
     int value     = std::round(m_value);
     if (value < 0 || value >= widgets.size())
         return nullptr;
-    return std::dynamic_pointer_cast<Item>(widgets[value]);
+    return dynamicPointerCast<Item>(widgets[value]);
 }
 
 void ComboBox::onEvent(Event& event) {
@@ -122,7 +122,7 @@ void ComboBox::onChanged() {
     auto w = findSelected();
     std::shared_ptr<Item> cloned;
     if (w) {
-        cloned = std::dynamic_pointer_cast<Item>(w->clone());
+        cloned = dynamicPointerCast<Item>(w->clone());
     } else {
         cloned = std::shared_ptr<Item>(new Item{});
     }

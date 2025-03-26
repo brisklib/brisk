@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-class WindowRenderTargetD3D11 final : public WindowRenderTarget, public BackBufferProviderD3D11 {
+class WindowRenderTargetD3D11 final : public WindowRenderTarget {
 public:
     void resizeBackbuffer(Size size) final;
     Size size() const final;
@@ -37,7 +37,7 @@ public:
                             DepthStencilType depthStencil = DepthStencilType::None, int samples = 1);
     ~WindowRenderTargetD3D11();
 
-    const BackBufferD3D11& getBackBuffer() const final {
+    const BackBufferD3D11& getBackBuffer() const {
         return m_backBuffer;
     }
 

@@ -39,11 +39,11 @@ std::shared_ptr<Item> ListBox::findSelected() const {
     int value     = std::round(m_value);
     if (value < 0 || value >= widgets.size())
         return nullptr;
-    return std::dynamic_pointer_cast<Item>(widgets[value]);
+    return dynamicPointerCast<Item>(widgets[value]);
 }
 
 void ListBox::append(RC<Widget> widget) {
-    if (dynamic_cast<Item*>(widget.get()))
+    if (dynamicCast<Item*>(widget.get()))
         Base::append(std::move(widget));
     else
         Base::append(rcnew Item{ std::move(widget) });

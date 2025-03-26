@@ -24,7 +24,8 @@
 
 namespace Brisk {
 
-class Viewport : public Widget {
+class WIDGET Viewport : public Widget {
+    BRISK_DYNAMIC_CLASS(Viewport, Widget)
 public:
     constexpr static std::string_view widgetType = "pages";
 

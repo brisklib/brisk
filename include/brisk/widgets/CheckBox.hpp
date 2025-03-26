@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET CheckBox : public ToggleButton {
+    BRISK_DYNAMIC_CLASS(CheckBox, ToggleButton)
 public:
     using Base                                   = ToggleButton;
     constexpr static std::string_view widgetType = "checkbox";

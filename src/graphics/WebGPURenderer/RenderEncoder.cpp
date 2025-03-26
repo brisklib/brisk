@@ -24,6 +24,8 @@
 #include <brisk/core/Log.hpp>
 #include "../Atlas.hpp"
 #include <brisk/core/Threading.hpp>
+#include "ImageRenderTarget.hpp"
+#include "WindowRenderTarget.hpp"
 
 namespace Brisk {
 
@@ -42,8 +44,8 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
     m_queue         = m_device->m_device.GetQueue();
     BRISK_ASSERT(static_cast<bool>(m_queue.Get()));
     m_frameSize = m_currentTarget->size();
-    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
-        win->resizeBackbuffer(m_frameSize);
+    if (m_currentTarget->type() == RenderTargetType::Window) {
+        static_cast<WindowRenderTarget*>(m_currentTarget.get())->resizeBackbuffer(m_frameSize);
     }
 
     [[maybe_unused]] ConstantPerFrame constantPerFrame{
@@ -58,8 +60,7 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 
     updatePerFrameConstantBuffer(constantPerFrame);
 
-    const BackBufferWebGPU& backBuf =
-        dynamic_cast<BackBufferProviderWebGPU*>(m_currentTarget.get())->getBackBuffer();
+    const BackBufferWebGPU& backBuf = getBackBuffer(m_currentTarget.get());
 
     wgpu::RenderPassColorAttachment renderPassColorAttachment{
         .view    = backBuf.colorView,
@@ -382,10 +383,6 @@ RC<RenderTarget> RenderEncoderWebGPU::currentTarget() const {
     return m_currentTarget;
 }
 
-wgpu::Device RenderEncoderWebGPU::getDevice() const {
-    return m_device->m_device;
-}
-
 RenderEncoderWebGPU::FrameTiming::FrameTiming(wgpu::Device& device) {
     wgpu::QuerySetDescriptor querySetDesc{};
     querySetDesc.type  = wgpu::QueryType::Timestamp;
@@ -405,5 +402,16 @@ RenderEncoderWebGPU::FrameTiming::FrameTiming(wgpu::Device& device) {
     resultBuffer     = device.CreateBuffer(&resultDesc);
 
     pending          = true;
+}
+
+const BackBufferWebGPU& getBackBuffer(RenderTarget* target) {
+    switch (target->type()) {
+    case RenderTargetType::Window:
+        return static_cast<WindowRenderTargetWebGPU*>(target)->getBackBuffer();
+    case RenderTargetType::Image:
+        return static_cast<ImageRenderTargetWebGPU*>(target)->getBackBuffer();
+    default:
+        BRISK_UNREACHABLE();
+    }
 }
 } // namespace Brisk

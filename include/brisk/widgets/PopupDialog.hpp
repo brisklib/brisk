@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET PopupDialog : public Widget {
+    BRISK_DYNAMIC_CLASS(PopupDialog, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "popupdialog";
@@ -42,6 +43,7 @@ protected:
 };
 
 class WIDGET PopupOKDialog : public PopupDialog {
+    BRISK_DYNAMIC_CLASS(PopupOKDialog, PopupDialog)
 public:
     using Base = PopupDialog;
 

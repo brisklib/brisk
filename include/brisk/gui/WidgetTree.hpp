@@ -35,7 +35,9 @@ class Widget;
 struct WidgetGroup {
     std::vector<Widget*> widgets;
 
-    ~WidgetGroup();
+    virtual ~WidgetGroup() {
+        clean();
+    }
 
     virtual void beforeRefresh() {}
 
@@ -46,6 +48,8 @@ struct WidgetGroup {
     virtual void beforePaint() {}
 
     virtual void afterFrame() {}
+
+    void clean();
 };
 
 using Drawable = function<void(Canvas&)>;

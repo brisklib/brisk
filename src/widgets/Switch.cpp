@@ -51,7 +51,7 @@ void Switch::onEvent(Event& event) {
 }
 
 void switchPainter(Canvas& canvas, const Widget& widget_) {
-    if (!dynamic_cast<const Switch*>(&widget_)) {
+    if (!dynamicCast<const Switch*>(&widget_)) {
         LOG_ERROR(widgets, "switchPainter called for a non-Switch widget");
         return;
     }

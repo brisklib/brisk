@@ -26,6 +26,7 @@
 namespace Brisk {
 
 class WIDGET ColorView : public Widget {
+    BRISK_DYNAMIC_CLASS(ColorView, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "colorview";
@@ -57,6 +58,7 @@ public:
 };
 
 class WIDGET ColorSliders : public Widget {
+    BRISK_DYNAMIC_CLASS(ColorSliders, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "colorsliders";
@@ -88,6 +90,7 @@ public:
 };
 
 class WIDGET ColorPalette final : public Widget {
+    BRISK_DYNAMIC_CLASS(ColorPalette, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "colorpalette";
@@ -116,6 +119,7 @@ public:
 };
 
 class WIDGET ColorButton : public PopupButton {
+    BRISK_DYNAMIC_CLASS(ColorButton, Widget)
 public:
     using Base = PopupButton;
     using Button::widgetType;
@@ -134,6 +138,7 @@ protected:
 };
 
 class WIDGET GradientItem final : public Widget {
+    BRISK_DYNAMIC_CLASS(GradientItem, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "gradientitem";

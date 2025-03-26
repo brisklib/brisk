@@ -36,7 +36,7 @@ static auto interp(float v, std::span<const float> list) -> float {
 };
 
 void spinnerPainter(Canvas& canvas, const Widget& widget) {
-    const Spinner* spinner = dynamic_cast<const Spinner*>(&widget);
+    const Spinner* spinner = dynamicCast<const Spinner*>(&widget);
     bool active            = spinner ? spinner->active.get() : true;
     const float time       = active ? frameStartTime * 0.25f : 0;
 

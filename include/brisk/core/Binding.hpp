@@ -1750,6 +1750,8 @@ private:
     using Base = std::enable_shared_from_this<BindingObject<Derived, scheduler>>;
 
 public:
+    ~BindingObject() override {}
+
     using Ptr = std::shared_ptr<Derived>;
 
     [[nodiscard]] std::shared_ptr<Derived> shared_from_this() {

@@ -26,6 +26,7 @@
 namespace Brisk {
 
 class WIDGET NotificationView final : public Widget {
+    BRISK_DYNAMIC_CLASS(NotificationView, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "notification";
@@ -80,6 +81,7 @@ protected:
 };
 
 class WIDGET NotificationContainer final : public AutoScrollable {
+    BRISK_DYNAMIC_CLASS(NotificationContainer, AutoScrollable)
 public:
     using Base                                   = AutoScrollable;
     constexpr static std::string_view widgetType = "notifications";

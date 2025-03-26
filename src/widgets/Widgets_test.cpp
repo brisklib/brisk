@@ -36,6 +36,7 @@ TEST_CASE("Text") {
 }
 
 class Row : public Widget {
+    BRISK_DYNAMIC_CLASS(Row, Widget)
 public:
     template <WidgetArgument... Args>
     Row(const Args&... args)
@@ -47,6 +48,7 @@ public:
 };
 
 class Container : public Widget {
+    BRISK_DYNAMIC_CLASS(Container, Widget)
 public:
     template <WidgetArgument... Args>
     Container(const Args&... args)

@@ -26,8 +26,12 @@ namespace Brisk {
 
 ImageBackendWebGPU* getOrCreateBackend(RC<RenderDeviceWebGPU> device, RC<Image> image, bool uploadImage,
                                        bool renderTarget) {
-    ImageBackendWebGPU* backend = dynamic_cast<ImageBackendWebGPU*>(Internal::getBackend(image));
-    if (backend)
+    if (!image)
+        return nullptr;
+    Internal::ImageBackend* imageBackend = Internal::getBackend(image);
+
+    ImageBackendWebGPU* backend          = static_cast<ImageBackendWebGPU*>(imageBackend);
+    if (backend && imageBackend->device()->backend() == RendererBackend::WebGPU)
         return backend;
     ImageBackendWebGPU* newBackend = new ImageBackendWebGPU(device, image.get(), uploadImage, renderTarget);
     Internal::setBackend(image, newBackend);
@@ -141,4 +145,7 @@ void ImageBackendWebGPU::writeToGPU(const ImageData<UntypedPixel>& data, Point o
     m_device->m_device.GetQueue().WriteTexture(&destination, data.data, data.byteSize(), &source, &writeSize);
 }
 
+RC<RenderDevice> ImageBackendWebGPU::device() const noexcept {
+    return m_device;
+}
 } // namespace Brisk

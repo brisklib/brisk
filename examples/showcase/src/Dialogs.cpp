@@ -17,6 +17,8 @@ static RC<Widget> osDialogButton(std::string text, Listener<> fn) {
 
 class SmallComponent : public Component {
 public:
+    ~SmallComponent() override = default;
+
     RC<Widget> build() final {
         return rcnew Widget{
             stylesheet = Graphene::stylesheet(),

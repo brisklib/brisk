@@ -24,6 +24,11 @@
 
 namespace Brisk {
 
+class WindowRenderTargetD3D11;
+class ImageRenderTargetD3D11;
+
+const BackBufferD3D11& getBackBuffer(RenderTarget* target);
+
 class RenderEncoderD3D11 final : public RenderEncoder,
                                  public std::enable_shared_from_this<RenderEncoderD3D11> {
 public:
