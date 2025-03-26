@@ -22,6 +22,7 @@
 
 #include <type_traits>
 #include <string_view>
+#include <memory>
 
 namespace Brisk {
 
@@ -110,4 +111,13 @@ inline bool isOf(From* ptr) noexcept {
 
     return Internal::isClassOrBase(toMeta, fromMeta);
 }
+
+template <typename T, typename U>
+std::shared_ptr<T> dynamicPointerCast(const std::shared_ptr<U>& r) noexcept {
+    if (auto p = dynamicCast<typename std::shared_ptr<T>::element_type*>(r.get()))
+        return std::shared_ptr<T>{ r, p };
+    else
+        return std::shared_ptr<T>{};
+}
+
 } // namespace Brisk
