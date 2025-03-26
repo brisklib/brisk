@@ -58,6 +58,7 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/Settings.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Text.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Localization.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/MetaClass.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Threading.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Stream.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Time.cpp
