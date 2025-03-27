@@ -19,7 +19,6 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Gradients.hpp>
-#include <brisk/core/internal/Lock.hpp>
 
 namespace Brisk {
 
@@ -30,7 +29,7 @@ GradientData::GradientData(const Gradient& gradient) {
         return;
     }
     if (colorStops.size() == 1) {
-        std::fill(data.begin(), data.end(), colorStops.front().color);
+        std::fill(data.begin(), data.end(), ColorF(colorStops.front().color).premultiply());
         return;
     }
     for (auto& stop : colorStops) {
@@ -41,8 +40,8 @@ GradientData::GradientData(const Gradient& gradient) {
     });
     colorStops.front().position = 0.f;
     colorStops.back().position  = 1.f;
-    data.front()                = colorStops.front().color;
-    data.back()                 = colorStops.back().color;
+    data.front()                = ColorF(colorStops.front().color).premultiply();
+    data.back()                 = ColorF(colorStops.back().color).premultiply();
     for (size_t i = 1; i < gradientResolution - 1; i++) {
         float val = static_cast<float>(i) / (gradientResolution - 1);
         auto gt = std::upper_bound(colorStops.begin(), colorStops.end(), val, [](float val, ColorStop elem) {
@@ -53,28 +52,31 @@ GradientData::GradientData(const Gradient& gradient) {
         }
         auto lt = std::prev(gt);
         float t = (val - lt->position) / (gt->position - lt->position + 0.001f);
-        data[i] = mix(t, ColorF(lt->color), ColorF(gt->color));
+        data[i] = mix(t, ColorF(lt->color).premultiply(), ColorF(gt->color).premultiply(),
+                      AlphaMode::Premultiplied);
     }
 }
 
-GradientData::GradientData(const function<ColorF(float)>& func) {
+GradientData::GradientData(const function<ColorW(float)>& func) {
     for (size_t i = 0; i < gradientResolution; i++) {
-        data[i] = func(static_cast<float>(i) / (gradientResolution - 1));
+        data[i] = ColorF(func(static_cast<float>(i) / (gradientResolution - 1))).premultiply();
     }
 }
 
-GradientData::GradientData(const std::vector<ColorF>& list, float gamma) {
+GradientData::GradientData(const std::vector<ColorW>& list, float gamma) {
     for (size_t i = 0; i < gradientResolution; i++) {
         const float x          = std::pow(static_cast<float>(i) / (gradientResolution - 1), gamma);
         const size_t max_index = list.size() - 1;
         float index            = x * max_index;
         if (index <= 0)
-            data[i] = list[0];
+            data[i] = ColorF(list[0]).premultiply();
         else if (index >= max_index)
-            data[i] = list[max_index];
+            data[i] = ColorF(list[max_index]).premultiply();
         else {
             const float mu = fract(index);
-            data[i]        = mix(mu, list[static_cast<size_t>(index)], list[static_cast<size_t>(index) + 1]);
+            data[i] =
+                mix(mu, ColorF(list[static_cast<size_t>(index)]).premultiply(),
+                    ColorF(list[static_cast<size_t>(index) + 1]).premultiply(), AlphaMode::Premultiplied);
         }
     }
 }
@@ -88,8 +90,73 @@ ColorF GradientData::operator()(float x) const {
         return data[max_index];
     else {
         const float mu = fract(index);
-        return ColorF(mix(mu, data[static_cast<size_t>(index)].v, data[static_cast<size_t>(index) + 1].v));
+        return mix(mu, data[static_cast<size_t>(index)], data[static_cast<size_t>(index) + 1],
+                   AlphaMode::Premultiplied);
     }
 }
 
+Gradient::Gradient(GradientType type) : Gradient(type, {}, {}, {}) {}
+
+Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint)
+    : Gradient(type, startPoint, endPoint, {}) {}
+
+Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorW startColor, ColorW endColor)
+    : Gradient(type, startPoint, endPoint, { { 0.f, startColor }, { 1.f, endColor } }) {}
+
+Gradient::Gradient(GradientType type, PointF startPoint, PointF endPoint, ColorStopArray colorStops)
+    : m_type(type), m_startPoint(startPoint), m_endPoint(endPoint), m_colorStops(std::move(colorStops)) {}
+
+PointF Gradient::getStartPoint() const {
+    return m_startPoint;
+}
+
+void Gradient::setStartPoint(PointF pt) {
+    m_startPoint = pt;
+}
+
+PointF Gradient::getEndPoint() const {
+    return m_endPoint;
+}
+
+void Gradient::setEndPoint(PointF pt) {
+    m_endPoint = pt;
+}
+
+void Gradient::addStop(float position, ColorW color) {
+    addStop({ position, color });
+}
+
+void Gradient::addStop(ColorStop colorStop) {
+    m_colorStops.push_back(colorStop);
+}
+
+GradientType Gradient::getType() const noexcept {
+    return m_type;
+}
+
+const ColorStopArray& Gradient::colorStops() const {
+    return m_colorStops;
+}
+
+LinearGradient::LinearGradient() : Gradient{ GradientType::Linear } {}
+
+LinearGradient::LinearGradient(PointF startPoint, PointF endPoint)
+    : Gradient{ GradientType::Linear, startPoint, endPoint } {}
+
+LinearGradient::LinearGradient(PointF startPoint, PointF endPoint, ColorStopArray colorStops)
+    : Gradient{ GradientType::Linear, startPoint, endPoint, std::move(colorStops) } {}
+
+LinearGradient::LinearGradient(PointF startPoint, PointF endPoint, ColorW startColor, ColorW endColor)
+    : Gradient{ GradientType::Linear, startPoint, endPoint, startColor, endColor } {}
+
+RadialGradient::RadialGradient() : Gradient{ GradientType::Radial } {}
+
+RadialGradient::RadialGradient(PointF point, float radius)
+    : Gradient{ GradientType::Radial, point, point + PointF(radius, 0.f) } {}
+
+RadialGradient::RadialGradient(PointF point, float radius, ColorStopArray colorStops)
+    : Gradient{ GradientType::Radial, point, point + PointF(radius, 0.f), std::move(colorStops) } {}
+
+RadialGradient::RadialGradient(PointF point, float radius, ColorW startColor, ColorW endColor)
+    : Gradient{ GradientType::Radial, point, point + PointF(radius, 0.f), startColor, endColor } {}
 } // namespace Brisk

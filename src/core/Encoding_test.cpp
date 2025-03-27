@@ -18,13 +18,13 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <catch2/catch_all.hpp>
-#include <fmt/format.h>
+#include "Catch2Utils.hpp"
 #include <ostream>
 #include <string_view>
 #include <brisk/core/Encoding.hpp>
-#include "Catch2Utils.hpp"
 
 using namespace Brisk;
 

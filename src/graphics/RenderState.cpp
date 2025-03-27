@@ -18,11 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#define _ENABLE_EXTENDED_ALIGNED_STORAGE 1
-
 #include <brisk/graphics/RenderState.hpp>
-#include <brisk/core/Hash.hpp>
-#include <brisk/graphics/Renderer.hpp>
 #include <cstring>
 
 namespace Brisk {
@@ -44,79 +40,14 @@ void RenderState::premultiply() {
     strokeColor2 = strokeColor2.premultiply();
 }
 
-void Tag::SubpixelMode::apply(const Type& value, RenderStateEx& state) {
-    state.subpixelMode = value;
+RenderStateEx::RenderStateEx(ShaderType shader, RenderStateExArgs args) {
+    this->shader = shader;
+    args.apply(this);
 }
 
-void Tag::FillColor::apply(const ColorF& value, RenderStateEx& state) {
-    state.fillColor1 = value;
-    state.fillColor2 = value;
+RenderStateEx::RenderStateEx(ShaderType shader, int instances, RenderStateExArgs args) {
+    this->instances = instances;
+    this->shader    = shader;
+    args.apply(this);
 }
-
-void Tag::StrokeColor::apply(const ColorF& value, RenderStateEx& state) {
-    state.strokeColor1 = value;
-    state.strokeColor2 = value;
-}
-
-void Tag::FillColors::apply(const GradientColors& value, RenderStateEx& state) {
-    state.fillColor1 = value.color1;
-    state.fillColor2 = value.color2;
-}
-
-void Tag::StrokeColors::apply(const GradientColors& value, RenderStateEx& state) {
-    state.strokeColor1 = value.color1;
-    state.strokeColor2 = value.color2;
-}
-
-void Tag::PaintOpacity::apply(const Tag::PaintOpacity::Type& value, RenderStateEx& state) {
-    state.opacity = value;
-}
-
-void Tag::ContourSize::apply(const Tag::ContourSize::Type& value, RenderStateEx& state) {
-    state.strokeWidth = value * 2;
-}
-
-void Tag::ContourColor::apply(const Tag::ContourColor::Type& value, RenderStateEx& state) {
-    state.fillColor1 = value;
-    state.fillColor2 = value;
-}
-
-void Tag::StrokeWidth::apply(const Tag::StrokeWidth::Type& value, RenderStateEx& state) {
-    state.strokeWidth = value;
-}
-
-void Tag::Multigradient::apply(const Tag::Multigradient::Type& value, RenderStateEx& state) {
-    state.gradientHandle = value;
-}
-
-void Tag::Scissor::apply(const Tag::Scissor::Type& value, RenderStateEx& state) {
-    state.scissor = value;
-}
-
-void Tag::Patterns::apply(const Tag::Patterns::Type& value, RenderStateEx& state) {
-    state.hpattern     = value.hpattern;
-    state.vpattern     = value.vpattern;
-    state.patternScale = std::max(1, value.scale);
-}
-
-void Tag::BlurRadius::apply(const Tag::BlurRadius::Type& value, RenderStateEx& state) {
-    state.blurRadius = value;
-}
-
-void Tag::BlurDirections::apply(const Tag::BlurDirections::Type& value, RenderStateEx& state) {
-    state.blurDirections = value;
-}
-
-void Tag::TextureChannel::apply(const Tag::TextureChannel::Type& value, RenderStateEx& state) {
-    state.textureChannel = value;
-}
-
-void Tag::CoordMatrix::apply(const Tag::CoordMatrix::Type& value, RenderStateEx& state) {
-    state.coordMatrix = value;
-}
-
-void Tag::SamplerMode::apply(const Tag::SamplerMode::Type& value, RenderStateEx& state) {
-    state.samplerMode = value;
-}
-
 } // namespace Brisk

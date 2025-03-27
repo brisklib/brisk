@@ -87,8 +87,9 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
-                canvas.raw().drawRectangle(rect, 0.f, 0.f, fillColor = Palette::transparent,
-                                           strokeColor = Palette::Standard::amber, strokeWidth = 1);
+                canvas.setStrokeColor(Palette::Standard::amber);
+                canvas.setStrokeWidth(1);
+                canvas.strokeRect(rect);
 
                 // Creates a rectangle 'frect' based on 'rect' for further operations.
                 // 'angle' is a static float variable initialized at 0 and incremented by 0.2 in every render
@@ -135,10 +136,9 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 // Create a linear gradient from one corner to another and define two color stops
                 // (red at 0% and green at 100%).
-                RC<Gradient> gradient =
-                    rcnew Gradient{ GradientType::Linear, rect.at(0.25, 0.25), rect.at(0.75, 0.75) };
-                gradient->addStop(0.f, Palette::Standard::red);
-                gradient->addStop(1.f, Palette::Standard::green);
+                Gradient gradient{ GradientType::Linear, rect.at(0.25, 0.25), rect.at(0.75, 0.75) };
+                gradient.addStop(0.f, Palette::Standard::red);
+                gradient.addStop(1.f, Palette::Standard::green);
 
                 // Apply the gradient as the fill paint for the path and fill the shape 'p' with this
                 // gradient.
@@ -292,6 +292,66 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                 clip        = WidgetClip::None,
             },
             rcnew Slider{ value = Value{ &m_shadowSize }, minimum = 0.f, maximum = 40.f, width = 300_apx },
+        },
+
+        rcnew Text{ "Widget borders", classes = { "section-header" } },
+
+        rcnew HLayout{
+            padding   = 12_apx,
+            gapColumn = 10_apx,
+            rcnew Widget{
+                borderWidth  = 5,
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = 15,
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = 1,
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = 11,
+                borderRadius = 2,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+        },
+
+        rcnew HLayout{
+            padding   = 12_apx,
+            gapColumn = 10_apx,
+            rcnew Widget{
+                borderWidth  = 5,
+                borderRadius = { 0, 15, 0, 15 },
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = { 0, 15, 0, 15 },
+                borderRadius = 15,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = { 2, 4, 8, 16 },
+                borderRadius = 0,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
+            rcnew Widget{
+                borderWidth  = { 2, 4, 8, 16 },
+                borderRadius = 10,
+                borderColor  = Palette::Standard::fuchsia,
+                dimensions   = { 30, 30 },
+            },
         },
 
     };

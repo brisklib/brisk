@@ -57,7 +57,7 @@ void PopupBox::onEvent(Event& event) {
 }
 
 void PopupBox::append(RC<Widget> widget) {
-    if (Item* it = dynamic_cast<Item*>(widget.get())) {
+    if (Item* it = dynamicCast<Item*>(widget.get())) {
         it->dynamicFocus = true;
         Base::append(std::move(widget));
     } else {

@@ -30,6 +30,7 @@ OffscreenGUIRendering::OffscreenGUIRendering(int width, int height, float pixelR
 
 void OffscreenGUIRendering::updateAndPaint(WidgetTree& tree) {
     tree.setViewportRectangle(rect());
-    tree.updateAndPaint(this->canvas(), {}, true);
+    tree.update();
+    tree.paint(this->canvas(), {}, true);
 }
 } // namespace Brisk

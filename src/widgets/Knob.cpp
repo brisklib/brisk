@@ -88,35 +88,39 @@ void Knob::onEvent(Event& event) {
     }
 }
 
-void knobPainter(Canvas& canvas_, const Widget& widget_) {
-    if (!dynamic_cast<const Knob*>(&widget_)) {
+void knobPainter(Canvas& canvas, const Widget& widget_) {
+    if (!dynamicCast<const Knob*>(&widget_)) {
         LOG_ERROR(widgets, "knobPainter called for a non-Knob widget");
         return;
     }
-    const Knob& widget     = static_cast<const Knob&>(widget_);
+    const Knob& widget               = static_cast<const Knob&>(widget_);
 
-    RawCanvas& canvas      = canvas_.raw();
-    RectangleF rect        = widget.rect();
+    RectangleF rect                  = widget.rect();
 
-    ColorF selectColor     = widget.borderColor.current();
-    ColorF backColor       = selectColor.multiplyAlpha(0.33f);
-    constexpr float spread = 0.75f * std::numbers::pi_v<float>;
-    const PointF center    = rect.center().round();
-    const float side       = rect.shortestSide() * 0.5f;
-
-    float innerRadius      = 0.6f;
-    float gap              = 0.f;
-
-    canvas.drawArc(center, side, side * innerRadius, 0.0f, 2 * std::numbers::pi_v<float>,
-                   fillColor = backColor, strokeWidth = 0.0f);
-
-    canvas.drawArc(center, side * (1.f - gap), side * (innerRadius + gap), -spread,
-                   -spread + 2 * (widget.normalizedValue * 0.98f + 0.02f) * spread, fillColor = selectColor,
-                   strokeWidth = 0.0f);
+    ColorW selectColor               = widget.borderColor.current();
+    ColorW backColor                 = selectColor.multiplyAlpha(0.33f);
+    constexpr float spread           = 0.75f * 180;
+    const PointF center              = rect.center().round();
+    const float radius               = rect.shortestSide() * 0.5f;
+    constexpr float innerRadiusRatio = 0.6f;
+    Path path;
+    path.addCircle(center.x, center.y, radius);
+    path.addCircle(center.x, center.y, radius * innerRadiusRatio, Path::Direction::CCW);
+    canvas.setFillColor(backColor);
+    canvas.fillPath(path);
+    path.reset();
+    float startAngle  = -spread;
+    float sweepLength = 2 * widget.normalizedValue * spread;
+    path.arcTo(center.alignedRect(Size(radius * 2), PointF(0.5f, 0.5f)), startAngle, -sweepLength, true);
+    path.arcTo(center.alignedRect(Size(radius * 2 * innerRadiusRatio), PointF(0.5f, 0.5f)),
+               startAngle - sweepLength, sweepLength, false);
+    path.close();
+    canvas.setFillColor(selectColor);
+    canvas.fillPath(path);
 }
 
-void Knob::paint(Canvas& canvas_) const {
-    knobPainter(canvas_, *this);
+void Knob::paint(Canvas& canvas) const {
+    knobPainter(canvas, *this);
 }
 
 Knob::Knob(Construction construction, ArgumentsView<Knob> args) : Base(construction, nullptr) {

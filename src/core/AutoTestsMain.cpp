@@ -20,7 +20,6 @@
  */
 #include <brisk/core/System.hpp>
 #include <brisk/core/Version.hpp>
-#include <brisk/core/Log.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/core/internal/Initialization.hpp>
 

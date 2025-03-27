@@ -24,6 +24,7 @@
 
 namespace Brisk {
 class WIDGET Hyperlink : public Widget {
+    BRISK_DYNAMIC_CLASS(Hyperlink, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "hyperlink";

@@ -183,62 +183,12 @@ using FractionalSeconds   = std::chrono::duration<double>;
 
 PerformanceDuration perfNow();
 
-struct PerformanceStatistics {
-public:
-    struct TimeSlice {
-        PerformanceDuration start;
-        PerformanceDuration stop;
-    };
-
-    PerformanceStatistics() = default;
-    void addMeasurement(PerformanceDuration start, PerformanceDuration stop);
-
-    static std::string ms(PerformanceDuration v);
-    static std::string us(PerformanceDuration v);
-    static std::string ns(PerformanceDuration v);
-    std::string report(std::string (*cvt)(PerformanceDuration) = &PerformanceStatistics::ms) const;
-    void reset();
-
-    double load() const;
-
-    const std::array<TimeSlice, 64 * 4>& slices() const;
-    int slicesPos() const;
-
-    const std::string& lastReport() const;
-
-private:
-    std::atomic<PerformanceDuration::rep> m_sum{ 0 };
-    std::atomic<PerformanceDuration::rep> m_min{ std::numeric_limits<PerformanceDuration::rep>::max() };
-    std::atomic<PerformanceDuration::rep> m_max{ std::numeric_limits<PerformanceDuration::rep>::min() };
-    std::atomic<PerformanceDuration::rep> m_start{ 0 };
-    std::atomic<int64_t> m_count{ 0 };
-    std::array<TimeSlice, 64 * 4> m_slices;
-    std::atomic<int> m_slicePos{ 0 };
-    mutable std::string m_report;
-    double m_load = 0.0;
-
-    template <typename T>
-    static void updateMaximum(std::atomic<T>& maximum_value, T const& value) noexcept {
-        T prev_value = maximum_value;
-        while (prev_value < value && !maximum_value.compare_exchange_weak(prev_value, value)) {}
-    }
-
-    template <typename T>
-    static void updateMinimum(std::atomic<T>& maximum_value, T const& value) noexcept {
-        T prev_value = maximum_value;
-        while (prev_value > value && !maximum_value.compare_exchange_weak(prev_value, value)) {}
-    }
-};
-
 struct Stopwatch {
 public:
-    explicit Stopwatch(PerformanceStatistics* stat);
-    explicit Stopwatch(PerformanceStatistics& stat);
-    explicit Stopwatch(const char* name);
+    explicit Stopwatch(PerformanceDuration& target);
     ~Stopwatch();
-    PerformanceDuration time;
-    PerformanceStatistics* stat;
-    const char* name;
+    PerformanceDuration& target;
+    PerformanceDuration startTime;
 };
 
 } // namespace Brisk

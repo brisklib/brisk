@@ -21,7 +21,11 @@
 #include "RenderEncoder.hpp"
 #include "ImageBackend.hpp"
 #include <brisk/core/Utilities.hpp>
+#include <brisk/core/Log.hpp>
 #include "../Atlas.hpp"
+#include <brisk/core/Threading.hpp>
+#include "ImageRenderTarget.hpp"
+#include "WindowRenderTarget.hpp"
 
 namespace Brisk {
 
@@ -34,11 +38,14 @@ void RenderEncoderWebGPU::setVisualSettings(const VisualSettings& visualSettings
 }
 
 void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> clear) {
+    BRISK_ASSERT(static_cast<bool>(m_currentTarget == nullptr));
+    BRISK_ASSERT(static_cast<bool>(!m_queue.Get()));
     m_currentTarget = std::move(target);
     m_queue         = m_device->m_device.GetQueue();
-    m_frameSize     = m_currentTarget->size();
-    if (auto win = std::dynamic_pointer_cast<WindowRenderTarget>(m_currentTarget)) {
-        win->resizeBackbuffer(m_frameSize);
+    BRISK_ASSERT(static_cast<bool>(m_queue.Get()));
+    m_frameSize = m_currentTarget->size();
+    if (m_currentTarget->type() == RenderTargetType::Window) {
+        static_cast<WindowRenderTarget*>(m_currentTarget.get())->resizeBackbuffer(m_frameSize);
     }
 
     [[maybe_unused]] ConstantPerFrame constantPerFrame{
@@ -53,8 +60,7 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 
     updatePerFrameConstantBuffer(constantPerFrame);
 
-    const BackBufferWebGPU& backBuf =
-        dynamic_cast<BackBufferProviderWebGPU*>(m_currentTarget.get())->getBackBuffer();
+    const BackBufferWebGPU& backBuf = getBackBuffer(m_currentTarget.get());
 
     wgpu::RenderPassColorAttachment renderPassColorAttachment{
         .view    = backBuf.colorView,
@@ -69,12 +75,15 @@ void RenderEncoderWebGPU::begin(RC<RenderTarget> target, std::optional<ColorF> c
 }
 
 void RenderEncoderWebGPU::end() {
+    BRISK_ASSERT(m_currentTarget);
+    BRISK_ASSERT(m_queue.Get());
     m_queue         = nullptr;
     m_currentTarget = nullptr;
 }
 
 void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span<const float> data) {
-    m_encoder                            = m_device->m_device.CreateCommandEncoder();
+    BRISK_ASSERT(m_currentTarget);
+    BRISK_ASSERT(m_queue.Get());
     // Preparing things
     {
         std::lock_guard lk(m_device->m_resources.mutex);
@@ -89,6 +98,12 @@ void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span
         .colorAttachmentCount = 1,
         .colorAttachments     = &m_colorAttachment,
     };
+    m_encoder = m_device->m_device.CreateCommandEncoder();
+
+    if (m_device->m_timestampQuerySupported && m_frameTimingIndex < m_frameTiming.size() &&
+        m_timestampIndex < maxTimestamps)
+        m_encoder.WriteTimestamp(m_frameTiming[m_frameTimingIndex].querySet, m_timestampIndex++);
+
     m_pass                        = m_encoder.BeginRenderPass(&renderpass);
     wgpu::RenderPipeline pipeline = m_device->createPipeline(m_renderFormat, true);
     m_pass.SetPipeline(pipeline);
@@ -124,10 +139,14 @@ void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span
 
     // Finishing things
     m_pass.End();
-    m_pass                   = nullptr;
+    m_pass = nullptr;
+    if (m_device->m_timestampQuerySupported && m_frameTimingIndex < m_frameTiming.size() &&
+        m_timestampIndex < maxTimestamps)
+        m_encoder.WriteTimestamp(m_frameTiming[m_frameTimingIndex].querySet, m_timestampIndex++);
+
     wgpu::CommandBuffer commandBuffer = m_encoder.Finish();
     m_queue.Submit(1, &commandBuffer);
-    m_encoder       = nullptr;
+    m_encoder                = nullptr;
 
     m_colorAttachment.loadOp = wgpu::LoadOp::Load;
 }
@@ -240,9 +259,9 @@ void RenderEncoderWebGPU::updateAtlasTexture() {
             m_atlasTextureView = m_atlasTexture.CreateView(&viewDesc);
         }
 
-        wgpu::ImageCopyTexture destination{};
+        wgpu::TexelCopyTextureInfo destination{};
         destination.texture = m_atlasTexture;
-        wgpu::TextureDataLayout source{};
+        wgpu::TexelCopyBufferLayout source{};
         source.bytesPerRow = Internal::max2DTextureSize;
         wgpu::Extent3D texSize{ uint32_t(newSize.width), uint32_t(newSize.height), 1u };
         m_queue.WriteTexture(&destination, atlas->data().data(), atlas->data().size(), &source, &texSize);
@@ -269,9 +288,9 @@ void RenderEncoderWebGPU::updateGradientTexture() {
             m_gradientTextureView = m_gradientTexture.CreateView(&viewDesc);
         }
 
-        wgpu::ImageCopyTexture destination{};
+        wgpu::TexelCopyTextureInfo destination{};
         destination.texture = m_gradientTexture;
-        wgpu::TextureDataLayout source{};
+        wgpu::TexelCopyBufferLayout source{};
         source.bytesPerRow = sizeof(GradientData);
         wgpu::Extent3D texSize{ uint32_t(newSize.width), uint32_t(newSize.height), 1u };
         m_queue.WriteTexture(&destination, atlas->data().data(), atlas->data().size() * sizeof(GradientData),
@@ -281,6 +300,118 @@ void RenderEncoderWebGPU::updateGradientTexture() {
 
 RenderEncoderWebGPU::RenderEncoderWebGPU(RC<RenderDeviceWebGPU> device) : m_device(std::move(device)) {}
 
-RenderEncoderWebGPU::~RenderEncoderWebGPU() = default;
+RenderEncoderWebGPU::~RenderEncoderWebGPU() {
+    m_device->m_instance.ProcessEvents();
+}
 
+size_t RenderEncoderWebGPU::findFrameTimingSlot() {
+    for (size_t i = 0; i < m_frameTiming.size(); ++i) {
+        if (!m_frameTiming[i].pending) {
+            m_frameTiming[i].pending = true;
+            return i;
+        }
+    }
+    BRISK_ASSERT_MSG("All frame timing slots are busy", m_frameTiming.size() < maxFrameTimings);
+
+    m_frameTiming.emplace_back(m_device->m_device);
+    return m_frameTiming.size() - 1;
+}
+
+void RenderEncoderWebGPU::beginFrame(uint64_t frameId) {
+    if (m_device->m_timestampQuerySupported) {
+        m_frameId          = frameId;
+        m_timestampIndex   = 0;
+        m_frameTimingIndex = findFrameTimingSlot();
+    }
+}
+
+void RenderEncoderWebGPU::endFrame(DurationCallback callback) {
+    if (m_device->m_timestampQuerySupported && m_timestampIndex > 0) {
+        BRISK_ASSERT(m_frameTimingIndex < m_frameTiming.size());
+        FrameTiming& timing = m_frameTiming[m_frameTimingIndex];
+
+        m_encoder           = m_device->m_device.CreateCommandEncoder();
+        m_encoder.ResolveQuerySet(timing.querySet, 0, maxTimestamps, timing.resolveBuffer, 0);
+        m_encoder.CopyBufferToBuffer(timing.resolveBuffer, 0, timing.resultBuffer, 0,
+                                     maxTimestamps * sizeof(uint64_t));
+        wgpu::CommandBuffer commands = m_encoder.Finish();
+        m_device->m_device.GetQueue().Submit(1, &commands);
+
+        struct CallbackData {
+            std::weak_ptr<void> flag;
+            DurationCallback callback;
+            FrameTiming* frameTiming;
+            uint64_t frameId;
+            uint32_t numTimestamps;
+        };
+
+        CallbackData* callbackData =
+            new CallbackData{ m_flag, std::move(callback), &timing, m_frameId, m_timestampIndex };
+
+        timing.resultBuffer.MapAsync(
+            wgpu::MapMode::Read, 0, maxTimestamps * sizeof(uint64_t), wgpu::CallbackMode::AllowProcessEvents,
+            [](wgpu::MapAsyncStatus status, wgpu::StringView, CallbackData* callbackData) {
+                if (auto lk = callbackData->flag.lock(); !lk) {
+                    return;
+                }
+                if (status == wgpu::MapAsyncStatus::Success) {
+                    std::span<const std::chrono::nanoseconds> timestamps{
+                        static_cast<const std::chrono::nanoseconds*>(
+                            callbackData->frameTiming->resultBuffer.GetConstMappedRange()),
+                        callbackData->numTimestamps,
+                    };
+                    std::array<std::chrono::nanoseconds, maxDurations> durations;
+                    for (size_t i = 0; i < callbackData->numTimestamps / 2; ++i) {
+                        durations[i] = timestamps[i * 2 + 1] - timestamps[i * 2];
+                    }
+                    Internal::suppressExceptions(
+                        callbackData->callback, callbackData->frameId,
+                        std::span{ durations }.subspan(0, callbackData->numTimestamps / 2));
+
+                    callbackData->frameTiming->resultBuffer.Unmap();
+                } else {
+                    LOG_WARN(gpu, "Frame {} failed to map: {}", callbackData->frameId, (uint32_t)status);
+                }
+                callbackData->frameTiming->pending = false; // Mark as complete
+                delete callbackData;
+            },
+            callbackData);
+    }
+}
+
+RC<RenderTarget> RenderEncoderWebGPU::currentTarget() const {
+    return m_currentTarget;
+}
+
+RenderEncoderWebGPU::FrameTiming::FrameTiming(wgpu::Device& device) {
+    wgpu::QuerySetDescriptor querySetDesc{};
+    querySetDesc.type  = wgpu::QueryType::Timestamp;
+    querySetDesc.count = RenderEncoderWebGPU::maxTimestamps;
+    querySet           = device.CreateQuerySet(&querySetDesc);
+
+    // Resolve buffer
+    wgpu::BufferDescriptor resolveDesc{};
+    resolveDesc.size  = RenderEncoderWebGPU::maxTimestamps * sizeof(uint64_t);
+    resolveDesc.usage = wgpu::BufferUsage::QueryResolve | wgpu::BufferUsage::CopySrc;
+    resolveBuffer     = device.CreateBuffer(&resolveDesc);
+
+    // Result buffer
+    wgpu::BufferDescriptor resultDesc{};
+    resultDesc.size  = RenderEncoderWebGPU::maxTimestamps * sizeof(uint64_t);
+    resultDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
+    resultBuffer     = device.CreateBuffer(&resultDesc);
+
+    pending          = true;
+}
+
+const BackBufferWebGPU& getBackBuffer(RenderTarget* target) {
+    switch (target->type()) {
+    case RenderTargetType::Window:
+        return static_cast<WindowRenderTargetWebGPU*>(target)->getBackBuffer();
+    case RenderTargetType::Image:
+        return static_cast<ImageRenderTargetWebGPU*>(target)->getBackBuffer();
+    default:
+        BRISK_UNREACHABLE();
+    }
+}
 } // namespace Brisk

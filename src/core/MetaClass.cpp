@@ -18,4 +18,21 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/core/MetaClass.hpp>
+
+namespace Brisk {
+
+namespace Internal {
+
+bool isClassOrBase(const MetaClass* base, const MetaClass* derived) noexcept {
+    // Traverse the inheritance chain
+    while (derived) {
+        if (derived == base) {
+            return true;
+        }
+        derived = derived->classBase;
+    }
+    return false;
+}
+} // namespace Internal
+} // namespace Brisk

@@ -18,22 +18,10 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/RawCanvas.hpp>
+#include "SDFCanvas.hpp"
 #include <brisk/core/Encoding.hpp>
-#include <vpath.h>
-#include <vrle.h>
-#include <vraster.h>
 
 namespace Brisk {
-
-float& pixelRatio() noexcept {
-    thread_local float ratio = 1;
-    return ratio;
-}
-
-static float uintToFloatSafe(uint32_t x) noexcept {
-    return std::bit_cast<float>((x & 0x0FFF'FFFFu) | 0x3000'0000u);
-}
 
 static int32_t findOrAdd(SpriteResources& container, RC<SpriteResource> value) {
     if (!value)
@@ -104,55 +92,41 @@ GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPa
     return result;
 }
 
-RawCanvas& RawCanvas::drawText(PointF pos, const TextWithOptions& text, const Font& font,
-                               const ColorF& textColor) {
+void SDFCanvas::drawText(PointF pos, const TextWithOptions& text, const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
-    drawText(pos, run, fillColor = textColor);
-    return *this;
+    drawText(pos, run, std::tuple{ fillColor = textColor });
 }
 
-RawCanvas& RawCanvas::drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
-                               const Font& font, const ColorF& textColor) {
+void SDFCanvas::drawText(PointF pos, float x_alignment, float y_alignment, const TextWithOptions& text,
+                         const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
-    drawText(pos + offset, run, fillColor = textColor);
-    return *this;
+    drawText(pos + offset, run, std::tuple{ fillColor = textColor });
 }
 
-RawCanvas& RawCanvas::drawText(RectangleF rect, float x_alignment, float y_alignment,
-                               const TextWithOptions& text, const Font& font, const ColorF& textColor) {
+void SDFCanvas::drawText(RectangleF rect, float x_alignment, float y_alignment, const TextWithOptions& text,
+                         const Font& font, ColorW textColor) {
     PreparedText run = fonts->prepare(font, text);
     PointF offset    = run.alignLines(x_alignment, y_alignment);
-    drawText(rect.at(x_alignment, y_alignment) + offset, run, fillColor = textColor);
-    return *this;
+    drawText(rect.at(x_alignment, y_alignment) + offset, run, std::tuple{ fillColor = textColor });
 }
 
-RawCanvas::RawCanvas(RenderContext& context) : m_context(context) {}
+SDFCanvas::SDFCanvas(RenderContext& context, CanvasFlags flags) : m_context(context), m_flags(flags) {}
 
-RectangleF RawCanvas::align(RectangleF rect) const {
-    return RectangleF{ PointF(round(rect.p1.v)), SizeF(max(SIMD{ 1.f, 1.f }, round(rect.size().v))) };
-}
-
-PointF RawCanvas::align(PointF v) const {
-    return PointF(round(v.v));
-}
-
-RenderStateEx RawCanvas::prepareState(RenderStateEx&& state) {
+RenderStateEx SDFCanvas::prepareState(RenderStateEx&& state) {
     prepareStateInplace(state);
     return state;
 }
 
-void RawCanvas::prepareStateInplace(RenderStateEx& state) {
-    state.scissor     = m_state.scissors;
-    state.coordMatrix = state.coordMatrix.translate(m_state.offset);
+void SDFCanvas::prepareStateInplace(RenderStateEx& state) {
     state.premultiply();
 }
 
-RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, const ColorF& color, LineEnd end) {
-    return drawLine(p1, p2, thickness, end, fillColor = color, strokeWidth = 0.f);
+void SDFCanvas::drawLine(PointF p1, PointF p2, float thickness, ColorW color, LineEnd end) {
+    return drawLine(p1, p2, thickness, end, std::tuple{ fillColor = color, strokeWidth = 0.f });
 }
 
-RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, LineEnd end, RenderStateExArgs args) {
+void SDFCanvas::drawLine(PointF p1, PointF p2, float thickness, LineEnd end, RenderStateExArgs args) {
     const PointF center       = PointF((p1.v + p2.v) * 0.5f);
     const float halfThickness = thickness * 0.5f;
     const float length        = p1.distance(p2);
@@ -165,22 +139,26 @@ RawCanvas& RawCanvas::drawLine(PointF p1, PointF p2, float thickness, LineEnd en
             center.x + length * 0.5f + extension,
             center.y + thickness * 0.5f,
         },
-        end == LineEnd::Round ? thickness * 0.5f : 0.f, angle, args);
+        end == LineEnd::Round ? thickness * 0.5f : 0.f,
+        std::tuple{ coordMatrix = Matrix{}.rotate(rad2deg<float> * angle, center), args });
 }
 
-RawCanvas& RawCanvas::drawRectangle(RectangleF rect, float borderRadius, float angle,
-                                    RenderStateExArgs args) {
-    m_context.command(prepareState(RenderStateEx(ShaderType::Rectangles, args)),
-                      one(GeometryRectangle{ rect, angle, borderRadius, 255.f, 0.f }));
-    return *this;
+void SDFCanvas::drawRectangle(RectangleF rect, CornersF borderRadius, RenderStateExArgs args) {
+    return drawRectangle(rect, borderRadius, false, args);
 }
 
-RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<uint32_t> selection,
-                               RenderStateExArgs args) {
+void SDFCanvas::drawRectangle(RectangleF rect, CornersF borderRadius, bool squircle, RenderStateExArgs args) {
+    RenderStateEx state(ShaderType::Rectangles, args);
+    borderRadius.v = abs(borderRadius.v);
+    if (squircle) {
+        borderRadius.v = -borderRadius.v;
+    }
+    m_context.command(prepareState(std::move(state)), one(GeometryRectangle{ rect, borderRadius }));
+}
 
+void SDFCanvas::drawTextSelection(PointF pos, const PreparedText& prepared, Range<uint32_t> selection,
+                                  RenderStateExArgs args) {
     if (selection.distance() != 0) {
-        RenderStateEx tempState{ ShaderType::Text, args };
-
         selection.min = prepared.characterToGrapheme(selection.min);
         selection.max = prepared.characterToGrapheme(selection.max);
         for (uint32_t gr : selection) {
@@ -191,10 +169,12 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
             const auto& line = prepared.lines[lineIndex];
             drawRectangle(Rectangle(pos + PointF(range.min, line.baseline - line.ascDesc.ascender),
                                     pos + PointF(range.max, line.baseline + line.ascDesc.descender)),
-                          0.f, 0.f, fillColor = tempState.strokeColor1, strokeWidth = 0);
+                          0.f, args);
         }
     }
+}
 
+void SDFCanvas::drawText(PointF pos, const PreparedText& prepared, RenderStateExArgs args) {
     SpriteResources sprites;
     uint32_t runIndex = 0;
     while (runIndex < prepared.runs.size()) {
@@ -225,42 +205,35 @@ RawCanvas& RawCanvas::drawText(PointF pos, const PreparedText& prepared, Range<u
                 if (run.decoration && TextDecoration::Underline)
                     drawLine(p1 + PointF{ 0.f, run.metrics.underlineOffset() },
                              p2 + PointF{ 0.f, run.metrics.underlineOffset() }, run.metrics.lineThickness,
-                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                             LineEnd::Butt, std::tuple{ strokeWidth = 0.f, runArgs });
                 if (run.decoration && TextDecoration::Overline)
                     drawLine(p1 + PointF{ 0.f, run.metrics.overlineOffset() },
                              p2 + PointF{ 0.f, run.metrics.overlineOffset() }, run.metrics.lineThickness,
-                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                             LineEnd::Butt, std::tuple{ strokeWidth = 0.f, runArgs });
                 if (run.decoration && TextDecoration::LineThrough)
                     drawLine(p1 + PointF{ 0.f, run.metrics.lineThroughOffset() },
                              p2 + PointF{ 0.f, run.metrics.lineThroughOffset() }, run.metrics.lineThickness,
-                             LineEnd::Butt, strokeWidth = 0.f, runArgs);
+                             LineEnd::Butt, std::tuple{ strokeWidth = 0.f, runArgs });
             }
         }
     }
-
-    return *this;
 }
 
-RawCanvas& RawCanvas::drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args) {
+void SDFCanvas::drawRectangle(const GeometryRectangle& rect, RenderStateExArgs args) {
     m_context.command(prepareState(RenderStateEx(ShaderType::Rectangles, args)), one(rect));
-    return *this;
 }
 
-RawCanvas& RawCanvas::drawShadow(RectangleF rect, float borderRadius, float angle, RenderStateExArgs args) {
+void SDFCanvas::drawShadow(RectangleF rect, CornersF borderRadius, RenderStateExArgs args) {
     m_context.command(prepareState(RenderStateEx(ShaderType::Shadow, args)),
-                      one(GeometryRectangle{ rect, angle, borderRadius, 255.f, 0.f }));
-    return *this;
+                      one(GeometryRectangle{ rect, borderRadius }));
 }
 
-RawCanvas& RawCanvas::drawEllipse(RectangleF rect, float angle, RenderStateExArgs args) {
-    m_context.command(
-        prepareState(RenderStateEx(ShaderType::Rectangles, args)),
-        one(GeometryRectangle{ rect, angle, std::min(rect.width(), rect.height()) * 0.5f, 255.f, 0.f }));
-    return *this;
+void SDFCanvas::drawEllipse(RectangleF rect, RenderStateExArgs args) {
+    m_context.command(prepareState(RenderStateEx(ShaderType::Rectangles, args)),
+                      one(GeometryRectangle{ rect, std::min(rect.width(), rect.height()) * 0.5f }));
 }
 
-RawCanvas& RawCanvas::drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix,
-                                  RenderStateExArgs args) {
+void SDFCanvas::drawTexture(RectangleF rect, RC<Image> tex, const Matrix& matrix, RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Rectangles, args);
     prepareStateInplace(style);
     style.textureMatrix = (Matrix::scaling(rect.width() / tex->width(), rect.height() / tex->height()) *
@@ -268,47 +241,44 @@ RawCanvas& RawCanvas::drawTexture(RectangleF rect, RC<Image> tex, const Matrix& 
                               .invert()
                               .value_or(Matrix{});
     style.imageHandle = std::move(tex);
-    m_context.command(std::move(style), one(GeometryRectangle{ rect, 0.f, 0.f, 0.f, 0.f }));
-    return *this;
+    style.strokeWidth = 0.f;
+    m_context.command(std::move(style), one(GeometryRectangle{ rect, 0.f }));
 }
 
-RawCanvas& RawCanvas::drawArc(PointF center, float outerRadius, float innerRadius, float startAngle,
-                              float endEngle, RenderStateExArgs args) {
+void SDFCanvas::drawArc(PointF center, float outerRadius, float innerRadius, float startAngle, float endEngle,
+                        RenderStateExArgs args) {
     m_context.command(prepareState(RenderStateEx(ShaderType::Arcs, args)),
                       one(GeometryArc{ center, outerRadius, innerRadius, startAngle, endEngle, 0.f, 0.f }));
-    return *this;
 }
 
-RawCanvas& RawCanvas::drawMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
-                               RenderStateExArgs args) {
+void SDFCanvas::drawMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                         RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Mask, glyphs.size(), args);
     style.subpixelMode       = SubpixelMode::Off;
     style.spriteOversampling = 1;
     style.sprites            = std::move(sprites);
     prepareStateInplace(style);
     m_context.command(std::move(style), glyphs);
-    return *this;
 }
 
-RawCanvas& RawCanvas::drawColorMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
-                                    RenderStateExArgs args) {
+void SDFCanvas::drawColorMask(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                              RenderStateExArgs args) {
     RenderStateEx style(ShaderType::ColorMask, glyphs.size(), args);
     style.subpixelMode       = SubpixelMode::Off;
     style.spriteOversampling = 1;
     style.sprites            = std::move(sprites);
     prepareStateInplace(style);
     m_context.command(std::move(style), glyphs);
-    return *this;
 }
 
-RawCanvas& RawCanvas::drawText(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
-                               RenderStateExArgs args) {
+void SDFCanvas::drawText(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                         RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Text, glyphs.size(), args);
     style.subpixelMode       = SubpixelMode::RGB;
     style.spriteOversampling = fonts->hscale();
     style.sprites            = std::move(sprites);
     prepareStateInplace(style);
     m_context.command(std::move(style), glyphs);
-    return *this;
 }
+
 } // namespace Brisk

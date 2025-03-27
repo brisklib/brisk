@@ -54,7 +54,9 @@ TEST_CASE("SpanStream") {
     RC<Stream> m = rcnew ByteViewStream(toBytesView(pangram));
     CHECK(m->size() == 43);
     CHECK(m->tell() == 0);
+#ifdef BRISK_EXCEPTIONS
     CHECK_THROWS_AS(m->write(buf, 1), ENotImplemented);
+#endif
 
     SECTION("read") {
         CHECK(m->read(buf, 100) == 43);

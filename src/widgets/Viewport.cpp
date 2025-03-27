@@ -23,8 +23,10 @@
 namespace Brisk {
 
 void Viewport::paint(Canvas& canvas) const {
-    if (m_renderer)
+    if (m_renderer) {
+        auto&& state = canvas.saveState();
         m_renderer(canvas, m_rect);
+    }
 }
 
 void Viewport::onEvent(Event& event) {

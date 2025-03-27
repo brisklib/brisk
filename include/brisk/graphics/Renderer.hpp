@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */                                                                                                          \
 #pragma once
 #include "Image.hpp"
 #include <brisk/core/internal/Expected.hpp>
@@ -5,6 +25,7 @@
 #include "RenderState.hpp"
 #include "Color.hpp"
 #include "Geometry.hpp"
+#include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
 
@@ -12,14 +33,18 @@ namespace Brisk {
  * @enum RendererBackend
  * @brief Specifies the rendering backends available for the platform.
  */
-enum class RendererBackend {
+enum class RendererBackend : int {
 #ifdef BRISK_D3D11
-    D3D11, ///< Direct3D 11 backend available on Windows.
+    D3D11 = 1, ///< Direct3D 11 backend available on Windows.
 #endif
 #ifdef BRISK_WEBGPU
-    WebGPU, ///< WebGPU backend.
+    WebGPU = 2, ///< WebGPU backend.
 #endif
-    Default = 0, ///< Default backend option.
+#ifdef BRISK_D3D11
+    Default = D3D11, ///< Default backend option.
+#else
+    Default = WebGPU,
+#endif
 };
 
 /**
@@ -95,6 +120,11 @@ struct RenderDeviceInfo {
     };
 };
 
+enum class RenderTargetType {
+    Window,
+    Image,
+};
+
 /**
  * @class RenderTarget
  * @brief Abstract base class representing a render target.
@@ -105,7 +135,9 @@ public:
      * @brief Returns the size of the render target.
      * @return The size of the render target.
      */
-    virtual Size size() const = 0;
+    virtual Size size() const                      = 0;
+
+    virtual RenderTargetType type() const noexcept = 0;
 };
 
 class SpriteAtlas;
@@ -188,34 +220,60 @@ public:
      */
     virtual void wait()                                                                             = 0;
 
+    /**
+     * @brief Gets current bound target (the target passed to `begin` function).
+     * @return Pointer to the current RenderTarget, or nullptr if `begin` has not been called or `end` has
+     * been called.
+     */
     virtual RC<RenderTarget> currentTarget() const                                                  = 0;
+
+    constexpr static uint32_t maxDurations                                                          = 256;
+
+    using DurationCallback = std::function<void(uint64_t, std::span<const std::chrono::nanoseconds>)>;
+
+    virtual void beginFrame(uint64_t frameId)        = 0;
+    virtual void endFrame(DurationCallback callback) = 0;
 };
 
 /**
  * @class RenderPipeline
- * @brief Represents the rendering pipeline.
+ * @brief Represents the rendering pipeline responsible for managing and executing rendering operations.
  */
 class RenderPipeline final : public RenderContext {
+    BRISK_DYNAMIC_CLASS(RenderPipeline, RenderContext)
 public:
     /**
      * @brief Constructs a RenderPipeline with an encoder and target.
-     * @param encoder The render encoder to execute.
+     * @param encoder The render encoder.
      * @param target The render target.
-     * @param clear The clear color.
-     * @param clipRect The clipping rectangle. Pass noClipRect to disable clipping
+     * @param clear Optional clear color for the render target (defaults to transparent); if
+     * std::nullopt is passed, the target is not cleared, enabling blending with previous content.
+     * @param clipRect The clipping rectangle in screen coordinates; use noClipRect to disable clipping.
      */
     RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target,
                    std::optional<ColorF> clear = Palette::transparent, Rectangle clipRect = noClipRect);
 
+    /**
+     * @brief Blits an image to the render target.
+     * @param image The image to blit; its size must match the target size.
+     */
     void blit(RC<Image> image);
 
     /**
-     * @brief Destructor for the RenderPipeline.
+     * @brief Destroys the RenderPipeline instance.
      */
     ~RenderPipeline();
 
+    /**
+     * @brief Retrieves the current clipping rectangle.
+     * @return The current clipping rectangle in screen coordinates.
+     */
     Rectangle clipRect() const;
 
+    /**
+     * @brief Sets the clipping rectangle for rendering operations.
+     * @param clipRect The new clipping rectangle in screen coordinates (origin at top-left).
+     */
     void setClipRect(Rectangle clipRect) final;
 
     using RenderContext::command;
@@ -223,16 +281,20 @@ public:
     /**
      * @brief Issues a rendering command.
      * @param cmd The render state command.
-     * @param data Associated data.
+     * @param data Optional associated data.
      */
     void command(RenderStateEx&& cmd, std::span<const float> data = {}) final;
 
     /**
-     * @brief Returns the number of batches processed.
+     * @brief Retrieves the number of batches processed.
      * @return The number of batches.
      */
     int numBatches() const final;
 
+    /**
+     * @brief Retrieves the render encoder associated with this pipeline.
+     * @return A reference-counted pointer to the render encoder.
+     */
     RC<RenderEncoder> encoder() const {
         return m_encoder;
     }
@@ -247,11 +309,11 @@ private:
     RC<RenderEncoder> m_encoder;         ///< The current rendering encoder.
     RenderLimits m_limits;               ///< Resource limits for the pipeline.
     RenderResources& m_resources;        ///< Rendering resources.
-    std::vector<RenderState> m_commands; ///< List of rendering commands.
+    std::vector<RenderState> m_commands; ///< List of rendering commands queued for execution.
     std::vector<float> m_data;           ///< Buffer for associated rendering data.
     std::vector<RC<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
-    Rectangle m_clipRect;
+    Rectangle m_clipRect;                ///< The current clipping rectangle.
 };
 
 /**
@@ -260,6 +322,10 @@ private:
  */
 class WindowRenderTarget : public RenderTarget {
 public:
+    RenderTargetType type() const noexcept final {
+        return RenderTargetType::Window;
+    }
+
     /**
      * @brief Resizes the backbuffer.
      * @param size The new size of the backbuffer.
@@ -290,6 +356,10 @@ public:
  */
 class ImageRenderTarget : public RenderTarget {
 public:
+    RenderTargetType type() const noexcept final {
+        return RenderTargetType::Image;
+    }
+
     /**
      * @brief Sets the size of the render target.
      * @param newSize The new size.
@@ -415,6 +485,8 @@ public:
      * @return RenderDeviceInfo object.
      */
     virtual RenderDeviceInfo info() const                              = 0;
+
+    virtual RendererBackend backend() const noexcept                   = 0;
 
     /**
      * @brief Creates a render target for a window.

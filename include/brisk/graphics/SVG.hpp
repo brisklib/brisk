@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */                                                                                                          \
 #pragma once
 
 #include "Image.hpp"
@@ -44,8 +64,7 @@ public:
      *
      * @return A smart pointer to an Image object representing the rendered image.
      */
-    RC<Image> render(Size size, ColorF background = ColorF(0.f, 0.f),
-                     ImageFormat format = ImageFormat::RGBA) const;
+    RC<Image> render(Size size, Color background = Color(0, 0), ImageFormat format = ImageFormat::RGBA) const;
 
     /**
      * @brief Renders SVG to a destination image, preserving existing content.

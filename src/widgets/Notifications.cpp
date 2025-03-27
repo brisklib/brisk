@@ -60,7 +60,7 @@ RC<Widget> NotificationView::cloneThis() const {
 
 void NotificationContainer::onRefresh() {
     removeIf([](Widget* w) {
-        auto* notification = dynamic_cast<NotificationView*>(w);
+        auto* notification = dynamicCast<NotificationView*>(w);
         return notification && notification->expired();
     });
 }

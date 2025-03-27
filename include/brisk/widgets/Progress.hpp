@@ -40,7 +40,8 @@ class Progress;
  *
  * @note This class is final and cannot be subclassed.
  */
-class ProgressBar final : public Widget {
+class WIDGET ProgressBar final : public Widget {
+    BRISK_DYNAMIC_CLASS(ProgressBar, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "progressbar";
@@ -76,7 +77,8 @@ protected:
  * If no custom `ProgressBar` is provided during the construction of `Progress`, a default instance of
  * `ProgressBar` is automatically created and linked to it.
  */
-class Progress : public ValueWidget {
+class WIDGET Progress : public ValueWidget {
+    BRISK_DYNAMIC_CLASS(Progress, ValueWidget)
 public:
     using Base                                   = ValueWidget;
     constexpr static std::string_view widgetType = "progress";
@@ -97,7 +99,5 @@ protected:
     explicit Progress(Construction construction, ArgumentsView<Progress> args);
     void onLayoutUpdated() override;
 };
-
-void paintProgressIndicator(RawCanvas& canvas, RectangleF rect, int circles = 3);
 
 } // namespace Brisk

@@ -25,13 +25,14 @@
 #include <chrono>
 #include <future>
 #include <memory>
+#include <numeric>
 #include <spdlog/fmt/fmt.h>
 
 #include <brisk/core/Encoding.hpp>
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/graphics/RawCanvas.hpp>
+#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/SVG.hpp>
 #include <brisk/window/WindowApplication.hpp>
 #include <brisk/graphics/Palette.hpp>
@@ -40,6 +41,7 @@
 
 #include "FrameTimePredictor.hpp"
 #include "PlatformWindow.hpp"
+#include <brisk/core/Version.hpp>
 
 namespace Brisk {
 
@@ -51,7 +53,7 @@ namespace Internal {
 constinit bool bufferedRendering = true;
 
 std::atomic_bool debugShowRenderTimeline{ false };
-BRISK_UI_THREAD Window* currentWindow = nullptr;
+Window* currentWindow = nullptr;
 
 RC<Window> currentWindowPtr() {
     return currentWindow ? currentWindow->shared_from_this() : nullptr;
@@ -287,25 +289,95 @@ using high_res_clock = std::chrono::steady_clock;
 
 void Window::paintImmediate(RenderContext& context) {}
 
+constexpr static int debugPanelHeight = 100;
+
+void Window::paintStat(Canvas& canvas, Rectangle rect) {
+    canvas.setFillColor(0x000000'80_rgba);
+    canvas.fillRect(rect);
+    Rectangle graphRect   = rect.withPadding(150_idp, 12_idp, 0, 0);
+    RenderDeviceInfo info = (*getRenderDevice())->info();
+    std::string status    = fmt::format("Brisk {} Window {}x{} Pixel {:.2f} Renderer {} GPU {}",
+                                        BRISK_VERSION
+#ifdef BRISK_DEBUG
+                                     " [Debug]"
+#else
+                                     " [Optimized]"
+#endif
+                                     ,
+                                     m_framebufferSize.width, m_framebufferSize.height,
+                                     m_canvasPixelRatio.load(), info.api, info.device
+
+    );
+
+    uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
+
+    using namespace std::chrono_literals;
+
+    double frameDurationNS = 1'000'000'000.0 / std::max(m_frameTimePredictor->fps, 10.0);
+
+    FrameStat sum          = m_renderStat.sum();
+
+    for (size_t i = 0; i < m_renderStat.capacity; ++i) {
+        auto& stat = m_renderStat[frameNumber - m_renderStat.capacity + 1 + i];
+        size_t j   = (i + frameNumber) % m_renderStat.capacity;
+        Rectangle frameRect(
+            graphRect.x1 + (graphRect.x2 - graphRect.x1) * (j + 0) / m_renderStat.capacity - 0, graphRect.y1,
+            graphRect.x1 + (graphRect.x2 - graphRect.x1) * (j + 1) / m_renderStat.capacity - 1, graphRect.y2);
+        auto bar = [&](double begin, double end) {
+            return Rectangle{ frameRect.x1, mix(begin, frameRect.y2, frameRect.y1), frameRect.x2,
+                              mix(end, frameRect.y2, frameRect.y1) };
+        };
+
+        double windowUpdate = stat.windowUpdate.count() / frameDurationNS;
+        double windowPaint  = stat.windowPaint.count() / frameDurationNS;
+        double gpuRender    = stat.gpuRender.count() / frameDurationNS;
+
+        double base         = 0;
+        auto cumulativeBar  = [&](double value) {
+            Rectangle result = bar(base, base + value);
+            base += value;
+            return result;
+        };
+        canvas.setFillColor(Palette::Standard::index(0).multiplyAlpha(0.75f));
+        canvas.fillRect(cumulativeBar(windowUpdate));
+        canvas.setFillColor(Palette::Standard::index(4).multiplyAlpha(0.75f));
+        canvas.fillRect(cumulativeBar(windowPaint));
+
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect(bar(0, gpuRender).withPadding(0, 0, frameRect.width() * 2 / 3, 0));
+    }
+
+    canvas.setFont({ Font::Monospace, dp(10) });
+    canvas.setFillColor(Palette::white);
+
+    double timeScale = 0.001 / RenderStat::capacity;
+    canvas.fillText(fmt::format(
+                        R"({}
+FPS          : {:7.1f}fps
+Frame        : {:7.1f}µs
+Window update: {:7.1f}µs
+Window paint : {:7.1f}µs
+GPU render   : {:7.1f}µs)",
+                        status, m_frameTimePredictor->fps, sum.fullFrame.count() * timeScale,
+                        sum.windowUpdate.count() * timeScale, sum.windowPaint.count() * timeScale,
+                        sum.gpuRender.count() * timeScale),
+                    rect, PointF(0.f, 0.f));
+}
+
 void Window::paintDebug(RenderContext& context) {
-    RawCanvas canvas(context);
+    Canvas canvas(context);
 
     if (Internal::debugShowRenderTimeline) {
-        Size framebufferSize = m_framebufferSize;
-        const int lanes      = 6;
-        canvas.drawRectangle(Rectangle{ 0, framebufferSize.height - lanes * idp(laneHeight),
-                                        framebufferSize.width, framebufferSize.height },
-                             0.f, 0.f, strokeWidth = 0.f, fillColor = 0x000000'D0_rgba);
-        renderDebugTimeline("updateAndPaint ", canvas, m_drawingPerformance, 0, 0, 50.f * 60.f);
-        renderDebugTimeline("render         ", canvas, m_renderPerformance, 1, 2, 50.f * 60.f);
-        renderDebugTimeline("swap           ", canvas, m_swapPerformance, 2, 4, 50.f * 60.f);
-        renderDebugTimeline("blit           ", canvas, m_blitPerformance, 3, 6, 50.f * 60.f);
-        renderDebugTimeline("vblank         ", canvas, m_vblankPerformance, 4, 8, 50.f * 60.f);
-        renderDebugInfo(canvas, 5);
+        Rectangle rect{ 0, m_framebufferSize.height - idp(debugPanelHeight), m_framebufferSize.width,
+                        m_framebufferSize.height };
+        context.setClipRect(rect);
+        paintStat(canvas, rect);
+        BRISK_ASSERT(canvas.rasterizedPaths() == 0);
     }
 }
 
 void Window::doPaint() {
+    BRISK_ASSERT(m_encoder);
     PerformanceDuration start_time = perfNow();
     ObjCPool pool;
     high_res_clock::time_point renderStart;
@@ -314,20 +386,24 @@ void Window::doPaint() {
 
     pixelRatio()                 = m_canvasPixelRatio;
 
-    currentFramePresentationTime = m_nextFrameTime.value_or(now());
+    currentFramePresentationTime = m_nextFrameTime.value_or(currentTime());
 
     RC<RenderTarget> target      = m_target;
     bool bufferedRendering       = m_bufferedRendering || !m_captureCallback.empty();
     bool textureReset            = false;
+    Size targetSize              = m_target->size();
+    if (targetSize.area() <= 0) {
+        return;
+    }
 
     if (bufferedRendering) {
         auto device = getRenderDevice();
         if (!m_bufferedFrameTarget) {
-            m_bufferedFrameTarget = (*device)->createImageTarget(m_target->size());
+            m_bufferedFrameTarget = (*device)->createImageTarget(targetSize);
             textureReset          = true;
         } else {
-            if (m_target->size() != m_bufferedFrameTarget->size()) {
-                m_bufferedFrameTarget->setSize(m_target->size());
+            if (targetSize != m_bufferedFrameTarget->size()) {
+                m_bufferedFrameTarget->setSize(targetSize);
                 textureReset = true;
             }
         }
@@ -335,53 +411,57 @@ void Window::doPaint() {
     }
     m_encoder->setVisualSettings(m_renderSettings);
 
+    uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
+
+    m_renderStat.beginFrame(frameNumber);
+
+    m_encoder->beginFrame(frameNumber);
+
     beforeFrame();
 
     PerformanceDuration gpuDuration = PerformanceDuration(0);
     {
+        {
+            Stopwatch perfUpdate(m_renderStat.back().windowUpdate);
+            update();
+        }
+        if (!m_encoder || !m_target) // The window stopped rendering
+            return;
         RenderPipeline pipeline(m_encoder, target,
                                 bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
                                 noClipRect);
+
+        Stopwatch perfPaint(m_renderStat.back().windowPaint);
         paint(pipeline, !bufferedRendering || textureReset);
-        paintDebug(pipeline);
-        if (!bufferedRendering)
+        if (!bufferedRendering) {
+            paintDebug(pipeline);
             paintImmediate(pipeline);
+        }
     }
 
     if (bufferedRendering) {
         m_encoder->setVisualSettings(VisualSettings{});
         RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent, noClipRect);
+        Stopwatch perfPaint(m_renderStat.back().windowPaint);
         pipeline2.blit(m_bufferedFrameTarget->image());
+        paintDebug(pipeline2);
         paintImmediate(pipeline2);
     }
 
-    // region Print Performance Counters
-    if (m_statTimer.elapsed(1.0)) {
-        m_drawingPerformance.report();
-        m_renderPerformance.report();
-        m_swapPerformance.report();
-        m_gpuPerformance.report();
-        m_vblankPerformance.report();
-        m_uiThreadPerformance.report();
-
-        m_drawingPerformance.reset();
-        m_renderPerformance.reset();
-        m_swapPerformance.reset();
-        m_gpuPerformance.reset();
-        m_vblankPerformance.reset();
-        m_uiThreadPerformance.reset();
-    }
+    m_encoder->endFrame([this](uint64_t frameIndex, std::span<const std::chrono::nanoseconds> durations) {
+        if (m_renderStat.hasFrame(frameIndex)) {
+            m_renderStat[frameIndex].gpuRender =
+                std::accumulate(durations.begin(), durations.end(), std::chrono::nanoseconds{ 0 });
+        }
+    });
 
     m_lastFrameRenderTime =
         std::chrono::duration_cast<std::chrono::microseconds>(high_res_clock::now() - renderStart);
 
-    auto pNow = perfNow();
-    m_uiThreadPerformance.addMeasurement(start_time, pNow - gpuDuration);
-    m_swapPerformance.addMeasurement(pNow - gpuDuration, pNow);
-
     {
-        Stopwatch w(m_swapPerformance);
         m_target->present();
+        m_renderStat.back().fullFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            FractionalSeconds{ m_frameTimePredictor->markFrameTime() });
     }
     if (m_captureCallback) {
         BRISK_ASSERT(bufferedRendering);
@@ -392,7 +472,6 @@ void Window::doPaint() {
 
         std::move(captureCallback)(std::move(capturedFrame));
     }
-    m_frameTimePredictor->markFrameTime();
     m_nextFrameTime = m_frameTimePredictor->predictNextFrameTime();
 
     ++m_frameNumber;
@@ -466,8 +545,10 @@ void Window::hide() {
 void Window::close() {
     hide();
     m_closing = true; // forces application to remove this window from the windows list
-    mainScheduler->dispatch([this]() {
-        closeWindow(); // destroys m_platformWindow
+    auto wk   = weak_from_this();
+    mainScheduler->dispatch([wk]() {
+        if (auto lk = std::static_pointer_cast<Window>(wk.lock()))
+            lk->closeWindow(); // destroys m_platformWindow
     });
 }
 
@@ -513,43 +594,6 @@ void Window::setWindowPlacement(BytesView data) {
     uiScheduler->dispatchAndWait([this, data]() { // must wait, otherwise dangling reference
         m_platformWindow->setPlacement(data);
     });
-}
-
-void Window::renderDebugInfo(RawCanvas& canvas, int lane) {
-    const int laneY    = getFramebufferSize().height - (lane + 1) * idp(laneHeight);
-    auto info          = (*getRenderDevice())->info();
-    std::string status = fmt::format("{}x{} pixel={} device=[{}] {} commands={} distinct={} data={}kb",
-                                     getFramebufferSize().width, getFramebufferSize().height,
-                                     m_canvasPixelRatio.load(), info.api, info.device, 0, 0, 0);
-
-    canvas.drawText(RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1), 0.f, 0.5f,
-                    status, Font{ Font::Default, dp(12) }, Palette::white);
-}
-
-void Window::renderDebugTimeline(const std::string& title, RawCanvas& canvas,
-                                 const PerformanceStatistics& stat, int lane, int color,
-                                 double pixelsPerSecond) {
-    const int laneY = getFramebufferSize().height - (lane + 1) * idp(laneHeight);
-    int index       = stat.slicesPos() - 1;
-    int counter     = 0;
-    double now      = toSeconds(currentFramePresentationTime - appStartTime);
-    double maxTime  = getFramebufferSize().width / dp(pixelsPerSecond);
-    while (index >= 0 && counter <= stat.slices().size()) {
-        PerformanceStatistics::TimeSlice slice = stat.slices()[index % stat.slices().size()];
-        if (now - toSeconds(slice.start) > maxTime * 0.9)
-            break;
-        float sliceOffset = std::fmod(toSeconds(slice.start), maxTime) * dp(pixelsPerSecond);
-        float sliceEnd = sliceOffset + (toSeconds(slice.stop) - toSeconds(slice.start)) * dp(pixelsPerSecond);
-        RectangleF r(sliceOffset, laneY, sliceEnd, laneY + idp(laneHeight) - 1);
-        r.x2 = std::max(r.x1 + 1.0_dp, r.x2);
-        canvas.drawRectangle(r, 0.f, 0.f,
-                             fillColor   = ColorF(Palette::Standard::index(color)).multiplyAlpha(0.75f),
-                             strokeWidth = 0.f);
-        --index;
-        ++counter;
-    }
-    canvas.drawText(RectangleF(0, laneY, getFramebufferSize().width, laneY + idp(laneHeight) - 1), 0.f, 0.5f,
-                    title + ": " + stat.lastReport(), Font{ Font::Default, dp(12) }, Palette::white);
 }
 
 void Window::disableKeyHandling() {
@@ -680,6 +724,8 @@ void Window::onWindowResized(Size windowSize, Size framebufferSize) {}
 
 void Window::onWindowMoved(Point position) {}
 
+void Window::update() {}
+
 void Window::paint(RenderContext& context, bool fullRepaint) {}
 
 void Window::beforeFrame() {}
@@ -768,4 +814,61 @@ void Window::setBufferedRendering(bool bufferedRendering) {
 bool Window::bufferedRendering() const noexcept {
     return m_bufferedRendering;
 }
+
+const RenderStat& Window::renderStat() const noexcept {
+    return m_renderStat;
+}
+
+RenderStat& Window::renderStat() noexcept {
+    return m_renderStat;
+}
+
+FrameStat& RenderStat::operator[](uint64_t frameIndex) noexcept {
+    return m_frames[frameIndex % capacity];
+}
+
+const FrameStat& RenderStat::operator[](uint64_t frameIndex) const noexcept {
+    return m_frames[frameIndex % capacity];
+}
+
+FrameStat RenderStat::sum() const noexcept {
+    FrameStat result{};
+    for (const FrameStat& entry : m_frames) {
+        result.windowUpdate += entry.windowUpdate;
+        result.windowPaint += entry.windowPaint;
+        result.gpuRender += entry.gpuRender;
+        result.fullFrame += entry.fullFrame;
+        result.numRenderPasses += entry.numRenderPasses;
+        result.numQuads += entry.numQuads;
+    }
+    return result;
+}
+
+std::optional<uint64_t> RenderStat::lastFrame() const noexcept {
+    return m_lastFrame == UINT64_MAX ? std::nullopt : std::optional{ m_lastFrame };
+}
+
+bool RenderStat::hasFrame(uint64_t frameIndex) const noexcept {
+    return m_lastFrame != UINT64_MAX && frameIndex >= m_lastFrame - capacity + 1 && frameIndex <= m_lastFrame;
+}
+
+void RenderStat::beginFrame(uint64_t frameIndex) {
+    // m_lastFrame + 1 is safe here even if m_lastFrame is UINT64_MAX
+    for (uint64_t i = std::max(m_lastFrame + 1, frameIndex - capacity + 1); i <= frameIndex; ++i) {
+        m_frames[i % capacity] = FrameStat{};
+    }
+
+    m_lastFrame = frameIndex;
+}
+
+FrameStat& RenderStat::back() noexcept {
+    BRISK_ASSERT(m_lastFrame != UINT64_MAX);
+    return m_frames[m_lastFrame % capacity];
+}
+
+const FrameStat& RenderStat::back() const noexcept {
+    BRISK_ASSERT(m_lastFrame != UINT64_MAX);
+    return m_frames[m_lastFrame % capacity];
+}
+
 } // namespace Brisk

@@ -25,7 +25,8 @@
 
 namespace Brisk {
 
-class ListBox : public ValueWidget {
+class WIDGET ListBox : public ValueWidget {
+    BRISK_DYNAMIC_CLASS(ListBox, ValueWidget)
 public:
     using Base                                   = ValueWidget;
     constexpr static std::string_view widgetType = "listbox";

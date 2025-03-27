@@ -21,7 +21,6 @@
 #include "WindowRenderTarget.hpp"
 #include <brisk/graphics/OSWindowHandle.hpp>
 
-#include <dawn/platform/DawnPlatform.h>
 #import "QuartzCore/CAMetalLayer.h"
 
 namespace Brisk {

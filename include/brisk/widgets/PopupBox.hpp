@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET PopupBox : public AutoScrollable {
+    BRISK_DYNAMIC_CLASS(PopupBox, AutoScrollable)
 public:
     using Base                                   = AutoScrollable;
     constexpr static std::string_view widgetType = "popupbox";

@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */                                                                                                          \
 #pragma once
 
 #include "Pixel.hpp"
@@ -97,7 +117,7 @@ constexpr int colorScale() {
     else if constexpr (std::is_unsigned_v<T>)
         return std::numeric_limits<T>::max();
     else if constexpr (std::is_same_v<T, int16_t>)
-        return 8192; // 16-bit Extended range sRGB
+        return 8160; // 16-bit Extended range sRGB
 }
 } // namespace Internal
 
@@ -130,8 +150,16 @@ struct ColorOf {
      *
      * @return The color space (sRGB or linear).
      */
-    static ColorSpace colorSpace() {
-        return gamma == ColorGamma::sRGB || !linearColor ? ColorSpace::sRGBGamma : ColorSpace::sRGBLinear;
+    static constexpr ColorSpace colorSpace() {
+        if constexpr (gamma == ColorGamma::sRGB) {
+            return ColorSpace::sRGBGamma;
+        } else {
+            return defaultColorSpace();
+        }
+    }
+
+    static ColorSpace defaultColorSpace() {
+        return !linearColor ? ColorSpace::sRGBGamma : ColorSpace::sRGBLinear;
     }
 
     static_assert(std::is_floating_point_v<T> || std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
@@ -332,11 +360,11 @@ struct ColorOf {
      * @return A `ColorOf` object representing the adjusted color.
      */
     constexpr ColorOf adjust(Tfloat lightnessOffset, Tfloat chromaMultiplier = 1.f) const noexcept {
-        ColorOKLAB lab = static_cast<ColorOKLAB>(*this);
+        ColorOKLAB lab = static_cast<ColorOKLAB>(ColorF(*this));
         lab[0]         = std::clamp(lab[0] + lightnessOffset, 0.f, 100.f);
         lab[1]         = lab[1] * chromaMultiplier;
         lab[2]         = lab[2] * chromaMultiplier;
-        return ColorF(lab, alpha);
+        return ColorF(lab, ColorF(alpha).a);
     }
 
     /**

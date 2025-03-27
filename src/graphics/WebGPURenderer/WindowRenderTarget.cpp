@@ -41,22 +41,21 @@ void WindowRenderTargetWebGPU::setVSyncInterval(int interval) {
 }
 
 void WindowRenderTargetWebGPU::present() {
-    m_swapChain.Present();
+    m_surface.Present();
     m_device->m_instance.ProcessEvents();
 }
 
 void WindowRenderTargetWebGPU::recreateSwapChain() {
     m_backBuffer = {};
-    m_swapChain  = nullptr;
-    wgpu::SwapChainDescriptor swapChainDesc{
+    wgpu::SurfaceConfiguration swapChainDesc{
+        .format      = wgpu::TextureFormat::BGRA8Unorm,
         .usage       = wgpu::TextureUsage::RenderAttachment,
         // Android requires RGBA8UNorm
-        .format      = wgpu::TextureFormat::BGRA8Unorm,
         .width       = std::max(uint32_t(m_size.width), 1u),
         .height      = std::max(uint32_t(m_size.height), 1u),
         .presentMode = m_vsyncInterval == 0 ? wgpu::PresentMode::Mailbox : wgpu::PresentMode::Fifo,
     };
-    m_swapChain = m_device->m_device.CreateSwapChain(m_surface, &swapChainDesc);
+    m_surface.Configure(&swapChainDesc);
 }
 
 void WindowRenderTargetWebGPU::resizeBackbuffer(Size size) {
@@ -75,7 +74,9 @@ int WindowRenderTargetWebGPU::vsyncInterval() const {
 }
 
 const BackBufferWebGPU& WindowRenderTargetWebGPU::getBackBuffer() const {
-    m_backBuffer.color = m_swapChain.GetCurrentTexture();
+    wgpu::SurfaceTexture surfaceTexture;
+    m_surface.GetCurrentTexture(&surfaceTexture);
+    m_backBuffer.color = surfaceTexture.texture;
     m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilFmt, m_samples);
     return m_backBuffer;
 }

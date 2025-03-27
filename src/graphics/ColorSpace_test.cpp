@@ -23,7 +23,6 @@
 #include <brisk/graphics/ColorSpace.hpp>
 #include <brisk/core/Reflection.hpp>
 #include "VisualTests.hpp"
-#include <random>
 
 namespace Catch {
 namespace Matchers {

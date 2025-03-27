@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET ToggleButton : public Button {
+    BRISK_DYNAMIC_CLASS(ToggleButton, Button)
 public:
     using Base = Button;
     using Base::widgetType;

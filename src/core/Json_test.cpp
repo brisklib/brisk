@@ -20,7 +20,6 @@
  */
 #include <fmt/format.h>
 #include <sstream>
-#include <iostream>
 #include <brisk/core/Json.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <brisk/core/Reflection.hpp>

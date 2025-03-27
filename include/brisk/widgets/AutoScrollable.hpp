@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET AutoScrollable : public Widget {
+    BRISK_DYNAMIC_CLASS(AutoScrollable, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "autoscrollable";

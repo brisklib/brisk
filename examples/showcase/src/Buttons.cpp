@@ -1,5 +1,5 @@
 #include "Buttons.hpp"
-#include "brisk/gui/Icons.hpp"
+#include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>
@@ -144,6 +144,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
         },
         rcnew HLayout{
             rcnew Widget{
+                squircleCorners = false,
                 rcnew Button{ rcnew Text{ "First" }, &m_btnGroup, borderRadius = 15_px },
                 rcnew Button{ rcnew Text{ "Second" }, &m_btnGroup, borderRadius = 15_px },
                 rcnew Button{ rcnew Text{ "Third" }, &m_btnGroup, borderRadius = 15_px },

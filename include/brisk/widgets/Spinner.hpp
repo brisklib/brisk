@@ -24,7 +24,8 @@
 
 namespace Brisk {
 
-class Spinner : public Widget {
+class WIDGET Spinner : public Widget {
+    BRISK_DYNAMIC_CLASS(Spinner, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "spinner";

@@ -20,7 +20,6 @@
  */
 #include <brisk/widgets/Color.hpp>
 #include <brisk/widgets/Slider.hpp>
-#include <brisk/widgets/Widgets.hpp>
 #include <brisk/graphics/Palette.hpp>
 
 namespace Brisk {
@@ -37,24 +36,25 @@ constexpr auto operator+(ColorComp value) noexcept {
 }
 
 template <ColorComp comp>
-static Value<float> colorSubvalue(Value<ColorF> color) {
+static Value<float> colorSubvalue(Value<ColorW> color) {
     return color.transform(
-        [](ColorF color) -> float {
+        [](ColorW color) -> float {
             if (linearColor)
-                return Internal::srgbLinearToGamma(color.array[+comp]);
+                return Internal::srgbLinearToGamma(ColorF(color).array[+comp]);
             else
-                return color.array[+comp];
+                return ColorF(color).array[+comp];
         },
-        [](ColorF color, float value) -> ColorF {
+        [](ColorW color, float value) -> ColorW {
+            ColorF colorf = color;
             if (linearColor)
-                color.array[+comp] = Internal::srgbGammaToLinear(value);
+                colorf.array[+comp] = Internal::srgbGammaToLinear(value);
             else
-                color.array[+comp] = value;
-            return color;
+                colorf.array[+comp] = value;
+            return ColorW(colorf);
         });
 }
 
-ColorSliders::ColorSliders(Construction construction, ColorF color, bool alpha,
+ColorSliders::ColorSliders(Construction construction, ColorW color, bool alpha,
                            ArgumentsView<ColorSliders> args)
     : Widget(construction, nullptr), m_value(color) {
     args.apply(this);
@@ -100,12 +100,12 @@ ColorSliders::ColorSliders(Construction construction, ColorF color, bool alpha,
     }
 }
 
-void ColorView::paint(Canvas& canvas_) const {
-    RawCanvas& canvas = canvas_.raw();
-    float radius      = horizontalAbsMax(m_borderRadius.resolved.v);
+void ColorView::paint(Canvas& canvas) const {
+    float radius = horizontalAbsMax(m_borderRadius.resolved.v);
     if (radius == 0)
         radius = 0.001f;
-    canvas.drawRectangle(m_rect, radius, 0.f, fillColor = m_value, strokeWidth = 0);
+    canvas.setFillColor(m_value);
+    canvas.fillRect(m_rect, radius);
 }
 
 #ifdef OKLAB_PALETTE
@@ -142,7 +142,7 @@ struct OKLabPalette {
 
 #endif
 
-ColorPalette::ColorPalette(Construction construction, ColorF color, ArgumentsView<ColorPalette> args)
+ColorPalette::ColorPalette(Construction construction, ColorW color, ArgumentsView<ColorPalette> args)
     : Widget{ construction, nullptr }, m_value(color) {
     args.apply(this);
 
@@ -200,8 +200,8 @@ static ColorF adjustSwatch(ColorF color, float lightnessOffset, float chromaMult
     return ColorF(lab, color.alpha);
 }
 
-RC<Widget> ColorPalette::addColor(const ColorF& swatch, float brightness, float chroma) {
-    ColorF c = adjustSwatch(swatch, brightness, chroma);
+RC<Widget> ColorPalette::addColor(ColorW swatch, float brightness, float chroma) {
+    ColorW c = adjustSwatch(swatch, brightness, chroma);
     return rcnew Button{
         rcnew Widget{
             rcnew ColorView{
@@ -226,12 +226,12 @@ RC<Widget> ColorSliders::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 RC<Widget> ColorView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-ColorView::ColorView(Construction construction, ColorF color, ArgumentsView<ColorView> args)
+ColorView::ColorView(Construction construction, ColorW color, ArgumentsView<ColorView> args)
     : Widget(construction, nullptr), m_value(color) {
     args.apply(this);
 }
 
-ColorButton::ColorButton(Construction construction, Value<ColorF> prop, bool alpha,
+ColorButton::ColorButton(Construction construction, Value<ColorW> prop, bool alpha,
                          ArgumentsView<ColorButton> args)
     : PopupButton(construction, nullptr) {
     args.apply(this);
@@ -243,12 +243,10 @@ ColorButton::ColorButton(Construction construction, Value<ColorF> prop, bool alp
                           rcnew ColorPalette(prop) });
 }
 
-void GradientItem::paint(Canvas& canvas_) const {
-    RawCanvas& canvas = canvas_.raw();
-    canvas.drawRectangle(
-        m_rect, 0.f, 0.f, fillColors = GradientColors{ Palette::red, Palette::yellow },
-        linearGradient = GradientPoints{ RectangleF(m_rect).at(0.f, 0.5f), RectangleF(m_rect).at(1.f, 0.5f) },
-        strokeWidth = 0, multigradient = gradient);
+void GradientItem::paint(Canvas& canvas) const {
+    canvas.setFillPaint(Gradient{ GradientType::Linear, RectangleF(m_rect).at(0.f, 0.5f),
+                                  RectangleF(m_rect).at(1.f, 0.5f), gradient });
+    canvas.fillRect(m_rect);
 }
 
 RC<Widget> GradientItem::cloneThis() const {

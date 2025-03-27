@@ -19,23 +19,27 @@ float2 to_screen(float2 xy) {
 }
 
 float2 transform2D(float2 pos) {
-  float3x2 coord_matrix = float3x2(float2(asfloat(constants[2].x), asfloat(constants[2].y)), float2(asfloat(constants[2].z), asfloat(constants[2].w)), float2(asfloat(constants[3].x), asfloat(constants[3].y)));
+  float3x2 coord_matrix = float3x2(float2(asfloat(constants[3].x), asfloat(constants[3].y)), float2(asfloat(constants[3].z), asfloat(constants[3].w)), float2(asfloat(constants[4].x), asfloat(constants[4].y)));
   return mul(float3(pos, 1.0f), coord_matrix).xy;
 }
 
 float margin() {
-  return ceil((1.0f + (asfloat(constants[14].x) * 0.5f)));
+  if ((asint(constants[1].x) == 3)) {
+    return ceil((1.0f + ((asfloat(constants[8].w) / 0.18000000715255737305f) * 0.5f)));
+  } else {
+    return ceil((1.0f + (asfloat(constants[14].x) * 0.5f)));
+  }
 }
 
 float4 norm_rect(float4 rect) {
   return float4(min(rect.xy, rect.zw), max(rect.xy, rect.zw));
 }
 
-struct tint_symbol_7 {
+struct tint_symbol_8 {
   uint vidx : SV_VertexID;
   uint inst : SV_InstanceID;
 };
-struct tint_symbol_8 {
+struct tint_symbol_9 {
   noperspective float4 data0 : TEXCOORD0;
   noperspective float4 data1 : TEXCOORD1;
   noperspective float2 uv : TEXCOORD2;
@@ -45,8 +49,8 @@ struct tint_symbol_8 {
 
 VertexOutput vertexMain_inner(uint vidx, uint inst) {
   VertexOutput output = (VertexOutput)0;
-  float2 tint_symbol_9[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
-  float2 position = tint_symbol_9[vidx];
+  float2 tint_symbol_10[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
+  float2 position = tint_symbol_10[vidx];
   float2 uv_coord = (position + (0.5f).xx);
   float4 outPosition = (0.0f).xxxx;
   bool tint_tmp = (asint(constants[1].x) == 0);
@@ -57,15 +61,11 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
     float m = margin();
     float4 rect = norm_rect(asfloat(data.Load4((16u * (constants[0].x + (inst * 2u))))));
     output.data0 = float4((rect.zw - rect.xy), 0.0f, 0.0f);
-    float4 dat = asfloat(data.Load4((16u * ((constants[0].x + (inst * 2u)) + 1u))));
-    output.data1 = dat;
-    float angle = dat.x;
-    float angle_sin = sin(angle);
-    float angle_cos = cos(angle);
+    float4 radii = asfloat(data.Load4((16u * ((constants[0].x + (inst * 2u)) + 1u))));
+    output.data1 = radii;
     float2 center = ((rect.xy + rect.zw) * 0.5f);
-    float2 pt = (lerp((rect.xy - float2((m).xx)), (rect.zw + float2((m).xx)), uv_coord) - center);
-    float2 pt2 = float2(((angle_cos * pt.x) - (angle_sin * pt.y)), ((angle_sin * pt.x) + (angle_cos * pt.y)));
-    outPosition = float4((pt2 + center), 0.0f, 1.0f);
+    float2 pt = lerp((rect.xy - float2((m).xx)), (rect.zw + float2((m).xx)), uv_coord);
+    outPosition = float4(pt, 0.0f, 1.0f);
     output.uv = (position * (((m + m) + rect.zw) - rect.xy));
   } else {
     if ((asint(constants[1].x) == 1)) {
@@ -86,7 +86,7 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
         rect.x = (rect.x - asfloat(perFrame[1].z));
         rect.z = (rect.z + asfloat(perFrame[1].z));
         outPosition = float4(lerp(rect.xy, rect.zw, uv_coord), 0.0f, 1.0f);
-        output.uv = (((outPosition.xy - float2(base, rect.y)) + float2(-(asfloat(perFrame[1].z)), 0.0f)) * float2(float(asint(constants[3].z)), 1.0f));
+        output.uv = (((outPosition.xy - float2(base, rect.y)) + float2(-(asfloat(perFrame[1].z)), 0.0f)) * float2(float(asint(constants[4].z)), 1.0f));
         output.data0 = glyph_data;
       } else {
         bool tint_tmp_1 = (asint(constants[1].x) == 4);
@@ -104,15 +104,15 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
     }
   }
   output.canvas_coord = outPosition.xy;
-  float2 tint_symbol_4 = transform2D(outPosition.xy);
-  float2 tint_symbol_5 = to_screen(tint_symbol_4);
-  output.position = float4(tint_symbol_5, outPosition.zw);
+  float2 tint_symbol_5 = transform2D(outPosition.xy);
+  float2 tint_symbol_6 = to_screen(tint_symbol_5);
+  output.position = float4(tint_symbol_6, outPosition.zw);
   return output;
 }
 
-tint_symbol_8 vertexMain(tint_symbol_7 tint_symbol_6) {
-  VertexOutput inner_result = vertexMain_inner(tint_symbol_6.vidx, tint_symbol_6.inst);
-  tint_symbol_8 wrapper_result = (tint_symbol_8)0;
+tint_symbol_9 vertexMain(tint_symbol_8 tint_symbol_7) {
+  VertexOutput inner_result = vertexMain_inner(tint_symbol_7.vidx, tint_symbol_7.inst);
+  tint_symbol_9 wrapper_result = (tint_symbol_9)0;
   wrapper_result.position = inner_result.position;
   wrapper_result.data0 = inner_result.data0;
   wrapper_result.data1 = inner_result.data1;

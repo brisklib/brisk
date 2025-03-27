@@ -27,6 +27,7 @@
 namespace Brisk {
 
 class WIDGET ImageView : public Widget {
+    BRISK_DYNAMIC_CLASS(ImageView, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "imageview";
@@ -54,6 +55,7 @@ protected:
 };
 
 class WIDGET SVGImageView final : public Widget {
+    BRISK_DYNAMIC_CLASS(SVGImageView, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "svgimageview";

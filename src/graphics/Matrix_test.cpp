@@ -132,6 +132,18 @@ TEST_CASE("matrix") {
     CHECK_THAT(PointF(12.f, 34.f) * Matrix::skewness(0, 1),
                Catch::Matchers::PointWithinAbsMatcher(PointF{ 12, 46 }, 0.001));
 
+    CHECK(Matrix{}.isUniformScale());
+    CHECK(Matrix::translation(45.f, -10.f).isUniformScale());
+    CHECK(Matrix::scaling(0.7f, 0.7f).isUniformScale());
+    CHECK(!Matrix::scaling(0.7f, 0.71f).isUniformScale());
+    CHECK(Matrix{}.rotate(60.f).isUniformScale());
+    CHECK(Matrix::scaling(0.7f, 0.7f).rotate(60.f).isUniformScale());
+    CHECK(Matrix::scaling(0.7f, -0.7f).isUniformScale());
+    CHECK(!Matrix::skewness(0.5f, 0).isUniformScale());
+    CHECK(!Matrix::skewness(0, 0.5f).isUniformScale());
+    CHECK(!Matrix::scaling(0.7f, 0.71f).rotate(-22.5f).isUniformScale());
+    CHECK(Matrix::scaling(0.7f, -0.7f).rotate(-22.5f).isUniformScale());
+
     std::array<PointF, 31> pts;
     std::mt19937 rnd(123456);
     std::uniform_real_distribution<float> u{ -10.f, +10.f };

@@ -7,7 +7,7 @@
 #include <brisk/widgets/Graphene.hpp>
 #include <brisk/gui/Component.hpp>
 #include <brisk/graphics/Fonts.hpp>
-#include "brisk/gui/Icons.hpp"
+#include <brisk/gui/Icons.hpp>
 #include "math.hpp"
 
 namespace Brisk {

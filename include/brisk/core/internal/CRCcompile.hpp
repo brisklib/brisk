@@ -25,7 +25,7 @@ namespace Brisk {
 namespace Internal {
 
 inline constexpr const uint32_t crcTable[256] = {
-#include "internal/crctable.inc.hpp"
+#include "crctable.inc.hpp"
 };
 
 constexpr uint32_t crc32(const char* data, uint32_t len, uint32_t crc = 0) {

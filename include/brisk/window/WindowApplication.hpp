@@ -42,9 +42,9 @@ extern Window* currentWindow;
 } // namespace Internal
 
 /**
- * @brief Controls whether the application should render in a separate threads. Default true
+ * @brief Controls whether the application should process UI and render in a separate threads. Default true
  */
-extern bool separateRenderThread;
+extern bool separateUIThread;
 
 enum class QuitCondition {
     FirstWindowClosed,
@@ -188,7 +188,7 @@ private:
     double m_doubleClickDistance        = 3.0;
     constexpr static int32_t noExitCode = INT32_MIN;
     std::atomic_int32_t m_exitCode{ noExitCode };
-    const bool m_separateRenderThread;
+    const bool m_separateUIThread;
     std::thread m_uiThread;
     std::atomic_bool m_uiThreadTerminate{ false };
     std::atomic_bool m_uiThreadTerminated{ false };

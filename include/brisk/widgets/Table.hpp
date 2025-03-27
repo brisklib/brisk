@@ -86,6 +86,7 @@ struct Selection {
 };
 
 class WIDGET Table : public Widget {
+    BRISK_DYNAMIC_CLASS(Table, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "table";
@@ -110,6 +111,7 @@ protected:
 };
 
 class WIDGET TableRow : public Widget {
+    BRISK_DYNAMIC_CLASS(TableRow, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "tablerow";
@@ -126,6 +128,7 @@ protected:
 };
 
 class WIDGET TableHeader : public TableRow {
+    BRISK_DYNAMIC_CLASS(TableHeader, TableRow)
 public:
     using Base                                   = TableRow;
     constexpr static std::string_view widgetType = "tableheader";
@@ -144,6 +147,7 @@ protected:
 
 template <typename TItem = bool>
 class WIDGET TableRowSelectable : public TableRow {
+    BRISK_DYNAMIC_CLASS(TableRowSelectable, TableRow)
 public:
     using Base                                   = TableRow;
     constexpr static std::string_view widgetType = "tablerow";
@@ -191,6 +195,7 @@ protected:
 };
 
 class WIDGET TableCell : public Widget {
+    BRISK_DYNAMIC_CLASS(TableCell, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "tablecell";

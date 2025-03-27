@@ -1,7 +1,7 @@
 #include "ShowcaseComponent.hpp"
-#include "brisk/graphics/ImageFormats.hpp"
-#include "brisk/widgets/ListBox.hpp"
-#include "brisk/widgets/SpinBox.hpp"
+#include <brisk/graphics/ImageFormats.hpp>
+#include <brisk/widgets/ListBox.hpp>
+#include <brisk/widgets/SpinBox.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/App.hpp>
 #include <brisk/widgets/ComboBox.hpp>

@@ -20,8 +20,6 @@
  */
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Log.hpp>
 #include <brisk/core/Stream.hpp>
 
 namespace Brisk {
@@ -61,26 +59,27 @@ Bytes imageEncode(ImageCodec codec, RC<Image> image, std::optional<int> quality,
     }
 }
 
-expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, BytesView bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, BytesView bytes, ImageFormat format,
+                                              bool premultiplyAlpha) {
     switch (codec) {
     case ImageCodec::BMP:
-        return bmpDecode(bytes, format);
+        return bmpDecode(bytes, format, premultiplyAlpha);
     case ImageCodec::PNG:
-        return pngDecode(bytes, format);
+        return pngDecode(bytes, format, premultiplyAlpha);
     case ImageCodec::JPEG:
         return jpegDecode(bytes, format);
     case ImageCodec::WEBP:
-        return webpDecode(bytes, format);
+        return webpDecode(bytes, format, premultiplyAlpha);
     default:
         return {};
     }
 }
 
-expected<RC<Image>, ImageIOError> imageDecode(BytesView bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> imageDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
     auto codec = guessImageCodec(bytes);
     if (!codec)
         return unexpected(ImageIOError::CodecError);
-    return imageDecode(*codec, bytes, format);
+    return imageDecode(*codec, bytes, format, premultiplyAlpha);
 }
 
 } // namespace Brisk

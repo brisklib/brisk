@@ -57,7 +57,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/PopupDialog.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/DialogComponent.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Graphene.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/widgets/WebGPU.hpp
     ${PROJECT_SOURCE_DIR}/src/widgets/TextEditor.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Viewport.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Spinner.cpp
@@ -94,8 +93,12 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/widgets/ScrollBox.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/PopupDialog.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/DialogComponent.cpp
-    ${PROJECT_SOURCE_DIR}/src/widgets/Graphene.cpp
-    ${PROJECT_SOURCE_DIR}/src/widgets/WebGPU.cpp)
+    ${PROJECT_SOURCE_DIR}/src/widgets/Graphene.cpp)
+
+if (BRISK_WEBGPU)
+    target_sources(brisk-widgets PRIVATE ${PROJECT_SOURCE_DIR}/include/brisk/widgets/WebGPU.hpp
+                                         ${PROJECT_SOURCE_DIR}/src/widgets/WebGPU.cpp)
+endif ()
 
 set_property(TARGET brisk-widgets PROPERTY EXPORT_NAME Widgets)
 add_library(Brisk::Widgets ALIAS brisk-widgets)

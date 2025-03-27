@@ -352,15 +352,15 @@ inline float contrastRatio(ColorF foreground, ColorF background) {
  * and the secondary color otherwise.
  *
  * @tparam Fn The type of the function provided.
- * @param fn The function that returns a `ColorF` based on a `Widget`.
+ * @param fn The function that returns a `ColorW` based on a `Widget`.
  * @param primary The primary text color (default is white).
  * @param secondary The secondary text color (default is black).
- * @return A lambda that takes a `Widget*` and returns a `ColorF` (either primary or secondary color).
+ * @return A lambda that takes a `Widget*` and returns a `ColorW` (either primary or secondary color).
  */
 template <typename Fn>
-inline auto textColorFor(Fn&& fn, ColorF primary = Palette::white, ColorF secondary = Palette::black) {
+inline auto textColorFor(Fn&& fn, ColorW primary = Palette::white, ColorW secondary = Palette::black) {
     return [fn = std::move(fn), primary, secondary](Widget* w) {
-        ColorF c = fn(w);
+        ColorW c = fn(w);
         float c1 = contrastRatio(primary, c);
         float c2 = contrastRatio(secondary, c);
         if (c1 > c2)
@@ -671,9 +671,13 @@ struct StyleVariableTag : Tag::StyleVarTag {
     }
 };
 
-constexpr inline Argument<StyleVariableTag<ColorF, "windowColor"_hash>> windowColor{};
-constexpr inline Argument<StyleVariableTag<ColorF, "selectedColor"_hash>> selectedColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "windowColor"_hash>> windowColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "selectedColor"_hash>> selectedColor{};
 constexpr inline Argument<StyleVariableTag<float, "animationSpeed"_hash>> animationSpeed{};
+constexpr inline Argument<StyleVariableTag<ColorW, "focusFrameColor"_hash>> focusFrameColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "hintBackgroundColor"_hash>> hintBackgroundColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "hintTextColor"_hash>> hintTextColor{};
+constexpr inline Argument<StyleVariableTag<ColorW, "hintShadowColor"_hash>> hintShadowColor{};
 
 } // namespace Brisk
 

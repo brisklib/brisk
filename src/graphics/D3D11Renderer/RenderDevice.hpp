@@ -36,6 +36,10 @@ class RenderDeviceD3D11 final : public RenderDevice, public std::enable_shared_f
 public:
     status<RenderDeviceError> init();
 
+    RendererBackend backend() const noexcept {
+        return RendererBackend::D3D11;
+    }
+
     RenderDeviceInfo info() const final;
 
     RC<WindowRenderTarget> createWindowTarget(const OSWindow* window, PixelType type = PixelType::U8Gamma,
@@ -97,11 +101,6 @@ private:
     void createPerFrameConstantBuffer();
 
     bool updateBackBuffer(BackBufferD3D11& buffer, PixelType type, DepthStencilType depthType, int samples);
-};
-
-class BackBufferProviderD3D11 {
-public:
-    virtual const BackBufferD3D11& getBackBuffer() const = 0;
 };
 
 } // namespace Brisk

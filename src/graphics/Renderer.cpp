@@ -19,7 +19,6 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Renderer.hpp>
-#include <brisk/core/Log.hpp>
 #include "Atlas.hpp"
 
 namespace Brisk {
@@ -102,8 +101,9 @@ bool RenderPipeline::flush() {
         return false;
     }
     m_numBatches++;
-    if (!m_clipRect.empty())
+    if (!m_clipRect.empty()) {
         m_encoder->batch(m_commands, m_data);
+    }
 
     m_textures.clear();
     m_commands.clear();
@@ -199,7 +199,7 @@ void RenderPipeline::blit(RC<Image> image) {
     RectangleF rect{ {}, image->size() };
     style.textureMatrix = Matrix{};
     style.imageHandle   = std::move(image);
-    command(std::move(style), one(GeometryRectangle{ rect, 0.f, 0.f, 0.f, 0.f }));
+    command(std::move(style), one(GeometryRectangle{ rect, CornersF(0.f) }));
 }
 
 Rectangle RenderPipeline::clipRect() const {

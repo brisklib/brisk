@@ -18,7 +18,6 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/window/WindowApplication.hpp>
 #include <brisk/gui/Event.hpp>
 #include <brisk/gui/GUI.hpp>
 
@@ -26,7 +25,7 @@ namespace Brisk {
 
 std::atomic_uint32_t eventCookie{ 0 };
 
-ImplicitContext<InputQueue*, InputQueue*, briskMultithreadRender> inputQueue;
+InputQueueImplicitContext inputQueue;
 
 const char* const eventTypeNames[+EventType::Count] = {
     "Undefined",

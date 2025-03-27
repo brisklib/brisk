@@ -28,7 +28,6 @@
 #include <brisk/core/Encoding.hpp>
 #include "PlatformWindow.hpp"
 #include <brisk/window/Window.hpp>
-#include <algorithm>
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Time.hpp>
 #include <brisk/graphics/OSWindowHandle.hpp>
@@ -37,7 +36,7 @@
 #include <brisk/core/platform/SystemWindows.hpp>
 
 #include <brisk/window/Display.hpp>
-#include "KeyCodes.hpp"
+#include <brisk/window/Types.hpp>
 
 namespace Brisk {
 

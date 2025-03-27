@@ -20,7 +20,6 @@
  */
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/Utilities.hpp>
 #define STBI_WRITE_NO_STDIO 1
 #define STB_IMAGE_WRITE_STATIC 1
 #define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -36,7 +35,6 @@ BRISK_GNU_ATTR_PRAGMA(GCC diagnostic ignored "-Wunused-function")
 #include <stb_image_write.h>
 BRISK_GNU_ATTR_PRAGMA(GCC diagnostic pop)
 
-#include <brisk/core/Log.hpp>
 #include <brisk/core/Stream.hpp>
 
 namespace Brisk {
@@ -70,7 +68,8 @@ struct stbi_delete {
     }
 };
 
-static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat format) {
+static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat format,
+                                                    bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("BMP codec doesn't support decoding to {} format", format));
     }
@@ -91,11 +90,13 @@ static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat
     RC<Image> image = rcnew Image(Size{ width, height }, imageFormat(PixelType::U8Gamma, fmt));
     auto w          = image->mapWrite();
     w.readFrom(BytesView{ (const std::byte*)mem.get(), size_t(width * height * comp) });
+    if (premultiplyAlpha)
+        w.premultiplyAlpha();
     return image;
 }
 
-expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes, ImageFormat format) {
-    return stbiDecode(bytes, format);
+expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
+    return stbiDecode(bytes, format, premultiplyAlpha);
 }
 
 } // namespace Brisk

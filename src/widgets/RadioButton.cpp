@@ -22,19 +22,20 @@
 
 namespace Brisk {
 
-static void radioMark(RawCanvas& canvas, RectangleF markRect, ColorF color, float interpolatedValue) {
+static void radioMark(Canvas& canvas, RectangleF markRect, ColorW color, float interpolatedValue) {
     float side = markRect.shortestSide();
-    canvas.drawEllipse(markRect.withPadding(1_dp), 0.f, strokeColor = color.multiplyAlpha(0.35f),
-                       fillColor = Palette::transparent, strokeWidth = 1._dp);
+    canvas.setStrokeColor(color.multiplyAlpha(0.35f));
+    canvas.setStrokeWidth(1._dp);
+    canvas.strokeEllipse(markRect.withPadding(1_dp));
     if (interpolatedValue > 0.f) {
-        canvas.drawEllipse(markRect.alignedRect(interpolatedValue * side * 0.5f,
-                                                interpolatedValue * side * 0.5f, 0.5f, 0.5f),
-                           0.f, strokeWidth = 0.f, fillColor = color.multiplyAlpha(0.75f));
+        canvas.setFillColor(color.multiplyAlpha(0.75f));
+        canvas.fillEllipse(markRect.alignedRect(interpolatedValue * side * 0.5f,
+                                                interpolatedValue * side * 0.5f, 0.5f, 0.5f));
     }
 }
 
 void radioButtonPainter(Canvas& canvas, const Widget& widget_) {
-    if (!dynamic_cast<const RadioButton*>(&widget_)) {
+    if (!dynamicCast<const RadioButton*>(&widget_)) {
         LOG_ERROR(widgets, "checkBoxPainter called for a non-CheckBox widget");
         return;
     }
@@ -44,7 +45,7 @@ void radioButtonPainter(Canvas& canvas, const Widget& widget_) {
     Rectangle markRect        = widget.rect().alignedRect({ idp(14), idp(14) }, { 0.0f, 0.5f });
     boxPainter(canvas, widget, markRect);
 
-    radioMark(canvas.raw(), markRect, widget.color.current(), interpolatedValue);
+    radioMark(canvas, markRect, widget.color.current(), interpolatedValue);
 }
 
 void RadioButton::paint(Canvas& canvas) const {

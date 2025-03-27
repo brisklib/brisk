@@ -32,10 +32,10 @@ void Table::onEvent(Event& event) {
 void Table::childrenAdded() {
     Widget::childrenAdded();
     for (const RC<Widget>& w1 : *this) {
-        if (TableRow* row = dynamic_cast<TableRow*>(w1.get())) {
+        if (TableRow* row = dynamicCast<TableRow*>(w1.get())) {
             int i = 0;
             for (const RC<Widget>& w2 : *row) {
-                if (TableCell* cell = dynamic_cast<TableCell*>(w2.get())) {
+                if (TableCell* cell = dynamicCast<TableCell*>(w2.get())) {
                     if (!cell->m_widthGroupSet && i < columns.size()) {
                         cell->apply(&columns[i++]);
                         cell->m_widthGroupSet = true;

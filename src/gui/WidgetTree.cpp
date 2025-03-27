@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-WidgetGroup::~WidgetGroup() {
+void WidgetGroup::clean() {
     for (Widget* w : widgets) {
         w->removeFromGroup(this);
     }
@@ -131,11 +131,7 @@ void WidgetTree::groupsBeforeLayout() {
     }
 }
 
-Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, bool fullRepaint) {
-    if (!m_root)
-        return {};
-    m_fullRepaint = fullRepaint;
-
+void WidgetTree::update() {
     bindings->assign(frameStartTime, currentTime());
 
     groupsBeforeFrame();
@@ -172,8 +168,11 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, boo
 
     m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
     m_viewportRectangleChanged = false;
+}
 
-    Rectangle paintRect        = this->paintRect();
+Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint) {
+    m_fullRepaint       = fullRepaint;
+    Rectangle paintRect = this->paintRect();
 
     if (paintRect.empty()) {
         groupsAfterFrame();
@@ -185,8 +184,8 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, boo
     ++frameNumber;
     canvas.renderContext().setClipRect(paintRect);
     if (backgroundColor.a != 0) {
-        canvas.raw().drawRectangle(m_viewportRectangle, 0.f, 0.f, fillColor = backgroundColor,
-                                   strokeWidth = 0.f);
+        canvas.setFillColor(backgroundColor);
+        canvas.fillRect(m_viewportRectangle);
     }
 
     m_painting = true;
@@ -213,12 +212,13 @@ Rectangle WidgetTree::updateAndPaint(Canvas& canvas, ColorF backgroundColor, boo
 
     m_painting  = false;
 
-    if (Internal::debugBoundaries && inputQueue.get()) {
+    if (Internal::debugBoundaries && inputQueue.get(nullptr)) {
         std::optional<Rectangle> rect = inputQueue->getAtMouse<Rectangle>([](Widget* w) {
             return w->rect();
         });
         if (rect) {
-            canvas.raw().drawRectangle(*rect, 0.f, 0.f, fillColor = 0x102040'40_rgba, strokeWidth = 0.f);
+            canvas.setFillColor(0x102040'40_rgba);
+            canvas.fillRect(*rect);
         }
     }
     groupsAfterFrame();

@@ -22,22 +22,8 @@
 
 namespace Brisk {
 
-void paintProgressIndicator(RawCanvas& canvas, RectangleF rect, int circles) {
-    for (int i = 0; i < circles; ++i) {
-        const float t = frameStartTime * std::numbers::pi_v<float> * 2 * 0.25f * (1 + i);
-        const float s = std::sin(t);
-        const float c = std::cos(t);
-        canvas.drawArc(PointF(rect.center()), idp(20 + i * 5), idp(15 + i * 5), 0, 10.f,
-                       fillColors    = { ColorF{ 1, 1, 1, 0 }, ColorF{ 0, 0, 0, 0 } },
-                       angleGradient = {
-                           rect.center(),
-                           PointF(rect.center()) + PointOf<float>{ c, s },
-                       });
-    }
-}
-
 void ProgressBar::updateValue() {
-    if (Progress* progress = dynamic_cast<Progress*>(parent())) {
+    if (Progress* progress = dynamicCast<Progress*>(parent())) {
         float value = progress->normalizedValue.get();
         setRect(progress->clientRect().slice(progress->clientRect().orientation(), 0.f, value));
     }

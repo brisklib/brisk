@@ -156,7 +156,7 @@ void renderBox(RenderContext& context, Rectangle rect, float radius) {
     grad.addStop(0.f, Palette::Standard::green);
     grad.addStop(1.f, Palette::Standard::red);
 
-    canvas.setFillPaint(notManaged(&grad)); // notManaged creates shared_ptr from stack object
+    canvas.setFillPaint(grad);
     canvas.fillPath(path);
     canvas.strokePath(path);
 }

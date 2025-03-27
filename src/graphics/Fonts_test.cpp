@@ -26,7 +26,6 @@
 #include "../core/test/HelloWorld.hpp"
 #include <brisk/core/Reflection.hpp>
 #include "VisualTests.hpp"
-#include "Atlas.hpp"
 
 namespace Brisk {
 

@@ -20,6 +20,9 @@
  */
 #include <brisk/graphics/WebGPU.hpp>
 #include <brisk/core/Log.hpp>
+#include "RenderEncoder.hpp"
+#include "WindowRenderTarget.hpp"
+#include "ImageRenderTarget.hpp"
 
 namespace Brisk {
 wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format) {
@@ -47,7 +50,7 @@ wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format) {
 }
 
 bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer) {
-    RenderPipeline* pipeline = dynamic_cast<RenderPipeline*>(&context);
+    RenderPipeline* pipeline = dynamicCast<RenderPipeline*>(&context);
     if (!pipeline) {
         LOG_WARN(webgpu, "RenderContext doesn't implement RenderPipeline");
         return false;
@@ -57,12 +60,12 @@ bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::Tex
         LOG_WARN(webgpu, "RenderEncoder is null");
         return false;
     }
-    DeviceProviderWebGPU* encoder = dynamic_cast<DeviceProviderWebGPU*>(renderEncoder.get());
-    if (!encoder) {
-        LOG_WARN(webgpu, "RenderEncoder doesn't implement DeviceProviderWebGPU");
+    if (renderEncoder->device()->backend() != RendererBackend::WebGPU) {
+        LOG_WARN(webgpu, "RenderEncoder is not WebGPU encoder");
         return false;
     }
-    wgDevice = encoder->getDevice();
+    RenderEncoderWebGPU* encoder = static_cast<RenderEncoderWebGPU*>(renderEncoder.get());
+    wgDevice                     = encoder->m_device->m_device;
     if (!wgDevice) {
         LOG_WARN(webgpu, "encoder->getDevice() is null");
         return false;
@@ -73,17 +76,7 @@ bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::Tex
         LOG_WARN(webgpu, "encoder->currentTarget() is null");
         return false;
     }
-    BackBufferProviderWebGPU* backBufferProv = dynamic_cast<BackBufferProviderWebGPU*>(currentTarget.get());
-    if (!backBufferProv) {
-        LOG_WARN(webgpu, "RenderTarget doesn't implement BackBufferProviderWebGPU");
-        return false;
-    }
-    auto backBuf = backBufferProv->getBackBuffer();
-    if (!backBuf.color || !backBuf.colorView) {
-        LOG_WARN(webgpu, "BackBufferWebGPU has null texture");
-        return false;
-    }
-    backBuffer = backBuf.colorView;
+    backBuffer = getBackBuffer(currentTarget.get()).colorView;
     pipeline->flush();
     return true;
 }

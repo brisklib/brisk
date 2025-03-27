@@ -19,7 +19,6 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/Binding.hpp>
-#include <brisk/core/Log.hpp>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 

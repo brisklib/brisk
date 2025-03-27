@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET Spacer final : public Widget {
+    BRISK_DYNAMIC_CLASS(Spacer, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "spacer";

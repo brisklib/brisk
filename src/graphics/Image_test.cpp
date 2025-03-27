@@ -22,7 +22,6 @@
 #include <brisk/core/IO.hpp>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
-#include "VisualTests.hpp"
 
 namespace Brisk {
 TEST_CASE("Image") {
@@ -64,6 +63,8 @@ TEST_CASE("Image") {
         }
     }
 
+#ifdef BRISK_EXCEPTIONS
     CHECK_THROWS_AS(rcnew Image(Size{ 65536, 65536 }), EArgument);
+#endif
 }
 } // namespace Brisk

@@ -8,16 +8,17 @@
 #include <brisk/widgets/WebGPU.hpp>
 #include <brisk/gui/Component.hpp>
 #include <brisk/graphics/Fonts.hpp>
-#include "brisk/gui/Icons.hpp"
+#include <brisk/gui/Icons.hpp>
 
 namespace Brisk {
 
 class WebGPUCubes final : public WebGPUWidget {
+    BRISK_DYNAMIC_CLASS(WebGPUCubes, WebGPUWidget)
 public:
     using WebGPUWidget::WebGPUWidget;
 
 protected:
-    void render(wgpu::Device device, wgpu::TextureView backBuffer) const {
+    void render(wgpu::Device device, wgpu::TextureView backBuffer) const final {
         if (!m_device) {
             const_cast<WebGPUCubes*>(this)->setupPipeline(std::move(device));
         }

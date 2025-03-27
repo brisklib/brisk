@@ -25,7 +25,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/ImageTransform.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Color.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Matrix.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/graphics/RawCanvas.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Canvas.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/SVG.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/RenderState.hpp
@@ -41,7 +40,8 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageTransform.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Html.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/RawCanvas.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.hpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Canvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/RenderState.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/OpenType.cpp
@@ -49,7 +49,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/Atlas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Atlas.hpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Fonts.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/SingleHeaderTest.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Image.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Path.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Renderer.cpp
@@ -129,11 +128,11 @@ unset(_DEP_PUBLIC)
 unset(_DEP_PRIVATE)
 
 if (BRISK_WEBGPU)
-    if (TARGET Dawn)
+    if (TARGET dawn::webgpu_dawn)
         target_link_libraries(brisk-graphics PUBLIC brisk-renderer-webgpu)
         target_compile_definitions(brisk-renderer-webgpu PUBLIC BRISK_WEBGPU=1)
     else ()
-        message(FATAL_ERROR "BRISK_WEBGPU is ON but Dawn target is missing")
+        message(FATAL_ERROR "BRISK_WEBGPU is ON but dawn::webgpu_dawn target is missing")
     endif ()
 endif ()
 

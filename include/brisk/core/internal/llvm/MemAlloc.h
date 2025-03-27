@@ -18,18 +18,13 @@
 
 #include "Compiler.h"
 #include <cstdlib>
-#ifdef LLVM_ENABLE_EXCEPTIONS
+#include "brisk/core/internal/Throw.hpp"
 #include <stdexcept>
-#endif
 
 namespace llvm {
 
-inline void report_bad_alloc_error(const char *Reason) {
-#ifdef LLVM_ENABLE_EXCEPTIONS
-  throw std::bad_alloc();
-#else
-  report_fatal_error(Twine(Reason));
-#endif
+inline void report_bad_alloc_error(const char *) {
+  Brisk::throwException(std::bad_alloc());
 }
 
 LLVM_ATTRIBUTE_RETURNS_NONNULL inline void *safe_malloc(size_t Sz) {

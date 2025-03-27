@@ -23,6 +23,7 @@
 #include <brisk/core/Binding.hpp>
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Utilities.hpp>
+#include <brisk/core/MetaClass.hpp>
 
 BRISK_CLANG_PRAGMA(clang diagnostic push)
 BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
@@ -35,7 +36,6 @@ BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 #include <brisk/core/Settings.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/Typename.hpp>
-#include <brisk/graphics/RawCanvas.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Color.hpp>
 #include <set>
@@ -617,9 +617,10 @@ inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, U>&
     prop.set(value.value);
 }
 
-using StyleVarType = std::variant<std::monostate, ColorF, EdgesL, float, int>;
+using StyleVarType = std::variant<std::monostate, ColorW, EdgesL, float, int>;
 
 class WIDGET Widget : public BindingObject<Widget, &uiScheduler> {
+    BRISK_DYNAMIC_CLASS_ROOT(Widget)
 public:
     using Ptr                 = std::shared_ptr<Widget>;
     using WidgetPtrs          = std::vector<Ptr>;
@@ -737,7 +738,7 @@ public:
     template <std::derived_from<Widget> Type = Widget, typename Fn>
     void enumerate(Fn&& fn, bool recursive = false, bool recursiveForMatching = true) {
         for (const Ptr& w : *this) {
-            if (Type* t = dynamic_cast<Type*>(w.get())) {
+            if (Type* t = dynamicCast<Type*>(w.get())) {
                 fn(t);
                 if (recursive && recursiveForMatching)
                     w->enumerate<Type>(fn, recursive, recursiveForMatching);
@@ -755,7 +756,7 @@ public:
         std::shared_ptr<Type> firstMatch;
 
         for (auto it = m_parent->begin(order == Order::Previous); it != m_parent->end(); ++it) {
-            std::shared_ptr<Type> typed = std::dynamic_pointer_cast<Type>(*it);
+            std::shared_ptr<Type> typed = dynamicPointerCast<Type>(*it);
             if (typed && !firstMatch) {
                 firstMatch = typed;
             }
@@ -818,7 +819,7 @@ public:
         requires std::is_invocable_r_v<bool, Matcher, std::shared_ptr<WidgetClass>>
     {
         for (const Ptr& w : *this) {
-            std::shared_ptr<WidgetClass> ww = std::dynamic_pointer_cast<WidgetClass>(w);
+            std::shared_ptr<WidgetClass> ww = dynamicPointerCast<WidgetClass>(w);
             if (ww && matcher(ww))
                 return ww;
         }
@@ -831,7 +832,7 @@ public:
                  std::is_invocable_r_v<bool, Matcher, std::shared_ptr<Widget>>
     {
         for (const Ptr& w : *this) {
-            std::shared_ptr<WidgetClass> ww = std::dynamic_pointer_cast<WidgetClass>(w);
+            std::shared_ptr<WidgetClass> ww = dynamicPointerCast<WidgetClass>(w);
             if (ww && matcher(ww))
                 return ww;
             if (parentMatcher(w)) {
@@ -1063,11 +1064,11 @@ protected:
     EdgesL m_padding{ 0, 0, 0, 0 };
     EdgesL m_borderWidth{ 0, 0, 0, 0 };
 
-    Internal::Transition<ColorF> m_backgroundColor{ Palette::transparent };
-    Internal::Transition<ColorF> m_borderColor{ Palette::transparent };
-    Internal::Transition<ColorF> m_color{ Palette::white };
-    Internal::Transition<ColorF> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
-    Internal::Transition<ColorF> m_scrollBarColor{ Palette::grey };
+    Internal::Transition<ColorW> m_backgroundColor{ Palette::transparent };
+    Internal::Transition<ColorW> m_borderColor{ Palette::transparent };
+    Internal::Transition<ColorW> m_color{ Palette::white };
+    Internal::Transition<ColorW> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
+    Internal::Transition<ColorW> m_scrollBarColor{ Palette::grey };
     float m_backgroundColorTransition      = 0;
     float m_borderColorTransition          = 0;
     float m_colorTransition                = 0;
@@ -1100,7 +1101,6 @@ protected:
     float m_opacity                = 1.f;
 
     // int
-    int m_corners                  = +CornerFlags::All;
     Cursor m_cursor                = Cursor::NotSet;
     int m_tabGroupId               = -1;
 
@@ -1151,6 +1151,7 @@ protected:
     bool m_isHintExclusive              = false;
     bool m_isHintVisible                = false;
     bool m_autoHint                     = true;
+    bool m_squircleCorners              = false;
 
     std::array<bool, 2> m_scrollBarDrag{ false, false };
     int m_savedScrollOffset = 0;
@@ -1336,7 +1337,6 @@ private:
     void processVisibility(bool isVisible);
     void reposition(Point relativeOffset);
     void refreshTree();
-    void paintTree(RawCanvas& canvas);
 
     void doRestyle();
     void doRestyle(std::shared_ptr<const Stylesheet> stylesheet, bool root);
@@ -1373,10 +1373,10 @@ public:
     GUIProperty<5, OptFloat, AffectLayout, &This::m_aspect> aspect;
     GUIProperty<6, EasingFunction, None, &This::m_backgroundColorEasing> backgroundColorEasing;
     GUIProperty<7, float, None, &This::m_backgroundColorTransition> backgroundColorTransition;
-    GUIProperty<8, ColorF, Transition | AffectPaint, &This::m_backgroundColor> backgroundColor;
+    GUIProperty<8, ColorW, Transition | AffectPaint, &This::m_backgroundColor> backgroundColor;
     GUIProperty<9, EasingFunction, None, &This::m_borderColorEasing> borderColorEasing;
     GUIProperty<10, float, None, &This::m_borderColorTransition> borderColorTransition;
-    GUIProperty<11, ColorF, Transition | AffectPaint, &This::m_borderColor> borderColor;
+    GUIProperty<11, ColorW, Transition | AffectPaint, &This::m_borderColor> borderColor;
     GUIProperty<12, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 0>
         borderRadiusTopLeft;
     GUIProperty<13, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 1>
@@ -1392,8 +1392,7 @@ public:
     GUIProperty<20, WidgetClip, AffectLayout | AffectPaint, &This::m_clip> clip;
     GUIProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
     GUIProperty<22, float, None, &This::m_colorTransition> colorTransition;
-    GUIProperty<23, ColorF, Transition | Inheritable | AffectPaint, &This::m_color> color;
-    GUIProperty<24, int, AffectPaint, &This::m_corners> corners;
+    GUIProperty<23, ColorW, Transition | Inheritable | AffectPaint, &This::m_color> color;
     GUIProperty<25, Cursor, None, &This::m_cursor> cursor;
     GUIProperty<26, SizeL, AffectLayout, &This::m_dimensions, 0> width;
     GUIProperty<27, SizeL, AffectLayout, &This::m_dimensions, 1> height;
@@ -1437,7 +1436,7 @@ public:
     GUIProperty<56, EdgesL, AffectLayout, &This::m_padding, 3> paddingBottom;
     GUIProperty<57, Placement, AffectLayout, &This::m_placement> placement;
     GUIProperty<58, Length, Resolvable | Inheritable | AffectPaint, &This::m_shadowSize> shadowSize;
-    GUIProperty<59, ColorF, Transition | AffectPaint, &This::m_shadowColor> shadowColor;
+    GUIProperty<59, ColorW, Transition | AffectPaint, &This::m_shadowColor> shadowColor;
     GUIProperty<60, float, None, &This::m_shadowColorTransition> shadowColorTransition;
     GUIProperty<61, EasingFunction, None, &This::m_shadowColorEasing> shadowColorEasing;
     GUIProperty<62, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
@@ -1455,7 +1454,6 @@ public:
     GUIProperty<69, AlignToViewport, AffectLayout, &This::m_alignToViewport> alignToViewport;
     GUIProperty<70, BoxSizingPerAxis, AffectLayout, &This::m_boxSizing> boxSizing;
     GUIProperty<71, ZOrder, AffectLayout, &This::m_zorder> zorder;
-
     GUIProperty<72, bool, AffectStyle, &This::m_stateTriggersRestyle> stateTriggersRestyle;
     GUIProperty<73, std::string, AffectStyle, &This::m_id> id;
     GUIProperty<74, std::string_view, AffectStyle, &This::m_role> role;
@@ -1470,7 +1468,7 @@ public:
     GUIProperty<83, bool, None, &This::m_tabGroup> tabGroup;
     GUIProperty<84, bool, None, &This::m_autofocus> autofocus;
     GUIProperty<85, bool, None, &This::m_autoHint> autoHint;
-    /* 86 unused */
+    GUIProperty<86, bool, AffectPaint | Inheritable, &This::m_squircleCorners> squircleCorners;
     GUIProperty<87, EventDelegate*, None, &This::m_delegate> delegate;
     GUIProperty<88, std::string, AffectLayout | AffectPaint | AffectHint, &This::m_hint> hint;
     GUIProperty<89, std::shared_ptr<const Stylesheet>, AffectStyle, &This::m_stylesheet> stylesheet;
@@ -1504,7 +1502,7 @@ public:
                 &This::m_fontFeatures>
         fontFeatures;
 
-    GUIProperty<101, ColorF, Transition | Inheritable | AffectPaint, &This::m_scrollBarColor> scrollBarColor;
+    GUIProperty<101, ColorW, Transition | Inheritable | AffectPaint, &This::m_scrollBarColor> scrollBarColor;
     GUIProperty<102, Length, Resolvable | AffectPaint, &This::m_scrollBarThickness> scrollBarThickness;
     GUIProperty<103, Length, Resolvable | AffectPaint, &This::m_scrollBarRadius> scrollBarRadius;
 
@@ -1528,7 +1526,7 @@ inline WidgetActions storeWidget(std::shared_ptr<WidgetType>* ptr) {
     return WidgetActions{
         .onParentSet =
             [ptr](Widget* w) {
-                *ptr = std::dynamic_pointer_cast<WidgetType>(w->shared_from_this());
+                *ptr = dynamicPointerCast<WidgetType>(w->shared_from_this());
             },
     };
 }
@@ -1537,7 +1535,7 @@ template <std::derived_from<Widget> WidgetType>
 inline WidgetActions storeWidget(std::weak_ptr<WidgetType>* ptr) {
     return WidgetActions{
         [ptr](Widget* w) {
-            *ptr = std::dynamic_pointer_cast<WidgetType>(w->shared_from_this());
+            *ptr = dynamicPointerCast<WidgetType>(w->shared_from_this());
         },
     };
 }
@@ -1562,7 +1560,6 @@ extern const Argument<Tag::PropArg<decltype(Widget::clip)>> clip;
 extern const Argument<Tag::PropArg<decltype(Widget::colorEasing)>> colorEasing;
 extern const Argument<Tag::PropArg<decltype(Widget::colorTransition)>> colorTransition;
 extern const Argument<Tag::PropArg<decltype(Widget::color)>> color;
-extern const Argument<Tag::PropArg<decltype(Widget::corners)>> corners;
 extern const Argument<Tag::PropArg<decltype(Widget::cursor)>> cursor;
 extern const Argument<Tag::PropArg<decltype(Widget::dimensions)>> dimensions;
 extern const Argument<Tag::PropArg<decltype(Widget::flexBasis)>> flexBasis;
@@ -1612,6 +1609,7 @@ extern const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop;
 extern const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup;
 extern const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus;
 extern const Argument<Tag::PropArg<decltype(Widget::autoHint)>> autoHint;
+extern const Argument<Tag::PropArg<decltype(Widget::squircleCorners)>> squircleCorners;
 extern const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate;
 extern const Argument<Tag::PropArg<decltype(Widget::hint)>> hint;
 extern const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder;
@@ -1684,7 +1682,7 @@ struct Argument<Tag::WithRole<WidgetType, Name>> {
     }
 
     static WidgetType* matchesType(Widget* widget) {
-        if (WidgetType* typed = dynamic_cast<WidgetType*>(widget)) {
+        if (WidgetType* typed = dynamicCast<WidgetType*>(widget)) {
             typed->role.set(Name.string());
             return typed;
         }
@@ -1692,7 +1690,7 @@ struct Argument<Tag::WithRole<WidgetType, Name>> {
     }
 
     static WidgetType* matchesRole(Widget* widget) {
-        if (WidgetType* typed = dynamic_cast<WidgetType*>(widget);
+        if (WidgetType* typed = dynamicCast<WidgetType*>(widget);
             typed && typed->role.get() == Name.string()) {
             return typed;
         }

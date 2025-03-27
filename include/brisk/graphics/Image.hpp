@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */                                                                                                          \
 #pragma once
 
 #include "Pixel.hpp"
@@ -9,6 +29,7 @@
 #include <fmt/format.h>
 #include <brisk/core/Exceptions.hpp>
 #include <brisk/core/Memory.hpp>
+#include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
 
@@ -758,7 +779,7 @@ struct ImageAccess {
      * @brief Clears the image with a specified fill color.
      * @param fillColor The color to fill the image with.
      */
-    void clear(ColorF fillColor)
+    void clear(ColorW fillColor)
         requires(Mode != AccessMode::R)
     {
         forPixels([fillColor](int32_t, int32_t, auto& pix) {
@@ -865,7 +886,7 @@ struct ImageAccess {
         if (pixelAlpha(pixelFormat()) != PixelFlagAlpha::None && pixelFormat() != PixelFormat::Alpha) {
             // Iterate over each pixel and premultiply the alpha value.
             forPixels([](int32_t, int32_t, auto& pix) {
-                ColorF color;
+                ColorW color;
                 pixelToColor(color, pix);    // Convert pixel to color
                 color = color.premultiply(); // Premultiply alpha
                 colorToPixel(pix, color);    // Convert back to pixel format
@@ -888,7 +909,7 @@ struct ImageAccess {
         if (pixelAlpha(pixelFormat()) != PixelFlagAlpha::None && pixelFormat() != PixelFormat::Alpha) {
             // Iterate over each pixel and unpremultiply the alpha value.
             forPixels([](int32_t, int32_t, auto& pix) {
-                ColorF color;
+                ColorW color;
                 pixelToColor(color, pix);      // Convert pixel to color
                 color = color.unpremultiply(); // Unpremultiply alpha
                 colorToPixel(pix, color);      // Convert back to pixel format
@@ -960,13 +981,18 @@ private:
 
 class Image;
 
+class RenderDevice;
+
 namespace Internal {
-struct ImageBackend {
+class ImageBackend {
+public:
     virtual ~ImageBackend()                             = 0;
     /// Can transfer image data from backend if the image is changed on GPU since previous call to update
     virtual void begin(AccessMode mode, Rectangle rect) = 0;
     /// Can transfer image data to backend
     virtual void end(AccessMode mode, Rectangle rect)   = 0;
+
+    virtual RC<RenderDevice> device() const noexcept    = 0;
 };
 
 ImageBackend* getBackend(RC<Image> image);
@@ -1257,7 +1283,7 @@ public:
      *
      * @param value The color to clear the image with.
      */
-    void clear(ColorF value) {
+    void clear(ColorW value) {
         auto w = mapWrite();
         w.clear(value);
     }
@@ -1322,7 +1348,7 @@ public:
      * @param format The pixel format of the image.
      * @param fillColor The color to fill the image with.
      */
-    explicit Image(Size size, ImageFormat format, ColorF fillColor) : Image(size, format) {
+    explicit Image(Size size, ImageFormat format, ColorW fillColor) : Image(size, format) {
         auto w = mapWrite();
         w.forPixels([fillColor](int32_t, int32_t, auto& pix) {
             colorToPixel(pix, fillColor);

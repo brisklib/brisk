@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include <brisk/graphics/RawCanvas.hpp>
+#include <brisk/graphics/Canvas.hpp>
 #include <memory>
 #include <brisk/core/internal/Function.hpp>
 #include <brisk/core/Binding.hpp>
@@ -35,7 +35,9 @@ class Widget;
 struct WidgetGroup {
     std::vector<Widget*> widgets;
 
-    ~WidgetGroup();
+    virtual ~WidgetGroup() {
+        clean();
+    }
 
     virtual void beforeRefresh() {}
 
@@ -46,6 +48,8 @@ struct WidgetGroup {
     virtual void beforePaint() {}
 
     virtual void afterFrame() {}
+
+    void clean();
 };
 
 using Drawable = function<void(Canvas&)>;
@@ -63,7 +67,8 @@ public:
     Rectangle viewportRectangle() const noexcept;
 
     Rectangle paintRect() const;
-    Rectangle updateAndPaint(Canvas& canvas, ColorF backgroundColor, bool fullRepaint);
+    Rectangle paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint);
+    void update();
     void requestLayer(Drawable drawable);
     void disableTransitions();
 

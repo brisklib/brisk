@@ -32,6 +32,9 @@ public:
     explicit ImageBackendD3D11(RC<RenderDeviceD3D11> device, Image* image, bool uploadImage,
                                bool renderTarget);
     ~ImageBackendD3D11() final = default;
+
+    RC<RenderDevice> device() const noexcept;
+
     void begin(AccessMode mode, Rectangle rect) final;
     void end(AccessMode mode, Rectangle rect) final;
 

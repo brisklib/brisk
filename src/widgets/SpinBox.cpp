@@ -91,7 +91,7 @@ UpDownButtons::UpDownButtons(Construction construction, ArgumentsView<UpDownButt
 void UpDownButtons::onChildAdded(Widget* w) {
     Base::onChildAdded(w);
 
-    if (Button* btn = dynamic_cast<Button*>(w)) {
+    if (Button* btn = dynamicCast<Button*>(w)) {
         if (!up.get(this)) {
             btn->role = up.role();
         } else {

@@ -26,6 +26,7 @@
 namespace Brisk {
 
 class WIDGET TabButton : public ToggleButton {
+    BRISK_DYNAMIC_CLASS(TabButton, ToggleButton)
 public:
     using Base                                   = ToggleButton;
     constexpr static std::string_view widgetType = "tabbutton";
@@ -45,6 +46,7 @@ class Pages;
 class Page;
 
 class WIDGET Tabs : public Widget {
+    BRISK_DYNAMIC_CLASS(Tabs, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "tabs";
@@ -63,6 +65,7 @@ protected:
 };
 
 class WIDGET Page : public Widget {
+    BRISK_DYNAMIC_CLASS(Page, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "page";
@@ -87,6 +90,7 @@ public:
 };
 
 class WIDGET Pages : public Widget {
+    BRISK_DYNAMIC_CLASS(Pages, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "pages";

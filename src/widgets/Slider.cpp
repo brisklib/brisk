@@ -35,30 +35,30 @@ RectangleF Slider::thumbRect() const noexcept {
                                                 1.f - normalizedValue);
 }
 
-void sliderPainter(Canvas& canvas_, const Widget& widget_) {
-    if (!dynamic_cast<const Slider*>(&widget_)) {
+void sliderPainter(Canvas& canvas, const Widget& widget_) {
+    if (!dynamicCast<const Slider*>(&widget_)) {
         LOG_ERROR(widgets, "sliderPainter called for a non-Slider widget");
         return;
     }
     const Slider& widget = static_cast<const Slider&>(widget_);
-    RawCanvas& canvas    = canvas_.raw();
 
-    ColorF backColor     = widget.backgroundColor.current();
+    ColorW backColor     = widget.backgroundColor.current();
 
     PointF pt      = widget.orientation() == Orientation::Horizontal ? PointF{ +1, 0 } : PointF{ 0, -1 };
 
     auto trackRect = widget.trackRect();
     auto thumbRect = widget.thumbRect();
 
-    canvas.drawRectangle(trackRect, 0.f, 0.f, fillColors = { backColor, backColor.multiplyAlpha(0.33f) },
-                         linearGradient = { thumbRect.center() - pt, thumbRect.center() + pt },
-                         strokeWidth    = 0);
-
-    canvas.drawEllipse(thumbRect, 0.f, fillColor = widget.borderColor.current(), strokeWidth = 0);
+    Gradient grad(GradientType::Linear, thumbRect.center() - pt, thumbRect.center() + pt, backColor,
+                  backColor.multiplyAlpha(0.33f));
+    canvas.setFillPaint(std::move(grad));
+    canvas.fillRect(trackRect);
+    canvas.setFillColor(widget.borderColor.current());
+    canvas.fillEllipse(thumbRect);
 }
 
-void Slider::paint(Canvas& canvas_) const {
-    sliderPainter(canvas_, *this);
+void Slider::paint(Canvas& canvas) const {
+    sliderPainter(canvas, *this);
 }
 
 void Slider::onEvent(Event& event) {

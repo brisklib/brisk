@@ -20,7 +20,6 @@
  */
 #include <catch2/catch_all.hpp>
 #include <fmt/format.h>
-#include <ostream>
 #include <string_view>
 #include <brisk/core/Text.hpp>
 #include "test/HelloWorld.hpp"

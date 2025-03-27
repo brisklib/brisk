@@ -23,6 +23,7 @@
 #include "BasicTypes.hpp"
 #include <string_view>
 #include "Encoding.hpp"
+#include <brisk/core/internal/FixedString.hpp>
 #include <brisk/core/Encoding.hpp>
 
 namespace Brisk {
@@ -550,6 +551,25 @@ std::u32string shorten(std::u32string str, size_t maxLength, float position,
 inline std::string shorten(const std::string& str, size_t maxLength, float position,
                            std::u32string_view ellipsis = U"…") {
     return utf32ToUtf8(shorten(utf8ToUtf32(str), maxLength, position, ellipsis));
+}
+
+template <Internal::FixedString key>
+struct FormatString {
+    template <typename... Args>
+    static consteval void checkFormatArgs() {
+        [[maybe_unused]] fmt::format_string<Args...> fmt(key.string());
+    }
+
+    template <typename... Args>
+    std::string operator()(Args&&... args) const {
+        checkFormatArgs<Args...>();
+        return fmt::format(key.string(), std::forward<Args>(args)...);
+    }
+};
+
+template <Internal::FixedString s>
+constexpr FormatString<s> operator""_fmt() noexcept {
+    return {};
 }
 
 } // namespace Brisk

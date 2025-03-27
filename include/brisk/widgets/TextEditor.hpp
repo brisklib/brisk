@@ -25,7 +25,8 @@
 
 namespace Brisk {
 
-class TextEditor : public Widget {
+class WIDGET TextEditor : public Widget {
+    BRISK_DYNAMIC_CLASS(TextEditor, Widget)
 private:
     using Base = Widget;
 
@@ -145,6 +146,7 @@ constexpr inline Argument<Tag::PropArg<decltype(TextEditor::passwordChar)>> pass
 inline constexpr char32_t defaultPasswordChar = U'\U00002022';
 
 class WIDGET PasswordEditor : public TextEditor {
+    BRISK_DYNAMIC_CLASS(PasswordEditor, TextEditor)
 public:
     using Base = TextEditor;
 

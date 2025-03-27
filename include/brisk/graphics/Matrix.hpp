@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */                                                                                                          \
 #pragma once
 
 #include "Geometry.hpp"
@@ -104,6 +124,20 @@ struct MatrixOf {
         m[0] *= SIMD{ x, y };
         m[1] *= SIMD{ x, y };
         m[2] *= SIMD{ x, y };
+        return MatrixOf(m);
+    }
+
+    /**
+     * @brief Scales the matrix by the given scaling factor.
+     *
+     * @param x The scaling factor.
+     * @return MatrixOf The scaled matrix.
+     */
+    [[nodiscard]] constexpr MatrixOf scale(T xy) const {
+        vec_type m = v;
+        m[0] *= xy;
+        m[1] *= xy;
+        m[2] *= xy;
         return MatrixOf(m);
     }
 
@@ -322,6 +356,16 @@ struct MatrixOf {
     }
 
     /**
+     * @brief Creates a scaling matrix.
+     *
+     * @param xy Scaling factor.
+     * @return MatrixOf The scaling matrix.
+     */
+    [[nodiscard]] static constexpr MatrixOf scaling(T xy) {
+        return MatrixOf{ xy, 0, 0, xy, 0, 0 };
+    }
+
+    /**
      * @brief Creates a rotation matrix.
      *
      * @param angle The rotation angle in degrees.
@@ -473,15 +517,23 @@ struct MatrixOf {
     /**
      * @brief Estimates the average scaling factor of the matrix.
      *
-     * This method calculates an average scale by computing the hypotenuse of
-     * the matrix's first two columns and averaging them.
-     *
      * @return T The estimated scaling factor.
      */
     constexpr T estimateScale() const {
-        T x = std::hypot(v[0][0], v[1][0]);
-        T y = std::hypot(v[0][1], v[1][1]);
-        return T(0.5) * (x + y);
+        return std::sqrt(a * a + c * c);
+    }
+
+    constexpr bool isUniformScale() const {
+        constexpr float epsilon = 1e-4f;
+        float scale1_sq         = a * a + c * c;
+        float scale2_sq         = b * b + d * d;
+        if (std::abs(b) < epsilon && std::abs(c) < epsilon) {
+            return std::abs(std::abs(a) - std::abs(d)) < epsilon;
+        }
+        if (std::abs(scale1_sq - scale2_sq) > epsilon)
+            return false;
+        float dot_product = a * b + c * d;
+        return std::abs(dot_product) < epsilon;
     }
 
     /**

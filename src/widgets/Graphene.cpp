@@ -30,33 +30,43 @@ constexpr inline double defaultShadowSize = 25;
 
 Rules darkColors() {
     return Rules{
-        mainColor      = 0x292E38_rgb,
-        windowColor    = 0x131419_rgb,
-        selectedColor  = ColorF(0x1976E8_rgb).adjust(0),
-        linkColor      = 0x378AFF_rgb,
-        editorColor    = 0xFDFDFD_rgb,
-        boxRadius      = -5.f,
-        menuColor      = 0xFDFDFD_rgb,
-        animationSpeed = 1.f,
-        boxBorderColor = 0x000000'A0_rgba,
-        shadeColor     = 0x000000'88_rgba,
-        deepColor      = 0x000000_rgb,
+        mainColor           = 0x292E38_rgb,
+        windowColor         = 0x131419_rgb,
+        selectedColor       = (0x1976E8_rgb).adjust(0),
+        linkColor           = 0x378AFF_rgb,
+        editorColor         = 0xFDFDFD_rgb,
+        boxRadius           = 5.5f,
+        squircleCorners     = true,
+        menuColor           = 0xFDFDFD_rgb,
+        animationSpeed      = 1.f,
+        boxBorderColor      = 0x070709_rgb,
+        shadeColor          = 0x000000'88_rgba,
+        deepColor           = 0x000000_rgb,
+        focusFrameColor     = 0x03a1fc'c0_rgba,
+        hintBackgroundColor = 0xFFE9AD_rgb,
+        hintShadowColor     = 0x000000'AA_rgba,
+        hintTextColor       = 0x000000_rgb,
     };
 }
 
 Rules lightColors() {
     return {
-        mainColor      = 0xEDF1F7_rgb,
-        windowColor    = 0xFAFAFA_rgb,
-        selectedColor  = ColorF(0x1976E8_rgb).adjust(8),
-        linkColor      = 0x004DB8_rgb,
-        editorColor    = 0xFDFDFD_rgb,
-        boxRadius      = -5.f,
-        menuColor      = 0xFDFDFD_rgb,
-        animationSpeed = 1.f,
-        boxBorderColor = 0x000000'1F_rgba,
-        shadeColor     = 0x000000'54_rgba,
-        deepColor      = 0x8D8D8D_rgb,
+        mainColor           = 0xEDF1F7_rgb,
+        windowColor         = 0xFAFAFA_rgb,
+        selectedColor       = (0x1976E8_rgb).adjust(8),
+        linkColor           = 0x004DB8_rgb,
+        editorColor         = 0xFDFDFD_rgb,
+        boxRadius           = 5.5f,
+        squircleCorners     = true,
+        menuColor           = 0xFDFDFD_rgb,
+        animationSpeed      = 1.f,
+        boxBorderColor      = 0xDCDCDC_rgb,
+        shadeColor          = 0x000000'54_rgba,
+        deepColor           = 0x8D8D8D_rgb,
+        focusFrameColor     = 0x03a1fc'c0_rgba,
+        hintBackgroundColor = 0xFFE9AD_rgb,
+        hintShadowColor     = 0x000000'55_rgba,
+        hintTextColor       = 0x000000_rgb,
     };
 }
 
@@ -264,7 +274,6 @@ RC<const Stylesheet> stylesheet() {
             Type{ "tabs" },
             {
                 backgroundColor = styleVar<windowColor>,
-                corners         = +CornerFlags::Top,
                 borderRadius    = styleVar<boxRadius>,
                 layout          = Layout::Horizontal,
             },
@@ -420,7 +429,7 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ "popupdialog" },
             {
-                backgroundColor = styleVar<boxBorderColor>,
+                backgroundColor = transparency(styleVar<windowColor>, 0.75f),
             },
         },
         Style{

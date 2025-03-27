@@ -46,31 +46,6 @@ struct BackBufferWebGPU {
     wgpu::TextureView colorView; /** The texture view for the color texture. */
 };
 
-/**
- * Interface for providing access to a WebGPU back buffer.
- * Implemented by WebGPU RenderTargets (e.g., WindowRenderTarget, ImageRenderTarget).
- */
-class BackBufferProviderWebGPU {
-public:
-    /**
-     * Gets the back buffer.
-     * @return Reference to the BackBufferWebGPU object.
-     */
-    virtual const BackBufferWebGPU& getBackBuffer() const = 0;
-};
-
-/**
- * Interface for providing a WebGPU devide. Implemented by RenderEncoder
- */
-class DeviceProviderWebGPU {
-public:
-    /**
-     * Gets the command encoder.
-     * @return The WebGPU command encoder.
-     */
-    virtual wgpu::Device getDevice() const = 0;
-};
-
 bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer);
 
 } // namespace Brisk

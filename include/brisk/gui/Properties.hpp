@@ -38,7 +38,7 @@ template <typename T>
 using OptConstRef = std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>;
 
 static_assert(std::is_same_v<OptConstRef<int>, int>);
-static_assert(std::is_same_v<OptConstRef<ColorF>, ColorF>);
+static_assert(std::is_same_v<OptConstRef<ColorW>, ColorW>);
 static_assert(std::is_same_v<OptConstRef<std::string_view>, std::string_view>);
 static_assert(std::is_same_v<OptConstRef<std::string>, const std::string&>);
 static_assert(std::is_same_v<OptConstRef<std::vector<int>>, const std::vector<int>&>);

@@ -24,7 +24,8 @@
 
 namespace Brisk {
 
-class HLayout : public Widget {
+class WIDGET HLayout : public Widget {
+    BRISK_DYNAMIC_CLASS(HLayout, Widget)
 public:
     template <WidgetArgument... Args>
     explicit HLayout(const Args&... args) : HLayout(Construction{ "hlayout" }, std::tuple{ args... }) {
@@ -35,7 +36,8 @@ protected:
     explicit HLayout(Construction construction, ArgumentsView<HLayout> args);
 };
 
-class VLayout : public Widget {
+class WIDGET VLayout : public Widget {
+    BRISK_DYNAMIC_CLASS(VLayout, Widget)
 public:
     template <WidgetArgument... Args>
     explicit VLayout(const Args&... args) : VLayout(Construction{ "vlayout" }, std::tuple{ args... }) {

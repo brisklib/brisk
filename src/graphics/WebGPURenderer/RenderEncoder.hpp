@@ -24,7 +24,12 @@
 
 namespace Brisk {
 
-class RenderEncoderWebGPU final : public RenderEncoder, public DeviceProviderWebGPU {
+class WindowRenderTargetWebGPU;
+class ImageRenderTargetWebGPU;
+
+const BackBufferWebGPU& getBackBuffer(RenderTarget* target);
+
+class RenderEncoderWebGPU final : public RenderEncoder {
 public:
     RenderDevice* device() const final {
         return m_device.get();
@@ -37,19 +42,29 @@ public:
     void batch(std::span<const RenderState> commands, std::span<const float> data) final;
     void end() final;
     void wait() final;
-
-    RC<RenderTarget> currentTarget() const {
-        return m_currentTarget;
-    }
-
-    wgpu::Device getDevice() const {
-        return m_device->m_device;
-    }
+    RC<RenderTarget> currentTarget() const;
+    void beginFrame(uint64_t frameId);
+    void endFrame(DurationCallback callback);
 
     explicit RenderEncoderWebGPU(RC<RenderDeviceWebGPU> device);
     ~RenderEncoderWebGPU();
 
+    constexpr static size_t maxTimestamps = maxDurations * 2;
+
 private:
+    friend bool webgpuFromContext(RenderContext&, wgpu::Device&, wgpu::TextureView&);
+
+    struct FrameTiming {
+        wgpu::QuerySet querySet;    // Timestamp queries for this frame
+        wgpu::Buffer resolveBuffer; // Resolved timestamps (GPU-only)
+        wgpu::Buffer resultBuffer;  // Mappable buffer for CPU access
+        bool pending  = false;      // Whether results are still pending
+
+        FrameTiming() = default;
+
+        explicit FrameTiming(wgpu::Device& device);
+    };
+
     RC<RenderDeviceWebGPU> m_device;
     RC<RenderTarget> m_currentTarget;
     VisualSettings m_visualSettings;
@@ -70,12 +85,21 @@ private:
     wgpu::TextureFormat m_renderFormat;
     wgpu::RenderPassColorAttachment m_colorAttachment;
     Size m_frameSize;
+    uint64_t m_frameId;
+    constexpr static size_t maxFrameTimings = 16;
+    using FrameTimingList                   = SmallVector<FrameTiming, maxFrameTimings>;
+    FrameTimingList m_frameTiming;
+    size_t m_frameTimingIndex = static_cast<size_t>(-1);
+    uint32_t m_timestampIndex = 0;
+    std::shared_ptr<void> m_flag{ new std::byte{ 0 } };
+
     wgpu::BindGroup createBindGroup(ImageBackendWebGPU* imageBackend);
     void updatePerFrameConstantBuffer(const ConstantPerFrame& constants);
     void updateDataBuffer(std::span<const float> data);
     void updateConstantBuffer(std::span<const RenderState> data);
     void updateAtlasTexture();
     void updateGradientTexture();
+    size_t findFrameTimingSlot();
 };
 
 } // namespace Brisk

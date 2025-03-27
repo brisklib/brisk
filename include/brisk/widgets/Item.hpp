@@ -32,6 +32,7 @@ namespace Brisk {
  * be checkable, and interact with various user events.
  */
 class WIDGET Item : public Widget {
+    BRISK_DYNAMIC_CLASS(Item, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "item";

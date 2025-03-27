@@ -1,8 +1,8 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO google/dawn
-    REF "0a552b460b2624b2e43b129e10157feba5220c19"
-    SHA512 fc5c17bde6934fa79f2df724c3fd22271efa3f2f18e75aa649de5c070601462722e0cafd265c90375b6763f9de98a56a5045017b307af423b3e6903eb07bf042
+    REF "ac1885d2426eace7038fe48ea59179b360469bcf"
+    SHA512 95d222a9b22eaf029e878bca516c8145cb3c81542885ef170664bfc75f8215207e93ddf78dbd5cec9745c62a2187742d37716a0b48a8801b71489f1616d3f5a5
     PATCHES 
         install.patch
 )
@@ -28,6 +28,8 @@ endif ()
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+        -DBUILD_SHARED_LIBS=OFF
+        -DDAWN_BUILD_MONOLITHIC_LIBRARY=ON
         -DDAWN_BUILD_SAMPLES=OFF
         -DTINT_BUILD_TESTS=OFF
         -DDAWN_USE_GLFW=OFF
@@ -53,7 +55,6 @@ file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 
 vcpkg_copy_pdbs()
 
-configure_file("${CMAKE_CURRENT_LIST_DIR}/DawnConfig.cmake.in"
-        "${CURRENT_PACKAGES_DIR}/share/${PORT}/DawnConfig.cmake" @ONLY)
+vcpkg_cmake_config_fixup(CONFIG_PATH "lib/cmake/Dawn")
 
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")

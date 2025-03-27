@@ -29,7 +29,8 @@
 
 namespace Brisk {
 
-class WebGPUWidget : public Widget {
+class WIDGET WebGPUWidget : public Widget {
+    BRISK_DYNAMIC_CLASS(WebGPUWidget, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "webgpu";

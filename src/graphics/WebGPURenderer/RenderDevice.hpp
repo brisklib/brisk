@@ -60,6 +60,10 @@ class RenderDeviceWebGPU final : public RenderDevice,
 public:
     status<RenderDeviceError> init();
 
+    RendererBackend backend() const noexcept {
+        return RendererBackend::WebGPU;
+    }
+
     RenderDeviceInfo info() const final;
 
     RC<WindowRenderTarget> createWindowTarget(const OSWindow* window, PixelType type = PixelType::U8Gamma,
@@ -88,6 +92,7 @@ private:
     friend class ImageRenderTargetWebGPU;
     friend class RenderEncoderWebGPU;
     friend class ImageBackendWebGPU;
+    friend bool webgpuFromContext(RenderContext&, wgpu::Device&, wgpu::TextureView&);
 
     RendererDeviceSelection m_deviceSelection;
     std::unique_ptr<dawn::native::Instance> m_nativeInstance;
@@ -109,6 +114,7 @@ private:
     std::map<PipelineCacheKey, wgpu::RenderPipeline> m_pipelineCache;
     RenderResources m_resources;
     RenderLimits m_limits;
+    bool m_timestampQuerySupported = false;
 
     bool createDevice();
     void createSamplers();

@@ -703,8 +703,10 @@ private:
     BindingRegistration registration;
 };
 
-extern ImplicitContext<InputQueue*, InputQueue*, briskMultithreadRender> inputQueue;
+using InputQueueImplicitContext = ImplicitContext<InputQueue*, InputQueue*, false>;
 
-using InputQueueScope = ImplicitContextScope<InputQueue*>;
+extern InputQueueImplicitContext inputQueue;
+
+using InputQueueScope = InputQueueImplicitContext::Scope;
 
 } // namespace Brisk

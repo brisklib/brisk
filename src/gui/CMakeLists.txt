@@ -42,8 +42,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/gui/Event.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Animation.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Groups.cpp
-    ${PROJECT_SOURCE_DIR}/src/gui/SingleHeaderTest.cpp
-    ${PROJECT_SOURCE_DIR}/src/gui/Layout.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Component.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/GUIApplication.cpp
     ${yogacore_SRC})

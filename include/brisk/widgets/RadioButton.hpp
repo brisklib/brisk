@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET RadioButton : public ToggleButton {
+    BRISK_DYNAMIC_CLASS(RadioButton, ToggleButton)
 public:
     using Base                                   = ToggleButton;
     constexpr static std::string_view widgetType = "radiobutton";

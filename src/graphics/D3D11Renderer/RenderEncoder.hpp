@@ -24,6 +24,11 @@
 
 namespace Brisk {
 
+class WindowRenderTargetD3D11;
+class ImageRenderTargetD3D11;
+
+const BackBufferD3D11& getBackBuffer(RenderTarget* target);
+
 class RenderEncoderD3D11 final : public RenderEncoder,
                                  public std::enable_shared_from_this<RenderEncoderD3D11> {
 public:
@@ -37,14 +42,37 @@ public:
 
     RenderDevice* device() const final;
 
-    RC<RenderTarget> currentTarget() const {
-        return m_currentTarget;
-    }
+    RC<RenderTarget> currentTarget() const;
+
+    void beginFrame(uint64_t frameId);
+    void endFrame(DurationCallback callback);
 
     explicit RenderEncoderD3D11(RC<RenderDeviceD3D11> device);
     ~RenderEncoderD3D11();
 
 private:
+    struct BatchTiming {
+        ComPtr<ID3D11Query> startQuery;
+        ComPtr<ID3D11Query> endQuery;
+        ComPtr<ID3D11Query> disjointQuery;
+        BatchTiming(ID3D11Device* device);
+
+        std::optional<std::chrono::nanoseconds> time(ID3D11DeviceContext* ctx);
+    };
+
+    struct FrameTiming {
+        uint64_t frameId;
+        SmallVector<BatchTiming, 1> batches;
+        bool pending = false;
+
+        void begin(ID3D11Device* device, ID3D11DeviceContext* ctx);
+        void end(ID3D11DeviceContext* ctx);
+
+        std::optional<std::vector<std::chrono::nanoseconds>> time(ID3D11DeviceContext* ctx);
+
+        FrameTiming(uint64_t frameId, ID3D11Device* device);
+    };
+
     RC<RenderDeviceD3D11> m_device;
     RC<RenderTarget> m_currentTarget;
     VisualSettings m_visualSettings;
@@ -61,12 +89,22 @@ private:
     GenerationStored m_atlas_generation;
     GenerationStored m_gradient_generation;
     Size m_frameSize;
+    uint64_t m_frameId;
+    constexpr static size_t maxFrameTimings = 16;
+    using FrameTimingList                   = SmallVector<FrameTiming, maxFrameTimings>;
+    FrameTimingList m_frameTiming;
+    size_t m_frameTimingIndex = static_cast<size_t>(-1);
+    uint32_t m_batchIndex     = 0;
+    std::shared_ptr<void> m_flag{ new std::byte{ 0 } };
+    DurationCallback m_durationCallback;
 
     void updatePerFrameConstantBuffer(const ConstantPerFrame& constants);
     void updateDataBuffer(std::span<const float> data);
     void updateConstantBuffer(std::span<const RenderState> data);
     void updateAtlasTexture();
     void updateGradientTexture();
+    size_t findFrameTimingSlot();
+    void processQueries();
 };
 
 } // namespace Brisk

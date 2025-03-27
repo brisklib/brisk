@@ -23,7 +23,6 @@
 #include <vraster.h>
 
 #include <brisk/graphics/Path.hpp>
-#include <brisk/core/internal/Lock.hpp>
 #include "vdasher.h"
 #include <brisk/graphics/Image.hpp>
 
@@ -156,6 +155,15 @@ void Path::close() {
     v(this)->close();
 }
 
+bool Path::isClosed() const {
+    int closeNum   = 0;
+    const VPath* r = v(this);
+    for (VPath::Element el : r->elements()) {
+        closeNum += el == VPath::Element::Close;
+    }
+    return closeNum == r->segments();
+}
+
 void Path::reset() {
     v(this)->reset();
 }
@@ -168,12 +176,17 @@ void Path::addEllipse(RectangleF rect, Direction dir) {
     v(this)->addOval(v(rect), v(dir));
 }
 
-void Path::addRoundRect(RectangleF rect, float rx, float ry, Direction dir) {
-    v(this)->addRoundRect(v(rect), rx, ry, v(dir));
+void Path::addRoundRect(RectangleF rect, float rx, float ry, bool squircle, Direction dir) {
+    v(this)->addRoundRect(v(rect), rx, ry, squircle, v(dir));
 }
 
-void Path::addRoundRect(RectangleF rect, float roundness, Direction dir) {
-    v(this)->addRoundRect(v(rect), roundness, v(dir));
+void Path::addRoundRect(RectangleF rect, float roundness, bool squircle, Direction dir) {
+    v(this)->addRoundRect(v(rect), roundness, squircle, v(dir));
+}
+
+void Path::addRoundRect(RectangleF rect, CornersF r, bool squircle, Direction dir) {
+    v(this)->addRoundRect(v(rect), std::bit_cast<std::array<float, 4>>(r),
+                          std::bit_cast<std::array<float, 4>>(r), squircle, v(dir));
 }
 
 void Path::addRect(RectangleF rect, Direction dir) {
@@ -251,9 +264,117 @@ RectangleF Path::boundingBoxApprox() const {
     return result;
 }
 
-BRISK_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint32_t len) {
+static bool comparePoints(const std::vector<VPointF>& a, const std::vector<VPointF>& b) {
+    if (a.size() != b.size())
+        return false;
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (!fuzzyCompare(a[i], b[i]))
+            return false;
+    }
+    return true;
+}
+
+std::optional<std::tuple<RectangleF, float, bool>> Path::asRoundRectangle() const {
+    if (auto rect = asRectangle()) {
+        return std::make_tuple(*rect, 0.f, false);
+    }
+    if (auto rect = asCircle()) {
+        return std::make_tuple(*rect, rect->size().longestSide() * 0.5f, false);
+    }
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || pts.size() != 17 || r->elements().size() != 10 ||
+        !fuzzyCompare(pts[16], pts[0]))
+        return std::nullopt;
+    if (r->elements()[0] != VPath::Element::MoveTo     //
+        || r->elements()[1] != VPath::Element::LineTo  //
+        || r->elements()[2] != VPath::Element::CubicTo //
+        || r->elements()[3] != VPath::Element::LineTo  //
+        || r->elements()[4] != VPath::Element::CubicTo //
+        || r->elements()[5] != VPath::Element::LineTo  //
+        || r->elements()[6] != VPath::Element::CubicTo //
+        || r->elements()[7] != VPath::Element::LineTo  //
+        || r->elements()[8] != VPath::Element::CubicTo //
+        || r->elements()[9] != VPath::Element::Close)
+        return std::nullopt;
+    RectangleF rect{
+        PointF(pts[8].x(), pts[12].y()),
+        PointF(pts[0].x(), pts[4].y()),
+    };
+    if (rect.width() < 0)
+        return std::nullopt;
+    float rx = pts[5].x() - pts[8].x();
+    float ry = pts[4].y() - pts[1].y();
+    if (!vCompare(rx, ry))
+        return std::nullopt;
+    float kappa   = (pts[14].x() - pts[13].x()) / (pts[15].x() - pts[13].x());
+    bool squircle = kappa > 0.6f;
+    VPath path;
+    path.addRoundRect(v(rect), rx, squircle);
+    if (comparePoints(path.points(), r->points()))
+        return std::make_tuple(rect, rx, squircle);
+
+    return std::nullopt;
+}
+
+std::optional<RectangleF> Path::asRectangle() const {
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || r->elements().size() != 6 || pts.size() != 5 || !fuzzyCompare(pts[4], pts[0]))
+        return std::nullopt;
+    if (r->elements()[0] != VPath::Element::MoveTo || r->elements()[1] != VPath::Element::LineTo ||
+        r->elements()[2] != VPath::Element::LineTo || r->elements()[3] != VPath::Element::LineTo ||
+        r->elements()[4] != VPath::Element::LineTo || r->elements()[5] != VPath::Element::Close)
+        return std::nullopt;
+    if (!(vCompare(pts[1].x(), pts[0].x()) || vCompare(pts[3].x(), pts[2].x()) ||
+          vCompare(pts[3].y(), pts[0].y()) || vCompare(pts[2].y(), pts[1].y())))
+        return std::nullopt;
+    return RectangleF{
+        std::min(pts[0].x(), pts[3].x()),
+        std::min(pts[0].y(), pts[1].y()),
+        std::max(pts[0].x(), pts[3].x()),
+        std::max(pts[0].y(), pts[1].y()),
+    };
+}
+
+std::optional<RectangleF> Path::asCircle() const {
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || r->elements().size() != 6 || pts.size() != 13 || !fuzzyCompare(pts[12], pts[0]))
+        return std::nullopt;
+
+    RectangleF rect{
+        pts[9].x(),
+        pts[0].y(),
+        pts[3].x(),
+        pts[6].y(),
+    };
+    VPath path;
+    path.addOval(v(rect));
+    if (comparePoints(path.points(), r->points()))
+        return rect;
+
+    return std::nullopt;
+}
+
+std::optional<std::array<PointF, 2>> Path::asLine() const {
+    auto r    = v(this);
+    auto& pts = r->points();
+    if (r->segments() != 1 || r->elements().size() != 2 || r->points().size() != 2)
+        return std::nullopt;
+    return std::array<PointF, 2>{
+        w(r->points()[0]),
+        w(r->points()[1]),
+    };
+}
+
+BRISK_ALWAYS_INLINE uint32_t div255(uint32_t n) {
+    return (n + 1 + (n >> 8)) >> 8;
+}
+
+BRISK_ALWAYS_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint32_t len) {
     for (uint32_t j = 0; j < len; ++j) {
-        dst->grey = dst->grey + (src * (255 - dst->grey) >> 8);
+        dst->grey = dst->grey + div255(src * (255 - dst->grey));
         ++dst;
     }
 }

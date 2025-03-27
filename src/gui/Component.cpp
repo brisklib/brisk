@@ -22,8 +22,6 @@
 
 namespace Brisk {
 
-Component::~Component() {}
-
 RC<GUIWindow> Component::window() {
     return m_window.lock();
 }

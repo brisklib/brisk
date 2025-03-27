@@ -20,7 +20,6 @@
  */
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/Utilities.hpp>
 
 #include <png.h>
 
@@ -78,7 +77,7 @@ Bytes pngEncode(RC<Image> image) {
     }
 }
 
-expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes, ImageFormat format) {
+expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("PNG codec doesn't support decoding to {} format", format));
     }
@@ -103,6 +102,8 @@ expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes, ImageFormat format)
     if (!png_image_finish_read(&pngimage, nullptr, w.data(), w.byteStride(), nullptr)) {
         return unexpected(ImageIOError::CodecError);
     }
+    if (premultiplyAlpha)
+        w.premultiplyAlpha();
     return image;
 }
 

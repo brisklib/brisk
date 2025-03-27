@@ -27,9 +27,12 @@ ImageBackendD3D11* getOrCreateBackend(RC<RenderDeviceD3D11> device, RC<Image> im
                                       bool renderTarget) {
     if (!image)
         return nullptr;
-    ImageBackendD3D11* backend = dynamic_cast<ImageBackendD3D11*>(Internal::getBackend(image));
-    if (backend)
+    Internal::ImageBackend* imageBackend = Internal::getBackend(image);
+
+    ImageBackendD3D11* backend           = static_cast<ImageBackendD3D11*>(imageBackend);
+    if (backend && imageBackend->device()->backend() == RendererBackend::D3D11)
         return backend;
+
     ImageBackendD3D11* newBackend =
         new ImageBackendD3D11(std::move(device), image.get(), uploadImage, renderTarget);
     Internal::setBackend(image, newBackend);
@@ -123,4 +126,7 @@ void ImageBackendD3D11::writeToGPU(const ImageData<UntypedPixel>& data, Point or
     m_device->m_context->UpdateSubresource(m_texture.Get(), 0, &box, data.data, data.byteStride, 0);
 }
 
+RC<RenderDevice> ImageBackendD3D11::device() const noexcept {
+    return m_device;
+}
 } // namespace Brisk

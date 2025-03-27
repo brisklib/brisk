@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2024 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */                                                                                                          \
 #pragma once
 
 #include <unordered_map>
@@ -5,7 +25,8 @@
 #include <brisk/core/RC.hpp>
 #include <mutex>
 #include <variant>
-#include "brisk/core/internal/InlineVector.hpp"
+#include <brisk/core/internal/InlineVector.hpp>
+#include <brisk/core/internal/SmallVector.hpp>
 #include "internal/Sprites.hpp"
 
 namespace Brisk {
@@ -51,18 +72,18 @@ enum class CapStyle : uint8_t {
  * DashArray holds a sequence of floats,
  * representing the lengths of dashes and gaps in a dashed line pattern.
  */
-using DashArray = inline_vector<float, 7>;
+using DashArray = SmallVector<float, 2>;
 
 /**
  * @brief Structure representing stroke parameters.
  */
 struct StrokeParams {
-    JoinStyle joinStyle = JoinStyle::Bevel; ///< The join style of the stroke.
+    JoinStyle joinStyle = JoinStyle::Miter; ///< The join style of the stroke.
     CapStyle capStyle   = CapStyle::Flat;   ///< The cap style of the stroke.
     float strokeWidth   = 1.f;              ///< The width of the stroke.
     float miterLimit    = 10.f;             ///< The limit for miter joins.
+    float dashOffset    = 0.f;
     DashArray dashArray{};
-    float dashOffset = 0.f;
 
     StrokeParams scale(float value) const noexcept {
         StrokeParams copy = *this;
@@ -196,6 +217,8 @@ struct Path {
      */
     void close();
 
+    bool isClosed() const;
+
     /**
      * @brief Resets the path to an empty state.
      */
@@ -224,7 +247,10 @@ struct Path {
      * @param ry The radius of the vertical corners.
      * @param dir The direction in which the rectangle is added (default is clockwise).
      */
-    void addRoundRect(RectangleF rect, float rx, float ry, Direction dir = Direction::CW);
+    void addRoundRect(RectangleF rect, float rx, float ry, bool squircle = false,
+                      Direction dir = Direction::CW);
+
+    void addRoundRect(RectangleF rect, CornersF r, bool squircle = false, Direction dir = Direction::CW);
 
     /**
      * @brief Adds a rounded rectangle to the path with uniform corner rounding.
@@ -232,7 +258,7 @@ struct Path {
      * @param roundness The uniform rounding radius for all corners.
      * @param dir The direction in which the rectangle is added (default is clockwise).
      */
-    void addRoundRect(RectangleF rect, float roundness, Direction dir = Direction::CW);
+    void addRoundRect(RectangleF rect, float roundness, bool squircle = false, Direction dir = Direction::CW);
 
     /**
      * @brief Adds a rectangle to the path.
@@ -323,6 +349,11 @@ struct Path {
      * @return RectangleF The approximate bounding box.
      */
     RectangleF boundingBoxApprox() const;
+
+    std::optional<RectangleF> asRectangle() const;
+    std::optional<RectangleF> asCircle() const;
+    std::optional<std::tuple<RectangleF, float, bool>> asRoundRectangle() const;
+    std::optional<std::array<PointF, 2>> asLine() const;
 
     /// Rasterizes the path for filling.
     /// @param fill Fill parameters.

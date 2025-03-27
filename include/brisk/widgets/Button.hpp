@@ -39,6 +39,7 @@ template <>
 constexpr inline bool isBitFlags<ButtonKeyEvents> = true;
 
 class WIDGET Button : public Widget {
+    BRISK_DYNAMIC_CLASS(Button, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "button";

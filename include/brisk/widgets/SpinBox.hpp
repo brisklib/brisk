@@ -26,6 +26,7 @@
 namespace Brisk {
 
 class WIDGET UpDownButtons : public Widget {
+    BRISK_DYNAMIC_CLASS(UpDownButtons, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "updownbuttons";
@@ -47,6 +48,7 @@ protected:
 };
 
 class WIDGET SpinBox : public ValueWidget {
+    BRISK_DYNAMIC_CLASS(SpinBox, ValueWidget)
 public:
     using Base                                   = ValueWidget;
     constexpr static std::string_view widgetType = "spinbox";

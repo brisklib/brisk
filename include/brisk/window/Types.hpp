@@ -299,10 +299,6 @@ enum class DragEvent : int32_t {
     Dropped  = 2,
 };
 
-constexpr inline bool briskMultithreadRender = true;
-
-#define BRISK_UI_THREAD
-
 inline std::string hotKeyToString(KeyCode key, KeyModifiers mods) {
     return keyModifiersToString(mods) + keyCodeToString(key);
 }

@@ -25,6 +25,7 @@
 namespace Brisk {
 
 class WIDGET Knob : public ValueWidget {
+    BRISK_DYNAMIC_CLASS(Knob, ValueWidget)
 public:
     using Base                                   = ValueWidget;
     constexpr static std::string_view widgetType = "knob";

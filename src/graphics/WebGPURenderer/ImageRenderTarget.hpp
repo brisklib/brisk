@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-class ImageRenderTargetWebGPU final : public ImageRenderTarget, public BackBufferProviderWebGPU {
+class ImageRenderTargetWebGPU final : public ImageRenderTarget {
 public:
     Size size() const final;
     void setSize(Size newSize) final;
@@ -35,7 +35,7 @@ public:
                             DepthStencilType depthStencil, int samples);
     ~ImageRenderTargetWebGPU();
 
-    const BackBufferWebGPU& getBackBuffer() const final {
+    const BackBufferWebGPU& getBackBuffer() const {
         return m_backBuffer;
     }
 

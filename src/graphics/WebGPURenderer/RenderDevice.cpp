@@ -67,9 +67,9 @@ bool RenderDeviceWebGPU::createDevice() {
     instanceToggleDesc.enabledToggles     = instanceToggles;
     instanceToggleDesc.enabledToggleCount = std::size(instanceToggles);
     wgpu::InstanceDescriptor instanceDesc{};
-    instanceDesc.features.timedWaitAnyEnable   = true;
-    instanceDesc.features.timedWaitAnyMaxCount = 1;
-    instanceDesc.nextInChain                   = &instanceToggleDesc;
+    instanceDesc.capabilities.timedWaitAnyEnable   = true;
+    instanceDesc.capabilities.timedWaitAnyMaxCount = 1;
+    instanceDesc.nextInChain                       = &instanceToggleDesc;
 
     m_nativeInstance =
         std::make_unique<dawn::native::Instance>(reinterpret_cast<WGPUInstanceDescriptor*>(&instanceDesc));
@@ -91,19 +91,38 @@ bool RenderDeviceWebGPU::createDevice() {
         opt.powerPreference = wgpu::PowerPreference::Undefined;
         adapters            = m_nativeInstance->EnumerateAdapters(&opt);
     }
+
+#ifdef BRISK_DEBUG_GPU
+    for (size_t i = 0; i < adapters.size(); ++i) {
+        wgpu::AdapterProperties props;
+        adapters[i].GetProperties(&props);
+        fmt::println("GPU adapter [{}] {} {} {}", i, props.vendorName, props.name, props.driverDescription);
+    }
+    if (adapters.empty()) {
+        fmt::println("No GPU adapters found");
+    }
+#endif
+
     if (adapters.empty())
         return false;
-    m_nativeAdapter = adapters[0];
-    m_adapter       = wgpu::Adapter::Acquire(m_nativeAdapter.Get());
+    m_nativeAdapter = std::move(adapters.front());
+
+    adapters.clear();
+    m_adapter = wgpu::Adapter::Acquire(m_nativeAdapter.Get());
 
     wgpu::DeviceDescriptor deviceDesc{};
     static const wgpu::FeatureName feat[] = {
         wgpu::FeatureName::DualSourceBlending,
         wgpu::FeatureName::DawnNative,
         wgpu::FeatureName::Float32Filterable,
+        wgpu::FeatureName::TimestampQuery,
     };
     deviceDesc.requiredFeatureCount = std::size(feat);
     deviceDesc.requiredFeatures     = feat;
+    m_timestampQuerySupported       = m_adapter.HasFeature(wgpu::FeatureName::TimestampQuery);
+    if (!m_timestampQuerySupported) {
+        --deviceDesc.requiredFeatureCount;
+    }
 
     wgpu::DawnCacheDeviceDescriptor deviceCache{};
     deviceCache.loadDataFunction  = &loadCached;
@@ -111,34 +130,36 @@ bool RenderDeviceWebGPU::createDevice() {
     deviceCache.functionUserdata  = nullptr;
     deviceDesc.nextInChain        = &deviceCache;
 
-#if BRISK_DEBUG_GPU
-    const char* deviceToggles[] = {
+    wgpu::DawnTogglesDescriptor deviceToggleDesc;
+#ifdef BRISK_DEBUG_GPU
+    const char* deviceTogglesEnable[] = {
         "dump_shaders",
         "disable_symbol_renaming",
     };
-    wgpu::DawnTogglesDescriptor deviceToggleDesc;
-    deviceToggleDesc.enabledToggles     = deviceToggles;
-    deviceToggleDesc.enabledToggleCount = std::size(deviceToggles);
-    deviceCache.nextInChain             = &deviceToggleDesc;
+    deviceToggleDesc.enabledToggles     = deviceTogglesEnable;
+    deviceToggleDesc.enabledToggleCount = std::size(deviceTogglesEnable);
 #endif
+    const char* deviceTogglesDisable[]   = { "timestamp_quantization" };
+    deviceToggleDesc.disabledToggles     = deviceTogglesDisable;
+    deviceToggleDesc.disabledToggleCount = std::size(deviceTogglesDisable);
+
+    deviceCache.nextInChain              = &deviceToggleDesc;
+    deviceDesc.SetUncapturedErrorCallback(
+        [](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView message) {
+            LOG_ERROR(wgpu, "WGPU Error: {} {}", str(type), std::string_view(message));
+            BRISK_ASSERT(false);
+        });
     m_device = m_adapter.CreateDevice(&deviceDesc);
     if (!m_device)
         return false;
 
     BRISK_ASSERT(m_device.HasFeature(wgpu::FeatureName::DawnNative));
-    m_device.SetUncapturedErrorCallback(
-        [](WGPUErrorType type, const char* message, void* userdata) {
-            LOG_ERROR(wgpu, "WGPU Error: {} {}", str(wgpu::ErrorType(type)), message);
-            BRISK_ASSERT(false);
-        },
-        nullptr);
-    m_device.SetLoggingCallback(
-        [](WGPULoggingType type, char const* message, void* userdata) {
-            LOG_INFO(wgpu, "WGPU Info: {} {}", str(wgpu::LoggingType(type)), message);
-        },
-        nullptr);
+    m_device.SetLoggingCallback([](wgpu::LoggingType type, wgpu::StringView message) {
+        LOG_INFO(wgpu, "WGPU Info: {} {}", str(type), std::string_view(message));
+    });
 
     m_instance = wgpu::Instance::Acquire(m_nativeInstance->Get());
+    m_instance.ProcessEvents();
 
 #if 0
     std::vector<wgpu::FeatureName> features;
@@ -259,18 +280,18 @@ status<RenderDeviceError> RenderDeviceWebGPU::init() {
 
     createSamplers();
 
-    wgpu::SupportedLimits limits;
+    wgpu::Limits limits;
     if (!m_device.GetLimits(&limits)) {
         return unexpected(RenderDeviceError::Unsupported);
     }
 
     m_limits.maxGradients = 1024;
     m_limits.maxAtlasSize =
-        std::min(limits.limits.maxTextureDimension2D * limits.limits.maxTextureDimension2D, 128u * 1048576u);
-    m_limits.maxDataSize = limits.limits.maxBufferSize / sizeof(float);
+        std::min(limits.maxTextureDimension2D * limits.maxTextureDimension2D, 128u * 1048576u);
+    m_limits.maxDataSize = limits.maxBufferSize / sizeof(float);
 
     m_resources.spriteAtlas.reset(
-        new SpriteAtlas(4 * 1048576, m_limits.maxAtlasSize, 4 * 1048576, &m_resources.mutex));
+        new SpriteAtlas(256 * 1024, m_limits.maxAtlasSize, 256 * 1024, &m_resources.mutex));
 
     m_resources.gradientAtlas.reset(new GradientAtlas(m_limits.maxGradients, &m_resources.mutex));
 
@@ -349,13 +370,13 @@ static const std::string_view wgpuBackends[] = {
 };
 
 RenderDeviceInfo RenderDeviceWebGPU::info() const {
-    wgpu::AdapterProperties props;
-    m_adapter.GetProperties(&props);
+    wgpu::AdapterInfo props;
+    m_adapter.GetInfo(&props);
     RenderDeviceInfo info;
     info.api        = "WebGPU/" + std::string(wgpuBackends[uint32_t(props.backendType)]);
     info.apiVersion = 0;
-    info.vendor     = props.vendorName;
-    info.device     = std::string(props.name) + "/" + props.driverDescription;
+    info.vendor     = props.vendor;
+    info.device = fmt::format("{}/{}", std::string_view(props.device), std::string_view(props.description));
     return info;
 }
 
@@ -403,11 +424,11 @@ bool RenderDeviceWebGPU::updateBackBuffer(BackBufferWebGPU& buffer, PixelType ty
 
 void RenderDeviceWebGPU::wait() {
     wgpu::FutureWaitInfo future;
-    future.future = m_device.GetQueue().OnSubmittedWorkDone(wgpu::QueueWorkDoneCallbackInfo{
-        .callback = [](WGPUQueueWorkDoneStatus status, void* userdata) {},
-        .userdata = nullptr,
-    });
+    future.future = m_device.GetQueue().OnSubmittedWorkDone(wgpu::CallbackMode::AllowProcessEvents,
+                                                            [](wgpu::QueueWorkDoneStatus status) {});
+    m_instance.ProcessEvents();
     m_instance.WaitAny(1, &future, 1'000'000'000); // 1 second
+    m_instance.ProcessEvents();
 }
 
 void RenderDeviceWebGPU::createImageBackend(RC<Image> image) {

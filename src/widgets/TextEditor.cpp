@@ -184,23 +184,22 @@ void TextEditor::paint(Canvas& canvas) const {
     std::u32string placeholder = utf8ToUtf32(this->m_placeholder);
     bool isPlaceholder         = m_text.empty();
 
-    auto&& state               = canvas.raw().save();
-    state.intersectScissors(m_rect.withPadding(1_idp));
-
-    Range<uint32_t> selection = this->selection();
-    selection.min             = std::clamp(selection.min, 0u, (uint32_t)m_cachedText.size());
-    selection.max             = std::clamp(selection.max, 0u, (uint32_t)m_cachedText.size());
+    Range<uint32_t> selection  = this->selection();
+    selection.min              = std::clamp(selection.min, 0u, (uint32_t)m_cachedText.size());
+    selection.max              = std::clamp(selection.max, 0u, (uint32_t)m_cachedText.size());
 
     PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
 
-    ColorF textColor  = m_color.current;
+    ColorW textColor  = m_color.current;
     m_alignmentOffset = m_preparedText.alignLines(alignment);
     if (isPlaceholder)
         textColor = textColor.multiplyAlpha(0.5f);
-    canvas.raw().drawText(m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset),
-                          m_preparedText, selection, fillColor = textColor,
-                          strokeColor =
-                              ColorF(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
+
+    canvas.setFillColor(ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
+    Point pos = m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset);
+    canvas.fillTextSelection(pos, m_preparedText, selection);
+    canvas.setFillColor(textColor);
+    canvas.fillText(pos, m_preparedText);
 
     if (isFocused() && std::fmod(frameStartTime - m_blinkTime, 1.0) < 0.5) {
         uint32_t caretGrapheme =
@@ -213,7 +212,8 @@ void TextEditor::paint(Canvas& canvas) const {
                                     Point(m_preparedText.caretPositions[caretGrapheme], line.baseline) +
                                     Point(0, -line.ascDesc.ascender),
                                 Size(1_idp, line.ascDesc.height()));
-            canvas.raw().drawRectangle(caretRect, 0.f, 0.f, fillColor = textColor, strokeWidth = 0);
+            canvas.setFillColor(textColor);
+            canvas.fillRect(caretRect, 0.f);
         }
     }
 }

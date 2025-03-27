@@ -34,7 +34,6 @@
 
 #include "unicode/utypes.h"
 #include "unicode/udata.h"
-#include "unicode/uversion.h"
 
 typedef struct alignas(16) {
     uint16_t headerSize;

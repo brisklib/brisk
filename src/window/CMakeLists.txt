@@ -30,7 +30,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/window/PlatformWindow.cpp
     ${PROJECT_SOURCE_DIR}/src/window/Window.cpp
     ${PROJECT_SOURCE_DIR}/src/window/OSDialogs${PLATFORM_SPECIFIC_CPP}
-    ${PROJECT_SOURCE_DIR}/src/window/SingleHeaderTest.cpp
     ${PROJECT_SOURCE_DIR}/src/window/Types.cpp
     ${PROJECT_SOURCE_DIR}/src/window/PlatformWindow${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/window/Clipboard${PLATFORM_SPECIFIC_CPP}

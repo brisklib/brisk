@@ -28,6 +28,8 @@ struct SizeGroup : public WidgetGroup {
 public:
     constexpr SizeGroup(Orientation orientation) : orientation(orientation) {}
 
+    ~SizeGroup() override = default;
+
     Orientation orientation;
 
     void beforeLayout(bool dirty) final;
@@ -35,14 +37,20 @@ public:
 
 struct WidthGroup final : public SizeGroup {
     constexpr WidthGroup() : SizeGroup(Orientation::Horizontal) {}
+
+    ~WidthGroup() override = default;
 };
 
 struct HeightGroup final : public SizeGroup {
     constexpr HeightGroup() : SizeGroup(Orientation::Vertical) {}
+
+    ~HeightGroup() override = default;
 };
 
 struct VisualGroup : public WidgetGroup {
     constexpr VisualGroup(Orientation orientation) : orientation(orientation) {}
+
+    ~VisualGroup() override = default;
 
     Orientation orientation;
 
@@ -51,14 +59,19 @@ struct VisualGroup : public WidgetGroup {
 
 struct HorizontalVisualGroup final : public VisualGroup {
     constexpr HorizontalVisualGroup() : VisualGroup(Orientation::Horizontal) {}
+
+    ~HorizontalVisualGroup() override = default;
 };
 
 struct VerticalVisualGroup final : public VisualGroup {
     constexpr VerticalVisualGroup() : VisualGroup(Orientation::Vertical) {}
+
+    ~VerticalVisualGroup() override = default;
 };
 
 template <typename WidgetGroup>
 class WIDGET WidgetWithGroup final : public Widget {
+    BRISK_DYNAMIC_CLASS(WidgetWithGroup, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "widgetwithgroup";
@@ -69,6 +82,8 @@ public:
         : Widget{ Construction{ widgetType }, std::tuple{ args... } } {
         endConstruction();
     }
+
+    ~WidgetWithGroup() override = default;
 
     void append(RC<Widget> widget) override {
         if (widget)

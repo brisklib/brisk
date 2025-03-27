@@ -37,7 +37,7 @@ void Pages::updateTabs() {
     tabs->clearTabs();
     int index = 0;
     for (RC<Widget> w : *this) {
-        if (Page* p = dynamic_cast<Page*>(w.get())) {
+        if (Page* p = dynamicCast<Page*>(w.get())) {
             auto prop = Value{ &this->value }.equal(index);
             tabs->createTab(prop, p);
             ++index;
@@ -59,7 +59,7 @@ void Pages::internalChanged() {
     }
     int index = 0;
     for (RC<Widget> w : *this) {
-        if (Page* p = dynamic_cast<Page*>(w.get())) {
+        if (Page* p = dynamicCast<Page*>(w.get())) {
             p->visible = m_value < 0 || m_value == index;
             ++index;
         }

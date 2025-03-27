@@ -33,9 +33,11 @@ template <typename R, typename... Args>
 struct fn_base {
     virtual ~fn_base() {}
 
-    virtual R operator()(Args... args)                         = 0;
+    virtual R operator()(Args... args) = 0;
+#ifdef BRISK_RTTI
     virtual const std::type_info& target_type() const noexcept = 0;
     virtual void* target() noexcept                            = 0;
+#endif
 };
 
 template <typename Fn, typename R, typename... Args>
@@ -49,6 +51,7 @@ struct fn_impl : public fn_base<R, Args...> {
         return fn(std::forward<Args>(args)...);
     }
 
+#ifdef BRISK_RTTI
     const std::type_info& target_type() const noexcept override {
         return typeid(Fn);
     }
@@ -56,6 +59,7 @@ struct fn_impl : public fn_base<R, Args...> {
     void* target() noexcept override {
         return &fn;
     }
+#endif
 
     Fn fn;
 };
@@ -95,6 +99,7 @@ struct function<R(Args...)> {
 
     std::shared_ptr<fn_base<R, Args...>> impl;
 
+#ifdef BRISK_RTTI
     const std::type_info& target_type() const noexcept {
         return impl->target_type();
     }
@@ -107,6 +112,7 @@ struct function<R(Args...)> {
             return nullptr;
         }
     }
+#endif
 
     bool operator==(const function& fn) const noexcept {
         return impl == fn.impl;

@@ -206,18 +206,18 @@ TEST_CASE("Styles") {
     w2->classes = { "warning" };
     unprotect(w2)->restyleIfRequested();
 
-    CHECK(w2->backgroundColor.get() == ColorF(Palette::yellow));
+    CHECK(w2->backgroundColor.get() == ColorW(Palette::yellow));
 
     w2->classes = { "success" };
     unprotect(w2)->restyleIfRequested();
 
-    CHECK(w2->backgroundColor.get() == ColorF(Palette::green));
+    CHECK(w2->backgroundColor.get() == ColorW(Palette::green));
 
     unprotect(w2)->toggleState(WidgetState::Hover, true);
-    CHECK(w2->backgroundColor.get() == ColorF(Palette::yellow));
+    CHECK(w2->backgroundColor.get() == ColorW(Palette::yellow));
 
     unprotect(w2)->toggleState(WidgetState::Pressed, true);
-    CHECK(w2->backgroundColor.get() == ColorF(Palette::red));
+    CHECK(w2->backgroundColor.get() == ColorW(Palette::red));
 }
 
 TEST_CASE("separate SizeL") {
