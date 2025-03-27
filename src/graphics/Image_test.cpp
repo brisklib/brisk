@@ -63,6 +63,8 @@ TEST_CASE("Image") {
         }
     }
 
+#ifdef BRISK_EXCEPTIONS
     CHECK_THROWS_AS(rcnew Image(Size{ 65536, 65536 }), EArgument);
+#endif
 }
 } // namespace Brisk

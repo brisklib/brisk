@@ -37,7 +37,9 @@ TEST_CASE("inline_vector") {
         CHECK(a.size() == 4);
         CHECK(std::vector<int>(a.begin(), a.end()) == std::vector<int>{ 4, 3, 2, 1 });
 
+#ifdef BRISK_EXCEPTIONS
         CHECK_THROWS(inline_vector<int, 3>{ 4, 3, 2, 1 });
+#endif
     }
 
     SECTION("push_back") {
@@ -46,7 +48,9 @@ TEST_CASE("inline_vector") {
         CHECK(!a.empty());
         CHECK(a.begin() + 1 == a.end());
         CHECK(a[0] == 1);
+#ifdef BRISK_EXCEPTIONS
         CHECK_THROWS(a.at(1));
+#endif
         CHECK(std::vector<int>(a.begin(), a.end()) == std::vector<int>{ 1 });
 
         a.push_back(2);
@@ -60,7 +64,9 @@ TEST_CASE("inline_vector") {
 
         CHECK(std::vector<int>(a.data(), a.data() + a.size()) == std::vector<int>{ 1, 2, 3, 4 });
 
+#ifdef BRISK_EXCEPTIONS
         CHECK_THROWS(a.push_back(5));
+#endif
         CHECK(a.size() == 4);
     }
 }

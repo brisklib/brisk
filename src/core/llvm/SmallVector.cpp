@@ -11,13 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "brisk/core/internal/llvm/SmallVector.h"
-// #include "llvm/ADT/Twine.h"
 #include <string>
 #include "brisk/core/internal/llvm/MemAlloc.h"
+#include "brisk/core/internal/Throw.hpp"
 #include <cstdint>
-#ifdef LLVM_ENABLE_EXCEPTIONS
 #include <stdexcept>
-#endif
 using namespace llvm;
 
 // Check that no bytes are wasted and everything is well-aligned.
@@ -63,11 +61,7 @@ static_assert(sizeof(SmallVector<char, 0>) == sizeof(void*) * 2 + sizeof(void*),
 static void report_size_overflow(size_t MinSize, size_t MaxSize) {
     std::string Reason = "SmallVector unable to grow. Requested capacity (" + std::to_string(MinSize) +
                          ") is larger than maximum value for size type (" + std::to_string(MaxSize) + ")";
-#ifdef LLVM_ENABLE_EXCEPTIONS
-    throw std::length_error(Reason);
-#else
-    report_fatal_error(Twine(Reason));
-#endif
+    Brisk::throwException(std::length_error(Reason));
 }
 
 /// Report that this vector is already at maximum capacity. Throws
@@ -77,11 +71,7 @@ static void report_size_overflow(size_t MinSize, size_t MaxSize) {
 static void report_at_maximum_capacity(size_t MaxSize) {
     std::string Reason =
         "SmallVector capacity unable to grow. Already at maximum size " + std::to_string(MaxSize);
-#ifdef LLVM_ENABLE_EXCEPTIONS
-    throw std::length_error(Reason);
-#else
-    report_fatal_error(Twine(Reason));
-#endif
+    Brisk::throwException(std::length_error(Reason));
 }
 
 // Note: Moving this function into the header may cause performance regression.

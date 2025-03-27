@@ -101,13 +101,17 @@ static int mainFun() {
     parseCommandLine();
     collectEnvironment();
     int ret = 0;
+#ifdef BRISK_EXCEPTIONS
     try {
+#endif
         ret = briskMain();
+#ifdef BRISK_EXCEPTIONS
     } catch (std::exception& exc) {
         LOG_DEBUG(application, "Exception occurred: {}", exc.what());
     } catch (...) {
         LOG_DEBUG(application, "Unknown exception occurred");
     }
+#endif
     shutdown();
     return ret;
 }

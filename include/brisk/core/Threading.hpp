@@ -189,11 +189,15 @@ public:
 
         dispatch(
             [promise = std::move(promise), func = std::forward<Callable>(func)]() mutable {
+#ifdef BRISK_EXCEPTIONS
                 try {
+#endif
                     promise.set_value(func());
+#ifdef BRISK_EXCEPTIONS
                 } catch (...) {
                     promise.set_exception(std::current_exception());
                 }
+#endif
             },
             mode);
         return result;
@@ -547,14 +551,19 @@ struct AsyncOperation {
 
     template <typename Fn>
     void execute(Fn&& fn) {
+#ifdef BRISK_EXCEPTIONS
         try {
+#endif
             ready(fn());
+#ifdef BRISK_EXCEPTIONS
         } catch (...) {
             exception(std::current_exception());
         }
+#endif
     }
 
     AsyncValue<Result> value() {
+
         return { cb };
     }
 
