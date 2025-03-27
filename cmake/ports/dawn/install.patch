@@ -11,6 +11,19 @@ index 046a6af10d..b349442562 100644
  
    add_dependencies(${output_target} ${ARGN})
  
+diff --git a/src/cmake/DawnCompilerWarningFlags.cmake b/src/cmake/DawnCompilerWarningFlags.cmake
+index df3210282f..69b6aeed56 100644
+--- a/src/cmake/DawnCompilerWarningFlags.cmake
++++ b/src/cmake/DawnCompilerWarningFlags.cmake
+@@ -98,6 +98,6 @@ if (MSVC)
+   # and /EHsc is required to be used in combination with it,
+   # even if it is already added by the windows GN defaults,
+   # we still add it to make every /ZW paired with a /EHsc
+-  dawn_add_flag("/ZW:nostdlib" CXX)
+-  dawn_add_flag("/EHsc" CXX)
++  # dawn_add_flag("/ZW:nostdlib" CXX)
++  # dawn_add_flag("/EHsc" CXX)
+ endif ()
 diff --git a/src/cmake/DawnLibrary.cmake b/src/cmake/DawnLibrary.cmake
 index 2e7b63ba02..a92e878475 100644
 --- a/src/cmake/DawnLibrary.cmake
