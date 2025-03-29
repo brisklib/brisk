@@ -58,7 +58,7 @@ brisk_metadata(
     VERSION "0.1.2.3-suffix"
     COPYRIGHT "© 2024 Brisk"
     ICON ${PROJECT_SOURCE_DIR}/resources/icon.png
-    APPLE_BUNDLE "com.brisklib.showcase")
+    APPLE_BUNDLE_ID "com.brisklib.showcase")
 
 brisk_target_link_resource(
     showcase PRIVATE cat.svg

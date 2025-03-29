@@ -35,7 +35,7 @@ brisk_metadata(
     VERSION "0.1.0"                    # Version number
     COPYRIGHT "© 2024 Brisk"           # Copyright information
     ICON ${CMAKE_SOURCE_DIR}/icon.png  # Path to the icon (PNG)
-    APPLE_BUNDLE com.brisklib.helloworld # Apple bundle identifier
+    APPLE_BUNDLE_ID com.brisklib.helloworld # Apple bundle identifier
 )
 
 # Create an executable target 'main' from main.cpp

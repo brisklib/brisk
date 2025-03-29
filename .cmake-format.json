@@ -21,7 +21,7 @@
                 "VERSION": 1,
                 "COPYRIGHT": 1,
                 "ICON": 1,
-                "APPLE_BUNDLE": 1
+                "APPLE_BUNDLE_ID": 1
             }
         },
         "brisk_target_link_resource": {
