@@ -2361,10 +2361,10 @@ struct RectangleOf {
     }
 
     /**
-     * @brief Creates a new rectangle that is the intersection of this rectangle and another.
+     * @brief Checks whether this rectangle intersects with another rectangle.
      *
-     * @param c The other rectangle.
-     * @return A new RectangleOf that is the intersection of both rectangles.
+     * @param c The other rectangle to check intersection with.
+     * @return True if this rectangle intersects with rectangle c, false otherwise.
      */
     constexpr bool intersects(const RectangleOf& c) const noexcept {
         return !intersection(c).empty();
