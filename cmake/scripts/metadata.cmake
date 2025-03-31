@@ -18,7 +18,7 @@
 # licensing options, please visit: https://brisklib.com
 #
 macro (brisk_metadata)
-    cmake_parse_arguments("APP" "" "VENDOR;NAME;DESCRIPTION;HOMEPAGE;COPYRIGHT;VERSION;ICON;APPLE_BUNDLE" "" ${ARGN})
+    cmake_parse_arguments("APP" "" "VENDOR;NAME;DESCRIPTION;HOMEPAGE;COPYRIGHT;VERSION;ICON;APPLE_BUNDLE_ID" "" ${ARGN})
 
     if ("${APP_VERSION}" MATCHES "^([0-9]+)\.([0-9]+)(\.([0-9]+)(\.([0-9]+))?)?(.*)$")
         set(APP_VERSION_MAJOR ${CMAKE_MATCH_1})

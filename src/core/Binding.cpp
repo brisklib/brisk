@@ -78,18 +78,18 @@ int Bindings::addHandler(const RegionList& srcRegions, uint64_t id, Handler hand
 }
 
 bool Bindings::isRegisteredRegion(BindingAddress range) const {
-    return m_regions.contains(range.min);
+    return m_regions.contains(range.min());
 }
 
 void Bindings::registerRegion(BindingAddress range, RC<Scheduler> queue) {
     std::lock_guard lk(m_mutex);
-    if (!m_regions.insert_or_assign(range.min, std::make_shared<Region>(range, std::move(queue))).second) {
+    if (!m_regions.insert_or_assign(range.min(), std::make_shared<Region>(range, std::move(queue))).second) {
         BRISK_ASSERT(false); // Assert if the region cannot be registered
     }
 }
 
 void Bindings::unregisterRegion(BindingAddress range) {
-    unregisterRegion(range.min); // Delegate to unregister by address start
+    unregisterRegion(range.min()); // Delegate to unregister by address start
 }
 
 void Bindings::unregisterRegion(const uint8_t* rangeBegin) {
@@ -115,11 +115,11 @@ int Bindings::notifyRange(BindingAddress range) {
         region->entriesChanged = false;
 
         auto first             = region->entries.begin();
-        auto last              = region->entries.lower_bound(BindingAddress{ range.max, range.max });
+        auto last              = region->entries.lower_bound(BindingAddress{ range.max(), 0 });
 
         for (auto it = first; it != last; ++it) {
             Entry& entry = it->second;
-            if (!it->first.intersects(range)) {
+            if (!it->first.range().intersects(range.range())) {
                 continue;
             }
             if (inStack(entry.id) || entry.counter == m_counter) {
@@ -157,13 +157,13 @@ static bool addressesContain(const BindingAddresses& a, BindingAddress r) {
 
 RC<Bindings::Region> Bindings::lookupRegion(BindingAddress address) {
     // Find the first region whose address is greater than the desired address
-    auto it = m_regions.upper_bound(address.min);
+    auto it = m_regions.upper_bound(address.min());
 
     // Check if the region exists and contains the address
     if (it == m_regions.begin())
         return nullptr;
     --it;
-    if (address.max > it->second->region.max)
+    if (address.max() > it->second->region.max())
         return nullptr; // Address is outside the region
     return it->second;
 }

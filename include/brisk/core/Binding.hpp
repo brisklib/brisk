@@ -53,8 +53,24 @@ struct Callbacks : public std::vector<Callback<Args...>> {
 #define LOG_BINDING LOG_NOP
 #endif
 
-// Type alias for a binding address
-using BindingAddress = Range<const uint8_t*>;
+struct BindingAddress {
+    const void* address;
+    size_t size;
+
+    const uint8_t* min() const noexcept {
+        return reinterpret_cast<const uint8_t*>(address);
+    }
+
+    const uint8_t* max() const noexcept {
+        return reinterpret_cast<const uint8_t*>(address) + size;
+    }
+
+    Range<const uint8_t*> range() const noexcept {
+        return { min(), max() };
+    }
+
+    constexpr bool operator==(const BindingAddress&) const noexcept = default;
+};
 
 /**
  * @brief Converts a pointer of type T to a BindingAddress.
@@ -68,27 +84,28 @@ using BindingAddress = Range<const uint8_t*>;
  * @return A BindingAddress representing the memory range of the value.
  */
 template <typename T>
-constexpr BindingAddress toBindingAddress(T* value) noexcept {
-    return BindingAddress{
-        reinterpret_cast<const uint8_t*>(value),
-        reinterpret_cast<const uint8_t*>(value) + sizeof(T),
-    };
+constexpr BindingAddress toBindingAddress(const T* value) noexcept {
+    if constexpr (std::is_same_v<T, void>) {
+        return BindingAddress{ value, 1 };
+    } else {
+        return BindingAddress{ static_cast<const void*>(value), sizeof(T) };
+    }
 }
 
 /**
  * @brief A special object for static binding.
  */
-inline Empty staticBinding{};
+inline const Empty staticBinding{};
 
 /**
  * @brief The BindingAddress for the static binding object.
  */
-inline BindingAddress staticBindingAddress = toBindingAddress(&staticBinding);
+inline const constinit BindingAddress staticBindingAddress = toBindingAddress(&staticBinding);
 
 /**
  * @brief A collection of BindingAddresses.
  */
-using BindingAddresses                     = SmallVector<BindingAddress, 1>;
+using BindingAddresses                                     = SmallVector<BindingAddress, 1>;
 
 /**
  * @brief Generic Value structure for property management.
@@ -1304,7 +1321,7 @@ private:
 
     struct BindingAddressCmp {
         bool operator()(BindingAddress lh, BindingAddress rh) const noexcept {
-            return lh.min < rh.min;
+            return lh.address < rh.address;
         }
     };
 
@@ -1356,37 +1373,6 @@ inline bool assignAndTrigger(T& target, U&& newValue, Trigger<std::type_identity
     return false;
 }
 
-struct BindingRegistration {
-    BindingRegistration()                           = delete;
-    BindingRegistration(const BindingRegistration&) = delete;
-    BindingRegistration(BindingRegistration&&)      = delete;
-
-    template <typename T>
-    BindingRegistration(T* thiz, RC<Scheduler> queue) : m_address(toBindingAddress(thiz).min) {
-        bindings->registerRegion(toBindingAddress(thiz), std::move(queue));
-    }
-
-    ~BindingRegistration() {
-        bindings->unregisterRegion(m_address);
-    }
-
-    const uint8_t* m_address;
-};
-
-struct BindingLifetime {
-    template <typename T>
-    BindingLifetime(T* thiz) noexcept : m_address(toBindingAddress(thiz).min) {}
-
-    const uint8_t* m_address;
-};
-
-const inline BindingLifetime staticLifetime{ &staticBinding };
-
-template <typename T>
-inline BindingLifetime lifetimeOf(T* thiz) noexcept {
-    return BindingLifetime{ thiz };
-}
-
 namespace Internal {
 
 template <typename Fn, template <typename... Args> typename Tpl>
@@ -1404,16 +1390,104 @@ struct DeduceArgs<FnRet (Fn::*)(FnArgs...) const, Tpl> {
 
 } // namespace Internal
 
-template <typename Fn>
-using DeduceListener = typename Internal::DeduceArgs<decltype(&Fn::operator()), Listener>::Type;
+/**
+ * @brief Automatically registers an object for binding.
+ *
+ * This struct can be used as a field within a target object to enable binding registration.
+ * Example usage:
+ * @code
+ * struct BindingEnabled {
+ *     std::string field;
+ *     BindingRegistration reg{ this, nullptr };
+ * };
+ * @endcode
+ */
+struct BindingRegistration {
+    BindingRegistration()                           = delete;
+    BindingRegistration(const BindingRegistration&) = delete;
+    BindingRegistration(BindingRegistration&&)      = delete;
 
-template <typename Fn>
-inline DeduceListener<Fn> operator|(const BindingRegistration& reg, Fn callback) {
-    return { std::move(callback), reg.m_address };
+    /**
+     * @brief Constructs a BindingRegistration for a given object and queue.
+     * @tparam T Type of the object to register.
+     * @param thiz Pointer to the object being registered.
+     * @param queue Reference-counted pointer to the queue.
+     */
+    template <typename T>
+    BindingRegistration(const T* thiz, RC<Scheduler> queue) : m_address(toBindingAddress(thiz).min()) {
+        bindings->registerRegion(toBindingAddress(thiz), std::move(queue));
+    }
+
+    /**
+     * @brief Destructor that unregisters the binding region.
+     */
+    ~BindingRegistration() {
+        bindings->unregisterRegion(m_address);
+    }
+
+    const uint8_t* m_address;
+};
+
+/**
+ * @brief Utility struct to link a callback to the lifetime of an associated object.
+ *
+ * This struct ensures that a callback is automatically removed when the associated object is deleted.
+ * The object pointed to by `thiz` must reside within a registered memory range.
+ */
+struct BindingLifetime {
+    /**
+     * @brief Constructs a BindingLifetime for a specific object.
+     * @tparam T Type of the object to associate with.
+     * @param thiz Pointer to the object whose lifetime is being tracked.
+     */
+    template <typename T>
+    constexpr BindingLifetime(const T* thiz) noexcept : m_address(thiz) {}
+
+    const void* m_address;
+};
+
+/**
+ * @brief Static BindingLifetime instance for callbacks with no lifetime protection.
+ *
+ * This can be used for callbacks that only access global or static variables.
+ */
+constinit const inline BindingLifetime staticLifetime{ &staticBinding };
+
+/**
+ * @brief Constructs a BindingLifetime for a specific object to use in callback binding.
+ * @tparam T Type of the object to associate with.
+ * @param thiz Pointer to the object whose lifetime is being tracked.
+ * @return A BindingLifetime instance for the given object.
+ */
+template <typename T>
+inline BindingLifetime lifetimeOf(T* thiz) noexcept {
+    return BindingLifetime{ thiz };
 }
 
 template <typename Fn>
-inline DeduceListener<Fn> operator|(const BindingLifetime& lt, Fn callback) {
+using DeduceListener = typename Internal::DeduceArgs<decltype(&Fn::operator()), Listener>::Type;
+
+/**
+ * @brief Combines a BindingRegistration with a callback to create a listener.
+ * @tparam Fn Type of the callback function.
+ * @param reg The BindingRegistration instance providing the address.
+ * @param callback The callback function to associate.
+ * @return A deduced listener type combining the callback and registration address.
+ */
+template <typename Fn>
+inline constexpr DeduceListener<Fn> operator|(const BindingRegistration& reg, Fn callback) {
+    return { std::move(callback), reg.m_address };
+}
+
+/**
+ * @brief Combines a BindingLifetime with a callback to create a listener.
+ * @tparam Fn Type of the callback function.
+ * @param lt The BindingLifetime instance providing the address.
+ * @param callback The callback function to associate.
+ * @return A deduced listener type combining the callback and lifetime address.
+ */
+template <typename Fn>
+inline constexpr DeduceListener<Fn> operator|(const BindingLifetime& lt, Fn callback) {
     return { std::move(callback), toBindingAddress(lt.m_address) };
 }
 
@@ -1770,9 +1844,7 @@ public:
         if constexpr (scheduler) {
             sched = *scheduler;
         }
-        bindings->registerRegion(
-            BindingAddress{ reinterpret_cast<uint8_t*>(ptr), reinterpret_cast<uint8_t*>(ptr) + sz },
-            std::move(sched));
+        bindings->registerRegion(BindingAddress{ ptr, sz }, std::move(sched));
         BRISK_CLANG_PRAGMA(GCC diagnostic pop)
         return ptr;
     }

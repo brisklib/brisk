@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string>@TARGET@.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>@APP_APPLE_BUNDLE@</string>
+	<string>@APP_APPLE_BUNDLE_ID@</string>
 	<key>CFBundleDisplayName</key>
 	<string>@APP_NAME@</string>
 	<key>CFBundleInfoDictionaryVersion</key>

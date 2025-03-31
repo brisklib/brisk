@@ -46,6 +46,20 @@ struct BackBufferWebGPU {
     wgpu::TextureView colorView; /** The texture view for the color texture. */
 };
 
+/**
+ * @brief Retrieves WebGPU device and backbuffer texture view from a RenderContext.
+ *
+ * This function extracts the WebGPU device and the backbuffer texture view from the provided
+ * RenderContext, populating the output parameters if successful.
+ *
+ * @param[in,out] context The RenderContext containing WebGPU-related data.
+ * @param[out] wgDevice Reference to a wgpu::Device object to be filled with the WebGPU device.
+ * @param[out] backBuffer Reference to a wgpu::TextureView object to be filled with the backbuffer texture
+ * view.
+ * @return True if the device and backbuffer were successfully retrieved, false otherwise.
+ * @note This function flushes the current batch in the RenderContext before returning to ensure correct
+ * interleaving of rendering commands.
+ */
 bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer);
 
 } // namespace Brisk

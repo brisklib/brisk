@@ -76,6 +76,7 @@ nav:
       - prebuilt_binaries.md
     - Core concepts:
       - binding.md
+      - resources.md
     - Examples:
       - hello_world.md
       - other_examples.md
