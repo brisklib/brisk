@@ -48,6 +48,7 @@ void WindowRenderTargetWebGPU::present() {
 void WindowRenderTargetWebGPU::recreateSwapChain() {
     m_backBuffer = {};
     wgpu::SurfaceConfiguration swapChainDesc{
+        .device      = m_device->m_device,
         .format      = wgpu::TextureFormat::BGRA8Unorm,
         .usage       = wgpu::TextureUsage::RenderAttachment,
         // Android requires RGBA8UNorm
