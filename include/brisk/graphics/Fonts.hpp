@@ -1050,41 +1050,151 @@ namespace Brisk {
 
 class FontManager final {
 public:
-    explicit FontManager(std::recursive_mutex* mutex, int hscale, uint32_t cacheTimeMs);
+    /**
+     * @brief Constructs a FontManager instance.
+     * @param mutex Pointer to a recursive mutex for thread safety, or nullptr if not needed.
+     * @param hscale Horizontal scaling factor (default: 3).
+     * @param cacheTimeMs Cache duration in milliseconds (default: 5000).
+     */
+    explicit FontManager(std::recursive_mutex* mutex, int hscale = 3, uint32_t cacheTimeMs = 5000);
+
+    /**
+     * @brief Destructor for FontManager.
+     */
     ~FontManager();
 
+    /**
+     * @brief Adds an alias mapping from a new font family name to an existing one.
+     * @param newFontFamily The new font family name to alias.
+     * @param existingFontFamily The existing font family name to map to.
+     */
     void addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily);
+
+    /**
+     * @brief Adds a font to the manager with specified properties.
+     * @param fontFamily The font family name.
+     * @param style The font style (e.g., italic, normal).
+     * @param weight The font weight (e.g., bold, regular).
+     * @param data Binary font data.
+     * @param makeCopy Whether to create a copy of the data (default: true).
+     * @param flags Font flags (default: FontFlags::Default).
+     */
     void addFont(std::string fontFamily, FontStyle style, FontWeight weight, BytesView data,
                  bool makeCopy = true, FontFlags flags = FontFlags::Default);
+
+    /**
+     * @brief Adds a font installed on the system.
+     * @param fontFamily The font family name to register.
+     * @param fontName The specific font name to add.
+     * @return True if the font was successfully added, false otherwise.
+     */
     [[nodiscard]] bool addFontByName(std::string fontFamily, std::string_view fontName);
+
+    /**
+     * @brief Adds a system font to the manager.
+     * @param fontFamily The font family name to register.
+     * @return True if the system font was successfully added, false otherwise.
+     */
     [[nodiscard]] bool addSystemFont(std::string fontFamily);
+
+    /**
+     * @brief Adds a font from a file.
+     * @param fontFamily The font family name.
+     * @param style The font style.
+     * @param weight The font weight.
+     * @param path Filesystem path to the font file.
+     * @return Status indicating success or an IOError on failure.
+     */
     [[nodiscard]] status<IOError> addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                                   const fs::path& path);
+
+    /**
+     * @brief Retrieves a list of installed system fonts.
+     * @param rescan Whether to rescan the system for fonts (default: false).
+     * @return Vector of OSFont objects representing installed fonts.
+     */
     [[nodiscard]] std::vector<OSFont> installedFonts(bool rescan = false) const;
+
+    /**
+     * @brief Gets available styles and weights for a font family.
+     * @param fontFamily The font family to query.
+     * @return Vector of FontStyleAndWeight pairs.
+     */
     std::vector<FontStyleAndWeight> fontFamilyStyles(std::string_view fontFamily) const;
 
-    FontMetrics metrics(const Font& font) const;
-    bool hasCodepoint(const Font& font, char32_t codepoint) const;
-    PreparedText prepare(const Font& font, const TextWithOptions& text, float width = HUGE_VALF) const;
-    RectangleF bounds(const Font& font, const TextWithOptions& text,
-                      GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
-    PreparedText prepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                         std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
-    RectangleF bounds(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                      std::span<const uint32_t> offsets,
-                      GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
+    /**
+     * @brief Retrieves metrics for a given font.
+     * @param font The font to measure.
+     * @return FontMetrics containing size and spacing information.
+     */
+    [[nodiscard]] FontMetrics metrics(const Font& font) const;
+
+    /**
+     * @brief Checks if a font supports a specific Unicode codepoint.
+     * @param font The font to check.
+     * @param codepoint The Unicode codepoint to verify.
+     * @return True if the codepoint is supported, false otherwise.
+     */
+    [[nodiscard]] bool hasCodepoint(const Font& font, char32_t codepoint) const;
+
+    /**
+     * @brief Prepares text for rendering with a single font.
+     * @param font The font to use.
+     * @param text Text with rendering options.
+     * @param width Maximum width for text layout (default: unlimited).
+     * @return PreparedText object ready for rendering.
+     */
+    [[nodiscard]] PreparedText prepare(const Font& font, const TextWithOptions& text,
+                                       float width = HUGE_VALF) const;
+
+    /**
+     * @brief Calculates the bounding rectangle for text with a single font.
+     * @param font The font to use.
+     * @param text Text with rendering options.
+     * @param boundsType Type of bounds to calculate (default: GlyphRunBounds::Alignment).
+     * @return RectangleF representing the text bounds.
+     */
+    [[nodiscard]] RectangleF bounds(const Font& font, const TextWithOptions& text,
+                                    GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
+
+    /**
+     * @brief Prepares text for rendering with multiple fonts.
+     * @param text Text with rendering options.
+     * @param fonts Span of fonts and their colors.
+     * @param offsets Span of text offsets for font changes.
+     * @param width Maximum width for text layout (default: unlimited).
+     * @return PreparedText object ready for rendering.
+     */
+    [[nodiscard]] PreparedText prepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                                       std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
+
+    /**
+     * @brief Calculates the bounding rectangle for text with multiple fonts.
+     * @param text Text with rendering options.
+     * @param fonts Span of fonts and their colors.
+     * @param offsets Span of text offsets for font changes.
+     * @param boundsType Type of bounds to calculate (default: GlyphRunBounds::Alignment).
+     * @return RectangleF representing the text bounds.
+     */
+    [[nodiscard]] RectangleF bounds(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                                    std::span<const uint32_t> offsets,
+                                    GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
 
     using FontKey = std::tuple<std::string, FontStyle, FontWeight>;
 
+    // Internal use only
     FontKey faceToKey(Internal::FontFace* face) const;
+    // Internal use only
     void testRender(RC<Image> image, const PreparedText& run, Point origin,
                     TestRenderFlags flags = TestRenderFlags::None, std::initializer_list<int> xlines = {},
                     std::initializer_list<int> ylines = {}) const;
 
+    // Internal use only
     int hscale() const {
         return m_hscale;
     }
 
+    // Internal use only
     void garbageCollectCache();
 
 private:
