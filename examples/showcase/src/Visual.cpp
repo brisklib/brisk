@@ -354,6 +354,13 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
             },
         },
 
+        rcnew HLayout{
+            rcnew Text{ "Text rotated by 0°", rotation = Rotation::NoRotation },
+            rcnew Text{ "Text rotated by 90°", rotation = Rotation::Rotate90 },
+            rcnew Text{ "Text rotated by 180°", rotation = Rotation::Rotate180 },
+            rcnew Text{ "Text rotated by 270°", rotation = Rotation::Rotate270 },
+        },
+
     };
 }
 

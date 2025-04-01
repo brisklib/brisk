@@ -50,7 +50,7 @@ const gradient_reflected = gradient_type(3);
 
 const subpixel_off       = subpixel_mode(0);
 const subpixel_rgb       = subpixel_mode(1);
-// const subpixel_bgr       = subpixel_mode(2);
+const subpixel_bgr       = subpixel_mode(2);
 
 /// Must match the value in Renderer.hpp
 const gradientResolution = 1024;
@@ -520,6 +520,16 @@ fn atlasAccum(sprite: i32, pos: vec2<i32>, stride: u32) -> f32 {
     return alpha / f32(constants.sprite_oversampling);
 }
 
+fn processSubpixelOutput(rgb: vec3<f32>) -> vec3<f32> {
+    if constants.subpixel == subpixel_off {
+        return vec3<f32>(dot(rgb, vec3<f32>(0.3333, 0.3334, 0.3333)));
+    } else if constants.subpixel == subpixel_bgr {
+        return rgb.bgr;
+    } else {
+        return rgb;
+    }
+}
+
 fn atlasSubpixel(sprite: i32, pos: vec2<i32>, stride: u32) -> vec3<f32> {
     if constants.sprite_oversampling == 6 {
         let x0 = atlas(sprite, pos + vec2<i32>(-2, 0), stride) + atlas(sprite, pos + vec2<i32>(-1, 0), stride);
@@ -675,7 +685,7 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
         let colors: Colors = calcColors(in.canvas_coord);
 
         if useBlending() {
-            let rgb = atlasSubpixel(sprite, tuv, stride);
+            let rgb = processSubpixelOutput(atlasSubpixel(sprite, tuv, stride));
             outColor = colors.brush * vec4<f32>(rgb, 1.);
             outBlend = vec4<f32>(colors.brush.a * rgb, 1.);
         } else if constants.shader == shader_color_mask {

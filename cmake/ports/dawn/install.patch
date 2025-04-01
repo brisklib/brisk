@@ -1,3 +1,37 @@
+diff --git a/generator/generator_lib.py b/generator/generator_lib.py
+index f417190d06..624a0b8f61 100644
+--- a/generator/generator_lib.py
++++ b/generator/generator_lib.py
+@@ -50,6 +50,8 @@ output files.
+ 
+ import argparse, json, os, re, sys
+ from collections import namedtuple
++import time
++import errno
+ 
+ # A FileRender represents a single Jinja2 template render operation:
+ #
+@@ -403,5 +405,18 @@ def run_generator(generator):
+             directory = os.path.dirname(output_path)
+             os.makedirs(directory, exist_ok=True)
+ 
+-            with open(output_path, 'w') as outfile:
+-                outfile.write(output.content)
++            # Windows can throw OSError [Errno 22] intermittently due to filesystem timing or SSD contention.
++            # Retrying with a delay ensures reliable writes to a newly created directory.
++            max_attempts = 10
++
++            for attempt in range(max_attempts):
++                try:
++                    with open(output_path, 'w') as outfile:
++                        outfile.write(output.content)
++                    break
++                except OSError as e:
++                    if e.errno != errno.EINVAL:
++                        raise
++                    if attempt == max_attempts - 1:
++                        raise
++                    time.sleep(0.2)
 diff --git a/src/cmake/BundleLibraries.cmake b/src/cmake/BundleLibraries.cmake
 index 046a6af10d..b349442562 100644
 --- a/src/cmake/BundleLibraries.cmake

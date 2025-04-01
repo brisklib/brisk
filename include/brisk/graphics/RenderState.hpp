@@ -125,7 +125,7 @@ struct PatternCodes {
 enum class SubpixelMode : int32_t {
     Off = 0,
     RGB = 1,
-    // BGR = 2,
+    BGR = 2,
 };
 
 struct ConstantPerFrame {
