@@ -291,6 +291,12 @@ void Window::paintImmediate(RenderContext& context) {}
 
 constexpr static int debugPanelHeight = 100;
 
+static double roundFPS(double fps) {
+    if (fps < 15)
+        return 15;
+    return std::exp2(std::round(std::log2(fps / 60))) * 60;
+}
+
 void Window::paintStat(Canvas& canvas, Rectangle rect) {
     canvas.setFillColor(0x000000'80_rgba);
     canvas.fillRect(rect);
@@ -313,7 +319,7 @@ void Window::paintStat(Canvas& canvas, Rectangle rect) {
 
     using namespace std::chrono_literals;
 
-    double frameDurationNS = 1'000'000'000.0 / std::max(m_frameTimePredictor->fps, 10.0);
+    double frameDurationNS = 1'000'000'000.0 / roundFPS(m_frameTimePredictor->fps);
 
     FrameStat sum          = m_renderStat.sum();
 
@@ -328,9 +334,9 @@ void Window::paintStat(Canvas& canvas, Rectangle rect) {
                               mix(end, frameRect.y2, frameRect.y1) };
         };
 
-        double windowUpdate = stat.windowUpdate.count() / frameDurationNS;
-        double windowPaint  = stat.windowPaint.count() / frameDurationNS;
-        double gpuRender    = stat.gpuRender.count() / frameDurationNS;
+        double windowUpdate = stat.windowUpdate.count() / frameDurationNS * 0.5;
+        double windowPaint  = stat.windowPaint.count() / frameDurationNS * 0.5;
+        double gpuRender    = stat.gpuRender.count() / frameDurationNS * 0.5;
 
         double base         = 0;
         auto cumulativeBar  = [&](double value) {
