@@ -21,6 +21,8 @@
 #include <brisk/core/Encoding.hpp>
 #include <brisk/core/DynamicLibrary.hpp>
 
+#define NOMINMAX 1
+#define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
 
 namespace Brisk {

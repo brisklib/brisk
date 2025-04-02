@@ -20,6 +20,7 @@
  */
 #define OEMRESOURCE
 
+#define NOMINMAX 1
 #include <windows.h>
 #include <windowsx.h>
 #include "ShellScalingApi.h"
@@ -540,8 +541,8 @@ void PlatformWindow::setWindowIcon() {
     SendMessageW(m_data->hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 }
 
-void PlatformWindow::getHandle(OSWindowHandle& handle) {
-    handle.window = m_data->hWnd;
+OSWindowHandle PlatformWindow::getHandle() const {
+    return OSWindowHandle(m_data->hWnd);
 }
 
 Bytes PlatformWindow::placement() const {

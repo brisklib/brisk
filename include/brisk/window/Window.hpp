@@ -27,6 +27,7 @@
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/window/Types.hpp>
+#include <brisk/window/Display.hpp>
 #include <mutex>
 
 namespace Brisk {
@@ -137,6 +138,8 @@ public:
 
     Size getFramebufferSize() const;
 
+    RC<Display> display() const;
+
     void setRectangle(Rectangle rect);
     void setPosition(Point pos);
     void setSize(Size size);
@@ -178,7 +181,7 @@ public:
     PlatformWindow* platformWindow();
 
     void disableKeyHandling();
-    void getHandle(OSWindowHandle& handle) const final;
+    OSWindowHandle getHandle() const final;
 
     void setOwner(RC<Window> window);
     void enterModal();

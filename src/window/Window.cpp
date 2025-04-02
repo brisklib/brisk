@@ -558,12 +558,10 @@ void Window::close() {
     });
 }
 
-void Window::getHandle(OSWindowHandle& handle) const {
+OSWindowHandle Window::getHandle() const {
     if (!m_platformWindow)
-        return;
-    mainScheduler->dispatchAndWait([&] {
-        m_platformWindow->getHandle(handle);
-    });
+        return OSWindowHandle{};
+    return m_platformWindow->getHandle();
 }
 
 void Window::initializeRenderer() {
@@ -819,6 +817,17 @@ void Window::setBufferedRendering(bool bufferedRendering) {
 
 bool Window::bufferedRendering() const noexcept {
     return m_bufferedRendering;
+}
+
+RC<Display> Window::display() const {
+    OSWindowHandle handle = getHandle();
+    if (!handle)
+        return nullptr;
+    for (auto display : Display::all())
+        if (display->containsWindow(handle))
+            return display;
+
+    return nullptr;
 }
 
 const RenderStat& Window::renderStat() const noexcept {

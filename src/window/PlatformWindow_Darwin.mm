@@ -458,8 +458,8 @@ void PlatformWindow::setPlacement(BytesView data) {
     // TODO: macOS window placement
 }
 
-void PlatformWindow::getHandle(OSWindowHandle& handle) {
-    handle.window = m_data->window;
+OSWindowHandle PlatformWindow::getHandle() const {
+    return OSWindowHandle(m_data->window);
 }
 
 PlatformWindow::~PlatformWindow() {

@@ -256,6 +256,15 @@ struct ColorOf {
     }
 
     /**
+     * @brief Gets the RGB components of the color as a 3-element SIMD vector.
+     *
+     * @return A SIMD vector representing the RGB components.
+     */
+    constexpr SIMD<T, 3> simd_rgb() const noexcept {
+        return std::bit_cast<SIMD<T, 3>>(v);
+    }
+
+    /**
      * @brief Converts the `ColorOf` object to a `Trichromatic` color representation.
      *
      * This conversion operator allows a `ColorOf` instance to be converted into a `Trichromatic`
@@ -592,15 +601,6 @@ struct ColorOf {
         vec_type v;
         T array[4];
     };
-
-    /**
-     * @brief Gets the RGB components of the color as a 3-element SIMD vector.
-     *
-     * @return A SIMD vector representing the RGB components.
-     */
-    constexpr SIMD<T, 3> simd_rgb() const noexcept {
-        return std::bit_cast<SIMD<T, 3>>(v);
-    }
 
     /**
      * @brief Gets the alpha component of the color as a 1-element SIMD vector.

@@ -21,78 +21,57 @@
 #pragma once
 
 #include <brisk/core/Brisk.h>
-#include "Renderer.hpp"
 
 #ifdef BRISK_WINDOWS
-#include "windows.h"
+#define NOMINMAX 1
+#define WIN32_LEAN_AND_MEAN 1
+#include <windows.h>
 #endif
 #ifdef BRISK_APPLE
 #if defined(__OBJC__)
 #import "Cocoa/Cocoa.h"
-#else
-#include <objc/objc.h>
 #endif
 #endif
 #ifdef BRISK_LINUX
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
-
-#undef None
-#undef Status
-#undef True
-#undef False
-#undef Bool
-#undef RootWindow
-#undef CurrentTime
-#undef Success
-#undef DestroyAll
-#undef COUNT
-#undef CREATE
-#undef DeviceAdded
-#undef DeviceRemoved
-#undef Always
-
-#include <wayland-client.h>
-
+#include <GLFW/glfw3.h>
 #endif
 
 namespace Brisk {
 
-struct OSWindowHandle;
+struct OSWindowHandle {
+    void* ptr                 = nullptr;
+
+    OSWindowHandle() noexcept = default;
+
+    explicit operator bool() const noexcept {
+        return static_cast<bool>(ptr);
+    }
 
 #ifdef BRISK_WINDOWS
-struct OSWindowHandle {
-    HWND window;
-};
+    HWND hWnd() const noexcept {
+        return static_cast<HWND>(ptr);
+    }
+
+    explicit OSWindowHandle(HWND hWnd) noexcept : ptr(hWnd) {}
 #endif
+
 #ifdef BRISK_APPLE
 #if defined(__OBJC__)
-struct OSWindowHandle {
-    NSWindow* window;
-};
-#else
-struct OSWindowHandle {
-    id window;
-};
+    NSWindow* nsWindow() const noexcept {
+        return (__bridge NSWindow*)ptr;
+    }
+
+    explicit OSWindowHandle(NSWindow* nsWindow) noexcept : ptr((__bridge void*)nsWindow) {}
 #endif
-#endif
-#ifdef BRISK_LINUX
-struct OSWindowHandle {
-    bool wayland;
-    ::Display* x11Display;
-    ::Window x11Window;
-    ::wl_display* wlDisplay;
-    ::wl_surface* wlWindow;
-};
 #endif
 
-#ifdef BRISK_WINDOWS
-inline HWND handleFromWindow(OSWindow* window, HWND fallback = 0) {
-    OSWindowHandle handle{ fallback };
-    if (window)
-        window->getHandle(handle);
-    return handle.window;
-}
+#ifdef BRISK_LINUX
+    GLFWwindow* glfwWindow() const noexcept {
+        return static_cast<GLFWwindow*>(ptr);
+    }
+
+    explicit OSWindowHandle(GLFWwindow* glfwWindow) noexcept : ptr(glfwWindow) {}
 #endif
+};
 
 } // namespace Brisk

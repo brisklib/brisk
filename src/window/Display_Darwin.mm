@@ -114,6 +114,22 @@ public:
         return m_backingScaleFactor;
     }
 
+    bool containsWindow(OSWindowHandle handle) const {
+        NSScreen* windowScreen = [handle.nsWindow() screen];
+        if (!windowScreen) {
+            return false;
+        }
+
+        // Get the display ID from the screen description
+        NSDictionary* screenDescription = [windowScreen deviceDescription];
+        NSNumber* screenNumber          = [screenDescription objectForKey:@"NSScreenNumber"];
+        if (!screenNumber) {
+            return false;
+        }
+
+        return (CGDirectDisplayID)[screenNumber unsignedIntValue] == m_dispId;
+    }
+
 private:
     mutable std::shared_mutex m_mutex;
     std::string m_name;

@@ -69,17 +69,8 @@ void PlatformWindow::setWindowIcon() {
     //
 }
 
-void PlatformWindow::getHandle(OSWindowHandle& handle) {
-    int platform = glfwGetPlatform();
-    if (platform == GLFW_PLATFORM_X11) {
-        handle.wayland    = false;
-        handle.x11Display = glfwGetX11Display();
-        handle.x11Window  = glfwGetX11Window(m_data->win);
-    } else {
-        handle.wayland   = true;
-        handle.wlDisplay = glfwGetWaylandDisplay();
-        handle.wlWindow  = glfwGetWaylandWindow(m_data->win);
-    }
+OSWindowHandle PlatformWindow::getHandle() const {
+    return OSWindowHandle(m_data->win);
 }
 
 Bytes PlatformWindow::placement() const {

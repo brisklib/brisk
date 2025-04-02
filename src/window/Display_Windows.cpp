@@ -18,12 +18,15 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include "brisk/graphics/OSWindowHandle.hpp"
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <brisk/core/Encoding.hpp>
 #include <shared_mutex>
 
 #include <dwmapi.h>
+#define NOMINMAX 1
+#define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
 #include <ShellScalingApi.h>
 
@@ -101,6 +104,11 @@ public:
         return pt + m_rect.p1;
     }
 
+    bool containsWindow(OSWindowHandle handle) const {
+        std::shared_lock lk(m_mutex);
+        return MonitorFromWindow(handle.hWnd(), MONITOR_DEFAULTTONULL) == m_handle;
+    }
+    
     DisplayFlags flags() const {
         std::shared_lock lk(m_mutex);
         return m_flags;

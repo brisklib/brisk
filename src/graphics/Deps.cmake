@@ -82,6 +82,12 @@ if (BRISK_WEBGPU)
         ${_BRISK_RENDERER_WEBGPU} PUBLIC "webgpu/webgpu.wgsl"
         INPUT ${BRISK_RESOURCES_DIR}/shaders/webgpu.wgsl
         BROTLI)
+        
+    if (NOT WIN32 AND NOT APPLE)    
+        find_package(glfw3 CONFIG REQUIRED)
+        target_link_libraries(${_BRISK_RENDERER_WEBGPU} ${_DEP_PUBLIC} glfw)
+    endif ()
+
 endif ()
 
 # >tinyxml2

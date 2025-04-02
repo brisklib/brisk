@@ -20,7 +20,9 @@
  */
 #pragma once
 
-#include "windows.h"
+#define NOMINMAX 1
+#define WIN32_LEAN_AND_MEAN 1
+#include <windows.h>
 
 namespace Brisk {
 

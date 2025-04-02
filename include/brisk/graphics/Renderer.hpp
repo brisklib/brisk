@@ -25,6 +25,7 @@
 #include "RenderState.hpp"
 #include "Color.hpp"
 #include "Geometry.hpp"
+#include <brisk/graphics/OSWindowHandle.hpp>
 #include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
@@ -433,8 +434,6 @@ enum class BlendMode {
     Difference,
 };
 
-struct OSWindowHandle;
-
 /**
  * @class OSWindow
  * @brief Represents a platform-specific window handle.
@@ -449,9 +448,8 @@ public:
 
     /**
      * @brief Gets the native OS window handle.
-     * @param handle Reference to the OSWindowHandle structure.
      */
-    virtual void getHandle(OSWindowHandle& handle) const = 0;
+    virtual OSWindowHandle getHandle() const = 0;
 };
 
 /**

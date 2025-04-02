@@ -120,7 +120,7 @@ public:
     void setOwner(RC<Window> window);
     void releaseButtonsAndKeys();
 
-    void getHandle(OSWindowHandle& handle);
+    OSWindowHandle getHandle() const;
     void setCursor(Cursor cursor);
     void updateSize();
     void iconify();

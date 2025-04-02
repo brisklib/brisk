@@ -45,7 +45,7 @@ static D3D_FEATURE_LEVEL featureLevels[] = {
 
 bool RenderDeviceD3D11::createDevice(UINT flags) {
 
-    HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&m_factory));
+    HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(m_factory.ReleaseAndGetAddressOf()));
     if (!SUCCEEDED(hr))
         return false;
 
@@ -147,7 +147,7 @@ status<RenderDeviceError> RenderDeviceD3D11::init() {
     fmt::print("    SharedSystemMemory    {}MiB\n", desc.SharedSystemMemory / 1'048'576);
 #endif
 
-    hr = m_adapter->GetParent(IID_PPV_ARGS(&m_factory));
+    hr = m_adapter->GetParent(IID_PPV_ARGS(m_factory.ReleaseAndGetAddressOf()));
     CHECK_HRESULT(hr, return unexpected(RenderDeviceError::InternalError));
 
     std::ignore          = m_factory.As(&m_factory2);

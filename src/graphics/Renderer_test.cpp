@@ -49,6 +49,7 @@ extern "C" id objc_retain(id value);
 #define GLFW_EXPOSE_NATIVE_X11
 #endif
 #include <GLFW/glfw3native.h>
+#undef None
 #endif
 
 namespace Brisk {
@@ -193,16 +194,15 @@ public:
         return size;
     }
 
-    void getHandle(OSWindowHandle& handle) const final {
+    OSWindowHandle getHandle() const final {
 #ifdef BRISK_WINDOWS
-        handle.window = glfwGetWin32Window(win);
+        return OSWindowHandle(glfwGetWin32Window(win));
 #endif
 #ifdef BRISK_MACOS
-        handle.window = objc_retain(glfwGetCocoaWindow(win));
+        return OSWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
 #endif
 #ifdef BRISK_LINUX
-        handle.window  = glfwGetX11Window(win);
-        handle.display = glfwGetX11Display();
+        return win;
 #endif
     }
 
