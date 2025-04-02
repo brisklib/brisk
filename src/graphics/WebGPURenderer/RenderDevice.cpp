@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS
 #include "RenderDevice.hpp"
 #include "WindowRenderTarget.hpp"
 #include "ImageRenderTarget.hpp"
@@ -27,6 +28,11 @@
 #include <brisk/core/Resources.hpp>
 #include <brisk/core/App.hpp>
 #include <brisk/core/Log.hpp>
+
+#ifdef BRISK_WINDOWS
+#include "../AdapterForMonitor.hpp"
+#include <dawn/native/D3DBackend.h>
+#endif
 
 namespace Brisk {
 
@@ -75,8 +81,26 @@ bool RenderDeviceWebGPU::createDevice() {
         std::make_unique<dawn::native::Instance>(reinterpret_cast<WGPUInstanceDescriptor*>(&instanceDesc));
 
     wgpu::RequestAdapterOptions opt;
+
 #ifdef BRISK_WINDOWS
     opt.backendType = wgpu::BackendType::D3D12;
+
+    dawn::native::d3d::RequestAdapterOptionsLUID optLUID;
+    if (m_display) {
+        ComPtr<IDXGIFactory> factory;
+        HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()));
+        if (SUCCEEDED(hr)) {
+            ComPtr<IDXGIAdapter> adapter = adapterForMonitor(m_display.hMonitor(), factory);
+
+            if (adapter) {
+                DXGI_ADAPTER_DESC adapterDesc;
+                adapter->GetDesc(&adapterDesc);
+                optLUID.adapterLUID = adapterDesc.AdapterLuid;
+                opt.nextInChain     = &optLUID;
+            }
+        }
+    }
+
 #elif defined BRISK_APPLE
     opt.backendType = wgpu::BackendType::Metal;
 #else
@@ -87,19 +111,23 @@ bool RenderDeviceWebGPU::createDevice() {
                                     wgpu::PowerPreference::LowPower, wgpu::PowerPreference::Undefined);
 
     std::vector<dawn::native::Adapter> adapters = m_nativeInstance->EnumerateAdapters(&opt);
-    if (adapters.empty() && opt.powerPreference != wgpu::PowerPreference::Undefined) {
+    if (adapters.empty() &&
+        (opt.powerPreference != wgpu::PowerPreference::Undefined || opt.nextInChain != nullptr)) {
         opt.powerPreference = wgpu::PowerPreference::Undefined;
+        opt.nextInChain     = nullptr;
         adapters            = m_nativeInstance->EnumerateAdapters(&opt);
     }
 
 #ifdef BRISK_DEBUG_GPU
     for (size_t i = 0; i < adapters.size(); ++i) {
-        wgpu::AdapterProperties props;
-        adapters[i].GetProperties(&props);
-        fmt::println("GPU adapter [{}] {} {} {}", i, props.vendorName, props.name, props.driverDescription);
+        wgpu::AdapterInfo info;
+        wgpu::Adapter(adapters[i].Get()).GetInfo(&info);
+        LOG_INFO(wgpu, "GPU adapter [{}] {} {} {} {:08X}:{:08X}", i, std::string_view(info.vendor),
+                 std::string_view(info.device), std::string_view(info.description), info.vendorID,
+                 info.deviceID);
     }
     if (adapters.empty()) {
-        fmt::println("No GPU adapters found");
+        LOG_WARN(wgpu, "No GPU adapters found");
     }
 #endif
 
@@ -174,8 +202,8 @@ bool RenderDeviceWebGPU::createDevice() {
     return true;
 }
 
-RenderDeviceWebGPU::RenderDeviceWebGPU(RendererDeviceSelection deviceSelection)
-    : m_deviceSelection(deviceSelection) {}
+RenderDeviceWebGPU::RenderDeviceWebGPU(RendererDeviceSelection deviceSelection, OSDisplayHandle display)
+    : m_deviceSelection(deviceSelection), m_display(display) {}
 
 status<RenderDeviceError> RenderDeviceWebGPU::init() {
     if (!createDevice()) {

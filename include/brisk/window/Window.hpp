@@ -280,6 +280,8 @@ protected:
     std::atomic_bool m_rendering{ false }; /// true if rendering is active
     std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
     RenderStat m_renderStat;
+    RC<RenderDevice> m_renderDevice;
+    RC<RenderDevice> renderDevice();
     virtual void update();
     virtual void paint(RenderContext& context, bool fullRepaint);
     virtual void paintImmediate(RenderContext& context);

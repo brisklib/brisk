@@ -23,9 +23,7 @@
 #include <string>
 #include <brisk/graphics/Renderer.hpp>
 
-#include <d3d11_3.h>
-#include <dxgi1_6.h>
-#include <wrl.h>
+#include "../AdapterForMonitor.hpp"
 
 namespace Brisk {
 
