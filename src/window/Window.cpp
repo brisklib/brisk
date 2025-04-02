@@ -285,6 +285,17 @@ Window::Window() {
     LOG_INFO(window, "Done creating Window");
 }
 
+RC<RenderDevice> Window::renderDevice() {
+    if (!m_renderDevice) {
+        RC<Display> display = this->display();
+        auto result         = createRenderDevice(defaultBackend, deviceSelection,
+                                         display ? display->getHandle() : OSDisplayHandle{});
+        BRISK_ASSERT(result.has_value());
+        m_renderDevice = *result;
+    }
+    return m_renderDevice;
+}
+
 using high_res_clock = std::chrono::steady_clock;
 
 void Window::paintImmediate(RenderContext& context) {}
@@ -301,7 +312,7 @@ void Window::paintStat(Canvas& canvas, Rectangle rect) {
     canvas.setFillColor(0x000000'80_rgba);
     canvas.fillRect(rect);
     Rectangle graphRect   = rect.withPadding(150_idp, 12_idp, 0, 0);
-    RenderDeviceInfo info = (*getRenderDevice())->info();
+    RenderDeviceInfo info = renderDevice()->info();
     std::string status    = fmt::format("Brisk {} Window {}x{} Pixel {:.2f} Renderer {} GPU {}",
                                         BRISK_VERSION
 #ifdef BRISK_DEBUG
@@ -403,9 +414,8 @@ void Window::doPaint() {
     }
 
     if (bufferedRendering) {
-        auto device = getRenderDevice();
         if (!m_bufferedFrameTarget) {
-            m_bufferedFrameTarget = (*device)->createImageTarget(targetSize);
+            m_bufferedFrameTarget = renderDevice()->createImageTarget(targetSize);
             textureReset          = true;
         } else {
             if (targetSize != m_bufferedFrameTarget->size()) {
@@ -567,9 +577,8 @@ OSWindowHandle Window::getHandle() const {
 void Window::initializeRenderer() {
     if (m_target)
         return;
-    auto device = getRenderDevice();
-    m_encoder   = (*device)->createEncoder();
-    m_target    = (*device)->createWindowTarget(this);
+    m_encoder = renderDevice()->createEncoder();
+    m_target  = renderDevice()->createWindowTarget(this);
     m_target->setVSyncInterval(m_syncInterval);
 }
 

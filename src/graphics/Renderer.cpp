@@ -33,23 +33,24 @@ ImageBackend::~ImageBackend() = default;
 static RC<RenderDevice> defaultDevice;
 
 #ifdef BRISK_D3D11
-expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(
-    RendererDeviceSelection deviceSelection);
+expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(RendererDeviceSelection deviceSelection,
+                                                                      OSDisplayHandle display);
 #endif
 
 #ifdef BRISK_WEBGPU
 expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceWebGPU(
-    RendererDeviceSelection deviceSelection);
+    RendererDeviceSelection deviceSelection, OSDisplayHandle display);
 #endif
 
 expected<RC<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
-                                                                 RendererDeviceSelection deviceSelection) {
+                                                                 RendererDeviceSelection deviceSelection,
+                                                                 OSDisplayHandle display) {
 #ifdef BRISK_D3D11
     if (backend == RendererBackend::D3D11)
-        return createRenderDeviceD3D11(deviceSelection);
+        return createRenderDeviceD3D11(deviceSelection, display);
 #endif
 #ifdef BRISK_WEBGPU
-    return createRenderDeviceWebGPU(deviceSelection);
+    return createRenderDeviceWebGPU(deviceSelection, display);
 #else
     return nullptr;
 #endif
@@ -59,8 +60,8 @@ expected<RC<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend
 #endif
 }
 
-static RendererBackend defaultBackend          = RendererBackend::Default;
-static RendererDeviceSelection deviceSelection = RendererDeviceSelection::HighPerformance;
+RendererBackend defaultBackend          = RendererBackend::Default;
+RendererDeviceSelection deviceSelection = RendererDeviceSelection::HighPerformance;
 
 void setRenderDeviceSelection(RendererBackend backend, RendererDeviceSelection selection) {
     defaultBackend  = backend;
@@ -69,10 +70,10 @@ void setRenderDeviceSelection(RendererBackend backend, RendererDeviceSelection s
 
 static std::recursive_mutex mutex;
 
-expected<RC<RenderDevice>, RenderDeviceError> getRenderDevice() {
+expected<RC<RenderDevice>, RenderDeviceError> getRenderDevice(OSDisplayHandle display) {
     std::lock_guard lk(mutex);
     if (!defaultDevice) {
-        auto device = createRenderDevice(defaultBackend, deviceSelection);
+        auto device = createRenderDevice(defaultBackend, deviceSelection, display);
         if (!device)
             return device;
         return defaultDevice = *device;

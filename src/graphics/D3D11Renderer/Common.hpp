@@ -75,4 +75,6 @@ struct BackBufferD3D11 {
     ComPtr<ID3D11DepthStencilView> dsv;
 };
 
+ComPtr<IDXGIAdapter> adapterForMonitor(HMONITOR monitor, ComPtr<IDXGIFactory> dxgiFactory);
+
 } // namespace Brisk

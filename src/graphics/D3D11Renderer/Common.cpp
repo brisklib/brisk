@@ -96,4 +96,29 @@ D3D11_TEXTURE2D_DESC texDesc(DXGI_FORMAT fmt, Size size, int samples, D3D11_USAG
     result.MiscFlags      = 0;
     return result;
 }
+
+ComPtr<IDXGIAdapter> adapterForMonitor(HMONITOR monitor, ComPtr<IDXGIFactory> dxgiFactory) {
+    for (UINT adapterIndex = 0;; ++adapterIndex) {
+        ComPtr<IDXGIAdapter> adapter;
+        if (FAILED(dxgiFactory->EnumAdapters(adapterIndex, adapter.ReleaseAndGetAddressOf()))) {
+            break; // No more adapters
+        }
+
+        for (UINT outputIndex = 0;; ++outputIndex) {
+            ComPtr<IDXGIOutput> output;
+            if (FAILED(adapter->EnumOutputs(outputIndex, output.ReleaseAndGetAddressOf()))) {
+                break; // No more outputs
+            }
+
+            DXGI_OUTPUT_DESC outputDesc;
+            output->GetDesc(&outputDesc);
+
+            if (outputDesc.Monitor == monitor) {
+                return adapter;
+            }
+        }
+    }
+
+    return nullptr;
+}
 } // namespace Brisk

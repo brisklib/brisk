@@ -60,7 +60,7 @@ public:
 
     void createImageBackend(RC<Image> image) final;
 
-    RenderDeviceD3D11(RendererDeviceSelection deviceSelection);
+    RenderDeviceD3D11(RendererDeviceSelection deviceSelection, OSDisplayHandle display);
     ~RenderDeviceD3D11();
 
 private:
@@ -70,6 +70,7 @@ private:
     friend class ImageBackendD3D11;
 
     RendererDeviceSelection m_deviceSelection;
+    OSDisplayHandle m_display;
     ComPtr<IDXGIFactory> m_factory;
     ComPtr<IDXGIFactory2> m_factory2;
     ComPtr<IDXGIDevice> m_dxgiDevice;

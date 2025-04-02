@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #include "RenderDevice.hpp"
 #include "WindowRenderTarget.hpp"
 #include "ImageRenderTarget.hpp"
@@ -48,6 +49,25 @@ bool RenderDeviceD3D11::createDevice(UINT flags) {
     HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(m_factory.ReleaseAndGetAddressOf()));
     if (!SUCCEEDED(hr))
         return false;
+
+    if (m_display) {
+        m_adapter = adapterForMonitor(m_display.hMonitor(), m_factory);
+        if (m_adapter) {
+            hr = D3D11CreateDevice(m_adapter.Get(),                             //
+                                   D3D_DRIVER_TYPE_UNKNOWN,                     //
+                                   0,                                           //
+                                   flags,                                       //
+                                   std::data(featureLevels),                    //
+                                   static_cast<UINT>(std::size(featureLevels)), //
+                                   D3D11_SDK_VERSION,                           //
+                                   m_device.ReleaseAndGetAddressOf(),           //
+                                   &m_featureLevel,                             //
+                                   m_context.ReleaseAndGetAddressOf()           //
+            );
+            if (SUCCEEDED(hr))
+                return true;
+        }
+    }
 
     if (m_deviceSelection != RendererDeviceSelection::Default) {
         ComPtr<IDXGIFactory6> factory6;
@@ -99,8 +119,8 @@ bool RenderDeviceD3D11::createDevice(UINT flags) {
     return false;
 }
 
-RenderDeviceD3D11::RenderDeviceD3D11(RendererDeviceSelection deviceSelection)
-    : m_deviceSelection(deviceSelection) {}
+RenderDeviceD3D11::RenderDeviceD3D11(RendererDeviceSelection deviceSelection, OSDisplayHandle display)
+    : m_deviceSelection(deviceSelection), m_display(display) {}
 
 status<RenderDeviceError> RenderDeviceD3D11::init() {
 #ifndef NDEBUG
