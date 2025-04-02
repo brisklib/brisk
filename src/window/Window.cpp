@@ -413,6 +413,18 @@ void Window::doPaint() {
         return;
     }
 
+    beforeFrame();
+
+    uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
+
+    m_renderStat.beginFrame(frameNumber);
+
+    bool renderFrame;
+    {
+        Stopwatch perfUpdate(m_renderStat.back().windowUpdate);
+        renderFrame = update();
+    }
+
     if (bufferedRendering) {
         if (!m_bufferedFrameTarget) {
             m_bufferedFrameTarget = renderDevice()->createImageTarget(targetSize);
@@ -427,59 +439,49 @@ void Window::doPaint() {
     }
     m_encoder->setVisualSettings(m_renderSettings);
 
-    uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
+    renderFrame = renderFrame && m_encoder && m_target;
 
-    m_renderStat.beginFrame(frameNumber);
-
-    m_encoder->beginFrame(frameNumber);
-
-    beforeFrame();
-
-    PerformanceDuration gpuDuration = PerformanceDuration(0);
-    {
+    if (renderFrame) {
+        m_encoder->beginFrame(frameNumber);
         {
-            Stopwatch perfUpdate(m_renderStat.back().windowUpdate);
-            update();
-        }
-        if (!m_encoder || !m_target) // The window stopped rendering
-            return;
-        RenderPipeline pipeline(m_encoder, target,
-                                bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
-                                noClipRect);
+            RenderPipeline pipeline(m_encoder, target,
+                                    bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
+                                    noClipRect);
 
-        Stopwatch perfPaint(m_renderStat.back().windowPaint);
-        paint(pipeline, !bufferedRendering || textureReset);
-        if (!bufferedRendering) {
-            paintDebug(pipeline);
-            paintImmediate(pipeline);
+            Stopwatch perfPaint(m_renderStat.back().windowPaint);
+            paint(pipeline, !bufferedRendering || textureReset);
+            if (!bufferedRendering) {
+                paintDebug(pipeline);
+                paintImmediate(pipeline);
+            }
         }
+
+        if (bufferedRendering) {
+            m_encoder->setVisualSettings(VisualSettings{});
+            RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent, noClipRect);
+            Stopwatch perfPaint(m_renderStat.back().windowPaint);
+            pipeline2.blit(m_bufferedFrameTarget->image());
+            paintDebug(pipeline2);
+            paintImmediate(pipeline2);
+        }
+        m_encoder->endFrame([this](uint64_t frameIndex, std::span<const std::chrono::nanoseconds> durations) {
+            if (m_renderStat.hasFrame(frameIndex)) {
+                m_renderStat[frameIndex].gpuRender =
+                    std::accumulate(durations.begin(), durations.end(), std::chrono::nanoseconds{ 0 });
+            }
+        });
     }
-
-    if (bufferedRendering) {
-        m_encoder->setVisualSettings(VisualSettings{});
-        RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent, noClipRect);
-        Stopwatch perfPaint(m_renderStat.back().windowPaint);
-        pipeline2.blit(m_bufferedFrameTarget->image());
-        paintDebug(pipeline2);
-        paintImmediate(pipeline2);
-    }
-
-    m_encoder->endFrame([this](uint64_t frameIndex, std::span<const std::chrono::nanoseconds> durations) {
-        if (m_renderStat.hasFrame(frameIndex)) {
-            m_renderStat[frameIndex].gpuRender =
-                std::accumulate(durations.begin(), durations.end(), std::chrono::nanoseconds{ 0 });
-        }
-    });
 
     m_lastFrameRenderTime =
         std::chrono::duration_cast<std::chrono::microseconds>(high_res_clock::now() - renderStart);
 
-    {
+    if (renderFrame) {
         m_target->present();
-        m_renderStat.back().fullFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            FractionalSeconds{ m_frameTimePredictor->markFrameTime() });
     }
-    if (m_captureCallback) {
+    m_renderStat.back().fullFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        FractionalSeconds{ m_frameTimePredictor->markFrameTime() });
+
+    if (m_captureCallback && renderFrame) {
         BRISK_ASSERT(bufferedRendering);
         m_encoder->wait();
         auto captureCallback    = std::move(m_captureCallback);
@@ -737,7 +739,9 @@ void Window::onWindowResized(Size windowSize, Size framebufferSize) {}
 
 void Window::onWindowMoved(Point position) {}
 
-void Window::update() {}
+bool Window::update() {
+    return false;
+}
 
 void Window::paint(RenderContext& context, bool fullRepaint) {}
 
