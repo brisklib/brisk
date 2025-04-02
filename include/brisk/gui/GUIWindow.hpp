@@ -55,7 +55,7 @@ protected:
     ColorW m_backgroundColor = Palette::black;
     WindowFit m_windowFit    = WindowFit::MinimumSize;
 
-    void update() override;
+    bool update() override;
     void paint(RenderContext& context, bool fullRepaint) override;
     void paintImmediate(RenderContext& context) override;
     virtual void rescale();

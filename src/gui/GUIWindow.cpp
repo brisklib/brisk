@@ -171,7 +171,7 @@ void GUIWindow::paintImmediate(RenderContext& context) {
     }
 }
 
-void GUIWindow::update() {
+bool GUIWindow::update() {
     m_unhandledEvents.clear();
     InputQueueScope inputQueueScope(&m_inputQueue);
     m_tree.setViewportRectangle(getFramebufferBounds());
@@ -187,6 +187,7 @@ void GUIWindow::update() {
     if (m_tree.layoutCounter() != layoutCounter && m_tree.root() && m_windowFit != WindowFit::None) {
         updateWindowLimits();
     }
+    return !m_tree.paintRect().empty();
 }
 
 void GUIWindow::paint(RenderContext& context, bool fullRepaint) {

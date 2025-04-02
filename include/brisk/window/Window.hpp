@@ -282,7 +282,7 @@ protected:
     RenderStat m_renderStat;
     RC<RenderDevice> m_renderDevice;
     RC<RenderDevice> renderDevice();
-    virtual void update();
+    virtual bool update();
     virtual void paint(RenderContext& context, bool fullRepaint);
     virtual void paintImmediate(RenderContext& context);
     virtual void beforeFrame();
