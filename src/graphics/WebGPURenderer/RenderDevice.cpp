@@ -140,10 +140,9 @@ bool RenderDeviceWebGPU::createDevice() {
 
     wgpu::DeviceDescriptor deviceDesc{};
     static const wgpu::FeatureName feat[] = {
-        wgpu::FeatureName::DualSourceBlending,
-        wgpu::FeatureName::DawnNative,
-        wgpu::FeatureName::Float32Filterable,
-        wgpu::FeatureName::TimestampQuery,
+        wgpu::FeatureName::DualSourceBlending, wgpu::FeatureName::DawnNative,
+        wgpu::FeatureName::Float32Filterable,  wgpu::FeatureName::Float32Blendable,
+        wgpu::FeatureName::TimestampQuery, // < Must be last (optional)
     };
     deviceDesc.requiredFeatureCount = std::size(feat);
     deviceDesc.requiredFeatures     = feat;
