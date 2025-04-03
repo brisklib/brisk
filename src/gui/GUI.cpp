@@ -919,6 +919,7 @@ void Widget::doRefresh() {
     if (m_autoHint && !m_isHintVisible && !m_hint.empty() && m_hoverTime >= 0.0 &&
         frameStartTime - m_hoverTime >= 0.6) {
         m_isHintVisible = true;
+        invalidate();
         requestHint();
     }
     onRefresh();
@@ -1286,17 +1287,19 @@ void Widget::processEvent(Event& event) {
     if (event.type() == EventType::MouseExited) {
         m_mousePos  = std::nullopt;
         m_hoverTime = -1.0;
-        if (m_autoHint)
+        if (m_autoHint && m_isHintVisible) {
             m_isHintVisible = false;
-        invalidate();
+            invalidate();
+        }
     } else if (event.type() == EventType::MouseEntered) {
         auto mouse = event.as<EventMouse>();
         m_mousePos = mouse->point;
         if (m_hoverTime < 0.0) {
             m_hoverTime = frameStartTime;
-            if (m_autoHint)
+            if (m_autoHint && m_isHintVisible) {
                 m_isHintVisible = false;
-            invalidate();
+                invalidate();
+            }
         }
     } else if (auto mouse = event.as<EventMouse>()) {
         m_mousePos = mouse->point;
@@ -2999,6 +3002,8 @@ Rectangle Widget::clipRect() const noexcept {
 }
 
 static Rectangle adjustForShadowSize(RectangleF rect, float shadowSize) {
+    if (rect.empty())
+        return Rectangle{};
     RectangleF result = rect.withMargin(std::ceil(shadowSize + 1.f));
     return result.roundOutward();
 }
