@@ -95,11 +95,12 @@ protected:
     Font m_cachedFont{};
 
     double m_blinkTime            = 0.0;
+    bool m_blinkState             = true;
     int32_t m_startCursorDragging = 0;
     bool m_multiline              = false;
+    void resetBlinking();
     void updateGraphemes();
     void makeCursorVisible(uint32_t textLen);
-
     void selectAll(const std::u32string& text);
     void deleteSelection(std::u32string& text);
     void pasteFromClipboard(std::u32string& text);
