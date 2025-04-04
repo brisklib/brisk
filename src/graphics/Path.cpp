@@ -264,11 +264,14 @@ RectangleF Path::boundingBoxApprox() const {
     return result;
 }
 
-static bool comparePoints(const std::vector<VPointF>& a, const std::vector<VPointF>& b) {
+static bool comparePoints(const std::vector<VPointF>& a, const std::vector<VPointF>& b, SizeF tolerance) {
     if (a.size() != b.size())
         return false;
+
     for (size_t i = 0; i < a.size(); ++i) {
-        if (!fuzzyCompare(a[i], b[i]))
+        if (std::abs(a[i].x() - b[i].x()) > tolerance.x)
+            return false;
+        if (std::abs(a[i].y() - b[i].y()) > tolerance.y)
             return false;
     }
     return true;
@@ -303,15 +306,16 @@ std::optional<std::tuple<RectangleF, float, bool>> Path::asRoundRectangle() cons
     };
     if (rect.width() < 0)
         return std::nullopt;
-    float rx = pts[5].x() - pts[8].x();
-    float ry = pts[4].y() - pts[1].y();
-    if (!vCompare(rx, ry))
+    float rx   = pts[5].x() - pts[8].x();
+    float ry   = pts[4].y() - pts[1].y();
+    float side = std::max(rect.width(), rect.height());
+    if (!vCompare(rx / side, ry / side))
         return std::nullopt;
     float kappa   = (pts[14].x() - pts[13].x()) / (pts[15].x() - pts[13].x());
     bool squircle = kappa > 0.6f;
     VPath path;
     path.addRoundRect(v(rect), rx, squircle);
-    if (comparePoints(path.points(), r->points()))
+    if (comparePoints(path.points(), r->points(), rect.size() * 0.001f))
         return std::make_tuple(rect, rx, squircle);
 
     return std::nullopt;
@@ -351,7 +355,7 @@ std::optional<RectangleF> Path::asCircle() const {
     };
     VPath path;
     path.addOval(v(rect));
-    if (comparePoints(path.points(), r->points()))
+    if (comparePoints(path.points(), r->points(), rect.size() * 0.001f))
         return rect;
 
     return std::nullopt;
