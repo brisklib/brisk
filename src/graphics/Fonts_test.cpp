@@ -646,6 +646,13 @@ I	Ì	Î	Ĭ	I̊	I̋	Ï	I̧	Ǐ	Ĩ	Í	Ḯ	Í̈
         fontManager->testRender(image, run, { 5, 42 });
     });
 
+    visualTestMono("wrapSpaces", { 64, 64 }, [&](RC<Image> image) {
+        Font font{ "lato", 16.f };
+        font.lineHeight = 0.8f;
+        auto run = fontManager->prepare(font, U"1 2  3   4    5     6      ", 41);
+        fontManager->testRender(image, run, { 3, 13 }, TestRenderFlags::TextBounds, { 3 + 41 });
+    });
+
     if (icuAvailable) {
         visualTestMono("mixed", { 512, 64 }, [&](RC<Image> image) {
             Font font{ "noto", 36.f };
