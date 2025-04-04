@@ -1126,10 +1126,13 @@ static void showDebugBorder(Canvas& canvas, Rectangle rect, double elapsed, Colo
         alpha       = std::pow(alpha, 4.0);
         canvas.setStrokeColor(color.multiplyAlpha(alpha));
         canvas.setStrokeWidth(0.5_dp);
-        canvas.strokeRect(rect, dp(5));
+        float radius = std::min(dp(5), rect.size().shortestSide() * 0.5f);
+        canvas.strokeRect(rect, radius);
         Path path;
         path.moveTo(rect.at(0, 0));
         path.lineTo(rect.at(1, 1));
+        canvas.strokePath(std::move(path));
+        path = {};
         path.moveTo(rect.at(1, 0));
         path.lineTo(rect.at(0, 1));
         canvas.strokePath(std::move(path));
