@@ -171,8 +171,10 @@ void WidgetTree::update() {
 }
 
 Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint) {
-    m_fullRepaint       = fullRepaint;
-    Rectangle paintRect = this->paintRect();
+    bool debugBoundaries   = Internal::debugBoundaries;
+    m_fullRepaint          = fullRepaint || debugBoundaries || m_savedDebugBoundaries;
+    m_savedDebugBoundaries = debugBoundaries;
+    Rectangle paintRect    = this->paintRect();
 
     if (paintRect.empty()) {
         groupsAfterFrame();
