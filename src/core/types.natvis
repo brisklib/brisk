@@ -119,6 +119,7 @@
         </Expand>
     </Type>
     <Type Name="Brisk::LengthOf&lt;Brisk::LengthUnit&gt;">
+        <Intrinsic Name="value" Expression="((m_packed &gt;&gt; 31) ? -1 : 1) * ((m_packed &amp; 0x7FFFF0) | (1 &lt;&lt; 23)) / (float)(1 &lt;&lt; 23) * (1 &lt;&lt; (((m_packed &gt;&gt; 23) &amp; 0xFF) - 127))"/>
         <DisplayString Condition="m_packed == 0x7fc00000">Undefined</DisplayString>
         <DisplayString Condition="m_packed == 0x7fc00001">Auto</DisplayString>
         <DisplayString Condition="(m_packed &amp; 0xFFFFFFF0) != 0x7fc00000 &amp;&amp; (m_packed &amp; 0xF) == 0">{value()}px</DisplayString>
