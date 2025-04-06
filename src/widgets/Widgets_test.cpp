@@ -205,6 +205,32 @@ TEST_CASE("Widget ComboBox Color") {
                {}, { 360, 360 });
 }
 
+TEST_CASE("Widget ComboBox Gradient") {
+    widgetTest("widget-combobox-gradient",
+               rcnew ComboBox{
+                   rcnew ItemList{
+                       visible  = true,
+                       minWidth = 4.8_em,
+                       rcnew GradientView{ ColorStopArray{
+                           { 0.f, Palette::white },
+                           { 1.f, Palette::black },
+                       } },
+                       rcnew GradientView{ ColorStopArray{
+                           { 0.f, Palette::white },
+                           { 0.5f, Palette::blue },
+                           { 1.f, Palette::black },
+                       } },
+                       rcnew GradientView{ ColorStopArray{
+                           { 0.f, Palette::black },
+                           { 0.33f, Palette::red },
+                           { 0.67f, Palette::yellow },
+                           { 1.f, Palette::white },
+                       } },
+                   },
+               },
+               {}, { 360, 360 });
+}
+
 TEST_CASE("Widget Knob") {
     widgetTest("widget-knob", rcnew Knob{ value = 0.5f, minimum = 0, maximum = 1 });
 }

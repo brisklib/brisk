@@ -338,6 +338,12 @@ RC<const Stylesheet> stylesheet() {
             },
         },
         Style{
+            Type{ GradientView::widgetType },
+            {
+                minDimensions = { 2.4_em, 1.2_em },
+            },
+        },
+        Style{
             Type{ ColorView::widgetType },
             {
                 minDimensions = { 1.2_em, 1.2_em },

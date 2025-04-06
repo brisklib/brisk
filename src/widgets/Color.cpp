@@ -243,13 +243,17 @@ ColorButton::ColorButton(Construction construction, Value<ColorW> prop, bool alp
                           rcnew ColorPalette(prop) });
 }
 
-void GradientItem::paint(Canvas& canvas) const {
+void GradientView::paint(Canvas& canvas) const {
     canvas.setFillPaint(Gradient{ GradientType::Linear, RectangleF(m_rect).at(0.f, 0.5f),
                                   RectangleF(m_rect).at(1.f, 0.5f), gradient });
     canvas.fillRect(m_rect);
 }
 
-RC<Widget> GradientItem::cloneThis() const {
-    BRISK_CLONE_IMPLEMENTATION
+RC<Widget> GradientView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+
+GradientView::GradientView(Construction construction, ColorStopArray gradient,
+                           ArgumentsView<GradientView> args)
+    : Widget{ construction, nullptr }, gradient(std::move(gradient)) {
+    args.apply(this);
 }
 } // namespace Brisk
