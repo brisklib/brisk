@@ -1553,7 +1553,8 @@ template <typename T>
             return pvalue->load(std::memory_order::relaxed);
         },
         [pvalue](T newValue) {
-            bindings->assign(*pvalue, std::move(newValue));
+            pvalue->store(newValue, std::memory_order::relaxed);
+            bindings->notify(pvalue);
         },
         { toBindingAddress(pvalue) },
         toBindingAddress(pvalue),
@@ -1569,7 +1570,9 @@ template <typename T>
             return *pvalue;
         },
         [pvalue, notify = std::move(notify)](T newValue) {
-            if (bindings->assign(*pvalue, std::move(newValue))) {
+            T oldValue = pvalue->exchange(newValue, std::memory_order::relaxed);
+            if (oldValue != newValue) {
+                bindings->notify(pvalue);
                 notify();
             }
         },
