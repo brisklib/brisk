@@ -561,6 +561,7 @@ void Window::hide() {
 }
 
 void Window::close() {
+    mustBeUIThread();
     hide();
     m_closing = true; // forces application to remove this window from the windows list
     auto wk   = weak_from_this();

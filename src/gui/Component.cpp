@@ -64,8 +64,11 @@ void Component::onScaleChanged() {}
 void Component::beforeFrame() {}
 
 void Component::closeWindow() {
-    if (auto win = m_window.lock())
-        win->close();
+    if (auto win = m_window.lock()) {
+        uiScheduler->dispatch([win]() {
+            win->close();
+        });
+    }
 }
 
 } // namespace Brisk
