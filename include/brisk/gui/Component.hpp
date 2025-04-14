@@ -97,6 +97,8 @@ protected:
      */
     virtual void unhandledEvent(Event& event);
 
+    void handleDebugKeystrokes(Event& event);
+
     /**
      * @brief Called when the UI scale is changed.
      *

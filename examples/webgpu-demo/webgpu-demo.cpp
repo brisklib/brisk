@@ -196,6 +196,10 @@ public:
         window->windowFit = WindowFit::MinimumSize;
         window->setStyle(WindowStyle::Normal);
     }
+
+    void unhandledEvent(Event& event) {
+        handleDebugKeystrokes(event);
+    }
 };
 
 } // namespace Brisk
@@ -204,7 +208,8 @@ using namespace Brisk;
 
 int briskMain() {
     GUIApplication application;
-    Internal::bufferedRendering = false;
+    Internal::bufferedRendering     = false;
+    Internal::forceRenderEveryFrame = true;
     setRenderDeviceSelection(RendererBackend::WebGPU, RendererDeviceSelection::HighPerformance);
 
     return application.run(createComponent<AppComponent>());

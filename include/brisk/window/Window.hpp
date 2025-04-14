@@ -94,6 +94,7 @@ RC<Window> currentWindowPtr();
 
 /// Default value for Window::bufferedRendering
 extern constinit bool bufferedRendering;
+extern constinit bool forceRenderEveryFrame;
 
 } // namespace Internal
 
@@ -191,6 +192,9 @@ public:
     bool bufferedRendering() const noexcept;
     void setBufferedRendering(bool bufferedRendering);
 
+    bool forceRenderEveryFrame() const noexcept;
+    void setForceRenderEveryFrame(bool forceRenderEveryFrame);
+
     void captureFrame(function<void(RC<Image>)> callback);
 
     RC<WindowRenderTarget> target() const;
@@ -280,6 +284,7 @@ protected:
     VisualSettings m_renderSettings{};
     std::atomic_bool m_rendering{ false }; /// true if rendering is active
     std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
+    std::atomic_bool m_forceRenderEveryFrame{ Internal::forceRenderEveryFrame };
     RenderStat m_renderStat;
     RC<RenderDevice> m_renderDevice;
     RC<RenderDevice> renderDevice();

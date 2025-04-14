@@ -50,7 +50,8 @@ static BindingRegistration frameStartTime_reg{ &frameStartTime, nullptr };
 
 namespace Internal {
 
-constinit bool bufferedRendering = true;
+constinit bool bufferedRendering     = true;
+constinit bool forceRenderEveryFrame = false;
 
 std::atomic_bool debugShowRenderTimeline{ false };
 Window* currentWindow = nullptr;
@@ -310,18 +311,18 @@ void Window::paintStat(Canvas& canvas, Rectangle rect) {
     canvas.fillRect(rect);
     Rectangle graphRect   = rect.withPadding(150_idp, 12_idp, 0, 0);
     RenderDeviceInfo info = renderDevice()->info();
-    std::string status    = fmt::format("Brisk {} Window {}x{} Pixel {:.2f} Renderer {} GPU {}",
-                                        BRISK_VERSION
+    std::string status =
+        fmt::format("Brisk {} Window {}x{} Pixel {:.2f} Renderer {} GPU {} Buffered: {} EveryFrame: {}",
+                    BRISK_VERSION
 #ifdef BRISK_DEBUG
-                                     " [Debug]"
+                    " [Debug]"
 #else
-                                     " [Optimized]"
+                    " [Optimized]"
 #endif
-                                     ,
-                                     m_framebufferSize.width, m_framebufferSize.height,
-                                     m_canvasPixelRatio.load(), info.api, info.device
-
-    );
+                    ,
+                    m_framebufferSize.width, m_framebufferSize.height, m_canvasPixelRatio.load(), info.api,
+                    info.device, m_bufferedRendering.load(std::memory_order_relaxed),
+                    m_forceRenderEveryFrame.load(std::memory_order_relaxed));
 
     uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
 
@@ -421,6 +422,7 @@ void Window::doPaint() {
         Stopwatch perfUpdate(m_renderStat.back().windowUpdate);
         renderFrame = update();
     }
+    renderFrame = renderFrame || m_forceRenderEveryFrame;
 
     if (bufferedRendering) {
         if (!m_bufferedFrameTarget) {
@@ -829,6 +831,14 @@ void Window::setBufferedRendering(bool bufferedRendering) {
 
 bool Window::bufferedRendering() const noexcept {
     return m_bufferedRendering;
+}
+
+void Window::setForceRenderEveryFrame(bool forceRenderEveryFrame) {
+    m_forceRenderEveryFrame = forceRenderEveryFrame;
+}
+
+bool Window::forceRenderEveryFrame() const noexcept {
+    return m_forceRenderEveryFrame;
 }
 
 RC<Display> Window::display() const {
