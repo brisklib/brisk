@@ -17,14 +17,22 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
+cmake_minimum_required(VERSION 3.22)
 
-add_subdirectory(calc)
-add_subdirectory(showcase)
-add_subdirectory(splash-screen)
-if (glfw3_FOUND)
-    add_subdirectory(own-window)
+project(splash-screen)
+
+if (NOT _BRISK_INCLUDE_DIR)
+    find_package(Brisk CONFIG REQUIRED)
 endif ()
 
-if (BRISK_WEBGPU)
-    add_subdirectory(webgpu-demo)
-endif ()
+add_executable(splash-screen splash-screen.cpp)
+
+target_link_libraries(splash-screen PRIVATE brisk-widgets brisk-executable)
+
+brisk_target_link_resource(
+    splash-screen PRIVATE image.webp
+    INPUT "${PROJECT_SOURCE_DIR}/splash.webp")
+
+brisk_target_remove_resources(splash-screen fonts/default/bold.ttf fonts/default/light.ttf)
+
+brisk_setup_executable(splash-screen)

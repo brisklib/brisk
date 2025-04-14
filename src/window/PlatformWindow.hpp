@@ -105,6 +105,8 @@ public:
     Size m_framebufferSize{ dontCare, dontCare };
     Point m_position{ dontCare, dontCare };
 
+    Size scaleSize(Size size) const;
+
     PointF mapFramebuffer(PointF pos);
 
     Bytes placement() const;
@@ -153,6 +155,7 @@ public:
     void windowStateChanged(bool isIconified, bool isMaximized);
 
     long long windowProc(MsgParams params);
+    Size toScreenPixels(Size size) const;
 
     static std::vector<PlatformWindow*> platformWindows;
 };

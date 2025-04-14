@@ -144,7 +144,8 @@ public:
     void setPosition(Point pos);
     void setSize(Size size);
     void setMinimumSize(Size size);
-    void setFixedSize(Size size);
+    void setMaximumSize(Size size);
+    void setMinimumMaximumSize(Size minSize, Size maxSize);
     Bytes windowPlacement() const;
     void setWindowPlacement(BytesView data);
 

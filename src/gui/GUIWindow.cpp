@@ -184,7 +184,7 @@ bool GUIWindow::update() {
         m_tree.update();
         setCursor(m_inputQueue.getCursorAtMouse().value_or(Cursor::Arrow));
     }
-    if (m_tree.layoutCounter() != layoutCounter && m_tree.root() && m_windowFit != WindowFit::None) {
+    if (m_tree.layoutCounter() != layoutCounter && m_tree.root()) {
         updateWindowLimits();
     }
     return !m_tree.paintRect().empty();
@@ -201,6 +201,8 @@ void GUIWindow::paint(RenderContext& context, bool fullRepaint) {
 }
 
 void GUIWindow::updateWindowLimits() {
+    if (m_windowFit == WindowFit::None)
+        return;
     if (!m_tree.root())
         rebuild();
     SizeF maxContentSize = m_tree.root()->computeSize(AvailableSize{ undef, undef });
@@ -218,7 +220,7 @@ void GUIWindow::updateWindowLimits() {
             if (m_windowFit == WindowFit::MinimumSize) {
                 setMinimumSize(newWindowSize);
             } else {
-                setFixedSize(newWindowSize);
+                setMinimumMaximumSize(newWindowSize, newWindowSize);
             }
         }
         if (RC<Window> owner = m_owner.lock()) {

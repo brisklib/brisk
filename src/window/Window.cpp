@@ -202,21 +202,18 @@ void Window::setPosition(Point pos) {
 }
 
 void Window::setMinimumSize(Size size) {
-    mustBeUIThread();
-    // Do not compare with current values of m_minimumSize to allow setting the same value
-    m_minimumSize = size;
-    m_maximumSize = Size{ PlatformWindow::dontCare, PlatformWindow::dontCare };
-    mainScheduler->dispatch([=, this] {
-        if (m_platformWindow)
-            m_platformWindow->setSizeLimits(m_minimumSize, m_maximumSize);
-    });
+    setMinimumMaximumSize(size, m_maximumSize);
 }
 
-void Window::setFixedSize(Size size) {
+void Window::setMaximumSize(Size size) {
+    setMinimumMaximumSize(m_minimumSize, size);
+}
+
+void Window::setMinimumMaximumSize(Size minSize, Size maxSize) {
     mustBeUIThread();
-    // Do not compare with current values of m_fixedSize to allow setting the same value
-    m_minimumSize = size;
-    m_maximumSize = size;
+    // Do not compare with current values of m_maximumSize to allow setting the same value
+    m_minimumSize = minSize;
+    m_maximumSize = maxSize;
     mainScheduler->dispatch([=, this] {
         if (m_platformWindow)
             m_platformWindow->setSizeLimits(m_minimumSize, m_maximumSize);
@@ -637,6 +634,7 @@ void Window::openWindow() {
     initializeRenderer();
     m_rendering = true;
     beforeOpeningWindow();
+    m_platformWindow->setSizeLimits(m_minimumSize, m_maximumSize);
     if (auto owner = m_owner.lock())
         m_platformWindow->setOwner(std::move(owner));
     m_platformWindow->updateVisibility();

@@ -365,10 +365,13 @@ long long PlatformWindow::windowProc(MsgParams params) {
     }
 
     case WM_GETMINMAXINFO: {
-        RECT frame          = { 0 };
-        MINMAXINFO* mmi     = (MINMAXINFO*)lParam;
-        const DWORD style   = getWindowStyle(m_windowStyle);
-        const DWORD exStyle = getWindowExStyle(m_windowStyle);
+        RECT frame               = { 0 };
+        MINMAXINFO* mmi          = (MINMAXINFO*)lParam;
+        const DWORD style        = getWindowStyle(m_windowStyle);
+        const DWORD exStyle      = getWindowExStyle(m_windowStyle);
+
+        const Size scaledMinSize = scaleSize(m_minSize);
+        const Size scaledMaxSize = scaleSize(m_maxSize);
 
         if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
             AdjustWindowRectExForDpi(&frame, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
@@ -376,15 +379,15 @@ long long PlatformWindow::windowProc(MsgParams params) {
             AdjustWindowRectEx(&frame, style, FALSE, exStyle);
         }
 
-        if (m_minSize.width != dontCare && m_minSize.height != dontCare) {
-            mmi->ptMinTrackSize.x = m_minSize.width + frame.right - frame.left;
-            mmi->ptMinTrackSize.y = m_minSize.height + frame.bottom - frame.top;
-        }
+        if (m_minSize.width != dontCare)
+            mmi->ptMinTrackSize.x = scaledMinSize.width + frame.right - frame.left;
+        if (m_minSize.height != dontCare)
+            mmi->ptMinTrackSize.y = scaledMinSize.height + frame.bottom - frame.top;
 
-        if (m_maxSize.width != dontCare && m_maxSize.height != dontCare) {
-            mmi->ptMaxTrackSize.x = m_maxSize.width + frame.right - frame.left;
-            mmi->ptMaxTrackSize.y = m_maxSize.height + frame.bottom - frame.top;
-        }
+        if (m_maxSize.width != dontCare)
+            mmi->ptMaxTrackSize.x = scaledMaxSize.width + frame.right - frame.left;
+        if (m_maxSize.height != dontCare)
+            mmi->ptMaxTrackSize.y = scaledMaxSize.height + frame.bottom - frame.top;
 
         if (m_windowStyle && WindowStyle::Undecorated) {
             const HMONITOR mh = MonitorFromWindow(m_data->hWnd, MONITOR_DEFAULTTONEAREST);
@@ -422,6 +425,8 @@ long long PlatformWindow::windowProc(MsgParams params) {
     case WM_DPICHANGED: {
         const float xscale = HIWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
         const float yscale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
+
+        m_scale            = std::max(xscale, yscale);
 
         // Resize windowed mode windows that either permit rescaling or that
         // need it to compensate for non-client area scaling
@@ -622,22 +627,19 @@ bool PlatformWindow::createWindow() {
     ChangeWindowMessageFilterEx(m_data->hWnd, WM_COPYDATA, MSGFLT_ALLOW, nullptr);
     ChangeWindowMessageFilterEx(m_data->hWnd, WM_COPYGLOBALDATA, MSGFLT_ALLOW, nullptr);
 
-    rect              = { 0, 0, size.width, size.height };
     const HMONITOR mh = MonitorFromWindow(m_data->hWnd, MONITOR_DEFAULTTONEAREST);
 
     SizeOf<UINT> dpi;
     GetDpiForMonitor(mh, MDT_EFFECTIVE_DPI, &dpi.x, &dpi.y);
-    m_scale = dpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
+    m_scale               = dpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
 
     // Adjust window rect to account for DPI scaling of the window frame and
     // (if enabled) DPI scaling of the content area
     // This cannot be done until we know what monitor the window was placed on
     // Only update the restored window rect as the window may be maximized
 
-    if (m_scale > 0.f) {
-        rect.right  = (int)(rect.right * m_scale);
-        rect.bottom = (int)(rect.bottom * m_scale);
-    }
+    const Size scaledSize = scaleSize(size);
+    rect                  = { 0, 0, scaledSize.width, scaledSize.height };
 
     if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
         AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
@@ -691,7 +693,8 @@ void PlatformWindow::setTitle(std::string_view title) {
 }
 
 void PlatformWindow::setSize(Size size) {
-    RECT rect = { 0, 0, size.x, size.y };
+    const Size scaledSize = scaleSize(size);
+    RECT rect             = { 0, 0, scaledSize.x, scaledSize.y };
 
     if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
         AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle),
@@ -721,9 +724,9 @@ void PlatformWindow::setPosition(Point point) {
 void PlatformWindow::setSizeLimits(Size minSize, Size maxSize) {
     m_minSize = minSize;
     m_maxSize = maxSize;
-
     if (m_minSize == Size{ dontCare, dontCare } && m_maxSize == Size{ dontCare, dontCare })
         return;
+
     RECT area;
     GetWindowRect(m_data->hWnd, &area);
     MoveWindow(m_data->hWnd, area.left, area.top, area.right - area.left, area.bottom - area.top, TRUE);

@@ -27,7 +27,7 @@ endif ()
 
 add_executable(webgpu-demo webgpu-demo.cpp)
 
-target_link_libraries(webgpu-demo PRIVATE brisk-widgets brisk-executable decNumber)
+target_link_libraries(webgpu-demo PRIVATE brisk-widgets brisk-executable)
 
 brisk_target_remove_resources(webgpu-demo fonts/default/bold.ttf fonts/default/light.ttf)
 

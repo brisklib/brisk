@@ -249,4 +249,12 @@ void PlatformWindow::windowStateChanged(bool isIconified, bool isMaximized) {
 PointF PlatformWindow::mapFramebuffer(PointF pos) {
     return pos * SizeF(m_framebufferSize) / SizeF(m_windowSize);
 }
+
+Size PlatformWindow::scaleSize(Size size) const {
+    if ((m_windowStyle && WindowStyle::ExactSize))
+        return size;
+    return { size.x >= 0 ? static_cast<int>(size.x * m_scale) : size.x,
+             size.y >= 0 ? static_cast<int>(size.y * m_scale) : size.y };
+}
+
 } // namespace Brisk
