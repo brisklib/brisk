@@ -49,8 +49,13 @@ struct tint_symbol_4 {
 
 VertexOutput vertexMain_inner(uint vidx, uint inst) {
   VertexOutput output = (VertexOutput)0;
-  float2 tint_symbol_5[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
-  float2 position = tint_symbol_5[vidx];
+  if ((asint(constants[1].x) == 6)) {
+    float2 tint_symbol_5[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
+    output.position = float4((tint_symbol_5[vidx] * 2.0f), 0.0f, 1.0f);
+    return output;
+  }
+  float2 tint_symbol_6[4] = {(-0.5f).xx, float2(0.5f, -0.5f), float2(-0.5f, 0.5f), (0.5f).xx};
+  float2 position = tint_symbol_6[vidx];
   float2 uv_coord = (position + (0.5f).xx);
   float4 outPosition = (0.0f).xxxx;
   bool tint_tmp = (asint(constants[1].x) == 0);

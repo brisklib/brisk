@@ -196,11 +196,17 @@ void RenderPipeline::setClipRect(Rectangle clipRect) {
 }
 
 void RenderPipeline::blit(RC<Image> image) {
+#if 1
+    RenderStateEx style(ShaderType::Blit, nullptr);
+    style.imageHandle = std::move(image);
+    command(std::move(style), {});
+#else
     RenderStateEx style(ShaderType::Rectangles, nullptr);
     RectangleF rect{ {}, image->size() };
     style.textureMatrix = Matrix{};
     style.imageHandle   = std::move(image);
     command(std::move(style), one(GeometryRectangle{ rect, CornersF(0.f) }));
+#endif
 }
 
 Rectangle RenderPipeline::clipRect() const {

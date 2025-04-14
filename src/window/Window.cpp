@@ -417,12 +417,12 @@ void Window::doPaint() {
 
     m_renderStat.beginFrame(frameNumber);
 
-    bool renderFrame;
+    bool paintFrame;
     {
         Stopwatch perfUpdate(m_renderStat.back().windowUpdate);
-        renderFrame = update();
+        paintFrame = update();
     }
-    renderFrame = renderFrame || m_forceRenderEveryFrame;
+    bool renderFrame = paintFrame || m_forceRenderEveryFrame;
 
     if (bufferedRendering) {
         if (!m_bufferedFrameTarget) {
@@ -442,7 +442,7 @@ void Window::doPaint() {
 
     if (renderFrame) {
         m_encoder->beginFrame(frameNumber);
-        {
+        if (paintFrame || !bufferedRendering || textureReset) {
             RenderPipeline pipeline(m_encoder, target,
                                     bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
                                     noClipRect);
@@ -457,7 +457,7 @@ void Window::doPaint() {
 
         if (bufferedRendering) {
             m_encoder->setVisualSettings(VisualSettings{});
-            RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent, noClipRect);
+            RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent);
             Stopwatch perfPaint(m_renderStat.back().windowPaint);
             pipeline2.blit(m_bufferedFrameTarget->image());
             paintDebug(pipeline2);

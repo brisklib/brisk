@@ -104,7 +104,34 @@ void RenderEncoderD3D11::end() {
 
 void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<const float> data) {
     ComPtr<ID3D11DeviceContext> context = m_device->m_context;
-    {
+
+#if 1
+    if (commands.size() == 1 && commands.front().shader == ShaderType::Blit) {
+
+        if (m_frameTimingIndex < m_frameTiming.size() && m_batchIndex < maxDurations) {
+            m_frameTiming[m_frameTimingIndex].begin(m_device->m_device.Get(), m_device->m_context.Get());
+        }
+        const BackBufferD3D11& backBuf = getBackBuffer(m_currentTarget.get());
+        Size size = static_cast<ImageBackendD3D11*>(commands.front().imageBackend)->m_image->size();
+        context->OMSetRenderTargets(0, nullptr, nullptr);
+        context->CopyResource(
+            backBuf.colorBuffer.Get(),
+            static_cast<ImageBackendD3D11*>(commands.front().imageBackend)->m_texture.Get());
+        ID3D11RenderTargetView* rtvList[1] = { backBuf.rtv.Get() };
+        context->OMSetRenderTargets(1, rtvList, nullptr);
+        if (m_frameTimingIndex < m_frameTiming.size() && m_batchIndex < maxDurations) {
+            m_frameTiming[m_frameTimingIndex].end(m_device->m_context.Get());
+        }
+        context->Flush();
+
+        ++m_batchIndex;
+        return;
+    }
+#endif
+
+    bool uploadResources = requiresAtlasOrGradient(commands);
+
+    if (uploadResources || !m_atlasTexture || !m_gradientTexture) {
         std::lock_guard lk(m_device->m_resources.mutex);
         updateAtlasTexture();
         updateGradientTexture();
@@ -137,6 +164,7 @@ void RenderEncoderD3D11::batch(std::span<const RenderState> commands, std::span<
 
     for (size_t i = 0; i < commands.size(); ++i) {
         auto& cmd                             = commands[i];
+
         [[maybe_unused]] size_t offsetInBatch = i % maxCommandsInBatch;
         if (i % maxCommandsInBatch == 0) {
             updateConstantBuffer(
@@ -262,7 +290,7 @@ void RenderEncoderD3D11::updateDataBuffer(std::span<const float> data) {
                                                           m_dataSRV.ReleaseAndGetAddressOf());
         CHECK_HRESULT(hr, return);
         m_dataBufferSize = data.size_bytes();
-    } else {
+    } else if (data.size_bytes() > 0) {
         D3D11_MAPPED_SUBRESOURCE mapped;
         HRESULT hr = m_device->m_context->Map(m_dataBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
         CHECK_HRESULT(hr, return);
