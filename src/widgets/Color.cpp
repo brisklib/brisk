@@ -188,9 +188,9 @@ ColorPalette::ColorPalette(Construction construction, ColorW color, ArgumentsVie
 }
 
 static ColorF adjustSwatch(ColorF color, float lightnessOffset, float chromaMultiplier) {
-    ColorOKLAB lab  = static_cast<ColorOKLAB>(color);
-    lightnessOffset = std::clamp(lightnessOffset, -100.f, +100.f);
-    float lumScale  = 1.f - std::abs(lightnessOffset) / 100.f;
+    Trichromatic lab = Trichromatic(color).convert(ColorSpace::OKLAB);
+    lightnessOffset  = std::clamp(lightnessOffset, -100.f, +100.f);
+    float lumScale   = 1.f - std::abs(lightnessOffset) / 100.f;
     if (lightnessOffset > 0) // 0..100 ->
         lab[0] = 100.f - (100.f - lab[0]) * lumScale;
     else if (lightnessOffset < 0)

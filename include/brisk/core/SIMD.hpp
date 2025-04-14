@@ -1150,6 +1150,15 @@ constexpr SIMD<T, N> sqrt(SIMD<T, N> val) {
     return result;
 }
 
+template <typename T, size_t N>
+constexpr SIMD<T, N> cbrt(SIMD<T, N> val) {
+    SIMD<T, N> result{};
+    for (size_t i = 0; i < N; i++) {
+        result[i] = std::cbrt(val.m_data[i]);
+    }
+    return result;
+}
+
 /**
  * @brief Computes the sine and cosine for each element of a SIMD object.
  *

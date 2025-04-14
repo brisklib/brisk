@@ -38,7 +38,7 @@ namespace Brisk {
  * and manipulate colors in different formats, including both linear and gamma-corrected
  * forms, as well as different color representation systems like CIELAB, LMS, etc.
  */
-enum class ColorSpace {
+enum class ColorSpace : uint8_t {
     /**
      * @brief sRGB color space in linear format.
      *
@@ -72,7 +72,7 @@ enum class ColorSpace {
     DisplayP3Gamma,
 
     /**
-     * @brief CIE XYZ color space.
+     * @brief CIE XYZ-D65 color space.
      *
      * The CIEXYZ color space represents color based on the CIE 1931 XYZ color model.
      * The X, Y, and Z components have ranges between 0 and 100.
@@ -122,6 +122,10 @@ enum class ColorSpace {
     LMS,
 };
 
+constexpr auto operator+(ColorSpace colorSpace) noexcept {
+    return static_cast<std::underlying_type_t<ColorSpace>>(colorSpace);
+}
+
 template <>
 inline constexpr std::initializer_list<NameValuePair<ColorSpace>> defaultNames<ColorSpace>{
     { "sRGBLinear", ColorSpace::sRGBLinear },
@@ -135,55 +139,6 @@ inline constexpr std::initializer_list<NameValuePair<ColorSpace>> defaultNames<C
     { "OKLCH", ColorSpace::OKLCH },
     { "LMS", ColorSpace::LMS },
 };
-
-namespace Internal {
-
-// Returns the next colorspace in chain towards XYZ
-constexpr ColorSpace nextColorSpace(ColorSpace space) {
-    switch (space) {
-    case ColorSpace::CIELCH:
-        return ColorSpace::CIELAB;
-    case ColorSpace::OKLCH:
-        return ColorSpace::OKLAB;
-    case ColorSpace::OKLAB:
-        return ColorSpace::LMS;
-    case ColorSpace::sRGBGamma:
-        return ColorSpace::sRGBLinear;
-    case ColorSpace::DisplayP3Gamma:
-        return ColorSpace::DisplayP3Linear;
-    default:
-        return ColorSpace::CIEXYZ;
-    }
-}
-
-template <ColorSpace Space, typename T>
-constexpr Range<SIMD<T, 3>, true> colorRange() {
-    if constexpr (Space == ColorSpace::CIEXYZ)
-        return {
-            SIMD<T, 3>{ T(0), T(0), T(0) },
-            SIMD<T, 3>{ T(100), T(100), T(100) },
-        };
-    else if constexpr (Space == ColorSpace::CIELAB || Space == ColorSpace::OKLAB)
-        return {
-            SIMD<T, 3>{ T(0), T(-200), T(-200) },
-            SIMD<T, 3>{ T(100), T(200), T(200) },
-        };
-    else if constexpr (Space == ColorSpace::CIELCH || Space == ColorSpace::OKLCH)
-        return {
-            SIMD<T, 3>{ T(0), T(0), T(0) },
-            SIMD<T, 3>{ T(100), T(100), T(360) },
-        };
-    else // sRGB, DisplayP3, LMS
-        return {
-            SIMD<T, 3>{ T(0), T(0), T(0) }, //
-            SIMD<T, 3>{ T(1), T(1), T(1) },
-        };
-}
-
-} // namespace Internal
-
-template <typename T, ColorSpace Space>
-struct Trichromatic;
 
 /**
  * @enum ColorConversionMode
@@ -218,59 +173,49 @@ enum class ColorConversionMode {
     Nearest,
 };
 
-template <ColorSpace DestSpace, typename T, ColorSpace Space>
-Trichromatic<T, DestSpace> convertColorSpace(Trichromatic<T, Space> color,
-                                             ColorConversionMode mode = ColorConversionMode::None);
-
-template <typename T, ColorSpace Space>
 struct Trichromatic {
-    static_assert(std::is_floating_point_v<T>);
 
-    constexpr Trichromatic() : value{ T(0), T(0), T(0) } {}
+    constexpr Trichromatic() : value{ 0, 0, 0 }, colorSpace(ColorSpace::sRGBLinear) {}
 
     constexpr Trichromatic(const Trichromatic&)            = default;
     constexpr Trichromatic& operator=(const Trichromatic&) = default;
 
-    constexpr Trichromatic(T c1, T c2, T c3) : value{ c1, c2, c3 } {}
+    constexpr Trichromatic(double c1, double c2, double c3, ColorSpace colorSpace = ColorSpace::sRGBLinear)
+        : value{ c1, c2, c3 }, colorSpace(colorSpace) {}
 
-    template <ColorSpace SrcSpace>
-    Trichromatic(Trichromatic<T, SrcSpace> color) {
-        Trichromatic<T, SrcSpace> color_copy =
-            color; // An extra copy is needed to work around a bug in VS2022
-        array = convertColorSpace<Space>(color_copy).array;
-    }
+    constexpr Trichromatic(SIMD<double, 3> value, ColorSpace colorSpace = ColorSpace::sRGBLinear)
+        : value{ value }, colorSpace(colorSpace) {}
 
-    decltype(auto) operator[](size_t index) const {
-        return value[index];
-    }
+    Trichromatic convert(ColorSpace destSpace) const;
 
-    decltype(auto) operator[](size_t index) {
-        return value[index];
-    }
+    Trichromatic convert(ColorSpace destSpace, ColorConversionMode mode) const;
 
-    constexpr Trichromatic clamped() const {
-        auto range = Internal::colorRange<Space, T>();
-        Trichromatic result;
-        result.value = clamp(value, range.min, range.max);
-        return result;
-    }
+    Trichromatic nearestValid() const;
 
-    constexpr bool isValid() const {
-        return clamped() == *this;
-    }
+    Trichromatic clamped() const;
+
+    // For sRGB and P3 colorspaces checks whether the values are in range [0,1]. For other color spaces always
+    // returns true.
+    bool inGamut() const;
 
     constexpr bool operator==(Trichromatic other) const {
         return value == other.value;
     }
 
-    constexpr bool operator!=(Trichromatic other) const {
-        return !operator==(other);
+    constexpr double operator[](size_t index) const noexcept {
+        return value[index];
+    }
+
+    constexpr double& operator[](size_t index) noexcept {
+        return value[index];
     }
 
     union {
-        SIMD<T, 3> value;
-        std::array<T, 3> array;
+        SIMD<double, 3> value;
+        std::array<double, 3> array;
     };
+
+    ColorSpace colorSpace = ColorSpace::sRGBLinear;
 };
 
 enum class Illuminant {
@@ -286,161 +231,6 @@ constexpr std::underlying_type_t<Illuminant> operator+(Illuminant value) {
 }
 
 namespace Internal {
-
-template <typename T>
-[[maybe_unused]] constexpr SIMD<T, 3> illuminants[] = {
-    { 96.422, 100.000, 82.521 },  // D50 illuminant, 2° observer
-    { 95.682, 100.000, 92.149 },  // D55 illuminant, 2° observer
-    { 95.047, 100.000, 108.883 }, // D65 illuminant, 2° observer
-    { 94.972, 100.000, 122.638 }, // D75 illuminant, 2° observer
-    { 100, 100, 100 },            // E illuminant, 2° observer
-};
-
-template <typename T, ColorSpace Space>
-inline void convertColorSpace(Trichromatic<T, Space>& dest, Trichromatic<T, Space> color) {
-    // no conversion needed
-    dest = color;
-}
-
-// xyz_to_rgb
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::sRGBLinear>& rgb,
-                       Trichromatic<T, ColorSpace::CIEXYZ> xyz) {
-    rgb.value = xyz[0] * SIMD<T, 3>{ T(+0.032406), T(-0.009689), T(+0.000557) } +
-                xyz[1] * SIMD<T, 3>{ T(-0.015372), T(+0.018758), T(-0.002040) } +
-                xyz[2] * SIMD<T, 3>{ T(-0.004986), T(+0.000415), T(+0.010570) };
-}
-
-// rgb_to_xyz
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::CIEXYZ>& xyz,
-                       Trichromatic<T, ColorSpace::sRGBLinear> rgb) {
-    xyz.value = (rgb[0] * SIMD<T, 3>{ T(41.24), T(21.26), T(01.93) } +
-                 rgb[1] * SIMD<T, 3>{ T(35.76), T(71.52), T(11.92) } +
-                 rgb[2] * SIMD<T, 3>{ T(18.05), T(07.22), T(95.05) });
-}
-
-// xyz_to_p3
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::DisplayP3Linear>& p3,
-                       Trichromatic<T, ColorSpace::CIEXYZ> xyz) {
-    p3.value = xyz[0] * SIMD<T, 3>{ 0.02493498, -0.0082949, 0.00035846 } +
-               xyz[1] * SIMD<T, 3>{ -0.00931385, 0.01762664, -0.00076172 } +
-               xyz[2] * SIMD<T, 3>{ -0.0040271, 0.00023625, 0.00956885 };
-}
-
-// p3_to_xyz
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::CIEXYZ>& xyz,
-                       Trichromatic<T, ColorSpace::DisplayP3Linear> p3) {
-    xyz.value = p3[0] * SIMD<T, 3>{ 48.6571, 22.8975, 0.0000 } +
-                p3[1] * SIMD<T, 3>{ 26.5668, 69.1739, 4.5113 } +
-                p3[2] * SIMD<T, 3>{ 19.8217, 7.9287, 104.3944 };
-}
-
-// xyz_to_lab
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::CIELAB>& lab, Trichromatic<T, ColorSpace::CIEXYZ> xyz) {
-    xyz.value /= SIMD<T, 3>(illuminants<T>[+Illuminant::D65]);
-    const SIMD<T, 3> w =
-        select(gt(xyz.value, SIMD<T, 3>(T(0.008856))), pow(xyz.value, SIMD<T, 3>(T(0.33333))),
-               (T(7.787) * xyz.value) + T(16) / T(116));
-
-    lab.value = SIMD<T, 3>{ (T(116) * w[1]) - T(16), T(500) * (w[0] - w[1]), T(200) * (w[1] - w[2]) };
-}
-
-// lab_to_xyz
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::CIEXYZ>& xyz, Trichromatic<T, ColorSpace::CIELAB> lab) {
-    const T y             = (lab[0] + T(16)) / T(116);
-    const SIMD<T, 3> w    = { lab[1] / T(500) + y, y, y - lab[2] / T(200) };
-
-    const SIMD<T, 3> cube = w * w * w;
-    xyz.value =
-        select(gt(cube, SIMD<T, 3>(T(216.0 / 24389))), cube, (w - T(16.0 / 116)) / (T(24389.0 / 27 / 116))) *
-        SIMD<T, 3>(illuminants<T>[+Illuminant::D65]);
-}
-
-template <typename T>
-static T fixHue(T value) {
-    if (value < 0)
-        return 360 + value;
-    return value;
-}
-
-// lab_to_lch
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::CIELCH>& lch,
-                       const Trichromatic<T, ColorSpace::CIELAB> lab) {
-    lch.value = SIMD<T, 3>{
-        lab[0],
-        std::sqrt(lab[1] * lab[1] + lab[2] * lab[2]),
-        fixHue(std::atan2(lab[2], lab[1]) * rad2deg<T>),
-    };
-}
-
-// lch_to_lab
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::CIELAB>& lab,
-                       const Trichromatic<T, ColorSpace::CIELCH> lch) {
-    lab.value = SIMD<T, 3>{
-        lch[0],
-        std::cos(lch[2] * deg2rad<T>) * lch[1],
-        std::sin(lch[2] * deg2rad<T>) * lch[1],
-    };
-}
-
-// xyz_to_lms
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::LMS>& lms, Trichromatic<T, ColorSpace::CIEXYZ> xyz) {
-    lms.value = xyz[0] * SIMD<T, 3>{ T(+0.008189330101), T(+0.000329845436), T(+0.000482003018) } +
-                xyz[1] * SIMD<T, 3>{ T(+0.003618667424), T(+0.009293118715), T(+0.002643662691) } +
-                xyz[2] * SIMD<T, 3>{ T(-0.001288597137), T(+0.000361456387), T(+0.006338517070) };
-}
-
-// lms_to_xyz
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::CIEXYZ>& xyz, Trichromatic<T, ColorSpace::LMS> lms) {
-    xyz.value = lms[0] * SIMD<T, 3>{ T(+122.70138511), T(-4.05801784), T(-7.63812845) } +
-                lms[1] * SIMD<T, 3>{ T(-55.77999806), T(+111.22568696), T(-42.14819784) } +
-                lms[2] * SIMD<T, 3>{ T(+28.12561490), T(-7.16766787), T(+158.61632204) };
-}
-
-// lms_to_oklab
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::OKLAB>& oklab, Trichromatic<T, ColorSpace::LMS> lms) {
-    lms.value   = copysign(pow(abs(lms.value), SIMD<T, 3>(T(0.33333333))), lms.value);
-    oklab.value = (lms[0] * SIMD<T, 3>{ T(21.04542553), T(197.79984951), T(2.59040371) } +
-                   lms[1] * SIMD<T, 3>{ T(79.36177850), T(-242.85922050), T(78.27717662) } +
-                   lms[2] * SIMD<T, 3>{ T(-0.40720468), T(45.05937099), T(-80.86757660) });
-}
-
-// oklab_to_lms
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::LMS>& lms, Trichromatic<T, ColorSpace::OKLAB> oklab) {
-    lms.value = oklab[0] * T(0.01) +
-                oklab[1] * SIMD<T, 3>{ T(0.003963377774), T(-0.001055613458), T(-0.000894841775) } +
-                oklab[2] * SIMD<T, 3>{ T(0.002158037573), T(-0.000638541728), T(-0.012914855480) };
-    lms.value = pow(lms.value, SIMD<T, 3>(3));
-}
-
-// oklab_to_oklch
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::OKLCH>& lch,
-                       const Trichromatic<T, ColorSpace::OKLAB> lab) {
-    lch.value = SIMD<T, 3>{ lab[0], std::sqrt(lab[1] * lab[1] + lab[2] * lab[2]),
-                            fixHue(std::atan2(lab[2], lab[1]) * rad2deg<T>) };
-}
-
-// oklch_to_oklab
-template <typename T>
-void convertColorSpace(Trichromatic<T, ColorSpace::OKLAB>& lab,
-                       const Trichromatic<T, ColorSpace::OKLCH> lch) {
-    lab.value =
-        SIMD<T, 3>{ lch[0], std::cos(lch[2] * deg2rad<T>) * lch[1], std::sin(lch[2] * deg2rad<T>) * lch[1] };
-}
-
-/////////////////////////////
 
 template <typename T, size_t N>
 constexpr BRISK_INLINE SIMD<T, N> srgbGammaToLinear(SIMD<T, N> x) {
@@ -483,125 +273,18 @@ BRISK_INLINE T srgbLinearToGamma(T v) {
     return srgbLinearToGamma(SIMD{ v }).front();
 }
 
-// rgb_to_rgbgam
-template <typename T>
-BRISK_INLINE void convertColorSpace(Trichromatic<T, ColorSpace::sRGBGamma>& rgbgam,
-                                    Trichromatic<T, ColorSpace::sRGBLinear> rgblin) {
-    rgbgam.value = srgbLinearToGamma(rgblin.value);
-}
-
-// rgbgam_to_rgb
-template <typename T>
-BRISK_INLINE void convertColorSpace(Trichromatic<T, ColorSpace::sRGBLinear>& rgblin,
-                                    Trichromatic<T, ColorSpace::sRGBGamma> rgbgam) {
-    rgblin.value = srgbGammaToLinear(rgbgam.value);
-}
-
-// p3_to_p3gam
-template <typename T>
-BRISK_INLINE void convertColorSpace(Trichromatic<T, ColorSpace::DisplayP3Gamma>& p3gam,
-                                    Trichromatic<T, ColorSpace::DisplayP3Linear> p3lin) {
-    p3gam.value = srgbLinearToGamma(p3lin.value);
-}
-
-// p3gam_to_p3
-template <typename T>
-BRISK_INLINE void convertColorSpace(Trichromatic<T, ColorSpace::DisplayP3Linear>& p3lin,
-                                    Trichromatic<T, ColorSpace::DisplayP3Gamma> p3gam) {
-    p3lin.value = srgbGammaToLinear(p3gam.value);
-}
-
-// anything to anything
-template <typename T, ColorSpace Space, ColorSpace DestSpace>
-BRISK_INLINE void convertColorSpace(Trichromatic<T, DestSpace>& dest, Trichromatic<T, Space> color) {
-    if constexpr (Space == ColorSpace::CIEXYZ) {
-        // From XYZ
-        Trichromatic<T, nextColorSpace(DestSpace)> tmp;
-        convertColorSpace(tmp, color);
-        convertColorSpace(dest, tmp);
-    } else if constexpr (DestSpace == ColorSpace::CIEXYZ) {
-        // To XYZ
-        Trichromatic<T, nextColorSpace(Space)> tmp;
-        convertColorSpace(tmp, color);
-        convertColorSpace(dest, tmp);
-    } else {
-        Trichromatic<T, ColorSpace::CIEXYZ> tmp;
-        convertColorSpace(tmp, color);
-        convertColorSpace(dest, tmp);
-    }
-}
-
 } // namespace Internal
 
-template <ColorSpace DestSpace, typename T, ColorSpace Space>
-BRISK_INLINE Trichromatic<T, DestSpace> convertColorSpace(Trichromatic<T, Space> color,
-                                                          ColorConversionMode mode) {
-    Trichromatic<T, DestSpace> result;
-    Internal::convertColorSpace(result, color);
-    switch (mode) {
-    case ColorConversionMode::Clamp:
-        return result.clamped();
-    case ColorConversionMode::Nearest:
-        if (result.isValid())
-            return result;
-        if constexpr (Space == ColorSpace::CIELAB || Space == ColorSpace::CIELCH ||
-                      Space == ColorSpace::OKLAB || Space == ColorSpace::OKLCH) {
-            T lowest  = T(0);
-            T highest = T(1);
-            for (int i = 0; i < 10; ++i) {
-                T middle                   = (lowest + highest) * T(0.5);
-                Trichromatic<T, Space> tmp = color;
-                if constexpr (Space == ColorSpace::CIELAB || Space == ColorSpace::OKLAB) {
-                    tmp[1] *= middle; // a
-                    tmp[2] *= middle; // b
-                } else {
-                    tmp[1] *= middle; // C
-                }
-                Internal::convertColorSpace(result, tmp);
-                if (result.isValid()) {
-                    lowest = middle;
-                } else {
-                    highest = middle;
-                }
-            }
-            return result.clamped();
-        } else {
-            // no chroma in source color, convert to L*ab
-            Trichromatic<T, ColorSpace::CIELAB> tmp;
-            Internal::convertColorSpace(tmp, color);
-            return convertColorSpace<DestSpace>(tmp, ColorConversionMode::Nearest);
-        }
-
-    default:
-        return result;
-    }
-}
-
-template <typename T = float>
-Trichromatic<T, ColorSpace::CIEXYZ> illuminant(Illuminant illum) {
-    Trichromatic<T, ColorSpace::CIEXYZ> result;
-    result.value = Internal::illuminants<T>[+illum];
-    return result;
-}
-
-using ColorSRGBLinear      = Trichromatic<float, ColorSpace::sRGBLinear>;
-using ColorSRGBGamma       = Trichromatic<float, ColorSpace::sRGBGamma>;
-using ColorDisplayP3Linear = Trichromatic<float, ColorSpace::DisplayP3Linear>;
-using ColorDisplayP3Gamma  = Trichromatic<float, ColorSpace::DisplayP3Gamma>;
-using ColorCIEXYZ          = Trichromatic<float, ColorSpace::CIEXYZ>;
-using ColorCIELAB          = Trichromatic<float, ColorSpace::CIELAB>;
-using ColorCIELCH          = Trichromatic<float, ColorSpace::CIELCH>;
-using ColorOKLAB           = Trichromatic<float, ColorSpace::OKLAB>;
-using ColorOKLCH           = Trichromatic<float, ColorSpace::OKLCH>;
-using ColorLMS             = Trichromatic<float, ColorSpace::LMS>;
+Trichromatic illuminant(Illuminant illum);
 
 } // namespace Brisk
 
-template <typename T, Brisk::ColorSpace Space>
-struct fmt::formatter<Brisk::Trichromatic<T, Space>> : fmt::formatter<std::string> {
+template <>
+struct fmt::formatter<Brisk::Trichromatic> : fmt::formatter<std::string> {
     template <typename FormatContext>
-    auto format(const Brisk::Trichromatic<T, Space>& value, FormatContext& ctx) const {
+    auto format(const Brisk::Trichromatic& value, FormatContext& ctx) const {
         return fmt::formatter<std::string>::format(
-            fmt::format("{}{{ {}, {}, {} }}", Space, value[0], value[1], value[2]), ctx);
+            fmt::format("{}{{ {:.5f}, {:.5f}, {:.5f} }}", value.colorSpace, value[0], value[1], value[2]),
+            ctx);
     }
 };
