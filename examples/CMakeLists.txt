@@ -20,6 +20,10 @@
 
 add_subdirectory(calc)
 add_subdirectory(showcase)
+add_subdirectory(splash-screen)
+if (glfw3_FOUND)
+    add_subdirectory(own-window)
+endif ()
 
 if (BRISK_WEBGPU)
     add_subdirectory(webgpu-demo)

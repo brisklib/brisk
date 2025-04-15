@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #include <brisk/window/Types.hpp>
 #include <brisk/window/Window.hpp>
 #include <brisk/graphics/internal/NSTypes.hpp>
@@ -458,8 +459,8 @@ void PlatformWindow::setPlacement(BytesView data) {
     // TODO: macOS window placement
 }
 
-void PlatformWindow::getHandle(OSWindowHandle& handle) {
-    handle.window = m_data->window;
+OSWindowHandle PlatformWindow::getHandle() const {
+    return OSWindowHandle(m_data->window);
 }
 
 PlatformWindow::~PlatformWindow() {
@@ -643,7 +644,7 @@ using namespace Brisk;
     const NSRect contentRect = [window->m_data->view frame];
     // NOTE: The returned location uses base 0,1 not 0,0
     const NSPoint pos        = [event locationInWindow];
-    return PointF(pos.x, contentRect.size.height - pos.y) * window->m_scale;
+    return PointF(pos.x, contentRect.size.height - pos.y);
 }
 
 - (void)mouseDown:(NSEvent*)event {
@@ -1127,5 +1128,9 @@ void PlatformWindow::setPosition(Point point) {
         const NSRect frameRect = [m_data->window frameRectForContentRect:dummyRect];
         [m_data->window setFrameOrigin:frameRect.origin];
     } // autoreleasepool
+}
+
+HiDPIMode hiDPIMode() {
+    return HiDPIMode::FramebufferScaling;
 }
 } // namespace Brisk

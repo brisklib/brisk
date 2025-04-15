@@ -137,21 +137,23 @@ protected:
                          ArgumentsView<ColorButton> args);
 };
 
-class WIDGET GradientItem final : public Widget {
-    BRISK_DYNAMIC_CLASS(GradientItem, Widget)
+class WIDGET GradientView final : public Widget {
+    BRISK_DYNAMIC_CLASS(GradientView, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "gradientitem";
 
     template <WidgetArgument... Args>
-    explicit GradientItem(ColorStopArray gradient, const Args&... args)
-        : Widget(Construction{ widgetType }, args...), gradient(std::move(gradient)) {
+    explicit GradientView(ColorStopArray gradient, const Args&... args)
+        : GradientView(Construction{ widgetType }, std::move(gradient), std::tuple{ args... }) {
         endConstruction();
     }
 
     ColorStopArray gradient;
 
 protected:
+    GradientView(Construction construction, ColorStopArray gradient, ArgumentsView<GradientView> args);
+
     void paint(Canvas& canvas) const override;
     Ptr cloneThis() const override;
 };

@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(
-    RendererDeviceSelection deviceSelection);
+expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(RendererDeviceSelection deviceSelection,
+                                                                      OSDisplayHandle display);
 
 } // namespace Brisk

@@ -84,7 +84,7 @@ public:
 
     void createImageBackend(RC<Image> image) final;
 
-    RenderDeviceWebGPU(RendererDeviceSelection deviceSelection);
+    RenderDeviceWebGPU(RendererDeviceSelection deviceSelection, OSDisplayHandle display);
     ~RenderDeviceWebGPU();
 
 private:
@@ -95,6 +95,7 @@ private:
     friend bool webgpuFromContext(RenderContext&, wgpu::Device&, wgpu::TextureView&);
 
     RendererDeviceSelection m_deviceSelection;
+    OSDisplayHandle m_display;
     std::unique_ptr<dawn::native::Instance> m_nativeInstance;
     dawn::native::Adapter m_nativeAdapter;
     wgpu::Instance m_instance;

@@ -201,7 +201,7 @@ void TextEditor::paint(Canvas& canvas) const {
     canvas.setFillColor(textColor);
     canvas.fillText(pos, m_preparedText);
 
-    if (isFocused() && std::fmod(frameStartTime - m_blinkTime, 1.0) < 0.5) {
+    if (isFocused() && m_blinkState) {
         uint32_t caretGrapheme =
             m_preparedText.characterToGrapheme(std::clamp(cursor, 0u, uint32_t(m_cachedText.size())));
 
@@ -314,13 +314,14 @@ void TextEditor::onEvent(Event& event) {
         event.stopPropagation();
     } else if (auto e = event.as<EventFocused>()) {
         if (e->keyboard) {
+            resetBlinking();
             selectAll();
         }
     }
     switch (const auto [flag, offset, mods] = event.dragged(m_mouseSelection); flag) {
     case DragEvent::Started: {
-        text        = utf8ToUtf32(m_text);
-        m_blinkTime = frameStartTime;
+        text = utf8ToUtf32(m_text);
+        resetBlinking();
         focus();
         cursor         = caretToOffset(Point(*event.as<EventMouse>()->downPoint));
         selectedLength = 0;
@@ -330,8 +331,8 @@ void TextEditor::onEvent(Event& event) {
         event.stopPropagation();
     } break;
     case DragEvent::Dragging: {
-        text                = utf8ToUtf32(m_text);
-        m_blinkTime         = frameStartTime;
+        text = utf8ToUtf32(m_text);
+        resetBlinking();
         const int endCursor = caretToOffset(Point(event.as<EventMouse>()->point));
         selectedLength      = m_startCursorDragging - endCursor;
         cursor              = endCursor;
@@ -348,9 +349,9 @@ void TextEditor::onEvent(Event& event) {
     }
 
     if (event.type() == EventType::KeyPressed || event.type() == EventType::CharacterTyped) {
-        text        = utf8ToUtf32(m_text);
+        text = utf8ToUtf32(m_text);
 
-        m_blinkTime = frameStartTime;
+        resetBlinking();
         normalizeCursor(text.size());
         if (auto ch = event.as<EventCharacterTyped>()) {
             typeCharacter(text, ch->character);
@@ -628,11 +629,17 @@ RC<Widget> PasswordEditor::cloneThis() const {
 
 void TextEditor::onRefresh() {
     Base::onRefresh();
-    if (frameStartTime - m_blinkTime > 1.0) {
-        m_blinkTime = fmod(m_blinkTime, 1.0);
-        invalidate();
-    } else if (frameStartTime - m_blinkTime > 0.5) {
-        invalidate();
+    if (isFocused()) {
+        if (frameStartTime - m_blinkTime > 0.5) {
+            m_blinkState = !m_blinkState;
+            m_blinkTime  = frameStartTime;
+            invalidate();
+        }
     }
+}
+
+void TextEditor::resetBlinking() {
+    m_blinkState = true;
+    m_blinkTime  = frameStartTime;
 }
 } // namespace Brisk

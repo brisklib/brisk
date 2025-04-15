@@ -57,7 +57,6 @@ void WindowApplication::serialize(const Serialization& serialization) {
     serialization(Value{ &discreteGPU }, "discreteGPU");
     serialization(Value{ &syncInterval }, "syncInterval");
     serialization(Value{ &uiScale }, "uiScale");
-    serialization(Value{ &useMonitorScale }, "useMonitorScale");
     serialization(Value{ &blueLightFilter }, "blueLightFilter");
     serialization(Value{ &globalGamma }, "globalGamma");
     serialization(Value{ &subPixelText }, "subPixelText");
@@ -134,9 +133,13 @@ void WindowApplication::processEvents(bool wait) {
         PlatformWindow::pollEvents();
 }
 
+constexpr static int maximumFPS = 120;
+
 void WindowApplication::renderWindows() {
     uiScheduler->process();
-    std::vector<RC<Window>> windows = this->windows();
+    using std::chrono::steady_clock;
+    steady_clock::time_point stopTime = steady_clock::now() + std::chrono::milliseconds(1000 / maximumFPS);
+    std::vector<RC<Window>> windows   = this->windows();
     for (RC<Window> w : windows) {
         if (w->m_rendering) {
             Window* curWindow = w.get();
@@ -150,6 +153,7 @@ void WindowApplication::renderWindows() {
     }
     afterRenderQueue->process();
     fonts->garbageCollectCache();
+    std::this_thread::sleep_until(stopTime);
 }
 
 void WindowApplication::uiThreadBody() {

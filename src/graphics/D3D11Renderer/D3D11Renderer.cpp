@@ -23,9 +23,9 @@
 
 namespace Brisk {
 
-expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(
-    RendererDeviceSelection deviceSelection) {
-    RC<RenderDeviceD3D11> device(new RenderDeviceD3D11(deviceSelection));
+expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(RendererDeviceSelection deviceSelection,
+                                                                      OSDisplayHandle display) {
+    RC<RenderDeviceD3D11> device(new RenderDeviceD3D11(deviceSelection, display));
     auto status = device->init();
     if (!status)
         return unexpected(status.error());

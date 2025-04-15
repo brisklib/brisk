@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #include "WindowRenderTarget.hpp"
 #include <brisk/graphics/OSWindowHandle.hpp>
 
@@ -27,10 +28,9 @@ namespace Brisk {
 
 void WindowRenderTargetWebGPU::createSurface(const OSWindow* window) {
     @autoreleasepool {
-        OSWindowHandle handle{};
-        window->getHandle(handle);
-        NSWindow* nsWindow = handle.window;
-        NSView* view       = [nsWindow contentView];
+        OSWindowHandle handle = window->getHandle();
+        NSWindow* nsWindow    = handle.nsWindow();
+        NSView* view          = [nsWindow contentView];
 
         [view setWantsLayer:YES];
         [view setLayer:[CAMetalLayer layer]];

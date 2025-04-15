@@ -21,7 +21,9 @@
 #include <brisk/core/System.hpp>
 #include <fmt/format.h>
 #include <brisk/core/internal/Debug.hpp>
-#include "windows.h"
+#define NOMINMAX 1
+#define WIN32_LEAN_AND_MEAN 1
+#include <windows.h>
 #include "winnt.h"
 
 namespace Brisk {

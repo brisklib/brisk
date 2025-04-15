@@ -64,8 +64,31 @@ void Component::onScaleChanged() {}
 void Component::beforeFrame() {}
 
 void Component::closeWindow() {
-    if (auto win = m_window.lock())
-        win->close();
+    if (auto win = m_window.lock()) {
+        uiScheduler->dispatch([win]() {
+            win->close();
+        });
+    }
 }
 
+void Component::handleDebugKeystrokes(Event& event) {
+    if (event.keyPressed(KeyCode::F2)) {
+        Internal::debugShowRenderTimeline = !Internal::debugShowRenderTimeline;
+    } else if (event.keyPressed(KeyCode::F3)) {
+        Internal::debugBoundaries = !Internal::debugBoundaries;
+    } else if (event.keyPressed(KeyCode::F4)) {
+        if (auto t = window() ? window()->target() : nullptr)
+            t->setVSyncInterval(1 - t->vsyncInterval());
+    } else if (event.keyPressed(KeyCode::F5)) {
+        tree().root()->dump();
+    } else if (event.keyPressed(KeyCode::F6)) {
+        Internal::debugDirtyRect = !Internal::debugDirtyRect;
+    } else if (event.keyPressed(KeyCode::F7)) {
+        if (auto w = window())
+            window()->setBufferedRendering(!window()->bufferedRendering());
+    } else if (event.keyPressed(KeyCode::F8)) {
+        if (auto w = window())
+            window()->setForceRenderEveryFrame(!window()->forceRenderEveryFrame());
+    }
+}
 } // namespace Brisk

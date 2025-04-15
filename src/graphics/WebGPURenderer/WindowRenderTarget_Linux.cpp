@@ -18,25 +18,32 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #include "WindowRenderTarget.hpp"
 #include <brisk/graphics/OSWindowHandle.hpp>
+
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_X11 1
+#define GLFW_EXPOSE_NATIVE_WAYLAND 1
+#include <GLFW/glfw3native.h>
+#undef None
 
 namespace Brisk {
 
 void WindowRenderTargetWebGPU::createSurface(const OSWindow* window) {
-    OSWindowHandle handle{};
-    window->getHandle(handle);
+    OSWindowHandle handle = window->getHandle();
 
     wgpu::SurfaceDescriptor surfaceDesc;
     wgpu::SurfaceDescriptorFromXlibWindow surfaceDescX11{};
     wgpu::SurfaceDescriptorFromWaylandSurface surfaceDescWL{};
-    if (handle.wayland) {
-        surfaceDescWL.display   = handle.wlDisplay;
-        surfaceDescWL.surface   = handle.wlWindow;
+
+    if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) {
+        surfaceDescWL.display   = glfwGetWaylandDisplay();
+        surfaceDescWL.surface   = glfwGetWaylandWindow(handle.glfwWindow());
         surfaceDesc.nextInChain = &surfaceDescWL;
     } else {
-        surfaceDescX11.display  = handle.x11Display;
-        surfaceDescX11.window   = handle.x11Window;
+        surfaceDescX11.display  = glfwGetX11Display();
+        surfaceDescX11.window   = glfwGetX11Window(handle.glfwWindow());
         surfaceDesc.nextInChain = &surfaceDescX11;
     }
     m_surface = m_device->m_instance.CreateSurface(&surfaceDesc);

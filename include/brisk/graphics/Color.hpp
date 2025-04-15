@@ -238,21 +238,20 @@ struct ColorOf {
      * @param source A `Trichromatic` object representing the source color.
      * @param a     The alpha channel value (default is the maximum value for type `U`).
      */
-    template <typename U, ColorSpace Space>
-    ColorOf(Trichromatic<U, Space> source, U a = maximum) {
-        if constexpr (std::is_floating_point_v<T>) {
-            if (colorSpace() == ColorSpace::sRGBGamma) {
-                Trichromatic<U, ColorSpace::sRGBGamma> srgb =
-                    convertColorSpace<ColorSpace::sRGBGamma>(source, ColorConversionMode::Nearest);
-                v = concat(srgb.value, SIMD<U, 1>(a));
-            } else {
-                Trichromatic<U, ColorSpace::sRGBLinear> srgb =
-                    convertColorSpace<ColorSpace::sRGBLinear>(source, ColorConversionMode::Nearest);
-                v = concat(srgb.value, SIMD<U, 1>(a));
-            }
-        } else {
-            *this = static_cast<ColorOf>(ColorOf<U, gamma>(source, a));
-        }
+    ColorOf(Trichromatic source, double a = 1.0,
+            ColorConversionMode conversionMode = ColorConversionMode::Clamp) {
+        ColorFloat tmp(static_cast<SIMD<Tfloat, 4>>(
+            concat(source.convert(colorSpace(), conversionMode).value, SIMD<double, 1>(a))));
+        *this = static_cast<ColorOf>(tmp);
+    }
+
+    /**
+     * @brief Gets the RGB components of the color as a 3-element SIMD vector.
+     *
+     * @return A SIMD vector representing the RGB components.
+     */
+    constexpr SIMD<T, 3> simd_rgb() const noexcept {
+        return std::bit_cast<SIMD<T, 3>>(v);
     }
 
     /**
@@ -265,27 +264,8 @@ struct ColorOf {
      * @tparam Space The color space for the resulting `Trichromatic`.
      * @return A `Trichromatic<U, Space>` object representing the same color.
      */
-    template <typename U, ColorSpace Space>
-    constexpr operator Trichromatic<U, Space>() const {
-        if constexpr (std::is_floating_point_v<T>) {
-            if (colorSpace() == ColorSpace::sRGBGamma) {
-                Trichromatic<float, ColorSpace::sRGBGamma> result;
-                result.value = simd_rgb();
-                return static_cast<Trichromatic<U, Space>>(result);
-            } else {
-                Trichromatic<float, ColorSpace::sRGBLinear> result;
-                result.value = simd_rgb();
-                return static_cast<Trichromatic<U, Space>>(result);
-            }
-        } else {
-            if (colorSpace() == ColorSpace::sRGBGamma) {
-                return static_cast<Trichromatic<U, Space>>(
-                    static_cast<Trichromatic<float, ColorSpace::sRGBGamma>>(ColorOf<float, gamma>(*this)));
-            } else {
-                return static_cast<Trichromatic<U, Space>>(
-                    static_cast<Trichromatic<float, ColorSpace::sRGBLinear>>(ColorOf<float, gamma>(*this)));
-            }
-        }
+    constexpr operator Trichromatic() const {
+        return Trichromatic(SIMD<double, 3>(ColorFloat(*this).simd_rgb()), colorSpace());
     }
 
     /**
@@ -360,10 +340,10 @@ struct ColorOf {
      * @return A `ColorOf` object representing the adjusted color.
      */
     constexpr ColorOf adjust(Tfloat lightnessOffset, Tfloat chromaMultiplier = 1.f) const noexcept {
-        ColorOKLAB lab = static_cast<ColorOKLAB>(ColorF(*this));
-        lab[0]         = std::clamp(lab[0] + lightnessOffset, 0.f, 100.f);
-        lab[1]         = lab[1] * chromaMultiplier;
-        lab[2]         = lab[2] * chromaMultiplier;
+        Trichromatic lab = Trichromatic(*this).convert(ColorSpace::OKLAB);
+        lab[0]           = std::clamp(lab[0] + lightnessOffset, 0., 100.);
+        lab[1]           = lab[1] * chromaMultiplier;
+        lab[2]           = lab[2] * chromaMultiplier;
         return ColorF(lab, ColorF(alpha).a);
     }
 
@@ -592,15 +572,6 @@ struct ColorOf {
         vec_type v;
         T array[4];
     };
-
-    /**
-     * @brief Gets the RGB components of the color as a 3-element SIMD vector.
-     *
-     * @return A SIMD vector representing the RGB components.
-     */
-    constexpr SIMD<T, 3> simd_rgb() const noexcept {
-        return std::bit_cast<SIMD<T, 3>>(v);
-    }
 
     /**
      * @brief Gets the alpha component of the color as a 1-element SIMD vector.

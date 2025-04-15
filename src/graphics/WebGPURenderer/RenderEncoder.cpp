@@ -84,8 +84,11 @@ void RenderEncoderWebGPU::end() {
 void RenderEncoderWebGPU::batch(std::span<const RenderState> commands, std::span<const float> data) {
     BRISK_ASSERT(m_currentTarget);
     BRISK_ASSERT(m_queue.Get());
+
+    bool uploadResources = requiresAtlasOrGradient(commands);
+
     // Preparing things
-    {
+    if (uploadResources || !m_atlasTexture || !m_gradientTexture) {
         std::lock_guard lk(m_device->m_resources.mutex);
         updateAtlasTexture();
         updateGradientTexture();
@@ -228,15 +231,18 @@ void RenderEncoderWebGPU::updateConstantBuffer(std::span<const RenderState> data
 
 // Update the data buffer and possibly recreate it.
 void RenderEncoderWebGPU::updateDataBuffer(std::span<const float> data) {
-    if (!m_dataBuffer || m_dataBuffer.GetSize() != data.size_bytes()) {
+    size_t alignedDataSize = std::max(data.size_bytes(), size_t(16));
+    if (!m_dataBuffer || m_dataBuffer.GetSize() != alignedDataSize) {
         wgpu::BufferDescriptor desc{
             .label = "DataBuffer",
             .usage = wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst,
-            .size  = data.size_bytes(),
+            .size  = alignedDataSize,
         };
         m_dataBuffer = m_device->m_device.CreateBuffer(&desc);
     }
-    m_queue.WriteBuffer(m_dataBuffer, 0, reinterpret_cast<const uint8_t*>(data.data()), data.size_bytes());
+    if (!data.empty())
+        m_queue.WriteBuffer(m_dataBuffer, 0, reinterpret_cast<const uint8_t*>(data.data()),
+                            data.size_bytes());
 }
 
 void RenderEncoderWebGPU::updateAtlasTexture() {

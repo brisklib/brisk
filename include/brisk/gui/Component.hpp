@@ -59,6 +59,13 @@ public:
      */
     RC<GUIWindow> makeWindow();
 
+    /**
+     * @brief Closes the associated window.
+     *
+     * This will hide and optionally destroy the window tied to the component.
+     */
+    void closeWindow();
+
 protected:
     friend class GUIWindow;
 
@@ -90,6 +97,8 @@ protected:
      */
     virtual void unhandledEvent(Event& event);
 
+    void handleDebugKeystrokes(Event& event);
+
     /**
      * @brief Called when the UI scale is changed.
      *
@@ -112,13 +121,6 @@ protected:
      * This is typically used for pre-frame updates, such as preparing data or animations.
      */
     virtual void beforeFrame();
-
-    /**
-     * @brief Closes the associated window.
-     *
-     * This will hide and optionally destroy the window tied to the component.
-     */
-    void closeWindow();
 
 private:
     WeakRC<GUIWindow> m_window;

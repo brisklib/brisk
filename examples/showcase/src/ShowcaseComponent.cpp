@@ -152,18 +152,7 @@ RC<Widget> ShowcaseComponent::build() {
 ShowcaseComponent::ShowcaseComponent() {}
 
 void ShowcaseComponent::unhandledEvent(Event& event) {
-    if (event.keyPressed(KeyCode::F2)) {
-        Internal::debugShowRenderTimeline = !Internal::debugShowRenderTimeline;
-    } else if (event.keyPressed(KeyCode::F3)) {
-        Internal::debugBoundaries = !Internal::debugBoundaries;
-    } else if (event.keyPressed(KeyCode::F4)) {
-        if (auto t = window() ? window()->target() : nullptr)
-            t->setVSyncInterval(1 - t->vsyncInterval());
-    } else if (event.keyPressed(KeyCode::F5)) {
-        tree().root()->dump();
-    } else if (event.keyPressed(KeyCode::F6)) {
-        Internal::debugDirtyRect = !Internal::debugDirtyRect;
-    }
+    handleDebugKeystrokes(event);
 }
 
 void ShowcaseComponent::configureWindow(RC<GUIWindow> window) {

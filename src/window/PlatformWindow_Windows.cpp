@@ -18,8 +18,10 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #define OEMRESOURCE
 
+#define NOMINMAX 1
 #include <windows.h>
 #include <windowsx.h>
 #include "ShellScalingApi.h"
@@ -363,10 +365,13 @@ long long PlatformWindow::windowProc(MsgParams params) {
     }
 
     case WM_GETMINMAXINFO: {
-        RECT frame          = { 0 };
-        MINMAXINFO* mmi     = (MINMAXINFO*)lParam;
-        const DWORD style   = getWindowStyle(m_windowStyle);
-        const DWORD exStyle = getWindowExStyle(m_windowStyle);
+        RECT frame               = { 0 };
+        MINMAXINFO* mmi          = (MINMAXINFO*)lParam;
+        const DWORD style        = getWindowStyle(m_windowStyle);
+        const DWORD exStyle      = getWindowExStyle(m_windowStyle);
+
+        const Size scaledMinSize = m_minSize;
+        const Size scaledMaxSize = m_maxSize;
 
         if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
             AdjustWindowRectExForDpi(&frame, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
@@ -374,15 +379,15 @@ long long PlatformWindow::windowProc(MsgParams params) {
             AdjustWindowRectEx(&frame, style, FALSE, exStyle);
         }
 
-        if (m_minSize.width != dontCare && m_minSize.height != dontCare) {
-            mmi->ptMinTrackSize.x = m_minSize.width + frame.right - frame.left;
-            mmi->ptMinTrackSize.y = m_minSize.height + frame.bottom - frame.top;
-        }
+        if (m_minSize.width != dontCare)
+            mmi->ptMinTrackSize.x = scaledMinSize.width + frame.right - frame.left;
+        if (m_minSize.height != dontCare)
+            mmi->ptMinTrackSize.y = scaledMinSize.height + frame.bottom - frame.top;
 
-        if (m_maxSize.width != dontCare && m_maxSize.height != dontCare) {
-            mmi->ptMaxTrackSize.x = m_maxSize.width + frame.right - frame.left;
-            mmi->ptMaxTrackSize.y = m_maxSize.height + frame.bottom - frame.top;
-        }
+        if (m_maxSize.width != dontCare)
+            mmi->ptMaxTrackSize.x = scaledMaxSize.width + frame.right - frame.left;
+        if (m_maxSize.height != dontCare)
+            mmi->ptMaxTrackSize.y = scaledMaxSize.height + frame.bottom - frame.top;
 
         if (m_windowStyle && WindowStyle::Undecorated) {
             const HMONITOR mh = MonitorFromWindow(m_data->hWnd, MONITOR_DEFAULTTONEAREST);
@@ -420,6 +425,8 @@ long long PlatformWindow::windowProc(MsgParams params) {
     case WM_DPICHANGED: {
         const float xscale = HIWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
         const float yscale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
+
+        m_scale            = std::max(xscale, yscale);
 
         // Resize windowed mode windows that either permit rescaling or that
         // need it to compensate for non-client area scaling
@@ -540,8 +547,8 @@ void PlatformWindow::setWindowIcon() {
     SendMessageW(m_data->hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 }
 
-void PlatformWindow::getHandle(OSWindowHandle& handle) {
-    handle.window = m_data->hWnd;
+OSWindowHandle PlatformWindow::getHandle() const {
+    return OSWindowHandle(m_data->hWnd);
 }
 
 Bytes PlatformWindow::placement() const {
@@ -594,12 +601,21 @@ bool PlatformWindow::createWindow() {
     Size size        = max(m_windowSize, Size{ 1, 1 });
     Point initialPos = m_position;
 
-    RECT rect        = { 0, 0, size.width, size.height };
+    HMONITOR primary = MonitorFromPoint({ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
+    SizeOf<UINT> primaryDpi;
+    GetDpiForMonitor(primary, MDT_EFFECTIVE_DPI, &primaryDpi.x, &primaryDpi.y);
+    m_scale       = primaryDpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
 
-    DWORD style      = getWindowStyle(m_windowStyle);
-    DWORD exStyle    = getWindowExStyle(m_windowStyle);
+    RECT rect     = { 0, 0, size.width, size.height };
 
-    AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+    DWORD style   = getWindowStyle(m_windowStyle);
+    DWORD exStyle = getWindowExStyle(m_windowStyle);
+
+    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+        AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, primaryDpi.x);
+    } else {
+        AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+    }
 
     std::wstring wideTitle = utf8ToWcs(m_window->m_title);
     m_data->hWnd = CreateWindowExW(exStyle, MAKEINTATOM(staticData.mainWindowClass), wideTitle.c_str(), style,
@@ -620,36 +636,33 @@ bool PlatformWindow::createWindow() {
     ChangeWindowMessageFilterEx(m_data->hWnd, WM_COPYDATA, MSGFLT_ALLOW, nullptr);
     ChangeWindowMessageFilterEx(m_data->hWnd, WM_COPYGLOBALDATA, MSGFLT_ALLOW, nullptr);
 
-    rect              = { 0, 0, size.width, size.height };
     const HMONITOR mh = MonitorFromWindow(m_data->hWnd, MONITOR_DEFAULTTONEAREST);
 
     SizeOf<UINT> dpi;
     GetDpiForMonitor(mh, MDT_EFFECTIVE_DPI, &dpi.x, &dpi.y);
-    m_scale = dpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
+    float newScale = dpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
+    if (newScale != m_scale) {
+        m_scale = newScale;
+        // Adjust window rect to account for DPI scaling of the window frame and
+        // (if enabled) DPI scaling of the content area
+        // This cannot be done until we know what monitor the window was placed on
+        // Only update the restored window rect as the window may be maximized
+        rect    = { 0, 0, size.width, size.height };
 
-    // Adjust window rect to account for DPI scaling of the window frame and
-    // (if enabled) DPI scaling of the content area
-    // This cannot be done until we know what monitor the window was placed on
-    // Only update the restored window rect as the window may be maximized
+        if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+            AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
+        } else {
+            AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+        }
 
-    if (m_scale > 0.f) {
-        rect.right  = (int)(rect.right * m_scale);
-        rect.bottom = (int)(rect.bottom * m_scale);
+        WINDOWPLACEMENT wp = { .length = sizeof(wp) };
+        GetWindowPlacement(m_data->hWnd, &wp);
+        OffsetRect(&rect, wp.rcNormalPosition.left - rect.left, wp.rcNormalPosition.top - rect.top);
+
+        wp.rcNormalPosition = rect;
+        wp.showCmd          = SW_HIDE;
+        SetWindowPlacement(m_data->hWnd, &wp);
     }
-
-    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
-        AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
-    } else {
-        AdjustWindowRectEx(&rect, style, FALSE, exStyle);
-    }
-
-    WINDOWPLACEMENT wp = { .length = sizeof(wp) };
-    GetWindowPlacement(m_data->hWnd, &wp);
-    OffsetRect(&rect, wp.rcNormalPosition.left - rect.left, wp.rcNormalPosition.top - rect.top);
-
-    wp.rcNormalPosition = rect;
-    wp.showCmd          = SW_HIDE;
-    SetWindowPlacement(m_data->hWnd, &wp);
 
     DragAcceptFiles(m_data->hWnd, TRUE);
 
@@ -719,9 +732,9 @@ void PlatformWindow::setPosition(Point point) {
 void PlatformWindow::setSizeLimits(Size minSize, Size maxSize) {
     m_minSize = minSize;
     m_maxSize = maxSize;
-
     if (m_minSize == Size{ dontCare, dontCare } && m_maxSize == Size{ dontCare, dontCare })
         return;
+
     RECT area;
     GetWindowRect(m_data->hWnd, &area);
     MoveWindow(m_data->hWnd, area.left, area.top, area.right - area.left, area.bottom - area.top, TRUE);
@@ -1025,6 +1038,10 @@ void PlatformWindow::updateVisibility() {
 /* static */ DblClickParams PlatformWindow::dblClickParams() {
     return { GetDoubleClickTime() / 1000.0,
              (GetSystemMetrics(SM_CXDOUBLECLK) + GetSystemMetrics(SM_CYDOUBLECLK)) / 2 / 2 };
+}
+
+HiDPIMode hiDPIMode() {
+    return HiDPIMode::ApplicationScaling;
 }
 
 } // namespace Brisk

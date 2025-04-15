@@ -171,7 +171,7 @@ void GUIWindow::paintImmediate(RenderContext& context) {
     }
 }
 
-void GUIWindow::update() {
+bool GUIWindow::update() {
     m_unhandledEvents.clear();
     InputQueueScope inputQueueScope(&m_inputQueue);
     m_tree.setViewportRectangle(getFramebufferBounds());
@@ -184,9 +184,10 @@ void GUIWindow::update() {
         m_tree.update();
         setCursor(m_inputQueue.getCursorAtMouse().value_or(Cursor::Arrow));
     }
-    if (m_tree.layoutCounter() != layoutCounter && m_tree.root() && m_windowFit != WindowFit::None) {
+    if (m_tree.layoutCounter() != layoutCounter && m_tree.root()) {
         updateWindowLimits();
     }
+    return !m_tree.paintRect().empty();
 }
 
 void GUIWindow::paint(RenderContext& context, bool fullRepaint) {
@@ -200,6 +201,8 @@ void GUIWindow::paint(RenderContext& context, bool fullRepaint) {
 }
 
 void GUIWindow::updateWindowLimits() {
+    if (m_windowFit == WindowFit::None)
+        return;
     if (!m_tree.root())
         rebuild();
     SizeF maxContentSize = m_tree.root()->computeSize(AvailableSize{ undef, undef });
@@ -207,17 +210,17 @@ void GUIWindow::updateWindowLimits() {
     Size framebufferSize = getFramebufferSize();
     Size windowSize      = getSize();
     if (windowSize.area() > 0 && framebufferSize.area() > 0) {
-        // convert physical pixels to screen
-        Size newWindowSize;
-        newWindowSize.x      = maxContentSize.x * windowSize.x / framebufferSize.x;
-        newWindowSize.y      = maxContentSize.y * windowSize.y / framebufferSize.y;
-        newWindowSize.width  = std::min(newWindowSize.width, 4096);
-        newWindowSize.height = std::min(newWindowSize.height, 4096);
+        // convert framebuffer pixels to screen
+        Size newWindowSize = convertUnit(Unit::Screen, maxContentSize, Unit::Framebuffer);
+        auto display       = this->display();
+        Size resolution    = display ? display->workarea().size() : Size{ 4096, 2048 };
+        newWindowSize      = min(newWindowSize, resolution);
+
         if (newWindowSize != windowSize) {
             if (m_windowFit == WindowFit::MinimumSize) {
                 setMinimumSize(newWindowSize);
             } else {
-                setFixedSize(newWindowSize);
+                setMinimumMaximumSize(newWindowSize, newWindowSize);
             }
         }
         if (RC<Window> owner = m_owner.lock()) {
@@ -240,7 +243,7 @@ GUIWindow::~GUIWindow() {
     beforeDestroying();
 }
 
-void GUIWindow::dpiChanged() {
+void GUIWindow::pixelRatioChanged() {
     rescale();
 }
 

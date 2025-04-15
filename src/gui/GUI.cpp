@@ -919,6 +919,7 @@ void Widget::doRefresh() {
     if (m_autoHint && !m_isHintVisible && !m_hint.empty() && m_hoverTime >= 0.0 &&
         frameStartTime - m_hoverTime >= 0.6) {
         m_isHintVisible = true;
+        invalidate();
         requestHint();
     }
     onRefresh();
@@ -1125,10 +1126,13 @@ static void showDebugBorder(Canvas& canvas, Rectangle rect, double elapsed, Colo
         alpha       = std::pow(alpha, 4.0);
         canvas.setStrokeColor(color.multiplyAlpha(alpha));
         canvas.setStrokeWidth(0.5_dp);
-        canvas.strokeRect(rect, dp(5));
+        float radius = std::min(dp(5), rect.size().shortestSide() * 0.5f);
+        canvas.strokeRect(rect, radius);
         Path path;
         path.moveTo(rect.at(0, 0));
         path.lineTo(rect.at(1, 1));
+        canvas.strokePath(std::move(path));
+        path = {};
         path.moveTo(rect.at(1, 0));
         path.lineTo(rect.at(0, 1));
         canvas.strokePath(std::move(path));
@@ -1286,17 +1290,19 @@ void Widget::processEvent(Event& event) {
     if (event.type() == EventType::MouseExited) {
         m_mousePos  = std::nullopt;
         m_hoverTime = -1.0;
-        if (m_autoHint)
+        if (m_autoHint && m_isHintVisible) {
             m_isHintVisible = false;
-        invalidate();
+            invalidate();
+        }
     } else if (event.type() == EventType::MouseEntered) {
         auto mouse = event.as<EventMouse>();
         m_mousePos = mouse->point;
         if (m_hoverTime < 0.0) {
             m_hoverTime = frameStartTime;
-            if (m_autoHint)
+            if (m_autoHint && m_isHintVisible) {
                 m_isHintVisible = false;
-            invalidate();
+                invalidate();
+            }
         }
     } else if (auto mouse = event.as<EventMouse>()) {
         m_mousePos = mouse->point;
@@ -2999,6 +3005,8 @@ Rectangle Widget::clipRect() const noexcept {
 }
 
 static Rectangle adjustForShadowSize(RectangleF rect, float shadowSize) {
+    if (rect.empty())
+        return Rectangle{};
     RectangleF result = rect.withMargin(std::ceil(shadowSize + 1.f));
     return result.roundOutward();
 }

@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #include <AppKit/AppKit.h>
 #include <brisk/window/Display.hpp>
 
@@ -112,6 +113,26 @@ public:
     int backingScaleFactor() const {
         std::shared_lock lk(m_mutex);
         return m_backingScaleFactor;
+    }
+
+    bool containsWindow(OSWindowHandle handle) const {
+        NSScreen* windowScreen = [handle.nsWindow() screen];
+        if (!windowScreen) {
+            return false;
+        }
+
+        // Get the display ID from the screen description
+        NSDictionary* screenDescription = [windowScreen deviceDescription];
+        NSNumber* screenNumber          = [screenDescription objectForKey:@"NSScreenNumber"];
+        if (!screenNumber) {
+            return false;
+        }
+
+        return (CGDirectDisplayID)[screenNumber unsignedIntValue] == m_dispId;
+    }
+
+    OSDisplayHandle getHandle() const {
+        return OSDisplayHandle(m_dispId);
     }
 
 private:

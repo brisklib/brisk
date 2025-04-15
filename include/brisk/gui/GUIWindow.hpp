@@ -38,7 +38,7 @@ class Component;
 
 class GUIWindow : public Window {
 public:
-    void dpiChanged() override;
+    void pixelRatioChanged() override;
     void rebuild();
     const std::string& getId() const;
     void setId(std::string id);
@@ -55,7 +55,7 @@ protected:
     ColorW m_backgroundColor = Palette::black;
     WindowFit m_windowFit    = WindowFit::MinimumSize;
 
-    void update() override;
+    bool update() override;
     void paint(RenderContext& context, bool fullRepaint) override;
     void paintImmediate(RenderContext& context) override;
     virtual void rescale();

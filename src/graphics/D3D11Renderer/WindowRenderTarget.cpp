@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #include "WindowRenderTarget.hpp"
 #include <brisk/graphics/OSWindowHandle.hpp>
 
@@ -30,8 +31,7 @@ WindowRenderTargetD3D11::WindowRenderTargetD3D11(RC<RenderDeviceD3D11> device, c
 
     m_device->incrementWindowTargets();
 
-    OSWindowHandle handle;
-    window->getHandle(handle);
+    OSWindowHandle handle   = window->getHandle();
     Size framebufferSize    = window->framebufferSize();
 
     // D3D11 doesn't use sRGB format for buffer itself, so we should specify sRGB for view
@@ -49,14 +49,14 @@ WindowRenderTargetD3D11::WindowRenderTargetD3D11(RC<RenderDeviceD3D11> device, c
         swapChainDesc1.Scaling     = DXGI_SCALING_NONE;
         swapChainDesc1.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-        hr = m_device->m_factory2->CreateSwapChainForHwnd(m_device->m_device.Get(), handle.window,
+        hr = m_device->m_factory2->CreateSwapChainForHwnd(m_device->m_device.Get(), handle.hWnd(),
                                                           &swapChainDesc1, nullptr, nullptr,
                                                           m_swapChain1.ReleaseAndGetAddressOf());
         if (FAILED(hr)) {
             // Try again with non-flip effect
             swapChainDesc1.Scaling    = DXGI_SCALING_STRETCH;
             swapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-            hr = m_device->m_factory2->CreateSwapChainForHwnd(m_device->m_device.Get(), handle.window,
+            hr = m_device->m_factory2->CreateSwapChainForHwnd(m_device->m_device.Get(), handle.hWnd(),
                                                               &swapChainDesc1, nullptr, nullptr,
                                                               m_swapChain1.ReleaseAndGetAddressOf());
             CHECK_HRESULT(hr, return);
@@ -72,7 +72,7 @@ WindowRenderTargetD3D11::WindowRenderTargetD3D11(RC<RenderDeviceD3D11> device, c
         swapChainDesc.SampleDesc             = { 1u, 0u };
         swapChainDesc.BufferUsage            = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         swapChainDesc.BufferCount            = 1;
-        swapChainDesc.OutputWindow           = handle.window;
+        swapChainDesc.OutputWindow           = handle.hWnd();
         swapChainDesc.Windowed               = TRUE;
         swapChainDesc.SwapEffect             = DXGI_SWAP_EFFECT_DISCARD;
         hr = m_device->m_factory->CreateSwapChain(m_device->m_device.Get(), &swapChainDesc,

@@ -42,6 +42,7 @@ const shader_text        = shader_type(2);
 const shader_shadow      = shader_type(3);
 const shader_mask        = shader_type(4);
 const shader_color_mask  = shader_type(5);
+const shader_blit        = shader_type(6);
 
 const gradient_linear    = gradient_type(0);
 const gradient_radial    = gradient_type(1);
@@ -191,7 +192,12 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
 
 @vertex /**/fn vertexMain(@builtin(vertex_index) vidx: u32, @builtin(instance_index) inst: u32) -> VertexOutput {
     const vertices = array(vec2<f32>(-0.5, -0.5), vec2<f32>(0.5, -0.5), vec2<f32>(-0.5, 0.5), vec2<f32>(0.5, 0.5));
+
     var output: VertexOutput;
+    if constants.shader == shader_blit {
+        output.position = vec4(vertices[vidx] * 2.0, 0.0, 1.0);
+        return output;
+    }
 
     let position = vertices[vidx];
     let uv_coord: vec2<f32> = position + vec2<f32>(0.5);
@@ -660,6 +666,11 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
 }
 
 @fragment /**/fn fragmentMain(in: VertexOutput) -> FragOut {
+
+    if constants.shader == shader_blit {
+        let tex_coord = vec2<i32>(in.position.xy);
+        return FragOut(textureLoad(boundTexture_t, tex_coord, 0), vec4<f32>(1.));
+    }
 
     if !scissorTest(in.position.xy) {
         discard;

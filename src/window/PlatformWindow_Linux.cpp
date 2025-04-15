@@ -18,6 +18,7 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
 #include <brisk/window/Types.hpp>
 #include "PlatformWindow.hpp"
 
@@ -38,6 +39,8 @@
 
 namespace Brisk {
 
+static HiDPIMode currentHiDPIMode = HiDPIMode::ApplicationScaling;
+
 struct PlatformWindowData {
     GLFWwindow* win = nullptr;
 };
@@ -55,8 +58,10 @@ struct PlatformWindowData {
     int platform = glfwGetPlatform();
     if (platform == GLFW_PLATFORM_WAYLAND) {
         LOG_INFO(window, "Using: Wayland");
+        currentHiDPIMode = HiDPIMode::FramebufferScaling;
     } else {
         LOG_INFO(window, "Using: X11");
+        currentHiDPIMode = HiDPIMode::ApplicationScaling;
     }
     Internal::updateDisplays();
 }
@@ -69,17 +74,8 @@ void PlatformWindow::setWindowIcon() {
     //
 }
 
-void PlatformWindow::getHandle(OSWindowHandle& handle) {
-    int platform = glfwGetPlatform();
-    if (platform == GLFW_PLATFORM_X11) {
-        handle.wayland    = false;
-        handle.x11Display = glfwGetX11Display();
-        handle.x11Window  = glfwGetX11Window(m_data->win);
-    } else {
-        handle.wayland   = true;
-        handle.wlDisplay = glfwGetWaylandDisplay();
-        handle.wlWindow  = glfwGetWaylandWindow(m_data->win);
-    }
+OSWindowHandle PlatformWindow::getHandle() const {
+    return OSWindowHandle(m_data->win);
 }
 
 Bytes PlatformWindow::placement() const {
@@ -115,6 +111,10 @@ bool PlatformWindow::createWindow() {
         glfwSetWindowPos(m_data->win, m_position.x, m_position.y);
     }
 
+    SizeF contentScale{};
+    glfwGetWindowContentScale(m_data->win, &contentScale.x, &contentScale.y);
+    m_scale = contentScale.longestSide();
+
     glfwSetWindowCloseCallback(m_data->win, [](GLFWwindow* gw) {
         reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->closeAttempt();
     });
@@ -126,7 +126,9 @@ bool PlatformWindow::createWindow() {
     glfwSetWindowMaximizeCallback(m_data->win, nullptr);
     glfwSetWindowRefreshCallback(m_data->win, nullptr);
     glfwSetWindowContentScaleCallback(m_data->win, [](GLFWwindow* gw, float scalex, float scaley) {
-        auto* window = reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw));
+        auto* window    = reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw));
+        window->m_scale = std::max(scalex, scaley);
+        window->contentScaleChanged(scalex, scaley);
         glfwGetWindowSize(gw, &window->m_windowSize.x, &window->m_windowSize.y);
         glfwGetFramebufferSize(gw, &window->m_framebufferSize.x, &window->m_framebufferSize.y);
         window->windowResized(window->m_windowSize, window->m_framebufferSize);
@@ -153,17 +155,14 @@ bool PlatformWindow::createWindow() {
     });
     glfwSetCursorPosCallback(m_data->win, [](GLFWwindow* gw, double xpos, double ypos) {
         PointOf<double> cur{ xpos, ypos };
-        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))
-            ->mouseMove(reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->mapFramebuffer(cur));
+        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->mouseMove(cur, Window::Unit::Screen);
     });
     glfwSetMouseButtonCallback(m_data->win, [](GLFWwindow* gw, int button, int action, int mods) {
         PointOf<double> cur;
         glfwGetCursorPos(gw, &cur.x, &cur.y);
         reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))
-            ->mouseEvent(
-                static_cast<MouseButton>(button), static_cast<MouseAction>(action),
-                static_cast<KeyModifiers>(mods),
-                reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->mapFramebuffer(cur));
+            ->mouseEvent(static_cast<MouseButton>(button), static_cast<MouseAction>(action),
+                         static_cast<KeyModifiers>(mods), cur, Window::Unit::Screen);
     });
     glfwSetCursorEnterCallback(m_data->win, [](GLFWwindow* gw, int entered) {
         reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->mouseEnterOrLeave(entered);
@@ -374,6 +373,10 @@ void PlatformWindow::updateVisibility() {
 
 /* static */ DblClickParams PlatformWindow::dblClickParams() {
     return { 0.5, 2 };
+}
+
+HiDPIMode hiDPIMode() {
+    return currentHiDPIMode;
 }
 
 } // namespace Brisk

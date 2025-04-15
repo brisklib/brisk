@@ -78,6 +78,7 @@ enum class ShaderType : int {
     Shadow,     // Custom paint or texture
     Mask,       // Gradient or texture
     ColorMask,  // Gradient or texture
+    Blit,       // Texture
 };
 
 struct GeometryGlyph {
@@ -227,6 +228,18 @@ public:
 
     constexpr static size_t compare_offset = 12;
 };
+
+inline bool requiresAtlasOrGradient(std::span<const RenderState> commands) {
+    for (const RenderState& cmd : commands) {
+        switch (cmd.shader) {
+        case ShaderType::Blit:
+            break;
+        default:
+            return true;
+        }
+    }
+    return false;
+}
 
 static_assert(std::is_trivially_copy_constructible_v<RenderState>);
 

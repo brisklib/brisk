@@ -18,6 +18,8 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
+#define NOMINMAX 1
 #include <windows.h>
 #include <shellapi.h>
 #include <shlobj.h>
@@ -94,6 +96,10 @@ static std::optional<T> getFirst(const std::vector<T>& values) {
     if (values.empty())
         return std::nullopt;
     return values.front();
+}
+
+inline HWND handleFromWindow(OSWindow* window, HWND fallback = 0) {
+    return window ? window->getHandle().hWnd() : fallback;
 }
 
 template <std::derived_from<IFileDialog> Dialog>

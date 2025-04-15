@@ -48,6 +48,7 @@ public:
     Calculator calc;
 
     void unhandledEvent(Event& event) final {
+        handleDebugKeystrokes(event);
         if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::KPEnter)) {
             calc.solve();
             event.stopPropagation();

@@ -42,6 +42,7 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/Html.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.hpp
     ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/ColorSpace.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Canvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/RenderState.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/OpenType.cpp

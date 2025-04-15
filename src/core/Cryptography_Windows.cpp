@@ -20,6 +20,7 @@
  */
 #include <brisk/core/Cryptography.hpp>
 
+#define NOMINMAX 1
 #include <windows.h>
 #pragma comment(lib, "bcrypt.lib")
 

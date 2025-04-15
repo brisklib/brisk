@@ -201,7 +201,6 @@ private:
     std::atomic<bool> m_discreteGPU      = false;
     std::atomic<int> m_syncInterval      = 1;
     std::atomic<float> m_uiScale         = 1;
-    std::atomic<bool> m_useMonitorScale  = true;
     std::atomic<float> m_blueLightFilter = 0;
     std::atomic<float> m_globalGamma     = 1;
     std::atomic<bool> m_subPixelText     = true;
@@ -215,7 +214,6 @@ public:
     Property<This, bool, &This::m_discreteGPU> discreteGPU;
     Property<This, int, &This::m_syncInterval> syncInterval;
     Property<This, float, &This::m_uiScale> uiScale;
-    Property<This, bool, &This::m_useMonitorScale> useMonitorScale;
     Property<This, float, &This::m_blueLightFilter> blueLightFilter;
     Property<This, float, &This::m_globalGamma> globalGamma;
     Property<This, bool, &This::m_subPixelText> subPixelText;

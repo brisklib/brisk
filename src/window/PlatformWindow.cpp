@@ -166,7 +166,8 @@ void PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyMo
     });
 }
 
-void PlatformWindow::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos) {
+void PlatformWindow::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos,
+                                Window::Unit unit) {
     if (m_windowStyle && WindowStyle::Disabled)
         return;
 
@@ -180,8 +181,8 @@ void PlatformWindow::mouseEvent(MouseButton button, MouseAction action, KeyModif
 
     m_mouseState[+button] = action == MouseAction::Press;
 
-    uiScheduler->dispatch([window = m_window, button, action, mods, pos] {
-        window->mouseEvent(button, action, mods, pos);
+    uiScheduler->dispatch([window = m_window, button, action, mods, pos, unit] {
+        window->mouseEvent(button, action, mods, window->convertUnit(Window::Unit::Framebuffer, pos, unit));
     });
 }
 
@@ -194,9 +195,9 @@ void PlatformWindow::mouseEnterOrLeave(bool enter) {
     });
 }
 
-void PlatformWindow::mouseMove(PointF pos) {
-    uiScheduler->dispatch([window = m_window, pos] {
-        window->mouseMove(pos);
+void PlatformWindow::mouseMove(PointF pos, Window::Unit unit) {
+    uiScheduler->dispatch([window = m_window, pos, unit] {
+        window->mouseMove(window->convertUnit(Window::Unit::Framebuffer, pos, unit));
     });
 }
 
@@ -209,10 +210,12 @@ void PlatformWindow::wheelEvent(float x, float y) {
 void PlatformWindow::windowStateEvent(WindowState state) {}
 
 void PlatformWindow::windowResized(Size windowSize, Size framebufferSize) {
+    mustBeMainThread();
     updateSize();
 }
 
 void PlatformWindow::windowMoved(Point position) {
+    mustBeMainThread();
     if (!isVisible()) {
         return;
     }
@@ -222,19 +225,15 @@ void PlatformWindow::windowMoved(Point position) {
 }
 
 void PlatformWindow::contentScaleChanged(float xscale, float yscale) {
+    mustBeMainThread();
     updateSize();
-    std::ignore = yscale;
-    uiScheduler->dispatch([platformWindow = this, window = m_window, xscale] {
-        window->m_windowPixelRatio = xscale;
-        window->determineWindowDPI();
-        window->windowPixelRatioChanged();
-        mainScheduler->dispatchAndWait([platformWindow] {
-            platformWindow->updateSize();
-        });
-    });
+    std::ignore              = yscale;
+    m_window->m_contentScale = xscale;
+    m_window->recomputeScales();
 }
 
 void PlatformWindow::filesDropped(std::vector<std::string> files) {
+    mustBeMainThread();
     uiScheduler->dispatch([window = m_window, files = std::move(files)] {
         window->filesDropped(std::move(files));
     });
@@ -246,7 +245,4 @@ void PlatformWindow::windowStateChanged(bool isIconified, bool isMaximized) {
     });
 }
 
-PointF PlatformWindow::mapFramebuffer(PointF pos) {
-    return pos * SizeF(m_framebufferSize) / SizeF(m_windowSize);
-}
 } // namespace Brisk

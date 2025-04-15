@@ -18,6 +18,8 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#define BRISK_ALLOW_OS_HEADERS 1
+#include "brisk/graphics/OSWindowHandle.hpp"
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Utilities.hpp>
 
@@ -100,6 +102,15 @@ public:
     Point monitorToDesktop(Point pt) const {
         std::shared_lock lk(m_mutex);
         return pt + m_rect.p1;
+    }
+
+    bool containsWindow(OSWindowHandle handle) const {
+        std::shared_lock lk(m_mutex);
+        return glfwGetWindowMonitor(handle.glfwWindow()) == m_monitor;
+    }
+
+    OSDisplayHandle getHandle() const {
+        return OSDisplayHandle(m_monitor);
     }
 
     DisplayFlags flags() const {

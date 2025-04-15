@@ -2,12 +2,12 @@ int tint_ftoi(float v) {
   return ((v <= 2147483520.0f) ? ((v < -2147483648.0f) ? -2147483648 : int(v)) : 2147483647);
 }
 
-uint tint_ftou(float v) {
-  return ((v <= 4294967040.0f) ? ((v < 0.0f) ? 0u : uint(v)) : 4294967295u);
-}
-
 int2 tint_ftoi_1(float2 v) {
   return ((v <= (2147483520.0f).xx) ? ((v < (-2147483648.0f).xx) ? (-2147483648).xx : int2(v)) : (2147483647).xx);
+}
+
+uint tint_ftou(float v) {
+  return ((v <= 4294967040.0f) ? ((v < 0.0f) ? 0u : uint(v)) : 4294967295u);
 }
 
 uint2 tint_ftou_1(float2 v) {
@@ -534,6 +534,11 @@ struct tint_symbol_56 {
 
 FragOut fragmentMain_inner(VertexOutput tint_symbol_3) {
   if (true) {
+    if ((asint(constants[1].x) == 6)) {
+      int2 tex_coord = tint_ftoi_1(tint_symbol_3.position.xy);
+      FragOut tint_symbol_57 = {boundTexture_t.Load(int3(tex_coord, 0)), (1.0f).xxxx};
+      return tint_symbol_57;
+    }
     if (!(scissorTest(tint_symbol_3.position.xy))) {
       discard;
     }
@@ -588,16 +593,16 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_3) {
         }
       }
     }
-    FragOut tint_symbol_57 = {outColor, outBlend};
-    return postprocessColor(tint_symbol_57, tint_ftou_1(tint_symbol_3.canvas_coord));
+    FragOut tint_symbol_58 = {outColor, outBlend};
+    return postprocessColor(tint_symbol_58, tint_ftou_1(tint_symbol_3.canvas_coord));
   }
   FragOut unused_1;
   return unused_1;
 }
 
 tint_symbol_56 fragmentMain(tint_symbol_55 tint_symbol_54) {
-  VertexOutput tint_symbol_58 = {float4(tint_symbol_54.position.xyz, (1.0f / tint_symbol_54.position.w)), tint_symbol_54.data0, tint_symbol_54.data1, tint_symbol_54.uv, tint_symbol_54.canvas_coord};
-  FragOut inner_result = fragmentMain_inner(tint_symbol_58);
+  VertexOutput tint_symbol_59 = {float4(tint_symbol_54.position.xyz, (1.0f / tint_symbol_54.position.w)), tint_symbol_54.data0, tint_symbol_54.data1, tint_symbol_54.uv, tint_symbol_54.canvas_coord};
+  FragOut inner_result = fragmentMain_inner(tint_symbol_59);
   tint_symbol_56 wrapper_result = (tint_symbol_56)0;
   wrapper_result.color = inner_result.color;
   wrapper_result.blend = inner_result.blend;

@@ -24,6 +24,6 @@
 namespace Brisk {
 
 expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceWebGPU(
-    RendererDeviceSelection deviceSelection);
+    RendererDeviceSelection deviceSelection, OSDisplayHandle display);
 
 } // namespace Brisk

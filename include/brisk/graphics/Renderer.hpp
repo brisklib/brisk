@@ -25,6 +25,8 @@
 #include "RenderState.hpp"
 #include "Color.hpp"
 #include "Geometry.hpp"
+#include <brisk/graphics/OSWindowHandle.hpp>
+#include <brisk/graphics/OSDisplayHandle.hpp>
 #include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
@@ -433,8 +435,6 @@ enum class BlendMode {
     Difference,
 };
 
-struct OSWindowHandle;
-
 /**
  * @class OSWindow
  * @brief Represents a platform-specific window handle.
@@ -445,13 +445,12 @@ public:
      * @brief Returns the size of the framebuffer.
      * @return The framebuffer size.
      */
-    virtual Size framebufferSize() const                 = 0;
+    virtual Size framebufferSize() const     = 0;
 
     /**
      * @brief Gets the native OS window handle.
-     * @param handle Reference to the OSWindowHandle structure.
      */
-    virtual void getHandle(OSWindowHandle& handle) const = 0;
+    virtual OSWindowHandle getHandle() const = 0;
 };
 
 /**
@@ -538,6 +537,9 @@ public:
     virtual void createImageBackend(RC<Image> image)                   = 0;
 };
 
+extern RendererBackend defaultBackend;
+extern RendererDeviceSelection deviceSelection;
+
 /**
  * @brief Sets the rendering device selection based on backend and device selection options.
  * @param backend The rendering backend to use.
@@ -549,7 +551,7 @@ void setRenderDeviceSelection(RendererBackend backend, RendererDeviceSelection d
  * @brief Gets the current rendering device, if available.
  * @return Expected object containing the rendering device or an error.
  */
-expected<RC<RenderDevice>, RenderDeviceError> getRenderDevice();
+expected<RC<RenderDevice>, RenderDeviceError> getRenderDevice(OSDisplayHandle display = {});
 
 /**
  * @brief Frees the currently allocated rendering device.
@@ -563,6 +565,7 @@ void freeRenderDevice();
  * @return Expected object containing the rendering device or an error.
  */
 expected<RC<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
-                                                                 RendererDeviceSelection deviceSelection);
+                                                                 RendererDeviceSelection deviceSelection,
+                                                                 OSDisplayHandle display = {});
 
 } // namespace Brisk

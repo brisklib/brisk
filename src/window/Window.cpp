@@ -50,7 +50,8 @@ static BindingRegistration frameStartTime_reg{ &frameStartTime, nullptr };
 
 namespace Internal {
 
-constinit bool bufferedRendering = true;
+constinit bool bufferedRendering     = true;
+constinit bool forceRenderEveryFrame = false;
 
 std::atomic_bool debugShowRenderTimeline{ false };
 Window* currentWindow = nullptr;
@@ -202,21 +203,18 @@ void Window::setPosition(Point pos) {
 }
 
 void Window::setMinimumSize(Size size) {
-    mustBeUIThread();
-    // Do not compare with current values of m_minimumSize to allow setting the same value
-    m_minimumSize = size;
-    m_maximumSize = Size{ PlatformWindow::dontCare, PlatformWindow::dontCare };
-    mainScheduler->dispatch([=, this] {
-        if (m_platformWindow)
-            m_platformWindow->setSizeLimits(m_minimumSize, m_maximumSize);
-    });
+    setMinimumMaximumSize(size, m_maximumSize);
 }
 
-void Window::setFixedSize(Size size) {
+void Window::setMaximumSize(Size size) {
+    setMinimumMaximumSize(m_minimumSize, size);
+}
+
+void Window::setMinimumMaximumSize(Size minSize, Size maxSize) {
     mustBeUIThread();
-    // Do not compare with current values of m_fixedSize to allow setting the same value
-    m_minimumSize = size;
-    m_maximumSize = size;
+    // Do not compare with current values of m_maximumSize to allow setting the same value
+    m_minimumSize = minSize;
+    m_maximumSize = maxSize;
     mainScheduler->dispatch([=, this] {
         if (m_platformWindow)
             m_platformWindow->setSizeLimits(m_minimumSize, m_maximumSize);
@@ -245,20 +243,20 @@ void Window::setStyle(WindowStyle style) {
     }
 }
 
-void Window::determineWindowDPI() {
-    const float spr = (m_useMonitorScale.load() ? m_windowPixelRatio.load() : 1.f) * m_pixelRatioScale;
-    if (m_canvasPixelRatio != spr) {
-        m_canvasPixelRatio = spr;
-        LOG_INFO(window, "Pixel Ratio for window = {} scaled: {}", m_windowPixelRatio.load(), spr);
-        uiScheduler->dispatch([this] {
-            Brisk::pixelRatio() = m_canvasPixelRatio;
-            dpiChanged();
-        });
-    }
-}
-
-void Window::windowPixelRatioChanged() {
-    //
+void Window::recomputeScales() {
+    mustBeMainThread();
+    const float pixelRatio =
+        m_contentScale.load(std::memory_order_relaxed) * m_canvasScale.load(std::memory_order_relaxed);
+    LOG_INFO(window, "Pixel Scales content ({}) * canvas ({}) = {}",
+             m_contentScale.load(std::memory_order_relaxed), m_canvasScale.load(std::memory_order_relaxed),
+             pixelRatio);
+    uiScheduler->dispatch([this, pixelRatio] {
+        if (pixelRatio != m_pixelRatio) {
+            m_pixelRatio        = pixelRatio;
+            Brisk::pixelRatio() = pixelRatio;
+            pixelRatioChanged();
+        }
+    });
 }
 
 void Window::visibilityChanged(bool newIsVisible) {
@@ -267,10 +265,8 @@ void Window::visibilityChanged(bool newIsVisible) {
 
 void Window::attachedToApplication() {
     m_attached = true;
-    bindings->connect(Value{ &m_pixelRatioScale, this, &Window::determineWindowDPI },
+    bindings->connect(Value{ &m_canvasScale, this, &Window::recomputeScales },
                       Value{ &windowApplication->uiScale });
-    bindings->connect(Value{ &m_useMonitorScale, this, &Window::determineWindowDPI },
-                      Value{ &windowApplication->useMonitorScale });
     bindings->connect(Value{ &m_syncInterval,
                              [this]() {
                                  if (m_target)
@@ -285,35 +281,52 @@ Window::Window() {
     LOG_INFO(window, "Done creating Window");
 }
 
+RC<RenderDevice> Window::renderDevice() {
+    if (!m_renderDevice) {
+        RC<Display> display = this->display();
+        auto result         = createRenderDevice(defaultBackend, deviceSelection,
+                                         display ? display->getHandle() : OSDisplayHandle{});
+        BRISK_ASSERT(result.has_value());
+        m_renderDevice = *result;
+    }
+    return m_renderDevice;
+}
+
 using high_res_clock = std::chrono::steady_clock;
 
 void Window::paintImmediate(RenderContext& context) {}
 
 constexpr static int debugPanelHeight = 100;
 
+static double roundFPS(double fps) {
+    if (fps < 15)
+        return 15;
+    return std::exp2(std::round(std::log2(fps / 60))) * 60;
+}
+
 void Window::paintStat(Canvas& canvas, Rectangle rect) {
     canvas.setFillColor(0x000000'80_rgba);
     canvas.fillRect(rect);
     Rectangle graphRect   = rect.withPadding(150_idp, 12_idp, 0, 0);
-    RenderDeviceInfo info = (*getRenderDevice())->info();
-    std::string status    = fmt::format("Brisk {} Window {}x{} Pixel {:.2f} Renderer {} GPU {}",
-                                        BRISK_VERSION
+    RenderDeviceInfo info = renderDevice()->info();
+    std::string status =
+        fmt::format("Brisk {} Window {}x{} Pixel {:.2f} Renderer {} GPU {} Buffered: {} EveryFrame: {}",
+                    BRISK_VERSION
 #ifdef BRISK_DEBUG
-                                     " [Debug]"
+                    " [Debug]"
 #else
-                                     " [Optimized]"
+                    " [Optimized]"
 #endif
-                                     ,
-                                     m_framebufferSize.width, m_framebufferSize.height,
-                                     m_canvasPixelRatio.load(), info.api, info.device
-
-    );
+                    ,
+                    m_framebufferSize.width, m_framebufferSize.height, pixelRatio(), info.api, info.device,
+                    m_bufferedRendering.load(std::memory_order_relaxed),
+                    m_forceRenderEveryFrame.load(std::memory_order_relaxed));
 
     uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
 
     using namespace std::chrono_literals;
 
-    double frameDurationNS = 1'000'000'000.0 / std::max(m_frameTimePredictor->fps, 10.0);
+    double frameDurationNS = 1'000'000'000.0 / roundFPS(m_frameTimePredictor->fps);
 
     FrameStat sum          = m_renderStat.sum();
 
@@ -328,9 +341,9 @@ void Window::paintStat(Canvas& canvas, Rectangle rect) {
                               mix(end, frameRect.y2, frameRect.y1) };
         };
 
-        double windowUpdate = stat.windowUpdate.count() / frameDurationNS;
-        double windowPaint  = stat.windowPaint.count() / frameDurationNS;
-        double gpuRender    = stat.gpuRender.count() / frameDurationNS;
+        double windowUpdate = stat.windowUpdate.count() / frameDurationNS * 0.5;
+        double windowPaint  = stat.windowPaint.count() / frameDurationNS * 0.5;
+        double gpuRender    = stat.gpuRender.count() / frameDurationNS * 0.5;
 
         double base         = 0;
         auto cumulativeBar  = [&](double value) {
@@ -377,6 +390,7 @@ void Window::paintDebug(RenderContext& context) {
 }
 
 void Window::doPaint() {
+    mustBeUIThread();
     BRISK_ASSERT(m_encoder);
     PerformanceDuration start_time = perfNow();
     ObjCPool pool;
@@ -384,7 +398,7 @@ void Window::doPaint() {
 
     renderStart                  = high_res_clock::now();
 
-    pixelRatio()                 = m_canvasPixelRatio;
+    Brisk::pixelRatio()          = m_pixelRatio;
 
     currentFramePresentationTime = m_nextFrameTime.value_or(currentTime());
 
@@ -396,10 +410,22 @@ void Window::doPaint() {
         return;
     }
 
+    beforeFrame();
+
+    uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
+
+    m_renderStat.beginFrame(frameNumber);
+
+    bool paintFrame;
+    {
+        Stopwatch perfUpdate(m_renderStat.back().windowUpdate);
+        paintFrame = update();
+    }
+    bool renderFrame = paintFrame || m_forceRenderEveryFrame;
+
     if (bufferedRendering) {
-        auto device = getRenderDevice();
         if (!m_bufferedFrameTarget) {
-            m_bufferedFrameTarget = (*device)->createImageTarget(targetSize);
+            m_bufferedFrameTarget = renderDevice()->createImageTarget(targetSize);
             textureReset          = true;
         } else {
             if (targetSize != m_bufferedFrameTarget->size()) {
@@ -411,59 +437,49 @@ void Window::doPaint() {
     }
     m_encoder->setVisualSettings(m_renderSettings);
 
-    uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
+    renderFrame = renderFrame && m_encoder && m_target;
 
-    m_renderStat.beginFrame(frameNumber);
+    if (renderFrame) {
+        m_encoder->beginFrame(frameNumber);
+        if (paintFrame || !bufferedRendering || textureReset) {
+            RenderPipeline pipeline(m_encoder, target,
+                                    bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
+                                    noClipRect);
 
-    m_encoder->beginFrame(frameNumber);
-
-    beforeFrame();
-
-    PerformanceDuration gpuDuration = PerformanceDuration(0);
-    {
-        {
-            Stopwatch perfUpdate(m_renderStat.back().windowUpdate);
-            update();
+            Stopwatch perfPaint(m_renderStat.back().windowPaint);
+            paint(pipeline, !bufferedRendering || textureReset);
+            if (!bufferedRendering) {
+                paintDebug(pipeline);
+                paintImmediate(pipeline);
+            }
         }
-        if (!m_encoder || !m_target) // The window stopped rendering
-            return;
-        RenderPipeline pipeline(m_encoder, target,
-                                bufferedRendering ? std::nullopt : std::optional(Palette::transparent),
-                                noClipRect);
 
-        Stopwatch perfPaint(m_renderStat.back().windowPaint);
-        paint(pipeline, !bufferedRendering || textureReset);
-        if (!bufferedRendering) {
-            paintDebug(pipeline);
-            paintImmediate(pipeline);
+        if (bufferedRendering) {
+            m_encoder->setVisualSettings(VisualSettings{});
+            RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent);
+            Stopwatch perfPaint(m_renderStat.back().windowPaint);
+            pipeline2.blit(m_bufferedFrameTarget->image());
+            paintDebug(pipeline2);
+            paintImmediate(pipeline2);
         }
+        m_encoder->endFrame([this](uint64_t frameIndex, std::span<const std::chrono::nanoseconds> durations) {
+            if (m_renderStat.hasFrame(frameIndex)) {
+                m_renderStat[frameIndex].gpuRender =
+                    std::accumulate(durations.begin(), durations.end(), std::chrono::nanoseconds{ 0 });
+            }
+        });
     }
-
-    if (bufferedRendering) {
-        m_encoder->setVisualSettings(VisualSettings{});
-        RenderPipeline pipeline2(m_encoder, m_target, Palette::transparent, noClipRect);
-        Stopwatch perfPaint(m_renderStat.back().windowPaint);
-        pipeline2.blit(m_bufferedFrameTarget->image());
-        paintDebug(pipeline2);
-        paintImmediate(pipeline2);
-    }
-
-    m_encoder->endFrame([this](uint64_t frameIndex, std::span<const std::chrono::nanoseconds> durations) {
-        if (m_renderStat.hasFrame(frameIndex)) {
-            m_renderStat[frameIndex].gpuRender =
-                std::accumulate(durations.begin(), durations.end(), std::chrono::nanoseconds{ 0 });
-        }
-    });
 
     m_lastFrameRenderTime =
         std::chrono::duration_cast<std::chrono::microseconds>(high_res_clock::now() - renderStart);
 
-    {
+    if (renderFrame) {
         m_target->present();
-        m_renderStat.back().fullFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            FractionalSeconds{ m_frameTimePredictor->markFrameTime() });
     }
-    if (m_captureCallback) {
+    m_renderStat.back().fullFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        FractionalSeconds{ m_frameTimePredictor->markFrameTime() });
+
+    if (m_captureCallback && renderFrame) {
         BRISK_ASSERT(bufferedRendering);
         m_encoder->wait();
         auto captureCallback    = std::move(m_captureCallback);
@@ -511,12 +527,16 @@ void Window::setCursor(Cursor cursor) {
     }
 }
 
-float Window::canvasPixelRatio() const {
-    return m_canvasPixelRatio;
+float Window::canvasScale() const noexcept {
+    return m_canvasScale;
 }
 
-float Window::windowPixelRatio() const {
-    return m_windowPixelRatio;
+float Window::pixelRatio() const noexcept {
+    return m_pixelRatio;
+}
+
+float Window::contentScale() const noexcept {
+    return m_contentScale;
 }
 
 Rectangle Window::getBounds() const {
@@ -543,6 +563,7 @@ void Window::hide() {
 }
 
 void Window::close() {
+    mustBeUIThread();
     hide();
     m_closing = true; // forces application to remove this window from the windows list
     auto wk   = weak_from_this();
@@ -552,20 +573,17 @@ void Window::close() {
     });
 }
 
-void Window::getHandle(OSWindowHandle& handle) const {
+OSWindowHandle Window::getHandle() const {
     if (!m_platformWindow)
-        return;
-    mainScheduler->dispatchAndWait([&] {
-        m_platformWindow->getHandle(handle);
-    });
+        return OSWindowHandle{};
+    return m_platformWindow->getHandle();
 }
 
 void Window::initializeRenderer() {
     if (m_target)
         return;
-    auto device = getRenderDevice();
-    m_encoder   = (*device)->createEncoder();
-    m_target    = (*device)->createWindowTarget(this);
+    m_encoder = renderDevice()->createEncoder();
+    m_target  = renderDevice()->createWindowTarget(this);
     m_target->setVSyncInterval(m_syncInterval);
 }
 
@@ -617,10 +635,11 @@ void Window::openWindow() {
     if (m_platformWindow)
         return;
     m_platformWindow.reset(new PlatformWindow(this, m_windowSize, m_position, m_style));
-    determineWindowDPI();
+    recomputeScales();
     initializeRenderer();
     m_rendering = true;
     beforeOpeningWindow();
+    m_platformWindow->setSizeLimits(m_minimumSize, m_maximumSize);
     if (auto owner = m_owner.lock())
         m_platformWindow->setOwner(std::move(owner));
     m_platformWindow->updateVisibility();
@@ -697,7 +716,7 @@ void Window::focusChange(bool newIsFocused) {
     onFocusChange(newIsFocused);
 }
 
-void Window::dpiChanged() {}
+void Window::pixelRatioChanged() {}
 
 void Window::onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {}
 
@@ -724,7 +743,9 @@ void Window::onWindowResized(Size windowSize, Size framebufferSize) {}
 
 void Window::onWindowMoved(Point position) {}
 
-void Window::update() {}
+bool Window::update() {
+    return false;
+}
 
 void Window::paint(RenderContext& context, bool fullRepaint) {}
 
@@ -813,6 +834,83 @@ void Window::setBufferedRendering(bool bufferedRendering) {
 
 bool Window::bufferedRendering() const noexcept {
     return m_bufferedRendering;
+}
+
+void Window::setForceRenderEveryFrame(bool forceRenderEveryFrame) {
+    m_forceRenderEveryFrame = forceRenderEveryFrame;
+}
+
+bool Window::forceRenderEveryFrame() const noexcept {
+    return m_forceRenderEveryFrame;
+}
+
+RC<Display> Window::display() const {
+    OSWindowHandle handle = getHandle();
+    if (!handle)
+        return nullptr;
+    for (auto display : Display::all())
+        if (display->containsWindow(handle))
+            return display;
+
+    return nullptr;
+}
+
+float Window::convertUnit(Unit destUnit, float value, Unit sourceUnit) const noexcept {
+    const bool appScaling = hiDPIMode() == HiDPIMode::ApplicationScaling;
+
+    switch (sourceUnit) {
+    case Unit::Screen:
+        switch (destUnit) {
+        case Unit::Screen:
+            return value;
+        case Unit::Framebuffer:
+            return appScaling ? value : value * m_contentScale;
+        case Unit::Content:
+            return appScaling ? value / m_contentScale : value;
+        }
+    case Unit::Framebuffer:
+        switch (destUnit) {
+        case Unit::Screen:
+            return appScaling ? value : value / m_contentScale;
+        case Unit::Framebuffer:
+            return value;
+        case Unit::Content:
+            return value / m_contentScale;
+        }
+    case Unit::Content:
+        switch (destUnit) {
+        case Unit::Screen:
+            return appScaling ? value * m_contentScale : value;
+        case Unit::Framebuffer:
+            return value * m_contentScale;
+        case Unit::Content:
+            return value;
+        }
+    }
+    BRISK_UNREACHABLE();
+}
+
+PointF Window::convertUnit(Unit destUnit, PointF value, Unit sourceUnit) const noexcept {
+    return {
+        convertUnit(destUnit, value.x, sourceUnit),
+        convertUnit(destUnit, value.y, sourceUnit),
+    };
+}
+
+SizeF Window::convertUnit(Unit destUnit, SizeF value, Unit sourceUnit) const noexcept {
+    return {
+        convertUnit(destUnit, value.x, sourceUnit),
+        convertUnit(destUnit, value.y, sourceUnit),
+    };
+}
+
+RectangleF Window::convertUnit(Unit destUnit, RectangleF value, Unit sourceUnit) const noexcept {
+    return {
+        convertUnit(destUnit, value.x1, sourceUnit),
+        convertUnit(destUnit, value.y1, sourceUnit),
+        convertUnit(destUnit, value.x2, sourceUnit),
+        convertUnit(destUnit, value.y2, sourceUnit),
+    };
 }
 
 const RenderStat& Window::renderStat() const noexcept {
