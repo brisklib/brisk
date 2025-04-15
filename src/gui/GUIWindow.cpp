@@ -210,12 +210,12 @@ void GUIWindow::updateWindowLimits() {
     Size framebufferSize = getFramebufferSize();
     Size windowSize      = getSize();
     if (windowSize.area() > 0 && framebufferSize.area() > 0) {
-        // convert physical pixels to screen
-        Size newWindowSize;
-        newWindowSize.x      = maxContentSize.x * windowSize.x / framebufferSize.x;
-        newWindowSize.y      = maxContentSize.y * windowSize.y / framebufferSize.y;
-        newWindowSize.width  = std::min(newWindowSize.width, 4096);
-        newWindowSize.height = std::min(newWindowSize.height, 4096);
+        // convert framebuffer pixels to screen
+        Size newWindowSize = convertUnit(Unit::Screen, maxContentSize, Unit::Framebuffer);
+        auto display       = this->display();
+        Size resolution    = display ? display->workarea().size() : Size{ 4096, 2048 };
+        newWindowSize      = min(newWindowSize, resolution);
+
         if (newWindowSize != windowSize) {
             if (m_windowFit == WindowFit::MinimumSize) {
                 setMinimumSize(newWindowSize);
@@ -243,7 +243,7 @@ GUIWindow::~GUIWindow() {
     beforeDestroying();
 }
 
-void GUIWindow::dpiChanged() {
+void GUIWindow::pixelRatioChanged() {
     rescale();
 }
 

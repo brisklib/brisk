@@ -100,60 +100,230 @@ extern constinit bool forceRenderEveryFrame;
 
 class PlatformWindow;
 
+/**
+ * @enum HiDPIMode
+ * @brief Defines modes for handling high-DPI display scaling in window systems.
+ *
+ * This enum categorizes how window systems manage position, size, and content scaling
+ * for displays with varying DPI (dots per inch).
+ */
+enum class HiDPIMode {
+    /**
+     * @brief Application-driven scaling using physical pixels.
+     *
+     * Window position and size are specified in physical pixels.
+     * Applications must scale their content to match the display's DPI.
+     * The window scaling factor may be 1, 2, or any value in between.
+     * Examples include Windows (DPI-aware) and X11.
+     */
+    ApplicationScaling,
+
+    /**
+     * @brief System-driven scaling using logical units.
+     *
+     * Window position and size are specified in logical units.
+     * A logical unit maps to 1x1 physical pixel (standard DPI) or 2x2 physical pixels (Retina, HiDPI).
+     * Applications render content at a 1x or 2x scale.
+     * The system scales the framebuffer to match the display's DPI.
+     * The window scaling factor is typically 1 or 2 (macOS), with other integers possible in Wayland.
+     * Examples include macOS and Wayland.
+     */
+    FramebufferScaling,
+};
+
+HiDPIMode hiDPIMode();
+
 class Window : public BindingObject<Window, &mainScheduler>, public OSWindow {
 public:
-    // All these functions can be called from any thread
     /**
-     * @brief Get the position of window in desktop coordinates
+     * @brief Get the position of window in Screen coordinates
      *
      * @remark If the window is not visible, returns the most recent value.
+     * @return Point The window's top-left position in screen coordinates.
      */
     Point getPosition() const;
 
     /**
-     * @brief Get the size of window in desktop coordinates
+     * @brief Get the size of window in Screen coordinates
      *
      * @remark If the window is not visible, returns the most recent value.
+     * @return Size The window's width and height in screen coordinates.
      */
     Size getSize() const;
 
     /**
-     * @brief Get the bounds of window in desktop coordinates,
+     * @brief Get the bounds of window in Screen coordinates
      *
      * Equals to @c Rectangle(Point(0,0),getSize())
      *
      * @remark If the window is not visible, returns the most recent value.
+     * @return Rectangle The window's bounds, with origin at (0,0) and size from getSize().
      */
     Rectangle getBounds() const;
 
     /**
-     * @brief Get the position and size of window in desktop coordinates,
+     * @brief Get the position and size of window in Screen coordinates
      *
      * Equals to @c Rectangle(getPosition(),getSize())
      *
      * @remark If the window is not visible, returns the most recent value.
+     * @return Rectangle The window's position and size as a rectangle in screen coordinates.
      */
     Rectangle getRectangle() const;
 
+    /**
+     * @brief Get the bounds of window in Framebuffer coordinates
+     *
+     * Returns the window's bounds scaled to the framebuffer's pixel dimensions, accounting for the display's
+     * backing scale factor or DPI.
+     *
+     * @remark If the window is not visible, returns the most recent value.
+     * @return Rectangle The window's bounds in framebuffer coordinates.
+     */
     Rectangle getFramebufferBounds() const;
 
+    /**
+     * @brief Get the size of window in Framebuffer coordinates
+     *
+     * Returns the window's size scaled to the framebuffer's pixel dimensions, accounting for the display's
+     * backing scale factor or DPI.
+     *
+     * @remark If the window is not visible, returns the most recent value.
+     * @return Size The window's width and height in framebuffer coordinates.
+     */
     Size getFramebufferSize() const;
 
+    /**
+     * @brief Retrieve the display containing the window
+     *
+     * Returns a reference-counted pointer to the display containing the window.
+     *
+     * @return RC<Display> The display associated with the window.
+     */
     RC<Display> display() const;
 
+    enum class Unit {
+        Screen,      ///< Screen coordinates (logical units or pixels, depending on platform).
+        Framebuffer, ///< Framebuffer coordinates (physical pixels).
+        Content,     ///< Content coordinates.
+    };
+
+    /**
+     * @brief Convert a scalar value between coordinate units
+     *
+     * Converts a value from the source unit to the destination unit, accounting for scaling factors such as
+     * DPI or backing scale.
+     *
+     * @param destUnit The target unit (Screen, Framebuffer, or Content).
+     * @param value The value to convert.
+     * @param sourceUnit The source unit (Screen, Framebuffer, or Content).
+     * @return float The converted value.
+     */
+    float convertUnit(Unit destUnit, float value, Unit sourceUnit) const noexcept;
+
+    /**
+     * @brief Convert a 2D point between coordinate units
+     *
+     * Converts a point from the source unit to the destination unit, accounting for scaling factors such as
+     * DPI or backing scale.
+     *
+     * @param destUnit The target unit (Screen, Framebuffer, or Content).
+     * @param value The point to convert.
+     * @param sourceUnit The source unit (Screen, Framebuffer, or Content).
+     * @return PointF The converted point.
+     */
+    PointF convertUnit(Unit destUnit, PointF value, Unit sourceUnit) const noexcept;
+
+    /**
+     * @brief Convert a 2D size between coordinate units
+     *
+     * Converts a size from the source unit to the destination unit, accounting for scaling factors such as
+     * DPI or backing scale.
+     *
+     * @param destUnit The target unit (Screen, Framebuffer, or Content).
+     * @param value The size to convert.
+     * @param sourceUnit The source unit (Screen, Framebuffer, or Content).
+     * @return SizeF The converted size.
+     */
+    SizeF convertUnit(Unit destUnit, SizeF value, Unit sourceUnit) const noexcept;
+
+    /**
+     * @brief Convert a rectangle between coordinate units
+     *
+     * Converts a rectangle from the source unit to the destination unit, accounting for scaling factors such
+     * as DPI or backing scale.
+     *
+     * @param destUnit The target unit (Screen, Framebuffer, or Content).
+     * @param value The rectangle to convert.
+     * @param sourceUnit The source unit (Screen, Framebuffer, or Content).
+     * @return RectangleF The converted rectangle.
+     */
+    RectangleF convertUnit(Unit destUnit, RectangleF value, Unit sourceUnit) const noexcept;
+
+    /**
+     * @brief Set the window's position and size in Screen coordinates
+     *
+     * Updates the window's position and size to match the specified rectangle.
+     *
+     * @param rect The rectangle defining the new position and size in screen coordinates.
+     */
     void setRectangle(Rectangle rect);
+
+    /**
+     * @brief Set the window's position in Screen coordinates
+     *
+     * Updates the window's top-left position to the specified point, keeping the size unchanged.
+     *
+     * @param pos The new position in screen coordinates.
+     */
     void setPosition(Point pos);
+
+    /**
+     * @brief Set the window's size in Screen coordinates
+     *
+     * Updates the window's width and height to the specified size, keeping the position unchanged.
+     *
+     * @param size The new size in screen coordinates.
+     */
     void setSize(Size size);
+
+    /**
+     * @brief Set the window's minimum size in Screen coordinates
+     *
+     * Specifies the minimum allowable size for the window, constraining resizing operations.
+     *
+     * @param size The minimum size in screen coordinates.
+     */
     void setMinimumSize(Size size);
+
+    /**
+     * @brief Set the window's maximum size in Screen coordinates
+     *
+     * Specifies the maximum allowable size for the window, constraining resizing operations.
+     *
+     * @param size The maximum size in screen coordinates.
+     */
     void setMaximumSize(Size size);
+
+    /**
+     * @brief Set the window's minimum and maximum size in Screen coordinates
+     *
+     * Specifies both the minimum and maximum allowable sizes for the window, constraining resizing
+     * operations.
+     *
+     * @param minSize The minimum size in screen coordinates.
+     * @param maxSize The maximum size in screen coordinates.
+     */
     void setMinimumMaximumSize(Size minSize, Size maxSize);
+
     Bytes windowPlacement() const;
     void setWindowPlacement(BytesView data);
 
     void focus();
 
-    float windowPixelRatio() const;
-    float canvasPixelRatio() const;
+    float contentScale() const noexcept;
+    float canvasScale() const noexcept;
+    float pixelRatio() const noexcept;
 
     PointF getMousePosition() const;
 
@@ -304,15 +474,33 @@ protected:
     WeakRC<Window> m_owner;
 
 protected:
-    // DPI
-    std::atomic<float> m_windowPixelRatio{ 1.f };
-    std::atomic<float> m_canvasPixelRatio{ 1.f };
-    std::atomic<float> m_pixelRatioScale{ 1.f };
-    std::atomic<bool> m_useMonitorScale{ true };
+    /**
+     * @brief Content scaling factor for rendering, depending on HiDPI mode.
+     *
+     * For ApplicationScaling mode, this represents the display's DPI divided by the standard DPI
+     * (typically 96 DPI), indicating the scaling factor applications should use to adjust content.
+     * For FramebufferScaling mode, this represents the backing scale factor, an integer (e.g., 1 for
+     * standard displays, 2 for Retina/HiDPI displays) used by the system to map logical units to
+     * physical pixels.
+     *
+     */
+    std::atomic<float> m_contentScale{ 1.f };
+
+    /**
+     * @brief Additional scaling factor applied to the UI and canvas.
+     *
+     * This represents a user-defined scale applied to the UI and canvas drawing.
+     *
+     * Default value is 1.0 (no additional scaling).
+     */
+    std::atomic<float> m_canvasScale{ 1.f };
+
+    // m_pixelRatio = m_contentScale * m_canvasScale, UI thread
+    float m_pixelRatio = 1.f;
+
     int m_syncInterval{ 1 };
-    virtual void dpiChanged();
-    void windowPixelRatioChanged();
-    void determineWindowDPI();
+    virtual void pixelRatioChanged();
+    void recomputeScales();
 
 protected:
     friend class PlatformWindow;

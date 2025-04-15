@@ -370,8 +370,8 @@ long long PlatformWindow::windowProc(MsgParams params) {
         const DWORD style        = getWindowStyle(m_windowStyle);
         const DWORD exStyle      = getWindowExStyle(m_windowStyle);
 
-        const Size scaledMinSize = scaleSize(m_minSize);
-        const Size scaledMaxSize = scaleSize(m_maxSize);
+        const Size scaledMinSize = m_minSize;
+        const Size scaledMaxSize = m_maxSize;
 
         if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
             AdjustWindowRectExForDpi(&frame, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
@@ -601,12 +601,21 @@ bool PlatformWindow::createWindow() {
     Size size        = max(m_windowSize, Size{ 1, 1 });
     Point initialPos = m_position;
 
-    RECT rect        = { 0, 0, size.width, size.height };
+    HMONITOR primary = MonitorFromPoint({ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
+    SizeOf<UINT> primaryDpi;
+    GetDpiForMonitor(primary, MDT_EFFECTIVE_DPI, &primaryDpi.x, &primaryDpi.y);
+    m_scale       = primaryDpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
 
-    DWORD style      = getWindowStyle(m_windowStyle);
-    DWORD exStyle    = getWindowExStyle(m_windowStyle);
+    RECT rect     = { 0, 0, size.width, size.height };
 
-    AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+    DWORD style   = getWindowStyle(m_windowStyle);
+    DWORD exStyle = getWindowExStyle(m_windowStyle);
+
+    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+        AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, primaryDpi.x);
+    } else {
+        AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+    }
 
     std::wstring wideTitle = utf8ToWcs(m_window->m_title);
     m_data->hWnd = CreateWindowExW(exStyle, MAKEINTATOM(staticData.mainWindowClass), wideTitle.c_str(), style,
@@ -631,29 +640,29 @@ bool PlatformWindow::createWindow() {
 
     SizeOf<UINT> dpi;
     GetDpiForMonitor(mh, MDT_EFFECTIVE_DPI, &dpi.x, &dpi.y);
-    m_scale               = dpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
+    float newScale = dpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
+    if (newScale != m_scale) {
+        m_scale = newScale;
+        // Adjust window rect to account for DPI scaling of the window frame and
+        // (if enabled) DPI scaling of the content area
+        // This cannot be done until we know what monitor the window was placed on
+        // Only update the restored window rect as the window may be maximized
+        rect    = { 0, 0, size.width, size.height };
 
-    // Adjust window rect to account for DPI scaling of the window frame and
-    // (if enabled) DPI scaling of the content area
-    // This cannot be done until we know what monitor the window was placed on
-    // Only update the restored window rect as the window may be maximized
+        if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+            AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
+        } else {
+            AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+        }
 
-    const Size scaledSize = scaleSize(size);
-    rect                  = { 0, 0, scaledSize.width, scaledSize.height };
+        WINDOWPLACEMENT wp = { .length = sizeof(wp) };
+        GetWindowPlacement(m_data->hWnd, &wp);
+        OffsetRect(&rect, wp.rcNormalPosition.left - rect.left, wp.rcNormalPosition.top - rect.top);
 
-    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
-        AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
-    } else {
-        AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+        wp.rcNormalPosition = rect;
+        wp.showCmd          = SW_HIDE;
+        SetWindowPlacement(m_data->hWnd, &wp);
     }
-
-    WINDOWPLACEMENT wp = { .length = sizeof(wp) };
-    GetWindowPlacement(m_data->hWnd, &wp);
-    OffsetRect(&rect, wp.rcNormalPosition.left - rect.left, wp.rcNormalPosition.top - rect.top);
-
-    wp.rcNormalPosition = rect;
-    wp.showCmd          = SW_HIDE;
-    SetWindowPlacement(m_data->hWnd, &wp);
 
     DragAcceptFiles(m_data->hWnd, TRUE);
 
@@ -693,8 +702,7 @@ void PlatformWindow::setTitle(std::string_view title) {
 }
 
 void PlatformWindow::setSize(Size size) {
-    const Size scaledSize = scaleSize(size);
-    RECT rect             = { 0, 0, scaledSize.x, scaledSize.y };
+    RECT rect = { 0, 0, size.x, size.y };
 
     if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
         AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle),
@@ -1030,6 +1038,10 @@ void PlatformWindow::updateVisibility() {
 /* static */ DblClickParams PlatformWindow::dblClickParams() {
     return { GetDoubleClickTime() / 1000.0,
              (GetSystemMetrics(SM_CXDOUBLECLK) + GetSystemMetrics(SM_CYDOUBLECLK)) / 2 / 2 };
+}
+
+HiDPIMode hiDPIMode() {
+    return HiDPIMode::ApplicationScaling;
 }
 
 } // namespace Brisk

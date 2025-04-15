@@ -644,7 +644,7 @@ using namespace Brisk;
     const NSRect contentRect = [window->m_data->view frame];
     // NOTE: The returned location uses base 0,1 not 0,0
     const NSPoint pos        = [event locationInWindow];
-    return PointF(pos.x, contentRect.size.height - pos.y) * window->m_scale;
+    return PointF(pos.x, contentRect.size.height - pos.y);
 }
 
 - (void)mouseDown:(NSEvent*)event {
@@ -1128,5 +1128,9 @@ void PlatformWindow::setPosition(Point point) {
         const NSRect frameRect = [m_data->window frameRectForContentRect:dummyRect];
         [m_data->window setFrameOrigin:frameRect.origin];
     } // autoreleasepool
+}
+
+HiDPIMode hiDPIMode() {
+    return HiDPIMode::FramebufferScaling;
 }
 } // namespace Brisk

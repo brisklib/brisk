@@ -38,7 +38,7 @@ class Component;
 
 class GUIWindow : public Window {
 public:
-    void dpiChanged() override;
+    void pixelRatioChanged() override;
     void rebuild();
     const std::string& getId() const;
     void setId(std::string id);

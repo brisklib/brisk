@@ -57,7 +57,6 @@ void WindowApplication::serialize(const Serialization& serialization) {
     serialization(Value{ &discreteGPU }, "discreteGPU");
     serialization(Value{ &syncInterval }, "syncInterval");
     serialization(Value{ &uiScale }, "uiScale");
-    serialization(Value{ &useMonitorScale }, "useMonitorScale");
     serialization(Value{ &blueLightFilter }, "blueLightFilter");
     serialization(Value{ &globalGamma }, "globalGamma");
     serialization(Value{ &subPixelText }, "subPixelText");

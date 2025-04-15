@@ -243,20 +243,20 @@ void Window::setStyle(WindowStyle style) {
     }
 }
 
-void Window::determineWindowDPI() {
-    const float spr = (m_useMonitorScale.load() ? m_windowPixelRatio.load() : 1.f) * m_pixelRatioScale;
-    if (m_canvasPixelRatio != spr) {
-        m_canvasPixelRatio = spr;
-        LOG_INFO(window, "Pixel Ratio for window = {} scaled: {}", m_windowPixelRatio.load(), spr);
-        uiScheduler->dispatch([this] {
-            Brisk::pixelRatio() = m_canvasPixelRatio;
-            dpiChanged();
-        });
-    }
-}
-
-void Window::windowPixelRatioChanged() {
-    //
+void Window::recomputeScales() {
+    mustBeMainThread();
+    const float pixelRatio =
+        m_contentScale.load(std::memory_order_relaxed) * m_canvasScale.load(std::memory_order_relaxed);
+    LOG_INFO(window, "Pixel Scales content ({}) * canvas ({}) = {}",
+             m_contentScale.load(std::memory_order_relaxed), m_canvasScale.load(std::memory_order_relaxed),
+             pixelRatio);
+    uiScheduler->dispatch([this, pixelRatio] {
+        if (pixelRatio != m_pixelRatio) {
+            m_pixelRatio        = pixelRatio;
+            Brisk::pixelRatio() = pixelRatio;
+            pixelRatioChanged();
+        }
+    });
 }
 
 void Window::visibilityChanged(bool newIsVisible) {
@@ -265,10 +265,8 @@ void Window::visibilityChanged(bool newIsVisible) {
 
 void Window::attachedToApplication() {
     m_attached = true;
-    bindings->connect(Value{ &m_pixelRatioScale, this, &Window::determineWindowDPI },
+    bindings->connect(Value{ &m_canvasScale, this, &Window::recomputeScales },
                       Value{ &windowApplication->uiScale });
-    bindings->connect(Value{ &m_useMonitorScale, this, &Window::determineWindowDPI },
-                      Value{ &windowApplication->useMonitorScale });
     bindings->connect(Value{ &m_syncInterval,
                              [this]() {
                                  if (m_target)
@@ -320,8 +318,8 @@ void Window::paintStat(Canvas& canvas, Rectangle rect) {
                     " [Optimized]"
 #endif
                     ,
-                    m_framebufferSize.width, m_framebufferSize.height, m_canvasPixelRatio.load(), info.api,
-                    info.device, m_bufferedRendering.load(std::memory_order_relaxed),
+                    m_framebufferSize.width, m_framebufferSize.height, pixelRatio(), info.api, info.device,
+                    m_bufferedRendering.load(std::memory_order_relaxed),
                     m_forceRenderEveryFrame.load(std::memory_order_relaxed));
 
     uint64_t frameNumber = m_frameNumber.load(std::memory_order_relaxed);
@@ -392,6 +390,7 @@ void Window::paintDebug(RenderContext& context) {
 }
 
 void Window::doPaint() {
+    mustBeUIThread();
     BRISK_ASSERT(m_encoder);
     PerformanceDuration start_time = perfNow();
     ObjCPool pool;
@@ -399,7 +398,7 @@ void Window::doPaint() {
 
     renderStart                  = high_res_clock::now();
 
-    pixelRatio()                 = m_canvasPixelRatio;
+    Brisk::pixelRatio()          = m_pixelRatio;
 
     currentFramePresentationTime = m_nextFrameTime.value_or(currentTime());
 
@@ -528,12 +527,16 @@ void Window::setCursor(Cursor cursor) {
     }
 }
 
-float Window::canvasPixelRatio() const {
-    return m_canvasPixelRatio;
+float Window::canvasScale() const noexcept {
+    return m_canvasScale;
 }
 
-float Window::windowPixelRatio() const {
-    return m_windowPixelRatio;
+float Window::pixelRatio() const noexcept {
+    return m_pixelRatio;
+}
+
+float Window::contentScale() const noexcept {
+    return m_contentScale;
 }
 
 Rectangle Window::getBounds() const {
@@ -632,7 +635,7 @@ void Window::openWindow() {
     if (m_platformWindow)
         return;
     m_platformWindow.reset(new PlatformWindow(this, m_windowSize, m_position, m_style));
-    determineWindowDPI();
+    recomputeScales();
     initializeRenderer();
     m_rendering = true;
     beforeOpeningWindow();
@@ -713,7 +716,7 @@ void Window::focusChange(bool newIsFocused) {
     onFocusChange(newIsFocused);
 }
 
-void Window::dpiChanged() {}
+void Window::pixelRatioChanged() {}
 
 void Window::onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {}
 
@@ -850,6 +853,64 @@ RC<Display> Window::display() const {
             return display;
 
     return nullptr;
+}
+
+float Window::convertUnit(Unit destUnit, float value, Unit sourceUnit) const noexcept {
+    const bool appScaling = hiDPIMode() == HiDPIMode::ApplicationScaling;
+
+    switch (sourceUnit) {
+    case Unit::Screen:
+        switch (destUnit) {
+        case Unit::Screen:
+            return value;
+        case Unit::Framebuffer:
+            return appScaling ? value : value * m_contentScale;
+        case Unit::Content:
+            return appScaling ? value / m_contentScale : value;
+        }
+    case Unit::Framebuffer:
+        switch (destUnit) {
+        case Unit::Screen:
+            return appScaling ? value : value / m_contentScale;
+        case Unit::Framebuffer:
+            return value;
+        case Unit::Content:
+            return value / m_contentScale;
+        }
+    case Unit::Content:
+        switch (destUnit) {
+        case Unit::Screen:
+            return appScaling ? value * m_contentScale : value;
+        case Unit::Framebuffer:
+            return value * m_contentScale;
+        case Unit::Content:
+            return value;
+        }
+    }
+    BRISK_UNREACHABLE();
+}
+
+PointF Window::convertUnit(Unit destUnit, PointF value, Unit sourceUnit) const noexcept {
+    return {
+        convertUnit(destUnit, value.x, sourceUnit),
+        convertUnit(destUnit, value.y, sourceUnit),
+    };
+}
+
+SizeF Window::convertUnit(Unit destUnit, SizeF value, Unit sourceUnit) const noexcept {
+    return {
+        convertUnit(destUnit, value.x, sourceUnit),
+        convertUnit(destUnit, value.y, sourceUnit),
+    };
+}
+
+RectangleF Window::convertUnit(Unit destUnit, RectangleF value, Unit sourceUnit) const noexcept {
+    return {
+        convertUnit(destUnit, value.x1, sourceUnit),
+        convertUnit(destUnit, value.y1, sourceUnit),
+        convertUnit(destUnit, value.x2, sourceUnit),
+        convertUnit(destUnit, value.y2, sourceUnit),
+    };
 }
 
 const RenderStat& Window::renderStat() const noexcept {

@@ -276,7 +276,6 @@ enum class WindowStyle : int32_t {
     Resizable   = 1 << 1,
     TopMost     = 1 << 2,
     ToolWindow  = 1 << 3,
-    ExactSize   = 1 << 4,
     Disabled    = 1 << 5,
     Normal      = Resizable,
     Dialog      = ToolWindow,

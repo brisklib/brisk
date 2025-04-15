@@ -41,8 +41,8 @@ public:
     // Configures the splash screen window to be undecorated, topmost, and centered on the screen.
     void configureWindow(RC<GUIWindow> window) final {
         window->setTitle(""); // Sets an empty title for a minimal appearance.
-        window->setStyle(WindowStyle::Undecorated | WindowStyle::TopMost | WindowStyle::ExactSize);
-        // Undecorated removes borders, TopMost keeps it above other windows, ExactSize prevents DPI scaling.
+        window->setStyle(WindowStyle::Undecorated | WindowStyle::TopMost);
+        // Undecorated removes borders, TopMost keeps it above other windows.
         Rectangle desktopRect = Display::primary()->workarea(); // Gets the primary display's usable area.
         Rectangle windowRect =
             desktopRect.alignedRect({ 768, 512 }, { 0.5f, 0.5f }); // Centers a 768x512 window.

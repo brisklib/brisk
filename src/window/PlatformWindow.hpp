@@ -22,6 +22,7 @@
 
 #include <bitset>
 #include <brisk/window/Types.hpp>
+#include <brisk/window/Window.hpp>
 #include <brisk/window/WindowApplication.hpp>
 #include <brisk/graphics/Geometry.hpp>
 
@@ -105,10 +106,6 @@ public:
     Size m_framebufferSize{ dontCare, dontCare };
     Point m_position{ dontCare, dontCare };
 
-    Size scaleSize(Size size) const;
-
-    PointF mapFramebuffer(PointF pos);
-
     Bytes placement() const;
     void setPlacement(BytesView data);
     explicit PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style);
@@ -140,12 +137,13 @@ public:
     bool isVisible() const;
 
     void charEvent(char32_t codepoint, bool nonClient);
-    void mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos);
+    void mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos,
+                    Window::Unit unit = Window::Unit::Screen);
     void focusChange(bool gained);
     void closeAttempt();
     void keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
     void mouseEnterOrLeave(bool enter);
-    void mouseMove(PointF pos);
+    void mouseMove(PointF pos, Window::Unit unit = Window::Unit::Screen);
     void wheelEvent(float x, float y);
     void windowStateEvent(WindowState state);
     void windowResized(Size windowSize, Size framebufferSize);
