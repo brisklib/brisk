@@ -19,27 +19,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "vbezier.h"
+#include "Bezier.hpp"
 
 #include <cmath>
 
-#include "vdasher.h"
-#include "vline.h"
+#include "Dasher.hpp"
+#include "Line.hpp"
 
-V_BEGIN_NAMESPACE
+namespace Brisk {
 
 static constexpr float tolerance = 0.05f;
-VDasher::VDasher(const float *dashArray, size_t size)
-{
-    mDashArray = reinterpret_cast<const VDasher::Dash *>(dashArray);
+
+Dasher::Dasher(const float* dashArray, size_t size) {
+    mDashArray = reinterpret_cast<const Dasher::Dash*>(dashArray);
     mArraySize = size / 2;
-    if (size % 2) mDashOffset = dashArray[size - 1];
-    mIndex = 0;
+    if (size % 2)
+        mDashOffset = dashArray[size - 1];
+    mIndex         = 0;
     mCurrentLength = 0;
-    mDiscard = false;
-    //if the dash array contains ZERO length
-    // segments or ZERO lengths gaps we could
-    // optimize those usecase.
+    mDiscard       = false;
+    // if the dash array contains ZERO length
+    //  segments or ZERO lengths gaps we could
+    //  optimize those usecase.
     for (size_t i = 0; i < mArraySize; i++) {
         if (!vCompare(mDashArray[i].length, 0.0f))
             mNoLength = false;
@@ -48,12 +49,11 @@ VDasher::VDasher(const float *dashArray, size_t size)
     }
 }
 
-void VDasher::moveTo(const VPointF &p)
-{
-    mDiscard = false;
+void Dasher::moveTo(const PointF& p) {
+    mDiscard         = false;
     mStartNewSegment = true;
-    mCurPt = p;
-    mIndex = 0;
+    mCurPt           = p;
+    mIndex           = 0;
 
     if (!vCompare(mDashOffset, 0.0f)) {
         float totalLength = 0.0;
@@ -68,16 +68,16 @@ void VDasher::moveTo(const VPointF &p)
         // findout the current dash index , dashlength and gap.
         for (size_t i = 0; i < mArraySize; i++) {
             if (normalizeLen < mDashArray[i].length) {
-                mIndex = i;
+                mIndex         = i;
                 mCurrentLength = mDashArray[i].length - normalizeLen;
-                mDiscard = false;
+                mDiscard       = false;
                 break;
             }
             normalizeLen -= mDashArray[i].length;
             if (normalizeLen < mDashArray[i].gap) {
-                mIndex = i;
+                mIndex         = i;
                 mCurrentLength = mDashArray[i].gap - normalizeLen;
-                mDiscard = true;
+                mDiscard       = true;
                 break;
             }
             normalizeLen -= mDashArray[i].gap;
@@ -85,12 +85,13 @@ void VDasher::moveTo(const VPointF &p)
     } else {
         mCurrentLength = mDashArray[mIndex].length;
     }
-    if (vIsZero(mCurrentLength)) updateActiveSegment();
+    if (vIsZero(mCurrentLength))
+        updateActiveSegment();
 }
 
-void VDasher::addLine(const VPointF &p)
-{
-    if (mDiscard) return;
+void Dasher::addLine(const PointF& p) {
+    if (mDiscard)
+        return;
 
     if (mStartNewSegment) {
         mResult->moveTo(mCurPt);
@@ -99,23 +100,22 @@ void VDasher::addLine(const VPointF &p)
     mResult->lineTo(p);
 }
 
-void VDasher::updateActiveSegment()
-{
+void Dasher::updateActiveSegment() {
     mStartNewSegment = true;
 
     if (mDiscard) {
-        mDiscard = false;
-        mIndex = (mIndex + 1) % mArraySize;
+        mDiscard       = false;
+        mIndex         = (mIndex + 1) % mArraySize;
         mCurrentLength = mDashArray[mIndex].length;
     } else {
-        mDiscard = true;
+        mDiscard       = true;
         mCurrentLength = mDashArray[mIndex].gap;
     }
-    if (vIsZero(mCurrentLength)) updateActiveSegment();
+    if (vIsZero(mCurrentLength))
+        updateActiveSegment();
 }
 
-void VDasher::lineTo(const VPointF &p)
-{
+void Dasher::lineTo(const PointF& p) {
     VLine left, right;
     VLine line(mCurPt, p);
     float length = line.length();
@@ -131,7 +131,7 @@ void VDasher::lineTo(const VPointF &p)
             addLine(left.p2());
             updateActiveSegment();
 
-            line = right;
+            line   = right;
             mCurPt = line.p1();
         }
         // handle remainder
@@ -141,14 +141,15 @@ void VDasher::lineTo(const VPointF &p)
         }
     }
 
-    if (mCurrentLength < tolerance) updateActiveSegment();
+    if (mCurrentLength < tolerance)
+        updateActiveSegment();
 
     mCurPt = p;
 }
 
-void VDasher::addCubic(const VPointF &cp1, const VPointF &cp2, const VPointF &e)
-{
-    if (mDiscard) return;
+void Dasher::addCubic(const PointF& cp1, const PointF& cp2, const PointF& e) {
+    if (mDiscard)
+        return;
 
     if (mStartNewSegment) {
         mResult->moveTo(mCurPt);
@@ -157,11 +158,10 @@ void VDasher::addCubic(const VPointF &cp1, const VPointF &cp2, const VPointF &e)
     mResult->cubicTo(cp1, cp2, e);
 }
 
-void VDasher::cubicTo(const VPointF &cp1, const VPointF &cp2, const VPointF &e)
-{
-    VBezier left, right;
-    VBezier b = VBezier::fromPoints(mCurPt, cp1, cp2, e);
-    float   bezLen = b.length();
+void Dasher::cubicTo(const PointF& cp1, const PointF& cp2, const PointF& e) {
+    Bezier left, right;
+    Bezier b     = Bezier::fromPoints(mCurPt, cp1, cp2, e);
+    float bezLen = b.length();
 
     if (bezLen <= mCurrentLength) {
         mCurrentLength -= bezLen;
@@ -174,7 +174,7 @@ void VDasher::cubicTo(const VPointF &cp1, const VPointF &cp2, const VPointF &e)
             addCubic(left.pt2(), left.pt3(), left.pt4());
             updateActiveSegment();
 
-            b = right;
+            b      = right;
             mCurPt = b.pt1();
         }
         // handle remainder
@@ -184,37 +184,37 @@ void VDasher::cubicTo(const VPointF &cp1, const VPointF &cp2, const VPointF &e)
         }
     }
 
-    if (mCurrentLength < tolerance) updateActiveSegment();
+    if (mCurrentLength < tolerance)
+        updateActiveSegment();
 
     mCurPt = e;
 }
 
-void VDasher::dashHelper(const VPath &path, VPath &result)
-{
+void Dasher::dashHelper(const Path& path, Path& result) {
     mResult = &result;
     mResult->reserve(path.points().size(), path.elements().size());
-    mIndex = 0;
-    const std::vector<VPath::Element> &elms = path.elements();
-    const std::vector<VPointF> &       pts = path.points();
-    const VPointF *                    ptPtr = pts.data();
+    mIndex                                 = 0;
+    const std::vector<Path::Element>& elms = path.elements();
+    const std::vector<PointF>& pts         = path.points();
+    const PointF* ptPtr                    = pts.data();
 
-    for (auto &i : elms) {
+    for (auto& i : elms) {
         switch (i) {
-        case VPath::Element::MoveTo: {
+        case Path::Element::MoveTo: {
             moveTo(*ptPtr++);
             break;
         }
-        case VPath::Element::LineTo: {
+        case Path::Element::LineTo: {
             lineTo(*ptPtr++);
             break;
         }
-        case VPath::Element::CubicTo: {
+        case Path::Element::CubicTo: {
             cubicTo(*ptPtr, *(ptPtr + 1), *(ptPtr + 2));
             ptPtr += 3;
             break;
         }
-        case VPath::Element::Close: {
-            // The point is already joined to start point in VPath
+        case Path::Element::Close: {
+            // The point is already joined to start point in Path
             // no need to do anything here.
             break;
         }
@@ -223,32 +223,42 @@ void VDasher::dashHelper(const VPath &path, VPath &result)
     mResult = nullptr;
 }
 
-void VDasher::dashed(const VPath &path, VPath &result)
-{
-    if (mNoLength && mNoGap) return result.reset();
+void Dasher::dashed(const Path& path, Path& result) {
+    if (mNoLength && mNoGap) {
+        result.reset();
+        return;
+    }
 
-    if (path.empty() || mNoLength) return result.reset();
+    if (path.empty() || mNoLength) {
+        result.reset();
+        return;
+    }
 
-    if (mNoGap) return result.clone(path);
+    if (mNoGap) {
+        result = path;
+        return;
+    }
 
     result.reset();
 
     dashHelper(path, result);
 }
 
-VPath VDasher::dashed(const VPath &path)
-{
-    if (mNoLength && mNoGap) return path;
+Path Dasher::dashed(const Path& path) {
+    if (mNoLength && mNoGap)
+        return path;
 
-    if (path.empty() || mNoLength) return VPath();
+    if (path.empty() || mNoLength)
+        return Path();
 
-    if (mNoGap) return path;
+    if (mNoGap)
+        return path;
 
-    VPath result;
+    Path result;
 
     dashHelper(path, result);
 
     return result;
 }
 
-V_END_NAMESPACE
+} // namespace Brisk

@@ -20,31 +20,30 @@
  * SOFTWARE.
  */
 
-#ifndef VRASTER_H
-#define VRASTER_H
-#include <future>
-#include "vglobal.h"
-#include "vrect.h"
+#pragma once
 
-V_BEGIN_NAMESPACE
+#include <cmath>
+#include <numbers>
+#include <brisk/graphics/Geometry.hpp>
 
-class VPath;
-class VRle;
+namespace Brisk {
 
-class VRasterizer
-{
-public:
-    void rasterize(VPath path, FillRule fillRule = FillRule::Winding, const VRect &clip = VRect());
-    void rasterize(VPath path, CapStyle cap, JoinStyle join, float width,
-                   float miterLimit, const VRect &clip = VRect());
-    VRle rle();
-private:
-    struct VRasterizerImpl;
-    void init();
-    void updateRequest();
-    std::shared_ptr<VRasterizerImpl> d{nullptr};
-};
+static const double EPSILON_DOUBLE = 0.000000000001f;
+static const float EPSILON_FLOAT   = 0.000001f;
 
-V_END_NAMESPACE
+static inline bool vCompare(float p1, float p2) {
+    return (std::abs(p1 - p2) < EPSILON_FLOAT);
+}
 
-#endif  // VRASTER_H
+static inline bool vIsZero(float f) {
+    return (std::abs(f) <= EPSILON_FLOAT);
+}
+
+static inline bool vIsZero(double f) {
+    return (std::abs(f) <= EPSILON_DOUBLE);
+}
+
+inline bool fuzzyCompare(const PointF& p1, const PointF& p2) {
+    return (vCompare(p1.x, p2.x) && vCompare(p1.y, p2.y));
+}
+} // namespace Brisk

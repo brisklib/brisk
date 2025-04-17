@@ -20,25 +20,45 @@
  * SOFTWARE.
  */
 
-#ifndef VPATHMESURE_H
-#define VPATHMESURE_H
+#include <brisk/graphics/Geometry.hpp>
+#include <brisk/graphics/Path.hpp>
 
-#include "vpath.h"
+namespace Brisk {
 
-V_BEGIN_NAMESPACE
-
-class VPathMesure {
+class Dasher {
 public:
-    void setRange(float start, float end) {mStart = start; mEnd = end;}
-    void  setStart(float start){mStart = start;}
-    void  setEnd(float end){mEnd = end;}
-    VPath trim(const VPath &path);
+    Dasher(const float* dashArray, size_t size);
+    Path dashed(const Path& path);
+    void dashed(const Path& path, Path& result);
+
 private:
-    float mStart{0.0f};
-    float mEnd{1.0f};
-    VPath mScratchObject;
+    void moveTo(const PointF& p);
+    void lineTo(const PointF& p);
+    void cubicTo(const PointF& cp1, const PointF& cp2, const PointF& e);
+    void close();
+    void addLine(const PointF& p);
+    void addCubic(const PointF& cp1, const PointF& cp2, const PointF& e);
+    void updateActiveSegment();
+
+private:
+    void dashHelper(const Path& path, Path& result);
+
+    struct Dash {
+        float length;
+        float gap;
+    };
+
+    const Dasher::Dash* mDashArray;
+    size_t mArraySize{ 0 };
+    PointF mCurPt;
+    size_t mIndex{ 0 }; /* index to the dash Array */
+    float mCurrentLength;
+    float mDashOffset{ 0 };
+    Path* mResult{ nullptr };
+    bool mDiscard{ false };
+    bool mStartNewSegment{ true };
+    bool mNoLength{ true };
+    bool mNoGap{ true };
 };
 
-V_END_NAMESPACE
-
-#endif  // VPATHMESURE_H
+} // namespace Brisk

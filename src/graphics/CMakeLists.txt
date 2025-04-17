@@ -55,14 +55,10 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/Renderer.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Offscreen.cpp
     #
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vbezier.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vdasher.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vmatrix.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vpath.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vpathmesure.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vraster.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vrect.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vrle.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Bezier.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Dasher.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Raster.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Rle.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_math.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_raster.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_stroker.cpp)

@@ -8,8 +8,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -20,53 +20,49 @@
  * SOFTWARE.
  */
 
-#include "vrect.h"
-#include <algorithm>
+#pragma once
 
-V_BEGIN_NAMESPACE
+#include <vector>
 
-VRect VRect::operator&(const VRect &r) const
-{
-    if (empty()) return VRect();
+#include "Common.hpp"
 
-    int l1 = x1;
-    int r1 = x1;
-    if (x2 - x1 + 1 < 0)
-        l1 = x2;
-    else
-        r1 = x2;
+namespace Brisk {
 
-    int l2 = r.x1;
-    int r2 = r.x1;
-    if (r.x2 - r.x1 + 1 < 0)
-        l2 = r.x2;
-    else
-        r2 = r.x2;
+class Rle {
+public:
+    struct Span {
+        short x{ 0 };
+        short y{ 0 };
+        uint16_t len{ 0 };
+        uint8_t coverage{ 0 };
+    };
 
-    if (l1 > r2 || l2 > r1) return VRect();
+    using RleSpanCb = void (*)(size_t count, const Rle::Span* spans, void* userData);
 
-    int t1 = y1;
-    int b1 = y1;
-    if (y2 - y1 + 1 < 0)
-        t1 = y2;
-    else
-        b1 = y2;
+    bool empty() const {
+        return mSpans.empty();
+    }
 
-    int t2 = r.y1;
-    int b2 = r.y1;
-    if (r.y2 - r.y1 + 1 < 0)
-        t2 = r.y2;
-    else
-        b2 = r.y2;
+    Rectangle boundingRect() const;
 
-    if (t1 > b2 || t2 > b1) return VRect();
+    void setBoundingRect(const Rectangle& bbox);
 
-    VRect tmp;
-    tmp.x1 = std::max(l1, l2);
-    tmp.x2 = std::min(r1, r2);
-    tmp.y1 = std::max(t1, t2);
-    tmp.y2 = std::min(b1, b2);
-    return tmp;
-}
+    void addSpan(const Rle::Span* span, size_t count);
 
-V_END_NAMESPACE
+    void reset();
+
+    void translate(Point p);
+
+    const std::vector<Rle::Span>& spans() const {
+        return mSpans;
+    }
+
+private:
+    void updateBbox() const;
+
+    std::vector<Rle::Span> mSpans;
+    Point mOffset;
+    mutable Rectangle mBbox;
+    mutable bool mBboxDirty = true;
+};
+} // namespace Brisk

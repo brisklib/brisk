@@ -1203,7 +1203,7 @@ SW_FT_DEFINE_OUTLINE_FUNCS(func_interface,
 
 static int gray_convert_glyph_inner(RAS_ARG)
 {
-    volatile int error = 0;
+    int error = 0;
 
     if (ft_setjmp(ras.jump_buffer) == 0) {
         error = SW_FT_Outline_Decompose(&ras.outline, &func_interface, &ras);
@@ -1217,9 +1217,9 @@ static int gray_convert_glyph_inner(RAS_ARG)
 static int gray_convert_glyph(RAS_ARG)
 {
     gray_TBand bands[40];
-    gray_TBand* volatile band;
-    int volatile n, num_bands;
-    TPos volatile min, max, max_y;
+    gray_TBand* band;
+    int n, num_bands;
+    TPos min, max, max_y;
     SW_FT_BBox* clip;
 
     /* Set up state in the raster object */
