@@ -2334,12 +2334,12 @@ void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
         float maxBorderRadius = borderRadius.max();
         RectangleF innerRect  = rect.withPadding(borderWidth * 0.5f);
 
-        canvas.setFillColor(m_backgroundColor);
         if (maxBorderWidth == borderWidth.min() &&
             (maxBorderRadius == 0 || maxBorderRadius > maxBorderWidth * 0.5f)) {
             // Edges widths are equal
             canvas.setStrokeColor(m_borderColor);
             canvas.setStrokeWidth(maxBorderWidth);
+            canvas.setFillColor(m_backgroundColor);
             canvas.drawRect(innerRect,
                             CornersF(max(borderRadius.v - maxBorderWidth * 0.5f, SIMD<float, 4>(0))),
                             squircle);
@@ -2347,15 +2347,46 @@ void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
             SIMD<float, 4> corr = borderWidth.v.shuffle(size_constants<0, 1, 3, 2>{}) +
                                   borderWidth.v.shuffle(size_constants<1, 2, 0, 3>{});
             corr *= 0.5f;
+            canvas.setFillColor(m_backgroundColor);
             canvas.fillRect(innerRect, CornersF(max(borderRadius.v - corr * 0.5f, SIMD<float, 4>(0))),
                             squircle);
-            Path path;
-            path.addRoundRect(rect, CornersF(borderRadius.v), squircle, Path::Direction::CW);
-            path.addRoundRect(rect.withPadding(borderWidth),
-                              CornersF(max(borderRadius.v - corr, SIMD<float, 4>(0))), squircle,
-                              Path::Direction::CCW);
+
             canvas.setFillColor(m_borderColor);
-            canvas.fillPath(path);
+
+            uint8_t bits = maskToBits(ne(borderWidth.v, SIMD<float, 4>{ 0 }));
+            if (maxBorderRadius != 0) {
+                bits = 0b1111; // Disable short path for border drawaing
+            }
+            switch (bits) {
+            case 0b0001: // left
+                canvas.fillRect(rect.alignedRect({ borderWidth[0], rect.height() }, { 0.f, 0.5f }));
+                break;
+            case 0b0010: // top
+                canvas.fillRect(rect.alignedRect({ rect.width(), borderWidth[1] }, { 0.5f, 0.f }));
+                break;
+            case 0b0100: // right
+                canvas.fillRect(rect.alignedRect({ borderWidth[2], rect.height() }, { 1.f, 0.5f }));
+                break;
+            case 0b1000: // bottom
+                canvas.fillRect(rect.alignedRect({ rect.width(), borderWidth[3] }, { 0.5f, 1.f }));
+                break;
+            case 0b0101: // left+right
+                canvas.fillRect(rect.alignedRect({ borderWidth[0], rect.height() }, { 0.f, 0.5f }));
+                canvas.fillRect(rect.alignedRect({ borderWidth[2], rect.height() }, { 1.f, 0.5f }));
+                break;
+            case 0b1010: // top+bottom
+                canvas.fillRect(rect.alignedRect({ rect.width(), borderWidth[1] }, { 0.5f, 0.f }));
+                canvas.fillRect(rect.alignedRect({ rect.width(), borderWidth[3] }, { 0.5f, 1.f }));
+                break;
+            default: {
+                Path path;
+                path.addRoundRect(rect, CornersF(borderRadius.v), squircle, Path::Direction::CW);
+                path.addRoundRect(rect.withPadding(borderWidth),
+                                  CornersF(max(borderRadius.v - corr, SIMD<float, 4>(0))), squircle,
+                                  Path::Direction::CCW);
+                canvas.fillPath(path);
+            }
+            }
         }
     }
 }

@@ -270,6 +270,20 @@ SIMD(Args&&...) -> SIMD<std::common_type_t<Args...>, sizeof...(Args)>;
 template <size_t N>
 using SIMDMask = std::array<bool, N>;
 
+template <size_t N>
+constexpr auto maskToBits(SIMDMask<N> mask) {
+    static_assert(N <= 32);
+
+    using ReturnType = std::conditional_t<(N > 16), uint32_t, std::conditional_t<(N > 8), uint16_t, uint8_t>>;
+
+    ReturnType result = 0;
+    for (size_t bit = 0; bit < N; ++bit) {
+        if (mask[bit])
+            result |= 1 << bit;
+    }
+    return result;
+}
+
 /**
  * @typedef SIMDIndices
  * @brief Alias for an index array used in SIMD shuffling operations.
