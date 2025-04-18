@@ -523,17 +523,30 @@ struct MatrixOf {
         return std::sqrt(a * a + c * c);
     }
 
+    constexpr static T epsilon = std::is_same_v<T, float> ? 1e-4f : 1e-10f;
+
     constexpr bool isUniformScale() const {
-        constexpr float epsilon = 1e-4f;
-        float scale1_sq         = a * a + c * c;
-        float scale2_sq         = b * b + d * d;
+        T scale1_sq = a * a + c * c;
+        T scale2_sq = b * b + d * d;
         if (std::abs(b) < epsilon && std::abs(c) < epsilon) {
             return std::abs(std::abs(a) - std::abs(d)) < epsilon;
         }
         if (std::abs(scale1_sq - scale2_sq) > epsilon)
             return false;
-        float dot_product = a * b + c * d;
+        T dot_product = a * b + c * d;
         return std::abs(dot_product) < epsilon;
+    }
+
+    bool isTranslationOrScale() const noexcept {
+        return std::abs(b) < epsilon && std::abs(c) < epsilon;
+    }
+
+    SizeOf<T> scalingFactors() const noexcept {
+        return { a, d };
+    }
+
+    PointOf<T> translationOffset() const noexcept {
+        return { e, f };
     }
 
     /**
