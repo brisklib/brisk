@@ -334,7 +334,7 @@ template <typename Callable, typename R, typename... Args>
 concept invocable_r = std::is_invocable_r_v<R, Callable, Args...>;
 
 namespace Internal {
-constexpr inline size_t numProperties = 104;
+constexpr inline size_t numProperties = 105;
 extern const std::string_view propNames[numProperties];
 
 template <typename T, int subfield = -1>
@@ -1085,7 +1085,8 @@ protected:
     SizeL m_maxDimensions{ undef, undef };
     SizeL m_dimensions{ undef, undef };
     PointL m_translate{ 0, 0 }; // translation relative to own size
-    SizeL m_gap                    = { 0, 0 };
+    SizeL m_gap{ 0, 0 };
+    PointF m_shadowOffset{ 0, 0 };
 
     // pointers
     Widget* m_parent               = nullptr;
@@ -1099,6 +1100,7 @@ protected:
     OptFloat m_flexShrink          = undef;
     OptFloat m_aspect              = undef;
     float m_opacity                = 1.f;
+    float m_shadowSpread           = 0;
 
     // int
     Cursor m_cursor                = Cursor::NotSet;
@@ -1393,6 +1395,7 @@ public:
     GUIProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
     GUIProperty<22, float, None, &This::m_colorTransition> colorTransition;
     GUIProperty<23, ColorW, Transition | Inheritable | AffectPaint, &This::m_color> color;
+    GUIProperty<24, PointF, AffectPaint, &This::m_shadowOffset> shadowOffset;
     GUIProperty<25, Cursor, None, &This::m_cursor> cursor;
     GUIProperty<26, SizeL, AffectLayout, &This::m_dimensions, 0> width;
     GUIProperty<27, SizeL, AffectLayout, &This::m_dimensions, 1> height;
@@ -1505,6 +1508,7 @@ public:
     GUIProperty<101, ColorW, Transition | Inheritable | AffectPaint, &This::m_scrollBarColor> scrollBarColor;
     GUIProperty<102, Length, Resolvable | AffectPaint, &This::m_scrollBarThickness> scrollBarThickness;
     GUIProperty<103, Length, Resolvable | AffectPaint, &This::m_scrollBarRadius> scrollBarRadius;
+    GUIProperty<104, float, AffectPaint, &This::m_shadowSpread> shadowSpread;
 
     Property<This, Trigger<>, &This::m_onClick> onClick;
     Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;
@@ -1584,6 +1588,7 @@ extern const Argument<Tag::PropArg<decltype(Widget::overflow)>> overflow;
 extern const Argument<Tag::PropArg<decltype(Widget::padding)>> padding;
 extern const Argument<Tag::PropArg<decltype(Widget::placement)>> placement;
 extern const Argument<Tag::PropArg<decltype(Widget::shadowSize)>> shadowSize;
+extern const Argument<Tag::PropArg<decltype(Widget::shadowOffset)>> shadowOffset;
 extern const Argument<Tag::PropArg<decltype(Widget::shadowColor)>> shadowColor;
 extern const Argument<Tag::PropArg<decltype(Widget::shadowColorTransition)>> shadowColorTransition;
 extern const Argument<Tag::PropArg<decltype(Widget::shadowColorEasing)>> shadowColorEasing;
@@ -1654,6 +1659,7 @@ extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures
 extern const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
 extern const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThickness;
 extern const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
+extern const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread;
 
 constexpr inline Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick{};
 constexpr inline Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick{};

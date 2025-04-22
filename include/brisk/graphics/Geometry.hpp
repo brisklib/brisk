@@ -1594,6 +1594,10 @@ struct CornersOf<T> {
         return horizontalSum(v) == 0;
     }
 
+    CornersOf operator+(T value) const noexcept {
+        return CornersOf(v + SIMD<T, 4>(value));
+    }
+
     union {
         /// @brief The SIMD vector representing the corners.
         SIMD<T, 4> v;

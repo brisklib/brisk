@@ -2322,7 +2322,10 @@ void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
         }
 
         canvas.setFillColor(widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
-        canvas.blurRect(rect, widget.shadowSize.resolved(), widget.borderRadius.resolved());
+        canvas.blurRect(rect.withOffset(scalePixels(widget.shadowOffset))
+                            .withMargin(scalePixels(widget.shadowSpread.get())),
+                        widget.shadowSize.resolved(),
+                        widget.borderRadius.resolved() + scalePixels(widget.shadowSpread.get()));
     }
 
     EdgesF borderWidth = widget.computedBorderWidth();
@@ -2675,7 +2678,7 @@ const std::string_view propNames[numProperties]{
     /*21*/ "colorEasing",
     /*22*/ "colorTransition",
     /*23*/ "color",
-    /*24*/ "corners",
+    /*24*/ "shadowOffset",
     /*25*/ "cursor",
     /*26*/ "width",
     /*27*/ "height",
@@ -2755,6 +2758,7 @@ const std::string_view propNames[numProperties]{
     /*101*/ "scrollBarColor",
     /*102*/ "scrollBarThickness",
     /*103*/ "scrollBarRadius",
+    /*104*/ "shadowSpread",
 };
 
 } // namespace Internal
@@ -2819,6 +2823,7 @@ template void instantiateProp<decltype(Widget::opacity)>();
 template void instantiateProp<decltype(Widget::overflow)>();
 template void instantiateProp<decltype(Widget::placement)>();
 template void instantiateProp<decltype(Widget::shadowSize)>();
+template void instantiateProp<decltype(Widget::shadowOffset)>();
 template void instantiateProp<decltype(Widget::shadowColor)>();
 template void instantiateProp<decltype(Widget::shadowColorTransition)>();
 template void instantiateProp<decltype(Widget::shadowColorEasing)>();
@@ -2879,6 +2884,7 @@ template void instantiateProp<decltype(Widget::fontFeatures)>();
 template void instantiateProp<decltype(Widget::scrollBarColor)>();
 template void instantiateProp<decltype(Widget::scrollBarThickness)>();
 template void instantiateProp<decltype(Widget::scrollBarRadius)>();
+template void instantiateProp<decltype(Widget::shadowSpread)>();
 
 inline namespace Arg {
 
@@ -2924,6 +2930,7 @@ const Argument<Tag::PropArg<decltype(Widget::overflow)>> overflow{};
 const Argument<Tag::PropArg<decltype(Widget::padding)>> padding{};
 const Argument<Tag::PropArg<decltype(Widget::placement)>> placement{};
 const Argument<Tag::PropArg<decltype(Widget::shadowSize)>> shadowSize{};
+const Argument<Tag::PropArg<decltype(Widget::shadowOffset)>> shadowOffset{};
 const Argument<Tag::PropArg<decltype(Widget::shadowColor)>> shadowColor{};
 const Argument<Tag::PropArg<decltype(Widget::shadowColorTransition)>> shadowColorTransition{};
 const Argument<Tag::PropArg<decltype(Widget::shadowColorEasing)>> shadowColorEasing{};
@@ -2984,6 +2991,7 @@ const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures{};
 const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
 const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThickness;
 const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
+const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread;
 
 const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled{};
 
@@ -3035,10 +3043,11 @@ Rectangle Widget::clipRect() const noexcept {
     return m_clipRect;
 }
 
-static Rectangle adjustForShadowSize(RectangleF rect, float shadowSize) {
+static Rectangle adjustForShadowSize(RectangleF rect, float shadowSize, PointF shadowOffset,
+                                     float shadowSpread) {
     if (rect.empty())
         return Rectangle{};
-    RectangleF result = rect.withMargin(std::ceil(shadowSize + 1.f));
+    RectangleF result = rect.withOffset(shadowOffset).withMargin(std::ceil(shadowSize + shadowSpread + 1.f));
     return result.roundOutward();
 }
 
@@ -3058,10 +3067,11 @@ Rectangle Widget::adjustedRect() const noexcept {
     if (isKeyFocused()) {
         shadowSize = std::max(shadowSize, dp(focusFrameRange.max));
     }
-    return adjustForShadowSize(m_rect, shadowSize);
+    return adjustForShadowSize(m_rect, shadowSize, scalePixels(m_shadowOffset), scalePixels(m_shadowSpread));
 }
 
 Rectangle Widget::adjustedHintRect() const noexcept {
-    return adjustForShadowSize(m_hintRect, dp(hintShadowSize));
+    return adjustForShadowSize(m_hintRect, dp(hintShadowSize), scalePixels(m_shadowOffset),
+                               scalePixels(m_shadowSpread));
 }
 } // namespace Brisk

@@ -65,7 +65,8 @@ static Size defaultSize{ 360, 120 };
 static float defaultPixelRatio = 2.f;
 
 static void widgetTest(const std::string& name, RC<Widget> widget, std::initializer_list<Event> events = {},
-                       Size size = defaultSize, float pixelRatio = defaultPixelRatio) {
+                       Size size = defaultSize, float pixelRatio = defaultPixelRatio,
+                       ColorW winColor = 0x131419_rgb) {
     InputQueue input;
     InputQueueScope inputScope(&input);
     for (const Event& e : events) {
@@ -76,6 +77,7 @@ static void widgetTest(const std::string& name, RC<Widget> widget, std::initiali
     Brisk::pixelRatio() = pixelRatio;
     tree.setViewportRectangle({ Point{}, size });
     tree.setRoot(rcnew Container{
+        windowColor = winColor,
         std::move(widget),
     });
     renderTest(name, tree.viewportRectangle().size(), [&](RenderContext& context) {
@@ -237,5 +239,21 @@ TEST_CASE("Widget Knob") {
 
 TEST_CASE("Widget Slider") {
     widgetTest("widget-slider", rcnew Slider{ width = 160_apx, value = 50, minimum = 0, maximum = 100 });
+}
+
+TEST_CASE("Widget Shadow") {
+    widgetTest("widget-shadow1",
+               rcnew Widget{ dimensions = { 240, 240 }, shadowSize = 8.f, shadowColor = Palette::black,
+                             backgroundColor = Palette::white },
+               {}, { 320, 320 }, 1, Palette::white);
+    widgetTest("widget-shadow2",
+               rcnew Widget{ dimensions = { 240, 240 }, shadowSize = 8.f, shadowOffset = { 2.f, 2.f },
+                             shadowColor = Palette::black, backgroundColor = Palette::white },
+               {}, { 320, 320 }, 1, Palette::white);
+    widgetTest("widget-shadow3",
+               rcnew Widget{ dimensions = { 240, 240 }, borderRadius = 10, shadowSize = 16.f,
+                             shadowSpread = 10, shadowColor = Palette::black,
+                             backgroundColor = Palette::white },
+               {}, { 320, 320 }, 1, Palette::white);
 }
 } // namespace Brisk
