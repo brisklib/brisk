@@ -43,8 +43,6 @@ std::vector<std::string> environmentPath;
 
 using namespace Brisk;
 
-int briskMain();
-
 static void parseCommandLine() {
     int argc       = 0;
     wchar_t** argv = CommandLineToArgvW(winCmdLine, &argc);
@@ -86,20 +84,39 @@ static void collectEnvironment() {
     }
 }
 
-static void setup() {
+namespace Brisk {
+
+void startup(int /* argc */, char** /* argv */) {
+    if (winInstance == NULL)
+        GetModuleHandleExA(0, nullptr, &winInstance);
+    if (winCmdLine == NULL)
+        winCmdLine = GetCommandLineW();
+
     SetConsoleOutputCP(CP_UTF8);
     setMetadata(appMetadata);
     initializeCommon();
-}
-
-static void shutdown() {
-    finalizeCommon();
-}
-
-static int mainFun() {
-    setup();
     parseCommandLine();
     collectEnvironment();
+}
+
+void startup(void* moduleHandle, wchar_t* cmdLine) {
+    winInstance = static_cast<HINSTANCE>(moduleHandle);
+    winCmdLine  = cmdLine;
+    startup(0, nullptr);
+}
+
+void shutdown() {
+    finalizeCommon();
+}
+} // namespace Brisk
+
+#ifndef BRISK_NO_MAIN
+
+int briskMain();
+
+template <typename... Args>
+static int mainFun(Args... args) {
+    startup(args...);
     int ret = 0;
 #ifdef BRISK_EXCEPTIONS
     try {
@@ -119,11 +136,11 @@ static int mainFun() {
 int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd) {
     winInstance = hInstance;
     winCmdLine  = lpCmdLine;
-    return mainFun();
+    return mainFun(hInstance, lpCmdLine);
 }
 
-int main(int, char**) {
-    GetModuleHandleExA(0, nullptr, &winInstance);
-    winCmdLine = GetCommandLineW();
-    return mainFun();
+int main(int argc, char** argv) {
+    return mainFun(argc, argv);
 }
+
+#endif

@@ -46,4 +46,12 @@ struct CommonInitializer {
         finalizeCommon();
     }
 };
+
+#ifdef BRISK_WINDOWS
+void startup(void* moduleHandle, wchar_t* cmdLine);
+#endif
+
+void startup(int argc, char** argv);
+
+void shutdown();
 } // namespace Brisk
