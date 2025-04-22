@@ -17,15 +17,23 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
+cmake_minimum_required(VERSION 3.22)
 
-add_subdirectory(calc)
-add_subdirectory(showcase)
-add_subdirectory(splash-screen)
-if (glfw3_FOUND)
-    add_subdirectory(own-window)
-    add_subdirectory(own-window-gui)
+project(own-window-gui)
+
+find_package(glfw3 CONFIG)
+
+if (NOT _BRISK_INCLUDE_DIR)
+    find_package(Brisk CONFIG REQUIRED)
 endif ()
 
-if (BRISK_WEBGPU)
-    add_subdirectory(webgpu-demo)
-endif ()
+add_executable(own-window-gui own-window-gui.cpp)
+
+target_link_libraries(own-window-gui PRIVATE brisk-widgets glfw)
+
+brisk_target_remove_resources(own-window-gui fonts/default/bold.ttf fonts/default/light.ttf)
+
+brisk_setup_executable(own-window-gui)
+
+# This disables Brisk implementation of main function (wWinMain on Windows)
+target_compile_definitions(own-window-gui PRIVATE BRISK_NO_MAIN=1)
