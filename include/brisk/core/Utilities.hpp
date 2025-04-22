@@ -26,8 +26,11 @@
 #include <memory>
 #include <vector>
 #include <type_traits>
+#include <functional>
 #include "Brisk.h"
+#include <brisk/core/Exceptions.hpp>
 #include "internal/Optional.hpp"
+#include "internal/Typename.hpp"
 #include <brisk/core/internal/Debug.hpp>
 
 namespace Brisk {
@@ -842,6 +845,131 @@ struct ClonablePtr {
     }
 
     T* m_ptr;
+};
+
+/**
+ * @class ENullDeref
+ * @brief Exception thrown when attempting to dereference a null pointer.
+ */
+class ENullDeref : public Exception<std::runtime_error> {
+public:
+    using Exception<std::runtime_error>::Exception;
+};
+
+/**
+ * @class Nullable
+ * @brief A safe pointer wrapper that throws an exception on null dereference.
+ * @tparam T The type of the object the pointer points to.
+ * @details Provides a safer alternative to raw pointers by throwing ENullDeref when dereferencing a null
+ * pointer.
+ */
+template <typename T>
+struct Nullable {
+public:
+    /**
+     * @brief Default constructor, initializes pointer to nullptr.
+     */
+    constexpr Nullable() noexcept = default;
+
+    /**
+     * @brief Constructs a Nullable from a raw pointer.
+     * @param ptr The raw pointer to wrap.
+     */
+    constexpr Nullable(T* ptr) noexcept : m_ptr(ptr) {}
+
+    /**
+     * @brief Constructs a Nullable from nullptr.
+     */
+    constexpr Nullable(std::nullptr_t) noexcept : m_ptr(nullptr) {}
+
+    /**
+     * @brief Default copy constructor.
+     */
+    constexpr Nullable(const Nullable&) noexcept            = default;
+
+    /**
+     * @brief Default copy assignment operator.
+     * @return Reference to this Nullable.
+     */
+    constexpr Nullable& operator=(const Nullable&) noexcept = default;
+
+    /**
+     * @brief Assigns a raw pointer to this Nullable.
+     * @param ptr The raw pointer to assign.
+     * @return Reference to this Nullable.
+     */
+    constexpr Nullable& operator=(T* ptr) noexcept {
+        m_ptr = ptr;
+        return *this;
+    }
+
+    /**
+     * @brief Assigns nullptr to this Nullable.
+     * @return Reference to this Nullable.
+     */
+    constexpr Nullable& operator=(std::nullptr_t) noexcept {
+        m_ptr = nullptr;
+        return *this;
+    }
+
+    /**
+     * @brief Arrow operator for accessing members of the pointed-to object.
+     * @return Pointer to the object.
+     * @throws ENullDeref if the pointer is null.
+     */
+    [[nodiscard]] constexpr T* operator->() const {
+        ensureNonNull();
+        return m_ptr;
+    }
+
+    /**
+     * @brief Dereference operator for accessing the pointed-to object.
+     * @return Reference to the object.
+     * @throws ENullDeref if the pointer is null.
+     */
+    [[nodiscard]] constexpr T& operator*() const {
+        ensureNonNull();
+        return *m_ptr;
+    }
+
+    void ensureNonNull() const {
+        if (!m_ptr)
+            throwException(ENullDeref("Dereferencing null pointer of type {}", Internal::typeName<T>()));
+    }
+
+    /**
+     * @brief Explicit conversion to bool to check if the pointer is non-null.
+     * @return True if the pointer is non-null, false otherwise.
+     */
+    [[nodiscard]] constexpr explicit operator bool() const noexcept {
+        return m_ptr != nullptr;
+    }
+
+    /**
+     * @brief Gets the raw pointer.
+     * @return The raw pointer.
+     */
+    [[nodiscard]] constexpr T* get() const noexcept {
+        return m_ptr;
+    }
+
+    /**
+     * @brief Maps a lambda function over the pointed-to object if non-null.
+     * @tparam F Type of the lambda function.
+     * @param f Lambda function to apply to the pointed-to object.
+     * @return std::optional containing the result of the lambda if the pointer is non-null, otherwise
+     * std::nullopt.
+     */
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& f) const noexcept -> std::optional<std::invoke_result_t<F, T&>> {
+        if (m_ptr) {
+            return std::invoke(std::forward<F>(f), *m_ptr);
+        }
+        return std::nullopt;
+    }
+
+private:
+    T* m_ptr = nullptr; ///< The wrapped raw pointer.
 };
 
 /**
