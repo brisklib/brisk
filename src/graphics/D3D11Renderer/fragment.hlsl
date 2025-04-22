@@ -303,10 +303,10 @@ float4 fillAndStroke(float stroke_sd, float fill_sd, Colors colors) {
   return blendNormalPremultiplied(foreColor, backColor);
 }
 
-float4 signedDistanceToColor(float sd, float2 canvas_coord, float2 uv, float2 rectSize) {
+float4 signedDistanceToColor(float sd, float2 canvas_coord) {
+  float stroke_sd = (abs(sd) - (asfloat(constants[14].x) * 0.5f));
   Colors colors = calcColors(canvas_coord);
   if ((asfloat(constants[14].x) > 0.0f)) {
-    float stroke_sd = (abs(sd) - (asfloat(constants[14].x) * 0.5f));
     return fillAndStroke(stroke_sd, sd, colors);
   } else {
     return fillOnly(sd, colors);
@@ -556,7 +556,7 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_3) {
       } else {
         sd = signedDistanceArc(tint_symbol_3.uv, tint_symbol_3.data0.z, tint_symbol_3.data0.w, tint_symbol_3.data1.x, tint_symbol_3.data1.y);
       }
-      outColor = signedDistanceToColor(sd, tint_symbol_3.canvas_coord, tint_symbol_3.uv, tint_symbol_3.data0.xy);
+      outColor = signedDistanceToColor(sd, tint_symbol_3.canvas_coord);
     } else {
       if ((asint(constants[1].x) == 3)) {
         float tint_symbol_50 = roundedBoxShadow((tint_symbol_3.data0.xy * 0.5f), tint_symbol_3.uv, asfloat(constants[8].w), tint_symbol_3.data1);

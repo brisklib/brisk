@@ -945,4 +945,16 @@ TEST_CASE("WebGPU") {
 }
 #endif
 
+TEST_CASE("SDF-Border") {
+    for (int i = 128; i <= 4096; i *= 2) {
+        renderTest<true>("sdf-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
+            Canvas canvas(context);
+            canvas.setFillColor(Palette::transparent);
+            canvas.setStrokePaint(LinearGradient({ 0, 0 }, PointF(i, i), Palette::blue, Palette::green));
+            canvas.drawRect({ 0.5f, 0.5f, i - 0.5f, i - 0.5f });
+            REQUIRE(canvas.rasterizedPaths() == 0);
+        });
+    }
+}
+
 } // namespace Brisk
