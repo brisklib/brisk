@@ -43,7 +43,7 @@ void PopupButton::onEvent(Event& event) {
     Widget::onEvent(event); // Skip Button::onEvent
     if (event.pressed()) {
         focus();
-        auto passedThroughBy = inputQueue->passedThroughBy.lock();
+        auto passedThroughBy = inputQueue()->passedThroughBy.lock();
         if (passedThroughBy != popupBox)
             popupBox->visible = true;
         event.stopPropagation();

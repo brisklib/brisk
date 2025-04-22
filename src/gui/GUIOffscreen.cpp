@@ -23,10 +23,7 @@
 namespace Brisk {
 
 OffscreenGUIRendering::OffscreenGUIRendering(int width, int height, float pixelRatio)
-    : OffscreenRendering({ width, height }, pixelRatio) {
-    m_inputQueue.reset(new InputQueue());
-    m_inputQueueScope.reset(new InputQueueScope(m_inputQueue.get()));
-}
+    : OffscreenRendering({ width, height }, pixelRatio) {}
 
 void OffscreenGUIRendering::updateAndPaint(WidgetTree& tree) {
     tree.setViewportRectangle(rect());

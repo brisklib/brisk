@@ -32,10 +32,10 @@
 
 namespace Brisk {
 
-bool isStandaloneApp                 = false;
-bool separateUIThread                = true;
+bool isStandaloneApp  = false;
+bool separateUIThread = true;
 
-WindowApplication* windowApplication = nullptr;
+Nullable<WindowApplication> windowApplication;
 
 RC<TaskQueue> uiScheduler;
 
@@ -63,7 +63,7 @@ void WindowApplication::serialize(const Serialization& serialization) {
 }
 
 WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
-    BRISK_ASSERT(windowApplication == nullptr);
+    BRISK_ASSERT(windowApplication.get() == nullptr);
     windowApplication = this;
     mustBeMainThread();
 
@@ -95,7 +95,7 @@ WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
 }
 
 WindowApplication::~WindowApplication() {
-    BRISK_ASSERT(windowApplication == this);
+    BRISK_ASSERT(windowApplication.get() == this);
     mustBeMainThread();
 
     if (settings) {

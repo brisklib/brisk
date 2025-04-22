@@ -29,9 +29,5 @@ class OffscreenGUIRendering : public OffscreenRendering {
 public:
     OffscreenGUIRendering(int width, int height, float pixelRatio = 1.f);
     void updateAndPaint(WidgetTree& tree);
-
-private:
-    std::unique_ptr<InputQueue> m_inputQueue;
-    std::unique_ptr<InputQueueScope> m_inputQueueScope;
 };
 } // namespace Brisk

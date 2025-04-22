@@ -68,11 +68,10 @@ static void widgetTest(const std::string& name, RC<Widget> widget, std::initiali
                        Size size = defaultSize, float pixelRatio = defaultPixelRatio,
                        ColorW winColor = 0x131419_rgb) {
     InputQueue input;
-    InputQueueScope inputScope(&input);
     for (const Event& e : events) {
         input.addEvent(e);
     }
-    WidgetTree tree;
+    WidgetTree tree(&input);
     tree.disableTransitions();
     Brisk::pixelRatio() = pixelRatio;
     tree.setViewportRectangle({ Point{}, size });

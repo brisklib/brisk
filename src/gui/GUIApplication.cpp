@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-GUIApplication* guiApplication;
+Nullable<GUIApplication> guiApplication;
 
 int GUIApplication::run(RC<Component> mainComponent) {
     return WindowApplication::run(mainComponent->makeWindow());
@@ -37,12 +37,12 @@ void GUIApplication::addWindow(RC<Component> component, bool makeVisible) {
 }
 
 GUIApplication::~GUIApplication() {
-    BRISK_ASSERT(guiApplication == this);
+    BRISK_ASSERT(guiApplication.get() == this);
     guiApplication = nullptr;
 }
 
 GUIApplication::GUIApplication() {
-    BRISK_ASSERT(guiApplication == nullptr);
+    BRISK_ASSERT(guiApplication.get() == nullptr);
     guiApplication = this;
 }
 } // namespace Brisk

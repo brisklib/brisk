@@ -173,7 +173,6 @@ void GUIWindow::paintImmediate(RenderContext& context) {
 
 bool GUIWindow::update() {
     m_unhandledEvents.clear();
-    InputQueueScope inputQueueScope(&m_inputQueue);
     m_tree.setViewportRectangle(getFramebufferBounds());
     if (!m_tree.root()) {
         rebuild();

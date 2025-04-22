@@ -21,7 +21,6 @@
 #include <brisk/gui/Properties.hpp>
 #include <brisk/gui/GUI.hpp>
 #include <brisk/core/Hash.hpp>
-#include <brisk/window/WindowApplication.hpp>
 #include <brisk/gui/Styles.hpp>
 #include <brisk/gui/Icons.hpp>
 #include <brisk/graphics/Palette.hpp>
@@ -1284,6 +1283,7 @@ void Widget::processTemporaryEvent(Event event) {
 }
 
 void Widget::processEvent(Event& event) {
+    BRISK_ASSERT(m_tree);
     const bool pressed  = event.pressed();
     const bool released = event.released();
 
@@ -1324,11 +1324,11 @@ void Widget::processEvent(Event& event) {
     } else {
         this->onEvent(event);
     }
-    if (m_autoMouseCapture && inputQueue) {
+    if (m_autoMouseCapture) {
         if (pressed) {
-            inputQueue->captureMouse(shared_from_this());
+            inputQueue()->captureMouse(shared_from_this());
         } else if (released) {
-            inputQueue->stopCaptureMouse(shared_from_this());
+            inputQueue()->stopCaptureMouse(shared_from_this());
         }
     }
 }
@@ -1449,7 +1449,7 @@ void Widget::updateGeometry(HitTestMap::State& state) {
 
     processVisibility(state.visible);
 
-    if (inputQueue) {
+    if (auto inputQueue = this->inputQueue()) {
         if (m_focusCapture && state.visible) {
             inputQueue->enterFocusCapture();
         }
@@ -1472,7 +1472,7 @@ void Widget::updateGeometry(HitTestMap::State& state) {
     onLayoutUpdated();
     m_relayoutTime = frameStartTime;
 
-    if (inputQueue) {
+    if (auto inputQueue = this->inputQueue()) {
         if (m_focusCapture && state.visible) {
             inputQueue->leaveFocusCapture();
         }
@@ -1978,25 +1978,29 @@ std::optional<PointF> Widget::mousePos() const {
 }
 
 bool Widget::isHintCurrent() const {
-    return inputQueue && inputQueue->activeHint.lock() == shared_from_this();
+    if (auto inputQueue = this->inputQueue())
+        return inputQueue->activeHint.lock() == shared_from_this();
+    return false;
 }
 
 void Widget::requestHint() const {
-    if (inputQueue)
+    if (auto inputQueue = this->inputQueue())
         inputQueue->activeHint = shared_from_this();
 }
 
 bool Widget::hasFocus() const {
-    return inputQueue && inputQueue->focused.lock() == shared_from_this();
+    if (auto inputQueue = this->inputQueue())
+        return inputQueue->focused.lock() == shared_from_this();
+    return false;
 }
 
 void Widget::blur() {
-    if (inputQueue)
+    if (auto inputQueue = this->inputQueue())
         inputQueue->resetFocus();
 }
 
 void Widget::focus(bool byKeyboard) {
-    if (inputQueue)
+    if (auto inputQueue = this->inputQueue())
         inputQueue->setFocus(shared_from_this(), byKeyboard);
 }
 
@@ -2004,24 +2008,25 @@ bool Widget::isVisible() const noexcept {
     return m_isVisible;
 }
 
-void Widget::treeSet() {
+void Widget::attachedToTree() {
     if (m_pendingAnimationRequest) {
         m_pendingAnimationRequest = false;
         requestAnimationFrame();
     }
 }
 
+void Widget::detachedFromTree() {}
+
 void Widget::setTree(WidgetTree* tree) {
     if (tree != m_tree) {
         if (m_tree) {
             m_tree->detach(this);
+            detachedFromTree();
         }
         m_tree = tree;
         if (m_tree) {
             m_tree->attach(this);
-        }
-        if (m_tree) {
-            treeSet();
+            attachedToTree();
         }
         for (const Ptr& w : *this) {
             w->setTree(tree);
@@ -3074,4 +3079,9 @@ Rectangle Widget::adjustedHintRect() const noexcept {
     return adjustForShadowSize(m_hintRect, dp(hintShadowSize), scalePixels(m_shadowOffset),
                                scalePixels(m_shadowSpread));
 }
+
+Nullable<InputQueue> Widget::inputQueue() const noexcept {
+    return m_tree ? m_tree->inputQueue() : nullptr;
+}
+
 } // namespace Brisk

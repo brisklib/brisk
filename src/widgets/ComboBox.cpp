@@ -95,7 +95,7 @@ void ComboBox::onEvent(Event& event) {
         event.stopPropagation();
     } else if (event.pressed()) {
         focus();
-        auto passedThroughBy = inputQueue->passedThroughBy.lock();
+        auto passedThroughBy = inputQueue()->passedThroughBy.lock();
         if (passedThroughBy != menu)
             menu->visible = true;
         event.stopPropagation();

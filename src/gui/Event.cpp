@@ -25,8 +25,6 @@ namespace Brisk {
 
 std::atomic_uint32_t eventCookie{ 0 };
 
-InputQueueImplicitContext inputQueue;
-
 const char* const eventTypeNames[+EventType::Count] = {
     "Undefined",
     "MouseMoved",
@@ -49,14 +47,6 @@ const char* const eventTypeNames[+EventType::Count] = {
     "SourceDragging",
     "SourceDropped",
 };
-
-void Event::reinject() {
-    inputQueue->injectEvent(*this);
-}
-
-void Event::passThrough() {
-    inputQueue->passThroughFlag = true;
-}
 
 template <typename T>
 std::optional<T> Event::as() const {
@@ -801,4 +791,7 @@ bool InputQueue::hasFocus() {
 
 InputQueue::InputQueue() : registration{ this, uiScheduler } {}
 
+void InputQueue::passThrough() {
+    passThroughFlag = true;
+}
 } // namespace Brisk

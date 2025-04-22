@@ -78,9 +78,9 @@ protected:
     void onMouseLeave() override;
     void attachedToApplication() final;
     InputQueue m_inputQueue;
+    WidgetTree m_tree{ &m_inputQueue };
 
 private:
-    WidgetTree m_tree;
     std::string m_id;
     bool m_frameSkipTestState = false;
     std::vector<uint32_t> m_unhandledEvents;

@@ -27,7 +27,7 @@ namespace Brisk {
 
 class GUIApplication;
 
-extern GUIApplication* guiApplication;
+extern Nullable<GUIApplication> guiApplication;
 
 class GUIApplication : public WindowApplication {
 public:

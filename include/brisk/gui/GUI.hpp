@@ -962,7 +962,9 @@ public:
 
     WidgetTree* tree() const noexcept;
     void setTree(WidgetTree* tree);
-    void treeSet();
+    Nullable<InputQueue> inputQueue() const noexcept;
+    virtual void attachedToTree();
+    virtual void detachedFromTree();
 
     Widget* parent() const noexcept;
 

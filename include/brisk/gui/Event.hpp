@@ -304,6 +304,8 @@ enum class WheelOrientation {
     Y = +Orientation::Vertical,
 };
 
+struct InputQueue;
+
 /**
  * @brief Event class representing a generic event with type and utility methods.
  */
@@ -344,16 +346,6 @@ struct Event : public EventVariant {
      * @brief Stops the event from propagating.
      */
     void stopPropagation();
-
-    /**
-     * @brief Re-injects the event into the queue.
-     */
-    void reinject();
-
-    /**
-     * @brief Marks the event as pass-through.
-     */
-    void passThrough();
 
     static inline const Rectangle anywhere{ -32768, -32768, 32768, 32768 };
 
@@ -467,6 +459,8 @@ struct InputQueue {
     KeyModifiers keyModifiers{ KeyModifiers::None };
     Trigger<> trigMousePos;
     Trigger<> trigKeyModifiers;
+
+    void passThrough();
 
     /**
      * Adds a widget to the tab stop list.
@@ -702,11 +696,5 @@ struct InputQueue {
 private:
     BindingRegistration registration;
 };
-
-using InputQueueImplicitContext = ImplicitContext<InputQueue*, InputQueue*, false>;
-
-extern InputQueueImplicitContext inputQueue;
-
-using InputQueueScope = InputQueueImplicitContext::Scope;
 
 } // namespace Brisk

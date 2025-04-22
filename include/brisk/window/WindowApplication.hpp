@@ -52,7 +52,7 @@ enum class QuitCondition {
     PlatformDependant, // Never on macOS, AllWindowsClosed on others
 };
 
-extern WindowApplication* windowApplication;
+extern Nullable<WindowApplication> windowApplication;
 extern RC<TaskQueue> uiScheduler;
 
 class WindowApplication : public SerializableInterface {
