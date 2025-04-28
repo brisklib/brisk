@@ -230,6 +230,10 @@ void InputQueue::handleFocusEvents(Event& e) {
         };
 
         auto range = std::equal_range(tabList.begin(), tabList.end(), tabGroupId, GroupIdCmp{});
+        if (range.second == range.first) {
+            range.first  = tabList.begin();
+            range.second = tabList.end();
+        }
         int begin;
         int end; // past-the-end index
         if (kp->key == KeyCode::Tab) {
