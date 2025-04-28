@@ -46,6 +46,14 @@ void GUIWindow::onMouseLeave() {
     m_inputQueue.mouseLeave();
 }
 
+void GUIWindow::onNonClientClicked() {
+    m_inputQueue.finishMenu();
+}
+
+void GUIWindow::onFocusChange(bool gained) {
+    m_inputQueue.finishMenu();
+}
+
 bool GUIWindow::handleEvent(function<void()> fn) {
     // The function fn creates an Event and pushes it to the m_inputQueue.
     // This method ensures that the event is processed by the event handlers

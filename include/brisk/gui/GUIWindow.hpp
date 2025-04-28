@@ -76,6 +76,8 @@ protected:
     void onWheelEvent(float x, float y) override;
     void onMouseEnter() override;
     void onMouseLeave() override;
+    void onNonClientClicked() override;
+    void onFocusChange(bool gained) override;
     void attachedToApplication() final;
     InputQueue m_inputQueue;
     WidgetTree m_tree{ &m_inputQueue };

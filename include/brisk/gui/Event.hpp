@@ -459,6 +459,7 @@ struct InputQueue {
     KeyModifiers keyModifiers{ KeyModifiers::None };
     Trigger<> trigMousePos;
     Trigger<> trigKeyModifiers;
+    std::weak_ptr<Widget> menuRoot;
 
     void passThrough();
 
@@ -494,6 +495,9 @@ struct InputQueue {
      * Handles mouse leave events.
      */
     void mouseLeave();
+
+    void startMenu(std::shared_ptr<Widget> widget);
+    void finishMenu();
 
     /**
      * Processes the mouse state for the given target widget.

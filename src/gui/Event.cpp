@@ -806,4 +806,17 @@ InputQueue::InputQueue() : registration{ this, uiScheduler } {}
 void InputQueue::passThrough() {
     passThroughFlag = true;
 }
+
+void InputQueue::startMenu(std::shared_ptr<Widget> widget) {
+    finishMenu();
+    menuRoot = widget;
+}
+
+void InputQueue::finishMenu() {
+    if (auto menu = menuRoot.lock()) {
+        menu->visible = false;
+    }
+    menuRoot.reset();
+}
+
 } // namespace Brisk
