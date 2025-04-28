@@ -183,6 +183,14 @@ void InputQueue::setFocus(std::shared_ptr<Widget> focus, bool keyboard) {
     if (auto previous = focused.lock()) {
         addEvent(EventBlurred{ { {}, std::move(previous) } });
     }
+    if (focus && !focus->m_tabStop) {
+        // If the widget doesn't accept focus, find the first descendant that does
+        focus = focus->find(
+            [](RC<Widget> w) -> bool {
+                return w->m_tabStop;
+            },
+            MatchAny{});
+    }
     focused = focus;
 
     if (focus) {
