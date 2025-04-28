@@ -33,10 +33,10 @@ ContextPopup::ContextPopup(Construction construction, ArgumentsView<ContextPopup
 
 void ContextPopup::append(RC<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
-        it->dynamicFocus = true;
+        it->focusOnHover = true;
         Base::append(std::move(widget));
     } else {
-        Base::append(rcnew Item{ std::move(widget), dynamicFocus = true });
+        Base::append(rcnew Item{ std::move(widget), focusOnHover = true });
     }
 }
 } // namespace Brisk

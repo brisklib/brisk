@@ -1016,6 +1016,9 @@ public:
     int scrollSize(Orientation orientation) const noexcept;
     Size scrollSize() const noexcept;
 
+    bool isMenu() const noexcept;
+    void setMenuRoot();
+
     using enum PropFlags;
 
     friend struct Rules;
@@ -1038,6 +1041,7 @@ protected:
     bool m_processClicks : 1        = true;
     bool m_styleApplying : 1        = false;
     bool m_ignoreChildrenOffset : 1 = false;
+    bool m_isMenuRoot : 1           = false; // affected by closeMenuChain
 
     // functions
     Trigger<> m_onClick;
@@ -1271,6 +1275,8 @@ protected:
 
     /// @brief Closes nearest parent with m_isPopup set to true
     void closeNearestPopup();
+    /// @brief Closes nearest parent with m_isMenuRoot set to true
+    void closeMenuChain();
 
     /// @brief
     virtual void close(Widget* sender);

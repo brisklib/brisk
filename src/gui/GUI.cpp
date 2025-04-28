@@ -1219,12 +1219,16 @@ void Widget::paintFocusFrame(Canvas& canvas) const {
         float t = std::sin(static_cast<float>(frameStartTime * 2.5f));
         if (!m_tree)
             return;
-        float val = dp(remap(t, -1.0f, +1.0f, focusFrameRange.min, focusFrameRange.max));
-        m_tree->requestLayer([val, this](Canvas& canvas) {
-            canvas.setStrokeColor(getStyleVar<ColorW>(focusFrameColor.id).value_or(Palette::blue));
-            canvas.setStrokeWidth(dp(focusFrameWidth));
-            canvas.strokeRect(RectangleF(m_rect).withMargin(val), m_borderRadius.resolved, m_squircleCorners);
-        });
+        ColorW color = getStyleVar<ColorW>(focusFrameColor.id).value_or(Palette::blue);
+        if (color.a > 0) {
+            float val = dp(remap(t, -1.0f, +1.0f, focusFrameRange.min, focusFrameRange.max));
+            m_tree->requestLayer([val, this, color](Canvas& canvas) {
+                canvas.setStrokeColor(color);
+                canvas.setStrokeWidth(dp(focusFrameWidth));
+                canvas.strokeRect(RectangleF(m_rect).withMargin(val), m_borderRadius.resolved,
+                                  m_squircleCorners);
+            });
+        }
     }
 }
 
@@ -1349,10 +1353,9 @@ void Widget::onEvent(Event& event) {
         event.released(m_rect, MouseButton::Left, KeyModifiers::Control)) {
         if (std::shared_ptr<Widget> p = getContextWidget()) {
             p->rebuild(true);
-            p->visible.set(true);
-            p->focus();
             Point clickOffset = Point(event.as<EventMouseButtonReleased>()->point) - m_rect.p1;
             p->translate.set(PointL{ clickOffset.x * 1_dpx, clickOffset.y * 1_dpx });
+            p->visible = true;
         }
     }
 
@@ -1462,6 +1465,9 @@ void Widget::updateGeometry(HitTestMap::State& state) {
             inputQueue->addTabStop(self);
         }
         state.inTabGroup = m_tabGroup;
+        if (m_tabGroup) {
+            ++inputQueue->hitTest.tabGroupId;
+        }
         if (state.visible && !state.mouseTransparent)
             inputQueue->hitTest.add(self, mouse_rect, m_mouseAnywhere, state.zindex);
     }
@@ -1528,6 +1534,14 @@ void Widget::updateScrollAxes() {
     setScrollOffset(offset);
 }
 
+bool Widget::isMenu() const noexcept {
+    return m_isMenuRoot || m_role == "menu";
+}
+
+void Widget::setMenuRoot() {
+    m_isMenuRoot = true;
+}
+
 void Widget::processVisibility(bool isVisible) {
     m_previouslyVisible = m_isVisible;
     m_isVisible         = isVisible;
@@ -1536,8 +1550,18 @@ void Widget::processVisibility(bool isVisible) {
         if (m_isVisible) {
             rebuild(false);
             onVisible();
+            if (isMenu()) {
+                if (auto inputQueue = this->inputQueue()) {
+                    inputQueue->startMenu(shared_from_this());
+                }
+            }
         } else {
             onHidden();
+            if (isMenu()) {
+                if (auto inputQueue = this->inputQueue()) {
+                    inputQueue->finishMenu();
+                }
+            }
             setState(m_state & ~(WidgetState::Hover | WidgetState::Pressed | WidgetState::Focused |
                                  WidgetState::KeyFocused));
         }
@@ -1897,6 +1921,19 @@ void Widget::closeNearestPopup() {
     });
 }
 
+void Widget::closeMenuChain() {
+    Widget* self = this;
+    bubble(
+        [self](Widget* w) BRISK_INLINE_LAMBDA -> bool {
+            if (w->isMenu()) {
+                w->close(self);
+                return false;
+            }
+            return true;
+        },
+        true);
+}
+
 void Widget::close(Widget* sender) {
     visible = false;
 }
@@ -2173,15 +2210,15 @@ void Widget::parentChanged() {
 
 void Widget::onParentChanged() {}
 
-struct MatchContextRole {
+struct MatchMenuRole {
     template <std::derived_from<Widget> WidgetClass>
     constexpr bool operator()(const std::shared_ptr<WidgetClass>& w) const noexcept {
-        return w->role.get() == "context";
+        return w->role.get() == "menu";
     }
 };
 
 RC<Widget> Widget::getContextWidget() {
-    return find<Widget>(MatchContextRole{});
+    return find<Widget>(MatchMenuRole{});
 }
 
 void Widget::onChildAdded(Widget* w) {}

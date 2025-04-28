@@ -42,23 +42,34 @@ void ItemList::onEvent(Event& event) {
         if (m_rect.contains(e->point)) {
             event.stopPropagation();
         }
+    } else if (event.keyPressed(KeyCode::Escape)) {
+        visible = false;
+        event.stopPropagation();
+    } else if (event.keyPressed(KeyCode::Left)) {
+        if (Item* parentItem = dynamicCast<Item*>(parent())) {
+            visible = false;
+            event.stopPropagation();
+            parentItem->focus(true);
+        }
     }
 }
 
 void ItemList::append(RC<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
-        it->dynamicFocus = true;
+        it->focusOnHover = true;
         Base::append(std::move(widget));
     } else {
-        Base::append(rcnew Item{ std::move(widget), dynamicFocus = true });
+        Base::append(rcnew Item{ std::move(widget), focusOnHover = true });
     }
 }
 
 ItemList::ItemList(Construction construction, ArgumentsView<ItemList> args)
     : Base(construction, Orientation::Vertical,
            std::tuple{ Arg::placement = Placement::Absolute, Arg::zorder = ZOrder::TopMost,
-                       Arg::mouseAnywhere = true, Arg::layout = Layout::Vertical, Arg::focusCapture = true,
-                       Arg::alignToViewport = AlignToViewport::XY }) {
+                       /* Arg::mouseAnywhere = true, */ Arg::layout =
+                           Layout::Vertical, /*  Arg::focusCapture = true, */
+                       Arg::alignToViewport = AlignToViewport::XY, Arg::tabGroup = true, Arg::visible = false,
+                       /*   Arg::absolutePosition = { 0, 0 } */ }) {
     m_isPopup = true;
     args.apply(this);
 }
@@ -68,6 +79,13 @@ RC<Widget> ItemList::cloneThis() const {
 }
 
 void ItemList::onVisible() {
+    Base::onVisible();
     m_onBecameVisible.trigger();
+}
+
+void ItemList::onHidden() {
+    Base::onHidden();
+    if (visible)
+        visible = false;
 }
 } // namespace Brisk

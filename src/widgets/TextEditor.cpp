@@ -46,7 +46,7 @@ TextEditor::TextEditor(Construction construction, ArgumentsView<TextEditor> args
 
 void TextEditor::createContextMenu() {
     apply(rcnew ContextPopup{
-        Arg::role       = "context",
+        Arg::role       = "menu",
         Arg::fontFamily = Font::DefaultPlusIconsEmoji,
         Arg::fontSize   = FontSize::Normal,
         rcnew Item{

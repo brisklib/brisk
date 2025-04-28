@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/widgets/Item.hpp>
+#include <brisk/widgets/ItemList.hpp>
 #include <brisk/gui/Icons.hpp>
 
 namespace Brisk {
@@ -33,6 +34,24 @@ void Item::postPaint(Canvas& canvas) const {
             icon, m_rect.alignedRect({ m_clientRect.x1 - m_rect.x1, m_rect.height() }, { 0.f, m_iconAlignY }),
             PointF(0.5f, 0.5f));
     }
+    if (!isTopMenu() && this->find<ItemList>()) {
+        canvas.setFillColor(m_color.current);
+        canvas.setFont(font()(dp(FontSize::Normal)));
+        canvas.fillText(ICON_chevron_right,
+                        m_rect.alignedRect({ m_clientRect.x1 - m_rect.x1, m_rect.height() }, { 1.f, 0.5f }),
+                        PointF(0.5f, 0.5f));
+    }
+}
+
+bool Item::isTopMenu() const {
+    return m_parent && m_parent->role.get() == "mainmenu";
+}
+
+void Item::onChildAdded(Widget* w) {
+    Base::onChildAdded(w);
+    if (isOf<ItemList>(w)) {
+        addClass("nested");
+    }
 }
 
 void Item::onEvent(Event& event) {
@@ -43,14 +62,42 @@ void Item::onEvent(Event& event) {
         }
         onClicked();
         m_onClick.trigger();
-        if (m_closesPopup) {
-            closeNearestPopup();
+        if (auto sublist = this->find<ItemList>()) {
+            if (isTopMenu()) {
+                if (sublist->visible)
+                    sublist->visible = false;
+                else
+                    sublist->visible = true;
+            } else {
+                sublist->visible = true;
+                if (event.as<EventKeyPressed>().has_value())
+                    sublist->focus(true);
+            }
+        } else if (m_closesPopup) {
+            closeMenuChain();
         }
+
         event.stopPropagation();
     }
+    if (!isTopMenu()) {
+        if (auto sublist = this->find<ItemList>()) {
+            if (event.as<EventMouseMoved>()) {
+                if (std::isinf(m_openTime)) {
+                    m_openTime = currentTime() + 0.3;
+                }
+                m_closeTime = HUGE_VAL;
+            }
+            if (event.keyPressed(KeyCode::Right)) {
+                sublist->visible = true;
+                sublist->focus(true);
+                event.stopPropagation();
+            }
+        }
+    }
 
-    if (m_dynamicFocus) {
+    if (m_focusOnHover && !isDisabled()) {
         if (auto e = event.as<EventMouseMoved>()) {
+            toggleState(WidgetState::Selected, true);
             focus();
         } else if (auto e = event.as<EventMouseExited>()) {
             toggleState(WidgetState::Selected, false);
@@ -76,5 +123,35 @@ void Item::onClicked() {}
 
 void Item::onHidden() {
     toggleState(WidgetState::Selected, false);
+}
+
+void Item::onRefresh() {
+    Base::onRefresh();
+    if (!isVisible()) {
+        return;
+    }
+    if (currentTime() > m_openTime) {
+        if (auto sublist = this->find<ItemList>()) {
+            sublist->visible = true;
+            m_openTime       = HUGE_VAL;
+        }
+    }
+    if (std::isinf(m_closeTime)) {
+        if (auto sublist = this->find<ItemList>(); sublist && sublist->visible) {
+            if (auto inputQueue = this->inputQueue()) {
+                if (auto focused = inputQueue->focused.lock()) {
+                    if (!focused->hasParent(this, true)) {
+                        m_closeTime = currentTime() + 0.3;
+                    }
+                }
+            }
+        }
+    }
+    if (currentTime() > m_closeTime) {
+        if (auto sublist = this->find<ItemList>()) {
+            sublist->visible = false;
+            m_closeTime      = HUGE_VAL;
+        }
+    }
 }
 } // namespace Brisk

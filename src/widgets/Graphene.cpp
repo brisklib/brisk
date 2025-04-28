@@ -181,18 +181,17 @@ RC<const Stylesheet> stylesheet() {
                 textAlign                            = TextAlign::Start,
 
                 backgroundColor                      = Palette::transparent,
-                backgroundColor | Selected           = transparency(styleVar<selectedColor>, 0.8f),
-                backgroundColor | Selected | Pressed = styleVar<selectedColor>,
+                backgroundColor | Selected           = styleVar<selectedColor>,
+                backgroundColor | Selected | Pressed = adjustColor(styleVar<selectedColor>, -8),
 
                 color                                = inherit,
-                color | Selected =
-                    textColorFor(transparency(styleVar<selectedColor>, 0.8f), textLightColor, textDarkColor),
+                color | Selected = textColorFor(styleVar<selectedColor>, textLightColor, textDarkColor),
                 color | Selected | Pressed =
-                    textColorFor(styleVar<selectedColor>, textLightColor, textDarkColor),
+                    textColorFor(adjustColor(styleVar<selectedColor>, -8), textLightColor, textDarkColor),
             },
         },
         Style{
-            Type{ ItemList::widgetType } > Type{ Item::widgetType },
+            (Type{ ItemList::widgetType } && !Class{ "withicons" }) > Type{ Item::widgetType },
             {
                 padding = { 16_apx, 5_apx },
             },
@@ -372,7 +371,7 @@ RC<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            Class{ "menubox" } || Role{ "context" } || Role{ "itemlist" },
+            Type{ ItemList::widgetType },
             {
                 padding          = { 0, 4_apx },
                 backgroundColor  = styleVar<menuColor>,
@@ -382,6 +381,31 @@ RC<const Stylesheet> stylesheet() {
                 shadowSize       = defaultShadowSize,
                 shadowColor      = styleVar<shadeColor>,
                 color            = textColorFor(styleVar<menuColor>, textLightColor, textDarkColor),
+            },
+        },
+        Style{
+            Role{ "menu" },
+            {
+                absolutePosition = { 0, 0 },
+            },
+        },
+        Style{
+            Class{ "nested" },
+            {
+                paddingRight = 32_apx,
+            },
+        },
+        Style{
+            IsMenu{},
+            {
+                focusCapture  = true,
+                mouseAnywhere = true,
+            },
+        },
+        Style{
+            Type{ ItemList::widgetType } && !IsMenu{},
+            {
+                absolutePosition = { 100_perc, 0 },
             },
         },
         Style{

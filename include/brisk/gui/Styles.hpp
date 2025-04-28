@@ -412,6 +412,13 @@ struct Type {
     }
 };
 
+// menu
+struct IsMenu {
+    bool matches(Widget* w, MatchFlags flags) const noexcept {
+        return w->isMenu();
+    }
+};
+
 // role
 struct Role {
     explicit Role(std::string_view role) noexcept : role(role) {}

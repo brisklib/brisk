@@ -44,6 +44,7 @@ protected:
     Ptr cloneThis() const override;
     void close(Widget* sender) override;
     void onVisible() override;
+    void onHidden() override;
 
     explicit ItemList(Construction construction, ArgumentsView<ItemList> args);
 
@@ -57,4 +58,5 @@ public:
 inline namespace Arg {
 constexpr inline Argument<Tag::PropArg<decltype(ItemList::onItemClick)>> onItemClick{};
 }
+
 } // namespace Brisk

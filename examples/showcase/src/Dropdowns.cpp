@@ -125,13 +125,21 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
                                 textAlign = TextAlign::Center, fontSize = 200_perc,
                                 mouseInteraction = MouseInteraction::Disable, flexGrow = 1 },
 
-                    rcnew ContextPopup{
-                        role     = "context",
-                        tabGroup = true,
-                        rcnew Item{ icon = ICON_pencil, rcnew Text{ "First" } },
-                        rcnew Item{ icon = ICON_eye, rcnew Text{ "Second" } },
-                        rcnew Item{ rcnew Text{ "Third" } },
-                        rcnew Item{ rcnew Text{ "Fourth" } },
+                    rcnew ItemList{
+                        role    = "menu",
+                        classes = { "withicons" },
+                        rcnew Item{ icon = ICON_pencil, "First"_Text },
+                        rcnew Item{ icon = ICON_eye, "Second"_Text },
+                        rcnew Item{ "Third"_Text },
+                        rcnew Item{
+                            "Fourth (with submenu)"_Text,
+                            rcnew ItemList{
+                                rcnew Item{ "Submenu item 1"_Text },
+                                rcnew Item{ "Submenu item 2"_Text },
+                                rcnew Item{ "Submenu item 3"_Text },
+                            },
+                        },
+
                     },
                 },
                 &m_group,

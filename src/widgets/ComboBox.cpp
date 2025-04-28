@@ -32,17 +32,15 @@ void ComboBox::onChildAdded(Widget* w) {
         itemlist->onItemClick = lifetime() | [this](size_t index) BRISK_INLINE_LAMBDA {
             value = index;
         };
+        itemlist->setMenuRoot();
 
         itemlist->onBecameVisible = lifetime() | [this]() BRISK_INLINE_LAMBDA {
             if (auto item = findSelected()) {
                 item->focus();
             }
         };
-        if (!itemlist->visible.isOverridden())
-            itemlist->visible = false;
         itemlist->absolutePosition = { 0, 100_perc };
         itemlist->anchor           = { 0_px, 0_px };
-        itemlist->tabGroup         = true;
         bindings->listen(
             Value{ &itemlist->visible }, lifetime() | [this](bool visible) {
                 toggleState(WidgetState::ForcePressed, visible);
@@ -68,9 +66,13 @@ void ComboBox::onConstructed() {
     selecteditem.create(this);
 
     if (!unroll.get(this)) {
-        apply(rcnew ToggleButton{ Arg::value = Value{ &itemlist.get(this)->visible },
-                                  rcnew Text{ ICON_chevron_down }, rcnew Text{ ICON_chevron_up },
-                                  Arg::role = unroll.role(), Arg::twoState = true });
+        apply(rcnew ToggleButton{
+            Arg::value = Value{ &itemlist.get(this)->visible },
+            rcnew Text{ ICON_chevron_down },
+            rcnew Text{ ICON_chevron_up },
+            Arg::role     = unroll.role(),
+            Arg::twoState = true,
+        });
     }
     Base::onConstructed();
 }

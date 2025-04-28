@@ -53,12 +53,15 @@ void PopupBox::onEvent(Event& event) {
         if (m_rect.contains(e->point)) {
             event.stopPropagation();
         }
+    } else if (event.keyPressed(KeyCode::Escape)) {
+        visible = false;
+        event.stopPropagation();
     }
 }
 
 void PopupBox::append(RC<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
-        it->dynamicFocus = true;
+        it->focusOnHover = true;
         Base::append(std::move(widget));
     } else {
         Base::append(std::move(widget));
