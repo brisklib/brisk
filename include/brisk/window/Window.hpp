@@ -423,6 +423,7 @@ protected:
     void closeAttempt();
     void windowResized(Size windowSize, Size framebufferSize);
     void windowMoved(Point position);
+    void windowNonClientClicked();
     virtual void onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
     virtual void onCharEvent(char32_t character);
     virtual void onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
@@ -437,6 +438,7 @@ protected:
     virtual void onVisibilityChanged(bool newVisible);
     virtual void onWindowResized(Size windowSize, Size framebufferSize);
     virtual void onWindowMoved(Point position);
+    virtual void onNonClientClicked();
     virtual CloseAction shouldClose();
 
 protected:

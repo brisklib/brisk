@@ -743,6 +743,8 @@ void Window::onWindowResized(Size windowSize, Size framebufferSize) {}
 
 void Window::onWindowMoved(Point position) {}
 
+void Window::onNonClientClicked() {}
+
 bool Window::update() {
     return false;
 }
@@ -775,6 +777,10 @@ void Window::windowMoved(Point position) {
         m_position = position;
         onWindowMoved(m_position);
     }
+}
+
+void Window::windowNonClientClicked() {
+    onNonClientClicked();
 }
 
 void Window::setOwner(RC<Window> window) {

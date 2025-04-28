@@ -418,6 +418,14 @@ long long PlatformWindow::windowProc(MsgParams params) {
         break;
     }
 
+    case WM_NCLBUTTONDOWN:
+    case WM_NCMBUTTONDOWN:
+    case WM_NCRBUTTONDOWN:
+    case WM_NCXBUTTONDOWN: {
+        windowNonClientClicked();
+        break;
+    }
+
     case WM_GETDPISCALEDSIZE: {
         break;
     }

@@ -224,6 +224,16 @@ void PlatformWindow::windowMoved(Point position) {
     });
 }
 
+void PlatformWindow::windowNonClientClicked() {
+    mustBeMainThread();
+    if (!isVisible()) {
+        return;
+    }
+    uiScheduler->dispatch([window = m_window] {
+        window->windowNonClientClicked();
+    });
+}
+
 void PlatformWindow::contentScaleChanged(float xscale, float yscale) {
     mustBeMainThread();
     updateSize();

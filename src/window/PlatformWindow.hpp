@@ -148,6 +148,7 @@ public:
     void windowStateEvent(WindowState state);
     void windowResized(Size windowSize, Size framebufferSize);
     void windowMoved(Point position);
+    void windowNonClientClicked();
     void contentScaleChanged(float xscale, float yscale);
     void filesDropped(std::vector<std::string> files);
     void windowStateChanged(bool isIconified, bool isMaximized);
