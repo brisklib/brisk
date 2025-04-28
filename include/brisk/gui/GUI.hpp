@@ -735,6 +735,8 @@ public:
         }
     }
 
+    bool hasParent(Widget* parent, bool includePopup = false) const;
+
     template <std::derived_from<Widget> Type = Widget, typename Fn>
     void enumerate(Fn&& fn, bool recursive = false, bool recursiveForMatching = true) {
         for (const Ptr& w : *this) {
@@ -1346,7 +1348,6 @@ private:
     void doRestyle(std::shared_ptr<const Stylesheet> stylesheet, bool root);
 
     float resolveFontHeight() const;
-    void updateGeometryAndProcessEvents();
     void updateLayout(Rectangle rectangle, bool viewportChanged);
     void markTreeDirty();
 

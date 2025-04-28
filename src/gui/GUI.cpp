@@ -3084,4 +3084,16 @@ Nullable<InputQueue> Widget::inputQueue() const noexcept {
     return m_tree ? m_tree->inputQueue() : nullptr;
 }
 
+bool Widget::hasParent(Widget* parent, bool includePopup) const {
+    const Widget* current = this;
+    while (current) {
+        if (current == parent)
+            return true;
+        if (current->m_zorder != ZOrder::Normal && !includePopup)
+            return false;
+        current = current->m_parent ? current->m_parent : nullptr;
+    }
+    return false;
+}
+
 } // namespace Brisk
