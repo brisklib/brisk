@@ -59,7 +59,7 @@ protected:
     bool m_focusOnHover = false;
     double m_openTime   = HUGE_VAL;
     double m_closeTime  = HUGE_VAL;
-    
+
     bool isTopMenu() const;
     void postPaint(Canvas& canvas) const override;
     void onEvent(Event& event) override;

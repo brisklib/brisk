@@ -24,15 +24,15 @@
 
 namespace Brisk {
 
-class WIDGET ItemList : public AutoScrollable {
-    BRISK_DYNAMIC_CLASS(ItemList, AutoScrollable)
+class WIDGET Menu : public AutoScrollable {
+    BRISK_DYNAMIC_CLASS(Menu, AutoScrollable)
 public:
     using Base                                   = AutoScrollable;
-    constexpr static std::string_view widgetType = "itemlist";
+    constexpr static std::string_view widgetType = "menu";
     using Widget::apply;
 
     template <WidgetArgument... Args>
-    explicit ItemList(const Args&... args) : ItemList(Construction{ widgetType }, std::tuple{ args... }) {
+    explicit Menu(const Args&... args) : Menu(Construction{ widgetType }, std::tuple{ args... }) {
         endConstruction();
     }
 
@@ -46,17 +46,17 @@ protected:
     void onVisible() override;
     void onHidden() override;
 
-    explicit ItemList(Construction construction, ArgumentsView<ItemList> args);
+    explicit Menu(Construction construction, ArgumentsView<Menu> args);
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<ItemList, Trigger<size_t>, &ItemList::m_onItemClick> onItemClick;
-    Property<ItemList, Trigger<>, &ItemList::m_onBecameVisible> onBecameVisible;
+    Property<Menu, Trigger<size_t>, &Menu::m_onItemClick> onItemClick;
+    Property<Menu, Trigger<>, &Menu::m_onBecameVisible> onBecameVisible;
     BRISK_PROPERTIES_END
 };
 
 inline namespace Arg {
-constexpr inline Argument<Tag::PropArg<decltype(ItemList::onItemClick)>> onItemClick{};
+constexpr inline Argument<Tag::PropArg<decltype(Menu::onItemClick)>> onItemClick{};
 }
 
 } // namespace Brisk

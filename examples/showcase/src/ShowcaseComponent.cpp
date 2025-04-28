@@ -10,7 +10,7 @@
 #include <brisk/widgets/TextEditor.hpp>
 #include <brisk/widgets/Viewport.hpp>
 #include <brisk/widgets/Pages.hpp>
-#include <brisk/widgets/ContextPopup.hpp>
+#include <brisk/widgets/Menu.hpp>
 #include <brisk/widgets/ScrollBox.hpp>
 #include <brisk/widgets/PopupDialog.hpp>
 #include <brisk/window/OSDialogs.hpp>

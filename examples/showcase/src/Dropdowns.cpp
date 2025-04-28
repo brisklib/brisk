@@ -58,7 +58,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Widget{
                 rcnew ComboBox{
                     value = Value{ &m_month },
-                    rcnew ItemList{
+                    rcnew Menu{
                         rcnew Text{ "January" },
                         rcnew Text{ "February" },
                         rcnew Text{ "March" },
@@ -82,7 +82,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Widget{
                 rcnew ComboBox{
                     value = Value{ &m_selectedItem },
-                    rcnew ItemList{
+                    rcnew Menu{
                         IndexedBuilder([](int index) -> RC<Widget> {
                             if (index > 40)
                                 return nullptr;
@@ -99,7 +99,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Widget{
                 rcnew ComboBox{
                     value = Value{ &m_selectedItem2 },
-                    rcnew ItemList{
+                    rcnew Menu{
                         rcnew ColorView{ Palette::Standard::index(0) },
                         rcnew ColorView{ Palette::Standard::index(1) },
                         rcnew ColorView{ Palette::Standard::index(2) },
@@ -114,7 +114,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Text{ "ComboBox with widgets" },
         },
 
-        rcnew Text{ "ContextPopup (widgets/ContextPopup.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Menu (widgets/Menu.hpp)", classes = { "section-header" } },
         rcnew HLayout{
             rcnew Widget{
                 rcnew Widget{
@@ -125,7 +125,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
                                 textAlign = TextAlign::Center, fontSize = 200_perc,
                                 mouseInteraction = MouseInteraction::Disable, flexGrow = 1 },
 
-                    rcnew ItemList{
+                    rcnew Menu{
                         role    = "menu",
                         classes = { "withicons" },
                         rcnew Item{ icon = ICON_pencil, "First"_Text },
@@ -133,7 +133,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
                         rcnew Item{ "Third"_Text },
                         rcnew Item{
                             "Fourth (with submenu)"_Text,
-                            rcnew ItemList{
+                            rcnew Menu{
                                 rcnew Item{ "Submenu item 1"_Text },
                                 rcnew Item{ "Submenu item 2"_Text },
                                 rcnew Item{ "Submenu item 3"_Text },

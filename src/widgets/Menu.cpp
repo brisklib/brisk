@@ -18,19 +18,19 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/ItemList.hpp>
+#include <brisk/widgets/Menu.hpp>
 #include <brisk/widgets/Item.hpp>
 
 namespace Brisk {
 
-void ItemList::close(Widget* sender) {
+void Menu::close(Widget* sender) {
     if (auto index = indexOf(sender)) {
         m_onItemClick.trigger(*index);
     }
     visible = false;
 }
 
-void ItemList::onEvent(Event& event) {
+void Menu::onEvent(Event& event) {
     AutoScrollable::onEvent(event);
     if (auto e = event.as<EventMouseButtonPressed>()) {
         if (!m_rect.contains(e->point)) {
@@ -54,7 +54,7 @@ void ItemList::onEvent(Event& event) {
     }
 }
 
-void ItemList::append(RC<Widget> widget) {
+void Menu::append(RC<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
         it->focusOnHover = true;
         Base::append(std::move(widget));
@@ -63,7 +63,7 @@ void ItemList::append(RC<Widget> widget) {
     }
 }
 
-ItemList::ItemList(Construction construction, ArgumentsView<ItemList> args)
+Menu::Menu(Construction construction, ArgumentsView<Menu> args)
     : Base(construction, Orientation::Vertical,
            std::tuple{ Arg::placement = Placement::Absolute, Arg::zorder = ZOrder::TopMost,
                        /* Arg::mouseAnywhere = true, */ Arg::layout =
@@ -74,16 +74,16 @@ ItemList::ItemList(Construction construction, ArgumentsView<ItemList> args)
     args.apply(this);
 }
 
-RC<Widget> ItemList::cloneThis() const {
+RC<Widget> Menu::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
-void ItemList::onVisible() {
+void Menu::onVisible() {
     Base::onVisible();
     m_onBecameVisible.trigger();
 }
 
-void ItemList::onHidden() {
+void Menu::onHidden() {
     Base::onHidden();
     if (visible)
         visible = false;

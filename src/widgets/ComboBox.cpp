@@ -28,7 +28,7 @@ namespace Brisk {
 void ComboBox::onChildAdded(Widget* w) {
     Base::onChildAdded(w);
 
-    if (ItemList* itemlist = this->itemlist.matchesType(w)) {
+    if (Menu* itemlist = this->itemlist.matchesType(w)) {
         itemlist->onItemClick = lifetime() | [this](size_t index) BRISK_INLINE_LAMBDA {
             value = index;
         };

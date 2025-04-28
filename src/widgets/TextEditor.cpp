@@ -20,7 +20,7 @@
  */
 #include <brisk/widgets/TextEditor.hpp>
 #include <brisk/widgets/Item.hpp>
-#include <brisk/widgets/ContextPopup.hpp>
+#include <brisk/widgets/Menu.hpp>
 #include <brisk/widgets/Spacer.hpp>
 #include <brisk/core/Text.hpp>
 #include "utf8proc.h"
@@ -45,8 +45,9 @@ TextEditor::TextEditor(Construction construction, ArgumentsView<TextEditor> args
 }
 
 void TextEditor::createContextMenu() {
-    apply(rcnew ContextPopup{
+    apply(rcnew Menu{
         Arg::role       = "menu",
+        Arg::classes    = { "withicons" },
         Arg::fontFamily = Font::DefaultPlusIconsEmoji,
         Arg::fontSize   = FontSize::Normal,
         rcnew Item{

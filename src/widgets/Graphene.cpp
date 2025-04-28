@@ -191,7 +191,7 @@ RC<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            (Type{ ItemList::widgetType } && !Class{ "withicons" }) > Type{ Item::widgetType },
+            (Type{ Menu::widgetType } && !Class{ "withicons" }) > Type{ Item::widgetType },
             {
                 padding = { 16_apx, 5_apx },
             },
@@ -371,7 +371,7 @@ RC<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            Type{ ItemList::widgetType },
+            Type{ Menu::widgetType },
             {
                 padding          = { 0, 4_apx },
                 backgroundColor  = styleVar<menuColor>,
@@ -380,6 +380,7 @@ RC<const Stylesheet> stylesheet() {
                 anchor           = { 0, 0 },
                 shadowSize       = defaultShadowSize,
                 shadowColor      = styleVar<shadeColor>,
+                shadowOffset     = { 4, 4 },
                 color            = textColorFor(styleVar<menuColor>, textLightColor, textDarkColor),
             },
         },
@@ -403,7 +404,7 @@ RC<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            Type{ ItemList::widgetType } && !IsMenu{},
+            Type{ Menu::widgetType } && !IsMenu{},
             {
                 absolutePosition = { 100_perc, 0 },
             },

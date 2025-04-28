@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/widgets/Item.hpp>
-#include <brisk/widgets/ItemList.hpp>
+#include <brisk/widgets/Menu.hpp>
 #include <brisk/gui/Icons.hpp>
 
 namespace Brisk {
@@ -34,7 +34,7 @@ void Item::postPaint(Canvas& canvas) const {
             icon, m_rect.alignedRect({ m_clientRect.x1 - m_rect.x1, m_rect.height() }, { 0.f, m_iconAlignY }),
             PointF(0.5f, 0.5f));
     }
-    if (!isTopMenu() && this->find<ItemList>()) {
+    if (!isTopMenu() && this->find<Menu>()) {
         canvas.setFillColor(m_color.current);
         canvas.setFont(font()(dp(FontSize::Normal)));
         canvas.fillText(ICON_chevron_right,
@@ -49,7 +49,7 @@ bool Item::isTopMenu() const {
 
 void Item::onChildAdded(Widget* w) {
     Base::onChildAdded(w);
-    if (isOf<ItemList>(w)) {
+    if (isOf<Menu>(w)) {
         addClass("nested");
     }
 }
@@ -62,7 +62,7 @@ void Item::onEvent(Event& event) {
         }
         onClicked();
         m_onClick.trigger();
-        if (auto sublist = this->find<ItemList>()) {
+        if (auto sublist = this->find<Menu>()) {
             if (isTopMenu()) {
                 if (sublist->visible)
                     sublist->visible = false;
@@ -80,7 +80,7 @@ void Item::onEvent(Event& event) {
         event.stopPropagation();
     }
     if (!isTopMenu()) {
-        if (auto sublist = this->find<ItemList>()) {
+        if (auto sublist = this->find<Menu>()) {
             if (event.as<EventMouseMoved>()) {
                 if (std::isinf(m_openTime)) {
                     m_openTime = currentTime() + 0.3;
@@ -131,13 +131,13 @@ void Item::onRefresh() {
         return;
     }
     if (currentTime() > m_openTime) {
-        if (auto sublist = this->find<ItemList>()) {
+        if (auto sublist = this->find<Menu>()) {
             sublist->visible = true;
             m_openTime       = HUGE_VAL;
         }
     }
     if (std::isinf(m_closeTime)) {
-        if (auto sublist = this->find<ItemList>(); sublist && sublist->visible) {
+        if (auto sublist = this->find<Menu>(); sublist && sublist->visible) {
             if (auto inputQueue = this->inputQueue()) {
                 if (auto focused = inputQueue->focused.lock()) {
                     if (!focused->hasParent(this, true)) {
@@ -148,7 +148,7 @@ void Item::onRefresh() {
         }
     }
     if (currentTime() > m_closeTime) {
-        if (auto sublist = this->find<ItemList>()) {
+        if (auto sublist = this->find<Menu>()) {
             sublist->visible = false;
             m_closeTime      = HUGE_VAL;
         }

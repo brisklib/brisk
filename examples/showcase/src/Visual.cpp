@@ -253,7 +253,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                             rcnew TableCell{ cell, rcnew Text{ row.lastName } },
                             rcnew TableCell{ cell,
                                              rcnew ComboBox{ value = Value{ &row.index }, width = 100_perc,
-                                                             rcnew ItemList{
+                                                             rcnew Menu{
                                                                  rcnew Text{ "UX/UI Designer" },
                                                                  rcnew Text{ "Project Manager" },
                                                                  rcnew Text{ "Software Engineer" },

@@ -178,7 +178,7 @@ TEST_CASE("Widget ComboBox Text") {
                    value     = 2,
                    alignSelf = Align::FlexStart,
                    marginTop = 12_apx,
-                   rcnew ItemList{
+                   rcnew Menu{
                        visible = true,
                        rcnew Text{ "Avocado" },
                        rcnew Text{ "Blueberry" },
@@ -195,7 +195,7 @@ TEST_CASE("Widget ComboBox Color") {
                    value     = 1,
                    alignSelf = Align::FlexStart,
                    marginTop = 12_apx,
-                   rcnew ItemList{
+                   rcnew Menu{
                        visible = true,
                        rcnew ColorView{ Palette::Standard::red },
                        rcnew ColorView{ Palette::Standard::green },
@@ -209,7 +209,7 @@ TEST_CASE("Widget ComboBox Color") {
 TEST_CASE("Widget ComboBox Gradient") {
     widgetTest("widget-combobox-gradient",
                rcnew ComboBox{
-                   rcnew ItemList{
+                   rcnew Menu{
                        visible  = true,
                        minWidth = 4.8_em,
                        rcnew GradientView{ ColorStopArray{
