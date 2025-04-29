@@ -20,6 +20,7 @@
  */
 #pragma once
 
+#include <brisk/core/internal/SmallVector.hpp>
 #include <string>
 #include <cstdint>
 #include <brisk/core/Brisk.h>
@@ -114,6 +115,36 @@ struct CpuInfo {
  * @return The CpuInfo structure containing CPU model and speed.
  */
 CpuInfo cpuInfo();
+
+struct CpuUsage {
+    struct Cpu {
+        double user, sys, idle;
+
+        friend Cpu operator-(const Cpu& lh, const Cpu& rh) noexcept {
+            return { lh.user - rh.user, lh.sys - rh.sys, lh.idle - rh.idle };
+        }
+
+        constexpr static std::tuple reflection{
+            ReflectionField{ "user", &Cpu::user },
+            ReflectionField{ "sys", &Cpu::sys },
+            ReflectionField{ "idle", &Cpu::idle },
+        };
+    };
+
+    friend CpuUsage operator-(const CpuUsage& lh, const CpuUsage& rh) noexcept {
+        size_t size = std::min(lh.usage.size(), rh.usage.size());
+        CpuUsage result;
+        result.usage.resize_for_overwrite(size);
+        for (size_t i = 0; i < size; ++i) {
+            result.usage[i] = lh.usage[i] - rh.usage[i];
+        }
+        return result;
+    }
+
+    SmallVector<Cpu, 16> usage;
+};
+
+CpuUsage cpuUsage();
 
 struct MemoryInfo {
     uint64_t maxrss;  /* maximum resident set size, kilobytes */
