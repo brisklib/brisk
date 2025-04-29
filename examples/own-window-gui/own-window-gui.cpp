@@ -1,4 +1,3 @@
-#define BRISK_ALLOW_OS_HEADERS 1
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/graphics/Geometry.hpp>
@@ -10,58 +9,11 @@
 #include <brisk/widgets/Button.hpp>
 #include <brisk/graphics/Palette.hpp>
 
-// Include GLFW for window creation and management
-#include <GLFW/glfw3.h>
-#ifdef _WIN32
-#define GLFW_EXPOSE_NATIVE_WIN32
-#endif
-#ifdef __APPLE__
-#define GLFW_EXPOSE_NATIVE_COCOA
-extern "C" id objc_retain(id value);
-#endif
-#ifdef __linux__
-#define GLFW_EXPOSE_NATIVE_X11
-#endif
-#include <GLFW/glfw3native.h>
-#undef None
+#include "../own-window/WindowGlfw.hpp"
 
 namespace Example {
 
 using namespace Brisk;
-using Brisk::Font;
-using Brisk::Rectangle;
-
-/// Window adapter to retrieve framebuffer size and native handle
-class OsWindowGLFW final : public OsWindow {
-public:
-    // Returns the framebuffer size of the GLFW window
-    Size framebufferSize() const final {
-        Size size;
-        glfwGetFramebufferSize(win, &size.x, &size.y);
-        return size;
-    }
-
-    // Retrieves the platform-specific native window handle
-    OsWindowHandle getHandle() const final {
-#ifdef BRISK_WINDOWS
-        return OsWindowHandle(glfwGetWin32Window(win));
-#endif
-#ifdef BRISK_MACOS
-        return OsWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
-#endif
-#ifdef BRISK_LINUX
-        return OsWindowHandle(win);
-#endif
-    }
-
-    OsWindowGLFW() = default;
-
-    // Constructor initializing with a GLFW window
-    explicit OsWindowGLFW(GLFWwindow* win) : win(win) {}
-
-private:
-    GLFWwindow* win = nullptr; // Pointer to the GLFW window
-};
 
 // Error callback function for GLFW
 static void errorfun(int error_code, const char* description) {

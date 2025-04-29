@@ -27,7 +27,14 @@ if (NOT _BRISK_INCLUDE_DIR)
     find_package(Brisk CONFIG REQUIRED)
 endif ()
 
-add_executable(own-window-gui own-window-gui.cpp)
+add_executable(own-window-gui own-window-gui.cpp ../own-window/WindowGlfw.cpp)
+if (APPLE)
+    set_source_files_properties(
+        ../own-window/WindowGlfw.cpp
+        PROPERTIES
+        COMPILE_FLAGS "-x objective-c++"
+    )
+endif()
 
 target_link_libraries(own-window-gui PRIVATE brisk-widgets glfw)
 
