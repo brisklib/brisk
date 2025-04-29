@@ -1516,20 +1516,32 @@ template <typename T>
 
 template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue) {
-    return Value{
-        [pvalue]() -> T {
-            return *pvalue;
-        },
-        [pvalue](T newValue) {
-            bindings->assign(*pvalue, std::move(newValue));
-        },
-        { toBindingAddress(pvalue) },
-        toBindingAddress(pvalue),
-    };
+    if constexpr (std::is_const_v<T>) {
+        return Value{
+            [pvalue]() -> T {
+                return *pvalue;
+            },
+            nullptr,
+            { toBindingAddress(pvalue) },
+            toBindingAddress(pvalue),
+        };
+    } else {
+        return Value{
+            [pvalue]() -> T {
+                return *pvalue;
+            },
+            [pvalue](T newValue) {
+                bindings->assign(*pvalue, std::move(newValue));
+            },
+            { toBindingAddress(pvalue) },
+            toBindingAddress(pvalue),
+        };
+    }
 }
 
 template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue, NotifyFn notify) {
+    static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
             return *pvalue;
@@ -1548,6 +1560,7 @@ template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue)
     requires AtomicCompatible<T>
 {
+    static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
             return pvalue->load(std::memory_order::relaxed);
@@ -1565,6 +1578,7 @@ template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue, NotifyFn notify)
     requires AtomicCompatible<T>
 {
+    static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
             return *pvalue;
@@ -1861,5 +1875,129 @@ public:
         return lifetimeOf(this);
     }
 };
+
+template <PointerToScheduler auto scheduler_ = static_cast<Rc<Scheduler>*>(nullptr)>
+struct SchedulerParam {
+    static constexpr auto scheduler = scheduler_;
+};
+
+template <typename T, typename SchedulerPtr>
+class BindableAllocator {
+public:
+    // --- Member Types (Required by Allocator concept) ---
+    using value_type                                               = T;
+    using size_type                                                = std::size_t;
+    using difference_type                                          = std::ptrdiff_t;
+    using pointer                                                  = T*;
+    using const_pointer                                            = const T*;
+
+    // --- Propagation Traits (Control allocator behavior on container ops) ---
+    using propagate_on_container_copy_assignment                   = std::true_type;
+    using propagate_on_container_move_assignment                   = std::true_type;
+    using propagate_on_container_swap                              = std::true_type;
+
+    // --- Statelessness Trait (All instances are equivalent) ---
+    // This is important for optimizations.
+    using is_always_equal                                          = std::true_type;
+
+    // --- Constructors ---
+    // Default constructor
+    constexpr BindableAllocator() noexcept                         = default;
+
+    // Copy constructor (needed for rebinding)
+    constexpr BindableAllocator(const BindableAllocator&) noexcept = default;
+
+    // Template copy constructor (enables rebinding)
+    template <typename U>
+    constexpr BindableAllocator(const BindableAllocator<U, SchedulerPtr>&) noexcept {}
+
+    // Destructor
+    ~BindableAllocator() = default;
+
+    // --- Core Allocator Functions ---
+
+    /**
+     * @brief Allocates uninitialized storage.
+     * @param n The number of objects to allocate storage for.
+     * @return A pointer to the allocated storage.
+     * @throws std::bad_alloc If allocation fails.
+     * @throws std::length_error If n * sizeof(T) overflows size_t.
+     */
+    [[nodiscard]] pointer allocate(size_type n) {
+        if (n > std::numeric_limits<size_type>::max() / sizeof(T)) {
+            throw std::length_error("BindableAllocator::allocate: size overflow");
+        }
+
+        size_type bytes_to_allocate = n * sizeof(T);
+        if (bytes_to_allocate == 0) {
+            return nullptr; // Standard allows returning nullptr for zero size
+        }
+
+        // Allocate memory using global operator new
+        // Using the sized delete version requires C++14 or later support for ::operator new
+        void* p = ::operator new(bytes_to_allocate);
+        if (!p) {
+            throw std::bad_alloc(); // Should theoretically not happen as ::operator new throws
+        }
+
+        // --- Call the custom registration function ---
+        try {
+            Rc<Scheduler> sched;
+            BRISK_CLANG_PRAGMA(GCC diagnostic push)
+            BRISK_CLANG_PRAGMA(GCC diagnostic ignored "-Wpointer-bool-conversion")
+            if constexpr (SchedulerPtr::scheduler) {
+                sched = *SchedulerPtr::scheduler;
+            }
+            bindings->registerRegion(BindingAddress(p, bytes_to_allocate), std::move(sched));
+        } catch (...) {
+            // If bindingRegister throws, we must free the allocated memory
+            // before propagating the exception.
+            ::operator delete(p, bytes_to_allocate); // Use sized delete if available/appropriate
+            throw;                                   // Re-throw the exception from bindingRegister
+        }
+
+        return static_cast<pointer>(p);
+    }
+
+    /**
+     * @brief Deallocates storage previously allocated by allocate.
+     * @param p Pointer to the memory to deallocate. Must have been returned by a prior call to allocate(n).
+     * @param n The number of objects for which storage was allocated. Must be the same value passed to
+     * allocate.
+     */
+    void deallocate(pointer p, size_type n) noexcept {
+        if (p == nullptr || n == 0) {
+            return; // Deallocating nullptr or zero size is a no-op
+        }
+
+        size_type bytes_to_deallocate = n * sizeof(T);
+
+        try {
+            bindings->unregisterRegion(BindingAddress(static_cast<void*>(p), bytes_to_deallocate));
+        } catch (...) {
+            BRISK_ASSERT_MSG("WARNING: unregisterRegion threw an exception during deallocate! Memory might "
+                             "leak if not handled",
+                             false);
+            std::terminate();
+        }
+
+        ::operator delete(static_cast<void*>(p), bytes_to_deallocate);
+    }
+
+    // --- Comparison Operators (Required for stateless allocators) ---
+
+    template <typename U>
+    constexpr bool operator==(const BindableAllocator<U, SchedulerPtr>&) const noexcept {
+        return true;
+    }
+
+    template <typename U>
+    constexpr bool operator!=(const BindableAllocator<U, SchedulerPtr>&) const noexcept {
+        return false;
+    }
+};
+
+template <typename T, PointerToScheduler auto scheduler = static_cast<Rc<Scheduler>*>(nullptr)>
+using BindableList = std::deque<T, BindableAllocator<T, SchedulerParam<scheduler>>>;
 
 } // namespace Brisk
