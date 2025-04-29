@@ -20,6 +20,7 @@
  */
 #include <brisk/widgets/Menu.hpp>
 #include <brisk/widgets/Item.hpp>
+#include <brisk/widgets/Spacer.hpp>
 
 namespace Brisk {
 
@@ -57,6 +58,8 @@ void Menu::onEvent(Event& event) {
 void Menu::append(Rc<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
         it->focusOnHover = true;
+        Base::append(std::move(widget));
+    } else if (Spacer* it = dynamicCast<Spacer*>(widget.get())) {
         Base::append(std::move(widget));
     } else {
         Base::append(rcnew Item{ std::move(widget), focusOnHover = true });
