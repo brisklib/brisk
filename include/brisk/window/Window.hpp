@@ -133,7 +133,7 @@ enum class HiDPIMode {
 
 HiDPIMode hiDPIMode();
 
-class Window : public BindingObject<Window, &mainScheduler>, public OsWindow {
+class Window : public BindableObject<Window, &mainScheduler>, public OsWindow {
 public:
     /**
      * @brief Get the position of window in Screen coordinates

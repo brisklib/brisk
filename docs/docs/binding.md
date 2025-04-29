@@ -106,13 +106,13 @@ public:
 };
 ```
 
-### Deriving from `BindingObject<Derived>`
+### Deriving from `BindableObject<Derived>`
 
-Another way to ensure correct lifetime management is by deriving from `BindingObject`, passing the class itself as the first template argument and an address to a `Rc<Scheduler>`-convertible variable or `nullptr`:
+Another way to ensure correct lifetime management is by deriving from `BindableObject`, passing the class itself as the first template argument and an address to a `Rc<Scheduler>`-convertible variable or `nullptr`:
 
 Example:
 ```c++
-class Component : public BindingObject<Component, &uiScheduler> {
+class Component : public BindableObject<Component, &uiScheduler> {
 public:
     virtual ~Component();
 };
@@ -124,7 +124,7 @@ The `uiScheduler` variable is defined in `window/WindowApplication.hpp`:
 extern Rc<TaskQueue> uiScheduler;
 ```
 
-The `BindingObject` class also inherits from `std::enable_shared_from_this`, allowing `shared_from_this` to be used.
+The `BindableObject` class also inherits from `std::enable_shared_from_this`, allowing `shared_from_this` to be used.
 
 ## Value Expressions
 

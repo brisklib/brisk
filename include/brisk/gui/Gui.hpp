@@ -619,7 +619,7 @@ inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, U>&
 
 using StyleVarType = std::variant<std::monostate, ColorW, EdgesL, float, int>;
 
-class WIDGET Widget : public BindingObject<Widget, &uiScheduler> {
+class WIDGET Widget : public BindableObject<Widget, &uiScheduler> {
     BRISK_DYNAMIC_CLASS_ROOT(Widget)
 public:
     using Ptr                 = std::shared_ptr<Widget>;

@@ -1836,12 +1836,13 @@ concept PointerToScheduler = requires(T p) {
 };
 
 template <typename Derived, PointerToScheduler auto scheduler = static_cast<Rc<Scheduler>*>(nullptr)>
-class BindingObject : public Object, public std::enable_shared_from_this<BindingObject<Derived, scheduler>> {
+class BindableObject : public Object,
+                       public std::enable_shared_from_this<BindableObject<Derived, scheduler>> {
 private:
-    using Base = std::enable_shared_from_this<BindingObject<Derived, scheduler>>;
+    using Base = std::enable_shared_from_this<BindableObject<Derived, scheduler>>;
 
 public:
-    ~BindingObject() override {}
+    ~BindableObject() override {}
 
     using Ptr = std::shared_ptr<Derived>;
 

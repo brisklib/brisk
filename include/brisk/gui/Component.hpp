@@ -32,7 +32,7 @@ namespace Brisk {
  * in the application. It manages the lifecycle of the component, its event
  * handling, and its associated window.
  */
-class Component : public BindingObject<Component, &uiScheduler> {
+class Component : public BindableObject<Component, &uiScheduler> {
 public:
     ~Component() override {}
 
