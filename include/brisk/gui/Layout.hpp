@@ -455,7 +455,7 @@ enum class OverflowScroll : uint8_t {
     Auto,    ///< Scrollbars are visible only when content overflows.
 };
 
-using OverflowScrollBoth = PointOf<OverflowScroll>;
+using OverflowScrollBoth = SizeOf<OverflowScroll>;
 
 /**
  * @enum ContentOverflow
@@ -466,7 +466,7 @@ enum class ContentOverflow : uint8_t {
     Allow,   ///< Content overflow does not affect the container's size.
 };
 
-using ContentOverflowBoth = PointOf<ContentOverflow>;
+using ContentOverflowBoth = SizeOf<ContentOverflow>;
 
 /**
  * @brief Specifies the gutter (spacing) direction for the flex container.
