@@ -46,7 +46,7 @@ public:
         Rc<Window> window = component->makeWindow();
         addWindow(window, false);
         modalRun(window);
-        return window;
+        return component;
     }
 
     template <std::derived_from<Component> TComponent, typename... Args>
