@@ -22,7 +22,7 @@
 #include "Bytes.hpp"
 #include "BasicTypes.hpp"
 #include "internal/Span.hpp"
-#include "IO.hpp"
+#include "Io.hpp"
 #include "Exceptions.hpp"
 
 namespace Brisk {
@@ -74,11 +74,11 @@ template <size_t Size>
 }
 
 /**
- * @brief Creates a RC<Stream> for cryptographically secure random bytes.
+ * @brief Creates a Rc<Stream> for cryptographically secure random bytes.
  *
- * @return A RC<Stream> for random bytes.
+ * @return A Rc<Stream> for random bytes.
  */
-[[nodiscard]] RC<Stream> cryptoRandomReader();
+[[nodiscard]] Rc<Stream> cryptoRandomReader();
 
 /**
  * @brief Enum class representing various hash methods.
@@ -344,60 +344,60 @@ struct SHA512Hasher : public Hasher {
 };
 
 /**
- * @brief Creates a RC<Stream> for hashing using the specified hash method.
+ * @brief Creates a Rc<Stream> for hashing using the specified hash method.
  *
  * @param method The hashing method to use.
  * @param hashOutput The buffer where the final hash result will be written.
- * @return A RC<Stream> for hashing.
+ * @return A Rc<Stream> for hashing.
  */
-[[nodiscard]] RC<Stream> hashStream(HashMethod method, BytesMutableView hashOutput);
+[[nodiscard]] Rc<Stream> hashStream(HashMethod method, BytesMutableView hashOutput);
 
 /**
- * @brief Creates a RC<Stream> for MD5 hashing.
+ * @brief Creates a Rc<Stream> for MD5 hashing.
  *
  * @param hashOutput The MD5Hash object where the final hash result will be written.
- * @return A RC<Stream> for MD5 hashing.
+ * @return A Rc<Stream> for MD5 hashing.
  */
-[[nodiscard]] RC<Stream> md5HashStream(MD5Hash& hashOutput);
+[[nodiscard]] Rc<Stream> md5HashStream(MD5Hash& hashOutput);
 
 /**
- * @brief Creates a RC<Stream> for SHA-1 hashing.
+ * @brief Creates a Rc<Stream> for SHA-1 hashing.
  *
  * @param hashOutput The SHA1Hash object where the final hash result will be written.
- * @return A RC<Stream> for SHA-1 hashing.
+ * @return A Rc<Stream> for SHA-1 hashing.
  */
-[[nodiscard]] RC<Stream> sha1HashStream(SHA1Hash& hashOutput);
+[[nodiscard]] Rc<Stream> sha1HashStream(SHA1Hash& hashOutput);
 
 /**
- * @brief Creates a RC<Stream> for SHA-256 hashing.
+ * @brief Creates a Rc<Stream> for SHA-256 hashing.
  *
  * @param hashOutput The SHA256Hash object where the final hash result will be written.
- * @return A RC<Stream> for SHA-256 hashing.
+ * @return A Rc<Stream> for SHA-256 hashing.
  */
-[[nodiscard]] RC<Stream> sha256HashStream(SHA256Hash& hashOutput);
+[[nodiscard]] Rc<Stream> sha256HashStream(SHA256Hash& hashOutput);
 
 /**
- * @brief Creates a RC<Stream> for SHA-512 hashing.
+ * @brief Creates a Rc<Stream> for SHA-512 hashing.
  *
  * @param hashOutput The SHA512Hash object where the final hash result will be written.
- * @return A RC<Stream> for SHA-512 hashing.
+ * @return A Rc<Stream> for SHA-512 hashing.
  */
-[[nodiscard]] RC<Stream> sha512HashStream(SHA512Hash& hashOutput);
+[[nodiscard]] Rc<Stream> sha512HashStream(SHA512Hash& hashOutput);
 
 /**
- * @brief Creates a RC<Stream> for SHA3-256 hashing.
+ * @brief Creates a Rc<Stream> for SHA3-256 hashing.
  *
  * @param hashOutput The SHA3_256Hash object where the final hash result will be written.
- * @return A RC<Stream> for SHA3-256 hashing.
+ * @return A Rc<Stream> for SHA3-256 hashing.
  */
-[[nodiscard]] RC<Stream> sha3_256HashStream(SHA3_256Hash& hashOutput);
+[[nodiscard]] Rc<Stream> sha3_256HashStream(SHA3_256Hash& hashOutput);
 
 /**
- * @brief Creates a RC<Stream> for SHA3-512 hashing.
+ * @brief Creates a Rc<Stream> for SHA3-512 hashing.
  *
  * @param hashOutput The SHA3_512Hash object where the final hash result will be written.
- * @return A RC<Stream> for SHA3-512 hashing.
+ * @return A Rc<Stream> for SHA3-512 hashing.
  */
-[[nodiscard]] RC<Stream> sha3_512HashStream(SHA3_512Hash& hashOutput);
+[[nodiscard]] Rc<Stream> sha3_512HashStream(SHA3_512Hash& hashOutput);
 
 } // namespace Brisk

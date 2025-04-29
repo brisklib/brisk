@@ -9,7 +9,7 @@
 
 namespace Brisk {
 
-RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -83,7 +83,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
                 rcnew ComboBox{
                     value = Value{ &m_selectedItem },
                     rcnew Menu{
-                        IndexedBuilder([](int index) -> RC<Widget> {
+                        IndexedBuilder([](int index) -> Rc<Widget> {
                             if (index > 40)
                                 return nullptr;
                             return rcnew Text{ fmt::to_string(index) };

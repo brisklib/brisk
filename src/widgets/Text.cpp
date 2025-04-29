@@ -30,7 +30,7 @@ Text::Text(Construction construction, std::string text, ArgumentsView<Text> args
     enableCustomMeasure();
 }
 
-RC<Widget> Text::cloneThis() const {
+Rc<Widget> Text::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -180,7 +180,7 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Widget::paint(canvas);
 }
 
-RC<Widget> BackStrikedText::cloneThis() const {
+Rc<Widget> BackStrikedText::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -200,7 +200,7 @@ void HoveredDescription::paint(Canvas& canvas) const {
     paintHint(canvas);
 }
 
-RC<Widget> HoveredDescription::cloneThis() const {
+Rc<Widget> HoveredDescription::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

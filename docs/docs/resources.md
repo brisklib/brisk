@@ -58,7 +58,7 @@ In C++, you can load any resource bundled with the executable using `Resources::
 #include <brisk/graphics/Images.hpp>
 
 // Load the icon resource and decode it into an image.
-RC<Image> loadIcon() {
+Rc<Image> loadIcon() {
     // Assume the resource exists and ignore errors for simplicity.
     return imageDecode(Resources::load("icon"), ImageFormat::RGBA).value();
 }

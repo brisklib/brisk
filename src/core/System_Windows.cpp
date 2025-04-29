@@ -49,7 +49,7 @@ static OSVERSIONINFOEXW getWinVersion() {
     return ver;
 }
 
-OSVersion osVersion() {
+OsVersion osVersion() {
     auto ver = getWinVersion();
     return { uint16_t(ver.dwMajorVersion), uint16_t(ver.dwMinorVersion), uint32_t(ver.dwBuildNumber) };
 }

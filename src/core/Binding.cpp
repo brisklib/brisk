@@ -30,7 +30,7 @@ AutoSingleton<Bindings> bindings;
 int Bindings::addHandler(const RegionList& srcRegions, uint64_t id, Handler handler,
                          BindingAddresses srcAddresses, Region* destRegion, BindingAddress destAddress,
                          BindType type, std::string_view destDesc, std::string_view srcDesc,
-                         RC<Scheduler> srcQueue) {
+                         Rc<Scheduler> srcQueue) {
 
     BRISK_ASSERT(srcRegions.size() == srcAddresses.size());
 
@@ -81,7 +81,7 @@ bool Bindings::isRegisteredRegion(BindingAddress range) const {
     return m_regions.contains(range.min());
 }
 
-void Bindings::registerRegion(BindingAddress range, RC<Scheduler> queue) {
+void Bindings::registerRegion(BindingAddress range, Rc<Scheduler> queue) {
     std::lock_guard lk(m_mutex);
     if (!m_regions.insert_or_assign(range.min(), std::make_shared<Region>(range, std::move(queue))).second) {
         BRISK_ASSERT(false); // Assert if the region cannot be registered
@@ -108,7 +108,7 @@ int Bindings::notifyRange(BindingAddress range) {
     std::lock_guard lk(m_mutex);
     ++m_counter;
 
-    RC<Region> region = lookupRegion(range);
+    Rc<Region> region = lookupRegion(range);
     BRISK_ASSERT_MSG("notifyRange: region is not registered", region);
 
     do {
@@ -155,7 +155,7 @@ static bool addressesContain(const BindingAddresses& a, BindingAddress r) {
     return std::find(a.begin(), a.end(), r) != a.end();
 }
 
-RC<Bindings::Region> Bindings::lookupRegion(BindingAddress address) {
+Rc<Bindings::Region> Bindings::lookupRegion(BindingAddress address) {
     // Find the first region whose address is greater than the desired address
     auto it = m_regions.upper_bound(address.min());
 
@@ -176,7 +176,7 @@ Bindings::Bindings() {
     registerRegion(staticBindingAddress, nullptr); // Register the static region
 }
 
-void Bindings::enqueueInto(RC<Scheduler> queue, VoidFunc fn, ExecuteImmediately mode) {
+void Bindings::enqueueInto(Rc<Scheduler> queue, VoidFunc fn, ExecuteImmediately mode) {
     if (queue) {
         queue->dispatch(std::move(fn), mode);
     } else {

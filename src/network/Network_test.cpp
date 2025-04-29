@@ -28,9 +28,9 @@ using namespace Brisk;
 
 TEST_CASE("Network tests") {
     using namespace std::literals;
-    auto [response, bytes] = httpFetchBytes(HTTPRequest{
+    auto [response, bytes] = httpFetchBytes(HttpRequest{
         .url     = "https://example.com",
-        .method  = HTTPMethod::Head,
+        .method  = HttpMethod::Head,
         .timeout = 10000ms,
     });
     fmt::println("error = {}", response.error);

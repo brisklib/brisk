@@ -54,7 +54,7 @@ Create a `main.cpp` file in the same directory with the following code:
 
 ```cpp
 #include <brisk/gui/Component.hpp>
-#include <brisk/gui/GUIApplication.hpp>
+#include <brisk/gui/GuiApplication.hpp>
 #include <brisk/widgets/Graphene.hpp>
 #include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/Layouts.hpp>
@@ -66,7 +66,7 @@ using namespace Brisk;
 class RootComponent : public Component {
 public:
   // Builds the UI layout for the component
-  RC<Widget> build() final {
+  Rc<Widget> build() final {
     return rcnew VLayout{
         stylesheet = Graphene::stylesheet(), // Apply the default stylesheet
         Graphene::darkColors(),              // Use dark color scheme
@@ -86,7 +86,7 @@ public:
 
 // Entry point of the Brisk application
 int briskMain() {
-  GUIApplication application; // Create the GUI application
+  GuiApplication application; // Create the GUI application
   return application.run(createComponent<RootComponent>()); // Run with RootComponent as main component
 }
 ```

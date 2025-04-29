@@ -30,7 +30,7 @@ namespace Brisk {
 /**
  * @brief Structure representing the operating system version.
  */
-struct OSVersion {
+struct OsVersion {
     uint16_t major = 0; ///< Major version of the operating system.
     uint16_t minor = 0; ///< Minor version of the operating system.
     uint32_t build = 0; ///< Build number of the operating system.
@@ -38,22 +38,22 @@ struct OSVersion {
     /**
      * @brief Default comparison operator.
      */
-    constexpr auto operator<=>(const OSVersion&) const noexcept = default;
+    constexpr auto operator<=>(const OsVersion&) const noexcept = default;
 
     /**
-     * @brief Reflection data for the fields of OSVersion.
+     * @brief Reflection data for the fields of OsVersion.
      */
     constexpr static std::tuple reflection{
-        ReflectionField{ "major", &OSVersion::major },
-        ReflectionField{ "minor", &OSVersion::minor },
-        ReflectionField{ "build", &OSVersion::build },
+        ReflectionField{ "major", &OsVersion::major },
+        ReflectionField{ "minor", &OsVersion::minor },
+        ReflectionField{ "build", &OsVersion::build },
     };
 };
 
 /**
  * @brief Structure representing OS uname information.
  */
-struct OSUname {
+struct OsUname {
     std::string sysname; ///< System name.
     std::string release; ///< Release name.
     std::string version; ///< Version of the system.
@@ -62,24 +62,24 @@ struct OSUname {
     /**
      * @brief Default comparison operator.
      */
-    constexpr bool operator==(const OSUname&) const noexcept = default;
+    constexpr bool operator==(const OsUname&) const noexcept = default;
 
     /**
-     * @brief Reflection data for the fields of OSUname.
+     * @brief Reflection data for the fields of OsUname.
      */
     constexpr static std::tuple reflection{
-        ReflectionField{ "sysname", &OSUname::sysname },
-        ReflectionField{ "release", &OSUname::release },
-        ReflectionField{ "version", &OSUname::version },
-        ReflectionField{ "machine", &OSUname::machine },
+        ReflectionField{ "sysname", &OsUname::sysname },
+        ReflectionField{ "release", &OsUname::release },
+        ReflectionField{ "version", &OsUname::version },
+        ReflectionField{ "machine", &OsUname::machine },
     };
 };
 
 /**
  * @brief Retrieves the operating system version.
- * @return The OSVersion structure containing the operating system version.
+ * @return The OsVersion structure containing the operating system version.
  */
-OSVersion osVersion();
+OsVersion osVersion();
 
 /**
  * @brief Retrieves the operating system name.
@@ -89,9 +89,9 @@ std::string osName();
 
 /**
  * @brief Retrieves the system uname information.
- * @return The OSUname structure containing the uname information.
+ * @return The OsUname structure containing the uname information.
  */
-OSUname osUname();
+OsUname osUname();
 
 /**
  * @brief Structure representing CPU information.
@@ -158,7 +158,7 @@ enum class Windows10Version : uint32_t {
  * @brief Checks if the current OS is Windows.
  * @return True if the OS is Windows, false otherwise.
  */
-constexpr bool isOSWindows() {
+constexpr bool isOsWindows() {
     return true;
 }
 
@@ -169,8 +169,8 @@ constexpr bool isOSWindows() {
  * @param build Build number.
  * @return True if the current OS version matches, false otherwise.
  */
-inline bool isOSWindows(uint16_t major, uint16_t minor = 0, uint32_t build = 0) {
-    return osVersion() >= OSVersion{ major, minor, build };
+inline bool isOsWindows(uint16_t major, uint16_t minor = 0, uint32_t build = 0) {
+    return osVersion() >= OsVersion{ major, minor, build };
 }
 
 /**
@@ -178,8 +178,8 @@ inline bool isOSWindows(uint16_t major, uint16_t minor = 0, uint32_t build = 0) 
  * @param minVersion The minimum Windows 10 version to check against.
  * @return True if the current OS version is at least the specified Windows 10 version.
  */
-inline bool isOSWindows10(Windows10Version minVersion = Windows10Version::_1507) {
-    return osVersion() >= OSVersion{ 10, 0, static_cast<uint32_t>(minVersion) };
+inline bool isOsWindows10(Windows10Version minVersion = Windows10Version::_1507) {
+    return osVersion() >= OsVersion{ 10, 0, static_cast<uint32_t>(minVersion) };
 }
 
 #else
@@ -188,7 +188,7 @@ inline bool isOSWindows10(Windows10Version minVersion = Windows10Version::_1507)
  * @brief Checks if the current OS is Windows.
  * @return Always false for non-Windows systems.
  */
-constexpr bool isOSWindows() {
+constexpr bool isOsWindows() {
     return false;
 }
 
@@ -199,7 +199,7 @@ constexpr bool isOSWindows() {
  * @param build Build number (unused).
  * @return Always false for non-Windows systems.
  */
-constexpr bool isOSWindows(unsigned int major, unsigned int minor, unsigned int build) {
+constexpr bool isOsWindows(unsigned int major, unsigned int minor, unsigned int build) {
     return false;
 }
 #endif

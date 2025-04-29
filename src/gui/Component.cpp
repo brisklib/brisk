@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-RC<GUIWindow> Component::window() {
+Rc<GuiWindow> Component::window() {
     return m_window.lock();
 }
 
@@ -30,27 +30,27 @@ WidgetTree& Component::tree() {
     return window()->tree();
 }
 
-RC<Widget> Component::build() {
+Rc<Widget> Component::build() {
     return rcnew Widget{
         flexGrow = 1,
     };
 }
 
-RC<GUIWindow> Component::makeWindow() {
+Rc<GuiWindow> Component::makeWindow() {
     if (auto window = m_window.lock())
         return window;
-    RC<GUIWindow> window = createWindow();
+    Rc<GuiWindow> window = createWindow();
     m_window             = window;
     configureWindow(window);
     return window;
 }
 
-RC<GUIWindow> Component::createWindow() {
-    return rcnew GUIWindow{ shared_from_this() };
+Rc<GuiWindow> Component::createWindow() {
+    return rcnew GuiWindow{ shared_from_this() };
 }
 
-void Component::configureWindow(RC<GUIWindow> window) {
-    RC<Window> curWindow = Internal::currentWindowPtr();
+void Component::configureWindow(Rc<GuiWindow> window) {
+    Rc<Window> curWindow = Internal::currentWindowPtr();
 
     window->setTitle("Component"_tr);
     window->setSize({ 1050, 740 });

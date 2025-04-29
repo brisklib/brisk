@@ -87,7 +87,7 @@ struct StrokeWidth {
 };
 
 struct Multigradient {
-    using Type = RC<GradientResource>;
+    using Type = Rc<GradientResource>;
 
     static void apply(const Type& value, RenderStateEx& state) {
         state.gradientHandle = value;

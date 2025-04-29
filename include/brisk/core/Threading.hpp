@@ -334,7 +334,7 @@ protected:
 };
 
 /// @brief Represents the task queue and scheduler for the main thread.
-extern RC<TaskQueue> mainScheduler;
+extern Rc<TaskQueue> mainScheduler;
 
 /// @brief Pointer to the scheduler associated with the current thread. If no scheduler has been assigned,
 /// this pointer may be nullptr.
@@ -366,7 +366,7 @@ T waitFuture(std::future<T> future, int intervalMS) {
 template <typename... Args>
 struct DeferredCallback {
     function<void(Args...)> func;
-    RC<Scheduler> scheduler;
+    Rc<Scheduler> scheduler;
 
     bool operator()(Args... args) const {
         if (func) {
@@ -498,7 +498,7 @@ public:
     AsyncValue& operator=(AsyncValue&&) noexcept      = default;
 
     Result getSync() {
-        RC<std::promise<Result>> promise = std::make_shared<std::promise<Result>>();
+        Rc<std::promise<Result>> promise = std::make_shared<std::promise<Result>>();
         std::future<Result> future       = promise->get_future();
         cb->onReady([promise](Result result) {
             promise->set_value(std::move(result));
@@ -513,7 +513,7 @@ public:
         std::ignore = getSync();
     }
 
-    void getInCallback(RC<Scheduler> scheduler, function<void(Result)> callback,
+    void getInCallback(Rc<Scheduler> scheduler, function<void(Result)> callback,
                        function<void(std::exception_ptr)> error = {}) {
         cb->onReady([scheduler, callback = std::move(callback)](Result result) mutable {
             scheduler->dispatch([callback = std::move(callback), result = std::move(result)]() mutable {
@@ -532,9 +532,9 @@ public:
 private:
     friend struct AsyncOperation<Result>;
 
-    AsyncValue(RC<Internal::AsyncCallback<Result>> cb) : cb(std::move(cb)) {}
+    AsyncValue(Rc<Internal::AsyncCallback<Result>> cb) : cb(std::move(cb)) {}
 
-    RC<Internal::AsyncCallback<Result>> cb;
+    Rc<Internal::AsyncCallback<Result>> cb;
 };
 
 template <typename Result>
@@ -568,7 +568,7 @@ struct AsyncOperation {
     }
 
 private:
-    RC<Internal::AsyncCallback<Result>> cb;
+    Rc<Internal::AsyncCallback<Result>> cb;
 };
 
 } // namespace Brisk

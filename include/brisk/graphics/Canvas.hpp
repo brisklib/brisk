@@ -165,7 +165,7 @@ class Canvas;
  * applied to a surface.
  */
 struct Texture {
-    RC<Image> image;                      ///< The image used as the texture.
+    Rc<Image> image;                      ///< The image used as the texture.
     Matrix matrix;                        ///< The transformation matrix applied to the texture.
     SamplerMode mode = SamplerMode::Wrap; ///< The sampler mode (Clamp or Wrap).
     float blurRadius = 0.f;               ///< The radius of the blur applied to the image.
@@ -187,8 +187,8 @@ struct PaintAndTransform;
 
 enum class CanvasFlags {
     None    = 0,
-    SDF     = 1,
-    Default = SDF,
+    Sdf     = 1,
+    Default = Sdf,
 };
 
 template <>
@@ -525,7 +525,7 @@ public:
      * @param image The Image to draw.
      * @param matrix The transformation matrix to apply to the image. Defaults to the identity matrix.
      */
-    void drawImage(RectangleF rect, RC<Image> image, Matrix matrix = {},
+    void drawImage(RectangleF rect, Rc<Image> image, Matrix matrix = {},
                    SamplerMode samplerMode = SamplerMode::Clamp, float blurRadius = 0.f);
 
     /**

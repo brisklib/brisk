@@ -25,8 +25,8 @@
 #include "RenderState.hpp"
 #include "Color.hpp"
 #include "Geometry.hpp"
-#include <brisk/graphics/OSWindowHandle.hpp>
-#include <brisk/graphics/OSDisplayHandle.hpp>
+#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/OsDisplayHandle.hpp>
 #include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
@@ -37,15 +37,15 @@ namespace Brisk {
  */
 enum class RendererBackend : int {
 #ifdef BRISK_D3D11
-    D3D11 = 1, ///< Direct3D 11 backend available on Windows.
+    D3d11 = 1, ///< Direct3D 11 backend available on Windows.
 #endif
 #ifdef BRISK_WEBGPU
-    WebGPU = 2, ///< WebGPU backend.
+    WebGpu = 2, ///< WebGPU backend.
 #endif
 #ifdef BRISK_D3D11
-    Default = D3D11, ///< Default backend option.
+    Default = D3d11, ///< Default backend option.
 #else
-    Default = WebGPU,
+    Default = WebGpu,
 #endif
 };
 
@@ -54,10 +54,10 @@ enum class RendererBackend : int {
  */
 constexpr inline std::initializer_list<RendererBackend> rendererBackends{
 #ifdef BRISK_D3D11
-    RendererBackend::D3D11,
+    RendererBackend::D3d11,
 #endif
 #ifdef BRISK_WEBGPU
-    RendererBackend::WebGPU,
+    RendererBackend::WebGpu,
 #endif
 };
 
@@ -67,10 +67,10 @@ constexpr inline std::initializer_list<RendererBackend> rendererBackends{
 template <>
 inline constexpr std::initializer_list<NameValuePair<RendererBackend>> defaultNames<RendererBackend>{
 #ifdef BRISK_D3D11
-    { "D3D11", RendererBackend::D3D11 },
+    { "D3d11", RendererBackend::D3d11 },
 #endif
 #ifdef BRISK_WEBGPU
-    { "WebGPU", RendererBackend::WebGPU },
+    { "WebGpu", RendererBackend::WebGpu },
 #endif
 };
 
@@ -203,7 +203,7 @@ public:
      * @param target The render target.
      * @param clear The clear color. std::nullopt means no clear command is issued.
      */
-    virtual void begin(RC<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) = 0;
+    virtual void begin(Rc<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) = 0;
 
     /**
      * @brief Batches rendering commands.
@@ -227,7 +227,7 @@ public:
      * @return Pointer to the current RenderTarget, or nullptr if `begin` has not been called or `end` has
      * been called.
      */
-    virtual RC<RenderTarget> currentTarget() const                                                  = 0;
+    virtual Rc<RenderTarget> currentTarget() const                                                  = 0;
 
     constexpr static uint32_t maxDurations                                                          = 256;
 
@@ -252,14 +252,14 @@ public:
      * std::nullopt is passed, the target is not cleared, enabling blending with previous content.
      * @param clipRect The clipping rectangle in screen coordinates; use noClipRect to disable clipping.
      */
-    RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target,
+    RenderPipeline(Rc<RenderEncoder> encoder, Rc<RenderTarget> target,
                    std::optional<ColorF> clear = Palette::transparent, Rectangle clipRect = noClipRect);
 
     /**
      * @brief Blits an image to the render target.
      * @param image The image to blit; its size must match the target size.
      */
-    void blit(RC<Image> image);
+    void blit(Rc<Image> image);
 
     /**
      * @brief Destroys the RenderPipeline instance.
@@ -297,7 +297,7 @@ public:
      * @brief Retrieves the render encoder associated with this pipeline.
      * @return A reference-counted pointer to the render encoder.
      */
-    RC<RenderEncoder> encoder() const {
+    Rc<RenderEncoder> encoder() const {
         return m_encoder;
     }
 
@@ -308,12 +308,12 @@ public:
     bool flush();
 
 private:
-    RC<RenderEncoder> m_encoder;         ///< The current rendering encoder.
+    Rc<RenderEncoder> m_encoder;         ///< The current rendering encoder.
     RenderLimits m_limits;               ///< Resource limits for the pipeline.
     RenderResources& m_resources;        ///< Rendering resources.
     std::vector<RenderState> m_commands; ///< List of rendering commands queued for execution.
     std::vector<float> m_data;           ///< Buffer for associated rendering data.
-    std::vector<RC<Image>> m_textures;   ///< List of textures used in rendering.
+    std::vector<Rc<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
     Rectangle m_clipRect;                ///< The current clipping rectangle.
 };
@@ -372,7 +372,7 @@ public:
      * @brief Returns the rendered image.
      * @return The rendered image.
      */
-    virtual RC<Image> image() const    = 0;
+    virtual Rc<Image> image() const    = 0;
 };
 
 /**
@@ -436,10 +436,10 @@ enum class BlendMode {
 };
 
 /**
- * @class OSWindow
+ * @class OsWindow
  * @brief Represents a platform-specific window handle.
  */
-class OSWindow {
+class OsWindow {
 public:
     /**
      * @brief Returns the size of the framebuffer.
@@ -450,7 +450,7 @@ public:
     /**
      * @brief Gets the native OS window handle.
      */
-    virtual OSWindowHandle getHandle() const = 0;
+    virtual OsWindowHandle getHandle() const = 0;
 };
 
 /**
@@ -495,7 +495,7 @@ public:
      * @param samples Number of samples for multisampling.
      * @return The window render target.
      */
-    virtual RC<WindowRenderTarget> createWindowTarget(const OSWindow* window,
+    virtual Rc<WindowRenderTarget> createWindowTarget(const OsWindow* window,
                                                       PixelType type         = PixelType::U8Gamma,
                                                       DepthStencilType depth = DepthStencilType::None,
                                                       int samples            = 1) = 0;
@@ -508,7 +508,7 @@ public:
      * @param samples Number of samples for multisampling.
      * @return The image render target.
      */
-    virtual RC<ImageRenderTarget> createImageTarget(Size frameSize, PixelType type = PixelType::U8Gamma,
+    virtual Rc<ImageRenderTarget> createImageTarget(Size frameSize, PixelType type = PixelType::U8Gamma,
                                                     DepthStencilType depth = DepthStencilType::None,
                                                     int samples            = 1)   = 0;
 
@@ -516,7 +516,7 @@ public:
      * @brief Creates a new render encoder.
      * @return The render encoder.
      */
-    virtual RC<RenderEncoder> createEncoder()                          = 0;
+    virtual Rc<RenderEncoder> createEncoder()                          = 0;
 
     /**
      * @brief Returns the resources used for rendering.
@@ -534,7 +534,7 @@ public:
      * @brief Creates a backend representation of an image.
      * @param image The image to create a backend for.
      */
-    virtual void createImageBackend(RC<Image> image)                   = 0;
+    virtual void createImageBackend(Rc<Image> image)                   = 0;
 };
 
 extern RendererBackend defaultBackend;
@@ -551,7 +551,7 @@ void setRenderDeviceSelection(RendererBackend backend, RendererDeviceSelection d
  * @brief Gets the current rendering device, if available.
  * @return Expected object containing the rendering device or an error.
  */
-expected<RC<RenderDevice>, RenderDeviceError> getRenderDevice(OSDisplayHandle display = {});
+expected<Rc<RenderDevice>, RenderDeviceError> getRenderDevice(OsDisplayHandle display = {});
 
 /**
  * @brief Frees the currently allocated rendering device.
@@ -564,8 +564,8 @@ void freeRenderDevice();
  * @param deviceSelection The device selection criteria.
  * @return Expected object containing the rendering device or an error.
  */
-expected<RC<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
+expected<Rc<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
                                                                  RendererDeviceSelection deviceSelection,
-                                                                 OSDisplayHandle display = {});
+                                                                 OsDisplayHandle display = {});
 
 } // namespace Brisk

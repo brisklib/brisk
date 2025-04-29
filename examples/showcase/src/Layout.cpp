@@ -3,7 +3,7 @@
 
 namespace Brisk {
 
-RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseLayout::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow         = 1,
         padding          = 16_apx,
@@ -42,7 +42,7 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
                     "This widget's size is set to half of the window's width and a quarter of its height "
                     "<code>(width = 50_vw, height = 25_vh)</code>",
                     wordWrap    = true,
-                    textOptions = TextOptions::HTML,
+                    textOptions = TextOptions::Html,
                     fontSize    = 16_px,
                 },
                 alignContent    = Align::Center,

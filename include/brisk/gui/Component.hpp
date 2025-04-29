@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/Gui.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 
 namespace Brisk {
 
@@ -37,13 +37,13 @@ public:
     ~Component() override {}
 
     /**
-     * @brief Gets the `GUIWindow` associated with this component.
+     * @brief Gets the `GuiWindow` associated with this component.
      *
      * @note May return nullptr if the component has no associated window or if it has not been created yet.
      *
-     * @return RC<GUIWindow> A reference-counted pointer to the GUIWindow.
+     * @return Rc<GuiWindow> A reference-counted pointer to the GuiWindow.
      */
-    RC<GUIWindow> window();
+    Rc<GuiWindow> window();
 
     /**
      * @brief Returns the `WidgetTree` for the component.
@@ -55,9 +55,9 @@ public:
     /**
      * @brief Gets the window associated with this component, creating it if it does not exist.
      *
-     * @return RC<GUIWindow> A reference-counted pointer to the GUIWindow.
+     * @return Rc<GuiWindow> A reference-counted pointer to the GuiWindow.
      */
-    RC<GUIWindow> makeWindow();
+    Rc<GuiWindow> makeWindow();
 
     /**
      * @brief Closes the associated window.
@@ -67,7 +67,7 @@ public:
     void closeWindow();
 
 protected:
-    friend class GUIWindow;
+    friend class GuiWindow;
 
     /**
      * @brief Called to build the component's widget hierarchy.
@@ -75,17 +75,17 @@ protected:
      * This function should be overridden to construct and return the root
      * widget of the component.
      *
-     * @return RC<Widget> A reference-counted pointer to the root widget.
+     * @return Rc<Widget> A reference-counted pointer to the root widget.
      */
-    virtual RC<Widget> build();
+    virtual Rc<Widget> build();
 
     /**
      * @brief This method is called on the main thread and is expected to return
      * the window object that the component will use.
      *
-     * @return RC<GUIWindow> A reference-counted pointer to the GUIWindow.
+     * @return Rc<GuiWindow> A reference-counted pointer to the GuiWindow.
      */
-    virtual RC<GUIWindow> createWindow();
+    virtual Rc<GuiWindow> createWindow();
 
     /**
      * @brief Handles any unhandled events.
@@ -113,7 +113,7 @@ protected:
      *
      * @param window The window to configure.
      */
-    virtual void configureWindow(RC<GUIWindow> window);
+    virtual void configureWindow(Rc<GuiWindow> window);
 
     /**
      * @brief Called before rendering a new frame.
@@ -123,19 +123,19 @@ protected:
     virtual void beforeFrame();
 
 private:
-    WeakRC<GUIWindow> m_window;
+    WeakRc<GuiWindow> m_window;
 };
 
 template <std::derived_from<Component> ComponentClass>
-void createComponent(RC<ComponentClass>& component) {
+void createComponent(Rc<ComponentClass>& component) {
     uiScheduler->dispatchAndWait([&]() {
         component = rcnew ComponentClass();
     });
 }
 
 template <std::derived_from<Component> ComponentClass>
-RC<ComponentClass> createComponent() {
-    RC<ComponentClass> component;
+Rc<ComponentClass> createComponent() {
+    Rc<ComponentClass> component;
     createComponent<ComponentClass>(component);
     return component;
 }

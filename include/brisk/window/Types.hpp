@@ -134,13 +134,13 @@ enum class KeyCode : int32_t {
     KP7          = 327,
     KP8          = 328,
     KP9          = 329,
-    KPDecimal    = 330,
-    KPDivide     = 331,
-    KPMultiply   = 332,
-    KPSubtract   = 333,
-    KPAdd        = 334,
-    KPEnter      = 335,
-    KPEqual      = 336,
+    KpDecimal    = 330,
+    KpDivide     = 331,
+    KpMultiply   = 332,
+    KpSubtract   = 333,
+    KpAdd        = 334,
+    KpEnter      = 335,
+    KpEqual      = 336,
     LeftShift    = 340,
     LeftControl  = 341,
     LeftAlt      = 342,
@@ -302,7 +302,7 @@ inline std::string hotKeyToString(KeyCode key, KeyModifiers mods) {
     return keyModifiersToString(mods) + keyCodeToString(key);
 }
 
-struct SVGCursor {
+struct SvgCursor {
     std::string svg;
     Point hotspot{ 0, 0 };
 

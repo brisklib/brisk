@@ -22,7 +22,7 @@
 
 #include "Encoding.hpp"
 #include "BasicTypes.hpp"
-#include "RC.hpp"
+#include "Rc.hpp"
 #include "internal/Span.hpp"
 #include "Exceptions.hpp"
 

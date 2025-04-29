@@ -101,7 +101,7 @@ constexpr std::initializer_list<char32_t> emojis2{
     0x1F6E0, 0x1F6E1, 0x1F6E2, 0x1F6E3, 0x1F6E4, 0x1F6E5, 0x1F6E9, 0x1F6F0, 0x1F6F3,
 };
 
-RC<Widget> emojiWidget(std::u32string str) {
+Rc<Widget> emojiWidget(std::u32string str) {
     return rcnew Text{
         utf32ToUtf8(str),
         dimensions        = { 40, 40 },
@@ -141,7 +141,7 @@ static Builder iconsBuilder() {
         auto iconFontFamily   = Font::Icons;
         int iconFontSize      = 25;
         for (int icon = ICON__first; icon < ICON__last; icon += columns) {
-            RC<HLayout> glyphs = rcnew HLayout{
+            Rc<HLayout> glyphs = rcnew HLayout{
                 rcnew Text{
                     fmt::format("{:04X}", icon),
                     textVerticalAlign = TextAlign::Center,
@@ -179,7 +179,7 @@ static const NameValueOrderedList<TextDecoration> textDecorationList{
     { "LineThrough", TextDecoration::LineThrough },
 };
 
-RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseTypography::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,

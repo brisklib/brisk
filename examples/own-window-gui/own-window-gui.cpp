@@ -2,9 +2,9 @@
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <brisk/gui/GUIApplication.hpp>
-#include <brisk/gui/GUIWindow.hpp>
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/GuiApplication.hpp>
+#include <brisk/gui/GuiWindow.hpp>
+#include <brisk/gui/Gui.hpp>
 #include <brisk/widgets/Graphene.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>
@@ -32,7 +32,7 @@ using Brisk::Font;
 using Brisk::Rectangle;
 
 /// Window adapter to retrieve framebuffer size and native handle
-class OSWindowGLFW final : public OSWindow {
+class OsWindowGLFW final : public OsWindow {
 public:
     // Returns the framebuffer size of the GLFW window
     Size framebufferSize() const final {
@@ -42,22 +42,22 @@ public:
     }
 
     // Retrieves the platform-specific native window handle
-    OSWindowHandle getHandle() const final {
+    OsWindowHandle getHandle() const final {
 #ifdef BRISK_WINDOWS
-        return OSWindowHandle(glfwGetWin32Window(win));
+        return OsWindowHandle(glfwGetWin32Window(win));
 #endif
 #ifdef BRISK_MACOS
-        return OSWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
+        return OsWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
 #endif
 #ifdef BRISK_LINUX
-        return OSWindowHandle(win);
+        return OsWindowHandle(win);
 #endif
     }
 
-    OSWindowGLFW() = default;
+    OsWindowGLFW() = default;
 
     // Constructor initializing with a GLFW window
-    explicit OSWindowGLFW(GLFWwindow* win) : win(win) {}
+    explicit OsWindowGLFW(GLFWwindow* win) : win(win) {}
 
 private:
     GLFWwindow* win = nullptr; // Pointer to the GLFW window
@@ -72,9 +72,9 @@ constexpr int numWindows = 2; // Number of windows to create
 
 struct OneWindow {
     GLFWwindow* win;               // Pointer to the GLFW window
-    OSWindowGLFW osWin;            // Window adapter for platform abstraction
-    RC<WindowRenderTarget> target; // Render target associated with the window
-    RC<RenderEncoder> encoder;     // Render encoder for drawing
+    OsWindowGLFW osWin;            // Window adapter for platform abstraction
+    Rc<WindowRenderTarget> target; // Render target associated with the window
+    Rc<RenderEncoder> encoder;     // Render encoder for drawing
     Size windowSize;               // Window size in pixels
     Size framebufferSize;          // Framebuffer size in pixels
     float pixelRatio;              // Ratio between framebuffer pixels and GUI pixels
@@ -91,7 +91,7 @@ int main() {
     // Retrieve the default render device (e.g., GPU)
     // It is possible to get a render device associated with a specific display (not implemented in this
     // example)
-    expected<RC<RenderDevice>, RenderDeviceError> device = getRenderDevice();
+    expected<Rc<RenderDevice>, RenderDeviceError> device = getRenderDevice();
     BRISK_ASSERT(device.has_value());
 
     // Set GLFW error callback
@@ -151,13 +151,13 @@ int main() {
             event.downPoint = std::nullopt;       // Not implemented in this example
             event.mods      = KeyModifiers::None; // Not implemented in this example
             if (action == GLFW_PRESS) {
-                win->input.addEvent(EventMouseButtonPressed(event));
+                win->input.addEvent(EventMouseButtonPressed{ event });
             } else {
-                win->input.addEvent(EventMouseButtonReleased(event));
+                win->input.addEvent(EventMouseButtonReleased{ event });
             }
         });
 
-        windows[i].osWin  = OSWindowGLFW(windows[i].win);
+        windows[i].osWin  = OsWindowGLFW(windows[i].win);
         // Create render target for the window
         windows[i].target = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
         windows[i].target->setVSyncInterval(1); // Enable vertical sync
@@ -193,7 +193,7 @@ int main() {
     }
 
     // Create a render encoder for drawing
-    RC<RenderEncoder> encoder = (*device)->createEncoder();
+    Rc<RenderEncoder> encoder = (*device)->createEncoder();
 
     bool exit                 = false;
 

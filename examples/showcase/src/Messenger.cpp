@@ -20,18 +20,18 @@ static void backgroundPainter(Canvas& canvas, const Widget& widget) {
 void ShowcaseMessenger::messagesBuilder(Widget* target) {
     for (const Message& msg : m_messages) {
         std::string statusIcon = msg.status == Status::Read ? ICON_check_check : ICON_check;
-        RC<Widget> content;
+        Rc<Widget> content;
         std::visit(Overload{
                        [&](std::string textContent) {
                            content = rcnew Text{ std::move(textContent), wordWrap = true };
                        },
-                       [&](RC<Image> imageContent) {
+                       [&](Rc<Image> imageContent) {
                            float imageAspect =
                                static_cast<float>(imageContent->width()) / imageContent->height();
                            content = rcnew ImageView{
                                imageContent,
                                aspect  = imageAspect,
-                               classes = Value{ &m_zoomImage }.transform([imageContent](RC<Image> img) {
+                               classes = Value{ &m_zoomImage }.transform([imageContent](Rc<Image> img) {
                                    return img == imageContent ? Classes{ "zoom" } : Classes{};
                                }),
 
@@ -60,7 +60,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
     }
 }
 
-RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseMessenger::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow      = 1,
         padding       = 16_apx,

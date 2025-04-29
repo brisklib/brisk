@@ -44,7 +44,7 @@ public:
                       std::shared_ptr<const NameValueOrderedList<std::type_identity_t<T>>> list,
                       const Args&... args)
         : ComboBox(Construction{ widgetType }, std::tuple{ args... }) {
-        RC<Menu> menu = rcnew Menu();
+        Rc<Menu> menu = rcnew Menu();
         for (const KeyValue<std::string, T>& item : *list) {
             menu->apply(rcnew Item(rcnew Text{ item.first }));
         }

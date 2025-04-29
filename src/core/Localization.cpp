@@ -23,7 +23,7 @@
 namespace Brisk {
 
 static SimpleLocale simpleLocale;
-RC<const Locale> locale = RC<Locale>(&simpleLocale, [](auto) {});
+Rc<const Locale> locale = Rc<Locale>(&simpleLocale, [](auto) {});
 
 const std::string& SimpleLocale::translate(std::string_view key) const noexcept {
     auto it = table.find(key);

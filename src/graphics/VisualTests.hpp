@@ -28,7 +28,7 @@
 
 namespace Brisk {
 
-[[maybe_unused]] inline float imagePSNR(RC<Image> img, RC<Image> ref) {
+[[maybe_unused]] inline float imagePSNR(Rc<Image> img, Rc<Image> ref) {
     auto rimg = img->mapRead<ImageFormat::Unknown_U8Gamma>();
     auto rref = ref->mapRead<ImageFormat::Unknown_U8Gamma>();
     REQUIRE(rimg.components() == rref.components());
@@ -46,7 +46,7 @@ namespace Brisk {
     return psnr;
 }
 
-[[maybe_unused]] inline float imageMaxDiff(RC<Image> img, RC<Image> ref) {
+[[maybe_unused]] inline float imageMaxDiff(Rc<Image> img, Rc<Image> ref) {
     auto rimg = img->mapRead<ImageFormat::Unknown_U8Gamma>();
     auto rref = ref->mapRead<ImageFormat::Unknown_U8Gamma>();
     REQUIRE(rimg.components() == rref.components());
@@ -65,7 +65,7 @@ template <PixelFormat Format = PixelFormat::RGBA, typename Fn>
 static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn, float maximumDiff = 0.02f) {
     BRISK_ASSERT(maximumDiff < 1.f);
     INFO(referenceImageName);
-    RC<Image> testImage =
+    Rc<Image> testImage =
         rcnew Image(size, imageFormat(PixelType::U8Gamma, Format), Color(255, 255, 255, 255));
     bool testOk = false;
     SCOPE_EXIT {
@@ -89,12 +89,12 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
     auto refImgBytes  = readBytes(fileName);
     CHECK(refImgBytes.has_value());
     if (refImgBytes.has_value()) {
-        expected<RC<Image>, ImageIOError> decodedRefImg =
+        expected<Rc<Image>, ImageIoError> decodedRefImg =
             pngDecode(*refImgBytes, imageFormat(PixelType::U8Gamma, Format), true);
         REQUIRE(decodedRefImg.has_value());
         REQUIRE((*decodedRefImg)->size() == size);
         REQUIRE((*decodedRefImg)->pixelFormat() == Format);
-        RC<Image> decodedRefImgT = (*decodedRefImg);
+        Rc<Image> decodedRefImgT = (*decodedRefImg);
         float testDiff           = imageMaxDiff(testImage, decodedRefImgT);
         CHECK(testDiff < maximumDiff);
         testOk = testDiff < maximumDiff;
@@ -117,26 +117,26 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
 
     for (RendererBackend bk : backends) {
         INFO(fmt::to_string(bk));
-        expected<RC<RenderDevice>, RenderDeviceError> device_ =
+        expected<Rc<RenderDevice>, RenderDeviceError> device_ =
             createRenderDevice(bk, RendererDeviceSelection::Default);
         REQUIRE(device_.has_value());
-        RC<RenderDevice> device = *device_;
+        Rc<RenderDevice> device = *device_;
         auto info               = device->info();
         REQUIRE(!info.api.empty());
         REQUIRE(!info.vendor.empty());
         REQUIRE(!info.device.empty());
 
-        RC<ImageRenderTarget> target = device->createImageTarget(size, PixelType::U8Gamma);
+        Rc<ImageRenderTarget> target = device->createImageTarget(size, PixelType::U8Gamma);
 
         REQUIRE(!!target.get());
         REQUIRE(target->size() == size);
 
-        RC<RenderEncoder> encoder = device->createEncoder();
+        Rc<RenderEncoder> encoder = device->createEncoder();
         encoder->setVisualSettings(VisualSettings{ .blueLightFilter = 0, .gamma = 1, .subPixelText = false });
 
         visualTest<PixelFormat::BGRA>(
             referenceImageName, size,
-            [&](RC<Image> image) {
+            [&](Rc<Image> image) {
                 if constexpr (profile) {
                     encoder->beginFrame(0);
                 }
@@ -165,7 +165,7 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
                 }
 
                 encoder->wait();
-                RC<Image> out = target->image();
+                Rc<Image> out = target->image();
                 image->copyFrom(out);
             },
             maximumDiff);

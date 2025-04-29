@@ -94,8 +94,8 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/widgets/Graphene.cpp)
 
 if (BRISK_WEBGPU)
-    target_sources(brisk-widgets PRIVATE ${PROJECT_SOURCE_DIR}/include/brisk/widgets/WebGPU.hpp
-                                         ${PROJECT_SOURCE_DIR}/src/widgets/WebGPU.cpp)
+    target_sources(brisk-widgets PRIVATE ${PROJECT_SOURCE_DIR}/include/brisk/widgets/WebGpu.hpp
+                                         ${PROJECT_SOURCE_DIR}/src/widgets/WebGpu.cpp)
 endif ()
 
 set_property(TARGET brisk-widgets PROPERTY EXPORT_NAME Widgets)

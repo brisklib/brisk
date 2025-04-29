@@ -47,7 +47,7 @@ Canvas& OffscreenRendering::canvas() {
     return *m_canvas;
 }
 
-RC<Image> OffscreenRendering::render() {
+Rc<Image> OffscreenRendering::render() {
     m_canvas.reset();  // Finish painting.
     m_context.reset(); // Finish rendering.
     m_encoder->wait(); // Wait until the image is fully rendered on the GPU.

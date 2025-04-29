@@ -20,7 +20,7 @@
  */
 #pragma once
 #include "Bytes.hpp"
-#include "IO.hpp"
+#include "Io.hpp"
 #include "internal/Span.hpp"
 
 namespace Brisk {
@@ -62,42 +62,42 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @return A Stream for reading the decompressed data, which can be processed on-the-fly in a streaming
  * manner.
  */
-[[nodiscard]] RC<Stream> gzipDecoder(RC<Stream> reader);
+[[nodiscard]] Rc<Stream> gzipDecoder(Rc<Stream> reader);
 
 /** @brief Creates a Stream that writes GZip-compressed data to a target Stream.
  *  @param writer The target Stream for writing compressed data.
  *  @param level The level of compression to apply.
  *  @return A Stream for writing the compressed data, which can be processed on-the-fly in a streaming manner.
  */
-[[nodiscard]] RC<Stream> gzipEncoder(RC<Stream> writer, CompressionLevel level);
+[[nodiscard]] Rc<Stream> gzipEncoder(Rc<Stream> writer, CompressionLevel level);
 
 /** @brief Creates a Stream that reads ZLib-compressed data from a source Stream.
  *  @param reader The source Stream containing compressed data.
  *  @return A Stream for reading the decompressed data, which can be processed on-the-fly in a streaming
  * manner.
  */
-[[nodiscard]] RC<Stream> zlibDecoder(RC<Stream> reader);
+[[nodiscard]] Rc<Stream> zlibDecoder(Rc<Stream> reader);
 
 /** @brief Creates a Stream that writes ZLib-compressed data to a target Stream.
  *  @param writer The target Stream for writing compressed data.
  *  @param level The level of compression to apply.
  *  @return A Stream for writing the compressed data, which can be processed on-the-fly in a streaming manner.
  */
-[[nodiscard]] RC<Stream> zlibEncoder(RC<Stream> writer, CompressionLevel level);
+[[nodiscard]] Rc<Stream> zlibEncoder(Rc<Stream> writer, CompressionLevel level);
 
 /** @brief Creates a Stream that reads LZ4-compressed data from a source Stream.
  *  @param reader The source Stream containing compressed data.
  *  @return A Stream for reading the decompressed data, which can be processed on-the-fly in a streaming
  * manner.
  */
-[[nodiscard]] RC<Stream> lz4Decoder(RC<Stream> reader);
+[[nodiscard]] Rc<Stream> lz4Decoder(Rc<Stream> reader);
 
 /** @brief Creates a Stream that writes LZ4-compressed data to a target Stream.
  *  @param writer The target Stream for writing compressed data.
  *  @param level The level of compression to apply.
  *  @return A Stream for writing the compressed data, which can be processed on-the-fly in a streaming manner.
  */
-[[nodiscard]] RC<Stream> lz4Encoder(RC<Stream> writer, CompressionLevel level);
+[[nodiscard]] Rc<Stream> lz4Encoder(Rc<Stream> writer, CompressionLevel level);
 
 #ifdef BRISK_HAVE_BROTLI
 /** @brief Creates a Stream that reads Brotli-compressed data from a source Stream.
@@ -106,7 +106,7 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  * manner.
  *  @note Available only if compiled with BRISK_BROTLI option enabled.
  */
-[[nodiscard]] RC<Stream> brotliDecoder(RC<Stream> reader);
+[[nodiscard]] Rc<Stream> brotliDecoder(Rc<Stream> reader);
 
 /** @brief Creates a Stream that writes Brotli-compressed data to a target Stream.
  *  @param writer The target Stream for writing compressed data.
@@ -114,7 +114,7 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @return A Stream for writing the compressed data, which can be processed on-the-fly in a streaming manner.
  *  @note Available only if compiled with BRISK_BROTLI option enabled.
  */
-[[nodiscard]] RC<Stream> brotliEncoder(RC<Stream> writer, CompressionLevel level);
+[[nodiscard]] Rc<Stream> brotliEncoder(Rc<Stream> writer, CompressionLevel level);
 #endif
 
 /** @brief Compresses data using GZip.
@@ -179,7 +179,7 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @return A Stream for reading the decompressed data.
  *  @note If CompressionMethod::None is used, no decompression is applied.
  */
-[[nodiscard]] RC<Stream> compressionDecoder(CompressionMethod method, RC<Stream> reader);
+[[nodiscard]] Rc<Stream> compressionDecoder(CompressionMethod method, Rc<Stream> reader);
 
 /** @brief Creates a Stream that writes data using a specified compression method.
  *  @param method The compression method to use for compression.
@@ -188,7 +188,7 @@ inline constexpr std::initializer_list<NameValuePair<CompressionMethod>> default
  *  @return A Stream for writing the compressed data.
  *  @note If CompressionMethod::None is used, no compression is applied.
  */
-[[nodiscard]] RC<Stream> compressionEncoder(CompressionMethod method, RC<Stream> writer,
+[[nodiscard]] Rc<Stream> compressionEncoder(CompressionMethod method, Rc<Stream> writer,
                                             CompressionLevel level);
 
 /** @brief Compresses data using the specified compression method.

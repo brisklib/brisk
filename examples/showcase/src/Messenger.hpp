@@ -8,7 +8,7 @@ class ShowcaseMessenger : public BindingObject<ShowcaseMessenger, &uiScheduler> 
 public:
     ShowcaseMessenger();
 
-    RC<Widget> build(RC<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications);
 
 private:
     enum class Status {
@@ -19,7 +19,7 @@ private:
     struct Message {
         Status status;
         std::chrono::system_clock::time_point date;
-        std::variant<std::string, RC<Image>> content;
+        std::variant<std::string, Rc<Image>> content;
         std::string reaction;
     };
 
@@ -29,6 +29,6 @@ private:
     std::vector<Message> m_messages;
     Trigger<> m_messagesChanged;
     std::string m_chatMessage;
-    RC<Image> m_zoomImage;
+    Rc<Image> m_zoomImage;
 };
 } // namespace Brisk

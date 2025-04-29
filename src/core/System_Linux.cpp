@@ -37,7 +37,7 @@ static int toInt(std::string_view str) {
     return val;
 }
 
-OSVersion osVersion() {
+OsVersion osVersion() {
     utsname vers{};
     if (uname(&vers))
         return {};

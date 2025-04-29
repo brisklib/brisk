@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-static void testImageCodec(std::string sample, RC<Image> reference, ImageCodec codec, std::string ext) {
+static void testImageCodec(std::string sample, Rc<Image> reference, ImageCodec codec, std::string ext) {
     INFO("sample=" << sample);
     INFO("codec=" << fmt::to_string(codec));
     INFO("format=" << fmt::to_string(reference->format()));

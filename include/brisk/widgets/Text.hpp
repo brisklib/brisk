@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 #include <brisk/core/Utilities.hpp>
 
 namespace Brisk {
@@ -123,7 +123,7 @@ void applier(Text* target, ArgVal<Tag::Named<"text">, T> value) {
     target->text = value.value;
 }
 
-inline RC<Text> operator""_Text(const char* text, size_t size) {
+inline Rc<Text> operator""_Text(const char* text, size_t size) {
     return rcnew Text{ std::string_view(text, size) };
 }
 
@@ -166,7 +166,7 @@ struct TextBuilder : IndexedBuilder {
     template <WidgetArgument... Args>
     explicit TextBuilder(std::vector<std::string> texts, const Args&... args)
         : IndexedBuilder(
-              [saved_texts = std::move(texts), args...](size_t index) BRISK_INLINE_LAMBDA -> RC<Widget> {
+              [saved_texts = std::move(texts), args...](size_t index) BRISK_INLINE_LAMBDA -> Rc<Widget> {
                   return index < saved_texts.size() ? rcnew Text{ saved_texts[index], args... } : nullptr;
               }) {}
 };

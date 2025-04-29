@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-OSVersion osVersion() {
+OsVersion osVersion() {
     NSOperatingSystemVersion vers = [NSProcessInfo processInfo].operatingSystemVersion;
     return { static_cast<uint16_t>(vers.majorVersion), static_cast<uint16_t>(vers.minorVersion),
              static_cast<uint32_t>(vers.patchVersion) };

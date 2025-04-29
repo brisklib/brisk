@@ -42,7 +42,7 @@ protected:
 #ifdef BRISK_INTERACTIVE_TESTS
 TEST_CASE("Window tests") {
     WindowApplication app;
-    RC<TestWindow> w1 = rcnew TestWindow{};
+    Rc<TestWindow> w1 = rcnew TestWindow{};
 
     w1->setSize({ 1000, 100 });
     w1->setStyle(WindowStyle::Undecorated);

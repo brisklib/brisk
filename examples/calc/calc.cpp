@@ -1,6 +1,6 @@
 #include <brisk/core/internal/Initialization.hpp>
-#include <brisk/gui/GUIApplication.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/GuiApplication.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>
@@ -49,7 +49,7 @@ public:
 
     void unhandledEvent(Event& event) final {
         handleDebugKeystrokes(event);
-        if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::KPEnter)) {
+        if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::KpEnter)) {
             calc.solve();
             event.stopPropagation();
         }
@@ -99,7 +99,7 @@ public:
 
     explicit CalcComponent() {}
 
-    RC<Widget> build() final {
+    Rc<Widget> build() final {
         return rcnew VLayout{
             stylesheet = Graphene::stylesheet(),
             Graphene::darkColors(),
@@ -309,7 +309,7 @@ public:
         };
     }
 
-    void configureWindow(RC<GUIWindow> window) final {
+    void configureWindow(Rc<GuiWindow> window) final {
         window->setTitle("Calc"_tr);
         window->setSize({ 742, 525 });
         window->windowFit = WindowFit::MinimumSize;
@@ -322,7 +322,7 @@ public:
 using namespace Brisk;
 
 int briskMain() {
-    GUIApplication application;
+    GuiApplication application;
 
     return application.run(createComponent<CalcComponent>());
 }

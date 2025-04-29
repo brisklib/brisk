@@ -53,7 +53,7 @@ public:
     void expireNow();
 
 protected:
-    RC<Widget> makeCloseButton();
+    Rc<Widget> makeCloseButton();
     double m_expireTime;
     void onEvent(Event& event) override;
 
@@ -74,10 +74,10 @@ public:
             m_receiver(rcnew NotificationView{ showTime, args... });
     }
 
-    void setReceiver(Callback<RC<NotificationView>> receiver);
+    void setReceiver(Callback<Rc<NotificationView>> receiver);
 
 protected:
-    Callback<RC<NotificationView>> m_receiver;
+    Callback<Rc<NotificationView>> m_receiver;
 };
 
 class WIDGET NotificationContainer final : public AutoScrollable {
@@ -87,7 +87,7 @@ public:
     constexpr static std::string_view widgetType = "notifications";
 
     template <WidgetArgument... Args>
-    explicit NotificationContainer(RC<Notifications> notifications, const Args&... args)
+    explicit NotificationContainer(Rc<Notifications> notifications, const Args&... args)
         : AutoScrollable(Construction{ widgetType }, Orientation::Vertical, std::tuple{ args... }),
           m_notifications(std::move(notifications)) {
         endConstruction();
@@ -95,8 +95,8 @@ public:
     }
 
 protected:
-    RC<Notifications> m_notifications;
-    void receive(RC<NotificationView> view);
+    Rc<Notifications> m_notifications;
+    void receive(Rc<NotificationView> view);
     void onRefresh() override;
     Ptr cloneThis() const override;
 };

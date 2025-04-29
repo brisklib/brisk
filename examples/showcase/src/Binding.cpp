@@ -16,7 +16,7 @@ ShowcaseBinding::ShowcaseBinding() {
     bindings->listen(Value{ &frameStartTime }, Listener<>(this, &ShowcaseBinding::onTimer));
 }
 
-RC<Widget> ShowcaseBinding::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,

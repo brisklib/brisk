@@ -1,12 +1,12 @@
 #include "Dialogs.hpp"
 #include <brisk/gui/Component.hpp>
 #include <brisk/widgets/DialogComponent.hpp>
-#include <brisk/window/OSDialogs.hpp>
+#include <brisk/window/OsDialogs.hpp>
 #include <brisk/widgets/Graphene.hpp>
 
 namespace Brisk {
 
-static RC<Widget> osDialogButton(std::string text, Listener<> fn) {
+static Rc<Widget> osDialogButton(std::string text, Listener<> fn) {
     return rcnew HLayout{
         rcnew Button{
             rcnew Text{ std::move(text) },
@@ -19,7 +19,7 @@ class SmallComponent : public Component {
 public:
     ~SmallComponent() override = default;
 
-    RC<Widget> build() final {
+    Rc<Widget> build() final {
         return rcnew Widget{
             stylesheet = Graphene::stylesheet(),
             rcnew Spacer{},
@@ -33,7 +33,7 @@ public:
     }
 };
 
-RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -46,7 +46,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                 rcnew Text{ "Open window" },
                 onClick = lifetime() |
                           [this]() {
-                              RC<SmallComponent> comp = rcnew SmallComponent();
+                              Rc<SmallComponent> comp = rcnew SmallComponent();
                               windowApplication->addWindow(comp->makeWindow());
                           },
             },
@@ -55,7 +55,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                 rcnew Text{ "Open modal window" },
                 onClick = lifetime() |
                           [this]() {
-                              RC<SmallComponent> comp = rcnew SmallComponent();
+                              Rc<SmallComponent> comp = rcnew SmallComponent();
                               windowApplication->showModalWindow(comp->makeWindow());
                           },
             },
@@ -65,7 +65,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
                 rcnew Text{ "TextInputDialog" },
                 onClick = lifetime() |
                           []() {
-                              RC<TextInputDialog> dialog = rcnew TextInputDialog{ "Enter name", "World" };
+                              Rc<TextInputDialog> dialog = rcnew TextInputDialog{ "Enter name", "World" };
                               windowApplication->showModalWindow(dialog->makeWindow());
                               if (dialog->result)
                                   Shell::showMessage("title", "Hello, " + dialog->value.get(),
@@ -96,7 +96,7 @@ RC<Widget> ShowcaseDialogs::build(RC<Notifications> notifications) {
             },
         },
 
-        rcnew Text{ "OS dialogs (window/OSDialogs.hpp)", classes = { "section-header" } },
+        rcnew Text{ "OS dialogs (window/OsDialogs.hpp)", classes = { "section-header" } },
         osDialogButton(
             "Open URL", lifetime() |
                             []() {

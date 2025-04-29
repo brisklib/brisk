@@ -23,7 +23,7 @@
 #include <string>
 #include <type_traits>
 
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 
 namespace Brisk {
 
@@ -51,7 +51,7 @@ public:
      * @param name The name of the library to load.
      * @return A smart pointer to the loaded dynamic library.
      */
-    static RC<DynamicLibrary> load(const std::string& name) noexcept;
+    static Rc<DynamicLibrary> load(const std::string& name) noexcept;
 
     /**
      * @brief Destructor for the DynamicLibrary class.
@@ -80,7 +80,7 @@ struct DynamicFunc {
      * @param library A smart pointer to the dynamic library.
      * @param name The name of the function in the library.
      */
-    DynamicFunc(const RC<DynamicLibrary>& library, const std::string& name) {
+    DynamicFunc(const Rc<DynamicLibrary>& library, const std::string& name) {
         m_func = library->func<Func*>(name);
     }
 
@@ -90,7 +90,7 @@ struct DynamicFunc {
      * @param name The name of the function in the library.
      * @param flag A boolean flag that is set to false if the function is not found.
      */
-    DynamicFunc(const RC<DynamicLibrary>& library, const std::string& name, bool& flag)
+    DynamicFunc(const Rc<DynamicLibrary>& library, const std::string& name, bool& flag)
         : DynamicFunc(library, name) {
         m_func = library->func<Func*>(name);
         if (!m_func) {

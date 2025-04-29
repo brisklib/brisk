@@ -11,7 +11,7 @@
 
 namespace Brisk {
 
-RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -126,7 +126,7 @@ RC<Widget> ShowcaseEditors::build(RC<Notifications> notifications) {
             gapColumn = 10_apx,
             rcnew Text{
                 text        = Value{ &m_html },
-                textOptions = TextOptions::HTML,
+                textOptions = TextOptions::Html,
             },
         },
 

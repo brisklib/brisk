@@ -7,7 +7,7 @@ namespace Brisk {
 class ShowcaseBinding : public BindingObject<ShowcaseBinding, &uiScheduler> {
 public:
     ShowcaseBinding();
-    RC<Widget> build(RC<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications);
 
 private:
     void onTimer();
@@ -18,6 +18,6 @@ private:
     float m_value3 = 0.f;
     bool m_checkBoxes[5]{ false, false, false, false, false };
     float m_size = 30.f;
-    RC<Button> m_buttonPtr;
+    Rc<Button> m_buttonPtr;
 };
 } // namespace Brisk

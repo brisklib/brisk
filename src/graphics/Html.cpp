@@ -113,21 +113,21 @@ struct Action : nothing<Rule> {};
 
 template <>
 struct Action<EndOpenTag> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+    static void apply0(SAXMode& mode, HtmlSax* sax) {
         mode = SAXMode::Text;
     }
 };
 
 template <>
 struct Action<Text> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+    static void apply0(SAXMode& mode, HtmlSax* sax) {
         sax->textFinished();
     }
 };
 
 template <>
 struct Action<Attribute> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+    static void apply0(SAXMode& mode, HtmlSax* sax) {
         sax->attrFinished();
     }
 };
@@ -135,7 +135,7 @@ struct Action<Attribute> {
 template <>
 struct Action<OpenTagName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->openTag(str);
         mode = SAXMode::Attribute;
@@ -144,7 +144,7 @@ struct Action<OpenTagName> {
 
 template <>
 struct Action<SelfCloseTag> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+    static void apply0(SAXMode& mode, HtmlSax* sax) {
         sax->closeTag();
         mode = SAXMode::Text;
     }
@@ -153,7 +153,7 @@ struct Action<SelfCloseTag> {
 template <>
 struct Action<PlainText> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->textFragment(str);
     }
@@ -162,7 +162,7 @@ struct Action<PlainText> {
 template <>
 struct Action<PlainAttrValueUnquoted> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrValueFragment(str);
     }
@@ -171,7 +171,7 @@ struct Action<PlainAttrValueUnquoted> {
 template <char q>
 struct Action<PlainAttrValueQuoted<q>> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrValueFragment(str);
     }
@@ -180,7 +180,7 @@ struct Action<PlainAttrValueQuoted<q>> {
 template <>
 struct Action<AttrName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrName(str);
     }
@@ -189,7 +189,7 @@ struct Action<AttrName> {
 template <>
 struct Action<CharName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         if (mode == SAXMode::Attribute)
             sax->attrValueFragment(htmlDecodeChar(str));
@@ -201,7 +201,7 @@ struct Action<CharName> {
 template <>
 struct Action<CharCode> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         uint32_t value;
         std::from_chars(str.data(), str.data() + str.size(), value, 10);
@@ -215,7 +215,7 @@ struct Action<CharCode> {
 template <>
 struct Action<CharHexCode> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         uint32_t value;
         std::from_chars(str.data(), str.data() + str.size(), value, 16);
@@ -229,7 +229,7 @@ struct Action<CharHexCode> {
 template <>
 struct Action<CloseTagName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SAXMode& mode, HtmlSax* sax) {
         sax->closeTag();
     }
 };
@@ -393,7 +393,7 @@ std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
 
 using namespace Internal;
 
-bool parseHtml(std::string_view html, HTMLSAX* visitor) {
+bool parseHtml(std::string_view html, HtmlSax* visitor) {
     tao::pegtl::memory_input input(html.data(), html.size(), "");
 
     Grammar::SAXMode mode = Grammar::SAXMode::Text;

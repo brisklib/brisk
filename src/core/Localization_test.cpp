@@ -42,8 +42,8 @@ TEST_CASE("translation") {
     CHECK("Cut"_tr == "Cut"s);
     CHECK("Paste"_tr == "Paste"s);
 
-    RC<const Locale> savedLocale = locale;
-    RC<SimpleLocale> esLocale    = rcnew SimpleLocale();
+    Rc<const Locale> savedLocale = locale;
+    Rc<SimpleLocale> esLocale    = rcnew SimpleLocale();
     locale                       = esLocale;
 
     CHECK("Copy"_tr == "Copy"s);

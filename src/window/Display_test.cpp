@@ -25,7 +25,7 @@
 
 using namespace Brisk;
 
-static void showDisplay(RC<Display> display) {
+static void showDisplay(Rc<Display> display) {
     fmt::println("            pointer = {}", (void*)display.get());
     fmt::println("               name = {}", display->name());
     fmt::println("                 id = {}", display->id());

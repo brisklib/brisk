@@ -77,7 +77,7 @@ Only registered memory ranges may be used in `notify`, `listen` and `connect` ca
 
 To register a memory range, use the following function:
 ```c++
-void Bindings::registerRegion(BindingAddress region, RC<Scheduler> scheduler);
+void Bindings::registerRegion(BindingAddress region, Rc<Scheduler> scheduler);
 ```
 
 To create a `BindingAddress` from a variable, use `toBindingAddress`, passing the variable’s address, as shown below:
@@ -108,7 +108,7 @@ public:
 
 ### Deriving from `BindingObject<Derived>`
 
-Another way to ensure correct lifetime management is by deriving from `BindingObject`, passing the class itself as the first template argument and an address to a `RC<Scheduler>`-convertible variable or `nullptr`:
+Another way to ensure correct lifetime management is by deriving from `BindingObject`, passing the class itself as the first template argument and an address to a `Rc<Scheduler>`-convertible variable or `nullptr`:
 
 Example:
 ```c++
@@ -121,7 +121,7 @@ public:
 The `uiScheduler` variable is defined in `window/WindowApplication.hpp`:
 
 ```c++
-extern RC<TaskQueue> uiScheduler;
+extern Rc<TaskQueue> uiScheduler;
 ```
 
 The `BindingObject` class also inherits from `std::enable_shared_from_this`, allowing `shared_from_this` to be used.

@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/gui/WidgetTree.hpp>
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 

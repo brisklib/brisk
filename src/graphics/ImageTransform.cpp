@@ -50,7 +50,7 @@ static stbir_pixel_layout pixelLayout(PixelFormat fmt) {
                      STBIR_1CHANNEL);
 }
 
-void imageResizeTo(RC<Image> destination, RC<Image> source, ResizingFilter filter) {
+void imageResizeTo(Rc<Image> destination, Rc<Image> source, ResizingFilter filter) {
     if (source->format() != destination->format())
         throwException(EArgument("imageResizeTo: incompatible type or format: destination={} source={}",
                                  destination->format(), source->format()));
@@ -96,7 +96,7 @@ static int alphaChannelIndex(PixelFormat fmt) {
                      0, STBIR_ALPHA_CHANNEL_NONE);
 }
 
-void imageResizeTo(RC<Image> destination, RC<Image> source, ResizingFilter filter) {
+void imageResizeTo(Rc<Image> destination, Rc<Image> source, ResizingFilter filter) {
     if (source->format() != destination->format())
         throwException(EArgument("imageResizeTo: incompatible type or format: destination={} source={}",
                                  destination->format(), source->format()));

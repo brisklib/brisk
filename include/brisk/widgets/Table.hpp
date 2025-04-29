@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 #include <brisk/gui/Groups.hpp>
 #include <brisk/core/Utilities.hpp>
 
@@ -28,7 +28,7 @@ namespace Brisk {
 
 template <typename TItem>
 struct Selection {
-    RC<std::vector<TItem>> order;
+    Rc<std::vector<TItem>> order;
     std::set<TItem> selection;
     std::optional<TItem> focused; // last selected
 

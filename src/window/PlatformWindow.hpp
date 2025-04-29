@@ -31,7 +31,7 @@ namespace Brisk {
 KeyCode scanCodeToKeyCode(int scanCode);
 int keyCodeToScanCode(KeyCode keyCode);
 
-struct OSWindowHandle;
+struct OsWindowHandle;
 
 class Window;
 
@@ -48,18 +48,18 @@ public:
         constexpr auto operator<=>(const CursorKey&) const noexcept = default;
     };
 
-    void registerCursor(Cursor cursor, SVGCursor svgCursor);
+    void registerCursor(Cursor cursor, SvgCursor svgCursor);
     static bool isSystem(Cursor cursor);
-    RC<SystemCursor> getCursor(Cursor cursor, float scale);
+    Rc<SystemCursor> getCursor(Cursor cursor, float scale);
 
 private:
-    std::map<Cursor, SVGCursor> m_svgCursors;
-    std::map<Cursor, RC<SystemCursor>> m_systemCursors;
-    std::map<CursorKey, RC<SystemCursor>> m_svgCursorCache;
+    std::map<Cursor, SvgCursor> m_svgCursors;
+    std::map<Cursor, Rc<SystemCursor>> m_systemCursors;
+    std::map<CursorKey, Rc<SystemCursor>> m_svgCursorCache;
     void initSystemCursors();
     bool m_systemCursorsInitialized = false;
-    static RC<SystemCursor> getSystemCursor(Cursor cursor);
-    static RC<SystemCursor> cursorFromImage(const RC<Image>& image, Point point, float scale);
+    static Rc<SystemCursor> getSystemCursor(Cursor cursor);
+    static Rc<SystemCursor> cursorFromImage(const Rc<Image>& image, Point point, float scale);
 };
 
 extern PlatformCursors platformCursors;
@@ -91,7 +91,7 @@ public:
 
     std::unique_ptr<PlatformWindowData> m_data;
     Window* m_window;
-    RC<Internal::SystemCursor> m_cursor;
+    Rc<Internal::SystemCursor> m_cursor;
     float m_scale          = 1.f;
     bool m_visible : 1     = false;
     bool m_shouldClose : 1 = false;
@@ -116,10 +116,10 @@ public:
     void setPosition(Point point);
     void setSizeLimits(Size minSize, Size maxSize);
     void setStyle(WindowStyle style);
-    void setOwner(RC<Window> window);
+    void setOwner(Rc<Window> window);
     void releaseButtonsAndKeys();
 
-    OSWindowHandle getHandle() const;
+    OsWindowHandle getHandle() const;
     void setCursor(Cursor cursor);
     void updateSize();
     void iconify();

@@ -44,7 +44,7 @@ enum class ResizingFilter {
  * @param source The image to be resized. Must be a valid image.
  * @param filter The resizing filter to use. Defaults to ResizingFilter::Default.
  */
-void imageResizeTo(RC<Image> destination, RC<Image> source, ResizingFilter filter = ResizingFilter::Default);
+void imageResizeTo(Rc<Image> destination, Rc<Image> source, ResizingFilter filter = ResizingFilter::Default);
 
 /**
  * @brief Resizes an image to the specified new size and returns a new image.
@@ -54,9 +54,9 @@ void imageResizeTo(RC<Image> destination, RC<Image> source, ResizingFilter filte
  * @param filter The resizing filter to use. Defaults to ResizingFilter::Default.
  * @return A smart pointer to the newly resized image.
  */
-[[nodiscard]] inline RC<Image> imageResize(RC<Image> image, Size newSize,
+[[nodiscard]] inline Rc<Image> imageResize(Rc<Image> image, Size newSize,
                                            ResizingFilter filter = ResizingFilter::Default) {
-    RC<Image> result = rcnew Image(newSize, image->format());
+    Rc<Image> result = rcnew Image(newSize, image->format());
     imageResizeTo(result, std::move(image), filter);
     return result;
 }

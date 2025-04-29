@@ -8,7 +8,7 @@ class ShowcaseButtons : public BindingObject<ShowcaseButtons, &uiScheduler> {
 public:
     ShowcaseButtons() {}
 
-    RC<Widget> build(RC<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications);
 
 private:
     WidthGroup m_group;

@@ -2,7 +2,7 @@
 
 #include <brisk/gui/Icons.hpp>
 #include <brisk/core/Binding.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 #include <brisk/gui/Component.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <brisk/widgets/Notifications.hpp>
@@ -27,15 +27,15 @@ public:
 
 protected:
     Notifications m_notifications;
-    RC<ShowcaseButtons> m_buttons       = rcnew ShowcaseButtons();
-    RC<ShowcaseDropdowns> m_dropdowns   = rcnew ShowcaseDropdowns();
-    RC<ShowcaseLayout> m_layout         = rcnew ShowcaseLayout();
-    RC<ShowcaseDialogs> m_dialogs       = rcnew ShowcaseDialogs();
-    RC<ShowcaseEditors> m_editors       = rcnew ShowcaseEditors();
-    RC<ShowcaseVisual> m_visual         = rcnew ShowcaseVisual();
-    RC<ShowcaseMessenger> m_messenger   = rcnew ShowcaseMessenger();
-    RC<ShowcaseTypography> m_typography = rcnew ShowcaseTypography();
-    RC<ShowcaseBinding> m_binding       = rcnew ShowcaseBinding();
+    Rc<ShowcaseButtons> m_buttons       = rcnew ShowcaseButtons();
+    Rc<ShowcaseDropdowns> m_dropdowns   = rcnew ShowcaseDropdowns();
+    Rc<ShowcaseLayout> m_layout         = rcnew ShowcaseLayout();
+    Rc<ShowcaseDialogs> m_dialogs       = rcnew ShowcaseDialogs();
+    Rc<ShowcaseEditors> m_editors       = rcnew ShowcaseEditors();
+    Rc<ShowcaseVisual> m_visual         = rcnew ShowcaseVisual();
+    Rc<ShowcaseMessenger> m_messenger   = rcnew ShowcaseMessenger();
+    Rc<ShowcaseTypography> m_typography = rcnew ShowcaseTypography();
+    Rc<ShowcaseBinding> m_binding       = rcnew ShowcaseBinding();
 
     int m_activePage                    = 0;
     float m_progress                    = 0.f;
@@ -50,11 +50,11 @@ protected:
 
     bool m_lightTheme      = false;
 
-    RC<Widget> build() final;
+    Rc<Widget> build() final;
     void unhandledEvent(Event& event) final;
-    void configureWindow(RC<GUIWindow> window) final;
+    void configureWindow(Rc<GuiWindow> window) final;
     void captureScreenshot();
-    void saveScreenshot(RC<Image> image);
+    void saveScreenshot(Rc<Image> image);
 
 public:
     BRISK_PROPERTIES_BEGIN

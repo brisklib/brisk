@@ -1,26 +1,26 @@
 #include <brisk/core/internal/Initialization.hpp>
-#include <brisk/gui/GUIApplication.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/GuiApplication.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/Graphene.hpp>
-#include <brisk/widgets/WebGPU.hpp>
+#include <brisk/widgets/WebGpu.hpp>
 #include <brisk/gui/Component.hpp>
 #include <brisk/graphics/Fonts.hpp>
 #include <brisk/gui/Icons.hpp>
 
 namespace Brisk {
 
-class WebGPUCubes final : public WebGPUWidget {
-    BRISK_DYNAMIC_CLASS(WebGPUCubes, WebGPUWidget)
+class WebGpuCubes final : public WebGpuWidget {
+    BRISK_DYNAMIC_CLASS(WebGpuCubes, WebGpuWidget)
 public:
-    using WebGPUWidget::WebGPUWidget;
+    using WebGpuWidget::WebGpuWidget;
 
 protected:
     void render(wgpu::Device device, wgpu::TextureView backBuffer) const final {
         if (!m_device) {
-            const_cast<WebGPUCubes*>(this)->setupPipeline(std::move(device));
+            const_cast<WebGpuCubes*>(this)->setupPipeline(std::move(device));
         }
 
         // Setup render pass
@@ -167,8 +167,8 @@ class AppComponent final : public Component {
 public:
     explicit AppComponent() {}
 
-    RC<Widget> build() final {
-        return rcnew WebGPUCubes{
+    Rc<Widget> build() final {
+        return rcnew WebGpuCubes{
             stylesheet = Graphene::stylesheet(),
             Graphene::darkColors(),
             layout         = Layout::Vertical,
@@ -190,7 +190,7 @@ public:
         };
     }
 
-    void configureWindow(RC<GUIWindow> window) final {
+    void configureWindow(Rc<GuiWindow> window) final {
         window->setTitle("WebGPU Demo"_tr);
         window->setSize({ 640, 640 });
         window->windowFit = WindowFit::MinimumSize;
@@ -207,10 +207,10 @@ public:
 using namespace Brisk;
 
 int briskMain() {
-    GUIApplication application;
+    GuiApplication application;
     Internal::bufferedRendering     = false;
     Internal::forceRenderEveryFrame = true;
-    setRenderDeviceSelection(RendererBackend::WebGPU, RendererDeviceSelection::HighPerformance);
+    setRenderDeviceSelection(RendererBackend::WebGpu, RendererDeviceSelection::HighPerformance);
 
     return application.run(createComponent<AppComponent>());
 }

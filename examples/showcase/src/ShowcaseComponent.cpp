@@ -13,7 +13,7 @@
 #include <brisk/widgets/Menu.hpp>
 #include <brisk/widgets/ScrollBox.hpp>
 #include <brisk/widgets/PopupDialog.hpp>
-#include <brisk/window/OSDialogs.hpp>
+#include <brisk/window/OsDialogs.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/widgets/Graphene.hpp>
@@ -29,7 +29,7 @@
 
 namespace Brisk {
 
-static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
+static Rc<Stylesheet> mainStylesheet = rcnew Stylesheet{
     Graphene::stylesheet(),
     Style{
         Selectors::Class{ "section-header" },
@@ -73,7 +73,7 @@ static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
     },
 };
 
-RC<Widget> ShowcaseComponent::build() {
+Rc<Widget> ShowcaseComponent::build() {
     auto notifications = notManaged(&m_notifications);
     return rcnew VLayout{
         flexGrow   = 1,
@@ -155,13 +155,13 @@ void ShowcaseComponent::unhandledEvent(Event& event) {
     handleDebugKeystrokes(event);
 }
 
-void ShowcaseComponent::configureWindow(RC<GUIWindow> window) {
+void ShowcaseComponent::configureWindow(Rc<GuiWindow> window) {
     window->setTitle("Brisk Showcase"_tr);
     window->setSize({ 1050, 740 });
     window->setStyle(WindowStyle::Normal);
 }
 
-void ShowcaseComponent::saveScreenshot(RC<Image> image) {
+void ShowcaseComponent::saveScreenshot(Rc<Image> image) {
     Bytes bytes = pngEncode(image);
     if (auto file = Shell::showSaveDialog({ Shell::FileDialogFilter{ "*.png", "PNG image"_tr } },
                                           defaultFolder(DefaultFolder::Pictures))) {

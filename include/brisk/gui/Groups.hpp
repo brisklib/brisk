@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include "GUI.hpp"
+#include "Gui.hpp"
 
 namespace Brisk {
 
@@ -85,7 +85,7 @@ public:
 
     ~WidgetWithGroup() override = default;
 
-    void append(RC<Widget> widget) override {
+    void append(Rc<Widget> widget) override {
         if (widget)
             widget->apply(&group);
         Widget::append(std::move(widget));

@@ -6,7 +6,7 @@ namespace Brisk {
 
 class ShowcaseTypography : public BindingObject<ShowcaseTypography, &uiScheduler> {
 public:
-    RC<Widget> build(RC<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications);
 
 private:
     OpenTypeFeatureFlags m_fontFeatures{

@@ -281,7 +281,7 @@ install(
     DESTINATION "${BRISK_INSTALL_CMAKEDIR}/deps")
 install(
     FILES src/gui/Deps.cmake
-    RENAME GUI.cmake
+    RENAME Gui.cmake
     DESTINATION "${BRISK_INSTALL_CMAKEDIR}/deps")
 
 install(DIRECTORY resources/ DESTINATION "resources")

@@ -37,7 +37,7 @@ bool separateUIThread = true;
 
 Nullable<WindowApplication> windowApplication;
 
-RC<TaskQueue> uiScheduler;
+Rc<TaskQueue> uiScheduler;
 
 void WindowApplication::quit(int exitCode) {
     m_exitCode = exitCode;
@@ -46,7 +46,7 @@ void WindowApplication::quit(int exitCode) {
     }
 }
 
-std::vector<RC<Window>> WindowApplication::windows() const {
+std::vector<Rc<Window>> WindowApplication::windows() const {
     if (isMainThread())
         return m_mainData.m_windows;
     else
@@ -54,7 +54,7 @@ std::vector<RC<Window>> WindowApplication::windows() const {
 }
 
 void WindowApplication::serialize(const Serialization& serialization) {
-    serialization(Value{ &discreteGPU }, "discreteGPU");
+    serialization(Value{ &discreteGpu }, "discreteGpu");
     serialization(Value{ &syncInterval }, "syncInterval");
     serialization(Value{ &uiScale }, "uiScale");
     serialization(Value{ &blueLightFilter }, "blueLightFilter");
@@ -139,8 +139,8 @@ void WindowApplication::renderWindows() {
     uiScheduler->process();
     using std::chrono::steady_clock;
     steady_clock::time_point stopTime = steady_clock::now() + std::chrono::milliseconds(1000 / maximumFPS);
-    std::vector<RC<Window>> windows   = this->windows();
-    for (RC<Window> w : windows) {
+    std::vector<Rc<Window>> windows   = this->windows();
+    for (Rc<Window> w : windows) {
         if (w->m_rendering) {
             Window* curWindow = w.get();
             std::swap(Internal::currentWindow, curWindow);
@@ -246,12 +246,12 @@ int WindowApplication::run() {
     return m_exitCode;
 }
 
-int WindowApplication::run(RC<Window> mainWindow) {
+int WindowApplication::run(Rc<Window> mainWindow) {
     addWindow(std::move(mainWindow));
     return run();
 }
 
-bool WindowApplication::hasWindow(const RC<Window>& window) {
+bool WindowApplication::hasWindow(const Rc<Window>& window) {
     return mainScheduler->dispatchAndWait([&]() {
         return std::find(m_mainData.m_windows.begin(), m_mainData.m_windows.end(), window) !=
                m_mainData.m_windows.end();
@@ -267,7 +267,7 @@ VoidFunc WindowApplication::idleFunc() {
     return func;
 }
 
-void WindowApplication::systemModal(function<void(OSWindow*)> body) {
+void WindowApplication::systemModal(function<void(OsWindow*)> body) {
     ModalMode modal;
 
     waitFuture(idleFunc(), mainScheduler->dispatch([&]() {
@@ -275,7 +275,7 @@ void WindowApplication::systemModal(function<void(OSWindow*)> body) {
     }));
 }
 
-void WindowApplication::modalRun(RC<Window> modalWindow) {
+void WindowApplication::modalRun(Rc<Window> modalWindow) {
     ModalMode modal;
     if (modal.owner) {
         modalWindow->setOwner(modal.owner);
@@ -292,7 +292,7 @@ void WindowApplication::modalRun(RC<Window> modalWindow) {
     }));
 }
 
-void WindowApplication::addWindow(RC<Window> window, bool makeVisible) {
+void WindowApplication::addWindow(Rc<Window> window, bool makeVisible) {
     waitFuture(idleFunc(), mainScheduler->dispatch([this, window = std::move(window), makeVisible]() {
         m_mainData.m_windows.push_back(window);
         window->attachedToApplication();
@@ -324,14 +324,14 @@ double WindowApplication::doubleClickTime() const {
 
 void WindowApplication::openWindows() {
     mustBeMainThread();
-    for (RC<Window> w : m_mainData.m_windows) {
+    for (Rc<Window> w : m_mainData.m_windows) {
         w->openWindow();
     }
 }
 
 void WindowApplication::closeWindows() {
     mustBeMainThread();
-    for (RC<Window> w : m_mainData.m_windows) {
+    for (Rc<Window> w : m_mainData.m_windows) {
         w->closeWindow();
     }
 }

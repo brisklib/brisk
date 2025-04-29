@@ -151,7 +151,7 @@ ColorPalette::ColorPalette(Construction construction, ColorW color, ArgumentsVie
     static OKLabPalette palette{ 12, 7 };
 
     for (int tone = 0; tone < palette.tones; ++tone) {
-        RC<HLayout> row = rcnew HLayout{
+        Rc<HLayout> row = rcnew HLayout{
             addColor(ColorOf<float, true>(static_cast<float>(tone) / (palette.tones - 1))),
         };
         for (int hue = 0; hue < palette.hues; ++hue) {
@@ -200,7 +200,7 @@ static ColorF adjustSwatch(ColorF color, float lightnessOffset, float chromaMult
     return ColorF(lab, color.alpha);
 }
 
-RC<Widget> ColorPalette::addColor(ColorW swatch, float brightness, float chroma) {
+Rc<Widget> ColorPalette::addColor(ColorW swatch, float brightness, float chroma) {
     ColorW c = adjustSwatch(swatch, brightness, chroma);
     return rcnew Button{
         rcnew Widget{
@@ -218,13 +218,13 @@ RC<Widget> ColorPalette::addColor(ColorW swatch, float brightness, float chroma)
     };
 }
 
-RC<Widget> ColorButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ColorButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> ColorPalette::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ColorPalette::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> ColorSliders::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ColorSliders::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> ColorView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ColorView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ColorView::ColorView(Construction construction, ColorW color, ArgumentsView<ColorView> args)
     : Widget(construction, nullptr), m_value(color) {
@@ -249,7 +249,7 @@ void GradientView::paint(Canvas& canvas) const {
     canvas.fillRect(m_rect);
 }
 
-RC<Widget> GradientView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> GradientView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 GradientView::GradientView(Construction construction, ColorStopArray gradient,
                            ArgumentsView<GradientView> args)

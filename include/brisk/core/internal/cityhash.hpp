@@ -22,7 +22,7 @@
 
 #include <cstdint>
 #include <algorithm>
-#include "../SIMD.hpp" // For constexpr byteswap
+#include "../Simd.hpp" // For constexpr byteswap
 
 // Constexpr implementation of Cityhash64 algorithm
 // Based on CityHash, by Geoff Pike and Jyrki Alakuijala

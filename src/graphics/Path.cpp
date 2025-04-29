@@ -852,10 +852,10 @@ BRISK_ALWAYS_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint
     }
 }
 
-static RC<Image> rleToMask(Rle rle, Size size) {
+static Rc<Image> rleToMask(Rle rle, Size size) {
     if (rle.empty())
         return nullptr;
-    RC<Image> bitmap = rcnew Image(size, ImageFormat::Greyscale_U8Gamma);
+    Rc<Image> bitmap = rcnew Image(size, ImageFormat::Greyscale_U8Gamma);
     auto w           = bitmap->mapWrite<ImageFormat::Greyscale_U8Gamma>();
     w.forPixels([](int32_t, int32_t, auto& pix) {
         pix = { 0 };
@@ -876,7 +876,7 @@ static RC<Image> rleToMask(Rle rle, Size size) {
     return bitmap;
 }
 
-static std::tuple<RC<Image>, Rectangle> rasterizeToImage(Path path, const FillOrStrokeParams& params,
+static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(Path path, const FillOrStrokeParams& params,
                                                          Rectangle clip) {
 
     Rle rle;
@@ -892,7 +892,7 @@ static std::tuple<RC<Image>, Rectangle> rasterizeToImage(Path path, const FillOr
 }
 
 RasterizedPath Internal::rasterizePath(Path path, const FillOrStrokeParams& params, Rectangle clipRect) {
-    std::tuple<RC<Image>, Rectangle> imageAndRect = rasterizeToImage(path, params, clipRect);
+    std::tuple<Rc<Image>, Rectangle> imageAndRect = rasterizeToImage(path, params, clipRect);
     if (!std::get<0>(imageAndRect)) {
         return RasterizedPath{ nullptr, {} };
     }

@@ -90,7 +90,7 @@ struct FrameTimePredictor;
 
 /// Current window instance. Available in UI thread. Set in uiThreadBody
 extern Window* currentWindow;
-RC<Window> currentWindowPtr();
+Rc<Window> currentWindowPtr();
 
 /// Default value for Window::bufferedRendering
 extern constinit bool bufferedRendering;
@@ -133,7 +133,7 @@ enum class HiDPIMode {
 
 HiDPIMode hiDPIMode();
 
-class Window : public BindingObject<Window, &mainScheduler>, public OSWindow {
+class Window : public BindingObject<Window, &mainScheduler>, public OsWindow {
 public:
     /**
      * @brief Get the position of window in Screen coordinates
@@ -198,9 +198,9 @@ public:
      *
      * Returns a reference-counted pointer to the display containing the window.
      *
-     * @return RC<Display> The display associated with the window.
+     * @return Rc<Display> The display associated with the window.
      */
-    RC<Display> display() const;
+    Rc<Display> display() const;
 
     enum class Unit {
         Screen,      ///< Screen coordinates (logical units or pixels, depending on platform).
@@ -353,9 +353,9 @@ public:
     PlatformWindow* platformWindow();
 
     void disableKeyHandling();
-    OSWindowHandle getHandle() const final;
+    OsWindowHandle getHandle() const final;
 
-    void setOwner(RC<Window> window);
+    void setOwner(Rc<Window> window);
     void enterModal();
     void exitModal();
 
@@ -365,9 +365,9 @@ public:
     bool forceRenderEveryFrame() const noexcept;
     void setForceRenderEveryFrame(bool forceRenderEveryFrame);
 
-    void captureFrame(function<void(RC<Image>)> callback);
+    void captureFrame(function<void(Rc<Image>)> callback);
 
-    RC<WindowRenderTarget> target() const;
+    Rc<WindowRenderTarget> target() const;
 
     RenderStat& renderStat() noexcept;
 
@@ -443,10 +443,10 @@ protected:
 
 protected:
     // Rendering
-    RC<WindowRenderTarget> m_target;
-    RC<RenderEncoder> m_encoder;
-    function<void(RC<Image>)> m_captureCallback;
-    RC<ImageRenderTarget> m_bufferedFrameTarget;
+    Rc<WindowRenderTarget> m_target;
+    Rc<RenderEncoder> m_encoder;
+    function<void(Rc<Image>)> m_captureCallback;
+    Rc<ImageRenderTarget> m_bufferedFrameTarget;
     std::chrono::microseconds m_lastFrameRenderTime{ 0 };
     Internal::DisplaySyncPoint m_syncPoint;
     std::atomic_llong m_frameNumber{ 0 };
@@ -458,8 +458,8 @@ protected:
     std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
     std::atomic_bool m_forceRenderEveryFrame{ Internal::forceRenderEveryFrame };
     RenderStat m_renderStat;
-    RC<RenderDevice> m_renderDevice;
-    RC<RenderDevice> renderDevice();
+    Rc<RenderDevice> m_renderDevice;
+    Rc<RenderDevice> renderDevice();
     virtual bool update();
     virtual void paint(RenderContext& context, bool fullRepaint);
     virtual void paintImmediate(RenderContext& context);
@@ -473,7 +473,7 @@ protected:
 protected:
     // Modal
     bool m_modal = false;
-    WeakRC<Window> m_owner;
+    WeakRc<Window> m_owner;
 
 protected:
     /**
@@ -520,7 +520,7 @@ struct ModalMode {
     ModalMode();
     ~ModalMode();
 
-    RC<Window> owner;
+    Rc<Window> owner;
 };
 
 } // namespace Brisk

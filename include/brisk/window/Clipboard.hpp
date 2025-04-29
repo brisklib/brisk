@@ -60,10 +60,10 @@ public:
     /**
      * @brief Registers a custom clipboard format.
      *
-     * @param formatID The identifier of the format to register.
+     * @param formatId The identifier of the format to register.
      * @return The registered Format.
      */
-    static Format registerFormat(std::string_view formatID);
+    static Format registerFormat(std::string_view formatId);
 
     /**
      * @brief Global variable that represents the text format identifier for the clipboard.

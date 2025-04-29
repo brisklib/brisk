@@ -27,7 +27,7 @@ void Guide::paint(Canvas& canvas) const {
     if (!m_tree)
         return;
     for (auto& f : m_focus) {
-        RC<Widget> w = m_tree->root()->findById(f.id);
+        Rc<Widget> w = m_tree->root()->findById(f.id);
         PointF src   = m_rect.at(f.sourceAnchor);
         PointF tgt   = w->rect().at(f.targetAnchor);
 

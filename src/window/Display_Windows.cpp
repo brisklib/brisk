@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include "brisk/graphics/OSWindowHandle.hpp"
+#include "brisk/graphics/OsWindowHandle.hpp"
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <brisk/core/Encoding.hpp>
@@ -105,13 +105,13 @@ public:
         return pt + m_rect.p1;
     }
 
-    bool containsWindow(OSWindowHandle handle) const {
+    bool containsWindow(OsWindowHandle handle) const {
         std::shared_lock lk(m_mutex);
         return MonitorFromWindow(handle.hWnd(), MONITOR_DEFAULTTONULL) == m_handle;
     }
 
-    OSDisplayHandle getHandle() const {
-        return OSDisplayHandle(m_handle);
+    OsDisplayHandle getHandle() const {
+        return OsDisplayHandle(m_handle);
     }
 
     DisplayFlags flags() const {
@@ -159,7 +159,7 @@ namespace {
 std::shared_mutex displayMutex;
 
 struct Monitor {
-    RC<DisplayMSWin> display;
+    Rc<DisplayMSWin> display;
 };
 
 struct Adapter {
@@ -167,7 +167,7 @@ struct Adapter {
 };
 
 std::map<std::string, Adapter> adapters;
-RC<DisplayMSWin> primaryDisplay;
+Rc<DisplayMSWin> primaryDisplay;
 uint32_t counter = 0;
 
 std::map<std::string, std::string> friendlyNames;
@@ -325,9 +325,9 @@ DisplayMSWin::DisplayMSWin(std::string adapterId, std::string displayId, const D
     DeleteDC(dc);
 }
 
-/*static*/ std::vector<RC<Display>> Display::all() {
+/*static*/ std::vector<Rc<Display>> Display::all() {
     std::shared_lock lk(displayMutex);
-    std::vector<RC<Display>> result;
+    std::vector<Rc<Display>> result;
     for (auto&& a : adapters) {
         for (auto&& m : a.second.monitors) {
             result.push_back(m.second.display);
@@ -337,7 +337,7 @@ DisplayMSWin::DisplayMSWin(std::string adapterId, std::string displayId, const D
     return result;
 }
 
-/*static*/ RC<Display> Display::primary() {
+/*static*/ Rc<Display> Display::primary() {
     std::shared_lock lk(displayMutex);
     return primaryDisplay;
 }

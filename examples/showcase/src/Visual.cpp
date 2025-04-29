@@ -18,7 +18,7 @@ const NameValueOrderedList<TextAlign> textAlignList{
     { "Right", TextAlign::End },
 };
 
-RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
 
     static const Rules cell = Rules{
         layout  = Layout::Horizontal,
@@ -82,8 +82,8 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
             [](Canvas& canvas, Rectangle rect) {
                 // Static initialization of an image rendered from an SVG representation of "cat"
                 // with a size of 256x256 pixels.
-                static RC<Image> img =
-                    SVGImage(Resources::loadText("cat.svg")).render(Size{ idp(256), idp(256) });
+                static Rc<Image> img =
+                    SvgImage(Resources::loadText("cat.svg")).render(Size{ idp(256), idp(256) });
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
@@ -194,10 +194,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                              dimensions = { 180_apx, 120_apx } },
         },
 
-        rcnew Text{ "SVGImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
+        rcnew Text{ "SvgImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{
-            rcnew SVGImageView{ Resources::loadText("cat.svg"), dimensions = { 120_apx, 120_apx } },
+            rcnew SvgImageView{ Resources::loadText("cat.svg"), dimensions = { 120_apx, 120_apx } },
         },
 
         rcnew Text{ "Table (widgets/Table.hpp)", classes = { "section-header" } },

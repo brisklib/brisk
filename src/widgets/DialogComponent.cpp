@@ -52,7 +52,7 @@ void DialogComponent::close(bool result) {
     closeWindow();
 }
 
-RC<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okBtn, std::string cancelBtn) {
+Rc<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okBtn, std::string cancelBtn) {
     return rcnew HLayout{ margin = { 15, 10 }, //
                           rcnew Spacer{},
                           (buttons && DialogButtons::OK)
@@ -88,7 +88,7 @@ void DialogComponent::accept() {
 
 DialogComponent::~DialogComponent() {}
 
-void DialogComponent::configureWindow(RC<GUIWindow> window) {
+void DialogComponent::configureWindow(Rc<GuiWindow> window) {
     Component::configureWindow(window);
     window->setTitle("Dialog"_tr);
     window->windowFit = WindowFit::FixedSize;
@@ -98,7 +98,7 @@ void DialogComponent::configureWindow(RC<GUIWindow> window) {
 TextInputDialog::TextInputDialog(std::string prompt, std::string defaultValue)
     : m_prompt(std::move(prompt)), m_value(std::move(defaultValue)) {}
 
-RC<Widget> TextInputDialog::build() {
+Rc<Widget> TextInputDialog::build() {
     return rcnew VLayout{
         stylesheet = Graphene::stylesheet(),
         Graphene::darkColors(),
@@ -111,7 +111,7 @@ RC<Widget> TextInputDialog::build() {
 MessageDialog::MessageDialog(std::string text, std::string icon)
     : m_text(std::move(text)), m_icon(std::move(icon)) {}
 
-RC<Widget> MessageDialog::build() {
+Rc<Widget> MessageDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),
                           rcnew Text{ this->text, margin = { 15, 10 } },
                           dialogButtons(DialogButtons::OK | DialogButtons::Cancel) };
@@ -120,7 +120,7 @@ RC<Widget> MessageDialog::build() {
 ConfirmDialog::ConfirmDialog(std::string text, std::string icon)
     : m_text(std::move(text)), m_icon(std::move(icon)) {}
 
-RC<Widget> ConfirmDialog::build() {
+Rc<Widget> ConfirmDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),
                           rcnew Text{ this->text, margin = { 15, 10 } },
                           dialogButtons(DialogButtons::OK | DialogButtons::Cancel) };

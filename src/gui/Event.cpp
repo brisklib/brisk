@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/gui/Event.hpp>
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 
@@ -97,14 +97,14 @@ void HitTestMap::add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, i
     if (rect.empty())
         return;
     auto it = std::lower_bound(list.begin(), list.end(), zindex,
-                               [](const HTEntry& e, int zindex) BRISK_INLINE_LAMBDA {
+                               [](const HitTestEntry& e, int zindex) BRISK_INLINE_LAMBDA {
                                    return e.zindex < zindex;
                                });
-    list.insert(it, HTEntry{ w, zindex, rect, anywhere });
+    list.insert(it, HitTestEntry{ w, zindex, rect, anywhere });
 }
 
 std::shared_ptr<Widget> HitTestMap::get(float x, float y, bool respect_anywhere) const {
-    for (const HTEntry& e : list) {
+    for (const HitTestEntry& e : list) {
         if (e.rect.contains(Point(x, y)) || (respect_anywhere && e.anywhere)) {
             return e.widget.lock();
         }
@@ -186,7 +186,7 @@ void InputQueue::setFocus(std::shared_ptr<Widget> focus, bool keyboard) {
     if (focus && !focus->m_tabStop) {
         // If the widget doesn't accept focus, find the first descendant that does
         focus = focus->find(
-            [](RC<Widget> w) -> bool {
+            [](Rc<Widget> w) -> bool {
                 return w->m_tabStop;
             },
             MatchAny{});
@@ -205,8 +205,8 @@ void InputQueue::resetFocus() {
 void InputQueue::handleFocusEvents(Event& e) {
     auto kp = e.as<EventKeyPressed>();
     if (kp && !tabList.empty()) {
-        RC<Widget> previousFocused = focused.lock();
-        std::vector<RC<Widget>> tabList;
+        Rc<Widget> previousFocused = focused.lock();
+        std::vector<Rc<Widget>> tabList;
         for (const std::weak_ptr<Widget>& w : this->tabList) {
             if (auto sh = w.lock(); sh && !sh->isDisabled())
                 tabList.push_back(std::move(sh));
@@ -220,11 +220,11 @@ void InputQueue::handleFocusEvents(Event& e) {
             index = -1;
 
         struct GroupIdCmp {
-            bool operator()(const RC<Widget>& x, int y) const {
+            bool operator()(const Rc<Widget>& x, int y) const {
                 return x->m_tabGroupId < y;
             }
 
-            bool operator()(int x, const RC<Widget>& y) const {
+            bool operator()(int x, const Rc<Widget>& y) const {
                 return x < y->m_tabGroupId;
             }
         };
@@ -290,13 +290,13 @@ void InputQueue::processKeyEvent(Event e) {
     }
     auto capturingKeys = this->capturingKeys;
     for (auto it = capturingKeys.rbegin(); it != capturingKeys.rend(); ++it) {
-        if (RC<Widget> w = it->lock())
+        if (Rc<Widget> w = it->lock())
             w->processEvent(e);
         if (!e)
             break;
     }
     if (e) {
-        if (RC<Widget> target = focused.lock())
+        if (Rc<Widget> target = focused.lock())
             target->processEvent(e);
     }
 
@@ -328,7 +328,7 @@ std::tuple<std::shared_ptr<Widget>, int> InputQueue::getAt(Point pt, int offset,
     if (offset < 0 && !capturingMouse.empty())
         return std::tuple<std::shared_ptr<Widget>, int>{ capturingMouse.back().lock(), 0 };
     for (int i = std::max(0, offset); i < hitTest.list.size(); i++) {
-        if (RC<Widget> w = hitTest.list[i].widget.lock();
+        if (Rc<Widget> w = hitTest.list[i].widget.lock();
             w && (hitTest.list[i].rect.contains(pt) || (respect_anywhere && hitTest.list[i].anywhere)))
             return std::tuple<std::shared_ptr<Widget>, int>{ w, i + 1 };
     }
@@ -470,7 +470,7 @@ void InputQueue::processMouseEvent(Event e) {
 void InputQueue::processTargetedEvent(Event e) {
     std::optional<EventTargeted> targeted = e.as<EventTargeted>();
     BRISK_ASSERT(!!targeted);
-    if (RC<Widget> target = targeted->target.lock()) {
+    if (Rc<Widget> target = targeted->target.lock()) {
         target->processEvent(e);
     }
     if (e && unhandledEvent) {
@@ -551,7 +551,7 @@ void InputQueue::processEvents() {
     }
 
     if (lastMouseEvent) {
-        RC<Widget> target = std::get<0>(getAt(lastMouseEvent->point));
+        Rc<Widget> target = std::get<0>(getAt(lastMouseEvent->point));
         processMouseState(target);
     }
 
@@ -570,12 +570,12 @@ void InputQueue::processMouseState(const std::shared_ptr<Widget>& target) {
             return true;
         });
 
-        for (const HitTestMap::HTEntry& entry : hitTest.list) {
+        for (const HitTestMap::HitTestEntry& entry : hitTest.list) {
             // All parents are sorted after their children,
             // so hover events are processed in child-parent order,
             // which is the correct behavior.
 
-            if (RC<Widget> ww = entry.widget.lock()) {
+            if (Rc<Widget> ww = entry.widget.lock()) {
                 if (parents.find(ww.get()) != parents.end()) {
                     // Widget is hovered
                     if (!(ww->m_state && WidgetState::Hover)) {
@@ -595,12 +595,12 @@ void InputQueue::processMouseState(const std::shared_ptr<Widget>& target) {
             }
         }
     } else {
-        for (const HitTestMap::HTEntry& entry : hitTest.list) {
+        for (const HitTestMap::HitTestEntry& entry : hitTest.list) {
             // All parents are sorted after their children,
             // so hover events are processed in child-parent order,
             // which is the correct behavior.
 
-            if (RC<Widget> ww = entry.widget.lock()) {
+            if (Rc<Widget> ww = entry.widget.lock()) {
                 if ((ww->m_state && WidgetState::Hover)) {
                     ww->toggleState(WidgetState::Hover, false);
                     EventMouseExited e;

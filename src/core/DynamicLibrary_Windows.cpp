@@ -31,7 +31,7 @@ DynamicLibrary::~DynamicLibrary() {
     FreeLibrary((HMODULE)m_handle);
 }
 
-RC<DynamicLibrary> DynamicLibrary::load(const std::string& name) noexcept {
+Rc<DynamicLibrary> DynamicLibrary::load(const std::string& name) noexcept {
     void* handle = LoadLibraryW(utf8ToWcs(name).c_str());
     if (!handle)
         return nullptr;

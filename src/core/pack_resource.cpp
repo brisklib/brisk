@@ -49,7 +49,7 @@ using namespace std::string_view_literals;
 
 class CWriter final : public Writer {
 public:
-    CWriter(RC<Stream> dataWriter, ResourceCompression compression, std::string ident)
+    CWriter(Rc<Stream> dataWriter, ResourceCompression compression, std::string ident)
         : dataWriter(std::move(dataWriter)), ident(std::move(ident)) {
 
         std::ignore = this->dataWriter->write(
@@ -112,7 +112,7 @@ INCBIN_CONST unsigned int rsrc__{0}_size = {1};
         return true;
     }
 
-    RC<Stream> dataWriter;
+    Rc<Stream> dataWriter;
     std::string ident;
     ResourceCompression compression;
     size_t numWritten = 0;
@@ -181,7 +181,7 @@ int pack_resource(int argc, const char** argv) {
     if (auto rd = openFileForReading(input)) {
         if (auto wr = openFileForWriting(datafile)) {
             fmt::println("Input size: {}", (*rd)->size());
-            RC<Stream> out = std::move(*wr);
+            Rc<Stream> out = std::move(*wr);
             if (!cIdent.empty()) {
                 out.reset(new CWriter(std::move(out), compression, cIdent));
             }

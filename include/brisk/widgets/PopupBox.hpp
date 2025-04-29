@@ -41,7 +41,7 @@ protected:
     Ptr cloneThis() const override;
     explicit PopupBox(Construction construction, ArgumentsView<PopupBox> args);
     using Base::append;
-    void append(RC<Widget> widget) override;
+    void append(Rc<Widget> widget) override;
 };
 
 } // namespace Brisk

@@ -22,7 +22,7 @@
 
 #include <unordered_map>
 #include "Matrix.hpp"
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <mutex>
 #include <variant>
 #include <brisk/core/internal/InlineVector.hpp>
@@ -35,7 +35,7 @@ namespace Brisk {
  * @brief Represents a rasterized path with a sprite and bounding rectangle.
  */
 struct RasterizedPath {
-    RC<SpriteResource> sprite; ///< The sprite resource associated with the rasterized path.
+    Rc<SpriteResource> sprite; ///< The sprite resource associated with the rasterized path.
     Rectangle bounds;          ///< The bounding rectangle of the rasterized path.
 };
 

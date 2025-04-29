@@ -130,7 +130,7 @@ enum class SubpixelMode : int32_t {
 };
 
 struct ConstantPerFrame {
-    SIMD<float, 4> viewport;
+    Simd<float, 4> viewport;
     float blueLightFilter;
     float gamma;
     float textRectPadding;
@@ -252,15 +252,15 @@ void applier(RenderStateEx* target, const ArgVal<Tag, U>& arg) {
     Tag::apply(arg.value, *target);
 }
 
-using SpriteResources = SmallVector<RC<SpriteResource>, 1>;
+using SpriteResources = SmallVector<Rc<SpriteResource>, 1>;
 
 struct RenderStateEx : RenderState {
     explicit RenderStateEx(ShaderType shader, RenderStateExArgs args);
 
     explicit RenderStateEx(ShaderType shader, int instances, RenderStateExArgs args);
 
-    RC<Image> imageHandle;
-    RC<GradientResource> gradientHandle;
+    Rc<Image> imageHandle;
+    Rc<GradientResource> gradientHandle;
     SpriteResources sprites;
 };
 

@@ -70,7 +70,7 @@ Rules lightColors() {
     };
 }
 
-RC<const Stylesheet> stylesheet() {
+Rc<const Stylesheet> stylesheet() {
     using namespace Selectors;
     using enum WidgetState;
 

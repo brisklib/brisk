@@ -36,7 +36,7 @@ namespace Brisk {
 template <typename T>
 struct MatrixOf {
     static_assert(std::is_floating_point_v<T>, "MatrixOf requires a floating-point type.");
-    using vec_subtype = SIMD<T, 2>;
+    using vec_subtype = Simd<T, 2>;
     using vec_type    = std::array<vec_subtype, 3>;
 
     union {
@@ -62,7 +62,7 @@ struct MatrixOf {
      * @param e Matrix translation component along the x-axis.
      * @param f Matrix translation component along the y-axis.
      */
-    constexpr MatrixOf(T a, T b, T c, T d, T e, T f) : v{ SIMD{ a, b }, SIMD{ c, d }, SIMD{ e, f } } {}
+    constexpr MatrixOf(T a, T b, T c, T d, T e, T f) : v{ Simd{ a, b }, Simd{ c, d }, Simd{ e, f } } {}
 
     /**
      * @brief Returns the matrix coefficients as an array.
@@ -121,9 +121,9 @@ struct MatrixOf {
      */
     [[nodiscard]] constexpr MatrixOf scale(T x, T y) const {
         vec_type m = v;
-        m[0] *= SIMD{ x, y };
-        m[1] *= SIMD{ x, y };
-        m[2] *= SIMD{ x, y };
+        m[0] *= Simd{ x, y };
+        m[1] *= Simd{ x, y };
+        m[2] *= Simd{ x, y };
         return MatrixOf(m);
     }
 
@@ -175,9 +175,9 @@ struct MatrixOf {
      */
     [[nodiscard]] constexpr MatrixOf skew(T x, T y) const {
         vec_type m;
-        m[0] = SIMD{ v[0][0] + v[0][1] * x, v[0][0] * y + v[0][1] };
-        m[1] = SIMD{ v[1][0] + v[1][1] * x, v[1][0] * y + v[1][1] };
-        m[2] = SIMD{ v[2][0] + v[2][1] * x, v[2][0] * y + v[2][1] };
+        m[0] = Simd{ v[0][0] + v[0][1] * x, v[0][0] * y + v[0][1] };
+        m[1] = Simd{ v[1][0] + v[1][1] * x, v[1][0] * y + v[1][1] };
+        m[2] = Simd{ v[2][0] + v[2][1] * x, v[2][0] * y + v[2][1] };
         return MatrixOf(m);
     }
 
@@ -215,10 +215,10 @@ struct MatrixOf {
     [[nodiscard]] constexpr MatrixOf rotate(T angle) const {
         vec_type m     = v;
         vec_subtype sc = sincos(vec_subtype(deg2rad<T> * angle));
-        vec_subtype cs = swapAdjacent(sc) * SIMD{ T(1), T(-1) };
-        m[0]           = SIMD{ dot(m[0], cs), dot(m[0], sc) };
-        m[1]           = SIMD{ dot(m[1], cs), dot(m[1], sc) };
-        m[2]           = SIMD{ dot(m[2], cs), dot(m[2], sc) };
+        vec_subtype cs = swapAdjacent(sc) * Simd{ T(1), T(-1) };
+        m[0]           = Simd{ dot(m[0], cs), dot(m[0], sc) };
+        m[1]           = Simd{ dot(m[1], cs), dot(m[1], sc) };
+        m[2]           = Simd{ dot(m[2], cs), dot(m[2], sc) };
         return MatrixOf(m);
     }
 
@@ -428,10 +428,10 @@ struct MatrixOf {
      * @return MatrixOf The resulting matrix.
      */
     constexpr friend MatrixOf<T> operator*(const MatrixOf<T>& m, const MatrixOf<T>& n) {
-        using v2             = SIMD<T, 2>;
-        using v3             = SIMD<T, 3>;
-        using v4             = SIMD<T, 4>;
-        using v8             = SIMD<T, 8>;
+        using v2             = Simd<T, 2>;
+        using v3             = Simd<T, 3>;
+        using v4             = Simd<T, 4>;
+        using v8             = Simd<T, 8>;
 
         std::array<v2, 3> mm = m.v;
         std::array<v3, 2> nn{ v3{ n.a, n.c, n.e }, v3{ n.b, n.d, n.f } };
@@ -469,10 +469,10 @@ struct MatrixOf {
     /**
      * @brief Flattens the matrix coefficients into a SIMD array.
      *
-     * @return SIMD<T, 6> The flattened matrix.
+     * @return Simd<T, 6> The flattened matrix.
      */
-    constexpr SIMD<T, 6> flatten() const noexcept {
-        SIMD<T, 6> result;
+    constexpr Simd<T, 6> flatten() const noexcept {
+        Simd<T, 6> result;
         std::memcpy(&result, v.data(), sizeof(*this));
         return result;
     }
@@ -562,7 +562,7 @@ struct MatrixOf {
      */
     constexpr PointOf<T> transform(PointOf<T> pt) const {
         // Formula: pt.x * a + pt.y * c + e, pt.x * b + pt.y * d + f;
-        SIMD<T, 4> tmp = pt.v.shuffle(size_constants<0, 0, 1, 1>{}) * flatten().template firstn<4>();
+        Simd<T, 4> tmp = pt.v.shuffle(size_constants<0, 0, 1, 1>{}) * flatten().template firstn<4>();
         PointOf<T> result(tmp.low() + tmp.high() + flatten().template lastn<2>());
         return result;
     }
@@ -581,17 +581,17 @@ struct MatrixOf {
         size_t i            = 0;
 
         if (isAligned(points.data()) && points.size() >= N) {
-            SIMD<T, N2> ad = repeat<N>(SIMD{ a, d });
-            SIMD<T, N2> cb = repeat<N>(SIMD{ c, b });
-            SIMD<T, N2> ef = repeat<N>(SIMD{ e, f });
+            Simd<T, N2> ad = repeat<N>(Simd{ a, d });
+            Simd<T, N2> cb = repeat<N>(Simd{ c, b });
+            Simd<T, N2> ef = repeat<N>(Simd{ e, f });
 
             for (; i < points.size() && !isAligned<N>(points.data() + i); ++i) {
                 points[i] = transform(points[i]);
             }
             for (; i + N - 1 < points.size(); i += N) {
-                SIMD<T, N2> xy = *reinterpret_cast<const SIMD<T, N2>*>(points.data() + i);
+                Simd<T, N2> xy = *reinterpret_cast<const Simd<T, N2>*>(points.data() + i);
                 xy             = xy * ad + swapAdjacent(xy) * cb + ef;
-                *reinterpret_cast<SIMD<T, N2>*>(points.data() + i) = xy;
+                *reinterpret_cast<Simd<T, N2>*>(points.data() + i) = xy;
             }
         }
         for (; i < points.size(); ++i) {

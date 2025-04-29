@@ -59,7 +59,7 @@ void ToggleButton::onChanged() {
         requestAnimationFrame();
 }
 
-RC<Widget> ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ToggleButton::ToggleButton(Construction construction, ArgumentsView<ToggleButton> args)
     : Base{ construction, nullptr } {

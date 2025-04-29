@@ -20,9 +20,9 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 #include <brisk/gui/Styles.hpp>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 
 namespace Brisk {
 
@@ -37,7 +37,7 @@ constexpr inline Argument<StyleVariableTag<ColorW, "boxBorderColor"_hash>> boxBo
 constexpr inline Argument<StyleVariableTag<ColorW, "shadeColor"_hash>> shadeColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "deepColor"_hash>> deepColor{};
 
-RC<const Stylesheet> stylesheet();
+Rc<const Stylesheet> stylesheet();
 Rules lightColors();
 Rules darkColors();
 

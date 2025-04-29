@@ -457,7 +457,7 @@ void TextEditor::onEvent(Event& event) {
                 setTextInternal(utf32ToUtf8(normalizeCompose(text)));
                 break;
             case KeyCode::Enter:
-            case KeyCode::KPEnter:
+            case KeyCode::KpEnter:
                 if (m_multiline) {
                     typeCharacter(text, '\n');
                     event.stopPropagation();
@@ -624,7 +624,7 @@ PasswordEditor::PasswordEditor(Construction construction, ArgumentsView<Password
     args.apply(this);
 }
 
-RC<Widget> PasswordEditor::cloneThis() const {
+Rc<Widget> PasswordEditor::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

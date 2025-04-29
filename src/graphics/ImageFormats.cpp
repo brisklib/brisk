@@ -43,7 +43,7 @@ std::optional<ImageCodec> guessImageCodec(BytesView bytes) {
     return std::nullopt;
 }
 
-Bytes imageEncode(ImageCodec codec, RC<Image> image, std::optional<int> quality,
+Bytes imageEncode(ImageCodec codec, Rc<Image> image, std::optional<int> quality,
                   std::optional<ColorSubsampling> ss) {
     switch (codec) {
     case ImageCodec::BMP:
@@ -59,7 +59,7 @@ Bytes imageEncode(ImageCodec codec, RC<Image> image, std::optional<int> quality,
     }
 }
 
-expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, BytesView bytes, ImageFormat format,
+expected<Rc<Image>, ImageIoError> imageDecode(ImageCodec codec, BytesView bytes, ImageFormat format,
                                               bool premultiplyAlpha) {
     switch (codec) {
     case ImageCodec::BMP:
@@ -75,10 +75,10 @@ expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, BytesView bytes,
     }
 }
 
-expected<RC<Image>, ImageIOError> imageDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
+expected<Rc<Image>, ImageIoError> imageDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
     auto codec = guessImageCodec(bytes);
     if (!codec)
-        return unexpected(ImageIOError::CodecError);
+        return unexpected(ImageIoError::CodecError);
     return imageDecode(*codec, bytes, format, premultiplyAlpha);
 }
 

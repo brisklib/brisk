@@ -25,7 +25,7 @@
 
 #include <brisk/core/internal/Lock.hpp>
 #include <concurrentqueue/concurrentqueue.h>
-#include "uv.hpp"
+#include "Uv.hpp"
 
 namespace Brisk {
 
@@ -157,7 +157,7 @@ void Scheduler::waitForCompletion() {
     waitFuture(completionFuture(), 0);
 }
 
-RC<TaskQueue> mainScheduler;
+Rc<TaskQueue> mainScheduler;
 
 thread_local Scheduler* threadScheduler = nullptr;
 } // namespace Brisk

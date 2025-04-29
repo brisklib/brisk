@@ -42,14 +42,14 @@ std::shared_ptr<Item> ListBox::findSelected() const {
     return dynamicPointerCast<Item>(widgets[value]);
 }
 
-void ListBox::append(RC<Widget> widget) {
+void ListBox::append(Rc<Widget> widget) {
     if (dynamicCast<Item*>(widget.get()))
         Base::append(std::move(widget));
     else
         Base::append(rcnew Item{ std::move(widget) });
 }
 
-RC<Widget> ListBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ListBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ListBox::ListBox(Construction construction, ArgumentsView<ListBox> args)
     : Base(construction, nullptr) {

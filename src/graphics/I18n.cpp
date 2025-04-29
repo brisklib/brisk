@@ -88,7 +88,7 @@ namespace Brisk {
 bool icuAvailable = true;
 
 // Uncompress and initialize ICU data.
-static void uncompressICUData() {
+static void uncompressIcuData() {
     static bool icuDataInit = false;
     if (icuDataInit)
         return;
@@ -120,7 +120,7 @@ struct UBiDiDeleter {
     }
 };
 
-[[noreturn]] static void handleICUErr(UErrorCode err) {
+[[noreturn]] static void handleIcuErr(UErrorCode err) {
     throwException(EUnicode("ICU Error: {}", safeCharPtr(u_errorName(err))));
 }
 
@@ -132,7 +132,7 @@ struct LockableICUBreakIterator {
 static LockableICUBreakIterator cachedBreakIterators[3];
 
 static std::unique_ptr<icu::BreakIterator> createICUBreakIterator(TextBreakMode mode) {
-    uncompressICUData();
+    uncompressIcuData();
     UErrorCode uerr = U_ZERO_ERROR;
     std::unique_ptr<icu::BreakIterator> iter;
     switch (mode) {
@@ -149,7 +149,7 @@ static std::unique_ptr<icu::BreakIterator> createICUBreakIterator(TextBreakMode 
         BRISK_UNREACHABLE();
     }
     if (U_FAILURE(uerr)) {
-        handleICUErr(uerr);
+        handleIcuErr(uerr);
     } else {
         return iter;
     }
@@ -204,7 +204,7 @@ static TextDirection toDir(UBiDiLevel level) {
 
 #define HANDLE_UERROR(...)                                                                                   \
     if (U_FAILURE(uerr)) {                                                                                   \
-        handleICUErr(uerr);                                                                                  \
+        handleIcuErr(uerr);                                                                                  \
         return __VA_ARGS__;                                                                                  \
     }
 
@@ -212,21 +212,21 @@ namespace Internal {
 
 namespace {
 
-class TextBreakIteratorICU final : public TextBreakIterator {
+class TextBreakIteratorIcu final : public TextBreakIterator {
 public:
     LockedICUBreakIterator icu;
     icu::UnicodeString ustr;
     size_t codepoints = 0;
     int32_t oldp      = 0;
 
-    TextBreakIteratorICU(std::u32string_view text, TextBreakMode mode) : icu(mode) {
-        uncompressICUData();
+    TextBreakIteratorIcu(std::u32string_view text, TextBreakMode mode) : icu(mode) {
+        uncompressIcuData();
         std::u16string u16 = utf32ToUtf16(text);
         ustr.setTo(u16.data(), u16.size());
         icu->setText(ustr);
     }
 
-    ~TextBreakIteratorICU() = default;
+    ~TextBreakIteratorIcu() = default;
 
     std::optional<uint32_t> next() {
         int32_t p = icu->next();
@@ -240,15 +240,15 @@ public:
     }
 };
 
-class BidiTextIteratorICU final : public BidiTextIterator {
+class BidiTextIteratorIcu final : public BidiTextIterator {
 public:
     std::unique_ptr<UBiDi, UBiDiDeleter> bidi;
     std::u16string u16;
     int32_t codepoints = 0;
     int32_t u16chars   = 0;
 
-    BidiTextIteratorICU(std::u32string_view text, TextDirection defaultDirection) {
-        uncompressICUData();
+    BidiTextIteratorIcu(std::u32string_view text, TextDirection defaultDirection) {
+        uncompressIcuData();
         UErrorCode uerr = U_ZERO_ERROR;
         bidi.reset(ubidi_openSized(0, 0, &uerr));
         HANDLE_UERROR();
@@ -259,7 +259,7 @@ public:
         HANDLE_UERROR();
     }
 
-    ~BidiTextIteratorICU() = default;
+    ~BidiTextIteratorIcu() = default;
 
     bool isMixed() const {
         return ubidi_getDirection(bidi.get()) == UBIDI_MIXED;
@@ -287,12 +287,12 @@ public:
 };
 } // namespace
 
-RC<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode) {
-    return rcnew TextBreakIteratorICU(text, mode);
+Rc<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode) {
+    return rcnew TextBreakIteratorIcu(text, mode);
 }
 
-RC<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection) {
-    return rcnew BidiTextIteratorICU(text, defaultDirection);
+Rc<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection) {
+    return rcnew BidiTextIteratorIcu(text, defaultDirection);
 }
 } // namespace Internal
 } // namespace Brisk

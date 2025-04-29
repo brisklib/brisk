@@ -24,7 +24,7 @@
 #include <brisk/core/Reflection.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/SIMD.hpp>
+#include <brisk/core/Simd.hpp>
 
 namespace Brisk {
 
@@ -305,7 +305,7 @@ constexpr int32_t pixelSize(PixelType type, PixelFormat format) noexcept {
 /**
  * @brief Template variable to hold the maximum alpha value for different types.
  */
-template <SIMDCompatible T>
+template <SimdCompatible T>
 [[maybe_unused]] constexpr inline T alpha = std::numeric_limits<T>::max();
 
 /**
@@ -578,7 +578,7 @@ struct Pixel : public PixelStruct<typ, fmt> {
         *this = cvtPixel<fmt>(pixel);
     }
 
-    explicit Pixel(const SIMD<T, pixelComponents(fmt)>& v) noexcept {
+    explicit Pixel(const Simd<T, pixelComponents(fmt)>& v) noexcept {
         std::memcpy(this->c, &v, std::size(this->c) * sizeof(T));
     }
 

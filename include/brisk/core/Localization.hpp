@@ -47,7 +47,7 @@ public:
 /**
  * @brief External reference to the current locale.
  */
-extern RC<const Locale> locale;
+extern Rc<const Locale> locale;
 
 namespace Internal {
 

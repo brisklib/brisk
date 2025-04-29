@@ -22,7 +22,7 @@
 
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/Debug.hpp>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <cstdint>
 
@@ -49,7 +49,7 @@ struct SpriteResource {
     }
 };
 
-inline RC<SpriteResource> makeSprite(Size size) {
+inline Rc<SpriteResource> makeSprite(Size size) {
     std::byte* ptr         = (std::byte*)::malloc(sizeof(SpriteResource) + size.area());
     SpriteResource* sprite = new (ptr) SpriteResource{ autoincremented<SpriteResource, uint64_t>(), size };
     return std::shared_ptr<SpriteResource>(sprite, [](SpriteResource* ptr) {
@@ -57,9 +57,9 @@ inline RC<SpriteResource> makeSprite(Size size) {
     });
 }
 
-inline RC<SpriteResource> makeSprite(Size size, BytesView bytes) {
+inline Rc<SpriteResource> makeSprite(Size size, BytesView bytes) {
     BRISK_ASSERT(size.area() == bytes.size());
-    RC<SpriteResource> result = makeSprite(size);
+    Rc<SpriteResource> result = makeSprite(size);
     memcpy(result->data(), bytes.data(), bytes.size());
     return result;
 }

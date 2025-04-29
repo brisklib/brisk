@@ -1,9 +1,9 @@
 #include "ShowcaseComponent.hpp"
-#include <brisk/gui/GUIApplication.hpp>
+#include <brisk/gui/GuiApplication.hpp>
 
 int briskMain() {
     using namespace Brisk;
 
-    GUIApplication application;
+    GuiApplication application;
     return application.run(createComponent<ShowcaseComponent>());
 }

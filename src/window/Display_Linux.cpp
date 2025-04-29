@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include "brisk/graphics/OSWindowHandle.hpp"
+#include "brisk/graphics/OsWindowHandle.hpp"
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Utilities.hpp>
 
@@ -104,13 +104,13 @@ public:
         return pt + m_rect.p1;
     }
 
-    bool containsWindow(OSWindowHandle handle) const {
+    bool containsWindow(OsWindowHandle handle) const {
         std::shared_lock lk(m_mutex);
         return glfwGetWindowMonitor(handle.glfwWindow()) == m_monitor;
     }
 
-    OSDisplayHandle getHandle() const {
-        return OSDisplayHandle(m_monitor);
+    OsDisplayHandle getHandle() const {
+        return OsDisplayHandle(m_monitor);
     }
 
     DisplayFlags flags() const {
@@ -153,8 +153,8 @@ float DisplayLinux::m_contentScaleY = 1.f;
 
 std::shared_mutex displayMutex;
 
-static std::map<RROutput, RC<DisplayLinux>> displays;
-RC<DisplayLinux> primaryDisplay;
+static std::map<RROutput, Rc<DisplayLinux>> displays;
+Rc<DisplayLinux> primaryDisplay;
 
 void pollDisplays() {
     glfwInit();
@@ -166,7 +166,7 @@ void pollDisplays() {
 
         RROutput rrout            = glfwGetX11Monitor(monitors[i]);
 
-        RC<DisplayLinux>& monitor = displays[rrout];
+        Rc<DisplayLinux>& monitor = displays[rrout];
 
         if (!monitor)
             monitor = rcnew DisplayLinux(monitors[i]);
@@ -195,16 +195,16 @@ void pollDisplays() {
     }
 }
 
-std::vector<RC<Display>> Display::all() {
+std::vector<Rc<Display>> Display::all() {
     std::shared_lock lk(displayMutex);
-    std::vector<RC<Display>> result;
+    std::vector<Rc<Display>> result;
     for (const auto& a : displays) {
         result.push_back(a.second);
     }
     return result;
 }
 
-/*static*/ RC<Display> Display::primary() {
+/*static*/ Rc<Display> Display::primary() {
     std::shared_lock lk(displayMutex);
     return primaryDisplay;
 }

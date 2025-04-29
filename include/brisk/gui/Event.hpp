@@ -386,14 +386,14 @@ struct Event : public EventVariant {
 struct HitTestMap {
     void add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, int zindex);
 
-    struct HTEntry {
+    struct HitTestEntry {
         std::weak_ptr<Widget> widget; ///< The widget involved in the hit test.
         int zindex;                   ///< Z-index for rendering order.
         Rectangle rect;               ///< Rectangle area for the hit test.
         bool anywhere;                ///< Indicates if the widget is valid anywhere.
     };
 
-    std::vector<HTEntry> list; ///< List of hit test entries.
+    std::vector<HitTestEntry> list; ///< List of hit test entries.
 
     /**
      * @brief Retrieves the widget at the specified coordinates.

@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 

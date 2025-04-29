@@ -37,7 +37,7 @@ PopupBox::PopupBox(Construction construction, ArgumentsView<PopupBox> args)
     args.apply(this);
 }
 
-RC<Widget> PopupBox::cloneThis() const {
+Rc<Widget> PopupBox::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -59,7 +59,7 @@ void PopupBox::onEvent(Event& event) {
     }
 }
 
-void PopupBox::append(RC<Widget> widget) {
+void PopupBox::append(Rc<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
         it->focusOnHover = true;
         Base::append(std::move(widget));

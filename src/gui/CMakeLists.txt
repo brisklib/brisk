@@ -26,28 +26,28 @@ include(yoga/list.cmake)
 
 add_library(
     brisk-gui STATIC
-    ${PROJECT_SOURCE_DIR}/include/brisk/gui/GUIWindow.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/gui/GUIOffscreen.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/gui/GuiWindow.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/gui/GuiOffscreen.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/gui/Icons.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/gui/GUI.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/gui/Gui.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/gui/WidgetTree.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/gui/Groups.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/gui/Component.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/gui/GUIApplication.hpp
-    ${PROJECT_SOURCE_DIR}/src/gui/GUIWindow.cpp
-    ${PROJECT_SOURCE_DIR}/src/gui/GUI.cpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/gui/GuiApplication.hpp
+    ${PROJECT_SOURCE_DIR}/src/gui/GuiWindow.cpp
+    ${PROJECT_SOURCE_DIR}/src/gui/Gui.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/WidgetTree.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Styles.cpp
-    ${PROJECT_SOURCE_DIR}/src/gui/GUIOffscreen.cpp
+    ${PROJECT_SOURCE_DIR}/src/gui/GuiOffscreen.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Event.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Animation.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Groups.cpp
     ${PROJECT_SOURCE_DIR}/src/gui/Component.cpp
-    ${PROJECT_SOURCE_DIR}/src/gui/GUIApplication.cpp
+    ${PROJECT_SOURCE_DIR}/src/gui/GuiApplication.cpp
     ${yogacore_SRC})
 
-set_property(TARGET brisk-gui PROPERTY EXPORT_NAME GUI)
-add_library(Brisk::GUI ALIAS brisk-gui)
+set_property(TARGET brisk-gui PROPERTY EXPORT_NAME Gui)
+add_library(Brisk::Gui ALIAS brisk-gui)
 
 target_link_libraries(brisk-gui PUBLIC brisk-window)
 

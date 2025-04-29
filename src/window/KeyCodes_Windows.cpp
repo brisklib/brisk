@@ -139,13 +139,13 @@ consteval std::array<KeyCode, numScanCodes> genScanCodeToKeyCode() {
     result[0x047] = KeyCode::KP7;
     result[0x048] = KeyCode::KP8;
     result[0x049] = KeyCode::KP9;
-    result[0x04E] = KeyCode::KPAdd;
-    result[0x053] = KeyCode::KPDecimal;
-    result[0x135] = KeyCode::KPDivide;
-    result[0x11C] = KeyCode::KPEnter;
-    result[0x059] = KeyCode::KPEqual;
-    result[0x037] = KeyCode::KPMultiply;
-    result[0x04A] = KeyCode::KPSubtract;
+    result[0x04E] = KeyCode::KpAdd;
+    result[0x053] = KeyCode::KpDecimal;
+    result[0x135] = KeyCode::KpDivide;
+    result[0x11C] = KeyCode::KpEnter;
+    result[0x059] = KeyCode::KpEqual;
+    result[0x037] = KeyCode::KpMultiply;
+    result[0x04A] = KeyCode::KpSubtract;
     return result;
 }
 

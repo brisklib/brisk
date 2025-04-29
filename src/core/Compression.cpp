@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-[[nodiscard]] RC<Stream> compressionDecoder(CompressionMethod method, RC<Stream> reader) {
+[[nodiscard]] Rc<Stream> compressionDecoder(CompressionMethod method, Rc<Stream> reader) {
     switch (method) {
     case CompressionMethod::None:
         return reader;
@@ -41,7 +41,7 @@ namespace Brisk {
     }
 }
 
-[[nodiscard]] RC<Stream> compressionEncoder(CompressionMethod method, RC<Stream> writer,
+[[nodiscard]] Rc<Stream> compressionEncoder(CompressionMethod method, Rc<Stream> writer,
                                             CompressionLevel level) {
     switch (method) {
     case CompressionMethod::None:

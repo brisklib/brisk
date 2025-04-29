@@ -11,7 +11,7 @@
 
 namespace Brisk {
 
-RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -50,7 +50,7 @@ RC<Widget> ShowcaseButtons::build(RC<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 rcnew Button{
-                    rcnew SVGImageView{
+                    rcnew SvgImageView{
                         R"SVG(<svg viewBox="0 -34 1092 1092" class="icon" xmlns="http://www.w3.org/2000/svg">
   <path d="m307 7-17 13a39 39 0 1 1-62 46L14 229l1044 243z" fill="#FCE875"/>
   <path d="M1092 486 0 232 230 58l3 5a33 33 0 1 0 52-39l-4-5 25-19 4 2zM28 226l996 232L307 14l-9 7a45 45 0 0 1-71 54z" fill="#541018"/>

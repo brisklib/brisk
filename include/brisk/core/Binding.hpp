@@ -20,7 +20,7 @@
  */
 #pragma once
 #include <brisk/core/Memory.hpp>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
@@ -1045,7 +1045,7 @@ public:
      * @param region The binding address representing the region.
      * @param queue The scheduler queue associated with the region.
      */
-    void registerRegion(BindingAddress region, RC<Scheduler> queue);
+    void registerRegion(BindingAddress region, Rc<Scheduler> queue);
 
     /**
      * @brief Unregisters a previously registered region.
@@ -1215,14 +1215,14 @@ private:
         }
     }
 
-    RC<Region> lookupRegion(BindingAddress address);
+    Rc<Region> lookupRegion(BindingAddress address);
 
-    static void enqueueInto(RC<Scheduler> queue, VoidFunc fn, ExecuteImmediately mode);
+    static void enqueueInto(Rc<Scheduler> queue, VoidFunc fn, ExecuteImmediately mode);
 
-    using RegionList = SmallVector<RC<Region>, 1>;
+    using RegionList = SmallVector<Rc<Region>, 1>;
 
-    RC<Scheduler> getQueue(const RegionList& regions) {
-        for (const RC<Region>& r : regions) {
+    Rc<Scheduler> getQueue(const RegionList& regions) {
+        for (const Rc<Region>& r : regions) {
             if (r && r->queue) {
                 return r->queue;
             }
@@ -1239,18 +1239,18 @@ private:
         BindingAddresses srcAddresses = src.m_srcAddresses;
         BindingAddress destAddress    = dest.m_destAddress;
 
-        RC<Region> destRegion         = lookupRegion(destAddress);
+        Rc<Region> destRegion         = lookupRegion(destAddress);
         BRISK_ASSERT_MSG("Bindings: destination value address isn't registered", destRegion);
 
         RegionList srcRegions;
         srcRegions.reserve(srcAddresses.size());
         for (BindingAddress a : srcAddresses) {
-            RC<Region> srcRegion = lookupRegion(a);
+            Rc<Region> srcRegion = lookupRegion(a);
             BRISK_ASSERT_MSG("Bindings: source value address isn't registered", srcRegion);
             srcRegions.push_back(std::move(srcRegion));
         }
-        RC<Scheduler> srcQueue  = getQueue(srcRegions);
-        RC<Scheduler> destQueue = destRegion->queue;
+        Rc<Scheduler> srcQueue  = getQueue(srcRegions);
+        Rc<Scheduler> destQueue = destRegion->queue;
 
         if (updateNow) {
             enqueueInto(
@@ -1269,7 +1269,7 @@ private:
         if (srcAddresses.empty())
             return 0;
 
-        WeakRC<Region> destRegionWeak = destRegion;
+        WeakRc<Region> destRegionWeak = destRegion;
 
         Handler handler = [srcQueue, destQueue, type, dest = std::move(dest), src = std::move(src),
                            destRegionWeak = std::move(destRegionWeak)]() {
@@ -1299,7 +1299,7 @@ private:
     int addHandler(const RegionList& srcRegions, uint64_t id, Handler handler, BindingAddresses srcAddresses,
                    Region* destRegion, BindingAddress destAddress, BindType type,
                    std::string_view destDesc = {}, std::string_view srcDesc = {},
-                   RC<Scheduler> srcQueue = nullptr);
+                   Rc<Scheduler> srcQueue = nullptr);
 
     void removeIndirectDependencies(Region* region);
 
@@ -1315,7 +1315,7 @@ private:
         BindType type;
         std::string_view destDesc;
         std::string_view srcDesc;
-        RC<Scheduler> srcQueue;
+        Rc<Scheduler> srcQueue;
         uint32_t counter;
     };
 
@@ -1326,18 +1326,18 @@ private:
     };
 
     struct Region {
-        Region(BindingAddress region, RC<Scheduler> queue) : region(region), queue(std::move(queue)) {}
+        Region(BindingAddress region, Rc<Scheduler> queue) : region(region), queue(std::move(queue)) {}
 
         BindingAddress region;
         std::multimap<BindingAddress, Entry, BindingAddressCmp> entries;
         bool entriesChanged = false;
-        RC<Scheduler> queue;
+        Rc<Scheduler> queue;
 
         void disconnectIf(std::function<bool(const std::pair<BindingAddress, Entry>&)> pred);
     };
 
     uint32_t m_counter = 0;
-    std::map<const uint8_t*, RC<Region>> m_regions;
+    std::map<const uint8_t*, Rc<Region>> m_regions;
     std::vector<uint64_t> m_stack;
 
     bool inStack(uint64_t id);
@@ -1414,7 +1414,7 @@ struct BindingRegistration {
      * @param queue Reference-counted pointer to the queue.
      */
     template <typename T>
-    BindingRegistration(const T* thiz, RC<Scheduler> queue) : m_address(toBindingAddress(thiz).min()) {
+    BindingRegistration(const T* thiz, Rc<Scheduler> queue) : m_address(toBindingAddress(thiz).min()) {
         bindings->registerRegion(toBindingAddress(thiz), std::move(queue));
     }
 
@@ -1500,7 +1500,7 @@ template <typename T>
         BindingRegistration registration{ this, nullptr };
     };
 
-    RC<RegisteredValue> val = std::make_shared<RegisteredValue>(initialValue);
+    Rc<RegisteredValue> val = std::make_shared<RegisteredValue>(initialValue);
 
     return Value{
         [val]() -> T {
@@ -1818,10 +1818,10 @@ public:
 
 template <typename T>
 concept PointerToScheduler = requires(T p) {
-    { *p } -> std::convertible_to<RC<Scheduler>>;
+    { *p } -> std::convertible_to<Rc<Scheduler>>;
 };
 
-template <typename Derived, PointerToScheduler auto scheduler = static_cast<RC<Scheduler>*>(nullptr)>
+template <typename Derived, PointerToScheduler auto scheduler = static_cast<Rc<Scheduler>*>(nullptr)>
 class BindingObject : public Object, public std::enable_shared_from_this<BindingObject<Derived, scheduler>> {
 private:
     using Base = std::enable_shared_from_this<BindingObject<Derived, scheduler>>;
@@ -1841,7 +1841,7 @@ public:
 
     static void* operator new(size_t sz) {
         void* ptr = alignedAlloc(sz, cacheAlignment);
-        RC<Scheduler> sched;
+        Rc<Scheduler> sched;
         BRISK_CLANG_PRAGMA(GCC diagnostic push)
         BRISK_CLANG_PRAGMA(GCC diagnostic ignored "-Wpointer-bool-conversion")
         if constexpr (scheduler) {

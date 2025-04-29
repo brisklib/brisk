@@ -24,7 +24,7 @@
 #include <fmt/format.h>
 #include <brisk/core/Reflection.hpp>
 #include <type_traits>
-#include <brisk/core/SIMD.hpp>
+#include <brisk/core/Simd.hpp>
 #include <array>
 
 namespace Brisk {
@@ -183,7 +183,7 @@ struct Trichromatic {
     constexpr Trichromatic(double c1, double c2, double c3, ColorSpace colorSpace = ColorSpace::sRGBLinear)
         : value{ c1, c2, c3 }, colorSpace(colorSpace) {}
 
-    constexpr Trichromatic(SIMD<double, 3> value, ColorSpace colorSpace = ColorSpace::sRGBLinear)
+    constexpr Trichromatic(Simd<double, 3> value, ColorSpace colorSpace = ColorSpace::sRGBLinear)
         : value{ value }, colorSpace(colorSpace) {}
 
     Trichromatic convert(ColorSpace destSpace) const;
@@ -211,7 +211,7 @@ struct Trichromatic {
     }
 
     union {
-        SIMD<double, 3> value;
+        Simd<double, 3> value;
         std::array<double, 3> array;
     };
 
@@ -233,44 +233,44 @@ constexpr std::underlying_type_t<Illuminant> operator+(Illuminant value) {
 namespace Internal {
 
 template <typename T, size_t N>
-constexpr BRISK_INLINE SIMD<T, N> srgbGammaToLinear(SIMD<T, N> x) {
+constexpr BRISK_INLINE Simd<T, N> srgbGammaToLinear(Simd<T, N> x) {
     static_assert(std::is_floating_point_v<T>);
-    SIMD<T, N> v = abs(x);
+    Simd<T, N> v = abs(x);
     if (std::is_constant_evaluated()) {
         v = v * (v * (v * T(0.305306011) + T(0.682171111)) + T(0.012522878));
     } else {
-        SIMDMask<N> m = le(v, SIMD<T, N>(0.04045));
-        v             = select(m, v * SIMD<T, N>(0.07739938080495356),
-                               pow((v + T(0.055)) * std::nexttoward(T(0.947867298578199), T(1)), SIMD<T, N>(2.4)));
+        SimdMask<N> m = le(v, Simd<T, N>(0.04045));
+        v             = select(m, v * Simd<T, N>(0.07739938080495356),
+                               pow((v + T(0.055)) * std::nexttoward(T(0.947867298578199), T(1)), Simd<T, N>(2.4)));
     }
     return copysign(v, x);
 }
 
 template <typename T, size_t N>
-constexpr BRISK_INLINE SIMD<T, N> srgbLinearToGamma(SIMD<T, N> x) {
+constexpr BRISK_INLINE Simd<T, N> srgbLinearToGamma(Simd<T, N> x) {
     static_assert(std::is_floating_point_v<T>);
-    SIMD<T, N> v = abs(x);
+    Simd<T, N> v = abs(x);
     if (std::is_constant_evaluated()) {
-        SIMD<T, N> S1 = sqrt(v);
-        SIMD<T, N> S2 = sqrt(S1);
-        SIMD<T, N> S3 = sqrt(S2);
+        Simd<T, N> S1 = sqrt(v);
+        Simd<T, N> S2 = sqrt(S1);
+        Simd<T, N> S3 = sqrt(S2);
         v             = T(0.585122381) * S1 + T(0.783140355) * S2 - T(0.368262736) * S3;
     } else {
-        SIMDMask<N> m = le(v, SIMD<T, N>(T(0.0031308)));
+        SimdMask<N> m = le(v, Simd<T, N>(T(0.0031308)));
         v             = select(m, v * T(12.92),
-                               T(1.055) * pow(v, SIMD<T, N>(std::nexttoward(T(0.416666666666667), T(0)))) - T(0.055));
+                               T(1.055) * pow(v, Simd<T, N>(std::nexttoward(T(0.416666666666667), T(0)))) - T(0.055));
     }
     return copysign(v, x);
 }
 
 template <std::floating_point T>
 BRISK_INLINE T srgbGammaToLinear(T v) {
-    return srgbGammaToLinear(SIMD{ v }).front();
+    return srgbGammaToLinear(Simd{ v }).front();
 }
 
 template <std::floating_point T>
 BRISK_INLINE T srgbLinearToGamma(T v) {
-    return srgbLinearToGamma(SIMD{ v }).front();
+    return srgbLinearToGamma(Simd{ v }).front();
 }
 
 } // namespace Internal

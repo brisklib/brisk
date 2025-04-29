@@ -59,7 +59,7 @@ bool Clipboard::hasFormat(Format format) {
     return false;
 }
 
-auto Clipboard::registerFormat(std::string_view formatID) -> Format {
+auto Clipboard::registerFormat(std::string_view formatId) -> Format {
     LOG_WARN(clipboard, "Not implemented");
     return {};
 }

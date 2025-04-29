@@ -21,7 +21,7 @@
 #pragma once
 
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/graphics/Color.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/internal/InlineVector.hpp>
@@ -115,7 +115,7 @@ struct GradientResource {
  * @param data The gradient data to associate with the resource.
  * @return A reference-counted pointer to the newly created GradientResource.
  */
-inline RC<GradientResource> makeGradient(const GradientData& data) {
+inline Rc<GradientResource> makeGradient(const GradientData& data) {
     return rcnew GradientResource{ autoincremented<GradientResource, uint64_t>(), std::move(data) };
 }
 
@@ -211,7 +211,7 @@ public:
      * @brief Rasterizes the gradient into a GradientResource.
      * @return A reference-counted pointer to the rasterized gradient resource.
      */
-    RC<GradientResource> rasterize() const {
+    Rc<GradientResource> rasterize() const {
         return makeGradient(GradientData{ *this });
     }
 

@@ -53,7 +53,7 @@ enum class QuitCondition {
 };
 
 extern Nullable<WindowApplication> windowApplication;
-extern RC<TaskQueue> uiScheduler;
+extern Rc<TaskQueue> uiScheduler;
 
 class WindowApplication : public SerializableInterface {
 public:
@@ -72,7 +72,7 @@ public:
      *
      * @see @ref WindowApplication::run()
      */
-    [[nodiscard]] int run(RC<Window> mainWindow);
+    [[nodiscard]] int run(Rc<Window> mainWindow);
 
     /**
      * @brief Quits the application and returns from run
@@ -86,7 +86,7 @@ public:
      *
      * @param window window to add
      */
-    void addWindow(RC<Window> window, bool makeVisible = true);
+    void addWindow(Rc<Window> window, bool makeVisible = true);
 
     /**
      * @brief Adds window to the window application and open it as a modal window
@@ -94,14 +94,14 @@ public:
      * @param window window to be shown
      */
     template <std::derived_from<Window> TWindow>
-    RC<TWindow> showModalWindow(RC<TWindow> window) {
+    Rc<TWindow> showModalWindow(Rc<TWindow> window) {
         addWindow(window, false);
         modalRun(window);
         return window;
     }
 
     template <std::derived_from<Window> TWindow, typename... Args>
-    RC<TWindow> showModalWindow(Args&&... args) {
+    Rc<TWindow> showModalWindow(Args&&... args) {
         return showModalWindow(std::make_shared<TWindow>(std::forward<Args>(args)...));
     }
 
@@ -110,9 +110,9 @@ public:
      * @remark Safe to call from main or UI thread
      * @param window
      */
-    bool hasWindow(const RC<Window>& window);
+    bool hasWindow(const Rc<Window>& window);
 
-    void modalRun(RC<Window> modalWindow);
+    void modalRun(Rc<Window> modalWindow);
 
     /**
      * @brief Returns true if the main loop is active
@@ -123,7 +123,7 @@ public:
      * @brief Returns a copy of the windows list.
      * @remark Safe to call from main or UI thread
      */
-    std::vector<RC<Window>> windows() const;
+    std::vector<Rc<Window>> windows() const;
 
     /**
      * @brief Returns true if @c quit has called
@@ -136,10 +136,10 @@ public:
     void mustBeUIThread();
     double doubleClickTime() const;
     double doubleClickDistance() const;
-    RC<TaskQueue> afterRenderQueue;
-    RC<TaskQueue> onApplicationClose = rcnew TaskQueue();
+    Rc<TaskQueue> afterRenderQueue;
+    Rc<TaskQueue> onApplicationClose = rcnew TaskQueue();
     VoidFunc idleFunc();
-    void systemModal(function<void(OSWindow*)> body);
+    void systemModal(function<void(OsWindow*)> body);
     void updateAndWait();
 
     /**
@@ -175,11 +175,11 @@ private:
     void removeClosed();
 
     struct {
-        std::vector<RC<Window>> m_windows;
+        std::vector<Rc<Window>> m_windows;
     } m_mainData;
 
     struct {
-        std::vector<RC<Window>> m_windows;
+        std::vector<Rc<Window>> m_windows;
     } m_uiData;
 
     std::atomic_bool m_active{ false };
@@ -198,7 +198,7 @@ private:
     void uiThreadBody();
 
 private:
-    std::atomic<bool> m_discreteGPU      = false;
+    std::atomic<bool> m_discreteGpu      = false;
     std::atomic<int> m_syncInterval      = 1;
     std::atomic<float> m_uiScale         = 1;
     std::atomic<float> m_blueLightFilter = 0;
@@ -211,7 +211,7 @@ public:
     using This = WindowApplication;
 
     BRISK_PROPERTIES_BEGIN
-    Property<This, bool, &This::m_discreteGPU> discreteGPU;
+    Property<This, bool, &This::m_discreteGpu> discreteGpu;
     Property<This, int, &This::m_syncInterval> syncInterval;
     Property<This, float, &This::m_uiScale> uiScale;
     Property<This, float, &This::m_blueLightFilter> blueLightFilter;

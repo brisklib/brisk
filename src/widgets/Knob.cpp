@@ -129,7 +129,7 @@ Knob::Knob(Construction construction, ArgumentsView<Knob> args) : Base(construct
     args.apply(this);
 }
 
-RC<Widget> Knob::cloneThis() const {
+Rc<Widget> Knob::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

@@ -25,7 +25,7 @@
 
 namespace Brisk {
 
-OSUname osUname() {
+OsUname osUname() {
     uv_utsname_t buf;
     if (uv_os_uname(&buf) < 0)
         return {};

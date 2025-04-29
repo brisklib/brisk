@@ -54,7 +54,7 @@ void Menu::onEvent(Event& event) {
     }
 }
 
-void Menu::append(RC<Widget> widget) {
+void Menu::append(Rc<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
         it->focusOnHover = true;
         Base::append(std::move(widget));
@@ -74,7 +74,7 @@ Menu::Menu(Construction construction, ArgumentsView<Menu> args)
     args.apply(this);
 }
 
-RC<Widget> Menu::cloneThis() const {
+Rc<Widget> Menu::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

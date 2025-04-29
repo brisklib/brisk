@@ -84,7 +84,7 @@ bool SpriteAtlas::grow() {
     return true;
 }
 
-SpriteOffset SpriteAtlas::addEntry(RC<SpriteResource> sprite, uint64_t firstGeneration,
+SpriteOffset SpriteAtlas::addEntry(Rc<SpriteResource> sprite, uint64_t firstGeneration,
                                    uint64_t currentGeneration) {
     lock_quard_cond lk(m_lock);
     auto it = m_sprites.find(sprite->id);
@@ -180,7 +180,7 @@ uint32_t GradientAtlas::size() const noexcept {
     return static_cast<uint32_t>(m_data.size());
 }
 
-GradientIndex GradientAtlas::addEntry(RC<GradientResource> gradient, uint64_t firstGeneration,
+GradientIndex GradientAtlas::addEntry(Rc<GradientResource> gradient, uint64_t firstGeneration,
                                       uint64_t currentGeneration) {
     lock_quard_cond lk(m_lock);
     auto it = m_gradients.find(gradient->id);

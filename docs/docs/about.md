@@ -25,7 +25,7 @@ Brisk eliminates the need for markup languages in defining user interfaces. Inst
 For example:
 ```c++
 // Label with text defined at creation
-RC<Widget> makeLabel(std::string text) {
+Rc<Widget> makeLabel(std::string text) {
     return rcnew Widget{
         padding = 4_apx,
         classes = { "label" },
@@ -40,7 +40,7 @@ Here’s an example of creating a `Slider` widget, accompanied by a `Text` widge
 
 ```c++
 // Slider with a dynamic value display
-RC<Widget> makeSlider(float& value) {
+Rc<Widget> makeSlider(float& value) {
     return rcnew HLayout{
         rcnew Slider{
             // Bind the value of the slider to the provided 'value' variable.
@@ -82,7 +82,7 @@ In the example below, the `Text` widget binds its `text` property to a `temperat
 // Temperature widget with dynamic text and color
 float temperature = 16.f;
 
-RC<Widget> makeTemperatureWidget() {
+Rc<Widget> makeTemperatureWidget() {
     return rcnew Text{
         text = Value{ &temperature }.transform([](float t){
             return fmt::format("{:.1f}°C", t);
@@ -109,7 +109,7 @@ In addition to supporting dynamic widget properties, Brisk allows the entire wid
 // Dynamically created widget tree
 static int count = 1;
 
-RC<Widget> makeTree() {
+Rc<Widget> makeTree() {
     return rcnew VLayout{
         rcnew Text{ "Squares:" },
         Builder{ [](Widget* target){
@@ -196,7 +196,7 @@ const NameValueOrderedList<TextAlign> textAlignList{ { "Start", TextAlign::Start
 
 class Example : public Component {
 public:
-    RC<Widget> build() final {
+    Rc<Widget> build() final {
         // rcnew Widget{...} is equivalent to std::shared_ptr<Widget>(new Widget{...})
         return rcnew Widget{
             layout = Layout::Vertical,

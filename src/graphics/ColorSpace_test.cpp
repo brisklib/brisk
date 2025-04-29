@@ -26,26 +26,26 @@
 
 namespace Brisk {
 
-constexpr Range<SIMD<double, 3>, true> colorRange(ColorSpace Space) {
+constexpr Range<Simd<double, 3>, true> colorRange(ColorSpace Space) {
     if (Space == ColorSpace::CIEXYZ)
         return {
-            SIMD<double, 3>{ (0), (0), (0) },
-            SIMD<double, 3>{ (100), (100), (100) },
+            Simd<double, 3>{ (0), (0), (0) },
+            Simd<double, 3>{ (100), (100), (100) },
         };
     else if (Space == ColorSpace::CIELAB || Space == ColorSpace::OKLAB)
         return {
-            SIMD<double, 3>{ (0), (-200), (-200) },
-            SIMD<double, 3>{ (100), (200), (200) },
+            Simd<double, 3>{ (0), (-200), (-200) },
+            Simd<double, 3>{ (100), (200), (200) },
         };
     else if (Space == ColorSpace::CIELCH || Space == ColorSpace::OKLCH)
         return {
-            SIMD<double, 3>{ (0), (0), (0) },
-            SIMD<double, 3>{ (100), (100), (360) },
+            Simd<double, 3>{ (0), (0), (0) },
+            Simd<double, 3>{ (100), (100), (360) },
         };
     else // sRGB, DisplayP3, LMS
         return {
-            SIMD<double, 3>{ (0), (0), (0) }, //
-            SIMD<double, 3>{ (1), (1), (1) },
+            Simd<double, 3>{ (0), (0), (0) }, //
+            Simd<double, 3>{ (1), (1), (1) },
         };
 }
 } // namespace Brisk
@@ -60,8 +60,8 @@ public:
     bool match(const Brisk::Trichromatic& matchee) const override {
         BRISK_ASSERT(matchee.colorSpace == m_target.colorSpace);
         auto range                     = Brisk::colorRange(matchee.colorSpace);
-        Brisk::SIMD<double, 3> target  = m_target.value;
-        Brisk::SIMD<double, 3> absdiff = Brisk::abs(matchee.value - target);
+        Brisk::Simd<double, 3> target  = m_target.value;
+        Brisk::Simd<double, 3> absdiff = Brisk::abs(matchee.value - target);
         return Brisk::horizontalAll(Brisk::lt(absdiff, range.max * 0.002));
     }
 
@@ -170,7 +170,7 @@ TEST_CASE("ColorSpaces") {
 
 TEST_CASE("Colorspace Gradients") {
 
-    visualTest("oklch-gradient-nearest", { 512, 512 }, [&](RC<Image> image) {
+    visualTest("oklch-gradient-nearest", { 512, 512 }, [&](Rc<Image> image) {
         auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
         for (size_t y = 0; y < wr.height(); ++y) {
             auto line = wr.line(y);
@@ -182,7 +182,7 @@ TEST_CASE("Colorspace Gradients") {
             }
         }
     });
-    visualTest("cielab-gradient-nearest", { 512, 512 }, [&](RC<Image> image) {
+    visualTest("cielab-gradient-nearest", { 512, 512 }, [&](Rc<Image> image) {
         auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
         for (size_t y = 0; y < wr.height(); ++y) {
             auto line = wr.line(y);
@@ -194,7 +194,7 @@ TEST_CASE("Colorspace Gradients") {
             }
         }
     });
-    visualTest("cielab-gradient-clamp", { 512, 512 }, [&](RC<Image> image) {
+    visualTest("cielab-gradient-clamp", { 512, 512 }, [&](Rc<Image> image) {
         auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
         for (size_t y = 0; y < wr.height(); ++y) {
             auto line = wr.line(y);
@@ -206,7 +206,7 @@ TEST_CASE("Colorspace Gradients") {
             }
         }
     });
-    visualTest("lms-radient0", { 512, 512 }, [&](RC<Image> image) {
+    visualTest("lms-radient0", { 512, 512 }, [&](Rc<Image> image) {
         auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
         for (size_t y = 0; y < wr.height(); ++y) {
             auto line = wr.line(y);
@@ -218,7 +218,7 @@ TEST_CASE("Colorspace Gradients") {
             }
         }
     });
-    visualTest("lms-radient1", { 512, 512 }, [&](RC<Image> image) {
+    visualTest("lms-radient1", { 512, 512 }, [&](Rc<Image> image) {
         auto wr = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
         for (size_t y = 0; y < wr.height(); ++y) {
             auto line = wr.line(y);

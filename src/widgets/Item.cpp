@@ -109,7 +109,7 @@ void Item::onEvent(Event& event) {
     }
 }
 
-RC<Widget> Item::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> Item::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Item::Item(Construction construction, ArgumentsView<Item> args)
     : Base(construction, std::tuple{ Arg::tabStop = true }) {

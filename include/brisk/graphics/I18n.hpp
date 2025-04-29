@@ -21,7 +21,7 @@
 #pragma once
 
 #include <brisk/core/BasicTypes.hpp>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <cstdint>
 #include <vector>
@@ -60,7 +60,7 @@ public:
     virtual std::optional<uint32_t> next() = 0;
 };
 
-RC<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode);
+Rc<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode);
 
 class BidiTextIterator {
 public:
@@ -75,7 +75,7 @@ public:
     virtual std::optional<TextFragment> next() = 0;
 };
 
-RC<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection);
+Rc<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection);
 
 } // namespace Internal
 

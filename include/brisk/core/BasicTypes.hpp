@@ -27,7 +27,7 @@
 #include <type_traits>
 #include <cstddef>
 #include <cstdint>
-#include "RC.hpp"
+#include "Rc.hpp"
 #include "internal/Span.hpp"
 #include "internal/Constants.hpp"
 #include <bit>
@@ -846,7 +846,7 @@ struct MemberFieldTraits<Type_ Class_::*> {
 #endif
 
 template <typename T>
-struct TypeID {
+struct TypeId {
     using Type = T;
 };
 

@@ -40,7 +40,7 @@ protected:
     Trigger<size_t> m_onItemClick;
     Trigger<> m_onBecameVisible;
     void onEvent(Event& event) override;
-    void append(RC<Widget> widget) override;
+    void append(Rc<Widget> widget) override;
     Ptr cloneThis() const override;
     void close(Widget* sender) override;
     void onVisible() override;

@@ -20,11 +20,11 @@
  */
 #pragma once
 
-#include <brisk/graphics/OSWindowHandle.hpp>
+#include <brisk/graphics/OsWindowHandle.hpp>
 #include <brisk/core/Binding.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <brisk/core/RC.hpp>
-#include <brisk/graphics/OSDisplayHandle.hpp>
+#include <brisk/core/Rc.hpp>
+#include <brisk/graphics/OsDisplayHandle.hpp>
 
 namespace Brisk {
 
@@ -159,21 +159,21 @@ public:
      */
     virtual int backingScaleFactor() const                   = 0;
 
-    virtual bool containsWindow(OSWindowHandle handle) const = 0;
+    virtual bool containsWindow(OsWindowHandle handle) const = 0;
 
-    virtual OSDisplayHandle getHandle() const                = 0;
+    virtual OsDisplayHandle getHandle() const                = 0;
 
     /**
      * @brief Get all connected displays.
      * @return A vector of RC-pointers to all connected displays.
      */
-    static std::vector<RC<Display>> all();
+    static std::vector<Rc<Display>> all();
 
     /**
      * @brief Get the primary display.
      * @return An RC-pointer to the primary display.
      */
-    static RC<Display> primary();
+    static Rc<Display> primary();
 };
 
 namespace Internal {

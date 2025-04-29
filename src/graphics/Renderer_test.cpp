@@ -30,18 +30,18 @@
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/Canvas.hpp>
 
-#include <brisk/graphics/OSWindowHandle.hpp>
+#include <brisk/graphics/OsWindowHandle.hpp>
 #include <brisk/graphics/Palette.hpp>
 #ifdef BRISK_WEBGPU
-#include <brisk/graphics/WebGPU.hpp>
+#include <brisk/graphics/WebGpu.hpp>
 #endif
 
 namespace Brisk {
 
 TEST_CASE("Renderer Info", "[gpu]") {
-    expected<RC<RenderDevice>, RenderDeviceError> device_ = getRenderDevice();
+    expected<Rc<RenderDevice>, RenderDeviceError> device_ = getRenderDevice();
     REQUIRE(device_.has_value());
-    RC<RenderDevice> device = *device_;
+    Rc<RenderDevice> device = *device_;
     RenderDeviceInfo info   = device->info();
 #ifdef BRISK_DEBUG_GPU
     fmt::print("#########################################################\n");
@@ -52,29 +52,29 @@ TEST_CASE("Renderer Info", "[gpu]") {
 }
 
 TEST_CASE("Renderer devices", "[gpu]") {
-    expected<RC<RenderDevice>, RenderDeviceError> d;
+    expected<Rc<RenderDevice>, RenderDeviceError> d;
 #ifdef BRISK_D3D11
-    d = createRenderDevice(RendererBackend::D3D11, RendererDeviceSelection::HighPerformance);
+    d = createRenderDevice(RendererBackend::D3d11, RendererDeviceSelection::HighPerformance);
     REQUIRE(d.has_value());
-    fmt::print("[D3D11] HighPerformance: {}\n", (*d)->info().device);
-    d = createRenderDevice(RendererBackend::D3D11, RendererDeviceSelection::LowPower);
+    fmt::print("[D3d11] HighPerformance: {}\n", (*d)->info().device);
+    d = createRenderDevice(RendererBackend::D3d11, RendererDeviceSelection::LowPower);
     REQUIRE(d.has_value());
-    fmt::print("[D3D11] LowPower: {}\n", (*d)->info().device);
-    d = createRenderDevice(RendererBackend::D3D11, RendererDeviceSelection::Default);
+    fmt::print("[D3d11] LowPower: {}\n", (*d)->info().device);
+    d = createRenderDevice(RendererBackend::D3d11, RendererDeviceSelection::Default);
     REQUIRE(d.has_value());
-    fmt::print("[D3D11] Default: {}\n", (*d)->info().device);
+    fmt::print("[D3d11] Default: {}\n", (*d)->info().device);
 #endif
 
 #ifdef BRISK_WEBGPU
-    d = createRenderDevice(RendererBackend::WebGPU, RendererDeviceSelection::HighPerformance);
+    d = createRenderDevice(RendererBackend::WebGpu, RendererDeviceSelection::HighPerformance);
     REQUIRE(d.has_value());
-    fmt::print("[WebGPU] HighPerformance: {}\n", (*d)->info().device);
-    d = createRenderDevice(RendererBackend::WebGPU, RendererDeviceSelection::LowPower);
+    fmt::print("[WebGpu] HighPerformance: {}\n", (*d)->info().device);
+    d = createRenderDevice(RendererBackend::WebGpu, RendererDeviceSelection::LowPower);
     REQUIRE(d.has_value());
-    fmt::print("[WebGPU] LowPower: {}\n", (*d)->info().device);
-    d = createRenderDevice(RendererBackend::WebGPU, RendererDeviceSelection::Default);
+    fmt::print("[WebGpu] LowPower: {}\n", (*d)->info().device);
+    d = createRenderDevice(RendererBackend::WebGpu, RendererDeviceSelection::Default);
     REQUIRE(d.has_value());
-    fmt::print("[WebGPU] Default: {}\n", (*d)->info().device);
+    fmt::print("[WebGpu] Default: {}\n", (*d)->info().device);
 #endif
 }
 
@@ -89,7 +89,7 @@ TEST_CASE("Renderer - fonts") {
     renderTest(
         "rr-fonts", { 1200, 600 },
         [&](RenderContext& context) {
-            Canvas canvas(context, CanvasFlags::SDF);
+            Canvas canvas(context, CanvasFlags::Sdf);
 
             Rectangle rect;
             ColorF c;
@@ -123,7 +123,7 @@ TEST_CASE("Html text") {
         canvas.fillText(
             TextWithOptions("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
                             "the <small>lazy</small> dog",
-                            TextOptions::HTML),
+                            TextOptions::Html),
             Rectangle{ 30, 30, 270, 120 });
     });
 }
@@ -138,7 +138,7 @@ TEST_CASE("Renderer", "[gpu]") {
         renderTest(
             "rr-ll", frameBounds.size(),
             [&](RenderContext& context) {
-                Canvas canvas(context, CanvasFlags::SDF);
+                Canvas canvas(context, CanvasFlags::Sdf);
                 canvas.setFillPaint(LinearGradient(frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f),
                                                    Palette::Standard::green, Palette::Standard::red));
                 canvas.setStrokeColor(Palette::black);
@@ -262,7 +262,7 @@ TEST_CASE("Gradients", "[gpu]") {
 TEST_CASE("TextureFill", "[gpu]") {
     constexpr Size canvasSize{ 400, 400 };
     blendingTest("texturefill", canvasSize, [&](RenderContext& context) {
-        RC<Image> checkerboard = rcnew Image({ 20, 20 }, ImageFormat::RGBA);
+        Rc<Image> checkerboard = rcnew Image({ 20, 20 }, ImageFormat::RGBA);
         {
             auto wr = checkerboard->mapWrite<ImageFormat::RGBA>();
             wr.forPixels([](int32_t x, int32_t y, PixelRGBA8& pix) {
@@ -356,7 +356,7 @@ TEST_CASE("SetClipRect") {
 
 TEST_CASE("Multi-pass render") {
     renderTest<true, true>(
-        "MultiPass1", Size{ 256, 256 }, [&](RC<RenderEncoder> encoder, RC<ImageRenderTarget> target) {
+        "MultiPass1", Size{ 256, 256 }, [&](Rc<RenderEncoder> encoder, Rc<ImageRenderTarget> target) {
             {
                 RenderPipeline pipeline(encoder, target, Palette::transparent);
                 Canvas canvas(pipeline);
@@ -431,7 +431,7 @@ TEST_CASE("Canvas opacity") {
         gradient.addStop(1.f, Palette::red);
         canvas.setFillPaint(gradient);
         canvas.fillRect({ 0, 64, 256, 128 });
-        RC<Image> image = rcnew Image(Size{ 4, 4 });
+        Rc<Image> image = rcnew Image(Size{ 4, 4 });
         {
             auto wr = image->mapWrite();
             wr.clear(Palette::blue);
@@ -505,7 +505,7 @@ static void drawPath(Canvas& canvas, TestMode mode, Path p) {
 }
 
 TEST_CASE("Canvas optimization") {
-    constexpr CanvasFlags flags = CanvasFlags::SDF;
+    constexpr CanvasFlags flags = CanvasFlags::Sdf;
     for (TestMode mode : { Fill, Stroke, Draw }) {
         renderTest(
             "canvas-sdf1-{}"_fmt(mode), Size{ 100, 100 },
@@ -630,7 +630,7 @@ TEST_CASE("Canvas scissors") {
 
 TEST_CASE("Canvas transform") {
     renderTest("canvas-transform", Size{ 128, 64 }, [](RenderContext& context) {
-        Canvas canvas(context, CanvasFlags::SDF);
+        Canvas canvas(context, CanvasFlags::Sdf);
         canvas.setFillColor(Palette::Standard::green);
         canvas.setStrokeColor(Palette::Standard::fuchsia);
         canvas.setStrokeWidth(4.f);
@@ -642,7 +642,7 @@ TEST_CASE("Canvas transform") {
         canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
     });
     renderTest("canvas-transform2", Size{ 10, 30 }, [](RenderContext& context) {
-        Canvas canvas(context, CanvasFlags::SDF);
+        Canvas canvas(context, CanvasFlags::Sdf);
         canvas.setStrokeColor(Palette::black);
         canvas.setStrokeWidth(1.f);
         canvas.strokeLine({ 1.f, 1.f }, { 9.f, 9.f });
@@ -654,7 +654,7 @@ TEST_CASE("Canvas transform") {
 }
 
 TEST_CASE("Semitransparent fill and stroke") {
-    for (CanvasFlags flags : { CanvasFlags::None, CanvasFlags::SDF }) {
+    for (CanvasFlags flags : { CanvasFlags::None, CanvasFlags::Sdf }) {
         renderTest("canvas-semitransparent-fs", Size{ 64, 64 }, [flags](RenderContext& context) {
             Canvas canvas(context, flags);
             canvas.setFillColor(Palette::white.multiplyAlpha(0.5f));
@@ -941,7 +941,7 @@ TEST_CASE("WebGPU") {
                    wgpu::CommandBuffer commands = encoder.Finish();
                    device.GetQueue().Submit(1, &commands);
                },
-               defaultBackColor, defaultMaximumDiff, { RendererBackend::WebGPU });
+               defaultBackColor, defaultMaximumDiff, { RendererBackend::WebGpu });
 }
 #endif
 

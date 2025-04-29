@@ -70,7 +70,7 @@ PopupButton::PopupButton(Construction construction, ArgumentsView<PopupButton> a
     args.apply(this);
 }
 
-RC<Widget> PopupButton::cloneThis() const {
+Rc<Widget> PopupButton::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

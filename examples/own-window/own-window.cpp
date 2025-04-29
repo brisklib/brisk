@@ -1,8 +1,8 @@
 #define BRISK_ALLOW_OS_HEADERS 1
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <brisk/gui/GUIApplication.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/GuiApplication.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 #include <brisk/graphics/Palette.hpp>
 
 #include <GLFW/glfw3.h>
@@ -25,7 +25,7 @@ using namespace Brisk;
 using Brisk::Font;
 using Brisk::Rectangle;
 
-class OSWindowGLFW final : public OSWindow {
+class OsWindowGLFW final : public OsWindow {
 public:
     Size framebufferSize() const final {
         Size size;
@@ -33,21 +33,21 @@ public:
         return size;
     }
 
-    OSWindowHandle getHandle() const final {
+    OsWindowHandle getHandle() const final {
 #ifdef BRISK_WINDOWS
-        return OSWindowHandle(glfwGetWin32Window(win));
+        return OsWindowHandle(glfwGetWin32Window(win));
 #endif
 #ifdef BRISK_MACOS
-        return OSWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
+        return OsWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
 #endif
 #ifdef BRISK_LINUX
-        return OSWindowHandle(win);
+        return OsWindowHandle(win);
 #endif
     }
 
-    OSWindowGLFW() = default;
+    OsWindowGLFW() = default;
 
-    explicit OSWindowGLFW(GLFWwindow* win) : win(win) {}
+    explicit OsWindowGLFW(GLFWwindow* win) : win(win) {}
 
 private:
     GLFWwindow* win = nullptr;
@@ -61,9 +61,9 @@ constexpr int numWindows = 2;
 
 struct OneWindow {
     GLFWwindow* win;
-    OSWindowGLFW osWin;
-    RC<WindowRenderTarget> target;
-    RC<RenderEncoder> encoder;
+    OsWindowGLFW osWin;
+    Rc<WindowRenderTarget> target;
+    Rc<RenderEncoder> encoder;
     double previousFrameTime = -1;
     double waitTime;
     double frameInterval;
@@ -75,7 +75,7 @@ int main() {
 
     registerBuiltinFonts();
 
-    expected<RC<RenderDevice>, RenderDeviceError> device = getRenderDevice();
+    expected<Rc<RenderDevice>, RenderDeviceError> device = getRenderDevice();
     BRISK_ASSERT(device.has_value());
 
     glfwSetErrorCallback(&errorfun);
@@ -86,7 +86,7 @@ int main() {
     for (int i = 0; i < numWindows; ++i) {
         windows[i].win = glfwCreateWindow(500, 500, "test", nullptr, nullptr);
         BRISK_ASSERT(windows[i].win != nullptr);
-        windows[i].osWin = OSWindowGLFW(windows[i].win);
+        windows[i].osWin = OsWindowGLFW(windows[i].win);
     }
     SCOPE_EXIT {
         for (int i = 0; i < numWindows; ++i)
@@ -98,7 +98,7 @@ int main() {
         windows[i].target->setVSyncInterval(1);
     }
 
-    RC<RenderEncoder> encoder = (*device)->createEncoder();
+    Rc<RenderEncoder> encoder = (*device)->createEncoder();
     double sumWaitTimeR       = -1;
 
     bool exit                 = false;

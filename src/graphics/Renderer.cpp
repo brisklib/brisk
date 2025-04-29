@@ -30,27 +30,27 @@ namespace Internal {
 ImageBackend::~ImageBackend() = default;
 }
 
-static RC<RenderDevice> defaultDevice;
+static Rc<RenderDevice> defaultDevice;
 
 #ifdef BRISK_D3D11
-expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceD3D11(RendererDeviceSelection deviceSelection,
-                                                                      OSDisplayHandle display);
+expected<Rc<RenderDevice>, RenderDeviceError> createRenderDeviceD3d11(RendererDeviceSelection deviceSelection,
+                                                                      OsDisplayHandle display);
 #endif
 
 #ifdef BRISK_WEBGPU
-expected<RC<RenderDevice>, RenderDeviceError> createRenderDeviceWebGPU(
-    RendererDeviceSelection deviceSelection, OSDisplayHandle display);
+expected<Rc<RenderDevice>, RenderDeviceError> createRenderDeviceWebGpu(
+    RendererDeviceSelection deviceSelection, OsDisplayHandle display);
 #endif
 
-expected<RC<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
+expected<Rc<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
                                                                  RendererDeviceSelection deviceSelection,
-                                                                 OSDisplayHandle display) {
+                                                                 OsDisplayHandle display) {
 #ifdef BRISK_D3D11
-    if (backend == RendererBackend::D3D11)
-        return createRenderDeviceD3D11(deviceSelection, display);
+    if (backend == RendererBackend::D3d11)
+        return createRenderDeviceD3d11(deviceSelection, display);
 #endif
 #ifdef BRISK_WEBGPU
-    return createRenderDeviceWebGPU(deviceSelection, display);
+    return createRenderDeviceWebGpu(deviceSelection, display);
 #else
     return nullptr;
 #endif
@@ -70,7 +70,7 @@ void setRenderDeviceSelection(RendererBackend backend, RendererDeviceSelection s
 
 static std::recursive_mutex mutex;
 
-expected<RC<RenderDevice>, RenderDeviceError> getRenderDevice(OSDisplayHandle display) {
+expected<Rc<RenderDevice>, RenderDeviceError> getRenderDevice(OsDisplayHandle display) {
     std::lock_guard lk(mutex);
     if (!defaultDevice) {
         auto device = createRenderDevice(defaultBackend, deviceSelection, display);
@@ -86,7 +86,7 @@ void freeRenderDevice() {
     defaultDevice.reset();
 }
 
-RenderPipeline::RenderPipeline(RC<RenderEncoder> encoder, RC<RenderTarget> target,
+RenderPipeline::RenderPipeline(Rc<RenderEncoder> encoder, Rc<RenderTarget> target,
                                std::optional<ColorF> clear, Rectangle clipRect)
     : m_encoder(std::move(encoder)), m_resources(m_encoder->device()->resources()) {
     m_limits = m_encoder->device()->limits();
@@ -138,7 +138,7 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
     }
     SmallVector<SpriteOffset, 1> spriteIndices(cmd.sprites.size());
     for (size_t i = 0; i < cmd.sprites.size(); ++i) {
-        RC<SpriteResource>& sprite = cmd.sprites[i];
+        Rc<SpriteResource>& sprite = cmd.sprites[i];
         spriteIndices[i] =
             m_resources.spriteAtlas->addEntry(sprite, m_resources.firstCommand, m_resources.currentCommand);
         if (spriteIndices[i] == spriteNull) {
@@ -195,7 +195,7 @@ void RenderPipeline::setClipRect(Rectangle clipRect) {
     m_clipRect = clipRect;
 }
 
-void RenderPipeline::blit(RC<Image> image) {
+void RenderPipeline::blit(Rc<Image> image) {
 #if 1
     RenderStateEx style(ShaderType::Blit, nullptr);
     style.imageHandle = std::move(image);

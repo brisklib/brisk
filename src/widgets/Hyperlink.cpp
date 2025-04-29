@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/widgets/Hyperlink.hpp>
-#include <brisk/window/OSDialogs.hpp>
+#include <brisk/window/OsDialogs.hpp>
 
 namespace Brisk {
 void Hyperlink::onEvent(Event& event) {
@@ -34,7 +34,7 @@ void Hyperlink::onEvent(Event& event) {
     }
 }
 
-RC<Widget> Hyperlink::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> Hyperlink::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Hyperlink::Hyperlink(Construction construction, std::string url, ArgumentsView<Hyperlink> args)
     : Widget(construction,

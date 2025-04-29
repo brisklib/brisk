@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Image.hpp>
-#include <brisk/core/IO.hpp>
+#include <brisk/core/Io.hpp>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 

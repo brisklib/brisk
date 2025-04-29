@@ -21,7 +21,7 @@
 #pragma once
 
 #include <brisk/core/Utilities.hpp>
-#include <brisk/core/IO.hpp>
+#include <brisk/core/Io.hpp>
 #include <brisk/graphics/Image.hpp>
 #include <brisk/core/Exceptions.hpp>
 
@@ -48,7 +48,7 @@ inline constexpr std::initializer_list<NameValuePair<ImageCodec>> defaultNames<I
 /**
  * @brief Enum representing potential image I/O errors.
  */
-enum class ImageIOError {
+enum class ImageIoError {
     CodecError,    ///< Error related to codec processing
     InvalidFormat, ///< Error due to an invalid image format
 };
@@ -89,7 +89,7 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param image A reference-counted pointer to the image to be encoded.
  * @return A byte vector containing the encoded PNG image data.
  */
-[[nodiscard]] Bytes pngEncode(RC<Image> image);
+[[nodiscard]] Bytes pngEncode(Rc<Image> image);
 
 /**
  * @brief Encodes an image to BMP format.
@@ -97,7 +97,7 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param image A reference-counted pointer to the image to be encoded.
  * @return A byte vector containing the encoded BMP image data.
  */
-[[nodiscard]] Bytes bmpEncode(RC<Image> image);
+[[nodiscard]] Bytes bmpEncode(Rc<Image> image);
 
 /**
  * @brief Encodes an image to JPEG format.
@@ -108,7 +108,7 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param ss Optional color subsampling parameter (default is std::nullopt).
  * @return A byte vector containing the encoded JPEG image data.
  */
-[[nodiscard]] Bytes jpegEncode(RC<Image> image, std::optional<int> quality = std::nullopt,
+[[nodiscard]] Bytes jpegEncode(Rc<Image> image, std::optional<int> quality = std::nullopt,
                                std::optional<ColorSubsampling> ss = std::nullopt);
 
 /**
@@ -119,7 +119,7 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param lossless Flag indicating whether to use lossless encoding (default is false).
  * @return A byte vector containing the encoded WEBP image data.
  */
-[[nodiscard]] Bytes webpEncode(RC<Image> image, std::optional<float> quality = std::nullopt,
+[[nodiscard]] Bytes webpEncode(Rc<Image> image, std::optional<float> quality = std::nullopt,
                                bool lossless = false);
 
 /**
@@ -131,7 +131,7 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param ss Optional color subsampling parameter (default is std::nullopt).
  * @return A byte vector containing the encoded image data.
  */
-[[nodiscard]] Bytes imageEncode(ImageCodec codec, RC<Image> image, std::optional<int> quality = std::nullopt,
+[[nodiscard]] Bytes imageEncode(ImageCodec codec, Rc<Image> image, std::optional<int> quality = std::nullopt,
                                 std::optional<ColorSubsampling> ss = std::nullopt);
 
 /**
@@ -139,9 +139,9 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  *
  * @param bytes A view of the byte data representing a PNG image.
  * @param format Optional image format to use for decoding (returns original format if not specified).
- * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
+ * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIoError.
  */
-[[nodiscard]] expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes,
+[[nodiscard]] expected<Rc<Image>, ImageIoError> pngDecode(BytesView bytes,
                                                           ImageFormat format    = ImageFormat::Unknown,
                                                           bool premultiplyAlpha = false);
 
@@ -150,9 +150,9 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  *
  * @param bytes A view of the byte data representing a BMP image.
  * @param format Optional image format to use for decoding (returns original format if not specified).
- * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
+ * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIoError.
  */
-[[nodiscard]] expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes,
+[[nodiscard]] expected<Rc<Image>, ImageIoError> bmpDecode(BytesView bytes,
                                                           ImageFormat format    = ImageFormat::Unknown,
                                                           bool premultiplyAlpha = false);
 
@@ -161,9 +161,9 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  *
  * @param bytes A view of the byte data representing a JPEG image.
  * @param format Optional image format to use for decoding (returns original format if not specified).
- * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
+ * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIoError.
  */
-[[nodiscard]] expected<RC<Image>, ImageIOError> jpegDecode(BytesView bytes,
+[[nodiscard]] expected<Rc<Image>, ImageIoError> jpegDecode(BytesView bytes,
                                                            ImageFormat format = ImageFormat::Unknown);
 
 /**
@@ -171,9 +171,9 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  *
  * @param bytes A view of the byte data representing a WEBP image.
  * @param format Optional image format to use for decoding (returns original format if not specified).
- * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
+ * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIoError.
  */
-[[nodiscard]] expected<RC<Image>, ImageIOError> webpDecode(BytesView bytes,
+[[nodiscard]] expected<Rc<Image>, ImageIoError> webpDecode(BytesView bytes,
                                                            ImageFormat format    = ImageFormat::Unknown,
                                                            bool premultiplyAlpha = false);
 
@@ -183,13 +183,13 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param codec The image codec to use for decoding.
  * @param bytes A view of the byte data representing the image.
  * @param format Optional image format to use for decoding (returns original format if not specified).
- * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIOError.
+ * @return An expected result containing a reference-counted pointer to the decoded image or an ImageIoError.
  */
-[[nodiscard]] expected<RC<Image>, ImageIOError> imageDecode(ImageCodec codec, BytesView bytes,
+[[nodiscard]] expected<Rc<Image>, ImageIoError> imageDecode(ImageCodec codec, BytesView bytes,
                                                             ImageFormat format    = ImageFormat::Unknown,
                                                             bool premultiplyAlpha = false);
 
-[[nodiscard]] expected<RC<Image>, ImageIOError> imageDecode(BytesView bytes,
+[[nodiscard]] expected<Rc<Image>, ImageIoError> imageDecode(BytesView bytes,
                                                             ImageFormat format    = ImageFormat::Unknown,
                                                             bool premultiplyAlpha = false);
 

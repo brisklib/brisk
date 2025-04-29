@@ -36,11 +36,11 @@ namespace Brisk {
  * This constant defines the maximum alignment required for SIMD operations.
  */
 #ifdef BRISK_X86
-constexpr inline size_t maximumSIMDAlignment = 32;
+constexpr inline size_t maximumSimdAlignment = 32;
 #elif defined BRISK_ARM
-constexpr inline size_t maximumSIMDAlignment = 16;
+constexpr inline size_t maximumSimdAlignment = 16;
 #else
-constexpr inline size_t maximumSIMDAlignment = 16;
+constexpr inline size_t maximumSimdAlignment = 16;
 #endif
 
 /**
@@ -56,7 +56,7 @@ constexpr inline size_t cacheAlignment         = 64;
  * This constant sets the default alignment for memory allocations, which is the same as the maximum SIMD
  * alignment.
  */
-constexpr inline size_t defaultMemoryAlignment = maximumSIMDAlignment;
+constexpr inline size_t defaultMemoryAlignment = maximumSimdAlignment;
 
 namespace Internal {
 template <typename T>

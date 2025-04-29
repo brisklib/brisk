@@ -33,7 +33,7 @@
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/graphics/Canvas.hpp>
-#include <brisk/graphics/SVG.hpp>
+#include <brisk/graphics/Svg.hpp>
 #include <brisk/window/WindowApplication.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/core/Compression.hpp>
@@ -56,7 +56,7 @@ constinit bool forceRenderEveryFrame = false;
 std::atomic_bool debugShowRenderTimeline{ false };
 Window* currentWindow = nullptr;
 
-RC<Window> currentWindowPtr() {
+Rc<Window> currentWindowPtr() {
     return currentWindow ? currentWindow->shared_from_this() : nullptr;
 }
 } // namespace Internal
@@ -159,7 +159,7 @@ Size Window::getFramebufferSize() const {
 }
 
 Size Window::framebufferSize() const {
-    // OSWindow interface (Renderer)
+    // OsWindow interface (Renderer)
     return m_framebufferSize;
 }
 
@@ -281,11 +281,11 @@ Window::Window() {
     LOG_INFO(window, "Done creating Window");
 }
 
-RC<RenderDevice> Window::renderDevice() {
+Rc<RenderDevice> Window::renderDevice() {
     if (!m_renderDevice) {
-        RC<Display> display = this->display();
+        Rc<Display> display = this->display();
         auto result         = createRenderDevice(defaultBackend, deviceSelection,
-                                         display ? display->getHandle() : OSDisplayHandle{});
+                                         display ? display->getHandle() : OsDisplayHandle{});
         BRISK_ASSERT(result.has_value());
         m_renderDevice = *result;
     }
@@ -402,7 +402,7 @@ void Window::doPaint() {
 
     currentFramePresentationTime = m_nextFrameTime.value_or(currentTime());
 
-    RC<RenderTarget> target      = m_target;
+    Rc<RenderTarget> target      = m_target;
     bool bufferedRendering       = m_bufferedRendering || !m_captureCallback.empty();
     bool textureReset            = false;
     Size targetSize              = m_target->size();
@@ -484,7 +484,7 @@ void Window::doPaint() {
         m_encoder->wait();
         auto captureCallback    = std::move(m_captureCallback);
         m_captureCallback       = nullptr;
-        RC<Image> capturedFrame = m_bufferedFrameTarget->image();
+        Rc<Image> capturedFrame = m_bufferedFrameTarget->image();
 
         std::move(captureCallback)(std::move(capturedFrame));
     }
@@ -573,9 +573,9 @@ void Window::close() {
     });
 }
 
-OSWindowHandle Window::getHandle() const {
+OsWindowHandle Window::getHandle() const {
     if (!m_platformWindow)
-        return OSWindowHandle{};
+        return OsWindowHandle{};
     return m_platformWindow->getHandle();
 }
 
@@ -618,7 +618,7 @@ void Window::disableKeyHandling() {
     m_keyHandling = false;
 }
 
-void Window::captureFrame(function<void(RC<Image>)> callback) {
+void Window::captureFrame(function<void(Rc<Image>)> callback) {
     m_captureCallback = std::move(callback);
 }
 
@@ -783,7 +783,7 @@ void Window::windowNonClientClicked() {
     onNonClientClicked();
 }
 
-void Window::setOwner(RC<Window> window) {
+void Window::setOwner(Rc<Window> window) {
     m_owner = window;
     if (!m_platformWindow)
         return;
@@ -830,7 +830,7 @@ void Window::windowStateChanged(bool isIconified, bool isMaximized) {
 
 void Window::onWindowStateChanged(bool isIconified, bool isMaximized) {}
 
-RC<WindowRenderTarget> Window::target() const {
+Rc<WindowRenderTarget> Window::target() const {
     return m_target;
 }
 
@@ -850,8 +850,8 @@ bool Window::forceRenderEveryFrame() const noexcept {
     return m_forceRenderEveryFrame;
 }
 
-RC<Display> Window::display() const {
-    OSWindowHandle handle = getHandle();
+Rc<Display> Window::display() const {
+    OsWindowHandle handle = getHandle();
     if (!handle)
         return nullptr;
     for (auto display : Display::all())

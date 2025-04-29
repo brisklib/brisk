@@ -64,7 +64,7 @@ public:
 static Size defaultSize{ 360, 120 };
 static float defaultPixelRatio = 2.f;
 
-static void widgetTest(const std::string& name, RC<Widget> widget, std::initializer_list<Event> events = {},
+static void widgetTest(const std::string& name, Rc<Widget> widget, std::initializer_list<Event> events = {},
                        Size size = defaultSize, float pixelRatio = defaultPixelRatio,
                        ColorW winColor = 0x131419_rgb) {
     InputQueue input;
@@ -158,7 +158,7 @@ TEST_CASE("Widget Button with emoji") {
 
 TEST_CASE("Widget Button with SVG") {
     widgetTest("widget-button-svg",
-               rcnew Button{ rcnew SVGImageView{
+               rcnew Button{ rcnew SvgImageView{
                    R"SVG(<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
     <path d="M106.809 115a13.346 13.346 0 0 1 0-18.356h-80.9a4.71 4.71 0 0 0-4.71 4.71v8.936a4.71 4.71 0 0
     0 4.71 4.71z" fill="#dbedff"/><path fill="#f87c68" d="M42.943

@@ -50,7 +50,7 @@ static png_uint_32 toPNGFormat(PixelFormat fmt) {
                      PNG_FORMAT_GRAY);
 }
 
-Bytes pngEncode(RC<Image> image) {
+Bytes pngEncode(Rc<Image> image) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("PNG codec doesn't support encoding {} format", image->format()));
     }
@@ -77,7 +77,7 @@ Bytes pngEncode(RC<Image> image) {
     }
 }
 
-expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
+expected<Rc<Image>, ImageIoError> pngDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("PNG codec doesn't support decoding to {} format", format));
     }
@@ -86,21 +86,21 @@ expected<RC<Image>, ImageIOError> pngDecode(BytesView bytes, ImageFormat format,
     memset(&pngimage, 0, sizeof(pngimage));
     pngimage.version = PNG_IMAGE_VERSION;
     if (!png_image_begin_read_from_memory(&pngimage, bytes.data(), bytes.size())) {
-        return unexpected(ImageIOError::CodecError);
+        return unexpected(ImageIoError::CodecError);
     }
     if (pixelFormat != PixelFormat::Unknown) {
         pngimage.format = toPNGFormat(pixelFormat);
     } else {
         pixelFormat = fromPNGFormat(pngimage.format);
         if (pixelFormat == PixelFormat::Unknown) {
-            return unexpected(ImageIOError::InvalidFormat);
+            return unexpected(ImageIoError::InvalidFormat);
         }
     }
-    RC<Image> image =
+    Rc<Image> image =
         rcnew Image(Size(pngimage.width, pngimage.height), imageFormat(PixelType::U8Gamma, pixelFormat));
     auto w = image->mapWrite();
     if (!png_image_finish_read(&pngimage, nullptr, w.data(), w.byteStride(), nullptr)) {
-        return unexpected(ImageIOError::CodecError);
+        return unexpected(ImageIoError::CodecError);
     }
     if (premultiplyAlpha)
         w.premultiplyAlpha();

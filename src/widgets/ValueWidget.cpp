@@ -37,7 +37,7 @@ ValueWidget::ValueWidget(Construction construction, ArgumentsView<ValueWidget> a
     args.apply(this);
 }
 
-RC<Widget> ValueWidget::cloneThis() const {
+Rc<Widget> ValueWidget::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

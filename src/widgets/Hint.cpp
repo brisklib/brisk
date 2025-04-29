@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-RC<Widget> Hint::cloneThis() const {
+Rc<Widget> Hint::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

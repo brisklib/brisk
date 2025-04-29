@@ -24,7 +24,7 @@
 namespace Brisk {
 
 static const uint32_t crctable[256] = {
-#include <brisk/core/internal/crctable.inc.hpp>
+#include <brisk/core/internal/CrcTable.inc.hpp>
 };
 
 uint32_t crc32(BytesView data, uint32_t crc) {

@@ -80,7 +80,7 @@ Button::Button(Construction construction, ArgumentsView<Button> args) : Widget{ 
     args.apply(this);
 }
 
-RC<Widget> Button::cloneThis() const {
+Rc<Widget> Button::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

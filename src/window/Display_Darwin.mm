@@ -115,7 +115,7 @@ public:
         return m_backingScaleFactor;
     }
 
-    bool containsWindow(OSWindowHandle handle) const {
+    bool containsWindow(OsWindowHandle handle) const {
         NSScreen* windowScreen = [handle.nsWindow() screen];
         if (!windowScreen) {
             return false;
@@ -131,8 +131,8 @@ public:
         return (CGDirectDisplayID)[screenNumber unsignedIntValue] == m_dispId;
     }
 
-    OSDisplayHandle getHandle() const {
-        return OSDisplayHandle(m_dispId);
+    OsDisplayHandle getHandle() const {
+        return OsDisplayHandle(m_dispId);
     }
 
 private:
@@ -163,20 +163,20 @@ private:
 };
 
 static std::shared_mutex displayMutex;
-static std::map<uint32_t, RC<DisplayMacos>> allDisplays;
-static RC<DisplayMacos> primaryDisplay;
+static std::map<uint32_t, Rc<DisplayMacos>> allDisplays;
+static Rc<DisplayMacos> primaryDisplay;
 static uint32_t counter = 0;
 
-std::vector<RC<Display>> Display::all() {
+std::vector<Rc<Display>> Display::all() {
     std::shared_lock lk(displayMutex);
-    std::vector<RC<Display>> result;
+    std::vector<Rc<Display>> result;
     for (auto [k, d] : allDisplays) {
         result.push_back(std::move(d));
     }
     return result;
 }
 
-RC<Display> Display::primary() {
+Rc<Display> Display::primary() {
     std::shared_lock lk(displayMutex);
     return primaryDisplay;
 }
@@ -370,7 +370,7 @@ void Internal::updateDisplays() {
             continue;
 
         bool isPrimary        = primaryDisplay == nullptr;
-        RC<DisplayMacos>& mon = allDisplays[unitNumber];
+        Rc<DisplayMacos>& mon = allDisplays[unitNumber];
         if (mon == nullptr)
             mon = rcnew DisplayMacos(unitNumber, fromNSSize((NSSize)physSize));
         std::unique_lock lk(mon->m_mutex);

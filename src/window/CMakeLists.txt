@@ -23,13 +23,13 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/window/WindowApplication.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/window/Types.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/window/Window.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/window/OSDialogs.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/window/OsDialogs.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/window/Clipboard.hpp
     ${PROJECT_SOURCE_DIR}/src/window/PlatformWindow.hpp
     ${PROJECT_SOURCE_DIR}/src/window/WindowApplication.cpp
     ${PROJECT_SOURCE_DIR}/src/window/PlatformWindow.cpp
     ${PROJECT_SOURCE_DIR}/src/window/Window.cpp
-    ${PROJECT_SOURCE_DIR}/src/window/OSDialogs${PLATFORM_SPECIFIC_CPP}
+    ${PROJECT_SOURCE_DIR}/src/window/OsDialogs${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/window/Types.cpp
     ${PROJECT_SOURCE_DIR}/src/window/PlatformWindow${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/window/Clipboard${PLATFORM_SPECIFIC_CPP}

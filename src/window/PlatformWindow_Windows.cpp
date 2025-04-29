@@ -32,7 +32,7 @@
 #include <brisk/window/Window.hpp>
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Time.hpp>
-#include <brisk/graphics/OSWindowHandle.hpp>
+#include <brisk/graphics/OsWindowHandle.hpp>
 #include <brisk/core/System.hpp>
 
 #include <brisk/core/platform/SystemWindows.hpp>
@@ -373,7 +373,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         const Size scaledMinSize = m_minSize;
         const Size scaledMaxSize = m_maxSize;
 
-        if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+        if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
             AdjustWindowRectExForDpi(&frame, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
         } else {
             AdjustWindowRectEx(&frame, style, FALSE, exStyle);
@@ -492,7 +492,7 @@ static LRESULT CALLBACK windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
     PlatformWindow* window = reinterpret_cast<PlatformWindow*>(GetPropW(hWnd, propKey));
     if (!window) {
         if (uMsg == WM_NCCREATE) {
-            if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+            if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
                 EnableNonClientDpiScaling(hWnd);
             }
         }
@@ -536,7 +536,7 @@ static bool createHelperWindow() {
 }
 
 /*static*/ void PlatformWindow::initialize() {
-    if (isOSWindows10(Windows10Version::CreatorsUpdate))
+    if (isOsWindows10(Windows10Version::CreatorsUpdate))
         SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     else
         SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
@@ -555,8 +555,8 @@ void PlatformWindow::setWindowIcon() {
     SendMessageW(m_data->hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 }
 
-OSWindowHandle PlatformWindow::getHandle() const {
-    return OSWindowHandle(m_data->hWnd);
+OsWindowHandle PlatformWindow::getHandle() const {
+    return OsWindowHandle(m_data->hWnd);
 }
 
 Bytes PlatformWindow::placement() const {
@@ -580,7 +580,7 @@ void PlatformWindow::setPlacement(BytesView data) {
     }
 }
 
-void PlatformWindow::setOwner(RC<Window> window) {
+void PlatformWindow::setOwner(Rc<Window> window) {
     if (window && window->m_platformWindow) {
         SetWindowLongPtrW(m_data->hWnd, GWLP_HWNDPARENT, (LONG_PTR)window->m_platformWindow->m_data->hWnd);
     } else {
@@ -619,7 +619,7 @@ bool PlatformWindow::createWindow() {
     DWORD style   = getWindowStyle(m_windowStyle);
     DWORD exStyle = getWindowExStyle(m_windowStyle);
 
-    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
         AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, primaryDpi.x);
     } else {
         AdjustWindowRectEx(&rect, style, FALSE, exStyle);
@@ -657,7 +657,7 @@ bool PlatformWindow::createWindow() {
         // Only update the restored window rect as the window may be maximized
         rect    = { 0, 0, size.width, size.height };
 
-        if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+        if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
             AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
         } else {
             AdjustWindowRectEx(&rect, style, FALSE, exStyle);
@@ -712,7 +712,7 @@ void PlatformWindow::setTitle(std::string_view title) {
 void PlatformWindow::setSize(Size size) {
     RECT rect = { 0, 0, size.x, size.y };
 
-    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
         AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle),
                                  GetDpiForWindow(m_data->hWnd));
     } else {
@@ -726,7 +726,7 @@ void PlatformWindow::setSize(Size size) {
 void PlatformWindow::setPosition(Point point) {
     RECT rect = { point.x, point.y, point.x, point.y };
 
-    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
         AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle),
                                  GetDpiForWindow(m_data->hWnd));
     } else {
@@ -764,7 +764,7 @@ void PlatformWindow::setStyle(WindowStyle windowStyle) {
 
     GetClientRect(m_data->hWnd, &rect);
 
-    if (isOSWindows10(Windows10Version::AnniversaryUpdate)) {
+    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
         AdjustWindowRectExForDpi(&rect, style, FALSE, getWindowExStyle(m_windowStyle),
                                  GetDpiForWindow(m_data->hWnd));
     } else {
@@ -877,11 +877,11 @@ static HICON createIcon(const ImageAccess<ImageFormat::RGBA, AccessMode::R>& ima
     return handle;
 }
 
-RC<SystemCursor> PlatformCursors::cursorFromImage(const RC<Image>& image, Point point, float scale) {
+Rc<SystemCursor> PlatformCursors::cursorFromImage(const Rc<Image>& image, Point point, float scale) {
     return rcnew SystemCursor{ createIcon(image->mapRead<ImageFormat::RGBA>(), point.x, point.y, true) };
 }
 
-RC<SystemCursor> PlatformCursors::getSystemCursor(Cursor shape) {
+Rc<SystemCursor> PlatformCursors::getSystemCursor(Cursor shape) {
     int id = 0;
 
     switch (shape) {
