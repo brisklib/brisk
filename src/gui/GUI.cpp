@@ -230,11 +230,12 @@ public:
     }
 
     yoga::Overflow overflow() const final {
-        static_assert(static_cast<int>(Overflow::None) == static_cast<int>(yoga::Overflow::None));
-        static_assert(static_cast<int>(Overflow::ScrollX) == static_cast<int>(yoga::Overflow::AllowRow));
-        static_assert(static_cast<int>(Overflow::ScrollY) == static_cast<int>(yoga::Overflow::AllowColumn));
-        static_assert(static_cast<int>(Overflow::ScrollBoth) == static_cast<int>(yoga::Overflow::Allow));
-        return static_cast<yoga::Overflow>(m_widget->m_overflow);
+        yoga::Overflow result = yoga::Overflow::None;
+        if (m_widget->m_contentOverflow.x == ContentOverflow::Allow)
+            result |= yoga::Overflow::AllowRow;
+        if (m_widget->m_contentOverflow.y == ContentOverflow::Allow)
+            result |= yoga::Overflow::AllowColumn;
+        return result;
     }
 
     yoga::Display display() const final {
@@ -1143,20 +1144,25 @@ Widget::ScrollBarGeometry Widget::scrollBarGeometry(Orientation orientation) con
     Size trackSize(m_scrollBarThickness.resolved, m_scrollBarThickness.resolved);
     trackSize[+orientation] = m_rect.size()[+orientation];
     Rectangle track         = m_rect.alignedRect(trackSize, { 1.f, 1.f });
-    Rectangle thumb         = track;
-    thumb.p1[+orientation]  = track.p1[+orientation] + range.min;
-    thumb.p2[+orientation]  = track.p1[+orientation] + range.max;
+    Rectangle thumb{};
+    if (range.distance() < trackSize[+orientation] && range.distance() > 0) {
+        thumb                  = track;
+        thumb.p1[+orientation] = track.p1[+orientation] + range.min;
+        thumb.p2[+orientation] = track.p1[+orientation] + range.max;
+    }
     return { track, thumb };
 }
 
 void Widget::paintScrollBar(Canvas& canvas, Orientation orientation,
                             const ScrollBarGeometry& geometry) const {
-    if (isHovered()) {
+    if (isHovered() || m_overflowScroll[+orientation] == OverflowScroll::Enable) {
         canvas.setFillColor(m_scrollBarColor.current.multiplyAlpha(0.25f));
         canvas.fillRect(geometry.track);
     }
-    canvas.setFillColor(m_scrollBarColor.current.multiplyAlpha(isHovered() ? 1.f : 0.5f));
-    canvas.fillRect(geometry.thumb, m_scrollBarRadius.resolved);
+    if (!geometry.thumb.empty()) {
+        canvas.setFillColor(m_scrollBarColor.current.multiplyAlpha(isHovered() ? 1.f : 0.5f));
+        canvas.fillRect(geometry.thumb, m_scrollBarRadius.resolved);
+    }
 }
 
 void Widget::paintScrollBars(Canvas& canvas) const {
@@ -1366,7 +1372,7 @@ void Widget::onEvent(Event& event) {
 #endif
 
     for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
-        if (!hasScrollBar(orientation))
+        if (scrollSize(orientation) <= 0)
             continue;
         if (float d = event.wheelScrolled(
                 static_cast<WheelOrientation>( // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
@@ -1491,7 +1497,7 @@ void Widget::updateGeometry(HitTestMap::State& state) {
 }
 
 bool Widget::hasScrollBar(Orientation orientation) const noexcept {
-    return scrollSize(orientation) > 0;
+    return m_overflowScroll[+orientation] == OverflowScroll::Enable || scrollSize(orientation) > 0;
 }
 
 Size Widget::scrollSize() const noexcept {
@@ -1499,11 +1505,9 @@ Size Widget::scrollSize() const noexcept {
 }
 
 int Widget::scrollSize(Orientation orientation) const noexcept {
-    if (orientation == Orientation::Horizontal && !(overflow.get() && Overflow::ScrollX))
+    if (m_overflowScroll[+orientation] == OverflowScroll::Disable)
         return 0;
-    if (orientation == Orientation::Vertical && !(overflow.get() && Overflow::ScrollY))
-        return 0;
-    if (m_contentSize[+orientation] <= 0 || m_contentSize[+orientation] <= m_rect.size()[+orientation])
+    if (m_contentSize[+orientation] <= m_rect.size()[+orientation])
         return 0;
 
     return m_contentSize[+orientation] - m_rect.size()[+orientation];
@@ -1513,6 +1517,9 @@ Range<int> Widget::scrollBarRange(Orientation orientation) const noexcept {
     int offset      = scrollOffset(orientation);
     int contentSize = m_contentSize[+orientation];
     int boxSize     = m_rect.size()[+orientation];
+    if (contentSize < boxSize) {
+        return { 0, boxSize };
+    }
     if (contentSize == 0 || contentSize == boxSize)
         return { -16777216, -16777216 };
 
@@ -1527,7 +1534,7 @@ Range<int> Widget::scrollBarRange(Orientation orientation) const noexcept {
 void Widget::updateScrollAxes() {
     Point offset = scrollOffset();
     for (Orientation o : { Orientation::Horizontal, Orientation::Vertical }) {
-        if (!hasScrollBar(o)) {
+        if (scrollSize(o) <= 0) {
             offset[+o] = 0;
         }
     }
@@ -2314,8 +2321,8 @@ void Widget::reveal() {
 
 void Widget::revealChild(Widget* child) {
     for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
-        if (hasScrollBar(orientation)) {
-            float scrollSize        = this->scrollSize(orientation);
+        float scrollSize = this->scrollSize(orientation);
+        if (scrollSize > 0) {
             Rectangle containerRect = m_rect;
             Rectangle childRect     = child->rect();
             int32_t offset          = childRect.p1[+orientation] - containerRect.p1[+orientation];
@@ -2862,7 +2869,12 @@ template void instantiateProp<decltype(Widget::layoutOrder)>();
 template void instantiateProp<decltype(Widget::layout)>();
 template void instantiateProp<decltype(Widget::letterSpacing)>();
 template void instantiateProp<decltype(Widget::opacity)>();
-template void instantiateProp<decltype(Widget::overflow)>();
+template void instantiateProp<decltype(Widget::overflowScrollX)>();
+template void instantiateProp<decltype(Widget::overflowScrollY)>();
+template void instantiateProp<decltype(Widget::overflowScroll)>();
+template void instantiateProp<decltype(Widget::contentOverflowX)>();
+template void instantiateProp<decltype(Widget::contentOverflowY)>();
+template void instantiateProp<decltype(Widget::contentOverflow)>();
 template void instantiateProp<decltype(Widget::placement)>();
 template void instantiateProp<decltype(Widget::shadowSize)>();
 template void instantiateProp<decltype(Widget::shadowOffset)>();
@@ -2968,7 +2980,12 @@ const Argument<Tag::PropArg<decltype(Widget::margin)>> margin{};
 const Argument<Tag::PropArg<decltype(Widget::maxDimensions)>> maxDimensions{};
 const Argument<Tag::PropArg<decltype(Widget::minDimensions)>> minDimensions{};
 const Argument<Tag::PropArg<decltype(Widget::opacity)>> opacity{};
-const Argument<Tag::PropArg<decltype(Widget::overflow)>> overflow{};
+const Argument<Tag::PropArg<decltype(Widget::overflowScrollX)>> overflowScrollX{};
+const Argument<Tag::PropArg<decltype(Widget::overflowScrollY)>> overflowScrollY{};
+const Argument<Tag::PropArg<decltype(Widget::overflowScroll)>> overflowScroll{};
+const Argument<Tag::PropArg<decltype(Widget::contentOverflowX)>> contentOverflowX{};
+const Argument<Tag::PropArg<decltype(Widget::contentOverflowY)>> contentOverflowY{};
+const Argument<Tag::PropArg<decltype(Widget::contentOverflow)>> contentOverflow{};
 const Argument<Tag::PropArg<decltype(Widget::padding)>> padding{};
 const Argument<Tag::PropArg<decltype(Widget::placement)>> placement{};
 const Argument<Tag::PropArg<decltype(Widget::shadowSize)>> shadowSize{};

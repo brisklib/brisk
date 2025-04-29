@@ -334,7 +334,7 @@ template <typename Callable, typename R, typename... Args>
 concept invocable_r = std::is_invocable_r_v<R, Callable, Args...>;
 
 namespace Internal {
-constexpr inline size_t numProperties = 105;
+constexpr inline size_t numProperties = 111;
 extern const std::string_view propNames[numProperties];
 
 template <typename T, int subfield = -1>
@@ -1139,7 +1139,8 @@ protected:
     Placement m_placement               = Placement::Normal;
     ZOrder m_zorder                     = ZOrder::Normal;
     WidgetClip m_clip                   = WidgetClip::Normal;
-    Overflow m_overflow                 = Overflow::None;
+    OverflowScrollBoth m_overflowScroll{ OverflowScroll::Disable, OverflowScroll::Disable };
+    ContentOverflowBoth m_contentOverflow{ ContentOverflow::Default, ContentOverflow::Default };
     AlignContent m_alignContent         = AlignContent::FlexStart;
     Wrap m_flexWrap                     = Wrap::NoWrap;
     BoxSizingPerAxis m_boxSizing        = BoxSizingPerAxis::BorderBox;
@@ -1441,7 +1442,7 @@ public:
     GUIProperty<49, SizeL, AffectLayout, &This::m_minDimensions, 0> minWidth;
     GUIProperty<50, SizeL, AffectLayout, &This::m_minDimensions, 1> minHeight;
     GUIProperty<51, float, AffectPaint, &This::m_opacity> opacity;
-    GUIProperty<52, Overflow, AffectLayout, &This::m_overflow> overflow;
+    // 52 unused
     GUIProperty<53, EdgesL, AffectLayout, &This::m_padding, 0> paddingLeft;
     GUIProperty<54, EdgesL, AffectLayout, &This::m_padding, 1> paddingTop;
     GUIProperty<55, EdgesL, AffectLayout, &This::m_padding, 2> paddingRight;
@@ -1519,6 +1520,18 @@ public:
     GUIProperty<103, Length, Resolvable | AffectPaint, &This::m_scrollBarRadius> scrollBarRadius;
     GUIProperty<104, float, AffectPaint, &This::m_shadowSpread> shadowSpread;
 
+    GUIProperty<105, OverflowScrollBoth, AffectLayout, &This::m_overflowScroll, 0> overflowScrollX;
+    GUIProperty<106, OverflowScrollBoth, AffectLayout, &This::m_overflowScroll, 1> overflowScrollY;
+    GUIPropertyCompound<107, OverflowScrollBoth, AffectLayout, &This::m_overflowScroll,
+                        decltype(overflowScrollX), decltype(overflowScrollY)>
+        overflowScroll;
+
+    GUIProperty<108, ContentOverflowBoth, AffectLayout, &This::m_contentOverflow, 0> contentOverflowX;
+    GUIProperty<109, ContentOverflowBoth, AffectLayout, &This::m_contentOverflow, 1> contentOverflowY;
+    GUIPropertyCompound<110, ContentOverflowBoth, AffectLayout, &This::m_contentOverflow,
+                        decltype(contentOverflowX), decltype(contentOverflowY)>
+        contentOverflow;
+
     Property<This, Trigger<>, &This::m_onClick> onClick;
     Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;
 
@@ -1593,7 +1606,12 @@ extern const Argument<Tag::PropArg<decltype(Widget::margin)>> margin;
 extern const Argument<Tag::PropArg<decltype(Widget::maxDimensions)>> maxDimensions;
 extern const Argument<Tag::PropArg<decltype(Widget::minDimensions)>> minDimensions;
 extern const Argument<Tag::PropArg<decltype(Widget::opacity)>> opacity;
-extern const Argument<Tag::PropArg<decltype(Widget::overflow)>> overflow;
+extern const Argument<Tag::PropArg<decltype(Widget::overflowScrollX)>> overflowScrollX;
+extern const Argument<Tag::PropArg<decltype(Widget::overflowScrollY)>> overflowScrollY;
+extern const Argument<Tag::PropArg<decltype(Widget::overflowScroll)>> overflowScroll;
+extern const Argument<Tag::PropArg<decltype(Widget::contentOverflowX)>> contentOverflowX;
+extern const Argument<Tag::PropArg<decltype(Widget::contentOverflowY)>> contentOverflowY;
+extern const Argument<Tag::PropArg<decltype(Widget::contentOverflow)>> contentOverflow;
 extern const Argument<Tag::PropArg<decltype(Widget::padding)>> padding;
 extern const Argument<Tag::PropArg<decltype(Widget::placement)>> placement;
 extern const Argument<Tag::PropArg<decltype(Widget::shadowSize)>> shadowSize;

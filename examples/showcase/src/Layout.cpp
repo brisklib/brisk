@@ -5,10 +5,10 @@ namespace Brisk {
 
 RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
     return rcnew VLayout{
-        flexGrow = 1,
-        padding  = 16_apx,
-        gapRow   = 8_apx,
-        overflow = Overflow::ScrollX,
+        flexGrow         = 1,
+        padding          = 16_apx,
+        gapRow           = 8_apx,
+        contentOverflowX = ContentOverflow::Allow,
 
         rcnew Text{ "flexWrap = Wrap::Wrap", classes = { "section-header" } },
         rcnew HLayout{

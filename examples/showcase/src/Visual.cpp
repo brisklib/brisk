@@ -63,8 +63,8 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 rcnew Slider{ value = Value{ &m_fontSize }, minimum = 0.25f, maximum = 4.f, width = 300_apx },
             },
-            // Overflow::ScrollX prevents this widget from stretching because of Text
-            overflow = Overflow::ScrollX,
+            // contentOverflowX prevents this widget from stretching because of Text
+            contentOverflowX = ContentOverflow::Allow,
             rcnew Text{
                 loremIpsumShort,
                 wordWrap  = true,

@@ -446,22 +446,27 @@ constexpr auto operator+(Wrap value) noexcept {
 }
 
 /**
- * @brief Specifies the overflow behavior for the flex container.
- *
- * Defines how content overflow is handled in the flex container.
+ * @enum OverflowScroll
+ * @brief Defines the visibility of scrollbars for a container.
  */
-enum class Overflow : uint8_t {
-    None       = 0, /**< No scrolling is allowed. */
-    ScrollX    = 1, /**< Scrolling is enabled along the horizontal axis. */
-    ScrollY    = 2, /**< Scrolling is enabled along the vertical axis. */
-    ScrollBoth = 3, /**< Scrolling is enabled along both axes. */
+enum class OverflowScroll : uint8_t {
+    Disable, ///< Scrollbars are always hidden.
+    Enable,  ///< Scrollbars are always visible.
+    Auto,    ///< Scrollbars are visible only when content overflows.
 };
 
+using OverflowScrollBoth = PointOf<OverflowScroll>;
+
 /**
- * @brief Template specialization indicating that Overflow is a bitflag type.
+ * @enum ContentOverflow
+ * @brief Defines how content overflow affects container sizing.
  */
-template <>
-constexpr inline bool isBitFlags<Overflow> = true;
+enum class ContentOverflow : uint8_t {
+    Default, ///< Default sizing behavior is applied.
+    Allow,   ///< Content overflow does not affect the container's size.
+};
+
+using ContentOverflowBoth = PointOf<ContentOverflow>;
 
 /**
  * @brief Specifies the gutter (spacing) direction for the flex container.

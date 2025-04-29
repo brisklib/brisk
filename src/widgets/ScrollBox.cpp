@@ -24,9 +24,14 @@ namespace Brisk {
 
 ScrollBox::ScrollBox(Construction construction, Orientation orientation, ArgumentsView<ScrollBox> args)
     : Widget{ construction,
-              std::tuple{ Arg::overflow =
-                              orientation == Orientation::Horizontal ? Overflow::ScrollX : Overflow::ScrollY,
-                          Arg::alignItems = AlignItems::FlexStart } } {
+              std::tuple{
+                  Arg::overflowScroll =
+                      OverflowScrollBoth{ OverflowScroll::Disable, OverflowScroll::Enable }.flippedIf(
+                          orientation == Orientation::Horizontal),
+                  Arg::contentOverflow =
+                      ContentOverflowBoth{ ContentOverflow::Default, ContentOverflow::Allow }.flippedIf(
+                          orientation == Orientation::Horizontal),
+                  Arg::alignItems = AlignItems::FlexStart } } {
     args.apply(this);
 }
 
