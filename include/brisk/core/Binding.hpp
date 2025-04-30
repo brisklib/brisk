@@ -886,6 +886,8 @@ struct BindableCallback {
     Callback<Args...> callback;
     BindingAddress address; ///< The associated binding address.
 
+    constexpr BindableCallback() noexcept : address{} {}
+
     constexpr BindableCallback(Callback<Args...> callback, BindingAddress address)
         : callback(std::move(callback)), address(address) {}
 
