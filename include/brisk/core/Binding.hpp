@@ -387,22 +387,22 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<T> listener, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<T> callback, BindingAddress range) {
         return Value{
             nullptr,
-            [listener = std::move(listener)](T newValue) {
-                listener(std::move(newValue));
+            [callback = std::move(callback)](T newValue) {
+                callback(std::move(newValue));
             },
             { range },
             range,
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<> listener, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<> callback, BindingAddress range) {
         return Value{
             nullptr,
-            [listener = std::move(listener)](T newValue) {
-                listener();
+            [callback = std::move(callback)](T newValue) {
+                callback();
             },
             { range },
             range,
@@ -882,22 +882,22 @@ private:
 };
 
 template <typename... Args>
-struct Listener {
+struct BindableCallback {
     Callback<Args...> callback;
     BindingAddress address; ///< The associated binding address.
 
-    constexpr Listener(Callback<Args...> callback, BindingAddress address)
+    constexpr BindableCallback(Callback<Args...> callback, BindingAddress address)
         : callback(std::move(callback)), address(address) {}
 
     template <typename Class>
-    constexpr Listener(Class* class_, void (Class::*method)(Args...))
+    constexpr BindableCallback(Class* class_, void (Class::*method)(Args...))
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
           address(toBindingAddress(class_)) {}
 
     template <typename Class>
-    constexpr Listener(const Class* class_, void (Class::*method)(Args...) const)
+    constexpr BindableCallback(const Class* class_, void (Class::*method)(Args...) const)
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
@@ -1078,13 +1078,13 @@ public:
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, Listener<> callback, BindType type = BindType::Immediate) {
+    BindingHandle listen(Value<T> src, BindableCallback<> callback, BindType type = BindType::Immediate) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, Listener<ValueArgument<T>> callback,
+    BindingHandle listen(Value<T> src, BindableCallback<ValueArgument<T>> callback,
                          BindType type = BindType::Immediate) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
@@ -1465,29 +1465,30 @@ inline BindingLifetime lifetimeOf(T* thiz) noexcept {
 }
 
 template <typename Fn>
-using DeduceListener = typename Internal::DeduceArgs<decltype(&Fn::operator()), Listener>::Type;
+using DeduceBindableCallback =
+    typename Internal::DeduceArgs<decltype(&Fn::operator()), BindableCallback>::Type;
 
 /**
- * @brief Combines a BindingRegistration with a callback to create a listener.
+ * @brief Combines a BindingRegistration with a callback to create a bindable callback.
  * @tparam Fn Type of the callback function.
  * @param reg The BindingRegistration instance providing the address.
  * @param callback The callback function to associate.
- * @return A deduced listener type combining the callback and registration address.
+ * @return A deduced bindable callback type combining the callback and registration address.
  */
 template <typename Fn>
-inline constexpr DeduceListener<Fn> operator|(const BindingRegistration& reg, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration& reg, Fn callback) {
     return { std::move(callback), reg.m_address };
 }
 
 /**
- * @brief Combines a BindingLifetime with a callback to create a listener.
+ * @brief Combines a BindingLifetime with a callback to create a bindable callback.
  * @tparam Fn Type of the callback function.
  * @param lt The BindingLifetime instance providing the address.
  * @param callback The callback function to associate.
- * @return A deduced listener type combining the callback and lifetime address.
+ * @return A deduced bindable callback type combining the callback and lifetime address.
  */
 template <typename Fn>
-inline constexpr DeduceListener<Fn> operator|(const BindingLifetime& lt, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingLifetime& lt, Fn callback) {
     return { std::move(callback), toBindingAddress(lt.m_address) };
 }
 
@@ -1782,12 +1783,12 @@ public:
         set(std::move(value));
     }
 
-    void operator=(Listener<> listener) {
-        bindings->listen(Value{ this }, std::move(listener));
+    void operator=(BindableCallback<> bindableCallback) {
+        bindings->listen(Value{ this }, std::move(bindableCallback));
     }
 
-    void operator=(Listener<ValueArgument<T>> listener) {
-        bindings->listen(Value{ this }, std::move(listener));
+    void operator=(BindableCallback<ValueArgument<T>> bindableCallback) {
+        bindings->listen(Value{ this }, std::move(bindableCallback));
     }
 
     void set(Value<Type> value) {
@@ -1949,7 +1950,7 @@ public:
             if constexpr (SchedulerPtr::scheduler) {
                 sched = *SchedulerPtr::scheduler;
             }
-            bindings->registerRegion(BindingAddress(p, bytes_to_allocate), std::move(sched));
+            bindings->registerRegion(BindingAddress{ p, bytes_to_allocate }, std::move(sched));
         } catch (...) {
             // If bindingRegister throws, we must free the allocated memory
             // before propagating the exception.
@@ -1974,7 +1975,7 @@ public:
         size_type bytes_to_deallocate = n * sizeof(T);
 
         try {
-            bindings->unregisterRegion(BindingAddress(static_cast<void*>(p), bytes_to_deallocate));
+            bindings->unregisterRegion(BindingAddress{ static_cast<void*>(p), bytes_to_deallocate });
         } catch (...) {
             BRISK_ASSERT_MSG("WARNING: unregisterRegion threw an exception during deallocate! Memory might "
                              "leak if not handled",

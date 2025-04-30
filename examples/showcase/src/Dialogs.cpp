@@ -6,7 +6,7 @@
 
 namespace Brisk {
 
-static Rc<Widget> osDialogButton(std::string text, Listener<> fn) {
+static Rc<Widget> osDialogButton(std::string text, BindableCallback<> fn) {
     return rcnew HLayout{
         rcnew Button{
             rcnew Text{ std::move(text) },

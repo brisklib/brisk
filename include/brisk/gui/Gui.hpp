@@ -557,8 +557,8 @@ struct PropArg<PropertyType> : PropertyTag {
     using Type = typename PropertyType::ValueType;
 
     struct ExtraTypes {
-        static void accept(Listener<>);
-        static void accept(Listener<ValueArgument<Type>>);
+        static void accept(BindableCallback<>);
+        static void accept(BindableCallback<ValueArgument<Type>>);
     };
 };
 
@@ -602,7 +602,7 @@ struct PropArg<GuiPropertyCompound<index_, Type_, flags_, field, Properties...>>
 } // namespace Tag
 
 template <std::derived_from<Widget> Target, typename PropertyType, typename... Args>
-inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, Listener<Args...>>& value) {
+inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, BindableCallback<Args...>>& value) {
     BRISK_ASSERT(target);
     BRISK_ASSUME(target);
     PropertyType prop{ target };

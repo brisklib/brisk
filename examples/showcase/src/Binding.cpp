@@ -13,7 +13,7 @@ void ShowcaseBinding::onTimer() {
 }
 
 ShowcaseBinding::ShowcaseBinding() {
-    bindings->listen(Value{ &frameStartTime }, Listener<>(this, &ShowcaseBinding::onTimer));
+    bindings->listen(Value{ &frameStartTime }, BindableCallback<>(this, &ShowcaseBinding::onTimer));
 }
 
 Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications) {
