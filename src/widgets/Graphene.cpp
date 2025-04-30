@@ -97,7 +97,7 @@ Rc<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            Class{ "hotkeyhint" },
+            Type{ "shortcuthint" },
             {
                 opacity    = 0.75f,
                 fontSize   = FontSize::Normal - 1,

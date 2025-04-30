@@ -54,9 +54,8 @@ void TextEditor::createContextMenu() {
             Arg::icon = ICON_scissors,
             rcnew Text{ "Cut||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::X, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::X },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -67,9 +66,8 @@ void TextEditor::createContextMenu() {
             Arg::icon = ICON_copy,
             rcnew Text{ "Copy||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::C, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::C },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -80,9 +78,8 @@ void TextEditor::createContextMenu() {
             Arg::icon = ICON_clipboard,
             rcnew Text{ "Paste||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::V, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::V },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -93,9 +90,8 @@ void TextEditor::createContextMenu() {
             Arg::icon = ICON_x,
             rcnew Text{ "Delete||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::Del, KeyModifiers::None),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::None, KeyCode::Del },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -105,9 +101,8 @@ void TextEditor::createContextMenu() {
         rcnew Item{
             rcnew Text{ "Select All||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::A, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::A },
             },
             Arg::onClick = lifetime() |
                            [this] {

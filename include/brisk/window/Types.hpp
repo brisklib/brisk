@@ -166,6 +166,10 @@ inline std::string keyCodeToString(KeyCode code) {
     return valueToKey(keyCodes, code).value_or("");
 }
 
+inline std::string format_as(KeyCode code) {
+    return keyCodeToString(code);
+}
+
 inline std::optional<KeyCode> stringToKeyCode(const std::string& str) {
     return keyToValue(keyCodes, str);
 }
@@ -200,6 +204,17 @@ template <>
 constexpr inline bool isBitFlags<KeyModifiers> = true;
 
 std::string keyModifiersToString(KeyModifiers mods, const std::string& joiner = "+", bool finalJoiner = true);
+
+struct Shortcut {
+    KeyModifiers modifiers                          = KeyModifiers::None;
+    KeyCode key                                     = KeyCode::Unknown;
+
+    bool operator==(const Shortcut&) const noexcept = default;
+};
+
+inline std::string format_as(Shortcut shortcut) {
+    return keyModifiersToString(shortcut.modifiers) + fmt::to_string(shortcut.key);
+}
 
 enum class KeyAction {
     Release = 0,
@@ -297,10 +312,6 @@ enum class DragEvent : int32_t {
     Dragging = 1,
     Dropped  = 2,
 };
-
-inline std::string hotKeyToString(KeyCode key, KeyModifiers mods) {
-    return keyModifiersToString(mods) + keyCodeToString(key);
-}
 
 struct SvgCursor {
     std::string svg;

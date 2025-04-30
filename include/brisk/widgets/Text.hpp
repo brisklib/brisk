@@ -188,4 +188,20 @@ private:
     mutable std::optional<double> m_lastChange;
 };
 
+class WIDGET ShortcutHint final : public Text {
+    BRISK_DYNAMIC_CLASS(ShortcutHint, Text)
+public:
+    using Base                                   = Text;
+    constexpr static std::string_view widgetType = "shortcuthint";
+
+    template <WidgetArgument... Args>
+    explicit ShortcutHint(Shortcut shortcut, const Args&... args)
+        : Text{ Construction{ widgetType }, fmt::to_string(shortcut), std::tuple{ args... } } {
+        endConstruction();
+    }
+
+protected:
+    Ptr cloneThis() const override;
+};
+
 } // namespace Brisk

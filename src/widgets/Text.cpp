@@ -200,7 +200,9 @@ void HoveredDescription::paint(Canvas& canvas) const {
     paintHint(canvas);
 }
 
-Rc<Widget> HoveredDescription::cloneThis() const {
+Rc<Widget> HoveredDescription::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+
+Rc<Widget> ShortcutHint::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

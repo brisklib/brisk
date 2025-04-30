@@ -696,6 +696,10 @@ bool Event::keyPressed(KeyCode key, KeyModifiers mods) const {
     return e && e->key == key && ((e->mods & KeyModifiers::Regular) == mods);
 }
 
+bool Event::shortcut(Shortcut shortcut) const {
+    return keyPressed(shortcut.key, shortcut.modifiers);
+}
+
 float Event::wheelScrolled(KeyModifiers mods) const {
     return wheelScrolled(WheelOrientation::Y, anywhere, mods);
 }

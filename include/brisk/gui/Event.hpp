@@ -369,6 +369,7 @@ struct Event : public EventVariant {
 
     bool keyPressed(KeyCode key, KeyModifiers mods = KeyModifiers::None) const;
     bool keyReleased(KeyCode key, KeyModifiers mods = KeyModifiers::None) const;
+    bool shortcut(Shortcut shortcut) const;
 
     bool focused() const;
     bool blurred() const;
