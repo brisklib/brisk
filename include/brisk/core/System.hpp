@@ -120,6 +120,10 @@ struct CpuUsage {
     struct Cpu {
         double user, sys, idle;
 
+        double sum() const {
+            return user + sys + idle;
+        }
+
         friend Cpu operator-(const Cpu& lh, const Cpu& rh) noexcept {
             return { lh.user - rh.user, lh.sys - rh.sys, lh.idle - rh.idle };
         }
