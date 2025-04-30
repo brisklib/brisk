@@ -49,7 +49,7 @@ public:
 
     void unhandledEvent(Event& event) final {
         handleDebugKeystrokes(event);
-        if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::KpEnter)) {
+        if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::NumEnter)) {
             calc.solve();
             event.stopPropagation();
         }

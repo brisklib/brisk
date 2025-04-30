@@ -452,7 +452,7 @@ void TextEditor::onEvent(Event& event) {
                 setTextInternal(utf32ToUtf8(normalizeCompose(text)));
                 break;
             case KeyCode::Enter:
-            case KeyCode::KpEnter:
+            case KeyCode::NumEnter:
                 if (m_multiline) {
                     typeCharacter(text, '\n');
                     event.stopPropagation();
