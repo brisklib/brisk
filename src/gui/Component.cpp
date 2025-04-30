@@ -71,6 +71,16 @@ void Component::closeWindow() {
     }
 }
 
+void Component::handleActionShortcuts(Event& event, std::initializer_list<const Action*> actions) {
+    for (const Action* action : actions) {
+        if (event.shortcut(action->shortcut)) {
+            action->callback.callback();
+            event.stopPropagation();
+            return;
+        }
+    }
+}
+
 void Component::handleDebugKeystrokes(Event& event) {
     if (event.keyPressed(KeyCode::F2)) {
         Internal::debugShowRenderTimeline = !Internal::debugShowRenderTimeline;

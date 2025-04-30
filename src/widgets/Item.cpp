@@ -18,9 +18,12 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include "brisk/widgets/Spacer.hpp"
 #include <brisk/widgets/Item.hpp>
 #include <brisk/widgets/Menu.hpp>
+#include <brisk/widgets/Text.hpp>
 #include <brisk/gui/Icons.hpp>
+#include <brisk/core/Localization.hpp>
 
 namespace Brisk {
 
@@ -115,6 +118,19 @@ Item::Item(Construction construction, ArgumentsView<Item> args)
     : Base(construction, std::tuple{ Arg::tabStop = true }) {
     m_processClicks = false;
     args.apply(this);
+}
+
+Item::Item(const Action& action)
+    : Item(Construction{ widgetType }, std::tuple{
+                                           rcnew Text{ locale->translate(action.caption) },
+                                           Arg::icon    = action.icon,
+                                           Arg::onClick = action.callback,
+                                       }) {
+    endConstruction();
+    if (action.shortcut != Shortcut{}) {
+        apply(rcnew Spacer{});
+        apply(rcnew ShortcutHint{ action.shortcut });
+    }
 }
 
 void Item::onChanged() {}

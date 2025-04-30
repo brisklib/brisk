@@ -21,6 +21,7 @@
 #pragma once
 
 #include <brisk/gui/Gui.hpp>
+#include <brisk/gui/Action.hpp>
 
 namespace Brisk {
 
@@ -49,6 +50,8 @@ public:
     explicit Item(const Args&... args) : Item(Construction{ widgetType }, std::tuple{ args... }) {
         endConstruction();
     }
+
+    explicit Item(const Action& action);
 
 protected:
     std::string m_icon;

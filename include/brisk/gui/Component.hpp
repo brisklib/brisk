@@ -22,6 +22,7 @@
 
 #include <brisk/gui/Gui.hpp>
 #include <brisk/gui/GuiWindow.hpp>
+#include <brisk/gui/Action.hpp>
 
 namespace Brisk {
 
@@ -98,6 +99,8 @@ protected:
     virtual void unhandledEvent(Event& event);
 
     void handleDebugKeystrokes(Event& event);
+
+    void handleActionShortcuts(Event& event, std::initializer_list<const Action*> actions);
 
     /**
      * @brief Called when the UI scale is changed.
