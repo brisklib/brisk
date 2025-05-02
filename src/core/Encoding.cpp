@@ -52,7 +52,7 @@ template std::basic_string_view<char16_t> utfSkipBom<char16_t>(std::basic_string
 template std::basic_string_view<char32_t> utfSkipBom<char32_t>(std::basic_string_view<char32_t>);
 
 template <UtfPolicy p>
-using CUTFPolicy = constant<UtfPolicy, p>;
+using CUtfPolicy = constant<UtfPolicy, p>;
 
 inline bool utfIsError(char32_t ch) {
     return static_cast<int32_t>(ch) < 0;
@@ -346,7 +346,7 @@ constexpr static size_t utfMaxElements(char32_t ch) {
 }
 
 template <typename Char, UtfPolicy policy = UtfPolicy::ReplaceInvalid>
-static size_t utfCodepoints(const Char* text, const Char* end, CUTFPolicy<policy> = CUTFPolicy<policy>{}) {
+static size_t utfCodepoints(const Char* text, const Char* end, CUtfPolicy<policy> = CUtfPolicy<policy>{}) {
     if constexpr (sizeof(Char) == sizeof(char32_t) && policy == UtfPolicy::ReplaceInvalid) {
         return end - text;
     }
@@ -366,17 +366,17 @@ static size_t utfCodepoints(const Char* text, const Char* end, CUTFPolicy<policy
 template <typename Char>
 static size_t utfCodepoints(const Char* text, const Char* end, UtfPolicy policy) {
     if (policy == UtfPolicy::ReplaceInvalid)
-        return utfCodepoints(text, end, CUTFPolicy<UtfPolicy::ReplaceInvalid>{});
+        return utfCodepoints(text, end, CUtfPolicy<UtfPolicy::ReplaceInvalid>{});
     else
-        return utfCodepoints(text, end, CUTFPolicy<UtfPolicy::SkipInvalid>{});
+        return utfCodepoints(text, end, CUtfPolicy<UtfPolicy::SkipInvalid>{});
 }
 
 template <typename Char>
 size_t utfCodepoints(std::basic_string_view<Char> sv, UtfPolicy policy) {
     if (policy == UtfPolicy::ReplaceInvalid)
-        return utfCodepoints(sv.data(), sv.data() + sv.size(), CUTFPolicy<UtfPolicy::ReplaceInvalid>{});
+        return utfCodepoints(sv.data(), sv.data() + sv.size(), CUtfPolicy<UtfPolicy::ReplaceInvalid>{});
     else
-        return utfCodepoints(sv.data(), sv.data() + sv.size(), CUTFPolicy<UtfPolicy::SkipInvalid>{});
+        return utfCodepoints(sv.data(), sv.data() + sv.size(), CUtfPolicy<UtfPolicy::SkipInvalid>{});
 }
 
 template size_t utfCodepoints<char>(std::basic_string_view<char> sv, UtfPolicy policy);
@@ -385,7 +385,7 @@ template size_t utfCodepoints<char32_t>(std::basic_string_view<char32_t> sv, Utf
 
 template <typename OutChar, typename InChar, typename Fn, UtfPolicy policy = UtfPolicy::ReplaceInvalid>
 static OutChar* utfConvert(OutChar* dest, OutChar* dest_end, const InChar* src, const InChar* src_end,
-                           Fn&& fn, CUTFPolicy<policy> = CUTFPolicy<policy>{}) {
+                           Fn&& fn, CUtfPolicy<policy> = CUtfPolicy<policy>{}) {
     while (src < src_end && dest < dest_end) {
         char32_t ch = utfRead(src, src_end);
         if constexpr (policy == UtfPolicy::SkipInvalid) {
@@ -400,9 +400,9 @@ static OutChar* utfConvert(OutChar* dest, OutChar* dest_end, const InChar* src, 
 
 template <typename OutChar, typename InChar, UtfPolicy policy = UtfPolicy::ReplaceInvalid>
 static OutChar* utfConvert(OutChar* dest, OutChar* dest_end, const InChar* src, const InChar* src_end,
-                           CUTFPolicy<policy> = CUTFPolicy<policy>{}) {
+                           CUtfPolicy<policy> = CUtfPolicy<policy>{}) {
     return utfConvert<OutChar, InChar, PassThrough, policy>(dest, dest_end, src, src_end, PassThrough{},
-                                                            CUTFPolicy<policy>{});
+                                                            CUtfPolicy<policy>{});
 }
 
 template <typename InChar>
@@ -430,12 +430,12 @@ template UtfValidation utfValidate<char32_t>(std::basic_string_view<char32_t> sv
 
 template <typename OutChar, typename InChar, UtfPolicy policy = UtfPolicy::ReplaceInvalid>
 std::basic_string<OutChar> utfToUtf(std::basic_string_view<InChar> text,
-                                    CUTFPolicy<policy> = CUTFPolicy<policy>{}) {
+                                    CUtfPolicy<policy> = CUtfPolicy<policy>{}) {
     const size_t len =
         text.empty() ? 0 : utfMaxElements(OutChar{}) * utfCodepoints(text.data(), text.data() + text.size());
     std::basic_string<OutChar> result(len, ' ');
     result.resize(utfConvert(result.data(), result.data() + result.size(), text.data(),
-                             text.data() + text.size(), CUTFPolicy<policy>{}) -
+                             text.data() + text.size(), CUtfPolicy<policy>{}) -
                   result.data());
     return result;
 }
@@ -443,9 +443,9 @@ std::basic_string<OutChar> utfToUtf(std::basic_string_view<InChar> text,
 template <typename OutChar, typename InChar>
 std::basic_string<OutChar> utfToUtf(std::basic_string_view<InChar> text, UtfPolicy policy) {
     if (policy == UtfPolicy::ReplaceInvalid)
-        return utfToUtf<OutChar, InChar>(text, CUTFPolicy<UtfPolicy::ReplaceInvalid>{});
+        return utfToUtf<OutChar, InChar>(text, CUtfPolicy<UtfPolicy::ReplaceInvalid>{});
     else
-        return utfToUtf<OutChar, InChar>(text, CUTFPolicy<UtfPolicy::SkipInvalid>{});
+        return utfToUtf<OutChar, InChar>(text, CUtfPolicy<UtfPolicy::SkipInvalid>{});
 }
 
 template std::basic_string<char> utfToUtf<char, char>(std::basic_string_view<char> sv, UtfPolicy policy);
@@ -486,12 +486,12 @@ template std::basic_string<wchar_t> utfToUtf<wchar_t, wchar_t>(std::basic_string
 template <typename InChar, UtfPolicy policy = UtfPolicy::ReplaceInvalid>
 std::basic_string<InChar> utfTransform(std::basic_string_view<InChar> text,
                                        const function<char32_t(char32_t)>& fn,
-                                       CUTFPolicy<policy> = CUTFPolicy<policy>{}) {
+                                       CUtfPolicy<policy> = CUtfPolicy<policy>{}) {
     const size_t len =
         text.empty() ? 0 : utfMaxElements(InChar{}) * utfCodepoints(text.data(), text.data() + text.size());
     std::basic_string<InChar> result(len, ' ');
     result.resize(utfConvert(result.data(), result.data() + result.size(), text.data(),
-                             text.data() + text.size(), fn, CUTFPolicy<policy>{}) -
+                             text.data() + text.size(), fn, CUtfPolicy<policy>{}) -
                   result.data());
     return result;
 }
@@ -500,9 +500,9 @@ template <typename InChar>
 std::basic_string<InChar> utfTransform(std::basic_string_view<InChar> text,
                                        const function<char32_t(char32_t)>& fn, UtfPolicy policy) {
     if (policy == UtfPolicy::ReplaceInvalid)
-        return utfTransform<InChar>(text, fn, CUTFPolicy<UtfPolicy::ReplaceInvalid>{});
+        return utfTransform<InChar>(text, fn, CUtfPolicy<UtfPolicy::ReplaceInvalid>{});
     else
-        return utfTransform<InChar>(text, fn, CUTFPolicy<UtfPolicy::SkipInvalid>{});
+        return utfTransform<InChar>(text, fn, CUtfPolicy<UtfPolicy::SkipInvalid>{});
 }
 
 template std::basic_string<char> utfTransform<char>(std::basic_string_view<char> sv,
