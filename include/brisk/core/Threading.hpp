@@ -336,10 +336,6 @@ protected:
 /// @brief Represents the task queue and scheduler for the main thread.
 extern Rc<TaskQueue> mainScheduler;
 
-/// @brief Pointer to the scheduler associated with the current thread. If no scheduler has been assigned,
-/// this pointer may be nullptr.
-extern thread_local Scheduler* threadScheduler;
-
 template <typename T>
 T waitFuture(VoidFunc waitFunc, std::future<T> future, int intervalMS) {
     if (waitFunc || isMainThread()) {

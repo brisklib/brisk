@@ -159,5 +159,4 @@ void Scheduler::waitForCompletion() {
 
 Rc<TaskQueue> mainScheduler;
 
-thread_local Scheduler* threadScheduler = nullptr;
 } // namespace Brisk
