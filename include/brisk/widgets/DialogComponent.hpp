@@ -56,9 +56,6 @@ public:
      */
     void close(bool result);
 
-    DeferredCallbacks<> onAccepted; ///< Callback triggered when the dialog is accepted.
-    DeferredCallbacks<> onRejected; ///< Callback triggered when the dialog is rejected.
-
 protected:
     bool m_result = false; ///< The result of the dialog, true if accepted, false if rejected.
 

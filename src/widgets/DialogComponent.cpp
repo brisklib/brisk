@@ -44,10 +44,8 @@ void DialogComponent::close(bool result) {
     bindings->assign(this->m_result, result);
     if (result) {
         accepted();
-        onAccepted();
     } else {
         rejected();
-        onRejected();
     }
     closeWindow();
 }

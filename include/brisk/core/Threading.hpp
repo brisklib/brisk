@@ -359,41 +359,6 @@ T waitFuture(std::future<T> future, int intervalMS) {
     return waitFuture(nullptr, std::move(future), intervalMS);
 }
 
-template <typename... Args>
-struct DeferredCallback {
-    function<void(Args...)> func;
-    Rc<Scheduler> scheduler;
-
-    bool operator()(Args... args) const {
-        if (func) {
-            if constexpr (sizeof...(Args) == 0) {
-                scheduler->dispatch(func);
-            } else {
-                scheduler->dispatch([=, this]() BRISK_INLINE_LAMBDA {
-                    func(args...);
-                });
-            }
-            return true;
-        }
-        return false;
-    }
-};
-
-template <typename... Args>
-struct DeferredCallbacks : public std::vector<DeferredCallback<Args...>> {
-public:
-    DeferredCallbacks& operator+=(DeferredCallback<Args...> cb) {
-        std::vector<DeferredCallback<Args...>>::push_back(std::move(cb));
-        return *this;
-    }
-
-    void operator()(Args... args) const {
-        for (const DeferredCallback<Args...>& cb : *this) {
-            cb(args...);
-        }
-    }
-};
-
 /**
  * @brief Sets the name of the current thread.
  *
