@@ -29,7 +29,7 @@ namespace Internal {
 
 namespace {
 
-std::array<std::pair<std::string_view, std::string_view>, 6> charNames{ {
+constinit std::array<std::pair<std::string_view, std::string_view>, 6> charNames{ {
     { "amp", "&" },
     { "apos", "'" },
     { "gt", ">" },
@@ -236,7 +236,7 @@ struct Action<CloseTagName> {
 
 } // namespace Grammar
 
-std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
+constinit std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
     { "aliceblue", 0xf0f8ff_rgb },
     { "antiquewhite", 0xfaebd7_rgb },
     { "aqua", 0x00ffff_rgb },

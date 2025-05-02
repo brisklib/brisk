@@ -116,25 +116,54 @@ struct CpuInfo {
  */
 CpuInfo cpuInfo();
 
+/**
+ * @struct CpuUsage
+ * @brief Represents CPU usage data for multiple cores.
+ */
 struct CpuUsage {
-    struct Cpu {
-        double user, sys, idle;
+    /**
+     * @struct Core
+     * @brief Represents CPU usage metrics for a single core.
+     */
+    struct Core {
+        double user; ///< Time spent in user mode.
+        double sys;  ///< Time spent in system mode.
+        double idle; ///< Time spent idle.
 
+        /**
+         * @brief Calculates the total CPU time for the core.
+         * @return Sum of user, sys, and idle times.
+         */
         double sum() const {
             return user + sys + idle;
         }
 
-        friend Cpu operator-(const Cpu& lh, const Cpu& rh) noexcept {
+        /**
+         * @brief Subtracts one core's usage from another.
+         * @param lh Left-hand core usage.
+         * @param rh Right-hand core usage.
+         * @return A new Core with the difference of user, sys, and idle times.
+         */
+        friend Core operator-(const Core& lh, const Core& rh) noexcept {
             return { lh.user - rh.user, lh.sys - rh.sys, lh.idle - rh.idle };
         }
 
+        /**
+         * @brief Reflection metadata for serialization.
+         */
         constexpr static std::tuple reflection{
-            ReflectionField{ "user", &Cpu::user },
-            ReflectionField{ "sys", &Cpu::sys },
-            ReflectionField{ "idle", &Cpu::idle },
+            ReflectionField{ "user", &Core::user },
+            ReflectionField{ "sys", &Core::sys },
+            ReflectionField{ "idle", &Core::idle },
         };
     };
 
+    /**
+     * @brief Subtracts one CpuUsage instance from another.
+     * @param lh Left-hand CPU usage data.
+     * @param rh Right-hand CPU usage data.
+     * @return A new CpuUsage with the difference of core usages.
+     */
     friend CpuUsage operator-(const CpuUsage& lh, const CpuUsage& rh) noexcept {
         size_t size = std::min(lh.usage.size(), rh.usage.size());
         CpuUsage result;
@@ -145,18 +174,30 @@ struct CpuUsage {
         return result;
     }
 
-    SmallVector<Cpu, 16> usage;
+    SmallVector<Core, 16> usage; ///< Array of core usage data.
 };
 
+/**
+ * @brief Retrieves current CPU usage data.
+ * @return A CpuUsage struct containing usage data for all cores.
+ */
 CpuUsage cpuUsage();
 
+/**
+ * @struct MemoryInfo
+ * @brief Represents memory usage statistics.
+ */
 struct MemoryInfo {
-    uint64_t maxrss;  /* maximum resident set size, kilobytes */
-    uint64_t majflt;  /* page faults (hard page faults) */
-    uint64_t inblock; /* block input operations */
-    uint64_t oublock; /* block output operations */
+    uint64_t maxrss;  ///< Maximum resident set size, in kilobytes.
+    uint64_t majflt;  ///< Number of major page faults (hard page faults).
+    uint64_t inblock; ///< Number of block input operations.
+    uint64_t oublock; ///< Number of block output operations.
 };
 
+/**
+ * @brief Retrieves current memory usage information.
+ * @return A MemoryInfo struct containing memory statistics.
+ */
 MemoryInfo memoryInfo();
 
 #ifdef BRISK_WINDOWS

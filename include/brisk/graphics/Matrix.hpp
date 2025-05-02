@@ -537,14 +537,28 @@ struct MatrixOf {
         return std::abs(dot_product) < epsilon;
     }
 
+    /**
+     * @brief Checks if the matrix represents only translation or scale transformations.
+     * @return True if the matrix has negligible shear/rotation components (b and c are near zero), false
+     * otherwise.
+     * @note Uses epsilon for comparison to handle floating-point precision.
+     */
     bool isTranslationOrScale() const noexcept {
         return std::abs(b) < epsilon && std::abs(c) < epsilon;
     }
 
+    /**
+     * @brief Retrieves the scaling factors of the matrix.
+     * @return A SizeOf<T> containing the horizontal (a) and vertical (d) scaling factors.
+     */
     SizeOf<T> scalingFactors() const noexcept {
         return { a, d };
     }
 
+    /**
+     * @brief Retrieves the translation offsets of the matrix.
+     * @return A PointOf<T> containing the horizontal (e) and vertical (f) translation offsets.
+     */
     PointOf<T> translationOffset() const noexcept {
         return { e, f };
     }

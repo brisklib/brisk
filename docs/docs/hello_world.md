@@ -33,7 +33,7 @@ brisk_metadata(
     NAME "HelloWorldApp"               # Application name
     DESCRIPTION "Brisk Hello World"    # Short application description
     VERSION "0.1.0"                    # Version number
-    COPYRIGHT "© 2024 Brisk"           # Copyright information
+    COPYRIGHT "© 2025 Brisk"           # Copyright information
     ICON ${CMAKE_SOURCE_DIR}/icon.png  # Path to the icon (PNG)
     APPLE_BUNDLE_ID com.brisklib.helloworld # Apple bundle identifier
 )
@@ -65,29 +65,29 @@ using namespace Brisk;
 // Root component of the application, inherits from Brisk's Component class
 class RootComponent : public Component {
 public:
-  // Builds the UI layout for the component
-  Rc<Widget> build() final {
-    return rcnew VLayout{
-        stylesheet = Graphene::stylesheet(), // Apply the default stylesheet
-        Graphene::darkColors(),              // Use dark color scheme
-        gapRow = 8_px,                       // Set vertical gap between elements
-        alignItems = AlignItems::Center,     // Align child widgets to the center
-        justifyContent = Justify::Center,    // Center the layout in the parent
-        rcnew Text{"Hello, world"},            // Display a text widget with "Hello, world"
-        rcnew Button{
-            rcnew Text{"Quit"},                // Button label
-            onClick = lifetime() | []() {    // Quit the application on button click
-                windowApplication->quit();
+    // Builds the UI layout for the component
+    Rc<Widget> build() final {
+        return rcnew VLayout{
+            stylesheet = Graphene::stylesheet(), // Apply the default stylesheet
+            Graphene::darkColors(),              // Use dark color scheme
+            gapRow = 8_px,                       // Set vertical gap between elements
+            alignItems = AlignItems::Center,     // Align child widgets to the center
+            justifyContent = Justify::Center,    // Center the layout in the parent
+            rcnew Text{"Hello, world"},            // Display a text widget with "Hello, world"
+            rcnew Button{
+                rcnew Text{"Quit"},                // Button label
+                onClick = lifetime() | []() {    // Quit the application on button click
+                    windowApplication->quit();
+                },
             },
-        },
-    };
-  }
+        };
+    }
 };
 
 // Entry point of the Brisk application
 int briskMain() {
-  GuiApplication application; // Create the GUI application
-  return application.run(createComponent<RootComponent>()); // Run with RootComponent as main component
+    GuiApplication application; // Create the GUI application
+    return application.run(createComponent<RootComponent>()); // Run with RootComponent as main component
 }
 ```
 

@@ -128,7 +128,27 @@ The `BindableObject` class also inherits from `std::enable_shared_from_this`, al
 
 ## Value Expressions
 
-*Section under construction.*
+Dynamic values can be combined to create complex value expressions that are re-evaluated whenever a source value changes. Listeners subscribed to these expressions are notified accordingly. These expressions are encapsulated in the `Value` struct, providing a unified interface for dynamic values.
+The `transform` function creates a read-only dynamic value by applying the provided function `fn` to the dynamic values `values...`.
+
+```c++
+template <typename... T, std::invocable<T...> Fn>
+Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values);
+```
+
+The member function `transform` can be used to apply a single-argument lambda to a value.
+
+```c++
+Value<std::string> v = Value{&anInt}.transform([](int x) { return fmt::to_string(x); });
+```
+
+Another member function `transform` enables the creation of a read-write Value by applying two conversion functions.
+
+```c++
+Value<double> v = Value{&anInt}.transform(
+    [](int x) { return static_cast<double>(x); }, 
+    [](double x) { return static_cast<int>(x); });
+```
 
 ## Edge Cases
 

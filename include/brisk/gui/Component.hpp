@@ -129,6 +129,11 @@ private:
     WeakRc<GuiWindow> m_window;
 };
 
+/**
+ * @brief Creates a component on the UI thread and assigns it to the provided reference.
+ * @tparam ComponentClass The type of the component, must derive from Component.
+ * @param component Reference to an Rc<ComponentClass> where the created component will be stored.
+ */
 template <std::derived_from<Component> ComponentClass>
 void createComponent(Rc<ComponentClass>& component) {
     uiScheduler->dispatchAndWait([&]() {
@@ -136,6 +141,11 @@ void createComponent(Rc<ComponentClass>& component) {
     });
 }
 
+/**
+ * @brief Creates a component on the UI thread and returns it.
+ * @tparam ComponentClass The type of the component, must derive from Component.
+ * @return An Rc<ComponentClass> containing the created component.
+ */
 template <std::derived_from<Component> ComponentClass>
 Rc<ComponentClass> createComponent() {
     Rc<ComponentClass> component;

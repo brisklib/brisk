@@ -181,14 +181,34 @@ struct PeriodicTimer {
 using PerformanceDuration = std::chrono::nanoseconds;
 using FractionalSeconds   = std::chrono::duration<double>;
 
+/**
+ * @brief Retrieves the current time in nanoseconds.
+ * @return The current time as a PerformanceDuration.
+ */
 PerformanceDuration perfNow();
 
+/**
+ * @brief A utility class for measuring elapsed time with high precision.
+ *
+ * The Stopwatch class records the time duration between its construction and destruction,
+ * adding the result to the provided PerformanceDuration target. It uses nanosecond precision
+ * for accurate performance measurements.
+ */
 struct Stopwatch {
 public:
+    /**
+     * @brief Constructs a Stopwatch that records elapsed time to the specified target.
+     * @param target Reference to the PerformanceDuration where elapsed time will be stored.
+     */
     explicit Stopwatch(PerformanceDuration& target);
+
+    /**
+     * @brief Destructor that calculates and adds elapsed time to the target.
+     */
     ~Stopwatch();
-    PerformanceDuration& target;
-    PerformanceDuration startTime;
+
+    PerformanceDuration& target;   ///< Reference to the duration where elapsed time is stored.
+    PerformanceDuration startTime; ///< The time when the Stopwatch was started.
 };
 
 } // namespace Brisk
