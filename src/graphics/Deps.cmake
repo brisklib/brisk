@@ -90,11 +90,6 @@ if (BRISK_WEBGPU)
 
 endif ()
 
-# >tinyxml2
-find_package(tinyxml2 CONFIG REQUIRED)
-target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} tinyxml2::tinyxml2)
-# >tinyxml2
-
 brisk_target_link_resource(
     ${_BRISK_I18N_ICU} PRIVATE "internal/icudt.dat"
     INPUT ${BRISK_RESOURCES_DIR}/icu/${ICU_DT}
