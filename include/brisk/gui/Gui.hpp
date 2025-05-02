@@ -602,7 +602,8 @@ struct PropArg<GuiPropertyCompound<index_, Type_, flags_, field, Properties...>>
 } // namespace Tag
 
 template <std::derived_from<Widget> Target, typename PropertyType, typename... Args>
-inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, BindableCallback<Args...>>& value) {
+inline void applier(Target* target,
+                    const ArgVal<Tag::PropArg<PropertyType>, BindableCallback<Args...>>& value) {
     BRISK_ASSERT(target);
     BRISK_ASSUME(target);
     PropertyType prop{ target };
