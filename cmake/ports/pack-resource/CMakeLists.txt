@@ -35,6 +35,7 @@ add_executable(
     ${BRISK_ROOT}/src/core/Threading${PLATFORM_SPECIFIC_CPP}
     ${BRISK_ROOT}/src/core/Throw.cpp
     ${BRISK_ROOT}/src/core/Uv.cpp
+    ${BRISK_ROOT}/src/core/llvm/SmallVector.cpp
     ${BRISK_ROOT}/src/core/Version.cpp)
 
 target_include_directories(pack_resource PUBLIC ${BRISK_ROOT}/include)
