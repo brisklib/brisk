@@ -1746,8 +1746,12 @@ public:
         BRISK_ASSUME(this_pointer);
         if BRISK_IF_GNU_ATTR (constexpr)
             (getter == nullptr) {
-                static_assert(field != nullptr);
-                return this_pointer->*field;
+                if constexpr (std::is_convertible_v<decltype(this_pointer->*field), Type>) {
+                    static_assert(field != nullptr);
+                    return this_pointer->*field;
+                } else {
+                    return {};
+                }
             }
         else {
             return (this_pointer->*getter)();
