@@ -3053,11 +3053,16 @@ const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
 const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread;
 
 const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled{};
+const Argument<Tag::PropArg<decltype(Widget::selected)>> selected{};
 
 } // namespace Arg
 
 void Widget::setDisabled(bool value) {
     toggleState(WidgetState::Disabled, value);
+}
+
+void Widget::setSelected(bool value) {
+    toggleState(WidgetState::Selected, value);
 }
 
 bool Widget::setScrollOffset(Point newOffset) {

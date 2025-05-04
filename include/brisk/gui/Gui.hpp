@@ -1363,6 +1363,7 @@ private:
     void layoutResetRecursively();
 
     void setDisabled(bool);
+    void setSelected(bool);
 
     template <size_t index, typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
               int subfield>
@@ -1537,6 +1538,7 @@ public:
     Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;
 
     Property<This, bool, &This::m_state, &This::isDisabled, &This::setDisabled> disabled;
+    Property<This, bool, &This::m_state, &This::isSelected, &This::setSelected> selected;
     BRISK_PROPERTIES_END
 };
 
@@ -1681,6 +1683,7 @@ extern const Argument<Tag::PropArg<decltype(Widget::gapColumn)>> gapColumn;
 extern const Argument<Tag::PropArg<decltype(Widget::gapRow)>> gapRow;
 
 extern const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled;
+extern const Argument<Tag::PropArg<decltype(Widget::selected)>> selected;
 
 extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures;
 
