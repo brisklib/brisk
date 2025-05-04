@@ -61,7 +61,7 @@ void Item::onEvent(Event& event) {
     Base::onEvent(event);
     if (isDisabled())
         return;
-    if (event.pressed(m_rect)) {
+    if (m_tabStop && event.pressed(m_rect)) {
         if (!isFocused())
             focus();
         event.stopPropagation();
