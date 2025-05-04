@@ -203,14 +203,14 @@ void Window::setPosition(Point pos) {
 }
 
 void Window::setMinimumSize(Size size) {
-    setMinimumMaximumSize(size, m_maximumSize);
+    setMinimumMaximumSizes(size, m_maximumSize);
 }
 
 void Window::setMaximumSize(Size size) {
-    setMinimumMaximumSize(m_minimumSize, size);
+    setMinimumMaximumSizes(m_minimumSize, size);
 }
 
-void Window::setMinimumMaximumSize(Size minSize, Size maxSize) {
+void Window::setMinimumMaximumSizes(Size minSize, Size maxSize) {
     mustBeUIThread();
     // Do not compare with current values of m_maximumSize to allow setting the same value
     m_minimumSize = minSize;

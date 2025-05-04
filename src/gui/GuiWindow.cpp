@@ -227,7 +227,7 @@ void GuiWindow::updateWindowLimits() {
             if (m_windowFit == WindowFit::MinimumSize) {
                 setMinimumSize(newWindowSize);
             } else {
-                setMinimumMaximumSize(newWindowSize, newWindowSize);
+                setMinimumMaximumSizes(newWindowSize, newWindowSize);
             }
         }
         if (Rc<Window> owner = m_owner.lock()) {

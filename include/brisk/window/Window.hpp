@@ -314,7 +314,7 @@ public:
      * @param minSize The minimum size in screen coordinates.
      * @param maxSize The maximum size in screen coordinates.
      */
-    void setMinimumMaximumSize(Size minSize, Size maxSize);
+    void setMinimumMaximumSizes(Size minSize, Size maxSize);
 
     Bytes windowPlacement() const;
     void setWindowPlacement(BytesView data);
