@@ -538,23 +538,23 @@ struct Value {
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare) && {
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) && {
         return Value<bool>{
             [get = std::move(m_get), compare]() -> bool {
                 return get() == compare;
             },
-            [set = std::move(m_set), compare](bool newValue) {
+            bidirectional ? [set = std::move(m_set), compare](bool newValue) {
                 if (newValue)
                     if (set)
                         set(compare);
-            },
+            } : SetFn(nullptr),
             std::move(m_srcAddresses),
             std::move(m_destAddress),
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare) const& {
-        return Value<T>{ *this }.equal(std::move(compare));
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) const& {
+        return Value<T>{ *this }.equal(std::move(compare), bidirectional);
     }
 
 #define BRISK_BINDING_OP(oper, op)                                                                           \
