@@ -18,7 +18,7 @@
 
 #include "Compiler.h"
 #include <cstdlib>
-#include "brisk/core/internal/Throw.hpp"
+#include <brisk/core/internal/Throw.hpp>
 #include <stdexcept>
 
 namespace llvm {

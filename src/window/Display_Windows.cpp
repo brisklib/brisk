@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include "brisk/graphics/NativeWindowHandle.hpp"
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <brisk/core/Encoding.hpp>

@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include "brisk/gui/Event.hpp"
+#include <brisk/gui/Event.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <memory>
 #include <brisk/core/internal/Function.hpp>
