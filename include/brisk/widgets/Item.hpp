@@ -55,13 +55,14 @@ public:
 
 protected:
     std::string m_icon;
-    float m_iconAlignY  = 0.5f;
-    bool m_checked      = false;
-    bool m_checkable    = false;
-    bool m_closesPopup  = true;
-    bool m_focusOnHover = false;
-    double m_openTime   = HUGE_VAL;
-    double m_closeTime  = HUGE_VAL;
+    float m_iconAlignY   = 0.5f;
+    bool m_checked       = false;
+    bool m_checkable     = false;
+    bool m_closesPopup   = true;
+    bool m_focusOnHover  = false;
+    bool m_selectOnFocus = true;
+    double m_openTime    = HUGE_VAL;
+    double m_closeTime   = HUGE_VAL;
 
     bool isTopMenu() const;
     void postPaint(Canvas& canvas) const override;
@@ -112,6 +113,8 @@ public:
      * If true, the widget will take focus on mouse hover, similar to how a menu item behaves.
      */
     Property<Item, bool, &Item::m_focusOnHover> focusOnHover;
+
+    Property<Item, bool, &Item::m_selectOnFocus> selectOnFocus;
     BRISK_PROPERTIES_END
 };
 
@@ -120,6 +123,7 @@ constexpr inline Argument<Tag::Named<"checked">> checked{};
 constexpr inline Argument<Tag::PropArg<decltype(Item::checkable)>> checkable{};
 constexpr inline Argument<Tag::PropArg<decltype(Item::closesPopup)>> closesPopup{};
 constexpr inline Argument<Tag::PropArg<decltype(Item::focusOnHover)>> focusOnHover{};
+constexpr inline Argument<Tag::PropArg<decltype(Item::selectOnFocus)>> selectOnFocus{};
 constexpr inline Argument<Tag::Named<"icon">> icon{};
 } // namespace Arg
 

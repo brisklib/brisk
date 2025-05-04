@@ -177,7 +177,7 @@ Rc<const Stylesheet> stylesheet() {
         Style{
             Type{ Item::widgetType },
             {
-                padding                              = EdgesL(32_apx, 5_apx, 16_apx, 5_apx),
+                padding                              = { 16_apx, 5_apx },
                 textAlign                            = TextAlign::Start,
 
                 backgroundColor                      = Palette::transparent,
@@ -191,9 +191,9 @@ Rc<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            (Type{ Menu::widgetType } && !Class{ "withicons" }) > Type{ Item::widgetType },
+            (Type{ Menu::widgetType } && Class{ "withicons" }) > Type{ Item::widgetType },
             {
-                padding = { 16_apx, 5_apx },
+                padding = EdgesL(32_apx, 5_apx, 16_apx, 5_apx),
             },
         },
         Style{

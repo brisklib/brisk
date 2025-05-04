@@ -13,6 +13,7 @@ private:
     int m_month         = 0;
     int m_selectedItem  = 0;
     int m_selectedItem2 = 5;
+    int m_selectedItem3 = 1;
     int m_fruit         = 0;
 };
 } // namespace Brisk

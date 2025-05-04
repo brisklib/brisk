@@ -26,11 +26,7 @@ void ListBox::onEvent(Event& event) {
     Base::onEvent(event);
 }
 
-void ListBox::onChanged() {
-    if (auto selected = findSelected()) {
-        selected->isSelected();
-    }
-}
+void ListBox::onChanged() {}
 
 std::shared_ptr<Item> ListBox::findSelected() const {
     if (!m_constructed)
@@ -43,17 +39,21 @@ std::shared_ptr<Item> ListBox::findSelected() const {
 }
 
 void ListBox::append(Rc<Widget> widget) {
-    if (dynamicCast<Item*>(widget.get()))
-        Base::append(std::move(widget));
-    else
-        Base::append(rcnew Item{ std::move(widget) });
+    auto item = dynamicPointerCast<Item>(widget);
+    if (!item) {
+        item = rcnew Item{ std::move(widget) };
+    }
+    item->closesPopup   = false;
+    item->tabStop       = true;
+    item->selectOnFocus = true;
+    item->selected      = Value{ &value }.equal(this->widgets().size());
+    Base::append(std::move(item));
 }
 
 Rc<Widget> ListBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ListBox::ListBox(Construction construction, ArgumentsView<ListBox> args)
     : Base(construction, nullptr) {
-    m_tabStop  = true;
     m_layout   = Layout::Vertical;
     m_tabGroup = true;
     args.apply(this);

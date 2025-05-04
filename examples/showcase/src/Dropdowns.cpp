@@ -1,4 +1,5 @@
 #include "Dropdowns.hpp"
+#include <brisk/widgets/ListBox.hpp>
 #include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
@@ -146,6 +147,27 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
             },
         },
 
+        rcnew Text{ "ListBox (widgets/ListBox.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ListBox{
+                    value = Value{ &m_selectedItem3 },
+                    "A"_Text,
+                    "B"_Text,
+                    "C"_Text,
+                    "D"_Text,
+                    "E"_Text,
+                    "F"_Text,
+                },
+                &m_group,
+            },
+            gapColumn = 10_apx,
+            rcnew Text{
+                text = Value{ &m_selectedItem3 }.transform([](int selectedItem) -> std::string {
+                    return fmt::format("ListBox, {} is selected", selectedItem);
+                }),
+            },
+        },
     };
 }
 } // namespace Brisk

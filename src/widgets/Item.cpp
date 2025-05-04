@@ -59,6 +59,13 @@ void Item::onChildAdded(Widget* w) {
 
 void Item::onEvent(Event& event) {
     Base::onEvent(event);
+    if (isDisabled())
+        return;
+    if (event.pressed(m_rect)) {
+        if (!isFocused())
+            focus();
+        event.stopPropagation();
+    }
     if (event.released(m_rect) || event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::Space)) {
         if (m_checkable) {
             checked = !checked;
@@ -98,16 +105,19 @@ void Item::onEvent(Event& event) {
         }
     }
 
-    if (m_focusOnHover && !isDisabled()) {
+    if (m_focusOnHover) {
         if (auto e = event.as<EventMouseMoved>()) {
-            toggleState(WidgetState::Selected, true);
+            selected = true;
             focus();
         } else if (auto e = event.as<EventMouseExited>()) {
-            toggleState(WidgetState::Selected, false);
-        } else if (event.focused()) {
-            toggleState(WidgetState::Selected, true);
+            selected = false;
+        }
+    }
+    if (m_selectOnFocus) {
+        if (event.focused()) {
+            selected = true;
         } else if (event.blurred()) {
-            toggleState(WidgetState::Selected, false);
+            selected = false;
         }
     }
 }

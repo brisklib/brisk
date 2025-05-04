@@ -128,10 +128,11 @@ void ComboBox::onChanged() {
     } else {
         cloned = std::shared_ptr<Item>(new Item{});
     }
-    cloned->role     = selecteditem.role();
-    cloned->flexGrow = 1;
-    cloned->tabStop  = false;
-    bool replaced    = replace(selecteditem.get(this), cloned, false);
+    cloned->role         = selecteditem.role();
+    cloned->flexGrow     = 1;
+    cloned->tabStop      = false;
+    cloned->focusOnHover = false;
+    bool replaced        = replace(selecteditem.get(this), cloned, false);
     BRISK_ASSERT(replaced);
 }
 
