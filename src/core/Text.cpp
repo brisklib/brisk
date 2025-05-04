@@ -44,7 +44,7 @@ U32String transformCase(U32StringView str, CaseTransformation mode) {
     return utf32Transform(str, mode == CaseTransformation::Lower ? &utf8proc_tolower : &utf8proc_toupper);
 }
 
-std::string wordWrap(std::string text, size_t columns) {
+std::string textWordWrap(std::string text, size_t columns) {
     // p points to the first char in line
     size_t p = 0;
 

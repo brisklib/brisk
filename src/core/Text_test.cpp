@@ -39,16 +39,16 @@ TEST_CASE("case") {
     }
 }
 
-TEST_CASE("wordWrap") {
-    CHECK(wordWrap("Hello, world!", 13) == "Hello, world!");
-    CHECK(wordWrap("Hello, world!", 12) == "Hello,\nworld!");
-    CHECK(wordWrap("Hello, world!", 5) == "Hello\n,\nworld\n!");
-    CHECK(wordWrap("Hello, world!", 3) == "Hel\nlo,\nwor\nld!");
+TEST_CASE("textWordWrap") {
+    CHECK(textWordWrap("Hello, world!", 13) == "Hello, world!");
+    CHECK(textWordWrap("Hello, world!", 12) == "Hello,\nworld!");
+    CHECK(textWordWrap("Hello, world!", 5) == "Hello\n,\nworld\n!");
+    CHECK(textWordWrap("Hello, world!", 3) == "Hel\nlo,\nwor\nld!");
 
-    CHECK(wordWrap("Hello, world!\nHello, world!", 13) == "Hello, world!\nHello, world!");
-    CHECK(wordWrap("Hello, world!\nHello, world!", 12) == "Hello,\nworld!\nHello,\nworld!");
-    CHECK(wordWrap("Hello, world!\nHello, world!", 5) == "Hello\n,\nworld\n!\nHello\n,\nworld\n!");
-    CHECK(wordWrap("Hello, world!\nHello, world!", 3) == "Hel\nlo,\nwor\nld!\nHel\nlo,\nwor\nld!");
+    CHECK(textWordWrap("Hello, world!\nHello, world!", 13) == "Hello, world!\nHello, world!");
+    CHECK(textWordWrap("Hello, world!\nHello, world!", 12) == "Hello,\nworld!\nHello,\nworld!");
+    CHECK(textWordWrap("Hello, world!\nHello, world!", 5) == "Hello\n,\nworld\n!\nHello\n,\nworld\n!");
+    CHECK(textWordWrap("Hello, world!\nHello, world!", 3) == "Hel\nlo,\nwor\nld!\nHel\nlo,\nwor\nld!");
 }
 
 TEST_CASE("split") {
