@@ -30,7 +30,7 @@
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/Canvas.hpp>
 
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/graphics/Palette.hpp>
 #ifdef BRISK_WEBGPU
 #include <brisk/graphics/WebGpu.hpp>

@@ -66,7 +66,7 @@ public:
 
     RenderDeviceInfo info() const final;
 
-    Rc<WindowRenderTarget> createWindowTarget(const OsWindow* window, PixelType type = PixelType::U8Gamma,
+    Rc<WindowRenderTarget> createWindowTarget(const NativeWindow* window, PixelType type = PixelType::U8Gamma,
                                               DepthStencilType depthStencil = DepthStencilType::None,
                                               int samples                   = 1) final;
 
@@ -84,7 +84,7 @@ public:
 
     void createImageBackend(Rc<Image> image) final;
 
-    RenderDeviceWebGpu(RendererDeviceSelection deviceSelection, OsDisplayHandle display);
+    RenderDeviceWebGpu(RendererDeviceSelection deviceSelection, NativeDisplayHandle display);
     ~RenderDeviceWebGpu();
 
 private:
@@ -95,7 +95,7 @@ private:
     friend bool webgpuFromContext(RenderContext&, wgpu::Device&, wgpu::TextureView&);
 
     RendererDeviceSelection m_deviceSelection;
-    OsDisplayHandle m_display;
+    NativeDisplayHandle m_display;
     std::unique_ptr<dawn::native::Instance> m_nativeInstance;
     dawn::native::Adapter m_nativeAdapter;
     wgpu::Instance m_instance;

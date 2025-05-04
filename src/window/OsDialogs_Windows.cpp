@@ -34,7 +34,7 @@
 #include <brisk/window/Window.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/Text.hpp>
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 
 template <typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -98,12 +98,13 @@ static std::optional<T> getFirst(const std::vector<T>& values) {
     return values.front();
 }
 
-inline HWND handleFromWindow(OsWindow* window, HWND fallback = 0) {
+inline HWND handleFromWindow(NativeWindow* window, HWND fallback = 0) {
     return window ? window->getHandle().hWnd() : fallback;
 }
 
 template <std::derived_from<IFileDialog> Dialog>
-static std::vector<fs::path> pathDialog(OsWindow* window, std::span<const Shell::FileDialogFilter> filters,
+static std::vector<fs::path> pathDialog(NativeWindow* window,
+                                        std::span<const Shell::FileDialogFilter> filters,
                                         FILEOPENDIALOGOPTIONS flags, const fs::path& defaultPath) {
     COMInitializer com;
     std::vector<fs::path> results;
@@ -199,7 +200,7 @@ static std::vector<fs::path> pathDialog(OsWindow* window, std::span<const Shell:
 
 std::optional<fs::path> Shell::showFolderDialog(const fs::path& defaultPath) {
     std::optional<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = getFirst(pathDialog<IFileOpenDialog>(window, {}, FOS_PICKFOLDERS, defaultPath));
     });
     return result;
@@ -208,7 +209,7 @@ std::optional<fs::path> Shell::showFolderDialog(const fs::path& defaultPath) {
 std::optional<fs::path> Shell::showOpenDialog(std::span<const FileDialogFilter> filters,
                                               const fs::path& defaultPath) {
     std::optional<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = getFirst(pathDialog<IFileOpenDialog>(window, filters, FOS_FILEMUSTEXIST, defaultPath));
     });
     return result;
@@ -217,7 +218,7 @@ std::optional<fs::path> Shell::showOpenDialog(std::span<const FileDialogFilter> 
 std::optional<fs::path> Shell::showSaveDialog(std::span<const FileDialogFilter> filters,
                                               const fs::path& defaultPath) {
     std::optional<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = getFirst(pathDialog<IFileSaveDialog>(window, filters, 0, defaultPath));
     });
     return result;
@@ -226,14 +227,14 @@ std::optional<fs::path> Shell::showSaveDialog(std::span<const FileDialogFilter> 
 std::vector<fs::path> Shell::showOpenDialogMulti(std::span<const FileDialogFilter> filters,
                                                  const fs::path& defaultPath) {
     std::vector<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = pathDialog<IFileOpenDialog>(window, filters, FOS_FILEMUSTEXIST | FOS_ALLOWMULTISELECT,
                                              defaultPath);
     });
     return result;
 }
 
-static DialogResult showChildDialog(OsWindow* window, DialogButtons buttons, MessageBoxType type,
+static DialogResult showChildDialog(NativeWindow* window, DialogButtons buttons, MessageBoxType type,
                                     std::string_view title, std::string_view message) {
     PCWSTR icon = TD_INFORMATION_ICON;
     switch (type) {
@@ -293,7 +294,7 @@ static DialogResult showChildDialog(OsWindow* window, DialogButtons buttons, Mes
 DialogResult Shell::showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
                                MessageBoxType type) {
     DialogResult result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = showChildDialog(window, buttons, type, title, message);
     });
     return result;

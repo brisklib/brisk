@@ -42,7 +42,7 @@ public:
 
     RenderDeviceInfo info() const final;
 
-    Rc<WindowRenderTarget> createWindowTarget(const OsWindow* window, PixelType type = PixelType::U8Gamma,
+    Rc<WindowRenderTarget> createWindowTarget(const NativeWindow* window, PixelType type = PixelType::U8Gamma,
                                               DepthStencilType depthStencil = DepthStencilType::None,
                                               int samples                   = 1) final;
 
@@ -60,7 +60,7 @@ public:
 
     void createImageBackend(Rc<Image> image) final;
 
-    RenderDeviceD3d11(RendererDeviceSelection deviceSelection, OsDisplayHandle display);
+    RenderDeviceD3d11(RendererDeviceSelection deviceSelection, NativeDisplayHandle display);
     ~RenderDeviceD3d11();
 
 private:
@@ -70,7 +70,7 @@ private:
     friend class ImageBackendD3d11;
 
     RendererDeviceSelection m_deviceSelection;
-    OsDisplayHandle m_display;
+    NativeDisplayHandle m_display;
     ComPtr<IDXGIFactory> m_factory;
     ComPtr<IDXGIFactory2> m_factory2;
     ComPtr<IDXGIDevice> m_dxgiDevice;

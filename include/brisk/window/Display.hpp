@@ -20,11 +20,11 @@
  */
 #pragma once
 
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/core/Binding.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/Rc.hpp>
-#include <brisk/graphics/OsDisplayHandle.hpp>
+#include <brisk/graphics/NativeDisplayHandle.hpp>
 
 namespace Brisk {
 
@@ -53,19 +53,19 @@ public:
      * @brief Get the position of the display in desktop coordinates.
      * @return The top-left position of the display.
      */
-    virtual Point position() const                           = 0;
+    virtual Point position() const                               = 0;
 
     /**
      * @brief Get the size of the display in desktop coordinates.
      * @return The size of the display in pixels.
      */
-    virtual Size size() const                                = 0;
+    virtual Size size() const                                    = 0;
 
     /**
      * @brief Get the work area of the display.
      * @return The work area of the display excluding taskbars, docks, and other furniture.
      */
-    virtual Rectangle workarea() const                       = 0;
+    virtual Rectangle workarea() const                           = 0;
 
     /**
      * @brief Get the current resolution of the display.
@@ -73,95 +73,95 @@ public:
      * @remark On macOS this returns virtual resolution before scaling down to the display's native
      * resolution. Same as resolution of screenshots.
      */
-    virtual Size resolution() const                          = 0;
+    virtual Size resolution() const                              = 0;
 
     /**
      * @brief Get the native resolution of the display.
      * @return The native resolution of the display in pixels.
      * @remark On macOS this returns actual resolution selected for the display.
      */
-    virtual Size nativeResolution() const                    = 0;
+    virtual Size nativeResolution() const                        = 0;
 
     /**
      * @brief Get the physical size of the display.
      * @return The physical size of the display in millimeters.
      */
-    virtual SizeF physicalSize() const                       = 0;
+    virtual SizeF physicalSize() const                           = 0;
 
     /**
      * @brief Get the DPI (dots per inch) of the display.
      * @return The DPI of the display.
      */
-    virtual int dpi() const                                  = 0;
+    virtual int dpi() const                                      = 0;
 
     /**
      * @brief Get the name of the display.
      * @return The name of the display as a string.
      */
-    virtual const std::string& name() const                  = 0;
+    virtual const std::string& name() const                      = 0;
 
     /**
      * @brief Get the unique identifier of the display.
      * @return The unique identifier of the display as a string.
      */
-    virtual const std::string& id() const                    = 0;
+    virtual const std::string& id() const                        = 0;
 
     /**
      * @brief Get the name of the adapter associated with the display.
      * @return The adapter name as a string.
      * @remark May return an empty string if the adapter name is not available
      */
-    virtual const std::string& adapterName() const           = 0;
+    virtual const std::string& adapterName() const               = 0;
 
     /**
      * @brief Get the unique identifier of the adapter associated with the display.
      * @return The adapter identifier as a string.
      * @remark May return an empty string if the adapter identifier is not available
      */
-    virtual const std::string& adapterId() const             = 0;
+    virtual const std::string& adapterId() const                 = 0;
 
     /**
      * @brief Get the display flags.
      * @return The flags associated with the display.
      */
-    virtual DisplayFlags flags() const                       = 0;
+    virtual DisplayFlags flags() const                           = 0;
 
     /**
      * @brief Get the content scale factor of the display.
      * @return The content scale factor of the display.
      */
-    virtual float contentScale() const                       = 0;
+    virtual float contentScale() const                           = 0;
 
     /**
      * @brief Get the refresh rate of the display.
      * @return The refresh rate of the display in hertz.
      */
-    virtual double refreshRate() const                       = 0;
+    virtual double refreshRate() const                           = 0;
 
     /**
      * @brief Convert a point from desktop coordinates to monitor coordinates.
      * @param pt The point in desktop coordinates.
      * @return The point in monitor coordinates.
      */
-    virtual Point desktopToMonitor(Point pt) const           = 0;
+    virtual Point desktopToMonitor(Point pt) const               = 0;
 
     /**
      * @brief Convert a point from monitor coordinates to desktop coordinates.
      * @param pt The point in monitor coordinates.
      * @return The point in desktop coordinates.
      */
-    virtual Point monitorToDesktop(Point pt) const           = 0;
+    virtual Point monitorToDesktop(Point pt) const               = 0;
 
     /**
      * @brief Get the backing scale factor of the display.
      * @return The backing scale factor of the display.
      * @remark macOS specific
      */
-    virtual int backingScaleFactor() const                   = 0;
+    virtual int backingScaleFactor() const                       = 0;
 
-    virtual bool containsWindow(OsWindowHandle handle) const = 0;
+    virtual bool containsWindow(NativeWindowHandle handle) const = 0;
 
-    virtual OsDisplayHandle getHandle() const                = 0;
+    virtual NativeDisplayHandle getHandle() const                = 0;
 
     /**
      * @brief Get all connected displays.

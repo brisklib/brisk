@@ -119,7 +119,7 @@ bool RenderDeviceD3d11::createDevice(UINT flags) {
     return false;
 }
 
-RenderDeviceD3d11::RenderDeviceD3d11(RendererDeviceSelection deviceSelection, OsDisplayHandle display)
+RenderDeviceD3d11::RenderDeviceD3d11(RendererDeviceSelection deviceSelection, NativeDisplayHandle display)
     : m_deviceSelection(deviceSelection), m_display(display) {}
 
 status<RenderDeviceError> RenderDeviceD3d11::init() {
@@ -278,7 +278,7 @@ RenderDeviceInfo RenderDeviceD3d11::info() const {
     return info;
 }
 
-Rc<WindowRenderTarget> RenderDeviceD3d11::createWindowTarget(const OsWindow* window, PixelType type,
+Rc<WindowRenderTarget> RenderDeviceD3d11::createWindowTarget(const NativeWindow* window, PixelType type,
                                                              DepthStencilType depthStencil, int samples) {
     return rcnew WindowRenderTargetD3d11(shared_from_this(), window, type, depthStencil, samples);
 }

@@ -7,7 +7,7 @@
 
 namespace Brisk {
 
-class OsWindowGLFW final : public OsWindow {
+class NativeWindowGLFW final : public NativeWindow {
 public:
     Size framebufferSize() const final {
         Size size;
@@ -15,11 +15,11 @@ public:
         return size;
     }
 
-    OsWindowHandle getHandle() const final;
+    NativeWindowHandle getHandle() const final;
 
-    OsWindowGLFW() = default;
+    NativeWindowGLFW() = default;
 
-    explicit OsWindowGLFW(GLFWwindow* win) : win(win) {}
+    explicit NativeWindowGLFW(GLFWwindow* win) : win(win) {}
 
 private:
     GLFWwindow* win = nullptr;

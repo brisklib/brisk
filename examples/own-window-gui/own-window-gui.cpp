@@ -24,7 +24,7 @@ constexpr int numWindows = 2; // Number of windows to create
 
 struct OneWindow {
     GLFWwindow* win;               // Pointer to the GLFW window
-    OsWindowGLFW osWin;            // Window adapter for platform abstraction
+    NativeWindowGLFW osWin;        // Window adapter for platform abstraction
     Rc<WindowRenderTarget> target; // Render target associated with the window
     Rc<RenderEncoder> encoder;     // Render encoder for drawing
     Size windowSize;               // Window size in pixels
@@ -109,7 +109,7 @@ int main() {
             }
         });
 
-        windows[i].osWin  = OsWindowGLFW(windows[i].win);
+        windows[i].osWin  = NativeWindowGLFW(windows[i].win);
         // Create render target for the window
         windows[i].target = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
         windows[i].target->setVSyncInterval(1); // Enable vertical sync

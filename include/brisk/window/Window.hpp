@@ -133,7 +133,7 @@ enum class HiDPIMode {
 
 HiDPIMode hiDPIMode();
 
-class Window : public BindableObject<Window, &mainScheduler>, public OsWindow {
+class Window : public BindableObject<Window, &mainScheduler>, public NativeWindow {
 public:
     /**
      * @brief Get the position of window in Screen coordinates
@@ -353,7 +353,7 @@ public:
     PlatformWindow* platformWindow();
 
     void disableKeyHandling();
-    OsWindowHandle getHandle() const final;
+    NativeWindowHandle getHandle() const final;
 
     void setOwner(Rc<Window> window);
     void enterModal();

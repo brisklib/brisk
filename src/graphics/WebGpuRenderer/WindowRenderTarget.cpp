@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-WindowRenderTargetWebGpu::WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, const OsWindow* window,
+WindowRenderTargetWebGpu::WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, const NativeWindow* window,
                                                    PixelType type, DepthStencilType depthStencil, int samples)
     : m_device(std::move(device)), m_window(window), m_type(type), m_depthStencilFmt(depthStencil),
       m_samples(samples) {

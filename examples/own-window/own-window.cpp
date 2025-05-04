@@ -17,7 +17,7 @@ constexpr int numWindows = 2;
 
 struct OneWindow {
     GLFWwindow* win;
-    OsWindowGLFW osWin;
+    NativeWindowGLFW osWin;
     Rc<WindowRenderTarget> target;
     Rc<RenderEncoder> encoder;
     double previousFrameTime = -1;
@@ -42,7 +42,7 @@ int main() {
     for (int i = 0; i < numWindows; ++i) {
         windows[i].win = glfwCreateWindow(500, 500, "test", nullptr, nullptr);
         BRISK_ASSERT(windows[i].win != nullptr);
-        windows[i].osWin = OsWindowGLFW(windows[i].win);
+        windows[i].osWin = NativeWindowGLFW(windows[i].win);
     }
     SCOPE_EXIT {
         for (int i = 0; i < numWindows; ++i)

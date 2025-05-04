@@ -20,7 +20,7 @@
  */
 #define BRISK_ALLOW_OS_HEADERS 1
 #include "WindowRenderTarget.hpp"
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_X11 1
@@ -30,8 +30,8 @@
 
 namespace Brisk {
 
-void WindowRenderTargetWebGpu::createSurface(const OsWindow* window) {
-    OsWindowHandle handle = window->getHandle();
+void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
+    NativeWindowHandle handle = window->getHandle();
 
     wgpu::SurfaceDescriptor surfaceDesc;
     wgpu::SurfaceDescriptorFromXlibWindow surfaceDescX11{};

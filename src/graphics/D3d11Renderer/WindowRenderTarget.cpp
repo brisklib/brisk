@@ -20,22 +20,22 @@
  */
 #define BRISK_ALLOW_OS_HEADERS 1
 #include "WindowRenderTarget.hpp"
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 
 namespace Brisk {
 
-WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, const OsWindow* window,
+WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, const NativeWindow* window,
                                                  PixelType type, DepthStencilType depthStencil, int samples)
     : m_device(std::move(device)), m_window(window), m_type(type), m_depthStencilFmt(depthStencil),
       m_samples(samples) {
 
     m_device->incrementWindowTargets();
 
-    OsWindowHandle handle   = window->getHandle();
-    Size framebufferSize    = window->framebufferSize();
+    NativeWindowHandle handle = window->getHandle();
+    Size framebufferSize      = window->framebufferSize();
 
     // D3D11 doesn't use sRGB format for buffer itself, so we should specify sRGB for view
-    DXGI_FORMAT colorFormat = dxFormatNoSrgb(m_type, PixelFormat::BGRA);
+    DXGI_FORMAT colorFormat   = dxFormatNoSrgb(m_type, PixelFormat::BGRA);
 
     HRESULT hr;
     if (m_device->m_factory2) {

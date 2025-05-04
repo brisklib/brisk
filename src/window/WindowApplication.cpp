@@ -267,7 +267,7 @@ VoidFunc WindowApplication::idleFunc() {
     return func;
 }
 
-void WindowApplication::systemModal(function<void(OsWindow*)> body) {
+void WindowApplication::systemModal(function<void(NativeWindow*)> body) {
     ModalMode modal;
 
     waitFuture(idleFunc(), mainScheduler->dispatch([&]() {

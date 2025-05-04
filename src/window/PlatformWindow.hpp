@@ -31,7 +31,7 @@ namespace Brisk {
 KeyCode scanCodeToKeyCode(int scanCode);
 int keyCodeToScanCode(KeyCode keyCode);
 
-struct OsWindowHandle;
+struct NativeWindowHandle;
 
 class Window;
 
@@ -119,7 +119,7 @@ public:
     void setOwner(Rc<Window> window);
     void releaseButtonsAndKeys();
 
-    OsWindowHandle getHandle() const;
+    NativeWindowHandle getHandle() const;
     void setCursor(Cursor cursor);
     void updateSize();
     void iconify();

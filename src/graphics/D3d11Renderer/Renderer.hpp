@@ -24,6 +24,6 @@
 namespace Brisk {
 
 expected<Rc<RenderDevice>, RenderDeviceError> createRenderDeviceD3d11(RendererDeviceSelection deviceSelection,
-                                                                      OsDisplayHandle display);
+                                                                      NativeDisplayHandle display);
 
 } // namespace Brisk

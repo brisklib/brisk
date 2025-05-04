@@ -25,8 +25,8 @@
 #include "RenderState.hpp"
 #include "Color.hpp"
 #include "Geometry.hpp"
-#include <brisk/graphics/OsWindowHandle.hpp>
-#include <brisk/graphics/OsDisplayHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/graphics/NativeDisplayHandle.hpp>
 #include <brisk/core/MetaClass.hpp>
 
 namespace Brisk {
@@ -436,21 +436,21 @@ enum class BlendMode {
 };
 
 /**
- * @class OsWindow
+ * @class NativeWindow
  * @brief Represents a platform-specific window handle.
  */
-class OsWindow {
+class NativeWindow {
 public:
     /**
      * @brief Returns the size of the framebuffer.
      * @return The framebuffer size.
      */
-    virtual Size framebufferSize() const     = 0;
+    virtual Size framebufferSize() const         = 0;
 
     /**
      * @brief Gets the native OS window handle.
      */
-    virtual OsWindowHandle getHandle() const = 0;
+    virtual NativeWindowHandle getHandle() const = 0;
 };
 
 /**
@@ -495,7 +495,7 @@ public:
      * @param samples Number of samples for multisampling.
      * @return The window render target.
      */
-    virtual Rc<WindowRenderTarget> createWindowTarget(const OsWindow* window,
+    virtual Rc<WindowRenderTarget> createWindowTarget(const NativeWindow* window,
                                                       PixelType type         = PixelType::U8Gamma,
                                                       DepthStencilType depth = DepthStencilType::None,
                                                       int samples            = 1) = 0;
@@ -551,7 +551,7 @@ void setRenderDeviceSelection(RendererBackend backend, RendererDeviceSelection d
  * @brief Gets the current rendering device, if available.
  * @return Expected object containing the rendering device or an error.
  */
-expected<Rc<RenderDevice>, RenderDeviceError> getRenderDevice(OsDisplayHandle display = {});
+expected<Rc<RenderDevice>, RenderDeviceError> getRenderDevice(NativeDisplayHandle display = {});
 
 /**
  * @brief Frees the currently allocated rendering device.
@@ -566,6 +566,6 @@ void freeRenderDevice();
  */
 expected<Rc<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
                                                                  RendererDeviceSelection deviceSelection,
-                                                                 OsDisplayHandle display = {});
+                                                                 NativeDisplayHandle display = {});
 
 } // namespace Brisk

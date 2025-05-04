@@ -34,7 +34,7 @@
 
 #include <brisk/window/Window.hpp>
 #include <brisk/core/Threading.hpp>
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/core/internal/NSTypes.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/Localization.hpp>
@@ -89,7 +89,7 @@ static DialogButtons nextButton(DialogButtons& buttons) {
     return static_cast<DialogButtons>(1 << idx);
 }
 
-static DialogResult showChildDialog(OsWindow* window, std::string_view title, std::string_view message,
+static DialogResult showChildDialog(NativeWindow* window, std::string_view title, std::string_view message,
                                     DialogButtons buttons, MessageBoxType type) {
     mustBeMainThread();
     DialogResult result;
@@ -144,7 +144,7 @@ static DialogResult showChildDialog(OsWindow* window, std::string_view title, st
 DialogResult Shell::showDialog(std::string_view title, std::string_view message, DialogButtons buttons,
                                MessageBoxType type) {
     DialogResult result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = showChildDialog(window, title, message, buttons, type);
     });
     return result;
@@ -181,7 +181,7 @@ static void addFilterListToDialog(NSSavePanel* dialog, std::span<const Shell::Fi
     [dialog setAllowedContentTypes:filterList];
 }
 
-static std::optional<fs::path> showChildOpenDialog(OsWindow* window,
+static std::optional<fs::path> showChildOpenDialog(NativeWindow* window,
                                                    std::span<const Shell::FileDialogFilter> filters,
                                                    const fs::path& defaultPath) {
     mustBeMainThread();
@@ -216,13 +216,13 @@ static std::optional<fs::path> showChildOpenDialog(OsWindow* window,
 std::optional<fs::path> Shell::showOpenDialog(std::span<const FileDialogFilter> filters,
                                               const fs::path& defaultPath) {
     std::optional<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = showChildOpenDialog(window, filters, defaultPath);
     });
     return result;
 }
 
-static std::optional<fs::path> showChildSaveDialog(OsWindow* window,
+static std::optional<fs::path> showChildSaveDialog(NativeWindow* window,
                                                    std::span<const Shell::FileDialogFilter> filters,
                                                    const fs::path& defaultPath) {
     mustBeMainThread();
@@ -258,13 +258,13 @@ static std::optional<fs::path> showChildSaveDialog(OsWindow* window,
 std::optional<fs::path> Shell::showSaveDialog(std::span<const FileDialogFilter> filters,
                                               const fs::path& defaultPath) {
     std::optional<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = showChildSaveDialog(window, filters, defaultPath);
     });
     return result;
 }
 
-static std::vector<fs::path> showChildOpenDialogMulti(OsWindow* window,
+static std::vector<fs::path> showChildOpenDialogMulti(NativeWindow* window,
                                                       std::span<const Shell::FileDialogFilter> filters,
                                                       const fs::path& defaultPath) {
     mustBeMainThread();
@@ -304,13 +304,13 @@ static std::vector<fs::path> showChildOpenDialogMulti(OsWindow* window,
 std::vector<fs::path> Shell::showOpenDialogMulti(std::span<const FileDialogFilter> filters,
                                                  const fs::path& defaultPath) {
     std::vector<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = showChildOpenDialogMulti(window, filters, defaultPath);
     });
     return result;
 }
 
-static std::optional<fs::path> showChildFolderDialog(OsWindow* window, const fs::path& defaultPath) {
+static std::optional<fs::path> showChildFolderDialog(NativeWindow* window, const fs::path& defaultPath) {
     mustBeMainThread();
     @autoreleasepool {
         @try {
@@ -344,7 +344,7 @@ static std::optional<fs::path> showChildFolderDialog(OsWindow* window, const fs:
 
 std::optional<fs::path> Shell::showFolderDialog(const fs::path& defaultPath) {
     std::optional<fs::path> result;
-    windowApplication->systemModal([&](OsWindow* window) {
+    windowApplication->systemModal([&](NativeWindow* window) {
         result = showChildFolderDialog(window, defaultPath);
     });
     return result;

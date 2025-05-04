@@ -32,7 +32,7 @@ public:
     int vsyncInterval() const final;
     void setVSyncInterval(int interval) final;
 
-    WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, const OsWindow* window,
+    WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, const NativeWindow* window,
                              PixelType type                = PixelType::U8Gamma,
                              DepthStencilType depthStencil = DepthStencilType::None, int samples = 1);
 
@@ -40,7 +40,7 @@ public:
 
 private:
     Rc<RenderDeviceWebGpu> m_device;
-    const OsWindow* m_window;
+    const NativeWindow* m_window;
     PixelType m_type;
     DepthStencilType m_depthStencilFmt;
     int m_samples;
@@ -51,6 +51,6 @@ private:
     int m_vsyncInterval = 1;
     Size m_size{ -1, -1 };
     void recreateSwapChain();
-    void createSurface(const OsWindow* window);
+    void createSurface(const NativeWindow* window);
 };
 } // namespace Brisk

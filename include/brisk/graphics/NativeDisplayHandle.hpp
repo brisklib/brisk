@@ -17,10 +17,11 @@
  *
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
- */                                                                                                          \
+ */
 #pragma once
 
 #include <brisk/core/Brisk.h>
+#include <cstdint>
 
 #ifdef BRISK_ALLOW_OS_HEADERS
 #ifdef BRISK_WINDOWS
@@ -29,9 +30,7 @@
 #include <windows.h>
 #endif
 #ifdef BRISK_APPLE
-#if defined(__OBJC__)
-#import "Cocoa/Cocoa.h"
-#endif
+#include <CoreGraphics/CGDirectDisplay.h>
 #endif
 #ifdef BRISK_LINUX
 #include <GLFW/glfw3.h>
@@ -40,10 +39,10 @@
 
 namespace Brisk {
 
-struct OsWindowHandle {
-    void* ptr                 = nullptr;
+struct NativeDisplayHandle {
+    void* ptr                      = nullptr;
 
-    OsWindowHandle() noexcept = default;
+    NativeDisplayHandle() noexcept = default;
 
     explicit operator bool() const noexcept {
         return static_cast<bool>(ptr);
@@ -51,31 +50,28 @@ struct OsWindowHandle {
 
 #ifdef BRISK_ALLOW_OS_HEADERS
 #ifdef BRISK_WINDOWS
-    HWND hWnd() const noexcept {
-        return static_cast<HWND>(ptr);
+    HMONITOR hMonitor() const noexcept {
+        return static_cast<HMONITOR>(ptr);
     }
 
-    explicit OsWindowHandle(HWND hWnd) noexcept : ptr(hWnd) {}
+    explicit NativeDisplayHandle(HMONITOR hMonitor) noexcept : ptr(hMonitor) {}
 #endif
 
 #ifdef BRISK_APPLE
-#if defined(__OBJC__)
-    NSWindow* nsWindow() const noexcept {
-        return (__bridge NSWindow*)ptr;
+    CGDirectDisplayID displayId() const noexcept {
+        return (CGDirectDisplayID)(uintptr_t)ptr;
     }
 
-    explicit OsWindowHandle(NSWindow* nsWindow) noexcept : ptr((__bridge void*)nsWindow) {}
-#endif
+    explicit NativeDisplayHandle(CGDirectDisplayID displayId) noexcept : ptr((void*)(uintptr_t)displayId) {}
 #endif
 
 #ifdef BRISK_LINUX
-    GLFWwindow* glfwWindow() const noexcept {
-        return static_cast<GLFWwindow*>(ptr);
+    GLFWmonitor* glfwMonitor() const noexcept {
+        return static_cast<GLFWmonitor*>(ptr);
     }
 
-    explicit OsWindowHandle(GLFWwindow* glfwWindow) noexcept : ptr(glfwWindow) {}
+    explicit NativeDisplayHandle(GLFWmonitor* glfwMonitor) noexcept : ptr(glfwMonitor) {}
 #endif
 #endif
 };
-
 } // namespace Brisk

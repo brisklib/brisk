@@ -34,17 +34,17 @@ static Rc<RenderDevice> defaultDevice;
 
 #ifdef BRISK_D3D11
 expected<Rc<RenderDevice>, RenderDeviceError> createRenderDeviceD3d11(RendererDeviceSelection deviceSelection,
-                                                                      OsDisplayHandle display);
+                                                                      NativeDisplayHandle display);
 #endif
 
 #ifdef BRISK_WEBGPU
 expected<Rc<RenderDevice>, RenderDeviceError> createRenderDeviceWebGpu(
-    RendererDeviceSelection deviceSelection, OsDisplayHandle display);
+    RendererDeviceSelection deviceSelection, NativeDisplayHandle display);
 #endif
 
 expected<Rc<RenderDevice>, RenderDeviceError> createRenderDevice(RendererBackend backend,
                                                                  RendererDeviceSelection deviceSelection,
-                                                                 OsDisplayHandle display) {
+                                                                 NativeDisplayHandle display) {
 #ifdef BRISK_D3D11
     if (backend == RendererBackend::D3d11)
         return createRenderDeviceD3d11(deviceSelection, display);
@@ -70,7 +70,7 @@ void setRenderDeviceSelection(RendererBackend backend, RendererDeviceSelection s
 
 static std::recursive_mutex mutex;
 
-expected<Rc<RenderDevice>, RenderDeviceError> getRenderDevice(OsDisplayHandle display) {
+expected<Rc<RenderDevice>, RenderDeviceError> getRenderDevice(NativeDisplayHandle display) {
     std::lock_guard lk(mutex);
     if (!defaultDevice) {
         auto device = createRenderDevice(defaultBackend, deviceSelection, display);

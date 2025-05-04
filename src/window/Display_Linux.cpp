@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include "brisk/graphics/OsWindowHandle.hpp"
+#include "brisk/graphics/NativeWindowHandle.hpp"
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Utilities.hpp>
 
@@ -104,13 +104,13 @@ public:
         return pt + m_rect.p1;
     }
 
-    bool containsWindow(OsWindowHandle handle) const {
+    bool containsWindow(NativeWindowHandle handle) const {
         std::shared_lock lk(m_mutex);
         return glfwGetWindowMonitor(handle.glfwWindow()) == m_monitor;
     }
 
-    OsDisplayHandle getHandle() const {
-        return OsDisplayHandle(m_monitor);
+    NativeDisplayHandle getHandle() const {
+        return NativeDisplayHandle(m_monitor);
     }
 
     DisplayFlags flags() const {

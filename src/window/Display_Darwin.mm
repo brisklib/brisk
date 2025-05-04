@@ -115,7 +115,7 @@ public:
         return m_backingScaleFactor;
     }
 
-    bool containsWindow(OsWindowHandle handle) const {
+    bool containsWindow(NativeWindowHandle handle) const {
         NSScreen* windowScreen = [handle.nsWindow() screen];
         if (!windowScreen) {
             return false;
@@ -131,8 +131,8 @@ public:
         return (CGDirectDisplayID)[screenNumber unsignedIntValue] == m_dispId;
     }
 
-    OsDisplayHandle getHandle() const {
-        return OsDisplayHandle(m_dispId);
+    NativeDisplayHandle getHandle() const {
+        return NativeDisplayHandle(m_dispId);
     }
 
 private:

@@ -28,7 +28,7 @@
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Time.hpp>
 #include "PlatformWindow.hpp"
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Localization.hpp>
 #include <brisk/core/App.hpp>
@@ -459,8 +459,8 @@ void PlatformWindow::setPlacement(BytesView data) {
     // TODO: macOS window placement
 }
 
-OsWindowHandle PlatformWindow::getHandle() const {
-    return OsWindowHandle(m_data->window);
+NativeWindowHandle PlatformWindow::getHandle() const {
+    return NativeWindowHandle(m_data->window);
 }
 
 PlatformWindow::~PlatformWindow() {

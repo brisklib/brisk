@@ -20,17 +20,17 @@
  */
 #define BRISK_ALLOW_OS_HEADERS 1
 #include "WindowRenderTarget.hpp"
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 
 #import "QuartzCore/CAMetalLayer.h"
 
 namespace Brisk {
 
-void WindowRenderTargetWebGpu::createSurface(const OsWindow* window) {
+void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
     @autoreleasepool {
-        OsWindowHandle handle = window->getHandle();
-        NSWindow* nsWindow    = handle.nsWindow();
-        NSView* view          = [nsWindow contentView];
+        NativeWindowHandle handle = window->getHandle();
+        NSWindow* nsWindow        = handle.nsWindow();
+        NSView* view              = [nsWindow contentView];
 
         [view setWantsLayer:YES];
         [view setLayer:[CAMetalLayer layer]];

@@ -32,7 +32,7 @@
 #include <brisk/window/Window.hpp>
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Time.hpp>
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/core/System.hpp>
 
 #include <brisk/core/platform/SystemWindows.hpp>
@@ -555,8 +555,8 @@ void PlatformWindow::setWindowIcon() {
     SendMessageW(m_data->hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 }
 
-OsWindowHandle PlatformWindow::getHandle() const {
-    return OsWindowHandle(m_data->hWnd);
+NativeWindowHandle PlatformWindow::getHandle() const {
+    return NativeWindowHandle(m_data->hWnd);
 }
 
 Bytes PlatformWindow::placement() const {

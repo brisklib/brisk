@@ -28,7 +28,7 @@
 #include <brisk/core/App.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/window/Display.hpp>
-#include <brisk/graphics/OsWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/window/Window.hpp>
 
 #include <GLFW/glfw3.h>
@@ -74,8 +74,8 @@ void PlatformWindow::setWindowIcon() {
     //
 }
 
-OsWindowHandle PlatformWindow::getHandle() const {
-    return OsWindowHandle(m_data->win);
+NativeWindowHandle PlatformWindow::getHandle() const {
+    return NativeWindowHandle(m_data->win);
 }
 
 Bytes PlatformWindow::placement() const {

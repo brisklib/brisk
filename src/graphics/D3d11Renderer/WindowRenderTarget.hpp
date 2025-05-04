@@ -32,7 +32,7 @@ public:
     int vsyncInterval() const final;
     void setVSyncInterval(int interval) final;
 
-    WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, const OsWindow* window,
+    WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, const NativeWindow* window,
                             PixelType type                = PixelType::U8Gamma,
                             DepthStencilType depthStencil = DepthStencilType::None, int samples = 1);
     ~WindowRenderTargetD3d11();
@@ -43,7 +43,7 @@ public:
 
 private:
     Rc<RenderDeviceD3d11> m_device;
-    const OsWindow* m_window;
+    const NativeWindow* m_window;
     PixelType m_type;
     DepthStencilType m_depthStencilFmt;
     int m_samples;

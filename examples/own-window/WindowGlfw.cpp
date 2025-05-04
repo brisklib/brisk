@@ -16,15 +16,15 @@
 
 namespace Brisk {
 
-OsWindowHandle OsWindowGLFW::getHandle() const {
+NativeWindowHandle NativeWindowGLFW::getHandle() const {
 #ifdef BRISK_WINDOWS
-    return OsWindowHandle(glfwGetWin32Window(win));
+    return NativeWindowHandle(glfwGetWin32Window(win));
 #endif
 #ifdef BRISK_MACOS
-    return OsWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
+    return NativeWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
 #endif
 #ifdef BRISK_LINUX
-    return OsWindowHandle(win);
+    return NativeWindowHandle(win);
 #endif
 }
 

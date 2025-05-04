@@ -139,7 +139,7 @@ public:
     Rc<TaskQueue> afterRenderQueue;
     Rc<TaskQueue> onApplicationClose = rcnew TaskQueue();
     VoidFunc idleFunc();
-    void systemModal(function<void(OsWindow*)> body);
+    void systemModal(function<void(NativeWindow*)> body);
     void updateAndWait();
 
     /**

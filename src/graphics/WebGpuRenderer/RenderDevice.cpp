@@ -201,7 +201,7 @@ bool RenderDeviceWebGpu::createDevice() {
     return true;
 }
 
-RenderDeviceWebGpu::RenderDeviceWebGpu(RendererDeviceSelection deviceSelection, OsDisplayHandle display)
+RenderDeviceWebGpu::RenderDeviceWebGpu(RendererDeviceSelection deviceSelection, NativeDisplayHandle display)
     : m_deviceSelection(deviceSelection), m_display(display) {}
 
 status<RenderDeviceError> RenderDeviceWebGpu::init() {
@@ -407,7 +407,7 @@ RenderDeviceInfo RenderDeviceWebGpu::info() const {
     return info;
 }
 
-Rc<WindowRenderTarget> RenderDeviceWebGpu::createWindowTarget(const OsWindow* window, PixelType type,
+Rc<WindowRenderTarget> RenderDeviceWebGpu::createWindowTarget(const NativeWindow* window, PixelType type,
                                                               DepthStencilType depthStencil, int samples) {
     return rcnew WindowRenderTargetWebGpu(shared_from_this(), window, type, depthStencil, samples);
 }

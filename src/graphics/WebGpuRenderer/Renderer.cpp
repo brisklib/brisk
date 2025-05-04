@@ -24,7 +24,7 @@
 namespace Brisk {
 
 expected<Rc<RenderDevice>, RenderDeviceError> createRenderDeviceWebGpu(
-    RendererDeviceSelection deviceSelection, OsDisplayHandle display) {
+    RendererDeviceSelection deviceSelection, NativeDisplayHandle display) {
     Rc<RenderDeviceWebGpu> device(new RenderDeviceWebGpu(deviceSelection, display));
     auto status = device->init();
     if (!status)

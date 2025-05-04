@@ -159,7 +159,7 @@ Size Window::getFramebufferSize() const {
 }
 
 Size Window::framebufferSize() const {
-    // OsWindow interface (Renderer)
+    // NativeWindow interface (Renderer)
     return m_framebufferSize;
 }
 
@@ -285,7 +285,7 @@ Rc<RenderDevice> Window::renderDevice() {
     if (!m_renderDevice) {
         Rc<Display> display = this->display();
         auto result         = createRenderDevice(defaultBackend, deviceSelection,
-                                         display ? display->getHandle() : OsDisplayHandle{});
+                                         display ? display->getHandle() : NativeDisplayHandle{});
         BRISK_ASSERT(result.has_value());
         m_renderDevice = *result;
     }
@@ -573,9 +573,9 @@ void Window::close() {
     });
 }
 
-OsWindowHandle Window::getHandle() const {
+NativeWindowHandle Window::getHandle() const {
     if (!m_platformWindow)
-        return OsWindowHandle{};
+        return NativeWindowHandle{};
     return m_platformWindow->getHandle();
 }
 
@@ -851,7 +851,7 @@ bool Window::forceRenderEveryFrame() const noexcept {
 }
 
 Rc<Display> Window::display() const {
-    OsWindowHandle handle = getHandle();
+    NativeWindowHandle handle = getHandle();
     if (!handle)
         return nullptr;
     for (auto display : Display::all())
