@@ -23,6 +23,7 @@
 #include "RenderEncoder.hpp"
 #include "WindowRenderTarget.hpp"
 #include "ImageRenderTarget.hpp"
+#include "ImageBackend.hpp"
 
 namespace Brisk {
 wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format) {
@@ -47,6 +48,14 @@ wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format) {
         // clang-format on
     };
     return formats[+format][+type];
+}
+
+wgpu::Texture textureFromImage(Rc<Image> image) {
+    auto* backend = Internal::getBackend(image);
+    if (!backend || backend->device()->backend() != RendererBackend::WebGpu)
+        return nullptr;
+
+    return static_cast<ImageBackendWebGpu*>(backend)->texture();
 }
 
 bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer) {

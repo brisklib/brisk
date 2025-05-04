@@ -43,6 +43,10 @@ public:
 
     void invalidate();
 
+    ComPtr<ID3D11Texture2D> texture() const {
+        return m_texture;
+    }
+
 private:
     friend class ImageRenderTargetD3d11;
     friend class RenderEncoderD3d11;

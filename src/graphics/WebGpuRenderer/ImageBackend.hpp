@@ -43,6 +43,10 @@ public:
 
     void invalidate();
 
+    wgpu::Texture texture() const {
+        return m_texture;
+    }
+
 private:
     friend class ImageRenderTargetWebGpu;
     friend class RenderEncoderWebGpu;

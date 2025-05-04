@@ -22,6 +22,7 @@
 
 #include <string>
 #include <brisk/graphics/Renderer.hpp>
+#include <brisk/graphics/D3d11.hpp>
 
 #include "../AdapterForMonitor.hpp"
 
@@ -31,12 +32,6 @@ constexpr inline PixelFormat backBufferFormat = PixelFormat::BGRA;
 
 constexpr inline size_t maxD3d11ResourceBytes = 128 * 1048576; // Guaranteed in D3D11.0
 
-DXGI_FORMAT dxFormat(PixelType type, PixelFormat format);
-DXGI_FORMAT dxFormatTypeless(PixelType type, PixelFormat format);
-
-inline DXGI_FORMAT dxFormatNoSrgb(PixelType type, PixelFormat format) {
-    return dxFormat(noGamma(type), format);
-}
 
 D3D11_TEXTURE2D_DESC texDesc(DXGI_FORMAT fmt, Size size, int samples, D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
                              UINT bind      = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,

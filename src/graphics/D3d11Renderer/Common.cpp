@@ -19,8 +19,17 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Common.hpp"
+#include "ImageBackend.hpp"
 
 namespace Brisk {
+
+Microsoft::WRL::ComPtr<ID3D11Texture2D> textureFromImage(Rc<Image> image) {
+    auto* backend = Internal::getBackend(image);
+    if (!backend || backend->device()->backend() != RendererBackend::D3d11)
+        return nullptr;
+
+    return static_cast<ImageBackendD3d11*>(backend)->texture();
+}
 
 std::string hrDescription(HRESULT hr) {
     std::string result;

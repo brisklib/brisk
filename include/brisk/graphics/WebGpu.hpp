@@ -26,6 +26,7 @@
 
 #include <brisk/graphics/Renderer.hpp>
 #include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Image.hpp>
 #include <dawn/webgpu_cpp.h>
 
 namespace Brisk {
@@ -61,5 +62,18 @@ struct BackBufferWebGpu {
  * interleaving of rendering commands.
  */
 bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer);
+
+/**
+ * @brief Retrieves the underlying WebGPU texture of an Image.
+ *
+ * This function returns the WebGPU texture associated with the provided Image resource, or nullptr if no
+ * texture has been created for the Image.
+ *
+ * @param[in] image The Image resource to query.
+ * @return A wgpu::Texture object representing the Image's texture, or nullptr if no texture exists.
+ * @note To ensure a GPU texture is created for the Image, call RenderDevice::createImageBackend before
+ * invoking this function.
+ */
+wgpu::Texture textureFromImage(Rc<Image> image);
 
 } // namespace Brisk
