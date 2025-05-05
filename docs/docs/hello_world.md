@@ -4,7 +4,10 @@ This tutorial will guide you through creating a basic "Hello, World" application
 
 ## Prerequisites
 
-Either build or download the Brisk binaries and required dependencies. Refer to the [Getting Started](getting_started.md) tutorial for detailed instructions.
+- A functioning C++20 compiler
+- Brisk library binary package and its dependencies (either downloaded or built)
+
+Refer to the [Getting Started](getting_started.md) tutorial for detailed instructions.
 
 ## Step 1: Create the Project Files
 
@@ -73,9 +76,9 @@ public:
             gapRow = 8_px,                       // Set vertical gap between elements
             alignItems = AlignItems::Center,     // Align child widgets to the center
             justifyContent = Justify::Center,    // Center the layout in the parent
-            rcnew Text{"Hello, world"},            // Display a text widget with "Hello, world"
+            rcnew Text{"Hello, world"},          // Display a text widget with "Hello, world"
             rcnew Button{
-                rcnew Text{"Quit"},                // Button label
+                rcnew Text{"Quit"},              // Button label
                 onClick = lifetime() | []() {    // Quit the application on button click
                     windowApplication->quit();
                 },

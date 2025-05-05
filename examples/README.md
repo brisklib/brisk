@@ -6,6 +6,16 @@
 - `own-window-gui`: Shows how to use Brisk widgets in an externally supplied window.
 - `webgpu-demo`: Renders a simple 3D scene using Brisk and WebGPU.
 - `splash-screen`: Demonstrates how to create a splash screen with an image and a progress bar that displays while the application loads.
+- `dashboard`: An application that displays CPU usage per core. It demonstrates the following features:
+    - Data binding
+    - Dialog creation (About dialog and Settings dialog)
+    - Custom widgets
+    - Menus and actions
+    - Shortcuts
+    - MVVM pattern
+    - File dialogs
+    - Custom styling
+    - Application-wide settings
 
 You are free to modify the code of any example and use it as a starting point for your own projects, whether GPL-licensed or proprietary, depending on the Brisk license you own.
 

@@ -2,13 +2,13 @@
 
 ## Introduction to Brisk
 
-Brisk is an advanced, open-source C++ GUI framework originally developed for a proprietary project. It has been released under the GPLv2+ license, with commercial licensing options available for closed-source applications.
+Brisk is an open-source cross-platform C++ GUI framework originally developed for a proprietary project. It has been released under the GPLv2+ license, with commercial licensing options available for closed-source applications.
 
 Brisk requires a C++20-compliant compiler and uses vcpkg for dependency management, with prebuilt binaries also available. It currently supports macOS, Linux, and Windows, with plans to extend support to mobile platforms.
 
 ## Reactive Features
 
-Brisk brings modern UI paradigms to C++ by streamlining complex workflows without compromising performance. Its flexible binding system integrates smoothly with standard C++ data structures, requiring minimal boilerplate. This enables effortless integration with existing codebases and efficient UI updates based on data changes.
+Brisk brings modern UI paradigms to C++, its flexible binding system integrates smoothly with standard C++ data structures, requiring minimal boilerplate. This enables effortless integration with existing codebases and efficient UI updates based on data changes.
 
 The framework follows a declarative approach to UI development, which simplifies both UI construction and appearance definition. This approach is similar to modern UI frameworks for web and mobile platforms, such as React, SwiftUI, and Jetpack Compose.
 
@@ -70,9 +70,9 @@ Rc<Widget> makeSlider(float& value) {
 
 ### Layout
 
-Brisk supports the **CSS Flexbox** layout model, enabling flexible and responsive widget arrangements. This ensures efficient alignment and spacing of widgets with minimal configuration.
+Brisk supports the **CSS Flexbox** layout model, enabling flexible and responsive widget arrangements. This ensures precise alignment and spacing of widgets with minimal configuration.
 
-## Powerful Binding System
+## Binding System
 
 Brisk's data binding system revolves around the `Property` and `Value` abstractions. Any C++ value (such as `int`, `std::string`, or custom classes) can be wrapped in a `Value` structure and used as a source or target for binding, provided that the memory is registered with the binding system.
 
@@ -98,8 +98,6 @@ Rc<Widget> makeTemperatureWidget() {
     };
 }
 ```
-
-Brisk's binding system is highly flexible. It supports value transformations, multithreading, and low-level bindings for greater control over data synchronization and task scheduling.
 
 ## Dynamic Widget Trees with Builders
 
@@ -131,7 +129,7 @@ Rc<Widget> makeTree() {
 
 ## GPU-Accelerated Graphics
 
-Brisk includes a custom graphics engine optimized for high-performance rendering. It leverages platform-specific 3D APIs, such as D3D11, Metal, and Vulkan, to provide GPU-accelerated graphics. This is especially beneficial for applications with complex graphical user interfaces.
+Brisk includes a custom graphics engine optimized for high-performance 2D rendering. It leverages platform-specific 3D APIs, such as D3D11, Metal, and Vulkan, to provide GPU-accelerated graphics. This is especially beneficial for applications with complex graphical user interfaces.
 
 Brisk employs Signed Distance Field (SDF) techniques for efficient rendering of simple shapes, ideal for widget drawing. Additionally, Brisk supports loading various image formats, including SVG (Scalable Vector Graphics) rasterization.
 
@@ -164,7 +162,7 @@ void renderBox(RenderContext& context, Rectangle rect, float radius) {
 
 ## Text Handling
 
-Brisk uses UTF-8 encoding internally and provides utilities for converting between UTF-8, UTF-16, and UTF-32. It also supports Unicode normalization, grapheme splitting, and proper line breaking. Brisk fully supports Left-to-Right (LTR), Right-to-Left (RTL), and bidirectional text, as well as complex text shaping with OpenType features.
+Brisk uses UTF-8 encoding internally and provides optimized functions for converting between UTF-8, UTF-16, and UTF-32. It also supports Unicode normalization, grapheme splitting, and proper line breaking. Brisk fully supports Left-to-Right (LTR), Right-to-Left (RTL), and bidirectional text, as well as complex text shaping with OpenType features.
 
 For example, the `Text` widget is highly configurable with respect to font features and text formatting:
 

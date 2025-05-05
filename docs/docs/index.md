@@ -6,19 +6,28 @@ The Brisk library is in the beta stage, so there may be breaking changes, and th
 
 ## Getting Started
 
-* [Getting Started](getting_started.md)
-* [Installing Prerequisites](prerequisites.md)
-* [Prebuilt Binaries](prebuilt_binaries.md)
-
-## Core Concepts
-
-* [Data Binding](binding.md)
-* [Resources](resources.md)
-
-## Examples
-
+* [Getting Started Guide](getting_started.md)
+    * [Installing Prerequisites](prerequisites.md)
+    * [Prebuilt Binaries](prebuilt_binaries.md)
 * [Hello, world example](hello_world.md)
-* [Other examples](other_examples.md)
+
+## Basic usage
+
+* [Components :construction:](basic/components.md) (Content coming soon)
+* [Data Binding](basic/binding.md)
+* [Resources](basic/resources.md)
+* [Working with Graphics](basic/graphics.md)
+
+## Advanced usage
+
+* [Creating custom widgets :construction:](advanced/creating_widgets.md)
+* [Integrating Brisk into your application :construction:](advanced/integrating.md)
+
+## [Examples](other_examples.md)
+
+See the `examples` directory in the Brisk repository for advanced examples of using the Brisk framework.
+
+https://github.com/brisklib/brisk/tree/main/examples
 
 ## Reference
 
