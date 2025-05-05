@@ -20,10 +20,10 @@
  */
 #pragma once
 
+#include <brisk/graphics/Renderer.hpp>
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-
-#include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {
 
