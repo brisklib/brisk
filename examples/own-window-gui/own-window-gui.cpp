@@ -175,6 +175,7 @@ int main() {
         glfwPollEvents();
 
         // Process Brisk events
+        mainScheduler->process();
         uiScheduler->process();
 
         for (int i = 0; i < numWindows; ++i) {

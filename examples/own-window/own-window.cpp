@@ -81,6 +81,8 @@ int main() {
 
     while (!exit) {
         glfwPollEvents();
+        mainScheduler->process();
+        
         double sumWaitTime = 0;
         for (int i = 0; i < numWindows; ++i) {
             sumWaitTime += windows[i].frameInterval;
