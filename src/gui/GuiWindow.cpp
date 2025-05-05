@@ -229,11 +229,11 @@ void GuiWindow::updateWindowLimits() {
             } else {
                 setMinimumMaximumSizes(newWindowSize, newWindowSize);
             }
-        }
-        if (Rc<Window> owner = m_owner.lock()) {
-            Rectangle r = owner->getRectangle();
-            r           = r.alignedRect(newWindowSize, { 0.5f, 0.5f });
-            setPosition(r.p1);
+            if (Rc<Window> owner = m_owner.lock()) {
+                Rectangle r = owner->getRectangle();
+                r           = r.alignedRect(newWindowSize, { 0.5f, 0.5f });
+                setPosition(r.p1);
+            }
         }
     }
 }
