@@ -22,6 +22,7 @@
 
 #include <brisk/gui/Component.hpp>
 #include <brisk/window/OsDialogs.hpp>
+#include <brisk/gui/Styles.hpp>
 
 namespace Brisk {
 
@@ -88,7 +89,7 @@ protected:
      * @return A reference-counted pointer to the created widget containing the buttons.
      */
     Rc<Widget> dialogButtons(DialogButtons buttons, std::string okBtn = "OK||Button"_tr,
-                             std::string cancelBtn = "Cancel||Button"_tr);
+                             std::string cancelBtn = "Cancel||Button"_tr, const Rules& rules = {});
     DialogComponent();
 
 public:

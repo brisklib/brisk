@@ -50,26 +50,36 @@ void DialogComponent::close(bool result) {
     closeWindow();
 }
 
-Rc<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okBtn, std::string cancelBtn) {
-    return rcnew HLayout{ margin = { 15, 10 }, //
-                          rcnew Spacer{},
-                          (buttons && DialogButtons::OK)
-                              ? rcnew Button{ rcnew Text{ std::move(okBtn) }, id = "dialog-ok",
-                                              onClick = lifetime() |
-                                                        [this] {
-                                                            accept();
-                                                        },
-                                              margin = { 4, 0 } }
-                              : nullptr,
-                          (buttons && DialogButtons::Cancel)
-                              ? rcnew Button{ rcnew Text{ std::move(cancelBtn) }, id = "dialog-cancel",
-                                              onClick = lifetime() |
-                                                        [this] {
-                                                            reject();
-                                                        },
-                                              margin = { 4, 0 } }
-                              : nullptr,
-                          rcnew Spacer{} };
+Rc<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okBtn, std::string cancelBtn,
+                                          const Rules& rules) {
+    Rc<Widget> btnOk, btnCancel;
+    if (buttons && DialogButtons::OK) {
+        btnOk = rcnew Button{
+            rcnew Text{ std::move(okBtn) },
+            id      = "dialog-ok",
+            onClick = lifetime() |
+                      [this] {
+                          accept();
+                      },
+        };
+    }
+    if (buttons && DialogButtons::Cancel) {
+        btnCancel = rcnew Button{
+            rcnew Text{ std::move(cancelBtn) },
+            id      = "dialog-cancel",
+            onClick = lifetime() |
+                      [this] {
+                          reject();
+                      },
+        };
+    }
+
+    return rcnew HLayout{
+        rules,
+        gapColumn = 8,
+        btnOk,
+        btnCancel,
+    };
 }
 
 void DialogComponent::rejected() {}
