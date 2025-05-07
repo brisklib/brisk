@@ -6,22 +6,17 @@ The Brisk library is in the beta stage, so there may be breaking changes, and th
 
 ## Getting Started
 
-* [Getting Started Guide](getting_started.md)
-    * [Installing Prerequisites](prerequisites.md)
-    * [Prebuilt Binaries](prebuilt_binaries.md)
-* [Hello, world example](hello_world.md)
+* [Installing Prerequisites](getting_started/prerequisites.md)
+* [Choosing Architecture (Triplets)](getting_started/triplets.md)
+* [Prebuilt Binaries](getting_started/prebuilt_binaries.md)
+* [Building Brisk and Dependencies from Source](getting_started/building.md)
+* [Hello, world Example](getting_started/hello_world.md)
 
 ## Basic usage
 
-* [Components :construction:](basic/components.md) (Content coming soon)
 * [Data Binding](basic/binding.md)
 * [Resources](basic/resources.md)
 * [Working with Graphics](basic/graphics.md)
-
-## Advanced usage
-
-* [Creating custom widgets :construction:](advanced/creating_widgets.md)
-* [Integrating Brisk into your application :construction:](advanced/integrating.md)
 
 ## [Examples](other_examples.md)
 
