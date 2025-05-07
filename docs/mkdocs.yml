@@ -71,10 +71,10 @@ nav:
     - index.md
     - about.md
     - Getting Started:
-      - getting_started/getting_started.md
-      - getting_started/triplets.md
       - getting_started/prerequisites.md
+      - getting_started/triplets.md
       - getting_started/prebuilt_binaries.md
+      - getting_started/building.md
       - getting_started/hello_world.md
     - Basic usage:
       - basic/binding.md
