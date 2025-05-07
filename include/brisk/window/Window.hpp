@@ -381,7 +381,7 @@ protected:
     bool m_attached = false;
 
 private:
-    void mustBeUIThread() const;
+    void mustBeUiThread() const;
 
 protected:
     // Properties and dimensions

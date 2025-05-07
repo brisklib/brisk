@@ -33,7 +33,7 @@
 namespace Brisk {
 
 bool isStandaloneApp  = false;
-bool separateUIThread = true;
+bool separateUiThread = true;
 
 Nullable<WindowApplication> windowApplication;
 
@@ -62,7 +62,7 @@ void WindowApplication::serialize(const Serialization& serialization) {
     serialization(Value{ &subPixelText }, "subPixelText");
 }
 
-WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
+WindowApplication::WindowApplication() : m_separateUiThread(separateUiThread) {
     BRISK_ASSERT(windowApplication.get() == nullptr);
     windowApplication = this;
     mustBeMainThread();
@@ -80,7 +80,7 @@ WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
 
     PlatformWindow::initialize();
 
-    if (m_separateUIThread) {
+    if (m_separateUiThread) {
         m_uiThread = std::thread(&WindowApplication::uiThreadBody, this);
         m_uiThreadStarted.acquire();
     } else {
@@ -104,7 +104,7 @@ WindowApplication::~WindowApplication() {
         settings->setData("/display", data);
     }
 
-    if (m_separateUIThread) {
+    if (m_separateUiThread) {
         m_uiThreadTerminate = true;
         while (!m_uiThreadTerminated) {
             mainScheduler->process();
@@ -217,7 +217,7 @@ void WindowApplication::cycle(bool wait) {
     {
         mainScheduler->process();
         processTimers();
-        if (!m_separateUIThread)
+        if (!m_separateUiThread)
             renderWindows();
     }
 }
@@ -260,7 +260,7 @@ bool WindowApplication::hasWindow(const Rc<Window>& window) {
 
 VoidFunc WindowApplication::idleFunc() {
     VoidFunc func;
-    if (m_separateUIThread && uiScheduler->isOnThread())
+    if (m_separateUiThread && uiScheduler->isOnThread())
         func = [this]() {
             renderWindows();
         };
@@ -304,7 +304,7 @@ void WindowApplication::addWindow(Rc<Window> window, bool makeVisible) {
     }));
 }
 
-void WindowApplication::mustBeUIThread() {
+void WindowApplication::mustBeUiThread() {
     if (m_uiThread.get_id() != std::thread::id{}) {
         BRISK_ASSERT(std::this_thread::get_id() == m_uiThread.get_id());
     }

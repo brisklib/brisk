@@ -44,7 +44,7 @@ extern Window* currentWindow;
 /**
  * @brief Controls whether the application should process UI and render in a separate threads. Default true
  */
-extern bool separateUIThread;
+extern bool separateUiThread;
 
 enum class QuitCondition {
     FirstWindowClosed,
@@ -133,7 +133,7 @@ public:
     // Internal methods
     WindowApplication();
     ~WindowApplication();
-    void mustBeUIThread();
+    void mustBeUiThread();
     double doubleClickTime() const;
     double doubleClickDistance() const;
     Rc<TaskQueue> afterRenderQueue;
@@ -188,7 +188,7 @@ private:
     double m_doubleClickDistance        = 3.0;
     constexpr static int32_t noExitCode = INT32_MIN;
     std::atomic_int32_t m_exitCode{ noExitCode };
-    const bool m_separateUIThread;
+    const bool m_separateUiThread;
     std::thread m_uiThread;
     std::atomic_bool m_uiThreadTerminate{ false };
     std::atomic_bool m_uiThreadTerminated{ false };
