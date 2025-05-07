@@ -7,7 +7,7 @@ This tutorial will guide you through creating a basic "Hello, World" application
 - A functioning C++20 compiler
 - Brisk library binary package and its dependencies (either downloaded or built)
 
-Refer to the [Getting Started](getting_started.md) tutorial for detailed instructions.
+Refer to the [Getting Started](../index.md#getting-started) tutorial for detailed instructions.
 
 ## Step 1: Create the Project Files
 

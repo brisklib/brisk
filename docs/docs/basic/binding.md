@@ -8,8 +8,8 @@ To inform the binding system of a value change, the program should call a design
 
 The `Property<>` class simplifies notifications by automating them. See [Property](#property) for more details.
 
-> [!note]
-> Memory ranges used as keys must be registered in the binding system using one of the available methods. See [Memory Ranges](#memory-ranges) for more information.
+!!! note "Note"
+    Memory ranges used as keys must be registered in the binding system using one of the available methods. See [Memory Ranges](#memory-ranges) for more information.
 
 The core abstraction in the binding system is the `Value<T>` type, which combines data getter and setter functionality with associated memory ranges. To create a `Value` from a variable, use the syntax `Value{ &variable }`. The variable's address is used as the single argument in the `Value` constructor.
 
@@ -166,8 +166,8 @@ By default, all callbacks are invoked by the binding system within the `notify` 
 
 This behavior can be modified by associating a `Scheduler` with a memory range. A `Scheduler` is an interface used to enqueue a lambda, potentially executing it on another thread. `TaskQueue` is the main implementation of the `Scheduler` interface and can queue tasks for later execution on a target thread.
 
-> [!warning]
-> Ensure that `notify` is called (or a `Property` is changed) only on the associated task queue’s thread.
+!!! warning "Thread safety"
+    Ensure that `notify` is called (or a `Property` is changed) only on the associated task queue’s thread.
 
 ## `Property`
 

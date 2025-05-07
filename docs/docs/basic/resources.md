@@ -46,8 +46,8 @@ brisk_bundle_resources(main)
 # to bundle all required resource.
 ```
 
-> [!Note]
-> More methods for bundling resources with Brisk applications are planned for future releases. Examples include the `Resources` folder in macOS bundles and resources in the Win32 PE format.
+!!! note "Note"
+    More methods for bundling resources with Brisk applications are planned for future releases. Examples include the `Resources` folder in macOS bundles and resources in the Win32 PE format.
 
 ### C++ Code
 
