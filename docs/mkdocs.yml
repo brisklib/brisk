@@ -74,9 +74,10 @@ nav:
       - getting_started.md
       - prerequisites.md
       - prebuilt_binaries.md
-    - Core concepts:
-      - binding.md
-      - resources.md
+    - Basic usage:
+      - basic/binding.md
+      - basic/resources.md
+      - basic/graphics.md
     - Examples:
       - hello_world.md
       - other_examples.md
