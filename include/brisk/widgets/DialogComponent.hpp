@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -21,7 +21,8 @@
 #pragma once
 
 #include <brisk/gui/Component.hpp>
-#include <brisk/window/OSDialogs.hpp>
+#include <brisk/window/OsDialogs.hpp>
+#include <brisk/gui/Styles.hpp>
 
 namespace Brisk {
 
@@ -56,9 +57,6 @@ public:
      */
     void close(bool result);
 
-    DeferredCallbacks<> onAccepted; ///< Callback triggered when the dialog is accepted.
-    DeferredCallbacks<> onRejected; ///< Callback triggered when the dialog is rejected.
-
 protected:
     bool m_result = false; ///< The result of the dialog, true if accepted, false if rejected.
 
@@ -78,7 +76,7 @@ protected:
 
     void unhandledEvent(Event& event) override;
 
-    void configureWindow(RC<GUIWindow> window) override;
+    void configureWindow(Rc<GuiWindow> window) override;
 
     /**
      * @brief Creates buttons for the dialog.
@@ -90,8 +88,8 @@ protected:
      * @param cancelBtn The label for the Cancel button. Default is "Cancel".
      * @return A reference-counted pointer to the created widget containing the buttons.
      */
-    RC<Widget> dialogButtons(DialogButtons buttons, std::string okBtn = "OK||Button"_tr,
-                             std::string cancelBtn = "Cancel||Button"_tr);
+    Rc<Widget> dialogButtons(DialogButtons buttons, std::string okBtn = "OK||Button"_tr,
+                             std::string cancelBtn = "Cancel||Button"_tr, const Rules& rules = {});
     DialogComponent();
 
 public:
@@ -119,7 +117,7 @@ protected:
     std::string m_prompt; ///< The prompt message displayed to the user.
     std::string m_value;  ///< The input value entered by the user.
 
-    RC<Widget> build() override;
+    Rc<Widget> build() override;
 
 public:
     BRISK_PROPERTIES_BEGIN
@@ -146,7 +144,7 @@ public:
 protected:
     std::string m_text; ///< The message text.
     std::string m_icon; ///< The icon displayed alongside the message.
-    RC<Widget> build() override;
+    Rc<Widget> build() override;
 
 public:
     BRISK_PROPERTIES_BEGIN
@@ -173,7 +171,7 @@ public:
 protected:
     std::string m_text; ///< The message text.
     std::string m_icon; ///< The icon displayed alongside the message.
-    RC<Widget> build() override;
+    Rc<Widget> build() override;
 
 public:
     BRISK_PROPERTIES_BEGIN

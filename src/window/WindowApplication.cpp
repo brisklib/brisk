@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -32,12 +32,12 @@
 
 namespace Brisk {
 
-bool isStandaloneApp                 = false;
-bool separateUIThread                = true;
+bool isStandaloneApp  = false;
+bool separateUiThread = true;
 
-WindowApplication* windowApplication = nullptr;
+Nullable<WindowApplication> windowApplication;
 
-RC<TaskQueue> uiScheduler;
+Rc<TaskQueue> uiScheduler;
 
 void WindowApplication::quit(int exitCode) {
     m_exitCode = exitCode;
@@ -46,7 +46,7 @@ void WindowApplication::quit(int exitCode) {
     }
 }
 
-std::vector<RC<Window>> WindowApplication::windows() const {
+std::vector<Rc<Window>> WindowApplication::windows() const {
     if (isMainThread())
         return m_mainData.m_windows;
     else
@@ -54,7 +54,7 @@ std::vector<RC<Window>> WindowApplication::windows() const {
 }
 
 void WindowApplication::serialize(const Serialization& serialization) {
-    serialization(Value{ &discreteGPU }, "discreteGPU");
+    serialization(Value{ &discreteGpu }, "discreteGpu");
     serialization(Value{ &syncInterval }, "syncInterval");
     serialization(Value{ &uiScale }, "uiScale");
     serialization(Value{ &blueLightFilter }, "blueLightFilter");
@@ -62,8 +62,8 @@ void WindowApplication::serialize(const Serialization& serialization) {
     serialization(Value{ &subPixelText }, "subPixelText");
 }
 
-WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
-    BRISK_ASSERT(windowApplication == nullptr);
+WindowApplication::WindowApplication() : m_separateUiThread(separateUiThread) {
+    BRISK_ASSERT(windowApplication.get() == nullptr);
     windowApplication = this;
     mustBeMainThread();
 
@@ -80,7 +80,7 @@ WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
 
     PlatformWindow::initialize();
 
-    if (m_separateUIThread) {
+    if (m_separateUiThread) {
         m_uiThread = std::thread(&WindowApplication::uiThreadBody, this);
         m_uiThreadStarted.acquire();
     } else {
@@ -95,7 +95,7 @@ WindowApplication::WindowApplication() : m_separateUIThread(separateUIThread) {
 }
 
 WindowApplication::~WindowApplication() {
-    BRISK_ASSERT(windowApplication == this);
+    BRISK_ASSERT(windowApplication.get() == this);
     mustBeMainThread();
 
     if (settings) {
@@ -104,7 +104,7 @@ WindowApplication::~WindowApplication() {
         settings->setData("/display", data);
     }
 
-    if (m_separateUIThread) {
+    if (m_separateUiThread) {
         m_uiThreadTerminate = true;
         while (!m_uiThreadTerminated) {
             mainScheduler->process();
@@ -139,8 +139,8 @@ void WindowApplication::renderWindows() {
     uiScheduler->process();
     using std::chrono::steady_clock;
     steady_clock::time_point stopTime = steady_clock::now() + std::chrono::milliseconds(1000 / maximumFPS);
-    std::vector<RC<Window>> windows   = this->windows();
-    for (RC<Window> w : windows) {
+    std::vector<Rc<Window>> windows   = this->windows();
+    for (Rc<Window> w : windows) {
         if (w->m_rendering) {
             Window* curWindow = w.get();
             std::swap(Internal::currentWindow, curWindow);
@@ -217,7 +217,7 @@ void WindowApplication::cycle(bool wait) {
     {
         mainScheduler->process();
         processTimers();
-        if (!m_separateUIThread)
+        if (!m_separateUiThread)
             renderWindows();
     }
 }
@@ -246,12 +246,12 @@ int WindowApplication::run() {
     return m_exitCode;
 }
 
-int WindowApplication::run(RC<Window> mainWindow) {
+int WindowApplication::run(Rc<Window> mainWindow) {
     addWindow(std::move(mainWindow));
     return run();
 }
 
-bool WindowApplication::hasWindow(const RC<Window>& window) {
+bool WindowApplication::hasWindow(const Rc<Window>& window) {
     return mainScheduler->dispatchAndWait([&]() {
         return std::find(m_mainData.m_windows.begin(), m_mainData.m_windows.end(), window) !=
                m_mainData.m_windows.end();
@@ -260,14 +260,14 @@ bool WindowApplication::hasWindow(const RC<Window>& window) {
 
 VoidFunc WindowApplication::idleFunc() {
     VoidFunc func;
-    if (m_separateUIThread && uiScheduler->isOnThread())
+    if (m_separateUiThread && uiScheduler->isOnThread())
         func = [this]() {
             renderWindows();
         };
     return func;
 }
 
-void WindowApplication::systemModal(function<void(OSWindow*)> body) {
+void WindowApplication::systemModal(function<void(NativeWindow*)> body) {
     ModalMode modal;
 
     waitFuture(idleFunc(), mainScheduler->dispatch([&]() {
@@ -275,7 +275,7 @@ void WindowApplication::systemModal(function<void(OSWindow*)> body) {
     }));
 }
 
-void WindowApplication::modalRun(RC<Window> modalWindow) {
+void WindowApplication::modalRun(Rc<Window> modalWindow) {
     ModalMode modal;
     if (modal.owner) {
         modalWindow->setOwner(modal.owner);
@@ -292,7 +292,7 @@ void WindowApplication::modalRun(RC<Window> modalWindow) {
     }));
 }
 
-void WindowApplication::addWindow(RC<Window> window, bool makeVisible) {
+void WindowApplication::addWindow(Rc<Window> window, bool makeVisible) {
     waitFuture(idleFunc(), mainScheduler->dispatch([this, window = std::move(window), makeVisible]() {
         m_mainData.m_windows.push_back(window);
         window->attachedToApplication();
@@ -304,7 +304,7 @@ void WindowApplication::addWindow(RC<Window> window, bool makeVisible) {
     }));
 }
 
-void WindowApplication::mustBeUIThread() {
+void WindowApplication::mustBeUiThread() {
     if (m_uiThread.get_id() != std::thread::id{}) {
         BRISK_ASSERT(std::this_thread::get_id() == m_uiThread.get_id());
     }
@@ -324,14 +324,14 @@ double WindowApplication::doubleClickTime() const {
 
 void WindowApplication::openWindows() {
     mustBeMainThread();
-    for (RC<Window> w : m_mainData.m_windows) {
+    for (Rc<Window> w : m_mainData.m_windows) {
         w->openWindow();
     }
 }
 
 void WindowApplication::closeWindows() {
     mustBeMainThread();
-    for (RC<Window> w : m_mainData.m_windows) {
+    for (Rc<Window> w : m_mainData.m_windows) {
         w->closeWindow();
     }
 }

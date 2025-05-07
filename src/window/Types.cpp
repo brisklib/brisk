@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -118,23 +118,23 @@ const NameValueOrderedList<KeyCode> keyCodes{
     { "F23", KeyCode::F23 },
     { "F24", KeyCode::F24 },
     { "F25", KeyCode::F25 },
-    { "Num 0", KeyCode::KP0 },
-    { "Num 1", KeyCode::KP1 },
-    { "Num 2", KeyCode::KP2 },
-    { "Num 3", KeyCode::KP3 },
-    { "Num 4", KeyCode::KP4 },
-    { "Num 5", KeyCode::KP5 },
-    { "Num 6", KeyCode::KP6 },
-    { "Num 7", KeyCode::KP7 },
-    { "Num 8", KeyCode::KP8 },
-    { "Num 9", KeyCode::KP9 },
-    { "Num .", KeyCode::KPDecimal },
-    { "Num /", KeyCode::KPDivide },
-    { "Num *", KeyCode::KPMultiply },
-    { "Num -", KeyCode::KPSubtract },
-    { "Num +", KeyCode::KPAdd },
-    { "Num Return", KeyCode::KPEnter },
-    { "Num =", KeyCode::KPEqual },
+    { "Num 0", KeyCode::Num0 },
+    { "Num 1", KeyCode::Num1 },
+    { "Num 2", KeyCode::Num2 },
+    { "Num 3", KeyCode::Num3 },
+    { "Num 4", KeyCode::Num4 },
+    { "Num 5", KeyCode::Num5 },
+    { "Num 6", KeyCode::Num6 },
+    { "Num 7", KeyCode::Num7 },
+    { "Num 8", KeyCode::Num8 },
+    { "Num 9", KeyCode::Num9 },
+    { "Num .", KeyCode::NumDecimal },
+    { "Num /", KeyCode::NumDivide },
+    { "Num *", KeyCode::NumMultiply },
+    { "Num -", KeyCode::NumSubtract },
+    { "Num +", KeyCode::NumAdd },
+    { "Num Return", KeyCode::NumEnter },
+    { "Num =", KeyCode::NumEqual },
     { "Shift", KeyCode::LeftShift },
     { "Ctrl", KeyCode::LeftControl },
     { "Alt", KeyCode::LeftAlt },

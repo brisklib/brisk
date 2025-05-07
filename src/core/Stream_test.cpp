@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -29,7 +29,7 @@ static std::string_view pangram = "The quick brown fox jumps over the lazy dog";
 static std::byte buf[1024];
 
 TEST_CASE("MemoryStream") {
-    RC<Stream> m = rcnew MemoryStream();
+    Rc<Stream> m = rcnew MemoryStream();
     CHECK(m->size() == 0);
     CHECK(m->tell() == 0);
 
@@ -51,7 +51,7 @@ TEST_CASE("MemoryStream") {
 }
 
 TEST_CASE("SpanStream") {
-    RC<Stream> m = rcnew ByteViewStream(toBytesView(pangram));
+    Rc<Stream> m = rcnew ByteViewStream(toBytesView(pangram));
     CHECK(m->size() == 43);
     CHECK(m->tell() == 0);
 #ifdef BRISK_EXCEPTIONS

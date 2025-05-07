@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -40,7 +40,7 @@ struct BrotliEncoderDeleter {
 
 class BrotliDecoder : public SequentialReader {
 public:
-    explicit BrotliDecoder(RC<Stream> reader) : reader(std::move(reader)) {
+    explicit BrotliDecoder(Rc<Stream> reader) : reader(std::move(reader)) {
         buffer.reset(new std::byte[compressionBatchSize]);
         bufferUsed = 0;
         state.reset(BrotliDecoderCreateInstance(nullptr, nullptr, nullptr));
@@ -95,7 +95,7 @@ public:
     ~BrotliDecoder() {}
 
 private:
-    RC<Stream> reader;
+    Rc<Stream> reader;
     std::unique_ptr<BrotliDecoderState, BrotliDecoderDeleter> state;
     std::unique_ptr<std::byte[]> buffer;
     size_t bufferUsed = 0;
@@ -114,7 +114,7 @@ static_assert(brotliQuality(CompressionLevel::Normal) == (BROTLI_MAX_QUALITY + B
 
 class BrotliEncoder final : public SequentialWriter {
 public:
-    explicit BrotliEncoder(RC<Stream> writer, CompressionLevel level) : writer(std::move(writer)) {
+    explicit BrotliEncoder(Rc<Stream> writer, CompressionLevel level) : writer(std::move(writer)) {
         buffer.reset(new std::byte[compressionBatchSize]);
 
         state.reset(BrotliEncoderCreateInstance(nullptr, nullptr, nullptr));
@@ -169,17 +169,17 @@ public:
     ~BrotliEncoder() final {}
 
 private:
-    RC<Stream> writer;
+    Rc<Stream> writer;
     std::unique_ptr<BrotliEncoderState, BrotliEncoderDeleter> state;
     std::unique_ptr<std::byte[]> buffer;
 };
 
-RC<Stream> brotliDecoder(RC<Stream> reader) {
-    return RC<Stream>(new BrotliDecoder(std::move(reader)));
+Rc<Stream> brotliDecoder(Rc<Stream> reader) {
+    return Rc<Stream>(new BrotliDecoder(std::move(reader)));
 }
 
-RC<Stream> brotliEncoder(RC<Stream> writer, CompressionLevel level) {
-    return RC<Stream>(new BrotliEncoder(std::move(writer), level));
+Rc<Stream> brotliEncoder(Rc<Stream> writer, CompressionLevel level) {
+    return Rc<Stream>(new BrotliEncoder(std::move(writer), level));
 }
 
 Bytes brotliEncode(BytesView data, CompressionLevel level) {

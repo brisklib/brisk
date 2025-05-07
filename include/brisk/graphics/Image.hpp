@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -24,7 +24,7 @@
 #include "Geometry.hpp"
 #include "Color.hpp"
 #include <memory>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/core/internal/Optional.hpp>
 #include <fmt/format.h>
 #include <brisk/core/Exceptions.hpp>
@@ -992,11 +992,11 @@ public:
     /// Can transfer image data to backend
     virtual void end(AccessMode mode, Rectangle rect)   = 0;
 
-    virtual RC<RenderDevice> device() const noexcept    = 0;
+    virtual Rc<RenderDevice> device() const noexcept    = 0;
 };
 
-ImageBackend* getBackend(RC<Image> image);
-void setBackend(RC<Image> image, ImageBackend* backend);
+ImageBackend* getBackend(Rc<Image> image);
+void setBackend(Rc<Image> image, ImageBackend* backend);
 } // namespace Internal
 
 /**
@@ -1297,7 +1297,7 @@ public:
      * @param sourceRect The region to copy from the source.
      * @param destRect The region to copy to in the destination.
      */
-    void copyFrom(const RC<const Image>& source, Rectangle sourceRect, Rectangle destRect) {
+    void copyFrom(const Rc<const Image>& source, Rectangle sourceRect, Rectangle destRect) {
         auto r = source->mapRead(sourceRect);
         auto w = mapWrite(destRect);
         w.copyFrom(r);
@@ -1310,7 +1310,7 @@ public:
      *
      * @param source The source image.
      */
-    void copyFrom(const RC<const Image>& source) {
+    void copyFrom(const Rc<const Image>& source) {
         return copyFrom(source, source->bounds(), this->bounds());
     }
 
@@ -1388,10 +1388,10 @@ public:
      * the pixel data from the original image.
      *
      * @param copyPixels Whether to copy the pixel data (default is `true`).
-     * @return A new `RC<Image>` containing the copied image.
+     * @return A new `Rc<Image>` containing the copied image.
      */
-    RC<Image> copy(bool copyPixels = true) const {
-        RC<Image> result = rcnew Image(size(), format());
+    Rc<Image> copy(bool copyPixels = true) const {
+        Rc<Image> result = rcnew Image(size(), format());
         if (copyPixels) {
             result->copyFrom(this->shared_from_this());
         }
@@ -1432,17 +1432,17 @@ protected:
     PixelFormat m_format;
     ImageDataDeleter m_deleter;
 
-    friend Internal::ImageBackend* Internal::getBackend(RC<Image> image);
-    friend void Internal::setBackend(RC<Image> image, Internal::ImageBackend* backend);
+    friend Internal::ImageBackend* Internal::getBackend(Rc<Image> image);
+    friend void Internal::setBackend(Rc<Image> image, Internal::ImageBackend* backend);
     mutable std::unique_ptr<Internal::ImageBackend> m_backend;
 };
 
 namespace Internal {
-inline ImageBackend* getBackend(RC<Image> image) {
+inline ImageBackend* getBackend(Rc<Image> image) {
     return image->m_backend.get();
 }
 
-inline void setBackend(RC<Image> image, ImageBackend* backend) {
+inline void setBackend(Rc<Image> image, ImageBackend* backend) {
     image->m_backend.reset(backend);
 }
 

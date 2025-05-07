@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -119,23 +119,23 @@ consteval std::array<KeyCode, numScanCodes> genScanCodeToKeyCode() {
     result[0x31] = KeyCode::Space;
     result[0x30] = KeyCode::Tab;
     result[0x7E] = KeyCode::Up;
-    result[0x52] = KeyCode::KP0;
-    result[0x53] = KeyCode::KP1;
-    result[0x54] = KeyCode::KP2;
-    result[0x55] = KeyCode::KP3;
-    result[0x56] = KeyCode::KP4;
-    result[0x57] = KeyCode::KP5;
-    result[0x58] = KeyCode::KP6;
-    result[0x59] = KeyCode::KP7;
-    result[0x5B] = KeyCode::KP8;
-    result[0x5C] = KeyCode::KP9;
-    result[0x45] = KeyCode::KPAdd;
-    result[0x41] = KeyCode::KPDecimal;
-    result[0x4B] = KeyCode::KPDivide;
-    result[0x4C] = KeyCode::KPEnter;
-    result[0x51] = KeyCode::KPEqual;
-    result[0x43] = KeyCode::KPMultiply;
-    result[0x4E] = KeyCode::KPSubtract;
+    result[0x52] = KeyCode::Num0;
+    result[0x53] = KeyCode::Num1;
+    result[0x54] = KeyCode::Num2;
+    result[0x55] = KeyCode::Num3;
+    result[0x56] = KeyCode::Num4;
+    result[0x57] = KeyCode::Num5;
+    result[0x58] = KeyCode::Num6;
+    result[0x59] = KeyCode::Num7;
+    result[0x5B] = KeyCode::Num8;
+    result[0x5C] = KeyCode::Num9;
+    result[0x45] = KeyCode::NumAdd;
+    result[0x41] = KeyCode::NumDecimal;
+    result[0x4B] = KeyCode::NumDivide;
+    result[0x4C] = KeyCode::NumEnter;
+    result[0x51] = KeyCode::NumEqual;
+    result[0x43] = KeyCode::NumMultiply;
+    result[0x4E] = KeyCode::NumSubtract;
     return result;
 }
 

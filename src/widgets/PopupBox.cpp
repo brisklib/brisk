@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -37,7 +37,7 @@ PopupBox::PopupBox(Construction construction, ArgumentsView<PopupBox> args)
     args.apply(this);
 }
 
-RC<Widget> PopupBox::cloneThis() const {
+Rc<Widget> PopupBox::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -53,12 +53,15 @@ void PopupBox::onEvent(Event& event) {
         if (m_rect.contains(e->point)) {
             event.stopPropagation();
         }
+    } else if (event.keyPressed(KeyCode::Escape)) {
+        visible = false;
+        event.stopPropagation();
     }
 }
 
-void PopupBox::append(RC<Widget> widget) {
+void PopupBox::append(Rc<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
-        it->dynamicFocus = true;
+        it->focusOnHover = true;
         Base::append(std::move(widget));
     } else {
         Base::append(std::move(widget));

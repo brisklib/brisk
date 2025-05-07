@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -48,8 +48,8 @@ public:
     }
 };
 
-RC<Stream> cryptoRandomReader() {
-    return RC<Stream>(new RandomReader());
+Rc<Stream> cryptoRandomReader() {
+    return Rc<Stream>(new RandomReader());
 }
 
 struct HashFunctions {
@@ -204,31 +204,31 @@ private:
     bool flushed = false;
 };
 
-RC<Stream> hashStream(HashMethod method, BytesMutableView hash) {
-    return RC<Stream>(new HashStream(hashFunctions(method), hash));
+Rc<Stream> hashStream(HashMethod method, BytesMutableView hash) {
+    return Rc<Stream>(new HashStream(hashFunctions(method), hash));
 }
 
-RC<Stream> md5HashStream(MD5Hash& hash) {
+Rc<Stream> md5HashStream(MD5Hash& hash) {
     return hashStream(HashMethod::MD5, toBytesMutableView(hash));
 }
 
-RC<Stream> sha1HashStream(SHA1Hash& hash) {
+Rc<Stream> sha1HashStream(SHA1Hash& hash) {
     return hashStream(HashMethod::SHA1, toBytesMutableView(hash));
 }
 
-RC<Stream> sha256HashStream(SHA256Hash& hash) {
+Rc<Stream> sha256HashStream(SHA256Hash& hash) {
     return hashStream(HashMethod::SHA256, toBytesMutableView(hash));
 }
 
-RC<Stream> sha512HashStream(SHA512Hash& hash) {
+Rc<Stream> sha512HashStream(SHA512Hash& hash) {
     return hashStream(HashMethod::SHA512, toBytesMutableView(hash));
 }
 
-RC<Stream> sha3_256HashStream(SHA3_256Hash& hash) {
+Rc<Stream> sha3_256HashStream(SHA3_256Hash& hash) {
     return hashStream(HashMethod::SHA3_256, toBytesMutableView(hash));
 }
 
-RC<Stream> sha3_512HashStream(SHA3_512Hash& hash) {
+Rc<Stream> sha3_512HashStream(SHA3_512Hash& hash) {
     return hashStream(HashMethod::SHA3_512, toBytesMutableView(hash));
 }
 

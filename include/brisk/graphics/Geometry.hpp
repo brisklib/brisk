@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -21,7 +21,7 @@
 #pragma once
 
 #include <brisk/core/BasicTypes.hpp>
-#include <brisk/core/SIMD.hpp>
+#include <brisk/core/Simd.hpp>
 
 namespace Brisk {
 
@@ -227,7 +227,7 @@ struct PointOf {
  *
  * @tparam T The SIMD type representing the point coordinates, must be SIMD compatible.
  */
-template <SIMDCompatible T>
+template <SimdCompatible T>
 struct PointOf<T> {
     using Tfloat = typename Internal::FloatTypeFor<T>::Type; ///< The floating-point type corresponding to T.
 
@@ -245,7 +245,7 @@ struct PointOf<T> {
      *
      * @param v The SIMD vector representing the point.
      */
-    constexpr explicit PointOf(const SIMD<T, 2>& v) noexcept : v(v) {}
+    constexpr explicit PointOf(const Simd<T, 2>& v) noexcept : v(v) {}
 
     /**
      * @brief Parameterized constructor from two coordinates.
@@ -285,7 +285,7 @@ struct PointOf<T> {
      */
     template <typename U>
     operator PointOf<U>() const noexcept {
-        if constexpr (SIMDCompatible<U>) {
+        if constexpr (SimdCompatible<U>) {
             return PointOf<U>(rescale<U, 1, 1>(v));
         } else if constexpr (std::convertible_to<T, U>) {
             return PointOf<U>{ static_cast<U>(x), static_cast<U>(y) };
@@ -641,7 +641,7 @@ struct PointOf<T> {
     RectangleOf<T> alignedRect(const SizeOf<T>& innerSize, const PointOf<Tfloat>& alignment) const noexcept {
         const SizeOf<T> sz  = innerSize;
         const SizeOf<T> gap = -sz;
-        const SIMD<T, 2> p  = v + SIMD<T, 2>(SIMD<Tfloat, 2>(gap.v) * alignment.v);
+        const Simd<T, 2> p  = v + Simd<T, 2>(Simd<Tfloat, 2>(gap.v) * alignment.v);
         return RectangleOf<T>(concat(p, p + sz.v));
     }
 
@@ -707,7 +707,7 @@ struct PointOf<T> {
     /**
      * @brief Type representing the SIMD vector type.
      */
-    using vec_type = SIMD<T, 2>;
+    using vec_type = Simd<T, 2>;
 
     union {
         vec_type v;      ///< SIMD vector representation of the point.
@@ -860,7 +860,7 @@ struct SizeOf {
  *
  * @tparam T The SIMD-compatible type of the components.
  */
-template <SIMDCompatible T>
+template <SimdCompatible T>
 struct SizeOf<T> {
     /// @brief Default constructor that initializes size to (0, 0).
     constexpr SizeOf() noexcept : x{}, y{} {}
@@ -876,7 +876,7 @@ struct SizeOf<T> {
 
     /// @brief Constructor that initializes from a SIMD vector.
     /// @param v The SIMD vector to initialize from.
-    SizeOf(const SIMD<T, 2>& v) noexcept : v(v) {}
+    SizeOf(const Simd<T, 2>& v) noexcept : v(v) {}
 
     /// @brief Copy constructor.
     /// @param s The SizeOf instance to copy from.
@@ -887,7 +887,7 @@ struct SizeOf<T> {
     /// @return A new SizeOf instance of type U.
     template <typename U>
     operator SizeOf<U>() const noexcept {
-        if constexpr (SIMDCompatible<U>) {
+        if constexpr (SimdCompatible<U>) {
             return SizeOf<U>(rescale<U, 1, 1>(v));
         } else if constexpr (std::convertible_to<T, U>) {
             return SizeOf<U>{ static_cast<U>(x), static_cast<U>(y) };
@@ -1056,7 +1056,7 @@ struct SizeOf<T> {
         return !operator==(c);
     }
 
-    using vec_type = SIMD<T, 2>; ///< The underlying SIMD vector type.
+    using vec_type = Simd<T, 2>; ///< The underlying SIMD vector type.
 
     union {
         vec_type v; ///< The SIMD vector representing size.
@@ -1204,7 +1204,7 @@ struct EdgesOf {
  *
  * @tparam T The SIMD-compatible type of the edge coordinates.
  */
-template <SIMDCompatible T>
+template <SimdCompatible T>
 struct EdgesOf<T> {
     /// @brief Default constructor that initializes edges to (0, 0, 0, 0).
     constexpr EdgesOf() noexcept : v() {}
@@ -1227,7 +1227,7 @@ struct EdgesOf<T> {
 
     /// @brief Constructor that initializes from a SIMD vector.
     /// @param v The SIMD vector to initialize edges from.
-    constexpr explicit EdgesOf(const SIMD<T, 4>& v) noexcept : v(v) {}
+    constexpr explicit EdgesOf(const Simd<T, 4>& v) noexcept : v(v) {}
 
     /// @brief Copy constructor.
     /// @param b The EdgesOf instance to copy from.
@@ -1238,7 +1238,7 @@ struct EdgesOf<T> {
     /// @return A new EdgesOf instance of type U.
     template <typename U>
     operator EdgesOf<U>() const noexcept {
-        if constexpr (SIMDCompatible<U>) {
+        if constexpr (SimdCompatible<U>) {
             return EdgesOf<U>(rescale<U, 1, 1>(v));
         } else if constexpr (std::convertible_to<T, U>) {
             return EdgesOf<U>{ static_cast<U>(x1), static_cast<U>(y1), static_cast<U>(x2),
@@ -1379,7 +1379,7 @@ struct EdgesOf<T> {
 
     union {
         /// @brief The SIMD vector representing the edges.
-        SIMD<T, 4> v;
+        Simd<T, 4> v;
 
         /// @brief An array to access the edge coordinates directly.
         T components[4];
@@ -1512,7 +1512,7 @@ struct CornersOf {
  *
  * @tparam T The SIMD-compatible type of the corner coordinates.
  */
-template <SIMDCompatible T>
+template <SimdCompatible T>
 struct CornersOf<T> {
     /// @brief Default constructor that initializes corners to zero.
     constexpr CornersOf() noexcept : v() {}
@@ -1534,7 +1534,7 @@ struct CornersOf<T> {
     /// @param x2y2 The coordinate of the bottom-right corner.
     constexpr CornersOf(T x1y1, T x2y1, T x1y2, T x2y2) noexcept : v(x1y1, x2y1, x1y2, x2y2) {}
 
-    constexpr CornersOf(SIMD<T, 4> v) noexcept : v(v) {}
+    constexpr CornersOf(Simd<T, 4> v) noexcept : v(v) {}
 
     /// @brief Copy constructor.
     /// @param b The CornersOf instance to copy from.
@@ -1545,7 +1545,7 @@ struct CornersOf<T> {
     /// @return A new CornersOf instance of type U.
     template <typename U>
     operator CornersOf<U>() const noexcept {
-        if constexpr (SIMDCompatible<U>) {
+        if constexpr (SimdCompatible<U>) {
             return CornersOf<U>(rescale<U, 1, 1>(v));
         } else if constexpr (std::convertible_to<T, U>) {
             return CornersOf<U>{ static_cast<U>(x1y1), static_cast<U>(x2y1), static_cast<U>(x1y2),
@@ -1594,9 +1594,13 @@ struct CornersOf<T> {
         return horizontalSum(v) == 0;
     }
 
+    CornersOf operator+(T value) const noexcept {
+        return CornersOf(v + Simd<T, 4>(value));
+    }
+
     union {
         /// @brief The SIMD vector representing the corners.
-        SIMD<T, 4> v;
+        Simd<T, 4> v;
 
         /// @brief An array to access the corner coordinates directly.
         T components[4];
@@ -1645,7 +1649,7 @@ struct RectangleOf {
      *
      * @param v A SIMD vector representing the rectangle's corners.
      */
-    constexpr explicit RectangleOf(const SIMD<T, 4>& v) noexcept : v(v) {}
+    constexpr explicit RectangleOf(const Simd<T, 4>& v) noexcept : v(v) {}
 
     /**
      * @brief Copy constructor for the rectangle.
@@ -1662,7 +1666,7 @@ struct RectangleOf {
      */
     template <typename U>
     operator RectangleOf<U>() const noexcept {
-        if constexpr (SIMDCompatible<U>) {
+        if constexpr (SimdCompatible<U>) {
             return RectangleOf<U>(rescale<U, 1, 1>(v));
         } else if constexpr (std::convertible_to<T, U>) {
             return RectangleOf<U>{ static_cast<U>(x1), static_cast<U>(y1), static_cast<U>(x2),
@@ -1833,9 +1837,9 @@ struct RectangleOf {
      * @return A new RectangleOf representing the split area.
      */
     RectangleOf split(const PointOf<Tfloat>& point1, const SizeOf<Tfloat>& size) const noexcept {
-        const SIMD<Tfloat, 2> point2 = point1.v + size.v;
+        const Simd<Tfloat, 2> point2 = point1.v + size.v;
         return RectangleOf(
-            concat(SIMD<T, 2>(p1.v + this->size().v * point1.v), SIMD<T, 2>(p1.v + this->size().v * point2)));
+            concat(Simd<T, 2>(p1.v + this->size().v * point1.v), Simd<T, 2>(p1.v + this->size().v * point2)));
     }
 
     /**
@@ -1858,7 +1862,7 @@ struct RectangleOf {
      * @return The point as a PointOf<T>.
      */
     PointOf<T> at(const PointOf<Tfloat>& pt) const noexcept {
-        return p1 + PointOf<T>(SIMD<T, 2>(pt.v * SIMD<Tfloat, 2>(size().v)));
+        return p1 + PointOf<T>(Simd<T, 2>(pt.v * Simd<Tfloat, 2>(size().v)));
     }
 
     /**
@@ -1869,7 +1873,7 @@ struct RectangleOf {
      * @return The point as a PointOf<T>.
      */
     PointOf<T> at(Tfloat x, Tfloat y) const noexcept {
-        return p1 + PointOf<T>(SIMD<T, 2>{ SIMD<Tfloat, 2>{ x, y } * SIMD<Tfloat, 2>(size().v) });
+        return p1 + PointOf<T>(Simd<T, 2>{ Simd<Tfloat, 2>{ x, y } * Simd<Tfloat, 2>(size().v) });
     }
 
     /**
@@ -1888,7 +1892,7 @@ struct RectangleOf {
      * @param y The y-coordinate of the new starting point.
      */
     void applyStart(T x, T y) noexcept {
-        v = concat(SIMD{ x, y }, SIMD{ x, y } + size().v);
+        v = concat(Simd{ x, y }, Simd{ x, y } + size().v);
     }
 
     /**
@@ -1935,7 +1939,7 @@ struct RectangleOf {
      * @param y The y offset.
      */
     void applyOffset(T x, T y) noexcept {
-        v += SIMD<T, 4>(x, y, x, y);
+        v += Simd<T, 4>(x, y, x, y);
     }
 
     /**
@@ -1954,7 +1958,7 @@ struct RectangleOf {
      * @param y The y scale factor.
      */
     void applyScale(T x, T y) noexcept {
-        v *= SIMD<T, 4>(x, y, x, y);
+        v *= Simd<T, 4>(x, y, x, y);
     }
 
     /**
@@ -1964,7 +1968,7 @@ struct RectangleOf {
      * @param v The vertical margin.
      */
     void applyMargin(T h, T v) noexcept {
-        v += SIMD<T, 4>(-h, -v, +h, +v);
+        v += Simd<T, 4>(-h, -v, +h, +v);
     }
 
     /**
@@ -1974,7 +1978,7 @@ struct RectangleOf {
      * @param v The vertical padding.
      */
     void applyPadding(T h, T v) noexcept {
-        v += SIMD<T, 4>(+h, +v, -h, -v);
+        v += Simd<T, 4>(+h, +v, -h, -v);
     }
 
     /**
@@ -1983,7 +1987,7 @@ struct RectangleOf {
      * @param m The margin value.
      */
     void applyMargin(T m) noexcept {
-        v += SIMD<T, 4>(-m, -m, +m, +m);
+        v += Simd<T, 4>(-m, -m, +m, +m);
     }
 
     /**
@@ -1992,7 +1996,7 @@ struct RectangleOf {
      * @param p The padding value.
      */
     void applyPadding(T p) noexcept {
-        v += SIMD<T, 4>(+p, +p, -p, -p);
+        v += Simd<T, 4>(+p, +p, -p, -p);
     }
 
     /**
@@ -2001,7 +2005,7 @@ struct RectangleOf {
      * @param m The margin edges.
      */
     void applyMargin(const EdgesOf<T>& m) noexcept {
-        v += SIMD<T, 4>(-1, -1, 1, 1) * m.v;
+        v += Simd<T, 4>(-1, -1, 1, 1) * m.v;
     }
 
     /**
@@ -2010,7 +2014,7 @@ struct RectangleOf {
      * @param p The padding edges.
      */
     void applyPadding(const EdgesOf<T>& p) noexcept {
-        v += SIMD<T, 4>(1, 1, -1, -1) * p.v;
+        v += Simd<T, 4>(1, 1, -1, -1) * p.v;
     }
 
     /**
@@ -2022,7 +2026,7 @@ struct RectangleOf {
      * @param y2 The bottom padding.
      */
     void applyPadding(T x1, T y1, T x2, T y2) noexcept {
-        v += SIMD<T, 4>(+x1, +y1, -x2, -y2);
+        v += Simd<T, 4>(+x1, +y1, -x2, -y2);
     }
 
     /**
@@ -2035,7 +2039,7 @@ struct RectangleOf {
     RectangleOf alignedRect(const SizeOf<T>& innerSize, const PointOf<Tfloat>& alignment) const noexcept {
         const SizeOf<T> sz  = innerSize;
         const SizeOf<T> gap = size() - sz;
-        const SIMD<T, 2> p  = p1.v + SIMD<T, 2>(SIMD<Tfloat, 2>(gap.v) * alignment.v);
+        const Simd<T, 2> p  = p1.v + Simd<T, 2>(Simd<Tfloat, 2>(gap.v) * alignment.v);
         return RectangleOf(concat(p, p + sz.v));
     }
 
@@ -2070,7 +2074,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the specified starting point.
      */
     constexpr RectangleOf withStart(T x, T y) const noexcept {
-        return RectangleOf(concat(SIMD{ x, y }, SIMD{ x, y } + size()));
+        return RectangleOf(concat(Simd{ x, y }, Simd{ x, y } + size()));
     }
 
     /**
@@ -2091,7 +2095,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the specified size.
      */
     constexpr RectangleOf withSize(T w, T h) const noexcept {
-        return RectangleOf(concat(v.low(), v.low() + SIMD{ w, h }));
+        return RectangleOf(concat(v.low(), v.low() + Simd{ w, h }));
     }
 
     /**
@@ -2121,7 +2125,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the specified offset.
      */
     constexpr RectangleOf withOffset(const PointOf<T>& p) const noexcept {
-        return RectangleOf(v + SIMD<T, 4>(concat(p.v, p.v)));
+        return RectangleOf(v + Simd<T, 4>(concat(p.v, p.v)));
     }
 
     /**
@@ -2132,7 +2136,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the specified offset.
      */
     constexpr RectangleOf withOffset(T x, T y) const noexcept {
-        return RectangleOf(v + SIMD<T, 4>(x, y, x, y));
+        return RectangleOf(v + Simd<T, 4>(x, y, x, y));
     }
 
     /**
@@ -2143,7 +2147,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied scaling factors.
      */
     constexpr RectangleOf withScale(T x, T y) const noexcept {
-        return RectangleOf(v * SIMD<T, 4>(x, y, x, y));
+        return RectangleOf(v * Simd<T, 4>(x, y, x, y));
     }
 
     /**
@@ -2154,7 +2158,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied margin.
      */
     constexpr RectangleOf withMargin(T h, T v) const noexcept {
-        return RectangleOf(this->v + SIMD<T, 4>(-h, -v, +h, +v));
+        return RectangleOf(this->v + Simd<T, 4>(-h, -v, +h, +v));
     }
 
     /**
@@ -2165,7 +2169,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied padding.
      */
     constexpr RectangleOf withPadding(T h, T v) const noexcept {
-        return RectangleOf(this->v + SIMD<T, 4>(+h, +v, -h, -v));
+        return RectangleOf(this->v + Simd<T, 4>(+h, +v, -h, -v));
     }
 
     /**
@@ -2178,7 +2182,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied padding.
      */
     constexpr RectangleOf withPadding(T x1, T y1, T x2, T y2) const noexcept {
-        return RectangleOf(v + SIMD<T, 4>(+x1, +y1, -x2, -y2));
+        return RectangleOf(v + Simd<T, 4>(+x1, +y1, -x2, -y2));
     }
 
     /**
@@ -2188,7 +2192,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied margin.
      */
     constexpr RectangleOf withMargin(T m) const noexcept {
-        return RectangleOf(v + SIMD<T, 4>(-m, -m, +m, +m));
+        return RectangleOf(v + Simd<T, 4>(-m, -m, +m, +m));
     }
 
     /**
@@ -2198,7 +2202,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied padding.
      */
     constexpr RectangleOf withPadding(T p) const noexcept {
-        return RectangleOf(v + SIMD<T, 4>(+p, +p, -p, -p));
+        return RectangleOf(v + Simd<T, 4>(+p, +p, -p, -p));
     }
 
     /**
@@ -2208,7 +2212,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied padding.
      */
     constexpr RectangleOf withPadding(const EdgesOf<T>& p) const noexcept {
-        return RectangleOf(v + SIMD<T, 4>(1, 1, -1, -1) * p.v);
+        return RectangleOf(v + Simd<T, 4>(1, 1, -1, -1) * p.v);
     }
 
     /**
@@ -2218,7 +2222,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the applied margin.
      */
     constexpr RectangleOf withMargin(const EdgesOf<T>& m) const noexcept {
-        return RectangleOf(v + SIMD<T, 4>(-1, -1, 1, 1) * m.v);
+        return RectangleOf(v + Simd<T, 4>(-1, -1, 1, 1) * m.v);
     }
 
     /**
@@ -2391,7 +2395,7 @@ struct RectangleOf {
     }
 
     union {
-        SIMD<T, 4> v;    ///< SIMD representation of the rectangle.
+        Simd<T, 4> v;    ///< SIMD representation of the rectangle.
         T components[4]; ///< Array representation of the rectangle components.
 
         struct {

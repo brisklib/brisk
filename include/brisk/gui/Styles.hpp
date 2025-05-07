@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include "GUI.hpp"
+#include "Gui.hpp"
 #include <bit>
 #include <brisk/core/internal/cityhash.hpp>
 
@@ -70,7 +70,7 @@ namespace Internal {
 template <typename T>
 using StyleFunction = function<T(Widget*)>;
 
-using StyleValuePtr = RC<void>;
+using StyleValuePtr = Rc<void>;
 
 enum class RuleOp : uint8_t {
     Value,
@@ -80,7 +80,7 @@ enum class RuleOp : uint8_t {
 
 struct StyleProperty {
     template <typename Type>
-    static bool get(Type& value, RuleOp op, const RC<void>& rule, Widget* widget) {
+    static bool get(Type& value, RuleOp op, const Rc<void>& rule, Widget* widget) {
         switch (op) {
         default:
             return false;
@@ -97,7 +97,7 @@ struct StyleProperty {
     }
 
     template <typename Tag>
-    StyleProperty(TypeID<Tag>)
+    StyleProperty(TypeId<Tag>)
         requires PropertyTag<Tag> || StyleVarTag<Tag>
     {
         using Type = typename Tag::Type;
@@ -161,7 +161,7 @@ struct StyleProperty {
 
 template <typename Tag>
 const StyleProperty* styleProperty() {
-    static const StyleProperty& instance{ TypeID<Tag>{} };
+    static const StyleProperty& instance{ TypeId<Tag>{} };
     return &instance;
 }
 
@@ -412,6 +412,13 @@ struct Type {
     }
 };
 
+// menu
+struct IsMenu {
+    bool matches(Widget* w, MatchFlags flags) const noexcept {
+        return w->isMenu();
+    }
+};
+
 // role
 struct Role {
     explicit Role(std::string_view role) noexcept : role(role) {}
@@ -643,17 +650,17 @@ struct Style {
 class Stylesheet : public std::vector<Style> {
 public:
     template <std::same_as<Style>... Args>
-    Stylesheet(Args... args) : Stylesheet(std::vector<RC<const Stylesheet>>{}, std::move(args)...) {}
+    Stylesheet(Args... args) : Stylesheet(std::vector<Rc<const Stylesheet>>{}, std::move(args)...) {}
 
     template <std::same_as<Style>... Args>
-    Stylesheet(RC<const Stylesheet> inheritFrom, Args... args)
+    Stylesheet(Rc<const Stylesheet> inheritFrom, Args... args)
         : std::vector<Style>(std::initializer_list<Style>{ args... }), inherited{ std::move(inheritFrom) } {}
 
     template <std::same_as<Style>... Args>
-    Stylesheet(std::vector<RC<const Stylesheet>> inheritFrom, Args... args)
+    Stylesheet(std::vector<Rc<const Stylesheet>> inheritFrom, Args... args)
         : std::vector<Style>(std::initializer_list<Style>{ args... }), inherited(std::move(inheritFrom)) {}
 
-    std::vector<RC<const Stylesheet>> inherited;
+    std::vector<Rc<const Stylesheet>> inherited;
 
     void stylize(Widget* widget, bool isRoot) const;
 

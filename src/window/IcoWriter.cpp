@@ -2,7 +2,7 @@
 #include <fmt/format.h>
 #include <brisk/core/Bytes.hpp>
 #include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/core/IO.hpp>
+#include <brisk/core/Io.hpp>
 #include <brisk/core/internal/Filesystem.hpp>
 
 #include <png.h>
@@ -58,7 +58,7 @@ int wmain(int argc, wchar_t** argv) {
         fmt::println("Cannot decode the input file as a PNG image");
         return 3;
     }
-    RC<Image> image = (*imageR);
+    Rc<Image> image = (*imageR);
     if (image->width() != image->height() || image->width() < 256 || image->height() < 256) {
         fmt::println("The image is not square or is less than 256x256. The size is {}x{}", image->width(),
                      image->height());
@@ -90,7 +90,7 @@ int wmain(int argc, wchar_t** argv) {
 
     for (int i = 0; i < sizes.size(); ++i) {
         uint32_t size     = sizes[i];
-        RC<Image> resized = imageResize(image, Size(size, size), ResizingFilter::Mitchell);
+        Rc<Image> resized = imageResize(image, Size(size, size), ResizingFilter::Mitchell);
         ICONDIRENTRY entry;
         entry.bWidth      = static_cast<uint8_t>(size); // wrapping 256 to 0 is ok
         entry.bHeight     = static_cast<uint8_t>(size);

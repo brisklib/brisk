@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -28,7 +28,7 @@
 #include <brisk/core/internal/SmallVector.hpp>
 #include "internal/OpenType.hpp"
 #include "Image.hpp"
-#include <brisk/core/IO.hpp>
+#include <brisk/core/Io.hpp>
 #include "internal/Sprites.hpp"
 #include "I18n.hpp"
 
@@ -44,13 +44,13 @@ public:
     using ELogic::ELogic;
 };
 
-using GlyphID = uint32_t;
+using GlyphId = uint32_t;
 
 enum class TextOptions : uint32_t {
     Default      = 0,
     SingleLine   = 1,
     WrapAnywhere = 2,
-    HTML         = 4,
+    Html         = 4,
 };
 
 template <>
@@ -395,7 +395,7 @@ struct GlyphData {
     /**
      * @brief A reference-counted resource pointing to the sprite used to render the glyph.
      */
-    RC<SpriteResource> sprite;
+    Rc<SpriteResource> sprite;
 
     /**
      * @brief The horizontal offset from the glyph's origin to the start of its shape.
@@ -1033,7 +1033,7 @@ enum class FontFlags {
 template <>
 constexpr inline bool isBitFlags<FontFlags> = true;
 
-struct OSFont {
+struct OsFont {
     std::string family;
     FontStyle style;
     FontWeight weight;
@@ -1103,17 +1103,17 @@ public:
      * @param style The font style.
      * @param weight The font weight.
      * @param path Filesystem path to the font file.
-     * @return Status indicating success or an IOError on failure.
+     * @return Status indicating success or an IoError on failure.
      */
-    [[nodiscard]] status<IOError> addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
+    [[nodiscard]] status<IoError> addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                                   const fs::path& path);
 
     /**
      * @brief Retrieves a list of installed system fonts.
      * @param rescan Whether to rescan the system for fonts (default: false).
-     * @return Vector of OSFont objects representing installed fonts.
+     * @return Vector of OsFont objects representing installed fonts.
      */
-    [[nodiscard]] std::vector<OSFont> installedFonts(bool rescan = false) const;
+    [[nodiscard]] std::vector<OsFont> installedFonts(bool rescan = false) const;
 
     /**
      * @brief Gets available styles and weights for a font family.
@@ -1185,7 +1185,7 @@ public:
     // Internal use only
     FontKey faceToKey(Internal::FontFace* face) const;
     // Internal use only
-    void testRender(RC<Image> image, const PreparedText& run, Point origin,
+    void testRender(Rc<Image> image, const PreparedText& run, Point origin,
                     TestRenderFlags flags = TestRenderFlags::None, std::initializer_list<int> xlines = {},
                     std::initializer_list<int> ylines = {}) const;
 
@@ -1214,10 +1214,10 @@ private:
     int m_hscale;
     uint32_t m_cacheTimeMs;
     std::vector<std::string_view> fontList(std::string_view ff) const;
-    mutable std::vector<OSFont> m_osFonts;
+    mutable std::vector<OsFont> m_osFonts;
     Internal::FontFace* lookup(const Font& font) const;
     Internal::FontFace* findFontByKey(FontKey fontKey) const;
-    std::pair<Internal::FontFace*, GlyphID> lookupCodepoint(const Font& font, char32_t codepoint,
+    std::pair<Internal::FontFace*, GlyphId> lookupCodepoint(const Font& font, char32_t codepoint,
                                                             bool fallbackToUndef) const;
     FontMetrics getMetrics(const Font& font) const;
     static RectangleF glyphBounds(const Internal::Glyph& g, const Internal::GlyphData& d);
@@ -1241,7 +1241,7 @@ extern std::optional<FontManager> fonts;
 
 inline std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode) {
     std::vector<uint32_t> result(1, 0);
-    RC<Internal::TextBreakIterator> iter = Internal::textBreakIterator(text, mode);
+    Rc<Internal::TextBreakIterator> iter = Internal::textBreakIterator(text, mode);
     while (auto p = iter->next()) {
         result.push_back(*p);
     }

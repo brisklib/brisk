@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-OSVersion osVersion() {
+OsVersion osVersion() {
     NSOperatingSystemVersion vers = [NSProcessInfo processInfo].operatingSystemVersion;
     return { static_cast<uint16_t>(vers.majorVersion), static_cast<uint16_t>(vers.minorVersion),
              static_cast<uint32_t>(vers.patchVersion) };

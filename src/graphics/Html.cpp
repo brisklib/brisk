@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -29,7 +29,7 @@ namespace Internal {
 
 namespace {
 
-std::array<std::pair<std::string_view, std::string_view>, 6> charNames{ {
+constinit std::array<std::pair<std::string_view, std::string_view>, 6> charNames{ {
     { "amp", "&" },
     { "apos", "'" },
     { "gt", ">" },
@@ -103,7 +103,7 @@ struct Content : star<sor<Element, Text>> {};
 
 struct Document : seq<Content, eof> {};
 
-enum class SAXMode {
+enum class SaxMode {
     Text,
     Attribute,
 };
@@ -113,21 +113,21 @@ struct Action : nothing<Rule> {};
 
 template <>
 struct Action<EndOpenTag> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
-        mode = SAXMode::Text;
+    static void apply0(SaxMode& mode, HtmlSax* sax) {
+        mode = SaxMode::Text;
     }
 };
 
 template <>
 struct Action<Text> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+    static void apply0(SaxMode& mode, HtmlSax* sax) {
         sax->textFinished();
     }
 };
 
 template <>
 struct Action<Attribute> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+    static void apply0(SaxMode& mode, HtmlSax* sax) {
         sax->attrFinished();
     }
 };
@@ -135,25 +135,25 @@ struct Action<Attribute> {
 template <>
 struct Action<OpenTagName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->openTag(str);
-        mode = SAXMode::Attribute;
+        mode = SaxMode::Attribute;
     }
 };
 
 template <>
 struct Action<SelfCloseTag> {
-    static void apply0(SAXMode& mode, HTMLSAX* sax) {
+    static void apply0(SaxMode& mode, HtmlSax* sax) {
         sax->closeTag();
-        mode = SAXMode::Text;
+        mode = SaxMode::Text;
     }
 };
 
 template <>
 struct Action<PlainText> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->textFragment(str);
     }
@@ -162,7 +162,7 @@ struct Action<PlainText> {
 template <>
 struct Action<PlainAttrValueUnquoted> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrValueFragment(str);
     }
@@ -171,7 +171,7 @@ struct Action<PlainAttrValueUnquoted> {
 template <char q>
 struct Action<PlainAttrValueQuoted<q>> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrValueFragment(str);
     }
@@ -180,7 +180,7 @@ struct Action<PlainAttrValueQuoted<q>> {
 template <>
 struct Action<AttrName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrName(str);
     }
@@ -189,9 +189,9 @@ struct Action<AttrName> {
 template <>
 struct Action<CharName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
-        if (mode == SAXMode::Attribute)
+        if (mode == SaxMode::Attribute)
             sax->attrValueFragment(htmlDecodeChar(str));
         else
             sax->textFragment(htmlDecodeChar(str));
@@ -201,11 +201,11 @@ struct Action<CharName> {
 template <>
 struct Action<CharCode> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         uint32_t value;
         std::from_chars(str.data(), str.data() + str.size(), value, 10);
-        if (mode == SAXMode::Attribute)
+        if (mode == SaxMode::Attribute)
             sax->attrValueFragment(Utf8Character{ value });
         else
             sax->textFragment(Utf8Character{ value });
@@ -215,11 +215,11 @@ struct Action<CharCode> {
 template <>
 struct Action<CharHexCode> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         std::string_view str = in.string_view();
         uint32_t value;
         std::from_chars(str.data(), str.data() + str.size(), value, 16);
-        if (mode == SAXMode::Attribute)
+        if (mode == SaxMode::Attribute)
             sax->attrValueFragment(Utf8Character{ value });
         else
             sax->textFragment(Utf8Character{ value });
@@ -229,14 +229,14 @@ struct Action<CharHexCode> {
 template <>
 struct Action<CloseTagName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SAXMode& mode, HTMLSAX* sax) {
+    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
         sax->closeTag();
     }
 };
 
 } // namespace Grammar
 
-std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
+constinit std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
     { "aliceblue", 0xf0f8ff_rgb },
     { "antiquewhite", 0xfaebd7_rgb },
     { "aqua", 0x00ffff_rgb },
@@ -393,10 +393,10 @@ std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
 
 using namespace Internal;
 
-bool parseHtml(std::string_view html, HTMLSAX* visitor) {
+bool parseHtml(std::string_view html, HtmlSax* visitor) {
     tao::pegtl::memory_input input(html.data(), html.size(), "");
 
-    Grammar::SAXMode mode = Grammar::SAXMode::Text;
+    Grammar::SaxMode mode = Grammar::SaxMode::Text;
     visitor->openDocument();
     bool result = tao::pegtl::parse<Grammar::Document, Grammar::Action>(input, mode, visitor);
     visitor->closeDocument();

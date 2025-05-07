@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -20,7 +20,7 @@
  */
 #pragma once
 #include <brisk/core/Memory.hpp>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
@@ -387,22 +387,22 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<T> listener, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<T> callback, BindingAddress range) {
         return Value{
             nullptr,
-            [listener = std::move(listener)](T newValue) {
-                listener(std::move(newValue));
+            [callback = std::move(callback)](T newValue) {
+                callback(std::move(newValue));
             },
             { range },
             range,
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<> listener, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<> callback, BindingAddress range) {
         return Value{
             nullptr,
-            [listener = std::move(listener)](T newValue) {
-                listener();
+            [callback = std::move(callback)](T newValue) {
+                callback();
             },
             { range },
             range,
@@ -538,23 +538,23 @@ struct Value {
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare) && {
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) && {
         return Value<bool>{
             [get = std::move(m_get), compare]() -> bool {
                 return get() == compare;
             },
-            [set = std::move(m_set), compare](bool newValue) {
+            bidirectional ? [set = std::move(m_set), compare](bool newValue) {
                 if (newValue)
                     if (set)
                         set(compare);
-            },
+            } : SetFn(nullptr),
             std::move(m_srcAddresses),
             std::move(m_destAddress),
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare) const& {
-        return Value<T>{ *this }.equal(std::move(compare));
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) const& {
+        return Value<T>{ *this }.equal(std::move(compare), bidirectional);
     }
 
 #define BRISK_BINDING_OP(oper, op)                                                                           \
@@ -882,22 +882,24 @@ private:
 };
 
 template <typename... Args>
-struct Listener {
+struct BindableCallback {
     Callback<Args...> callback;
     BindingAddress address; ///< The associated binding address.
 
-    constexpr Listener(Callback<Args...> callback, BindingAddress address)
+    constexpr BindableCallback() noexcept : address{} {}
+
+    constexpr BindableCallback(Callback<Args...> callback, BindingAddress address)
         : callback(std::move(callback)), address(address) {}
 
     template <typename Class>
-    constexpr Listener(Class* class_, void (Class::*method)(Args...))
+    constexpr BindableCallback(Class* class_, void (Class::*method)(Args...))
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
           address(toBindingAddress(class_)) {}
 
     template <typename Class>
-    constexpr Listener(const Class* class_, void (Class::*method)(Args...) const)
+    constexpr BindableCallback(const Class* class_, void (Class::*method)(Args...) const)
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
@@ -1045,7 +1047,7 @@ public:
      * @param region The binding address representing the region.
      * @param queue The scheduler queue associated with the region.
      */
-    void registerRegion(BindingAddress region, RC<Scheduler> queue);
+    void registerRegion(BindingAddress region, Rc<Scheduler> queue);
 
     /**
      * @brief Unregisters a previously registered region.
@@ -1078,13 +1080,13 @@ public:
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, Listener<> callback, BindType type = BindType::Immediate) {
+    BindingHandle listen(Value<T> src, BindableCallback<> callback, BindType type = BindType::Immediate) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, Listener<ValueArgument<T>> callback,
+    BindingHandle listen(Value<T> src, BindableCallback<ValueArgument<T>> callback,
                          BindType type = BindType::Immediate) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
@@ -1215,14 +1217,14 @@ private:
         }
     }
 
-    RC<Region> lookupRegion(BindingAddress address);
+    Rc<Region> lookupRegion(BindingAddress address);
 
-    static void enqueueInto(RC<Scheduler> queue, VoidFunc fn, ExecuteImmediately mode);
+    static void enqueueInto(Rc<Scheduler> queue, VoidFunc fn, ExecuteImmediately mode);
 
-    using RegionList = SmallVector<RC<Region>, 1>;
+    using RegionList = SmallVector<Rc<Region>, 1>;
 
-    RC<Scheduler> getQueue(const RegionList& regions) {
-        for (const RC<Region>& r : regions) {
+    Rc<Scheduler> getQueue(const RegionList& regions) {
+        for (const Rc<Region>& r : regions) {
             if (r && r->queue) {
                 return r->queue;
             }
@@ -1239,18 +1241,18 @@ private:
         BindingAddresses srcAddresses = src.m_srcAddresses;
         BindingAddress destAddress    = dest.m_destAddress;
 
-        RC<Region> destRegion         = lookupRegion(destAddress);
+        Rc<Region> destRegion         = lookupRegion(destAddress);
         BRISK_ASSERT_MSG("Bindings: destination value address isn't registered", destRegion);
 
         RegionList srcRegions;
         srcRegions.reserve(srcAddresses.size());
         for (BindingAddress a : srcAddresses) {
-            RC<Region> srcRegion = lookupRegion(a);
+            Rc<Region> srcRegion = lookupRegion(a);
             BRISK_ASSERT_MSG("Bindings: source value address isn't registered", srcRegion);
             srcRegions.push_back(std::move(srcRegion));
         }
-        RC<Scheduler> srcQueue  = getQueue(srcRegions);
-        RC<Scheduler> destQueue = destRegion->queue;
+        Rc<Scheduler> srcQueue  = getQueue(srcRegions);
+        Rc<Scheduler> destQueue = destRegion->queue;
 
         if (updateNow) {
             enqueueInto(
@@ -1269,7 +1271,7 @@ private:
         if (srcAddresses.empty())
             return 0;
 
-        WeakRC<Region> destRegionWeak = destRegion;
+        WeakRc<Region> destRegionWeak = destRegion;
 
         Handler handler = [srcQueue, destQueue, type, dest = std::move(dest), src = std::move(src),
                            destRegionWeak = std::move(destRegionWeak)]() {
@@ -1299,7 +1301,7 @@ private:
     int addHandler(const RegionList& srcRegions, uint64_t id, Handler handler, BindingAddresses srcAddresses,
                    Region* destRegion, BindingAddress destAddress, BindType type,
                    std::string_view destDesc = {}, std::string_view srcDesc = {},
-                   RC<Scheduler> srcQueue = nullptr);
+                   Rc<Scheduler> srcQueue = nullptr);
 
     void removeIndirectDependencies(Region* region);
 
@@ -1315,7 +1317,7 @@ private:
         BindType type;
         std::string_view destDesc;
         std::string_view srcDesc;
-        RC<Scheduler> srcQueue;
+        Rc<Scheduler> srcQueue;
         uint32_t counter;
     };
 
@@ -1326,18 +1328,18 @@ private:
     };
 
     struct Region {
-        Region(BindingAddress region, RC<Scheduler> queue) : region(region), queue(std::move(queue)) {}
+        Region(BindingAddress region, Rc<Scheduler> queue) : region(region), queue(std::move(queue)) {}
 
         BindingAddress region;
         std::multimap<BindingAddress, Entry, BindingAddressCmp> entries;
         bool entriesChanged = false;
-        RC<Scheduler> queue;
+        Rc<Scheduler> queue;
 
         void disconnectIf(std::function<bool(const std::pair<BindingAddress, Entry>&)> pred);
     };
 
     uint32_t m_counter = 0;
-    std::map<const uint8_t*, RC<Region>> m_regions;
+    std::map<const uint8_t*, Rc<Region>> m_regions;
     std::vector<uint64_t> m_stack;
 
     bool inStack(uint64_t id);
@@ -1414,7 +1416,7 @@ struct BindingRegistration {
      * @param queue Reference-counted pointer to the queue.
      */
     template <typename T>
-    BindingRegistration(const T* thiz, RC<Scheduler> queue) : m_address(toBindingAddress(thiz).min()) {
+    BindingRegistration(const T* thiz, Rc<Scheduler> queue) : m_address(toBindingAddress(thiz).min()) {
         bindings->registerRegion(toBindingAddress(thiz), std::move(queue));
     }
 
@@ -1465,29 +1467,30 @@ inline BindingLifetime lifetimeOf(T* thiz) noexcept {
 }
 
 template <typename Fn>
-using DeduceListener = typename Internal::DeduceArgs<decltype(&Fn::operator()), Listener>::Type;
+using DeduceBindableCallback =
+    typename Internal::DeduceArgs<decltype(&Fn::operator()), BindableCallback>::Type;
 
 /**
- * @brief Combines a BindingRegistration with a callback to create a listener.
+ * @brief Combines a BindingRegistration with a callback to create a bindable callback.
  * @tparam Fn Type of the callback function.
  * @param reg The BindingRegistration instance providing the address.
  * @param callback The callback function to associate.
- * @return A deduced listener type combining the callback and registration address.
+ * @return A deduced bindable callback type combining the callback and registration address.
  */
 template <typename Fn>
-inline constexpr DeduceListener<Fn> operator|(const BindingRegistration& reg, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration& reg, Fn callback) {
     return { std::move(callback), reg.m_address };
 }
 
 /**
- * @brief Combines a BindingLifetime with a callback to create a listener.
+ * @brief Combines a BindingLifetime with a callback to create a bindable callback.
  * @tparam Fn Type of the callback function.
  * @param lt The BindingLifetime instance providing the address.
  * @param callback The callback function to associate.
- * @return A deduced listener type combining the callback and lifetime address.
+ * @return A deduced bindable callback type combining the callback and lifetime address.
  */
 template <typename Fn>
-inline constexpr DeduceListener<Fn> operator|(const BindingLifetime& lt, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingLifetime& lt, Fn callback) {
     return { std::move(callback), toBindingAddress(lt.m_address) };
 }
 
@@ -1500,7 +1503,7 @@ template <typename T>
         BindingRegistration registration{ this, nullptr };
     };
 
-    RC<RegisteredValue> val = std::make_shared<RegisteredValue>(initialValue);
+    Rc<RegisteredValue> val = std::make_shared<RegisteredValue>(initialValue);
 
     return Value{
         [val]() -> T {
@@ -1516,20 +1519,32 @@ template <typename T>
 
 template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue) {
-    return Value{
-        [pvalue]() -> T {
-            return *pvalue;
-        },
-        [pvalue](T newValue) {
-            bindings->assign(*pvalue, std::move(newValue));
-        },
-        { toBindingAddress(pvalue) },
-        toBindingAddress(pvalue),
-    };
+    if constexpr (std::is_const_v<T>) {
+        return Value{
+            [pvalue]() -> T {
+                return *pvalue;
+            },
+            nullptr,
+            { toBindingAddress(pvalue) },
+            toBindingAddress(pvalue),
+        };
+    } else {
+        return Value{
+            [pvalue]() -> T {
+                return *pvalue;
+            },
+            [pvalue](T newValue) {
+                bindings->assign(*pvalue, std::move(newValue));
+            },
+            { toBindingAddress(pvalue) },
+            toBindingAddress(pvalue),
+        };
+    }
 }
 
 template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue, NotifyFn notify) {
+    static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
             return *pvalue;
@@ -1548,6 +1563,7 @@ template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue)
     requires AtomicCompatible<T>
 {
+    static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
             return pvalue->load(std::memory_order::relaxed);
@@ -1565,6 +1581,7 @@ template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue, NotifyFn notify)
     requires AtomicCompatible<T>
 {
+    static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
             return *pvalue;
@@ -1729,8 +1746,12 @@ public:
         BRISK_ASSUME(this_pointer);
         if BRISK_IF_GNU_ATTR (constexpr)
             (getter == nullptr) {
-                static_assert(field != nullptr);
-                return this_pointer->*field;
+                if constexpr (std::is_convertible_v<decltype(this_pointer->*field), Type>) {
+                    static_assert(field != nullptr);
+                    return this_pointer->*field;
+                } else {
+                    return {};
+                }
             }
         else {
             return (this_pointer->*getter)();
@@ -1768,12 +1789,12 @@ public:
         set(std::move(value));
     }
 
-    void operator=(Listener<> listener) {
-        bindings->listen(Value{ this }, std::move(listener));
+    void operator=(BindableCallback<> bindableCallback) {
+        bindings->listen(Value{ this }, std::move(bindableCallback));
     }
 
-    void operator=(Listener<ValueArgument<T>> listener) {
-        bindings->listen(Value{ this }, std::move(listener));
+    void operator=(BindableCallback<ValueArgument<T>> bindableCallback) {
+        bindings->listen(Value{ this }, std::move(bindableCallback));
     }
 
     void set(Value<Type> value) {
@@ -1818,16 +1839,17 @@ public:
 
 template <typename T>
 concept PointerToScheduler = requires(T p) {
-    { *p } -> std::convertible_to<RC<Scheduler>>;
+    { *p } -> std::convertible_to<Rc<Scheduler>>;
 };
 
-template <typename Derived, PointerToScheduler auto scheduler = static_cast<RC<Scheduler>*>(nullptr)>
-class BindingObject : public Object, public std::enable_shared_from_this<BindingObject<Derived, scheduler>> {
+template <typename Derived, PointerToScheduler auto scheduler = static_cast<Rc<Scheduler>*>(nullptr)>
+class BindableObject : public Object,
+                       public std::enable_shared_from_this<BindableObject<Derived, scheduler>> {
 private:
-    using Base = std::enable_shared_from_this<BindingObject<Derived, scheduler>>;
+    using Base = std::enable_shared_from_this<BindableObject<Derived, scheduler>>;
 
 public:
-    ~BindingObject() override {}
+    ~BindableObject() override {}
 
     using Ptr = std::shared_ptr<Derived>;
 
@@ -1841,7 +1863,7 @@ public:
 
     static void* operator new(size_t sz) {
         void* ptr = alignedAlloc(sz, cacheAlignment);
-        RC<Scheduler> sched;
+        Rc<Scheduler> sched;
         BRISK_CLANG_PRAGMA(GCC diagnostic push)
         BRISK_CLANG_PRAGMA(GCC diagnostic ignored "-Wpointer-bool-conversion")
         if constexpr (scheduler) {
@@ -1861,5 +1883,129 @@ public:
         return lifetimeOf(this);
     }
 };
+
+template <PointerToScheduler auto scheduler_ = static_cast<Rc<Scheduler>*>(nullptr)>
+struct SchedulerParam {
+    static constexpr auto scheduler = scheduler_;
+};
+
+template <typename T, typename SchedulerPtr>
+class BindableAllocator {
+public:
+    // --- Member Types (Required by Allocator concept) ---
+    using value_type                                               = T;
+    using size_type                                                = std::size_t;
+    using difference_type                                          = std::ptrdiff_t;
+    using pointer                                                  = T*;
+    using const_pointer                                            = const T*;
+
+    // --- Propagation Traits (Control allocator behavior on container ops) ---
+    using propagate_on_container_copy_assignment                   = std::true_type;
+    using propagate_on_container_move_assignment                   = std::true_type;
+    using propagate_on_container_swap                              = std::true_type;
+
+    // --- Statelessness Trait (All instances are equivalent) ---
+    // This is important for optimizations.
+    using is_always_equal                                          = std::true_type;
+
+    // --- Constructors ---
+    // Default constructor
+    constexpr BindableAllocator() noexcept                         = default;
+
+    // Copy constructor (needed for rebinding)
+    constexpr BindableAllocator(const BindableAllocator&) noexcept = default;
+
+    // Template copy constructor (enables rebinding)
+    template <typename U>
+    constexpr BindableAllocator(const BindableAllocator<U, SchedulerPtr>&) noexcept {}
+
+    // Destructor
+    ~BindableAllocator() = default;
+
+    // --- Core Allocator Functions ---
+
+    /**
+     * @brief Allocates uninitialized storage.
+     * @param n The number of objects to allocate storage for.
+     * @return A pointer to the allocated storage.
+     * @throws std::bad_alloc If allocation fails.
+     * @throws std::length_error If n * sizeof(T) overflows size_t.
+     */
+    [[nodiscard]] pointer allocate(size_type n) {
+        if (n > std::numeric_limits<size_type>::max() / sizeof(T)) {
+            throw std::length_error("BindableAllocator::allocate: size overflow");
+        }
+
+        size_type bytes_to_allocate = n * sizeof(T);
+        if (bytes_to_allocate == 0) {
+            return nullptr; // Standard allows returning nullptr for zero size
+        }
+
+        // Allocate memory using global operator new
+        // Using the sized delete version requires C++14 or later support for ::operator new
+        void* p = ::operator new(bytes_to_allocate);
+        if (!p) {
+            throw std::bad_alloc(); // Should theoretically not happen as ::operator new throws
+        }
+
+        // --- Call the custom registration function ---
+        try {
+            Rc<Scheduler> sched;
+            BRISK_CLANG_PRAGMA(GCC diagnostic push)
+            BRISK_CLANG_PRAGMA(GCC diagnostic ignored "-Wpointer-bool-conversion")
+            if constexpr (SchedulerPtr::scheduler) {
+                sched = *SchedulerPtr::scheduler;
+            }
+            bindings->registerRegion(BindingAddress{ p, bytes_to_allocate }, std::move(sched));
+        } catch (...) {
+            // If bindingRegister throws, we must free the allocated memory
+            // before propagating the exception.
+            ::operator delete(p, bytes_to_allocate); // Use sized delete if available/appropriate
+            throw;                                   // Re-throw the exception from bindingRegister
+        }
+
+        return static_cast<pointer>(p);
+    }
+
+    /**
+     * @brief Deallocates storage previously allocated by allocate.
+     * @param p Pointer to the memory to deallocate. Must have been returned by a prior call to allocate(n).
+     * @param n The number of objects for which storage was allocated. Must be the same value passed to
+     * allocate.
+     */
+    void deallocate(pointer p, size_type n) noexcept {
+        if (p == nullptr || n == 0) {
+            return; // Deallocating nullptr or zero size is a no-op
+        }
+
+        size_type bytes_to_deallocate = n * sizeof(T);
+
+        try {
+            bindings->unregisterRegion(BindingAddress{ static_cast<void*>(p), bytes_to_deallocate });
+        } catch (...) {
+            BRISK_ASSERT_MSG("WARNING: unregisterRegion threw an exception during deallocate! Memory might "
+                             "leak if not handled",
+                             false);
+            std::terminate();
+        }
+
+        ::operator delete(static_cast<void*>(p), bytes_to_deallocate);
+    }
+
+    // --- Comparison Operators (Required for stateless allocators) ---
+
+    template <typename U>
+    constexpr bool operator==(const BindableAllocator<U, SchedulerPtr>&) const noexcept {
+        return true;
+    }
+
+    template <typename U>
+    constexpr bool operator!=(const BindableAllocator<U, SchedulerPtr>&) const noexcept {
+        return false;
+    }
+};
+
+template <typename T, PointerToScheduler auto scheduler = static_cast<Rc<Scheduler>*>(nullptr)>
+using BindableList = std::deque<T, BindableAllocator<T, SchedulerParam<scheduler>>>;
 
 } // namespace Brisk

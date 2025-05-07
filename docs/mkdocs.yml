@@ -37,7 +37,7 @@ extra:
     - icon: fontawesome/brands/twitter
       link: "https://twitter.com/brisklib"
 
-copyright: "Copyright &copy; 2024 Brisk"
+copyright: "Copyright &copy; 2025 Brisk"
 
 plugins:
   - search

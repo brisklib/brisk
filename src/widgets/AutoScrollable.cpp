@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -120,7 +120,7 @@ AutoScrollable::AutoScrollable(Construction construction, Orientation orientatio
     args.apply(this);
 }
 
-RC<Widget> AutoScrollable::cloneThis() const {
+Rc<Widget> AutoScrollable::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

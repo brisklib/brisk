@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -28,7 +28,7 @@ DynamicLibrary::~DynamicLibrary() {
     dlclose(m_handle);
 }
 
-RC<DynamicLibrary> DynamicLibrary::load(const std::string& name) noexcept {
+Rc<DynamicLibrary> DynamicLibrary::load(const std::string& name) noexcept {
     void* handle = dlopen(name.c_str(), RTLD_LAZY | RTLD_LOCAL);
     if (!handle)
         return nullptr;

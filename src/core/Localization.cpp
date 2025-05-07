@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -23,7 +23,7 @@
 namespace Brisk {
 
 static SimpleLocale simpleLocale;
-RC<const Locale> locale = RC<Locale>(&simpleLocale, [](auto) {});
+Rc<const Locale> locale = Rc<Locale>(&simpleLocale, [](auto) {});
 
 const std::string& SimpleLocale::translate(std::string_view key) const noexcept {
     auto it = table.find(key);

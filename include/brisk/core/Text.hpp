@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -130,7 +130,7 @@ inline U32String upperCase(U32StringView str) {
  * @param columns The number of columns for wrapping.
  * @return The word-wrapped string.
  */
-std::string wordWrap(std::string text, size_t columns);
+std::string textWordWrap(std::string text, size_t columns);
 
 /**
  * @brief Splits a string into a list of substrings using a delimiter.
@@ -553,13 +553,29 @@ inline std::string shorten(const std::string& str, size_t maxLength, float posit
     return utf32ToUtf8(shorten(utf8ToUtf32(str), maxLength, position, ellipsis));
 }
 
+/**
+ * @struct FormatString
+ * @brief A compile-time format string wrapper for type-safe string formatting.
+ * @tparam key A FixedString representing the format string.
+ */
 template <Internal::FixedString key>
 struct FormatString {
+    /**
+     * @brief Checks if the format string is valid for the given argument types.
+     * @tparam Args Variadic template for format argument types.
+     * @throws Compile-time error if the format string is invalid for the arguments.
+     */
     template <typename... Args>
     static consteval void checkFormatArgs() {
         [[maybe_unused]] fmt::format_string<Args...> fmt(key.string());
     }
 
+    /**
+     * @brief Formats the string using the provided arguments.
+     * @tparam Args Variadic template for format argument types.
+     * @param args Arguments to be formatted into the string.
+     * @return A formatted string based on the key and arguments.
+     */
     template <typename... Args>
     std::string operator()(Args&&... args) const {
         checkFormatArgs<Args...>();
@@ -567,6 +583,14 @@ struct FormatString {
     }
 };
 
+/**
+ * @brief User-defined literal operator to create a FormatString from a string literal.
+ * @tparam s The FixedString created from the string literal.
+ * @return A FormatString object for the given string literal.
+ * @code
+ * std::string str = "Hello, {}!"_fmt("World"); // Produces "Hello, World!"
+ * @endcode
+ */
 template <Internal::FixedString s>
 constexpr FormatString<s> operator""_fmt() noexcept {
     return {};

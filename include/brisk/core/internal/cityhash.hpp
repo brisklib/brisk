@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -22,7 +22,7 @@
 
 #include <cstdint>
 #include <algorithm>
-#include "../SIMD.hpp" // For constexpr byteswap
+#include "../Simd.hpp" // For constexpr byteswap
 
 // Constexpr implementation of Cityhash64 algorithm
 // Based on CityHash, by Geoff Pike and Jyrki Alakuijala

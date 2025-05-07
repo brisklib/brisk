@@ -1,14 +1,34 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include "Layout.hpp"
 #include <brisk/graphics/Palette.hpp>
 
 namespace Brisk {
 
-RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseLayout::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
-        flexGrow = 1,
-        padding  = 16_apx,
-        gapRow   = 8_apx,
-        overflow = Overflow::ScrollX,
+        flexGrow         = 1,
+        padding          = 16_apx,
+        gapRow           = 8_apx,
+        contentOverflowX = ContentOverflow::Allow,
 
         rcnew Text{ "flexWrap = Wrap::Wrap", classes = { "section-header" } },
         rcnew HLayout{
@@ -42,7 +62,7 @@ RC<Widget> ShowcaseLayout::build(RC<Notifications> notifications) {
                     "This widget's size is set to half of the window's width and a quarter of its height "
                     "<code>(width = 50_vw, height = 25_vh)</code>",
                     wordWrap    = true,
-                    textOptions = TextOptions::HTML,
+                    textOptions = TextOptions::Html,
                     fontSize    = 16_px,
                 },
                 alignContent    = Align::Center,

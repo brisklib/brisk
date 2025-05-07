@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include "ShowcaseComponent.hpp"
 #include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/widgets/ListBox.hpp>
@@ -10,10 +30,10 @@
 #include <brisk/widgets/TextEditor.hpp>
 #include <brisk/widgets/Viewport.hpp>
 #include <brisk/widgets/Pages.hpp>
-#include <brisk/widgets/ContextPopup.hpp>
+#include <brisk/widgets/Menu.hpp>
 #include <brisk/widgets/ScrollBox.hpp>
 #include <brisk/widgets/PopupDialog.hpp>
-#include <brisk/window/OSDialogs.hpp>
+#include <brisk/window/OsDialogs.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/widgets/Graphene.hpp>
@@ -29,7 +49,7 @@
 
 namespace Brisk {
 
-static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
+static Rc<Stylesheet> mainStylesheet = rcnew Stylesheet{
     Graphene::stylesheet(),
     Style{
         Selectors::Class{ "section-header" },
@@ -73,7 +93,7 @@ static RC<Stylesheet> mainStylesheet = rcnew Stylesheet{
     },
 };
 
-RC<Widget> ShowcaseComponent::build() {
+Rc<Widget> ShowcaseComponent::build() {
     auto notifications = notManaged(&m_notifications);
     return rcnew VLayout{
         flexGrow   = 1,
@@ -155,13 +175,13 @@ void ShowcaseComponent::unhandledEvent(Event& event) {
     handleDebugKeystrokes(event);
 }
 
-void ShowcaseComponent::configureWindow(RC<GUIWindow> window) {
+void ShowcaseComponent::configureWindow(Rc<GuiWindow> window) {
     window->setTitle("Brisk Showcase"_tr);
     window->setSize({ 1050, 740 });
     window->setStyle(WindowStyle::Normal);
 }
 
-void ShowcaseComponent::saveScreenshot(RC<Image> image) {
+void ShowcaseComponent::saveScreenshot(Rc<Image> image) {
     Bytes bytes = pngEncode(image);
     if (auto file = Shell::showSaveDialog({ Shell::FileDialogFilter{ "*.png", "PNG image"_tr } },
                                           defaultFolder(DefaultFolder::Pictures))) {

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -28,9 +28,9 @@ using namespace Brisk;
 
 TEST_CASE("Network tests") {
     using namespace std::literals;
-    auto [response, bytes] = httpFetchBytes(HTTPRequest{
+    auto [response, bytes] = httpFetchBytes(HttpRequest{
         .url     = "https://example.com",
-        .method  = HTTPMethod::Head,
+        .method  = HttpMethod::Head,
         .timeout = 10000ms,
     });
     fmt::println("error = {}", response.error);

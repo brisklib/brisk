@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -37,7 +37,7 @@ static int toInt(std::string_view str) {
     return val;
 }
 
-OSVersion osVersion() {
+OsVersion osVersion() {
     utsname vers{};
     if (uname(&vers))
         return {};

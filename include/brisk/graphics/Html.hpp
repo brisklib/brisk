@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -29,7 +29,7 @@ namespace Brisk {
 /**
  * @brief Interface for handling SAX-like HTML parsing events.
  */
-struct HTMLSAX {
+struct HtmlSax {
     /**
      * @brief Called before parsing begins.
      */
@@ -82,12 +82,12 @@ struct HTMLSAX {
 };
 
 /**
- * @brief Parses an HTML string and triggers HTMLSAX callbacks during parsing.
+ * @brief Parses an HTML string and triggers HtmlSax callbacks during parsing.
  * @param html The HTML content to parse.
- * @param sax The HTMLSAX implementation to handle parsing events.
+ * @param sax The HtmlSax implementation to handle parsing events.
  * @return true if parsing succeeds, false otherwise.
  */
-bool parseHtml(std::string_view html, HTMLSAX* sax);
+bool parseHtml(std::string_view html, HtmlSax* sax);
 
 /**
  * @brief Decodes an HTML character entity (e.g., "&gt;" -> ">", "&nbsp;" -> "\xA0", non-breaking space).

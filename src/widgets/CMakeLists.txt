@@ -4,7 +4,7 @@
 # Cross-platform application framework
 # --------------------------------------------------------------
 #
-# Copyright (C) 2024 Brisk Developers
+# Copyright (C) 2025 Brisk Developers
 #
 # This file is part of the Brisk library.
 #
@@ -43,11 +43,10 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/CheckBox.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Text.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Item.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/widgets/ItemList.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Menu.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/AutoScrollable.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/ToggleButton.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Button.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/widgets/ContextPopup.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/PopupBox.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/PopupButton.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/widgets/Spacer.hpp
@@ -80,11 +79,10 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/widgets/CheckBox.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Text.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Item.cpp
-    ${PROJECT_SOURCE_DIR}/src/widgets/ItemList.cpp
+    ${PROJECT_SOURCE_DIR}/src/widgets/Menu.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/AutoScrollable.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/ToggleButton.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Button.cpp
-    ${PROJECT_SOURCE_DIR}/src/widgets/ContextPopup.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/PopupBox.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/PopupButton.cpp
     ${PROJECT_SOURCE_DIR}/src/widgets/Spacer.cpp
@@ -96,8 +94,8 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/widgets/Graphene.cpp)
 
 if (BRISK_WEBGPU)
-    target_sources(brisk-widgets PRIVATE ${PROJECT_SOURCE_DIR}/include/brisk/widgets/WebGPU.hpp
-                                         ${PROJECT_SOURCE_DIR}/src/widgets/WebGPU.cpp)
+    target_sources(brisk-widgets PRIVATE ${PROJECT_SOURCE_DIR}/include/brisk/widgets/WebGpu.hpp
+                                         ${PROJECT_SOURCE_DIR}/src/widgets/WebGpu.cpp)
 endif ()
 
 set_property(TARGET brisk-widgets PROPERTY EXPORT_NAME Widgets)

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -87,7 +87,7 @@ struct StrokeWidth {
 };
 
 struct Multigradient {
-    using Type = RC<GradientResource>;
+    using Type = Rc<GradientResource>;
 
     static void apply(const Type& value, RenderStateEx& state) {
         state.gradientHandle = value;

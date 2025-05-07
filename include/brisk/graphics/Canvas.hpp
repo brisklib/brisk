@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -165,7 +165,7 @@ class Canvas;
  * applied to a surface.
  */
 struct Texture {
-    RC<Image> image;                      ///< The image used as the texture.
+    Rc<Image> image;                      ///< The image used as the texture.
     Matrix matrix;                        ///< The transformation matrix applied to the texture.
     SamplerMode mode = SamplerMode::Wrap; ///< The sampler mode (Clamp or Wrap).
     float blurRadius = 0.f;               ///< The radius of the blur applied to the image.
@@ -173,7 +173,7 @@ struct Texture {
 
 /**
  * @typedef Paint
- * @brief A versatile type representing various fill and stroke styles.
+ * @brief A type representing various fill and stroke styles.
  *
  * Paint can hold one of several types representing
  * different kinds of paints: a solid color (ColorW), a gradient (Gradient),
@@ -185,10 +185,13 @@ namespace Internal {
 struct PaintAndTransform;
 } // namespace Internal
 
+/**
+ * @brief Enum class defining flags for canvas rendering options.
+ */
 enum class CanvasFlags {
-    None    = 0,
-    SDF     = 1,
-    Default = SDF,
+    None    = 0,  ///< No special rendering flags.
+    Sdf     = 1,  ///< Use Signed Distance Field for compatible shapes.
+    Default = Sdf ///< Default rendering flag, set to Sdf.
 };
 
 template <>
@@ -211,18 +214,70 @@ public:
      */
     explicit Canvas(RenderContext& context, CanvasFlags flags = CanvasFlags::Default);
 
+    /**
+     * @brief Retrieves the render context for the canvas.
+     * @return Reference to the RenderContext object.
+     */
     RenderContext& renderContext() const {
         return m_context;
     }
 
+    /**
+     * @brief Retrieves the canvas rendering flags.
+     * @return The current CanvasFlags value.
+     */
     CanvasFlags flags() const noexcept {
         return m_flags;
     }
 
+    /**
+     * @brief Draws a stroked path on the canvas with specified parameters.
+     *
+     * This stateless function renders a path outline using the provided stroke paint, parameters,
+     * transformation matrix, clipping rectangle, and opacity. It does not modify or access the canvas state.
+     *
+     * @param path The path to be stroked.
+     * @param strokePaint The paint used for stroking the path.
+     * @param params The stroke parameters (e.g., width, cap, join).
+     * @param matrix The transformation matrix to apply to the path.
+     * @param clipRect The clipping rectangle in canvas coordinates.
+     * @param opacity The opacity value (0.0 to 1.0) for rendering.
+     */
     void strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
                     RectangleF clipRect, float opacity);
+
+    /**
+     * @brief Fills a path on the canvas with specified parameters.
+     *
+     * This stateless function fills a path using the provided fill paint, parameters, transformation
+     * matrix, clipping rectangle, and opacity. It does not modify or access the canvas state.
+     *
+     * @param path The path to be filled.
+     * @param fillPaint The paint used for filling the path.
+     * @param fillParams The fill parameters (e.g., fill rule).
+     * @param matrix The transformation matrix to apply to the path.
+     * @param clipRect The clipping rectangle in canvas coordinates.
+     * @param opacity The opacity value (0.0 to 1.0) for rendering.
+     */
     void fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
                   RectangleF clipRect, float opacity);
+
+    /**
+     * @brief Draws a path on the canvas with both stroke and fill using specified parameters.
+     *
+     * This stateless function renders a path with both stroking and filling, using the provided stroke
+     * and fill paints, parameters, transformation matrix, clipping rectangle, and opacity. It does not
+     * modify or access the canvas state.
+     *
+     * @param path The path to be drawn.
+     * @param strokePaint The paint used for stroking the path.
+     * @param strokeParams The stroke parameters (e.g., width, cap, join).
+     * @param fillPaint The paint used for filling the path.
+     * @param fillParams The fill parameters (e.g., fill rule).
+     * @param matrix The transformation matrix to apply to the path.
+     * @param clipRect The clipping rectangle in canvas coordinates.
+     * @param opacity The opacity value (0.0 to 1.0) for rendering.
+     */
     void drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
                   const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
                   RectangleF clipRect, float opacity);
@@ -401,6 +456,9 @@ public:
     /**
      * @brief Strokes a given path with the current stroke settings.
      *
+     * This function renders the outline of the specified path using the canvas's current stroke
+     * settings (e.g., stroke paint, stroke parameters).
+     *
      * @param path The Path struct to stroke.
      */
     void strokePath(Path path);
@@ -408,28 +466,74 @@ public:
     /**
      * @brief Fills a given path with the current fill settings.
      *
+     * This function fills the specified path using the canvas's current fill settings
+     * (e.g., fill paint, fill parameters).
+     *
      * @param path The Path struct to fill.
      */
     void fillPath(Path path);
 
+    /**
+     * @brief Draws a given path with the current stroke and fill settings.
+     *
+     * This function renders the specified path by applying both the canvas's current stroke
+     * and fill settings (e.g., stroke paint, fill paint, stroke and fill parameters).
+     *
+     * @param path The Path struct to draw.
+     */
     void drawPath(Path path);
 
     /**
      * @brief Strokes a rectangle with the current stroke settings.
      *
+     * This function renders the outline of the specified rectangle using the canvas's current stroke
+     * settings. The rectangle can have rounded corners defined by borderRadius, and if squircle is true,
+     * the rounded corners will use a squircle shape.
+     *
      * @param rect The RectangleF struct defining the rectangle to stroke.
+     * @param borderRadius The CornersF struct specifying the border radius for each corner (default: 0.f).
+     * @param squircle If true, rounded corners will have a squircle shape (default: false).
      */
     void strokeRect(RectangleF rect, CornersF borderRadius = 0.f, bool squircle = false);
 
     /**
      * @brief Fills a rectangle with the current fill settings.
      *
+     * This function fills the specified rectangle using the canvas's current fill settings.
+     * The rectangle can have rounded corners defined by borderRadius, and if squircle is true,
+     * the rounded corners will use a squircle shape.
+     *
      * @param rect The RectangleF struct defining the rectangle to fill.
+     * @param borderRadius The CornersF struct specifying the border radius for each corner (default: 0.f).
+     * @param squircle If true, rounded corners will have a squircle shape (default: false).
      */
     void fillRect(RectangleF rect, CornersF borderRadius = 0.f, bool squircle = false);
 
+    /**
+     * @brief Draws a rectangle with the current stroke and fill settings.
+     *
+     * This function renders the specified rectangle by applying both the canvas's current stroke
+     * and fill settings. The rectangle can have rounded corners defined by borderRadius, and if
+     * squircle is true, the rounded corners will use a squircle shape.
+     *
+     * @param rect The RectangleF struct defining the rectangle to draw.
+     * @param borderRadius The CornersF struct specifying the border radius for each corner (default: 0.f).
+     * @param squircle If true, rounded corners will have a squircle shape (default: false).
+     */
     void drawRect(RectangleF rect, CornersF borderRadius = 0.f, bool squircle = false);
 
+    /**
+     * @brief Draws a blurred rectangle, typically used for rendering shadows.
+     *
+     * This function renders a blurred rectangle with the specified blur radius. The rectangle can
+     * have rounded corners defined by borderRadius, and if squircle is true, the rounded corners
+     * will use a squircle shape. This is often used to create shadow effects.
+     *
+     * @param rect The RectangleF struct defining the rectangle to blur.
+     * @param blurRadius The radius of the blur effect.
+     * @param borderRadius The CornersF struct specifying the border radius for each corner (default: 0.f).
+     * @param squircle If true, rounded corners will have a squircle shape (default: false).
+     */
     void blurRect(RectangleF rect, float blurRadius, CornersF borderRadius = 0.f, bool squircle = false);
 
     /**
@@ -497,16 +601,54 @@ public:
     void fillText(TextWithOptions text, RectangleF position, PointF alignment = PointF{ 0.f, 0.f });
 
     /**
-     * @brief Fills pre-rendered text.
+     * @brief Fills pre-rendered text at the specified position.
      *
-     * @param text The PreparedText struct to render.
+     * This function renders the provided PreparedText at the given position using the canvas's
+     * current fill settings.
+     *
+     * @param position The PointF specifying the top-left position of the text.
+     * @param text The PreparedText struct containing the pre-rendered text to fill.
      */
     void fillText(PointF position, const PreparedText& text);
 
+    /**
+     * @brief Fills pre-rendered text with specified alignment.
+     *
+     * This function renders the provided PreparedText at the given position, aligned according
+     * to the specified alignment point, using the canvas's current fill settings.
+     *
+     * @param position The PointF specifying the reference position for the text.
+     * @param alignment The PointF specifying the alignment offset relative to the position.
+     * @param text The PreparedText struct containing the pre-rendered text to fill.
+     */
     void fillText(PointF position, PointF alignment, const PreparedText& text);
 
+    /**
+     * @brief Fills the selection rectangle(s) for pre-rendered text.
+     *
+     * This function renders the selection rectangle(s) for the specified range within the
+     * PreparedText at the given position, using the canvas's current fill settings. It does
+     * not render the text itself, only the selection background.
+     *
+     * @param position The PointF specifying the top-left position of the text.
+     * @param text The PreparedText struct containing the pre-rendered text.
+     * @param selection The Range<uint32_t> specifying the start and end indices of the selection.
+     */
     void fillTextSelection(PointF position, const PreparedText& text, Range<uint32_t> selection);
 
+    /**
+     * @brief Fills the selection rectangle(s) for pre-rendered text with specified alignment.
+     *
+     * This function renders the selection rectangle(s) for the specified range within the
+     * PreparedText at the given position, aligned according to the specified alignment point,
+     * using the canvas's current fill settings. It does not render the text itself, only the
+     * selection background.
+     *
+     * @param position The PointF specifying the reference position for the text.
+     * @param alignment The PointF specifying the alignment offset relative to the position.
+     * @param text The PreparedText struct containing the pre-rendered text.
+     * @param selection The Range<uint32_t> specifying the start and end indices of the selection.
+     */
     void fillTextSelection(PointF position, PointF alignment, const PreparedText& text,
                            Range<uint32_t> selection);
 
@@ -525,7 +667,7 @@ public:
      * @param image The Image to draw.
      * @param matrix The transformation matrix to apply to the image. Defaults to the identity matrix.
      */
-    void drawImage(RectangleF rect, RC<Image> image, Matrix matrix = {},
+    void drawImage(RectangleF rect, Rc<Image> image, Matrix matrix = {},
                    SamplerMode samplerMode = SamplerMode::Clamp, float blurRadius = 0.f);
 
     /**
@@ -571,67 +713,178 @@ public:
 
     /**
      * @brief Resets the Canvas state to its default values.
+     *
+     * This function clears all current state settings and restores the canvas to its initial
+     * default state as defined by defaultState.
      */
     void reset();
 
     /**
      * @brief Saves the current state of the Canvas.
      *
-     * The saved state can be restored later using the restore() function.
+     * The saved state, including clip rectangle, transform, paints, and other parameters, is
+     * pushed onto an internal stack and can be restored later using the restore() function.
      */
     void save();
 
     /**
      * @brief Restores the most recently saved Canvas state.
      *
-     * This operation also removes the state from the stack.
+     * This function pops the most recently saved state from the internal stack and applies it
+     * to the canvas, discarding the previous state.
      */
     void restore();
 
     /**
      * @brief Restores the most recently saved Canvas state without removing it from the stack.
+     *
+     * This function applies the most recently saved state to the canvas but keeps the state
+     * on the internal stack for future restores.
      */
     void restoreNoPop();
 
+    /**
+     * @brief Structure holding the complete state of the Canvas.
+     *
+     * This struct contains all configurable properties of the canvas, such as clipping,
+     * transformation, paints, and drawing parameters.
+     */
     struct State {
-        RectangleF clipRect;
-        Matrix transform;
-        Paint strokePaint;
-        Paint fillPaint;
-        StrokeParams strokeParams;
-        float opacity;
-        FillParams fillParams;
-        Font font;
+        RectangleF clipRect;       ///< The current clipping rectangle.
+        Matrix transform;          ///< The current transformation matrix.
+        Paint strokePaint;         ///< The current stroke paint settings.
+        Paint fillPaint;           ///< The current fill paint settings.
+        StrokeParams strokeParams; ///< The current stroke parameters (e.g., width, cap, join).
+        float opacity;             ///< The current opacity value (0.0 to 1.0).
+        FillParams fillParams;     ///< The current fill parameters (e.g., fill rule).
+        Font font;                 ///< The current font settings.
     };
 
+    /**
+     * @brief The default state of the Canvas.
+     *
+     * This static constant defines the initial values for all state properties when the canvas
+     * is reset or initialized.
+     */
     static const State defaultState;
 
+    /**
+     * @brief Retrieves the current state of the Canvas.
+     *
+     * @return A const reference to the current State object.
+     */
     const State& state() const noexcept;
 
+    /**
+     * @brief Sets the Canvas state to the specified state.
+     *
+     * This function applies the provided State object to the canvas, updating all relevant
+     * properties such as clip rectangle, transform, paints, and drawing parameters.
+     *
+     * @param state The State object to apply to the canvas.
+     */
     void setState(State state);
 
+    /**
+     * @brief RAII utility class for saving and restoring the Canvas state.
+     *
+     * This class saves the current canvas state upon construction and restores it upon
+     * destruction. It provides access to the current state via operator* and operator->,
+     * allowing direct modification of state fields for drawing operations. To minimize
+     * assignments and copies, assign the result to an auto&& variable, e.g.,
+     * `auto&& state = canvas.saveState();`.
+     */
     struct StateSaver {
-        Canvas& canvas;
-        State saved;
+        Canvas& canvas; ///< Reference to the associated Canvas.
+        State saved;    ///< The saved state to restore on destruction.
 
+        /**
+         * @brief Constructs a StateSaver, saving the current canvas state.
+         *
+         * @param canvas The Canvas whose state is to be saved.
+         */
         StateSaver(Canvas& canvas);
+
+        /**
+         * @brief Provides access to the current canvas state for modification.
+         *
+         * @return Reference to the current State object.
+         */
         State& operator*();
+
+        /**
+         * @brief Provides pointer-like access to the current canvas state for modification.
+         *
+         * @return Pointer to the current State object.
+         */
         State* operator->();
+
+        /**
+         * @brief Destructor that restores the saved canvas state.
+         */
         ~StateSaver();
     };
 
+    /**
+     * @brief Saves the current canvas state and returns a StateSaver for RAII management.
+     *
+     * The returned StateSaver saves the current state and restores it upon destruction.
+     * Assign the result to an auto&& variable to avoid unnecessary copies, e.g.,
+     * `auto&& state = canvas.saveState();`.
+     *
+     * @return A StateSaver object managing the saved state.
+     */
     StateSaver saveState() &;
 
+    /**
+     * @brief RAII utility class for saving and restoring the Canvas clip rectangle.
+     *
+     * This class saves the current clip rectangle upon construction and restores it upon
+     * destruction. It provides access to the current clip rectangle via operator* and
+     * operator->, allowing direct modification for drawing operations. To minimize
+     * assignments and copies, assign the result to an auto&& variable, e.g.,
+     * `auto&& clip = canvas.saveClipRect();`.
+     */
     struct ClipRectSaver {
-        Canvas& canvas;
-        RectangleF saved;
+        Canvas& canvas;   ///< Reference to the associated Canvas.
+        RectangleF saved; ///< The saved clip rectangle to restore on destruction.
 
+        /**
+         * @brief Constructs a ClipRectSaver, saving the current clip rectangle.
+         *
+         * @param canvas The Canvas whose clip rectangle is to be saved.
+         */
         ClipRectSaver(Canvas& canvas);
+
+        /**
+         * @brief Provides access to the current clip rectangle for modification.
+         *
+         * @return Reference to the current RectangleF object.
+         */
         RectangleF& operator*();
+
+        /**
+         * @brief Provides pointer-like access to the current clip rectangle for modification.
+         *
+         * @return Pointer to the current RectangleF object.
+         */
         RectangleF* operator->();
+
+        /**
+         * @brief Destructor that restores the saved clip rectangle.
+         */
         ~ClipRectSaver();
     };
 
+    /**
+     * @brief Saves the current clip rectangle and returns a ClipRectSaver for RAII management.
+     *
+     * The returned ClipRectSaver saves the current clip rectangle and restores it upon
+     * destruction. Assign the result to an auto&& variable to avoid unnecessary copies, e.g.,
+     * `auto&& clip = canvas.saveClipRect();`.
+     *
+     * @return A ClipRectSaver object managing the saved clip rectangle.
+     */
     ClipRectSaver saveClipRect() &;
 
     int rasterizedPaths() const noexcept;

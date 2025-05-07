@@ -31,8 +31,8 @@ if (RESULT EQUAL 0) # aws s3 ls was successfull, file exists
 else ()
     message("Archive does not exist on S3, trying to build")
 
-    # Install vcpkg dependencies with icu feature
-    execute_process(COMMAND vcpkg install --x-feature=icu WORKING_DIRECTORY ${ROOT} COMMAND_ECHO STDOUT
+    # Install vcpkg dependencies with advanced-tests feature
+    execute_process(COMMAND vcpkg install --x-feature=advanced-tests WORKING_DIRECTORY ${ROOT} COMMAND_ECHO STDOUT
                                                                             COMMAND_ERROR_IS_FATAL ANY)
 
     # Export the package to a .tar.xz archive

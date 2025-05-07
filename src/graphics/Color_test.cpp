@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -51,7 +51,7 @@ TEST_CASE("ColorW") {
 
     CHECK(ColorW(Color(255, 128, 0)).v == ColorW(8160, 4096, 0, 8160).v);
     CHECK_THAT(ColorF(ColorW(32767, -32767, 32767, 8160)).v,
-               Catch::Matchers::SIMDWithinMatcher(ColorF(25.54848f, -25.54848f, 25.54848f, 1.f).v, 0.001));
+               Catch::Matchers::SimdWithinMatcher(ColorF(25.54848f, -25.54848f, 25.54848f, 1.f).v, 0.001));
 
     for (int i = 0; i <= 255; i++) {
         Color orig(i, 255);

@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include "Visual.hpp"
 #include <brisk/core/Resources.hpp>
 #include <brisk/gui/Styles.hpp>
@@ -18,7 +38,7 @@ const NameValueOrderedList<TextAlign> textAlignList{
     { "Right", TextAlign::End },
 };
 
-RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
 
     static const Rules cell = Rules{
         layout  = Layout::Horizontal,
@@ -63,8 +83,8 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
 
                 rcnew Slider{ value = Value{ &m_fontSize }, minimum = 0.25f, maximum = 4.f, width = 300_apx },
             },
-            // Overflow::ScrollX prevents this widget from stretching because of Text
-            overflow = Overflow::ScrollX,
+            // contentOverflowX prevents this widget from stretching because of Text
+            contentOverflowX = ContentOverflow::Allow,
             rcnew Text{
                 loremIpsumShort,
                 wordWrap  = true,
@@ -82,8 +102,8 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
             [](Canvas& canvas, Rectangle rect) {
                 // Static initialization of an image rendered from an SVG representation of "cat"
                 // with a size of 256x256 pixels.
-                static RC<Image> img =
-                    SVGImage(Resources::loadText("cat.svg")).render(Size{ idp(256), idp(256) });
+                static Rc<Image> img =
+                    SvgImage(Resources::loadText("cat.svg")).render(Size{ idp(256), idp(256) });
 
                 // Draws a rectangle on the canvas at position 'rect' with no fill color (transparent)
                 // and a stroke color of amber and a stroke width of 1 pixel.
@@ -194,10 +214,10 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                              dimensions = { 180_apx, 120_apx } },
         },
 
-        rcnew Text{ "SVGImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
+        rcnew Text{ "SvgImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{
-            rcnew SVGImageView{ Resources::loadText("cat.svg"), dimensions = { 120_apx, 120_apx } },
+            rcnew SvgImageView{ Resources::loadText("cat.svg"), dimensions = { 120_apx, 120_apx } },
         },
 
         rcnew Text{ "Table (widgets/Table.hpp)", classes = { "section-header" } },
@@ -253,7 +273,7 @@ RC<Widget> ShowcaseVisual::build(RC<Notifications> notifications) {
                             rcnew TableCell{ cell, rcnew Text{ row.lastName } },
                             rcnew TableCell{ cell,
                                              rcnew ComboBox{ value = Value{ &row.index }, width = 100_perc,
-                                                             rcnew ItemList{
+                                                             rcnew Menu{
                                                                  rcnew Text{ "UX/UI Designer" },
                                                                  rcnew Text{ "Project Manager" },
                                                                  rcnew Text{ "Software Engineer" },

@@ -93,7 +93,7 @@ brisk_metadata(
     NAME "Example"                     # Application name
     DESCRIPTION "Brisk example"        # Short application description
     VERSION "0.1.2.3"                  # Version number
-    COPYRIGHT "© 2024 Brisk"           # Copyright information
+    COPYRIGHT "© 2025 Brisk"           # Copyright information
     ICON ${CMAKE_SOURCE_DIR}/icon.png  # Path to the icon (PNG)
     APPLE_BUNDLE_ID com.brisklib.main  # Apple bundle identifier
 )

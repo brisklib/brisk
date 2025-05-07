@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -25,7 +25,7 @@
 #include <brisk/core/internal/Optional.hpp>
 #include <brisk/core/Reflection.hpp>
 #include <fmt/format.h>
-#include <brisk/core/SIMD.hpp>
+#include <brisk/core/Simd.hpp>
 
 namespace Brisk {
 
@@ -192,7 +192,7 @@ struct ColorOf {
      *
      * @param v A 4-element SIMD vector representing the color components.
      */
-    constexpr explicit ColorOf(const SIMD<T, 4>& v) : v(v) {}
+    constexpr explicit ColorOf(const Simd<T, 4>& v) : v(v) {}
 
     /**
      * @brief Constructs a color from a 3-element SIMD vector and an optional alpha value.
@@ -200,7 +200,7 @@ struct ColorOf {
      * @param v A 3-element SIMD vector representing the RGB components.
      * @param a The alpha component. Defaults to the maximum value.
      */
-    constexpr explicit ColorOf(const SIMD<T, 3>& v, T a = maximum) : v(concat(v, SIMD<T, 1>(a))) {}
+    constexpr explicit ColorOf(const Simd<T, 3>& v, T a = maximum) : v(concat(v, Simd<T, 1>(a))) {}
 
     /**
      * @brief Constructs a color from a 4-channel SIMD vector and an alpha value.
@@ -212,7 +212,7 @@ struct ColorOf {
      * @param v A SIMD vector containing the red, green, and blue color channel values.
      * @param a The alpha channel value to be combined with the color channels.
      */
-    constexpr explicit ColorOf(const SIMD<T, 4>& v, T a) : v(concat(v.template firstn<3>(), SIMD{ a })) {}
+    constexpr explicit ColorOf(const Simd<T, 4>& v, T a) : v(concat(v.template firstn<3>(), Simd{ a })) {}
 
     /**
      * @brief Creates a `ColorOf` object from a 32-bit 0xRRGGBBAA color value.
@@ -240,8 +240,8 @@ struct ColorOf {
      */
     ColorOf(Trichromatic source, double a = 1.0,
             ColorConversionMode conversionMode = ColorConversionMode::Clamp) {
-        ColorFloat tmp(static_cast<SIMD<Tfloat, 4>>(
-            concat(source.convert(colorSpace(), conversionMode).value, SIMD<double, 1>(a))));
+        ColorFloat tmp(static_cast<Simd<Tfloat, 4>>(
+            concat(source.convert(colorSpace(), conversionMode).value, Simd<double, 1>(a))));
         *this = static_cast<ColorOf>(tmp);
     }
 
@@ -250,8 +250,8 @@ struct ColorOf {
      *
      * @return A SIMD vector representing the RGB components.
      */
-    constexpr SIMD<T, 3> simd_rgb() const noexcept {
-        return std::bit_cast<SIMD<T, 3>>(v);
+    constexpr Simd<T, 3> simd_rgb() const noexcept {
+        return std::bit_cast<Simd<T, 3>>(v);
     }
 
     /**
@@ -265,7 +265,7 @@ struct ColorOf {
      * @return A `Trichromatic<U, Space>` object representing the same color.
      */
     constexpr operator Trichromatic() const {
-        return Trichromatic(SIMD<double, 3>(ColorFloat(*this).simd_rgb()), colorSpace());
+        return Trichromatic(Simd<double, 3>(ColorFloat(*this).simd_rgb()), colorSpace());
     }
 
     /**
@@ -283,7 +283,7 @@ struct ColorOf {
     template <typename U, ColorGamma UGamma>
     constexpr operator ColorOf<U, UGamma>() const {
         if (colorSpace() != ColorOf<U, UGamma>::colorSpace()) {
-            SIMD<Tfloat, 4> tmp = rescale<Tfloat, 1, maximum>(v);
+            Simd<Tfloat, 4> tmp = rescale<Tfloat, 1, maximum>(v);
             if (colorSpace() == ColorSpace::sRGBGamma)
                 tmp = concat(Internal::srgbGammaToLinear(tmp.firstn(size_constant<3>{})),
                              tmp.shuffle(std::index_sequence<3>{}));
@@ -369,7 +369,7 @@ struct ColorOf {
      */
     constexpr ColorOf desaturate(Tfloat t = 1.0) const {
         const T l = lightness();
-        return ColorOf(mix(t, simd_rgb(), concat(SIMD<T, 3>(l))), a);
+        return ColorOf(mix(t, simd_rgb(), concat(Simd<T, 3>(l))), a);
     }
 
     /**
@@ -394,7 +394,7 @@ struct ColorOf {
      * @return A `ColorOf` object with the updated red channel.
      */
     constexpr ColorOf withRed(T r) const noexcept {
-        return ColorOf(blend<1, 0, 0, 0>(v, SIMD<T, 4>(r)));
+        return ColorOf(blend<1, 0, 0, 0>(v, Simd<T, 4>(r)));
     }
 
     /**
@@ -407,7 +407,7 @@ struct ColorOf {
      * @return A `ColorOf` object with the updated green channel.
      */
     constexpr ColorOf withGreen(T g) const noexcept {
-        return ColorOf(blend<0, 1, 0, 0>(v, SIMD<T, 4>(g)));
+        return ColorOf(blend<0, 1, 0, 0>(v, Simd<T, 4>(g)));
     }
 
     /**
@@ -420,7 +420,7 @@ struct ColorOf {
      * @return A `ColorOf` object with the updated blue channel.
      */
     constexpr ColorOf withBlue(T b) const noexcept {
-        return ColorOf(blend<0, 0, 1, 0>(v, SIMD<T, 4>(b)));
+        return ColorOf(blend<0, 0, 1, 0>(v, Simd<T, 4>(b)));
     }
 
     /**
@@ -552,7 +552,7 @@ struct ColorOf {
         return !(*this == c);
     }
 
-    using vec_type = SIMD<T, 4>;
+    using vec_type = Simd<T, 4>;
 
     union {
         struct {
@@ -578,8 +578,8 @@ struct ColorOf {
      *
      * @return A SIMD vector representing the alpha component.
      */
-    constexpr SIMD<T, 1> simd_a() const noexcept {
-        return SIMD{ a };
+    constexpr Simd<T, 1> simd_a() const noexcept {
+        return Simd{ a };
     }
 
     template <typename U>
@@ -610,7 +610,7 @@ struct ColorOf {
  * @return The corresponding `Color` object.
  */
 constexpr BRISK_INLINE Color abgrToColor(uint32_t x) {
-    return Color(SIMD<uint8_t, 4>{ std::bit_cast<SIMD<uint8_t, 4>>(x) });
+    return Color(Simd<uint8_t, 4>{ std::bit_cast<Simd<uint8_t, 4>>(x) });
 }
 
 /**

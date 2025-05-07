@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -36,7 +36,7 @@ void Pages::updateTabs() {
         return;
     tabs->clearTabs();
     int index = 0;
-    for (RC<Widget> w : *this) {
+    for (Rc<Widget> w : *this) {
         if (Page* p = dynamicCast<Page*>(w.get())) {
             auto prop = Value{ &this->value }.equal(index);
             tabs->createTab(prop, p);
@@ -58,7 +58,7 @@ void Pages::internalChanged() {
         layout = Layout::Vertical;
     }
     int index = 0;
-    for (RC<Widget> w : *this) {
+    for (Rc<Widget> w : *this) {
         if (Page* p = dynamicCast<Page*>(w.get())) {
             p->visible = m_value < 0 || m_value == index;
             ++index;
@@ -74,13 +74,13 @@ TabButton::TabButton(Construction construction, ArgumentsView<TabButton> args) :
     args.apply(this);
 }
 
-RC<Widget> TabButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> TabButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> Pages::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> Pages::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> Page::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> Page::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> Tabs::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> Tabs::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Tabs::Tabs(Construction construction, ArgumentsView<Tabs> args)
     : Base{ construction, std::tuple{ Arg::tabGroup = true } } {

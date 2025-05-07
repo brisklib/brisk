@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -22,7 +22,7 @@
 
 namespace Brisk {
 
-RC<GUIWindow> Component::window() {
+Rc<GuiWindow> Component::window() {
     return m_window.lock();
 }
 
@@ -30,27 +30,27 @@ WidgetTree& Component::tree() {
     return window()->tree();
 }
 
-RC<Widget> Component::build() {
+Rc<Widget> Component::build() {
     return rcnew Widget{
         flexGrow = 1,
     };
 }
 
-RC<GUIWindow> Component::makeWindow() {
+Rc<GuiWindow> Component::makeWindow() {
     if (auto window = m_window.lock())
         return window;
-    RC<GUIWindow> window = createWindow();
+    Rc<GuiWindow> window = createWindow();
     m_window             = window;
     configureWindow(window);
     return window;
 }
 
-RC<GUIWindow> Component::createWindow() {
-    return rcnew GUIWindow{ shared_from_this() };
+Rc<GuiWindow> Component::createWindow() {
+    return rcnew GuiWindow{ shared_from_this() };
 }
 
-void Component::configureWindow(RC<GUIWindow> window) {
-    RC<Window> curWindow = Internal::currentWindowPtr();
+void Component::configureWindow(Rc<GuiWindow> window) {
+    Rc<Window> curWindow = Internal::currentWindowPtr();
 
     window->setTitle("Component"_tr);
     window->setSize({ 1050, 740 });
@@ -68,6 +68,16 @@ void Component::closeWindow() {
         uiScheduler->dispatch([win]() {
             win->close();
         });
+    }
+}
+
+void Component::handleActionShortcuts(Event& event, std::initializer_list<const Action*> actions) {
+    for (const Action* action : actions) {
+        if (event.shortcut(action->shortcut)) {
+            action->callback.callback();
+            event.stopPropagation();
+            return;
+        }
     }
 }
 

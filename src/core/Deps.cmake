@@ -23,7 +23,7 @@ target_include_directories(${_BRISK_CORE} ${_DEP_PRIVATE} ${Stb_INCLUDE_DIR})
 # /stb
 
 # >fmt
-find_package(fmt CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED NO_SYSTEM_ENVIRONMENT_PATH)
 target_link_libraries(${_BRISK_CORE} ${_DEP_PUBLIC} fmt::fmt)
 # /fmt
 

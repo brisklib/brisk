@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -24,7 +24,7 @@
 
 #define BRISK_VERSION_MAJOR 0
 #define BRISK_VERSION_MINOR 9
-#define BRISK_VERSION_PATCH 7
+#define BRISK_VERSION_PATCH 8
 #define BRISK_VERSION_METADATA "-beta"
 
 #define BRISK_VERSION                                                                                        \

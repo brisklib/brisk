@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -129,7 +129,7 @@ Knob::Knob(Construction construction, ArgumentsView<Knob> args) : Base(construct
     args.apply(this);
 }
 
-RC<Widget> Knob::cloneThis() const {
+Rc<Widget> Knob::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

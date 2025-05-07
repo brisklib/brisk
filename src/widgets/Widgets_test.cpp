@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -64,18 +64,19 @@ public:
 static Size defaultSize{ 360, 120 };
 static float defaultPixelRatio = 2.f;
 
-static void widgetTest(const std::string& name, RC<Widget> widget, std::initializer_list<Event> events = {},
-                       Size size = defaultSize, float pixelRatio = defaultPixelRatio) {
+static void widgetTest(const std::string& name, Rc<Widget> widget, std::initializer_list<Event> events = {},
+                       Size size = defaultSize, float pixelRatio = defaultPixelRatio,
+                       ColorW winColor = 0x131419_rgb) {
     InputQueue input;
-    InputQueueScope inputScope(&input);
     for (const Event& e : events) {
         input.addEvent(e);
     }
-    WidgetTree tree;
+    WidgetTree tree(&input);
     tree.disableTransitions();
     Brisk::pixelRatio() = pixelRatio;
     tree.setViewportRectangle({ Point{}, size });
     tree.setRoot(rcnew Container{
+        windowColor = winColor,
         std::move(widget),
     });
     renderTest(name, tree.viewportRectangle().size(), [&](RenderContext& context) {
@@ -157,7 +158,7 @@ TEST_CASE("Widget Button with emoji") {
 
 TEST_CASE("Widget Button with SVG") {
     widgetTest("widget-button-svg",
-               rcnew Button{ rcnew SVGImageView{
+               rcnew Button{ rcnew SvgImageView{
                    R"SVG(<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
     <path d="M106.809 115a13.346 13.346 0 0 1 0-18.356h-80.9a4.71 4.71 0 0 0-4.71 4.71v8.936a4.71 4.71 0 0
     0 4.71 4.71z" fill="#dbedff"/><path fill="#f87c68" d="M42.943
@@ -177,7 +178,7 @@ TEST_CASE("Widget ComboBox Text") {
                    value     = 2,
                    alignSelf = Align::FlexStart,
                    marginTop = 12_apx,
-                   rcnew ItemList{
+                   rcnew Menu{
                        visible = true,
                        rcnew Text{ "Avocado" },
                        rcnew Text{ "Blueberry" },
@@ -194,7 +195,7 @@ TEST_CASE("Widget ComboBox Color") {
                    value     = 1,
                    alignSelf = Align::FlexStart,
                    marginTop = 12_apx,
-                   rcnew ItemList{
+                   rcnew Menu{
                        visible = true,
                        rcnew ColorView{ Palette::Standard::red },
                        rcnew ColorView{ Palette::Standard::green },
@@ -208,7 +209,7 @@ TEST_CASE("Widget ComboBox Color") {
 TEST_CASE("Widget ComboBox Gradient") {
     widgetTest("widget-combobox-gradient",
                rcnew ComboBox{
-                   rcnew ItemList{
+                   rcnew Menu{
                        visible  = true,
                        minWidth = 4.8_em,
                        rcnew GradientView{ ColorStopArray{
@@ -237,5 +238,21 @@ TEST_CASE("Widget Knob") {
 
 TEST_CASE("Widget Slider") {
     widgetTest("widget-slider", rcnew Slider{ width = 160_apx, value = 50, minimum = 0, maximum = 100 });
+}
+
+TEST_CASE("Widget Shadow") {
+    widgetTest("widget-shadow1",
+               rcnew Widget{ dimensions = { 240, 240 }, shadowSize = 8.f, shadowColor = Palette::black,
+                             backgroundColor = Palette::white },
+               {}, { 320, 320 }, 1, Palette::white);
+    widgetTest("widget-shadow2",
+               rcnew Widget{ dimensions = { 240, 240 }, shadowSize = 8.f, shadowOffset = { 2.f, 2.f },
+                             shadowColor = Palette::black, backgroundColor = Palette::white },
+               {}, { 320, 320 }, 1, Palette::white);
+    widgetTest("widget-shadow3",
+               rcnew Widget{ dimensions = { 240, 240 }, borderRadius = 10, shadowSize = 16.f,
+                             shadowSpread = 10, shadowColor = Palette::black,
+                             backgroundColor = Palette::white },
+               {}, { 320, 320 }, 1, Palette::white);
 }
 } // namespace Brisk

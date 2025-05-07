@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -44,7 +44,7 @@ static void stbi_write(void* context, void* data, int size) {
     std::ignore          = result.write((const std::byte*)data, size);
 }
 
-Bytes bmpEncode(RC<Image> image) {
+Bytes bmpEncode(Rc<Image> image) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("BMP codec doesn't support encoding {} format", image->format()));
     }
@@ -68,7 +68,7 @@ struct stbi_delete {
     }
 };
 
-static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat format,
+static expected<Rc<Image>, ImageIoError> stbiDecode(BytesView bytes, ImageFormat format,
                                                     bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("BMP codec doesn't support decoding to {} format", format));
@@ -79,15 +79,15 @@ static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat
         stbi_load_from_memory((const uint8_t*)bytes.data(), bytes.size(), &width, &height, &comp,
                               pixelFormat == PixelFormat::Unknown ? 0 : pixelComponents(pixelFormat)));
     if (!mem)
-        return unexpected(ImageIOError::CodecError);
+        return unexpected(ImageIoError::CodecError);
 
     // comp contains the original pixel format
     if (pixelFormat != PixelFormat::Unknown)
         comp = pixelComponents(pixelFormat);
     PixelFormat fmt = componentsToFormat(comp);
     if (fmt == PixelFormat::Unknown)
-        return unexpected(ImageIOError::InvalidFormat);
-    RC<Image> image = rcnew Image(Size{ width, height }, imageFormat(PixelType::U8Gamma, fmt));
+        return unexpected(ImageIoError::InvalidFormat);
+    Rc<Image> image = rcnew Image(Size{ width, height }, imageFormat(PixelType::U8Gamma, fmt));
     auto w          = image->mapWrite();
     w.readFrom(BytesView{ (const std::byte*)mem.get(), size_t(width * height * comp) });
     if (premultiplyAlpha)
@@ -95,7 +95,7 @@ static expected<RC<Image>, ImageIOError> stbiDecode(BytesView bytes, ImageFormat
     return image;
 }
 
-expected<RC<Image>, ImageIOError> bmpDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
+expected<Rc<Image>, ImageIoError> bmpDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
     return stbiDecode(bytes, format, premultiplyAlpha);
 }
 

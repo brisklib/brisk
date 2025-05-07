@@ -4,7 +4,7 @@
 # Cross-platform application framework
 # --------------------------------------------------------------
 #
-# Copyright (C) 2024 Brisk Developers
+# Copyright (C) 2025 Brisk Developers
 #
 # This file is part of the Brisk library.
 #
@@ -21,8 +21,11 @@
 add_subdirectory(calc)
 add_subdirectory(showcase)
 add_subdirectory(splash-screen)
+add_subdirectory(dashboard)
+
 if (glfw3_FOUND)
     add_subdirectory(own-window)
+    add_subdirectory(own-window-gui)
 endif ()
 
 if (BRISK_WEBGPU)

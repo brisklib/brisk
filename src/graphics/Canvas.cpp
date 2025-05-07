@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Canvas.hpp>
-#include "SDFCanvas.hpp"
+#include "SdfCanvas.hpp"
 
 namespace Brisk {
 
@@ -37,8 +37,8 @@ struct PaintAndTransform {
 };
 } // namespace Internal
 
-inline SDFCanvas sdf(Canvas* self) {
-    return SDFCanvas{ self->renderContext(), self->flags() };
+inline SdfCanvas sdf(Canvas* self) {
+    return SdfCanvas{ self->renderContext(), self->flags() };
 }
 
 void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& paint) {
@@ -98,7 +98,7 @@ void Canvas::drawRasterizedPath(const RasterizedPath& path, const Internal::Pain
     RenderStateEx renderState(ShaderType::Mask, 1, nullptr);
     applier(&renderState, paint);
     renderState.scissorQuad = scissors;
-    SDFCanvas::prepareStateInplace(renderState);
+    SdfCanvas::prepareStateInplace(renderState);
     GeometryGlyphs data = Internal::pathLayout(renderState.sprites, path);
     if (!data.empty()) {
         m_context.command(std::move(renderState), std::span{ data });
@@ -134,7 +134,7 @@ void Canvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& s
                       RectangleF clipRect, float opacity) {
     if (opacity == 0 || clipRect.empty())
         return;
-    if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() &&
+    if ((m_flags && CanvasFlags::Sdf) && matrix.isUniformScale() &&
         sdfCompat(fillPaint, fillParams, strokePaint, strokeParams, path.isClosed())) {
         if (auto rrect = path.asRoundRectangle()) {
             float scale = matrix.estimateScale();
@@ -163,7 +163,7 @@ void Canvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillP
                       RectangleF clipRect, float opacity) {
     if (opacity == 0 || clipRect.empty())
         return;
-    if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() && sdfCompat(fillParams)) {
+    if ((m_flags && CanvasFlags::Sdf) && matrix.isUniformScale() && sdfCompat(fillParams)) {
         if (auto rrect = path.asRoundRectangle()) {
             float scale = matrix.estimateScale();
             sdf(this).drawRectangle(std::get<0>(*rrect),
@@ -184,7 +184,7 @@ void Canvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams&
                         const Matrix& matrix, RectangleF clipRect, float opacity) {
     if (opacity == 0 || clipRect.empty())
         return;
-    if ((m_flags && CanvasFlags::SDF) && matrix.isUniformScale() &&
+    if ((m_flags && CanvasFlags::Sdf) && matrix.isUniformScale() &&
         sdfCompat(strokeParams, path.isClosed())) {
         if (auto rrect = path.asRoundRectangle()) {
             float scale = matrix.estimateScale();
@@ -199,9 +199,9 @@ void Canvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams&
         }
         if (auto line = path.asLine()) {
             sdf(this).drawLine((*line)[0], (*line)[1], strokeParams.strokeWidth,
-                               staticMap(strokeParams.capStyle, CapStyle::Flat, SDFCanvas::LineEnd::Butt,
-                                         CapStyle::Square, SDFCanvas::LineEnd::Square,
-                                         SDFCanvas::LineEnd::Round),
+                               staticMap(strokeParams.capStyle, CapStyle::Flat, SdfCanvas::LineEnd::Butt,
+                                         CapStyle::Square, SdfCanvas::LineEnd::Square,
+                                         SdfCanvas::LineEnd::Round),
                                std::tuple{ strokeWidth = 0.f, scissors = clipRect,
                                            Internal::PaintAndTransform{ strokePaint, matrix, opacity },
                                            coordMatrix = matrix });
@@ -487,7 +487,7 @@ void Canvas::drawPath(Path path) {
              m_state.fillParams, m_state.transform, m_state.clipRect, m_state.opacity);
 }
 
-void Canvas::drawImage(RectangleF rect, RC<Image> image, Matrix matrix, SamplerMode samplerMode,
+void Canvas::drawImage(RectangleF rect, Rc<Image> image, Matrix matrix, SamplerMode samplerMode,
                        float blurRadius) {
     sdf(this).drawTexture(rect, image, matrix,
                           std::tuple{ scissors = m_state.clipRect, coordMatrix = m_state.transform,

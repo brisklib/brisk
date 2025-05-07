@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -23,7 +23,7 @@
 #include "ValueWidget.hpp"
 #include "Item.hpp"
 #include "ToggleButton.hpp"
-#include "ItemList.hpp"
+#include "Menu.hpp"
 #include "Text.hpp"
 
 namespace Brisk {
@@ -44,7 +44,7 @@ public:
                       std::shared_ptr<const NameValueOrderedList<std::type_identity_t<T>>> list,
                       const Args&... args)
         : ComboBox(Construction{ widgetType }, std::tuple{ args... }) {
-        RC<ItemList> menu = rcnew ItemList();
+        Rc<Menu> menu = rcnew Menu();
         for (const KeyValue<std::string, T>& item : *list) {
             menu->apply(rcnew Item(rcnew Text{ item.first }));
         }
@@ -55,7 +55,7 @@ public:
 
     constexpr static WidgetRole<Item, "selecteditem"> selecteditem{};
     constexpr static WidgetRole<ToggleButton, "unroll"> unroll{};
-    constexpr static WidgetRole<ItemList, "itemlist"> itemlist{};
+    constexpr static WidgetRole<Menu, "itemlist"> itemlist{};
 
 protected:
     void onEvent(Event& event) override;

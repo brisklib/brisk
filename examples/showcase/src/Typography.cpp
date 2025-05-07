@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include "Typography.hpp"
 #include <brisk/gui/Icons.hpp>
 #include <brisk/window/Clipboard.hpp>
@@ -101,7 +121,7 @@ constexpr std::initializer_list<char32_t> emojis2{
     0x1F6E0, 0x1F6E1, 0x1F6E2, 0x1F6E3, 0x1F6E4, 0x1F6E5, 0x1F6E9, 0x1F6F0, 0x1F6F3,
 };
 
-RC<Widget> emojiWidget(std::u32string str) {
+Rc<Widget> emojiWidget(std::u32string str) {
     return rcnew Text{
         utf32ToUtf8(str),
         dimensions        = { 40, 40 },
@@ -141,7 +161,7 @@ static Builder iconsBuilder() {
         auto iconFontFamily   = Font::Icons;
         int iconFontSize      = 25;
         for (int icon = ICON__first; icon < ICON__last; icon += columns) {
-            RC<HLayout> glyphs = rcnew HLayout{
+            Rc<HLayout> glyphs = rcnew HLayout{
                 rcnew Text{
                     fmt::format("{:04X}", icon),
                     textVerticalAlign = TextAlign::Center,
@@ -179,7 +199,7 @@ static const NameValueOrderedList<TextDecoration> textDecorationList{
     { "LineThrough", TextDecoration::LineThrough },
 };
 
-RC<Widget> ShowcaseTypography::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseTypography::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,

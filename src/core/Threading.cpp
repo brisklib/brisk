@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -25,7 +25,7 @@
 
 #include <brisk/core/internal/Lock.hpp>
 #include <concurrentqueue/concurrentqueue.h>
-#include "uv.hpp"
+#include "Uv.hpp"
 
 namespace Brisk {
 
@@ -157,7 +157,6 @@ void Scheduler::waitForCompletion() {
     waitFuture(completionFuture(), 0);
 }
 
-RC<TaskQueue> mainScheduler;
+Rc<TaskQueue> mainScheduler;
 
-thread_local Scheduler* threadScheduler = nullptr;
 } // namespace Brisk

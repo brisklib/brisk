@@ -34,7 +34,12 @@ if (NOT EXISTS ${DEST_FILE})
         endif ()
         message(WARNING "Download failed, dependencies will be built using vcpkg (Status ${DOWNLOAD_STATUS_CODE})")
 
-        execute_process(COMMAND vcpkg install --x-install-root ${ROOT}/vcpkg_installed --x-feature=icu
+        find_program(VCPKG_EXECUTABLE vcpkg)
+        if (NOT VCPKG_EXECUTABLE)
+            message(FATAL_ERROR "vcpkg not found. Please ensure vcpkg is installed and accessible in your PATH.")
+        endif ()
+
+        execute_process(COMMAND ${VCPKG_EXECUTABLE} install --x-install-root ${ROOT}/vcpkg_installed --x-feature=icu
                                 ${EXTRA_VCPKG_ARGS} WORKING_DIRECTORY ${ROOT} COMMAND_ERROR_IS_FATAL ANY)
     endif ()
 

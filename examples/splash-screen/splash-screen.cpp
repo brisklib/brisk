@@ -1,7 +1,27 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/core/Resources.hpp>
-#include <brisk/gui/GUIApplication.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/GuiApplication.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>
@@ -20,7 +40,7 @@ public:
     using Component::Component;
 
     // Constructs the splash screen UI with a full-size image and a progress bar.
-    RC<Widget> build() final {
+    Rc<Widget> build() final {
         return rcnew Widget{
             layout     = Layout::Vertical, // Arranges widgets in a vertical stack.
             alignItems = Align::Stretch,   // Stretches child widgets to fill the width.
@@ -39,7 +59,7 @@ public:
     }
 
     // Configures the splash screen window to be undecorated, topmost, and centered on the screen.
-    void configureWindow(RC<GUIWindow> window) final {
+    void configureWindow(Rc<GuiWindow> window) final {
         window->setTitle(""); // Sets an empty title for a minimal appearance.
         window->setStyle(WindowStyle::Undecorated | WindowStyle::TopMost);
         // Undecorated removes borders, TopMost keeps it above other windows.
@@ -58,7 +78,7 @@ public:
     explicit AppComponent() {}
 
     // Builds the main UI with a centered layout, text, and a quit button.
-    RC<Widget> build() final {
+    Rc<Widget> build() final {
         return rcnew Widget{
             stylesheet = Graphene::stylesheet(), // Applies the Graphene stylesheet for styling.
             Graphene::darkColors(),              // Sets a dark color theme for the UI.
@@ -82,7 +102,7 @@ public:
     }
 
     // Configures the main application window with a title and standard style.
-    void configureWindow(RC<GUIWindow> window) final {
+    void configureWindow(Rc<GuiWindow> window) final {
         window->setTitle("Splash Screen Demo"_tr); // Sets a translatable window title.
         window->setSize({ 768, 512 });             // Sets the initial window size to 768x512 pixels.
         window->windowFit =
@@ -97,7 +117,7 @@ using namespace Brisk;
 
 // Main entry point for the Brisk application.
 int briskMain() {
-    GUIApplication application; // Initializes the GUI application instance.
+    GuiApplication application; // Initializes the GUI application instance.
 
     // Creates the splash screen component with an image and progress bar.
     auto splash = createComponent<SplashScreen>();

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -127,8 +127,8 @@ bool Clipboard::hasFormat(Format format) {
     return false;
 }
 
-auto Clipboard::registerFormat(std::string_view formatID) -> Format {
-    return std::string(formatID);
+auto Clipboard::registerFormat(std::string_view formatId) -> Format {
+    return std::string(formatId);
 }
 
 } // namespace Brisk

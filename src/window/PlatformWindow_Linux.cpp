@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -28,7 +28,7 @@
 #include <brisk/core/App.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/window/Display.hpp>
-#include <brisk/graphics/OSWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/window/Window.hpp>
 
 #include <GLFW/glfw3.h>
@@ -74,8 +74,8 @@ void PlatformWindow::setWindowIcon() {
     //
 }
 
-OSWindowHandle PlatformWindow::getHandle() const {
-    return OSWindowHandle(m_data->win);
+NativeWindowHandle PlatformWindow::getHandle() const {
+    return NativeWindowHandle(m_data->win);
 }
 
 Bytes PlatformWindow::placement() const {
@@ -84,7 +84,7 @@ Bytes PlatformWindow::placement() const {
 
 void PlatformWindow::setPlacement(BytesView data) {}
 
-void PlatformWindow::setOwner(RC<Window> window) {}
+void PlatformWindow::setOwner(Rc<Window> window) {}
 
 bool PlatformWindow::createWindow() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -256,7 +256,7 @@ struct SystemCursor {
     }
 };
 
-RC<SystemCursor> PlatformCursors::cursorFromImage(const RC<Image>& image, Point point, float scale) {
+Rc<SystemCursor> PlatformCursors::cursorFromImage(const Rc<Image>& image, Point point, float scale) {
     GLFWimage img;
     auto rd    = image->mapRead();
     img.width  = rd.width();
@@ -302,7 +302,7 @@ static GLFWcursor* loadGLFWCursor(Cursor shape) {
     }
 }
 
-RC<SystemCursor> PlatformCursors::getSystemCursor(Cursor shape) {
+Rc<SystemCursor> PlatformCursors::getSystemCursor(Cursor shape) {
     GLFWcursor* cur = loadGLFWCursor(shape);
     if (cur) {
         return rcnew SystemCursor{ cur };

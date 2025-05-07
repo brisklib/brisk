@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -31,7 +31,7 @@ void ImageView::paint(Canvas& canvas) const {
     }
 }
 
-void SVGImageView::paint(Canvas& canvas) const {
+void SvgImageView::paint(Canvas& canvas) const {
     paintBackground(canvas, m_rect);
     Size size = m_rect.size();
     if (!m_image || m_image->size() != size) {
@@ -43,11 +43,11 @@ void SVGImageView::paint(Canvas& canvas) const {
     }
 }
 
-RC<Widget> SVGImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> SvgImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> ImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ImageView::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-ImageView::ImageView(Construction construction, RC<Image> image, ArgumentsView<ImageView> args)
+ImageView::ImageView(Construction construction, Rc<Image> image, ArgumentsView<ImageView> args)
     : Widget(construction, nullptr), m_image(std::move(image)) {
     args.apply(this);
 }

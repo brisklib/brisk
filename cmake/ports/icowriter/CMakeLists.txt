@@ -16,13 +16,9 @@ add_executable(
     ${BRISK_ROOT}/src/core/App.cpp
     ${BRISK_ROOT}/src/core/Binding.cpp
     ${BRISK_ROOT}/src/core/Bytes.cpp
-    # ${BRISK_ROOT}/src/core/Compression_Brotli.cpp
-    # ${BRISK_ROOT}/src/core/Compression_GZip.cpp
-    # ${BRISK_ROOT}/src/core/Compression_LZ4.cpp
-    # ${BRISK_ROOT}/src/core/Compression.cpp
     ${BRISK_ROOT}/src/core/Encoding.cpp
-    ${BRISK_ROOT}/src/core/IO.cpp
-    ${BRISK_ROOT}/src/core/IO${PLATFORM_SPECIFIC_CPP}
+    ${BRISK_ROOT}/src/core/Io.cpp
+    ${BRISK_ROOT}/src/core/Io${PLATFORM_SPECIFIC_CPP}
     ${BRISK_ROOT}/src/core/Json.cpp
     ${BRISK_ROOT}/src/core/Log.cpp
     ${BRISK_ROOT}/src/core/Stream.cpp
@@ -34,8 +30,9 @@ add_executable(
     ${BRISK_ROOT}/src/core/Threading.cpp
     ${BRISK_ROOT}/src/core/Threading${PLATFORM_SPECIFIC_CPP}
     ${BRISK_ROOT}/src/core/Throw.cpp
-    ${BRISK_ROOT}/src/core/uv.cpp
+    ${BRISK_ROOT}/src/core/Uv.cpp
     ${BRISK_ROOT}/src/core/Version.cpp
+    ${BRISK_ROOT}/src/core/llvm/SmallVector.cpp
     ${BRISK_ROOT}/src/graphics/ImageFormats_png.cpp
     ${BRISK_ROOT}/src/graphics/ImageTransform.cpp)
 

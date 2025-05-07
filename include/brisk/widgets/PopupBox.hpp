@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -41,7 +41,7 @@ protected:
     Ptr cloneThis() const override;
     explicit PopupBox(Construction construction, ArgumentsView<PopupBox> args);
     using Base::append;
-    void append(RC<Widget> widget) override;
+    void append(Rc<Widget> widget) override;
 };
 
 } // namespace Brisk

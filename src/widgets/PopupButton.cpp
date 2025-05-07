@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -43,7 +43,7 @@ void PopupButton::onEvent(Event& event) {
     Widget::onEvent(event); // Skip Button::onEvent
     if (event.pressed()) {
         focus();
-        auto passedThroughBy = inputQueue->passedThroughBy.lock();
+        auto passedThroughBy = inputQueue()->passedThroughBy.lock();
         if (passedThroughBy != popupBox)
             popupBox->visible = true;
         event.stopPropagation();
@@ -70,7 +70,7 @@ PopupButton::PopupButton(Construction construction, ArgumentsView<PopupButton> a
     args.apply(this);
 }
 
-RC<Widget> PopupButton::cloneThis() const {
+Rc<Widget> PopupButton::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -90,7 +90,7 @@ struct FrameTimePredictor;
 
 /// Current window instance. Available in UI thread. Set in uiThreadBody
 extern Window* currentWindow;
-RC<Window> currentWindowPtr();
+Rc<Window> currentWindowPtr();
 
 /// Default value for Window::bufferedRendering
 extern constinit bool bufferedRendering;
@@ -133,7 +133,7 @@ enum class HiDPIMode {
 
 HiDPIMode hiDPIMode();
 
-class Window : public BindingObject<Window, &mainScheduler>, public OSWindow {
+class Window : public BindableObject<Window, &mainScheduler>, public NativeWindow {
 public:
     /**
      * @brief Get the position of window in Screen coordinates
@@ -198,9 +198,9 @@ public:
      *
      * Returns a reference-counted pointer to the display containing the window.
      *
-     * @return RC<Display> The display associated with the window.
+     * @return Rc<Display> The display associated with the window.
      */
-    RC<Display> display() const;
+    Rc<Display> display() const;
 
     enum class Unit {
         Screen,      ///< Screen coordinates (logical units or pixels, depending on platform).
@@ -314,7 +314,7 @@ public:
      * @param minSize The minimum size in screen coordinates.
      * @param maxSize The maximum size in screen coordinates.
      */
-    void setMinimumMaximumSize(Size minSize, Size maxSize);
+    void setMinimumMaximumSizes(Size minSize, Size maxSize);
 
     Bytes windowPlacement() const;
     void setWindowPlacement(BytesView data);
@@ -353,9 +353,9 @@ public:
     PlatformWindow* platformWindow();
 
     void disableKeyHandling();
-    OSWindowHandle getHandle() const final;
+    NativeWindowHandle getHandle() const final;
 
-    void setOwner(RC<Window> window);
+    void setOwner(Rc<Window> window);
     void enterModal();
     void exitModal();
 
@@ -365,9 +365,9 @@ public:
     bool forceRenderEveryFrame() const noexcept;
     void setForceRenderEveryFrame(bool forceRenderEveryFrame);
 
-    void captureFrame(function<void(RC<Image>)> callback);
+    void captureFrame(function<void(Rc<Image>)> callback);
 
-    RC<WindowRenderTarget> target() const;
+    Rc<WindowRenderTarget> target() const;
 
     RenderStat& renderStat() noexcept;
 
@@ -381,7 +381,7 @@ protected:
     bool m_attached = false;
 
 private:
-    void mustBeUIThread() const;
+    void mustBeUiThread() const;
 
 protected:
     // Properties and dimensions
@@ -423,6 +423,7 @@ protected:
     void closeAttempt();
     void windowResized(Size windowSize, Size framebufferSize);
     void windowMoved(Point position);
+    void windowNonClientClicked();
     virtual void onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
     virtual void onCharEvent(char32_t character);
     virtual void onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
@@ -437,14 +438,15 @@ protected:
     virtual void onVisibilityChanged(bool newVisible);
     virtual void onWindowResized(Size windowSize, Size framebufferSize);
     virtual void onWindowMoved(Point position);
+    virtual void onNonClientClicked();
     virtual CloseAction shouldClose();
 
 protected:
     // Rendering
-    RC<WindowRenderTarget> m_target;
-    RC<RenderEncoder> m_encoder;
-    function<void(RC<Image>)> m_captureCallback;
-    RC<ImageRenderTarget> m_bufferedFrameTarget;
+    Rc<WindowRenderTarget> m_target;
+    Rc<RenderEncoder> m_encoder;
+    function<void(Rc<Image>)> m_captureCallback;
+    Rc<ImageRenderTarget> m_bufferedFrameTarget;
     std::chrono::microseconds m_lastFrameRenderTime{ 0 };
     Internal::DisplaySyncPoint m_syncPoint;
     std::atomic_llong m_frameNumber{ 0 };
@@ -456,8 +458,8 @@ protected:
     std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
     std::atomic_bool m_forceRenderEveryFrame{ Internal::forceRenderEveryFrame };
     RenderStat m_renderStat;
-    RC<RenderDevice> m_renderDevice;
-    RC<RenderDevice> renderDevice();
+    Rc<RenderDevice> m_renderDevice;
+    Rc<RenderDevice> renderDevice();
     virtual bool update();
     virtual void paint(RenderContext& context, bool fullRepaint);
     virtual void paintImmediate(RenderContext& context);
@@ -471,7 +473,7 @@ protected:
 protected:
     // Modal
     bool m_modal = false;
-    WeakRC<Window> m_owner;
+    WeakRc<Window> m_owner;
 
 protected:
     /**
@@ -518,7 +520,7 @@ struct ModalMode {
     ModalMode();
     ~ModalMode();
 
-    RC<Window> owner;
+    Rc<Window> owner;
 };
 
 } // namespace Brisk

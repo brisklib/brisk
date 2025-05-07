@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -22,7 +22,7 @@
 
 #include "Encoding.hpp"
 #include "BasicTypes.hpp"
-#include "RC.hpp"
+#include "Rc.hpp"
 #include "internal/Span.hpp"
 #include "Exceptions.hpp"
 

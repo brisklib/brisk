@@ -472,10 +472,17 @@ fn fillAndStroke(stroke_sd: f32, fill_sd: f32, colors: Colors) -> vec4<f32> {
     return blendNormalPremultiplied(foreColor, backColor);
 }
 
-fn signedDistanceToColor(sd: f32, canvas_coord: vec2<f32>, uv: vec2<f32>, rectSize: vec2<f32>) -> vec4<f32> {
+fn signedDistanceToColor(sd: f32, canvas_coord: vec2<f32>) -> vec4<f32> {
+    let stroke_sd = abs(sd) - constants.stroke_width * 0.5;
+    if constants.texture_index == -1 
+        && constants.multigradient == -1 
+        && all(constants.fill_color1 == vec4<f32>(0))
+        && all(constants.fill_color2 == vec4<f32>(0))
+        && stroke_sd * distanceScale() > 0.5 {
+        discard;
+    }
     let colors: Colors = calcColors(canvas_coord);
     if constants.stroke_width > 0.0 {
-        let stroke_sd = abs(sd) - constants.stroke_width * 0.5;
         return fillAndStroke(stroke_sd, sd, colors);
     } else {
         return fillOnly(sd, colors);
@@ -686,7 +693,7 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
         } else { // shader_arcs
             sd = signedDistanceArc(in.uv, in.data0.z, in.data0.w, in.data1.x, in.data1.y);
         }
-        outColor = signedDistanceToColor(sd, in.canvas_coord, in.uv, in.data0.xy);
+        outColor = signedDistanceToColor(sd, in.canvas_coord);
     } else if constants.shader == shader_shadow {
         outColor = constants.fill_color1 * (roundedBoxShadow(in.data0.xy * 0.5, in.uv, constants.blur_radius, in.data1));
     } else if constants.shader == shader_mask || constants.shader == shader_color_mask || constants.shader == shader_text {

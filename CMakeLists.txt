@@ -4,7 +4,7 @@
 # Cross-platform application framework
 # --------------------------------------------------------------
 #
-# Copyright (C) 2024 Brisk Developers
+# Copyright (C) 2025 Brisk Developers
 #
 # This file is part of the Brisk library.
 #
@@ -281,7 +281,7 @@ install(
     DESTINATION "${BRISK_INSTALL_CMAKEDIR}/deps")
 install(
     FILES src/gui/Deps.cmake
-    RENAME GUI.cmake
+    RENAME Gui.cmake
     DESTINATION "${BRISK_INSTALL_CMAKEDIR}/deps")
 
 install(DIRECTORY resources/ DESTINATION "resources")

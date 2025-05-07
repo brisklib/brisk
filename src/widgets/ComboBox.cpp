@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -28,21 +28,19 @@ namespace Brisk {
 void ComboBox::onChildAdded(Widget* w) {
     Base::onChildAdded(w);
 
-    if (ItemList* itemlist = this->itemlist.matchesType(w)) {
+    if (Menu* itemlist = this->itemlist.matchesType(w)) {
         itemlist->onItemClick = lifetime() | [this](size_t index) BRISK_INLINE_LAMBDA {
             value = index;
         };
+        itemlist->setMenuRoot();
 
         itemlist->onBecameVisible = lifetime() | [this]() BRISK_INLINE_LAMBDA {
             if (auto item = findSelected()) {
                 item->focus();
             }
         };
-        if (!itemlist->visible.isOverridden())
-            itemlist->visible = false;
         itemlist->absolutePosition = { 0, 100_perc };
         itemlist->anchor           = { 0_px, 0_px };
-        itemlist->tabGroup         = true;
         bindings->listen(
             Value{ &itemlist->visible }, lifetime() | [this](bool visible) {
                 toggleState(WidgetState::ForcePressed, visible);
@@ -68,9 +66,13 @@ void ComboBox::onConstructed() {
     selecteditem.create(this);
 
     if (!unroll.get(this)) {
-        apply(rcnew ToggleButton{ Arg::value = Value{ &itemlist.get(this)->visible },
-                                  rcnew Text{ ICON_chevron_down }, rcnew Text{ ICON_chevron_up },
-                                  Arg::role = unroll.role(), Arg::twoState = true });
+        apply(rcnew ToggleButton{
+            Arg::value = Value{ &itemlist.get(this)->visible },
+            rcnew Text{ ICON_chevron_down },
+            rcnew Text{ ICON_chevron_up },
+            Arg::role     = unroll.role(),
+            Arg::twoState = true,
+        });
     }
     Base::onConstructed();
 }
@@ -95,7 +97,7 @@ void ComboBox::onEvent(Event& event) {
         event.stopPropagation();
     } else if (event.pressed()) {
         focus();
-        auto passedThroughBy = inputQueue->passedThroughBy.lock();
+        auto passedThroughBy = inputQueue()->passedThroughBy.lock();
         if (passedThroughBy != menu)
             menu->visible = true;
         event.stopPropagation();
@@ -126,14 +128,15 @@ void ComboBox::onChanged() {
     } else {
         cloned = std::shared_ptr<Item>(new Item{});
     }
-    cloned->role     = selecteditem.role();
-    cloned->flexGrow = 1;
-    cloned->tabStop  = false;
-    bool replaced    = replace(selecteditem.get(this), cloned, false);
+    cloned->role         = selecteditem.role();
+    cloned->flexGrow     = 1;
+    cloned->tabStop      = false;
+    cloned->focusOnHover = false;
+    bool replaced        = replace(selecteditem.get(this), cloned, false);
     BRISK_ASSERT(replaced);
 }
 
-RC<Widget> ComboBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ComboBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ComboBox::ComboBox(Construction construction, ArgumentsView<ComboBox> args)
     : Base(construction, nullptr) {

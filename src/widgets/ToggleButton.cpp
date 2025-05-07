@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -59,7 +59,7 @@ void ToggleButton::onChanged() {
         requestAnimationFrame();
 }
 
-RC<Widget> ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 ToggleButton::ToggleButton(Construction construction, ArgumentsView<ToggleButton> args)
     : Base{ construction, nullptr } {

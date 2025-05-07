@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -304,6 +304,8 @@ enum class WheelOrientation {
     Y = +Orientation::Vertical,
 };
 
+struct InputQueue;
+
 /**
  * @brief Event class representing a generic event with type and utility methods.
  */
@@ -345,16 +347,6 @@ struct Event : public EventVariant {
      */
     void stopPropagation();
 
-    /**
-     * @brief Re-injects the event into the queue.
-     */
-    void reinject();
-
-    /**
-     * @brief Marks the event as pass-through.
-     */
-    void passThrough();
-
     static inline const Rectangle anywhere{ -32768, -32768, 32768, 32768 };
 
     bool pressed(Rectangle rect, MouseButton btn = MouseButton::Left,
@@ -377,6 +369,7 @@ struct Event : public EventVariant {
 
     bool keyPressed(KeyCode key, KeyModifiers mods = KeyModifiers::None) const;
     bool keyReleased(KeyCode key, KeyModifiers mods = KeyModifiers::None) const;
+    bool shortcut(Shortcut shortcut) const;
 
     bool focused() const;
     bool blurred() const;
@@ -394,14 +387,14 @@ struct Event : public EventVariant {
 struct HitTestMap {
     void add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, int zindex);
 
-    struct HTEntry {
+    struct HitTestEntry {
         std::weak_ptr<Widget> widget; ///< The widget involved in the hit test.
         int zindex;                   ///< Z-index for rendering order.
         Rectangle rect;               ///< Rectangle area for the hit test.
         bool anywhere;                ///< Indicates if the widget is valid anywhere.
     };
 
-    std::vector<HTEntry> list; ///< List of hit test entries.
+    std::vector<HitTestEntry> list; ///< List of hit test entries.
 
     /**
      * @brief Retrieves the widget at the specified coordinates.
@@ -467,6 +460,9 @@ struct InputQueue {
     KeyModifiers keyModifiers{ KeyModifiers::None };
     Trigger<> trigMousePos;
     Trigger<> trigKeyModifiers;
+    std::weak_ptr<Widget> menuRoot;
+
+    void passThrough();
 
     /**
      * Adds a widget to the tab stop list.
@@ -500,6 +496,9 @@ struct InputQueue {
      * Handles mouse leave events.
      */
     void mouseLeave();
+
+    void startMenu(std::shared_ptr<Widget> widget);
+    void finishMenu();
 
     /**
      * Processes the mouse state for the given target widget.
@@ -702,11 +701,5 @@ struct InputQueue {
 private:
     BindingRegistration registration;
 };
-
-using InputQueueImplicitContext = ImplicitContext<InputQueue*, InputQueue*, false>;
-
-extern InputQueueImplicitContext inputQueue;
-
-using InputQueueScope = InputQueueImplicitContext::Scope;
 
 } // namespace Brisk

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -110,7 +110,7 @@ Slider::Slider(Construction construction, ArgumentsView<Slider> args) : Base(con
     args.apply(this);
 }
 
-RC<Widget> Slider::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> Slider::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 Orientation Slider::orientation() const noexcept {
     return m_rect.width() > m_rect.height() ? Orientation::Horizontal : Orientation::Vertical;

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 #include <brisk/core/Utilities.hpp>
 
 namespace Brisk {
@@ -123,7 +123,7 @@ void applier(Text* target, ArgVal<Tag::Named<"text">, T> value) {
     target->text = value.value;
 }
 
-inline RC<Text> operator""_Text(const char* text, size_t size) {
+inline Rc<Text> operator""_Text(const char* text, size_t size) {
     return rcnew Text{ std::string_view(text, size) };
 }
 
@@ -166,7 +166,7 @@ struct TextBuilder : IndexedBuilder {
     template <WidgetArgument... Args>
     explicit TextBuilder(std::vector<std::string> texts, const Args&... args)
         : IndexedBuilder(
-              [saved_texts = std::move(texts), args...](size_t index) BRISK_INLINE_LAMBDA -> RC<Widget> {
+              [saved_texts = std::move(texts), args...](size_t index) BRISK_INLINE_LAMBDA -> Rc<Widget> {
                   return index < saved_texts.size() ? rcnew Text{ saved_texts[index], args... } : nullptr;
               }) {}
 };
@@ -186,6 +186,22 @@ protected:
 private:
     mutable std::optional<std::string> m_cachedText;
     mutable std::optional<double> m_lastChange;
+};
+
+class WIDGET ShortcutHint final : public Text {
+    BRISK_DYNAMIC_CLASS(ShortcutHint, Text)
+public:
+    using Base                                   = Text;
+    constexpr static std::string_view widgetType = "shortcuthint";
+
+    template <WidgetArgument... Args>
+    explicit ShortcutHint(Shortcut shortcut, const Args&... args)
+        : Text{ Construction{ widgetType }, fmt::to_string(shortcut), std::tuple{ args... } } {
+        endConstruction();
+    }
+
+protected:
+    Ptr cloneThis() const override;
 };
 
 } // namespace Brisk

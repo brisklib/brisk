@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -46,4 +46,12 @@ struct CommonInitializer {
         finalizeCommon();
     }
 };
+
+#ifdef BRISK_WINDOWS
+void startup(void* moduleHandle, wchar_t* cmdLine);
+#endif
+
+void startup(int argc, char** argv);
+
+void shutdown();
 } // namespace Brisk

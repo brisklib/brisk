@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -42,7 +42,7 @@ protected:
 #ifdef BRISK_INTERACTIVE_TESTS
 TEST_CASE("Window tests") {
     WindowApplication app;
-    RC<TestWindow> w1 = rcnew TestWindow{};
+    Rc<TestWindow> w1 = rcnew TestWindow{};
 
     w1->setSize({ 1000, 100 });
     w1->setStyle(WindowStyle::Undecorated);

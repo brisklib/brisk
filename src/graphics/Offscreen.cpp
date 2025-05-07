@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -47,7 +47,7 @@ Canvas& OffscreenRendering::canvas() {
     return *m_canvas;
 }
 
-RC<Image> OffscreenRendering::render() {
+Rc<Image> OffscreenRendering::render() {
     m_canvas.reset();  // Finish painting.
     m_context.reset(); // Finish rendering.
     m_encoder->wait(); // Wait until the image is fully rendered on the GPU.

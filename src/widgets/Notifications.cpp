@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -31,7 +31,7 @@ void NotificationView::onEvent(Event& event) {
     }
 }
 
-RC<Widget> NotificationView::makeCloseButton() {
+Rc<Widget> NotificationView::makeCloseButton() {
     return rcnew Button{
         rcnew Text{ ICON_x },
         Arg::classes          = { "flat", "slim" },
@@ -54,7 +54,7 @@ bool NotificationView::expired() const {
     return frameStartTime >= m_expireTime;
 }
 
-RC<Widget> NotificationView::cloneThis() const {
+Rc<Widget> NotificationView::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -65,15 +65,15 @@ void NotificationContainer::onRefresh() {
     });
 }
 
-RC<Widget> NotificationContainer::cloneThis() const {
+Rc<Widget> NotificationContainer::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
-void NotificationContainer::receive(RC<NotificationView> view) {
+void NotificationContainer::receive(Rc<NotificationView> view) {
     apply(std::move(view));
 }
 
-void Notifications::setReceiver(Callback<RC<NotificationView>> receiver) {
+void Notifications::setReceiver(Callback<Rc<NotificationView>> receiver) {
     m_receiver = std::move(receiver);
 }
 } // namespace Brisk

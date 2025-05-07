@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -25,7 +25,6 @@
 #include "CheckBox.hpp"
 #include "Color.hpp"
 #include "ComboBox.hpp"
-#include "ContextPopup.hpp"
 #include "DialogComponent.hpp"
 #include "Dot.hpp"
 #include "Graphene.hpp"
@@ -34,7 +33,7 @@
 #include "Hyperlink.hpp"
 #include "ImageView.hpp"
 #include "Item.hpp"
-#include "ItemList.hpp"
+#include "Menu.hpp"
 #include "Knob.hpp"
 #include "Layouts.hpp"
 #include "Line.hpp"

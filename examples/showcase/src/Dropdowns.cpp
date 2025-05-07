@@ -1,4 +1,25 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include "Dropdowns.hpp"
+#include <brisk/widgets/ListBox.hpp>
 #include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
@@ -9,7 +30,7 @@
 
 namespace Brisk {
 
-RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -58,7 +79,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Widget{
                 rcnew ComboBox{
                     value = Value{ &m_month },
-                    rcnew ItemList{
+                    rcnew Menu{
                         rcnew Text{ "January" },
                         rcnew Text{ "February" },
                         rcnew Text{ "March" },
@@ -82,8 +103,8 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Widget{
                 rcnew ComboBox{
                     value = Value{ &m_selectedItem },
-                    rcnew ItemList{
-                        IndexedBuilder([](int index) -> RC<Widget> {
+                    rcnew Menu{
+                        IndexedBuilder([](int index) -> Rc<Widget> {
                             if (index > 40)
                                 return nullptr;
                             return rcnew Text{ fmt::to_string(index) };
@@ -99,7 +120,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Widget{
                 rcnew ComboBox{
                     value = Value{ &m_selectedItem2 },
-                    rcnew ItemList{
+                    rcnew Menu{
                         rcnew ColorView{ Palette::Standard::index(0) },
                         rcnew ColorView{ Palette::Standard::index(1) },
                         rcnew ColorView{ Palette::Standard::index(2) },
@@ -114,7 +135,7 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
             rcnew Text{ "ComboBox with widgets" },
         },
 
-        rcnew Text{ "ContextPopup (widgets/ContextPopup.hpp)", classes = { "section-header" } },
+        rcnew Text{ "Menu (widgets/Menu.hpp)", classes = { "section-header" } },
         rcnew HLayout{
             rcnew Widget{
                 rcnew Widget{
@@ -125,19 +146,48 @@ RC<Widget> ShowcaseDropdowns::build(RC<Notifications> notifications) {
                                 textAlign = TextAlign::Center, fontSize = 200_perc,
                                 mouseInteraction = MouseInteraction::Disable, flexGrow = 1 },
 
-                    rcnew ContextPopup{
-                        role     = "context",
-                        tabGroup = true,
-                        rcnew Item{ icon = ICON_pencil, rcnew Text{ "First" } },
-                        rcnew Item{ icon = ICON_eye, rcnew Text{ "Second" } },
-                        rcnew Item{ rcnew Text{ "Third" } },
-                        rcnew Item{ rcnew Text{ "Fourth" } },
+                    rcnew Menu{
+                        role    = "menu",
+                        classes = { "withicons" },
+                        rcnew Item{ icon = ICON_pencil, "First"_Text },
+                        rcnew Item{ icon = ICON_eye, "Second"_Text },
+                        rcnew Item{ "Third"_Text },
+                        rcnew Item{
+                            "Fourth (with submenu)"_Text,
+                            rcnew Menu{
+                                rcnew Item{ "Submenu item 1"_Text },
+                                rcnew Item{ "Submenu item 2"_Text },
+                                rcnew Item{ "Submenu item 3"_Text },
+                            },
+                        },
+
                     },
                 },
                 &m_group,
             },
         },
 
+        rcnew Text{ "ListBox (widgets/ListBox.hpp)", classes = { "section-header" } },
+        rcnew HLayout{
+            rcnew Widget{
+                rcnew ListBox{
+                    value = Value{ &m_selectedItem3 },
+                    "A"_Text,
+                    "B"_Text,
+                    "C"_Text,
+                    "D"_Text,
+                    "E"_Text,
+                    "F"_Text,
+                },
+                &m_group,
+            },
+            gapColumn = 10_apx,
+            rcnew Text{
+                text = Value{ &m_selectedItem3 }.transform([](int selectedItem) -> std::string {
+                    return fmt::format("ListBox, {} is selected", selectedItem);
+                }),
+            },
+        },
     };
 }
 } // namespace Brisk

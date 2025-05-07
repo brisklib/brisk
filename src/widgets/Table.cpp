@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -31,10 +31,10 @@ void Table::onEvent(Event& event) {
 
 void Table::childrenAdded() {
     Widget::childrenAdded();
-    for (const RC<Widget>& w1 : *this) {
+    for (const Rc<Widget>& w1 : *this) {
         if (TableRow* row = dynamicCast<TableRow*>(w1.get())) {
             int i = 0;
-            for (const RC<Widget>& w2 : *row) {
+            for (const Rc<Widget>& w2 : *row) {
                 if (TableCell* cell = dynamicCast<TableCell*>(w2.get())) {
                     if (!cell->m_widthGroupSet && i < columns.size()) {
                         cell->apply(&columns[i++]);
@@ -51,23 +51,23 @@ Table::Table(Construction construction, ArgumentsView<Table> args)
     args.apply(this);
 }
 
-RC<Widget> Table::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> Table::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 TableRow::TableRow(Construction construction, ArgumentsView<TableRow> args)
     : Widget(construction, std::tuple{ Arg::layout = Layout::Horizontal }) {
     args.apply(this);
 }
 
-RC<Widget> TableRow::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> TableRow::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> TableHeader::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> TableHeader::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 TableHeader::TableHeader(Construction construction, ArgumentsView<TableHeader> args)
     : TableRow(construction, nullptr) {
     args.apply(this);
 }
 
-RC<Widget> TableCell::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> TableCell::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 TableCell::TableCell(Construction construction, ArgumentsView<TableCell> args)
     : Widget(construction, std::tuple{ Arg::layout = Layout::Horizontal }) {

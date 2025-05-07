@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
-#include <brisk/graphics/SVG.hpp>
+#include <brisk/gui/Gui.hpp>
+#include <brisk/graphics/Svg.hpp>
 #include <brisk/graphics/ImageFormats.hpp>
 
 namespace Brisk {
@@ -40,45 +40,45 @@ public:
     }
 
     template <WidgetArgument... Args>
-    ImageView(RC<Image> image, const Args&... args)
+    ImageView(Rc<Image> image, const Args&... args)
         : ImageView(Construction{ widgetType }, std::move(image), std::tuple{ args... }) {
         endConstruction();
     }
 
 protected:
-    RC<Image> m_image;
+    Rc<Image> m_image;
 
     void paint(Canvas& canvas) const override;
     Ptr cloneThis() const override;
 
-    ImageView(Construction construction, RC<Image> image, ArgumentsView<ImageView> args);
+    ImageView(Construction construction, Rc<Image> image, ArgumentsView<ImageView> args);
 };
 
-class WIDGET SVGImageView final : public Widget {
-    BRISK_DYNAMIC_CLASS(SVGImageView, Widget)
+class WIDGET SvgImageView final : public Widget {
+    BRISK_DYNAMIC_CLASS(SvgImageView, Widget)
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "svgimageview";
 
     template <WidgetArgument... Args>
-    SVGImageView(SVGImage svg, const Args&... args)
+    SvgImageView(SvgImage svg, const Args&... args)
         : Widget(Construction{ widgetType }, std::tuple{ args... }), m_svg(std::move(svg)) {
         endConstruction();
     }
 
     template <WidgetArgument... Args>
-    SVGImageView(std::string_view svg, const Args&... args) : SVGImageView(SVGImage(svg), args...) {}
+    SvgImageView(std::string_view svg, const Args&... args) : SvgImageView(SvgImage(svg), args...) {}
 
 protected:
-    SVGImage m_svg;
-    mutable RC<Image> m_image;
+    SvgImage m_svg;
+    mutable Rc<Image> m_image;
 
     void paint(Canvas& canvas) const override;
     Ptr cloneThis() const override;
 
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<SVGImageView, SVGImage, &SVGImageView::m_svg> svg;
+    Property<SvgImageView, SvgImage, &SvgImageView::m_svg> svg;
     BRISK_PROPERTIES_END
 };
 

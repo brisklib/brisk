@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/gui/WidgetTree.hpp>
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 
@@ -152,14 +152,14 @@ void WidgetTree::update() {
     m_viewportRectangleChanged = false;
 
     if (m_updateGeometryRequested) {
-        if (inputQueue)
-            inputQueue->reset();
+        if (m_inputQueue)
+            m_inputQueue->reset();
         HitTestMap::State state;
         m_root->updateGeometry(state);
         m_updateGeometryRequested = false;
     }
-    if (inputQueue)
-        inputQueue->processEvents();
+    if (m_inputQueue)
+        m_inputQueue->processEvents();
 
     m_root->restyleIfRequested();
     m_disableTransitions = false;
@@ -214,8 +214,8 @@ Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRep
 
     m_painting  = false;
 
-    if (Internal::debugBoundaries && inputQueue.get(nullptr)) {
-        std::optional<Rectangle> rect = inputQueue->getAtMouse<Rectangle>([](Widget* w) {
+    if (Internal::debugBoundaries && m_inputQueue) {
+        std::optional<Rectangle> rect = m_inputQueue->getAtMouse<Rectangle>([](Widget* w) {
             return w->rect();
         });
         if (rect) {
@@ -270,4 +270,15 @@ void WidgetTree::invalidateRect(Rectangle rect) {
             m_viewportRectangle.intersection(!m_dirtyRect.has_value() ? rect : m_dirtyRect->union_(rect));
     }
 }
+
+void WidgetTree::setInputQueue(InputQueue* inputQueue) {
+    m_inputQueue = inputQueue;
+}
+
+Nullable<InputQueue> WidgetTree::inputQueue() const {
+    return m_inputQueue;
+}
+
+WidgetTree::WidgetTree(InputQueue* inputQueue) noexcept : m_inputQueue(inputQueue) {}
+
 } // namespace Brisk

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -80,7 +80,7 @@ SpinBox::SpinBox(Construction construction, ArgumentsView<SpinBox> args) : Base(
     args.apply(this);
 }
 
-RC<Widget> SpinBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> SpinBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
 UpDownButtons::UpDownButtons(Construction construction, ArgumentsView<UpDownButtons> args)
     : Base(construction, nullptr) {
@@ -113,7 +113,7 @@ void UpDownButtons::onConstructed() {
     Base::onConstructed();
 }
 
-RC<Widget> UpDownButtons::cloneThis() const {
+Rc<Widget> UpDownButtons::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 } // namespace Brisk

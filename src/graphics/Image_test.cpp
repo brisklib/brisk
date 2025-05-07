@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Image.hpp>
-#include <brisk/core/IO.hpp>
+#include <brisk/core/Io.hpp>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 

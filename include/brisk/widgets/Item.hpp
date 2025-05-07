@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -20,7 +20,8 @@
  */
 #pragma once
 
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
+#include <brisk/gui/Action.hpp>
 
 namespace Brisk {
 
@@ -50,20 +51,28 @@ public:
         endConstruction();
     }
 
+    explicit Item(const Action& action);
+
 protected:
     std::string m_icon;
-    float m_iconAlignY  = 0.5f;
-    bool m_checked      = false;
-    bool m_checkable    = false;
-    bool m_closesPopup  = true;
-    bool m_dynamicFocus = false;
+    float m_iconAlignY   = 0.5f;
+    bool m_checked       = false;
+    bool m_checkable     = false;
+    bool m_closesPopup   = true;
+    bool m_focusOnHover  = false;
+    bool m_selectOnFocus = true;
+    double m_openTime    = HUGE_VAL;
+    double m_closeTime   = HUGE_VAL;
 
+    bool isTopMenu() const;
     void postPaint(Canvas& canvas) const override;
     void onEvent(Event& event) override;
     virtual void onClicked();
     virtual void onChanged();
     void onHidden() override;
+    void onRefresh() override;
     Ptr cloneThis() const override;
+    void onChildAdded(Widget* w) override;
     explicit Item(Construction construction, ArgumentsView<Item> args);
 
 public:
@@ -99,11 +108,13 @@ public:
     Property<Item, bool, &Item::m_closesPopup> closesPopup;
 
     /**
-     * @brief The dynamicFocus property of the Item.
+     * @brief The focusOnHover property of the Item.
      *
      * If true, the widget will take focus on mouse hover, similar to how a menu item behaves.
      */
-    Property<Item, bool, &Item::m_dynamicFocus> dynamicFocus;
+    Property<Item, bool, &Item::m_focusOnHover> focusOnHover;
+
+    Property<Item, bool, &Item::m_selectOnFocus> selectOnFocus;
     BRISK_PROPERTIES_END
 };
 
@@ -111,7 +122,8 @@ inline namespace Arg {
 constexpr inline Argument<Tag::Named<"checked">> checked{};
 constexpr inline Argument<Tag::PropArg<decltype(Item::checkable)>> checkable{};
 constexpr inline Argument<Tag::PropArg<decltype(Item::closesPopup)>> closesPopup{};
-constexpr inline Argument<Tag::PropArg<decltype(Item::dynamicFocus)>> dynamicFocus{};
+constexpr inline Argument<Tag::PropArg<decltype(Item::focusOnHover)>> focusOnHover{};
+constexpr inline Argument<Tag::PropArg<decltype(Item::selectOnFocus)>> selectOnFocus{};
 constexpr inline Argument<Tag::Named<"icon">> icon{};
 } // namespace Arg
 

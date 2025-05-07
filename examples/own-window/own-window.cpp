@@ -1,57 +1,33 @@
-#define BRISK_ALLOW_OS_HEADERS 1
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <brisk/gui/GUIApplication.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/GuiApplication.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 #include <brisk/graphics/Palette.hpp>
-
-#include <GLFW/glfw3.h>
-#ifdef _WIN32
-#define GLFW_EXPOSE_NATIVE_WIN32
-#endif
-#ifdef __APPLE__
-#define GLFW_EXPOSE_NATIVE_COCOA
-extern "C" id objc_retain(id value);
-#endif
-#ifdef __linux__
-#define GLFW_EXPOSE_NATIVE_X11
-#endif
-#include <GLFW/glfw3native.h>
-#undef None
+#include "WindowGlfw.hpp"
 
 namespace Example {
 
 using namespace Brisk;
-using Brisk::Font;
-using Brisk::Rectangle;
-
-class OSWindowGLFW final : public OSWindow {
-public:
-    Size framebufferSize() const final {
-        Size size;
-        glfwGetFramebufferSize(win, &size.x, &size.y);
-        return size;
-    }
-
-    OSWindowHandle getHandle() const final {
-#ifdef BRISK_WINDOWS
-        return OSWindowHandle(glfwGetWin32Window(win));
-#endif
-#ifdef BRISK_MACOS
-        return OSWindowHandle((NSWindow*)glfwGetCocoaWindow(win));
-#endif
-#ifdef BRISK_LINUX
-        return OSWindowHandle(win);
-#endif
-    }
-
-    OSWindowGLFW() = default;
-
-    explicit OSWindowGLFW(GLFWwindow* win) : win(win) {}
-
-private:
-    GLFWwindow* win = nullptr;
-};
 
 static void errorfun(int error_code, const char* description) {
     BRISK_ASSERT_MSG(description, false);
@@ -61,9 +37,9 @@ constexpr int numWindows = 2;
 
 struct OneWindow {
     GLFWwindow* win;
-    OSWindowGLFW osWin;
-    RC<WindowRenderTarget> target;
-    RC<RenderEncoder> encoder;
+    NativeWindowGLFW osWin;
+    Rc<WindowRenderTarget> target;
+    Rc<RenderEncoder> encoder;
     double previousFrameTime = -1;
     double waitTime;
     double frameInterval;
@@ -75,7 +51,7 @@ int main() {
 
     registerBuiltinFonts();
 
-    expected<RC<RenderDevice>, RenderDeviceError> device = getRenderDevice();
+    expected<Rc<RenderDevice>, RenderDeviceError> device = getRenderDevice();
     BRISK_ASSERT(device.has_value());
 
     glfwSetErrorCallback(&errorfun);
@@ -86,7 +62,7 @@ int main() {
     for (int i = 0; i < numWindows; ++i) {
         windows[i].win = glfwCreateWindow(500, 500, "test", nullptr, nullptr);
         BRISK_ASSERT(windows[i].win != nullptr);
-        windows[i].osWin = OSWindowGLFW(windows[i].win);
+        windows[i].osWin = NativeWindowGLFW(windows[i].win);
     }
     SCOPE_EXIT {
         for (int i = 0; i < numWindows; ++i)
@@ -98,13 +74,15 @@ int main() {
         windows[i].target->setVSyncInterval(1);
     }
 
-    RC<RenderEncoder> encoder = (*device)->createEncoder();
+    Rc<RenderEncoder> encoder = (*device)->createEncoder();
     double sumWaitTimeR       = -1;
 
     bool exit                 = false;
 
     while (!exit) {
         glfwPollEvents();
+        mainScheduler->process();
+        
         double sumWaitTime = 0;
         for (int i = 0; i < numWindows; ++i) {
             sumWaitTime += windows[i].frameInterval;

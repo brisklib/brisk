@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -41,7 +41,7 @@ static int toJPGFormat(PixelFormat fmt) {
                      TJPF_GRAY);
 }
 
-Bytes jpegEncode(RC<Image> image, std::optional<int> quality, std::optional<ColorSubsampling> ss) {
+Bytes jpegEncode(Rc<Image> image, std::optional<int> quality, std::optional<ColorSubsampling> ss) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("JPEG codec doesn't support encoding {} format", image->format()));
     }
@@ -70,7 +70,7 @@ Bytes jpegEncode(RC<Image> image, std::optional<int> quality, std::optional<Colo
     return result;
 }
 
-expected<RC<Image>, ImageIOError> jpegDecode(BytesView bytes, ImageFormat format) {
+expected<Rc<Image>, ImageIoError> jpegDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
         throwException(EImageError("JPEG codec doesn't support decoding to {} format", format));
     }
@@ -85,20 +85,20 @@ expected<RC<Image>, ImageIOError> jpegDecode(BytesView bytes, ImageFormat format
 
     if (tjDecompressHeader2(jpeg, reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())),
                             bytes.size(), &size.width, &size.height, &jpegSS) != 0) {
-        return unexpected(ImageIOError::CodecError);
+        return unexpected(ImageIoError::CodecError);
     }
     if (pixelFormat == PixelFormat::Unknown) {
         pixelFormat = jpegSS == TJSAMP_GRAY ? PixelFormat::Greyscale : PixelFormat::RGB;
     }
 
-    RC<Image> image = rcnew Image(size, imageFormat(PixelType::U8Gamma, pixelFormat));
+    Rc<Image> image = rcnew Image(size, imageFormat(PixelType::U8Gamma, pixelFormat));
 
     auto w          = image->mapWrite<ImageFormat::Unknown_U8Gamma>();
 
     if (tjDecompress2(jpeg, reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())), bytes.size(),
                       w.data(), w.width(), w.byteStride(), w.height(), toJPGFormat(pixelFormat),
                       TJFLAG_ACCURATEDCT) != 0) {
-        return unexpected(ImageIOError::CodecError);
+        return unexpected(ImageIoError::CodecError);
     }
 
     return image;

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -28,7 +28,7 @@
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Time.hpp>
 #include "PlatformWindow.hpp"
-#include <brisk/graphics/OSWindowHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/window/Display.hpp>
 #include <brisk/core/Localization.hpp>
 #include <brisk/core/App.hpp>
@@ -176,12 +176,12 @@ static NSCursor* createCursor(const ImageAccess<ImageFormat::RGBA, AccessMode::R
     } // autoreleasepool
 }
 
-RC<SystemCursor> PlatformCursors::cursorFromImage(const RC<Image>& image, Point point, float scale) {
+Rc<SystemCursor> PlatformCursors::cursorFromImage(const Rc<Image>& image, Point point, float scale) {
     return rcnew SystemCursor{ createCursor(image->mapRead<ImageFormat::RGBA>(), point.x, point.y, scale) };
 }
 
-RC<SystemCursor> PlatformCursors::getSystemCursor(Cursor shape) {
-    RC<SystemCursor> result = rcnew SystemCursor{};
+Rc<SystemCursor> PlatformCursors::getSystemCursor(Cursor shape) {
+    Rc<SystemCursor> result = rcnew SystemCursor{};
     @autoreleasepool {
 
         SEL cursorSelector = NULL;
@@ -443,7 +443,7 @@ void PlatformWindow::focus() {
     } // autoreleasepool
 }
 
-void PlatformWindow::setOwner(RC<Window> window) {
+void PlatformWindow::setOwner(Rc<Window> window) {
     //
 }
 
@@ -459,8 +459,8 @@ void PlatformWindow::setPlacement(BytesView data) {
     // TODO: macOS window placement
 }
 
-OSWindowHandle PlatformWindow::getHandle() const {
-    return OSWindowHandle(m_data->window);
+NativeWindowHandle PlatformWindow::getHandle() const {
+    return NativeWindowHandle(m_data->window);
 }
 
 PlatformWindow::~PlatformWindow() {

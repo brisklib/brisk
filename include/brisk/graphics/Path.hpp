@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -22,7 +22,7 @@
 
 #include <unordered_map>
 #include "Matrix.hpp"
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include <mutex>
 #include <variant>
 #include <brisk/core/internal/InlineVector.hpp>
@@ -35,7 +35,7 @@ namespace Brisk {
  * @brief Represents a rasterized path with a sprite and bounding rectangle.
  */
 struct RasterizedPath {
-    RC<SpriteResource> sprite; ///< The sprite resource associated with the rasterized path.
+    Rc<SpriteResource> sprite; ///< The sprite resource associated with the rasterized path.
     Rectangle bounds;          ///< The bounding rectangle of the rasterized path.
 };
 
@@ -122,16 +122,20 @@ namespace Internal {
 RasterizedPath rasterizePath(Path path, const FillOrStrokeParams& params, Rectangle clipRect);
 } // namespace Internal
 
+class Dasher;
+
 /**
  * @brief Represents a geometric path that can be rasterized for rendering.
  */
 struct Path {
-    Path();                       ///< Default constructor.
-    ~Path();                      ///< Destructor.
-    Path(Path&&);                 ///< Move constructor.
-    Path(const Path&);            ///< Copy constructor.
-    Path& operator=(Path&&);      ///< Move assignment operator.
-    Path& operator=(const Path&); ///< Copy assignment operator.
+    Path()                       = default; ///< Default constructor.
+    ~Path()                      = default; ///< Destructor.
+    Path(Path&&)                 = default; ///< Move constructor.
+    Path(const Path&)            = default; ///< Copy constructor.
+    Path& operator=(Path&&)      = default; ///< Move constructor.
+    Path& operator=(const Path&) = default; ///< Copy constructor.
+
+    friend class Dasher;
 
     enum class Direction : uint8_t { CCW, CW };                      ///< Enum for the direction of the path.
     enum class Element : uint8_t { MoveTo, LineTo, CubicTo, Close }; ///< Enum for the elements of the path.
@@ -153,7 +157,9 @@ struct Path {
      * @param x The x-coordinate to move to.
      * @param y The y-coordinate to move to.
      */
-    void moveTo(float x, float y);
+    void moveTo(float x, float y) {
+        moveTo({ x, y });
+    }
 
     /**
      * @brief Draws a line to a specified point.
@@ -166,7 +172,9 @@ struct Path {
      * @param x The x-coordinate to draw to.
      * @param y The y-coordinate to draw to.
      */
-    void lineTo(float x, float y);
+    void lineTo(float x, float y) {
+        lineTo({ x, y });
+    }
 
     /**
      * @brief Draws a quadratic Bézier curve to a specified endpoint using a control point.
@@ -182,7 +190,9 @@ struct Path {
      * @param ex The x-coordinate of the endpoint.
      * @param ey The y-coordinate of the endpoint.
      */
-    void quadraticTo(float c1x, float c1y, float ex, float ey);
+    void quadraticTo(float c1x, float c1y, float ex, float ey) {
+        quadraticTo({ c1x, c1y }, { ex, ey });
+    }
 
     /**
      * @brief Draws a cubic Bézier curve to a specified endpoint using two control points.
@@ -201,7 +211,9 @@ struct Path {
      * @param ex The x-coordinate of the endpoint.
      * @param ey The y-coordinate of the endpoint.
      */
-    void cubicTo(float c1x, float c1y, float c2x, float c2y, float ex, float ey);
+    void cubicTo(float c1x, float c1y, float c2x, float c2y, float ex, float ey) {
+        cubicTo({ c1x, c1y }, { c2x, c2y }, { ex, ey });
+    }
 
     /**
      * @brief Draws an arc to a specified rectangle defined by its start angle and sweep length.
@@ -250,7 +262,12 @@ struct Path {
     void addRoundRect(RectangleF rect, float rx, float ry, bool squircle = false,
                       Direction dir = Direction::CW);
 
-    void addRoundRect(RectangleF rect, CornersF r, bool squircle = false, Direction dir = Direction::CW);
+    void addRoundRect(RectangleF rect, CornersF r, bool squircle = false, Direction dir = Direction::CW) {
+        addRoundRect(rect, r, r, squircle, dir);
+    }
+
+    void addRoundRect(RectangleF rect, CornersF rx, CornersF ry, bool squircle = false,
+                      Direction dir = Direction::CW);
 
     /**
      * @brief Adds a rounded rectangle to the path with uniform corner rounding.
@@ -258,7 +275,10 @@ struct Path {
      * @param roundness The uniform rounding radius for all corners.
      * @param dir The direction in which the rectangle is added (default is clockwise).
      */
-    void addRoundRect(RectangleF rect, float roundness, bool squircle = false, Direction dir = Direction::CW);
+    void addRoundRect(RectangleF rect, float roundness, bool squircle = false,
+                      Direction dir = Direction::CW) {
+        addRoundRect(rect, roundness, roundness, squircle, dir);
+    }
 
     /**
      * @brief Adds a rectangle to the path.
@@ -339,12 +359,6 @@ struct Path {
     Path dashed(std::span<const float> pattern, float offset) const;
 
     /**
-     * @brief Creates a copy of this path.
-     * @return Path A clone of the current path.
-     */
-    Path clone() const;
-
-    /**
      * @brief Calculates an approximate bounding box of the path.
      * @return RectangleF The approximate bounding box.
      */
@@ -369,8 +383,29 @@ struct Path {
         return Internal::rasterizePath(*this, stroke, clipRect);
     }
 
+    const std::vector<Path::Element>& elements() const {
+        return m_elements;
+    }
+
+    const std::vector<PointF>& points() const {
+        return m_points;
+    }
+
+    size_t segments() const {
+        return m_segments;
+    }
+
 private:
-    [[maybe_unused]] void* impl; ///< Pointer to implementation details.
+    std::vector<PointF> m_points;
+    std::vector<Element> m_elements;
+    size_t m_segments{ 0 };
+    PointF mStartPoint{ 0.f, 0.f };
+    mutable float mLength{ 0 };
+    mutable bool mLengthDirty{ true };
+    bool mNewSegment{ false };
+
+    void checkNewSegment();
+    void reserve(size_t pts, size_t elms);
 };
 
 } // namespace Brisk

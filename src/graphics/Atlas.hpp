@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -20,7 +20,7 @@
  */
 #pragma once
 #include <brisk/core/internal/Generation.hpp>
-#include <brisk/core/RC.hpp>
+#include <brisk/core/Rc.hpp>
 #include "FlatAllocator.hpp"
 #include <mutex>
 #include <brisk/graphics/internal/Sprites.hpp>
@@ -65,7 +65,7 @@ public:
      *
      * @note If `gradientNull` is returned, no changed are made to the atlas.
      */
-    GradientIndex addEntry(RC<GradientResource> gradient, uint64_t firstGeneration,
+    GradientIndex addEntry(Rc<GradientResource> gradient, uint64_t firstGeneration,
                            uint64_t currentGeneration);
 
     /**
@@ -169,7 +169,7 @@ public:
      *
      * @note If `spriteNull` is returned, no changed are made to the atlas.
      */
-    SpriteOffset addEntry(RC<SpriteResource> sprite, uint64_t firstGeneration, uint64_t currentGeneration);
+    SpriteOffset addEntry(Rc<SpriteResource> sprite, uint64_t firstGeneration, uint64_t currentGeneration);
 
     /**
      * @brief Gets the current data stored in the atlas.

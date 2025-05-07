@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -37,7 +37,7 @@ ValueWidget::ValueWidget(Construction construction, ArgumentsView<ValueWidget> a
     args.apply(this);
 }
 
-RC<Widget> ValueWidget::cloneThis() const {
+Rc<Widget> ValueWidget::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

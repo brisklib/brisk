@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -21,7 +21,7 @@
 #pragma once
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Bytes.hpp>
-#include <brisk/core/IO.hpp>
+#include <brisk/core/Io.hpp>
 #include <brisk/core/internal/Function.hpp>
 #include <brisk/core/Cryptography.hpp>
 
@@ -30,7 +30,7 @@ namespace Brisk {
 /**
  * @brief Enum representing different HTTP methods.
  */
-enum class HTTPMethod {
+enum class HttpMethod {
     Auto,   ///< HTTP POST if requestBody is not null, GET otherwise.
     Get,    ///< HTTP GET method.
     Post,   ///< HTTP POST method.
@@ -43,7 +43,7 @@ enum class HTTPMethod {
 /**
  * @brief Structure representing HTTP Basic Authentication.
  */
-struct HTTPBasicAuth {
+struct HttpBasicAuth {
     std::string username; ///< Username for basic authentication.
     std::string password; ///< Password for basic authentication.
 };
@@ -51,20 +51,20 @@ struct HTTPBasicAuth {
 /**
  * @brief Structure representing HTTP Bearer Authentication.
  */
-struct HTTPBearerAuth {
+struct HttpBearerAuth {
     std::string token; ///< Bearer token for authentication.
 };
 
 /**
  * @brief Structure representing an HTTP request.
  */
-struct HTTPRequest {
+struct HttpRequest {
     std::string url;                                     ///< The URL for the HTTP request.
-    HTTPMethod method                = HTTPMethod::Auto; ///< The HTTP method for the request.
+    HttpMethod method                = HttpMethod::Auto; ///< The HTTP method for the request.
     std::string referer              = {};               ///< Optional Referer header.
     std::vector<std::string> headers = {};               ///< Additional headers for the request.
     bool followLocation              = true;             ///< Whether to follow redirects.
-    std::variant<std::monostate, HTTPBasicAuth, HTTPBearerAuth> authentication; ///< Authentication options.
+    std::variant<std::monostate, HttpBasicAuth, HttpBearerAuth> authentication; ///< Authentication options.
     std::chrono::milliseconds timeout = std::chrono::milliseconds(5000);        ///< Request timeout duration.
     function<void(int64_t, int64_t)> progressCallback =
         nullptr; ///< Callback function for reporting progress.
@@ -180,7 +180,7 @@ enum class FetchErrorCode {
 /**
  * @brief Structure representing an HTTP response.
  */
-struct HTTPResponse {
+struct HttpResponse {
     FetchErrorCode error;                    ///< Error code indicating the result of the request.
     std::optional<int> httpCode;             ///< Optional HTTP response code.
     std::optional<std::string> effectiveUrl; ///< Optional effective URL after redirects.
@@ -208,23 +208,23 @@ struct HTTPResponse {
 /**
  * @brief Makes an HTTP request.
  *
- * @param request The HTTPRequest object containing the request details.
+ * @param request The HttpRequest object containing the request details.
  * @param requestBody The body of the request (if applicable).
  * @param responseBody The stream to store the response body.
  *
- * @return HTTPResponse object containing the result of the request.
+ * @return HttpResponse object containing the result of the request.
  */
-[[nodiscard]] HTTPResponse httpFetch(const HTTPRequest& request, RC<Stream> requestBody,
-                                     RC<Stream> responseBody);
+[[nodiscard]] HttpResponse httpFetch(const HttpRequest& request, Rc<Stream> requestBody,
+                                     Rc<Stream> responseBody);
 
 /**
  * @brief Makes an HTTP request and returns the response body as bytes.
  *
- * @param request The HTTPRequest object containing the request details.
+ * @param request The HttpRequest object containing the request details.
  *
- * @return A pair containing the HTTPResponse and the response body in bytes.
+ * @return A pair containing the HttpResponse and the response body in bytes.
  */
-[[nodiscard]] std::pair<HTTPResponse, Bytes> httpFetchBytes(const HTTPRequest& request);
+[[nodiscard]] std::pair<HttpResponse, Bytes> httpFetchBytes(const HttpRequest& request);
 
 namespace Internal {
 /**

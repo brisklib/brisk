@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -33,8 +33,6 @@
 
 extern "C" char** environ;
 
-int briskMain();
-
 namespace Brisk {
 
 std::vector<std::string> args;
@@ -62,19 +60,25 @@ static void collectEnvironment() {
     }
 }
 
-static void setup() {
+namespace Brisk {
+void startup(int argc, char** argv) {
     setMetadata(appMetadata);
     initializeCommon();
-}
-
-static void shutdown() {
-    finalizeCommon();
-}
-
-int main(int argc, char** argv) {
-    setup();
     parseCommandLine(argc, argv);
     collectEnvironment();
+}
+
+void shutdown() {
+    finalizeCommon();
+}
+} // namespace Brisk
+
+#ifndef BRISK_NO_MAIN
+
+int briskMain();
+
+int main(int argc, char** argv) {
+    Brisk::startup(argc, argv);
     int ret = 0;
 #ifdef BRISK_EXCEPTIONS
     try {
@@ -87,6 +91,8 @@ int main(int argc, char** argv) {
         LOG_DEBUG(application, "Unknown exception occurred");
     }
 #endif
-    shutdown();
+    Brisk::shutdown();
     return ret;
 }
+
+#endif

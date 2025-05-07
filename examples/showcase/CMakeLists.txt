@@ -4,7 +4,7 @@
 # Cross-platform application framework
 # --------------------------------------------------------------
 #
-# Copyright (C) 2024 Brisk Developers
+# Copyright (C) 2025 Brisk Developers
 #
 # This file is part of the Brisk library.
 #
@@ -56,7 +56,7 @@ brisk_metadata(
     NAME "Showcase"
     DESCRIPTION "Brisk library feature demo"
     VERSION "0.1.2.3-suffix"
-    COPYRIGHT "© 2024 Brisk"
+    COPYRIGHT "© 2025 Brisk"
     ICON ${PROJECT_SOURCE_DIR}/resources/icon.png
     APPLE_BUNDLE_ID "com.brisklib.showcase")
 

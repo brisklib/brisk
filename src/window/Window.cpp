@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -33,7 +33,7 @@
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/graphics/Canvas.hpp>
-#include <brisk/graphics/SVG.hpp>
+#include <brisk/graphics/Svg.hpp>
 #include <brisk/window/WindowApplication.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/core/Compression.hpp>
@@ -56,13 +56,13 @@ constinit bool forceRenderEveryFrame = false;
 std::atomic_bool debugShowRenderTimeline{ false };
 Window* currentWindow = nullptr;
 
-RC<Window> currentWindowPtr() {
+Rc<Window> currentWindowPtr() {
     return currentWindow ? currentWindow->shared_from_this() : nullptr;
 }
 } // namespace Internal
 
 void Window::iconify() {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return;
     mainScheduler->dispatch([this] {
@@ -71,7 +71,7 @@ void Window::iconify() {
 }
 
 void Window::maximize() {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return;
     mainScheduler->dispatch([this] {
@@ -80,7 +80,7 @@ void Window::maximize() {
 }
 
 void Window::restore() {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return;
     mainScheduler->dispatch([this] {
@@ -89,7 +89,7 @@ void Window::restore() {
 }
 
 void Window::focus() {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return;
     mainScheduler->dispatch([this] {
@@ -97,13 +97,13 @@ void Window::focus() {
     });
 }
 
-void Window::mustBeUIThread() const {
+void Window::mustBeUiThread() const {
     if (m_attached && windowApplication)
-        windowApplication->mustBeUIThread();
+        windowApplication->mustBeUiThread();
 }
 
 void Window::setVisible(bool newVisible) {
-    mustBeUIThread();
+    mustBeUiThread();
     // Do not compare with current value of m_visible to allow setting the same value
     m_visible = newVisible;
     if (!m_platformWindow) {
@@ -115,7 +115,7 @@ void Window::setVisible(bool newVisible) {
 }
 
 bool Window::isFocused() const {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return false;
     return mainScheduler->dispatchAndWait([this] {
@@ -124,7 +124,7 @@ bool Window::isFocused() const {
 }
 
 bool Window::isIconified() const {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return false;
     return mainScheduler->dispatchAndWait([this] {
@@ -133,7 +133,7 @@ bool Window::isIconified() const {
 }
 
 bool Window::isMaximized() const {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return false;
     return mainScheduler->dispatchAndWait([=, this] {
@@ -142,34 +142,34 @@ bool Window::isMaximized() const {
 }
 
 bool Window::isVisible() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return m_visible;
 }
 
 Size Window::getSize() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return m_windowSize;
 }
 
 Size Window::getFramebufferSize() const {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow)
         return {};
     return m_framebufferSize;
 }
 
 Size Window::framebufferSize() const {
-    // OSWindow interface (Renderer)
+    // NativeWindow interface (Renderer)
     return m_framebufferSize;
 }
 
 std::string Window::getTitle() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return m_title;
 }
 
 void Window::setTitle(std::string title) {
-    mustBeUIThread();
+    mustBeUiThread();
     if (title != m_title) {
         m_title = std::move(title);
         mainScheduler->dispatch([=, this] {
@@ -180,7 +180,7 @@ void Window::setTitle(std::string title) {
 }
 
 void Window::setRectangle(Rectangle rect) {
-    mustBeUIThread();
+    mustBeUiThread();
     // Do not compare with current values of m_desired* to allow setting the same value
     m_position   = rect.p1;
     m_windowSize = rect.size();
@@ -193,7 +193,7 @@ void Window::setRectangle(Rectangle rect) {
 }
 
 void Window::setPosition(Point pos) {
-    mustBeUIThread();
+    mustBeUiThread();
     // Do not compare with current values of m_desired* to allow setting the same value
     m_position = pos;
     mainScheduler->dispatch([=, this] {
@@ -203,15 +203,15 @@ void Window::setPosition(Point pos) {
 }
 
 void Window::setMinimumSize(Size size) {
-    setMinimumMaximumSize(size, m_maximumSize);
+    setMinimumMaximumSizes(size, m_maximumSize);
 }
 
 void Window::setMaximumSize(Size size) {
-    setMinimumMaximumSize(m_minimumSize, size);
+    setMinimumMaximumSizes(m_minimumSize, size);
 }
 
-void Window::setMinimumMaximumSize(Size minSize, Size maxSize) {
-    mustBeUIThread();
+void Window::setMinimumMaximumSizes(Size minSize, Size maxSize) {
+    mustBeUiThread();
     // Do not compare with current values of m_maximumSize to allow setting the same value
     m_minimumSize = minSize;
     m_maximumSize = maxSize;
@@ -222,7 +222,7 @@ void Window::setMinimumMaximumSize(Size minSize, Size maxSize) {
 }
 
 void Window::setSize(Size size) {
-    mustBeUIThread();
+    mustBeUiThread();
     if (size != m_windowSize) {
         m_windowSize = size;
         mainScheduler->dispatch([this, size = m_windowSize] {
@@ -233,7 +233,7 @@ void Window::setSize(Size size) {
 }
 
 void Window::setStyle(WindowStyle style) {
-    mustBeUIThread();
+    mustBeUiThread();
     if (style != m_style) {
         m_style = style;
         mainScheduler->dispatch([style = m_style, this] {
@@ -281,11 +281,11 @@ Window::Window() {
     LOG_INFO(window, "Done creating Window");
 }
 
-RC<RenderDevice> Window::renderDevice() {
+Rc<RenderDevice> Window::renderDevice() {
     if (!m_renderDevice) {
-        RC<Display> display = this->display();
+        Rc<Display> display = this->display();
         auto result         = createRenderDevice(defaultBackend, deviceSelection,
-                                         display ? display->getHandle() : OSDisplayHandle{});
+                                         display ? display->getHandle() : NativeDisplayHandle{});
         BRISK_ASSERT(result.has_value());
         m_renderDevice = *result;
     }
@@ -390,7 +390,7 @@ void Window::paintDebug(RenderContext& context) {
 }
 
 void Window::doPaint() {
-    mustBeUIThread();
+    mustBeUiThread();
     BRISK_ASSERT(m_encoder);
     PerformanceDuration start_time = perfNow();
     ObjCPool pool;
@@ -402,7 +402,7 @@ void Window::doPaint() {
 
     currentFramePresentationTime = m_nextFrameTime.value_or(currentTime());
 
-    RC<RenderTarget> target      = m_target;
+    Rc<RenderTarget> target      = m_target;
     bool bufferedRendering       = m_bufferedRendering || !m_captureCallback.empty();
     bool textureReset            = false;
     Size targetSize              = m_target->size();
@@ -484,7 +484,7 @@ void Window::doPaint() {
         m_encoder->wait();
         auto captureCallback    = std::move(m_captureCallback);
         m_captureCallback       = nullptr;
-        RC<Image> capturedFrame = m_bufferedFrameTarget->image();
+        Rc<Image> capturedFrame = m_bufferedFrameTarget->image();
 
         std::move(captureCallback)(std::move(capturedFrame));
     }
@@ -502,22 +502,22 @@ Window::~Window() {
 }
 
 WindowStyle Window::getStyle() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return m_style;
 }
 
 PointOf<float> Window::getMousePosition() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return m_mousePoint;
 }
 
 PointOf<int> Window::getPosition() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return m_position;
 }
 
 void Window::setCursor(Cursor cursor) {
-    mustBeUIThread();
+    mustBeUiThread();
     if (cursor != m_cursor) {
         m_cursor = cursor;
         mainScheduler->dispatch([=, this] {
@@ -540,17 +540,17 @@ float Window::contentScale() const noexcept {
 }
 
 Rectangle Window::getBounds() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return Rectangle{ Point(0, 0), m_windowSize };
 }
 
 Rectangle Window::getRectangle() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return Rectangle{ m_position, m_windowSize };
 }
 
 Rectangle Window::getFramebufferBounds() const {
-    mustBeUIThread();
+    mustBeUiThread();
     return Rectangle{ Point(0, 0), m_framebufferSize };
 }
 
@@ -563,7 +563,7 @@ void Window::hide() {
 }
 
 void Window::close() {
-    mustBeUIThread();
+    mustBeUiThread();
     hide();
     m_closing = true; // forces application to remove this window from the windows list
     auto wk   = weak_from_this();
@@ -573,9 +573,9 @@ void Window::close() {
     });
 }
 
-OSWindowHandle Window::getHandle() const {
+NativeWindowHandle Window::getHandle() const {
     if (!m_platformWindow)
-        return OSWindowHandle{};
+        return NativeWindowHandle{};
     return m_platformWindow->getHandle();
 }
 
@@ -595,7 +595,7 @@ void Window::finalizeRenderer() {
 }
 
 Bytes Window::windowPlacement() const {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow) {
         return {};
     }
@@ -605,7 +605,7 @@ Bytes Window::windowPlacement() const {
 }
 
 void Window::setWindowPlacement(BytesView data) {
-    mustBeUIThread();
+    mustBeUiThread();
     if (!m_platformWindow) {
         return;
     }
@@ -618,7 +618,7 @@ void Window::disableKeyHandling() {
     m_keyHandling = false;
 }
 
-void Window::captureFrame(function<void(RC<Image>)> callback) {
+void Window::captureFrame(function<void(Rc<Image>)> callback) {
     m_captureCallback = std::move(callback);
 }
 
@@ -743,6 +743,8 @@ void Window::onWindowResized(Size windowSize, Size framebufferSize) {}
 
 void Window::onWindowMoved(Point position) {}
 
+void Window::onNonClientClicked() {}
+
 bool Window::update() {
     return false;
 }
@@ -777,7 +779,11 @@ void Window::windowMoved(Point position) {
     }
 }
 
-void Window::setOwner(RC<Window> window) {
+void Window::windowNonClientClicked() {
+    onNonClientClicked();
+}
+
+void Window::setOwner(Rc<Window> window) {
     m_owner = window;
     if (!m_platformWindow)
         return;
@@ -791,7 +797,7 @@ void Window::enterModal() {
 }
 
 void Window::exitModal() {
-    mustBeUIThread();
+    mustBeUiThread();
     if (m_style && WindowStyle::Disabled) {
         m_style &= ~WindowStyle::Disabled;
         mainScheduler->dispatch([style = m_style, this] {
@@ -824,7 +830,7 @@ void Window::windowStateChanged(bool isIconified, bool isMaximized) {
 
 void Window::onWindowStateChanged(bool isIconified, bool isMaximized) {}
 
-RC<WindowRenderTarget> Window::target() const {
+Rc<WindowRenderTarget> Window::target() const {
     return m_target;
 }
 
@@ -844,8 +850,8 @@ bool Window::forceRenderEveryFrame() const noexcept {
     return m_forceRenderEveryFrame;
 }
 
-RC<Display> Window::display() const {
-    OSWindowHandle handle = getHandle();
+Rc<Display> Window::display() const {
+    NativeWindowHandle handle = getHandle();
     if (!handle)
         return nullptr;
     for (auto display : Display::all())

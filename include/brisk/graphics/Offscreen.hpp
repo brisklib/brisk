@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -48,7 +48,7 @@ public:
      * @brief Renders the offscreen image and returns the resulting image.
      * @return A reference-counted pointer to the rendered image in RGBA format.
      */
-    [[nodiscard]] RC<Image> render();
+    [[nodiscard]] Rc<Image> render();
 
     /**
      * @brief Gets the rectangle representing the size of the rendering target.
@@ -63,8 +63,8 @@ public:
     Canvas& canvas();
 
 private:
-    RC<ImageRenderTarget> m_target;            ///< The render target for offscreen rendering.
-    RC<RenderEncoder> m_encoder;               ///< The render encoder used during rendering.
+    Rc<ImageRenderTarget> m_target;            ///< The render target for offscreen rendering.
+    Rc<RenderEncoder> m_encoder;               ///< The render encoder used during rendering.
     std::unique_ptr<RenderPipeline> m_context; ///< The context for the rendering pipeline.
     std::unique_ptr<Canvas> m_canvas;          ///< The canvas used for drawing.
 };

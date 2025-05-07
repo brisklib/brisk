@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -108,7 +108,7 @@ public:
 protected:
     ColorW m_value = Palette::black;
 
-    RC<Widget> addColor(ColorW swatch, float brightness = 0.f, float chroma = 1.f);
+    Rc<Widget> addColor(ColorW swatch, float brightness = 0.f, float chroma = 1.f);
     Ptr cloneThis() const override;
     explicit ColorPalette(Construction construction, ColorW color, ArgumentsView<ColorPalette> args);
 

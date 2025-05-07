@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -33,7 +33,7 @@ template <PixelFormat fmt>
 constexpr std::nullptr_t pixFmtOrder3{};
 
 template <typename T, size_t N, size_t... X>
-BRISK_INLINE SIMD<T, N> permute(const SIMD<T, N>& value, size_constants<X...> indices)
+BRISK_INLINE Simd<T, N> permute(const Simd<T, N>& value, size_constants<X...> indices)
     requires(N % sizeof...(X) == 0 && std::has_single_bit(N / sizeof...(X)))
 {
     if constexpr (sizeof...(X) < N) {
@@ -69,7 +69,7 @@ void cvtPixels(T* dst, const T* src, uint32_t size) {
         int32_t x          = 0;
         BRISK_CLANG_PRAGMA(clang loop unroll(disable))
         for (; x + N - 1 < size; x += N) {
-            SIMD<T, 4 * N> t = SIMD<T, 4 * N>::read(src);
+            Simd<T, 4 * N> t = Simd<T, 4 * N>::read(src);
             t                = permute(permute(t, pixFmtOrder4<srcFmt>), pixFmtOrder4<dstFmt>);
             t.write(dst);
             src += 4 * N;
@@ -77,7 +77,7 @@ void cvtPixels(T* dst, const T* src, uint32_t size) {
         }
         BRISK_CLANG_PRAGMA(clang loop unroll(disable))
         for (; x < size; ++x) {
-            SIMD<T, 4> t = SIMD<T, 4>::read(src);
+            Simd<T, 4> t = Simd<T, 4>::read(src);
             t            = permute(permute(t, pixFmtOrder4<srcFmt>), pixFmtOrder4<dstFmt>);
             t.write(dst);
             src += 4;
@@ -91,7 +91,7 @@ void cvtPixels(T* dst, const T* src, uint32_t size) {
         int32_t x          = 0;
         BRISK_CLANG_PRAGMA(clang loop unroll(disable))
         for (; x + N - 1 < size; x += N) {
-            SIMD<T, 3 * N> t = SIMD<T, 3 * N>::read(src);
+            Simd<T, 3 * N> t = Simd<T, 3 * N>::read(src);
             t                = permute(permute(t, pixFmtOrder3<srcFmt>), pixFmtOrder3<dstFmt>);
             t.write(dst);
             src += 3 * N;
@@ -99,7 +99,7 @@ void cvtPixels(T* dst, const T* src, uint32_t size) {
         }
         BRISK_CLANG_PRAGMA(clang loop unroll(disable))
         for (; x < size; ++x) {
-            SIMD<T, 3> t = SIMD<T, 3>::read(src);
+            Simd<T, 3> t = Simd<T, 3>::read(src);
             t            = permute(permute(t, pixFmtOrder3<srcFmt>), pixFmtOrder3<dstFmt>);
             t.write(dst);
             src += 3;

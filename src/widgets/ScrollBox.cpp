@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -24,17 +24,22 @@ namespace Brisk {
 
 ScrollBox::ScrollBox(Construction construction, Orientation orientation, ArgumentsView<ScrollBox> args)
     : Widget{ construction,
-              std::tuple{ Arg::overflow =
-                              orientation == Orientation::Horizontal ? Overflow::ScrollX : Overflow::ScrollY,
-                          Arg::alignItems = AlignItems::FlexStart } } {
+              std::tuple{
+                  Arg::overflowScroll =
+                      OverflowScrollBoth{ OverflowScroll::Disable, OverflowScroll::Enable }.flippedIf(
+                          orientation == Orientation::Horizontal),
+                  Arg::contentOverflow =
+                      ContentOverflowBoth{ ContentOverflow::Default, ContentOverflow::Allow }.flippedIf(
+                          orientation == Orientation::Horizontal),
+                  Arg::alignItems = AlignItems::FlexStart } } {
     args.apply(this);
 }
 
-RC<Widget> ScrollBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> ScrollBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> HScrollBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+Rc<Widget> HScrollBox::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 
-RC<Widget> VScrollBox::cloneThis() const {
+Rc<Widget> VScrollBox::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

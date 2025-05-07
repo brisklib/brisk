@@ -4,7 +4,7 @@
 # Cross-platform application framework
 # --------------------------------------------------------------
 #
-# Copyright (C) 2024 Brisk Developers
+# Copyright (C) 2025 Brisk Developers
 #
 # This file is part of the Brisk library.
 #
@@ -26,13 +26,13 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Color.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Matrix.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Canvas.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/graphics/SVG.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Svg.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/RenderState.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Fonts.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Path.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/graphics/Offscreen.hpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Gradients.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/SVG.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/Svg.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats_png.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats_jpeg.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats_bmp.cpp
@@ -40,8 +40,8 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageFormats.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ImageTransform.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Html.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.hpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/SDFCanvas.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/SdfCanvas.hpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/SdfCanvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/ColorSpace.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Canvas.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/RenderState.cpp
@@ -55,14 +55,10 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/Renderer.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/Offscreen.cpp
     #
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vbezier.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vdasher.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vmatrix.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vpath.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vpathmesure.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vraster.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vrect.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/vector/vrle.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Bezier.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Dasher.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Raster.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/vector/Rle.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_math.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_raster.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_stroker.cpp)
@@ -82,7 +78,7 @@ target_compile_definitions(brisk-graphics PRIVATE V_NAMESPACE=Brisk)
 
 if (BRISK_D3D11)
     set(D3D11_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR})
-    add_subdirectory(D3D11Renderer)
+    add_subdirectory(D3d11Renderer)
     target_link_libraries(brisk-graphics PUBLIC brisk-renderer-d3d11)
     target_compile_definitions(brisk-renderer-d3d11 PUBLIC BRISK_D3D11=1)
 endif ()
@@ -106,8 +102,8 @@ set_property(TARGET brisk-i18n PROPERTY EXPORT_NAME I18n)
 set(ICU_DT icudt74l.dat)
 
 add_library(brisk-i18n-icu STATIC ${PROJECT_SOURCE_DIR}/src/graphics/I18n.cpp)
-add_library(Brisk::I18n-ICU ALIAS brisk-i18n-icu)
-set_property(TARGET brisk-i18n-icu PROPERTY EXPORT_NAME I18n-ICU)
+add_library(Brisk::I18n-Icu ALIAS brisk-i18n-icu)
+set_property(TARGET brisk-i18n-icu PROPERTY EXPORT_NAME I18n-Icu)
 target_link_libraries(brisk-i18n-icu PUBLIC brisk-core)
 
 if (BRISK_ICU)
@@ -117,7 +113,7 @@ else ()
 endif ()
 
 if (BRISK_WEBGPU)
-    add_subdirectory(WebGPURenderer)
+    add_subdirectory(WebGpuRenderer)
 endif ()
 
 set(_DEP_PUBLIC PUBLIC)

@@ -1,6 +1,26 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include <brisk/core/internal/Initialization.hpp>
-#include <brisk/gui/GUIApplication.hpp>
-#include <brisk/gui/GUIWindow.hpp>
+#include <brisk/gui/GuiApplication.hpp>
+#include <brisk/gui/GuiWindow.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Button.hpp>
@@ -49,7 +69,7 @@ public:
 
     void unhandledEvent(Event& event) final {
         handleDebugKeystrokes(event);
-        if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::KPEnter)) {
+        if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::NumEnter)) {
             calc.solve();
             event.stopPropagation();
         }
@@ -99,7 +119,7 @@ public:
 
     explicit CalcComponent() {}
 
-    RC<Widget> build() final {
+    Rc<Widget> build() final {
         return rcnew VLayout{
             stylesheet = Graphene::stylesheet(),
             Graphene::darkColors(),
@@ -309,7 +329,7 @@ public:
         };
     }
 
-    void configureWindow(RC<GUIWindow> window) final {
+    void configureWindow(Rc<GuiWindow> window) final {
         window->setTitle("Calc"_tr);
         window->setSize({ 742, 525 });
         window->windowFit = WindowFit::MinimumSize;
@@ -322,7 +342,7 @@ public:
 using namespace Brisk;
 
 int briskMain() {
-    GUIApplication application;
+    GuiApplication application;
 
     return application.run(createComponent<CalcComponent>());
 }

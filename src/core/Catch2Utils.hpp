@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -23,8 +23,8 @@
 #include <fmt/format.h>
 #include <brisk/core/Bytes.hpp>
 #include <brisk/core/BasicTypes.hpp>
-#include <brisk/core/IO.hpp>
-#include <brisk/core/SIMD.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/Simd.hpp>
 
 inline std::string unicodeChar(char32_t value) {
     if (static_cast<int32_t>(value) < 0x1'0000)
@@ -100,8 +100,8 @@ struct StringMaker<char32_t> {
 };
 
 template <typename T, size_t N>
-struct StringMaker<Brisk::SIMD<T, N>> {
-    static std::string convert(Brisk::SIMD<T, N> value) {
+struct StringMaker<Brisk::Simd<T, N>> {
+    static std::string convert(Brisk::Simd<T, N> value) {
         return fmt::format("{}", fmt::join(std::span<const T>(value.data(), N), ","));
     }
 };
@@ -119,14 +119,14 @@ namespace Catch {
 namespace Matchers {
 
 template <typename T, size_t N>
-class SIMDWithinMatcher final : public MatcherBase<Brisk::SIMD<T, N>> {
+class SimdWithinMatcher final : public MatcherBase<Brisk::Simd<T, N>> {
 public:
-    SIMDWithinMatcher(const Brisk::SIMD<T, N>& target, double margin = 0.001)
+    SimdWithinMatcher(const Brisk::Simd<T, N>& target, double margin = 0.001)
         : m_target(target), m_margin(margin) {}
 
-    bool match(const Brisk::SIMD<T, N>& matchee) const override {
-        Brisk::SIMD<T, N> absdiff = Brisk::abs(matchee - m_target);
-        return Brisk::horizontalAll(Brisk::lt(absdiff, Brisk::SIMD<T, N>(m_margin)));
+    bool match(const Brisk::Simd<T, N>& matchee) const override {
+        Brisk::Simd<T, N> absdiff = Brisk::abs(matchee - m_target);
+        return Brisk::horizontalAll(Brisk::lt(absdiff, Brisk::Simd<T, N>(m_margin)));
     }
 
     std::string describe() const override {
@@ -134,14 +134,14 @@ public:
     }
 
 private:
-    Brisk::SIMD<T, N> m_target;
+    Brisk::Simd<T, N> m_target;
     double m_margin;
 };
 
 template <typename T, size_t N>
-SIMDWithinMatcher(Brisk::SIMD<T, N>, double) -> SIMDWithinMatcher<T, N>;
+SimdWithinMatcher(Brisk::Simd<T, N>, double) -> SimdWithinMatcher<T, N>;
 template <typename T, size_t N>
-SIMDWithinMatcher(Brisk::SIMD<T, N>) -> SIMDWithinMatcher<T, N>;
+SimdWithinMatcher(Brisk::Simd<T, N>) -> SimdWithinMatcher<T, N>;
 
 } // namespace Matchers
 } // namespace Catch

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -70,7 +70,7 @@ Rules lightColors() {
     };
 }
 
-RC<const Stylesheet> stylesheet() {
+Rc<const Stylesheet> stylesheet() {
     using namespace Selectors;
     using enum WidgetState;
 
@@ -97,7 +97,7 @@ RC<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            Class{ "hotkeyhint" },
+            Type{ "shortcuthint" },
             {
                 opacity    = 0.75f,
                 fontSize   = FontSize::Normal - 1,
@@ -177,24 +177,23 @@ RC<const Stylesheet> stylesheet() {
         Style{
             Type{ Item::widgetType },
             {
-                padding                              = EdgesL(32_apx, 5_apx, 16_apx, 5_apx),
+                padding                              = { 16_apx, 5_apx },
                 textAlign                            = TextAlign::Start,
 
                 backgroundColor                      = Palette::transparent,
-                backgroundColor | Selected           = transparency(styleVar<selectedColor>, 0.8f),
-                backgroundColor | Selected | Pressed = styleVar<selectedColor>,
+                backgroundColor | Selected           = styleVar<selectedColor>,
+                backgroundColor | Selected | Pressed = adjustColor(styleVar<selectedColor>, -8),
 
                 color                                = inherit,
-                color | Selected =
-                    textColorFor(transparency(styleVar<selectedColor>, 0.8f), textLightColor, textDarkColor),
+                color | Selected = textColorFor(styleVar<selectedColor>, textLightColor, textDarkColor),
                 color | Selected | Pressed =
-                    textColorFor(styleVar<selectedColor>, textLightColor, textDarkColor),
+                    textColorFor(adjustColor(styleVar<selectedColor>, -8), textLightColor, textDarkColor),
             },
         },
         Style{
-            Type{ ItemList::widgetType } > Type{ Item::widgetType },
+            (Type{ Menu::widgetType } && Class{ "withicons" }) > Type{ Item::widgetType },
             {
-                padding = { 16_apx, 5_apx },
+                padding = EdgesL(32_apx, 5_apx, 16_apx, 5_apx),
             },
         },
         Style{
@@ -372,7 +371,7 @@ RC<const Stylesheet> stylesheet() {
             },
         },
         Style{
-            Class{ "menubox" } || Role{ "context" } || Role{ "itemlist" },
+            Type{ Menu::widgetType },
             {
                 padding          = { 0, 4_apx },
                 backgroundColor  = styleVar<menuColor>,
@@ -381,7 +380,33 @@ RC<const Stylesheet> stylesheet() {
                 anchor           = { 0, 0 },
                 shadowSize       = defaultShadowSize,
                 shadowColor      = styleVar<shadeColor>,
+                shadowOffset     = { 4, 4 },
                 color            = textColorFor(styleVar<menuColor>, textLightColor, textDarkColor),
+            },
+        },
+        Style{
+            Role{ "menu" },
+            {
+                absolutePosition = { 0, 0 },
+            },
+        },
+        Style{
+            Class{ "nested" },
+            {
+                paddingRight = 32_apx,
+            },
+        },
+        Style{
+            IsMenu{},
+            {
+                focusCapture  = true,
+                mouseAnywhere = true,
+            },
+        },
+        Style{
+            Type{ Menu::widgetType } && !IsMenu{},
+            {
+                absolutePosition = { 100_perc, 0 },
             },
         },
         Style{

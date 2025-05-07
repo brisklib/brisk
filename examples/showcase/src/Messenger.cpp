@@ -1,3 +1,23 @@
+/*
+ * Brisk
+ *
+ * Cross-platform application framework
+ * --------------------------------------------------------------
+ *
+ * Copyright (C) 2025 Brisk Developers
+ *
+ * This file is part of the Brisk library.
+ *
+ * Brisk is dual-licensed under the GNU General Public License, version 2 (GPL-2.0+),
+ * and a commercial license. You may use, modify, and distribute this software under
+ * the terms of the GPL-2.0+ license if you comply with its conditions.
+ *
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
+ * license. For commercial licensing options, please visit: https://brisklib.com
+ */
 #include "Messenger.hpp"
 #include <brisk/core/Resources.hpp>
 #include <brisk/gui/Icons.hpp>
@@ -20,18 +40,18 @@ static void backgroundPainter(Canvas& canvas, const Widget& widget) {
 void ShowcaseMessenger::messagesBuilder(Widget* target) {
     for (const Message& msg : m_messages) {
         std::string statusIcon = msg.status == Status::Read ? ICON_check_check : ICON_check;
-        RC<Widget> content;
+        Rc<Widget> content;
         std::visit(Overload{
                        [&](std::string textContent) {
                            content = rcnew Text{ std::move(textContent), wordWrap = true };
                        },
-                       [&](RC<Image> imageContent) {
+                       [&](Rc<Image> imageContent) {
                            float imageAspect =
                                static_cast<float>(imageContent->width()) / imageContent->height();
                            content = rcnew ImageView{
                                imageContent,
                                aspect  = imageAspect,
-                               classes = Value{ &m_zoomImage }.transform([imageContent](RC<Image> img) {
+                               classes = Value{ &m_zoomImage }.transform([imageContent](Rc<Image> img) {
                                    return img == imageContent ? Classes{ "zoom" } : Classes{};
                                }),
 
@@ -60,7 +80,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
     }
 }
 
-RC<Widget> ShowcaseMessenger::build(RC<Notifications> notifications) {
+Rc<Widget> ShowcaseMessenger::build(Rc<Notifications> notifications) {
     return rcnew VLayout{
         flexGrow      = 1,
         padding       = 16_apx,

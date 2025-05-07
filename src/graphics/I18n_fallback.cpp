@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -96,11 +96,11 @@ public:
 };
 } // namespace
 
-RC<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode) {
+Rc<TextBreakIterator> textBreakIterator(std::u32string_view text, TextBreakMode mode) {
     return rcnew TextBreakIteratorSimple(text, mode);
 }
 
-RC<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection) {
+Rc<BidiTextIterator> bidiTextIterator(std::u32string_view text, TextDirection defaultDirection) {
     return rcnew BidiTextIteratorSimple(text, defaultDirection);
 }
 

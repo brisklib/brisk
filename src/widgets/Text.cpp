@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -30,7 +30,7 @@ Text::Text(Construction construction, std::string text, ArgumentsView<Text> args
     enableCustomMeasure();
 }
 
-RC<Widget> Text::cloneThis() const {
+Rc<Widget> Text::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
@@ -180,13 +180,13 @@ void BackStrikedText::paint(Canvas& canvas) const {
     Widget::paint(canvas);
 }
 
-RC<Widget> BackStrikedText::cloneThis() const {
+Rc<Widget> BackStrikedText::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
 void HoveredDescription::paint(Canvas& canvas) const {
     Widget::paintBackground(canvas, m_rect);
-    std::string newText = inputQueue->getHintAtMouse().value_or(m_text);
+    std::string newText = inputQueue() ? inputQueue()->getHintAtMouse().value_or(m_text) : m_text;
     if (newText != m_cachedText) {
         m_cachedText = std::move(newText);
         m_lastChange = frameStartTime;
@@ -200,7 +200,9 @@ void HoveredDescription::paint(Canvas& canvas) const {
     paintHint(canvas);
 }
 
-RC<Widget> HoveredDescription::cloneThis() const {
+Rc<Widget> HoveredDescription::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
+
+Rc<Widget> ShortcutHint::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

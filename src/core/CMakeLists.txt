@@ -4,7 +4,7 @@
 # Cross-platform application framework
 # --------------------------------------------------------------
 #
-# Copyright (C) 2024 Brisk Developers
+# Copyright (C) 2025 Brisk Developers
 #
 # This file is part of the Brisk library.
 #
@@ -26,11 +26,11 @@ add_library(
     ${PROJECT_SOURCE_DIR}/include/brisk/core/Compression.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/Cryptography.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/Hash.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/core/internal/CRCcompile.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/core/internal/CrcCompile.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/Encoding.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/internal/Expected.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/internal/Generation.hpp
-    ${PROJECT_SOURCE_DIR}/include/brisk/core/IO.hpp
+    ${PROJECT_SOURCE_DIR}/include/brisk/core/Io.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/Utilities.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/internal/Fixed.hpp
     ${PROJECT_SOURCE_DIR}/include/brisk/core/Log.hpp
@@ -53,7 +53,7 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/Cryptography.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Hash.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Encoding.cpp
-    ${PROJECT_SOURCE_DIR}/src/core/IO.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/Io.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Log.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Settings.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Text.cpp
@@ -63,8 +63,8 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/Stream.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Time.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Initialization.cpp
-    ${PROJECT_SOURCE_DIR}/src/core/uv.hpp
-    ${PROJECT_SOURCE_DIR}/src/core/uv.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/Uv.hpp
+    ${PROJECT_SOURCE_DIR}/src/core/Uv.cpp
     ${PROJECT_SOURCE_DIR}/src/core/App.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Version.cpp
     ${PROJECT_SOURCE_DIR}/src/core/cityhash/city.cc
@@ -74,7 +74,7 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/System.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Threading${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/System${PLATFORM_SPECIFIC_CPP}
-    ${PROJECT_SOURCE_DIR}/src/core/IO${PLATFORM_SPECIFIC_CPP}
+    ${PROJECT_SOURCE_DIR}/src/core/Io${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/DynamicLibrary${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/Cryptography${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/hash/md5.c
@@ -116,6 +116,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(brisk-core PUBLIC $<BUILD_INTERFACE:-Werror=microsoft-template>)
     target_compile_options(brisk-core PUBLIC $<BUILD_INTERFACE:-Werror=infinite-recursion>)
     target_compile_options(brisk-core PUBLIC $<BUILD_INTERFACE:-Werror=literal-conversion>)
+    target_compile_options(brisk-core PUBLIC $<BUILD_INTERFACE:-Werror=nonportable-include-path>)
     target_compile_options(brisk-core PUBLIC $<BUILD_INTERFACE:-fdiagnostics-absolute-paths>)
     target_compile_options(brisk-core PUBLIC $<BUILD_INTERFACE:-Werror=rtti>)
 endif ()

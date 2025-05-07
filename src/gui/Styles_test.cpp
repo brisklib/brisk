@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -23,7 +23,7 @@
 #include <brisk/graphics/Palette.hpp>
 
 #include <brisk/gui/Styles.hpp>
-#include <brisk/gui/GUI.hpp>
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 
@@ -67,7 +67,7 @@ TEST_CASE("Rules") {
     CHECK(Rules{ shadowSize = 2 }.merge(Rules{ tabSize = 1 }) == Rules{ shadowSize = 2, tabSize = 1 });
     CHECK(Rules{}.merge(Rules{ shadowSize = 2, tabSize = 1 }) == Rules{ shadowSize = 2, tabSize = 1 });
 
-    RC<Widget> w = rcnew Widget{};
+    Rc<Widget> w = rcnew Widget{};
     Rules{ shadowSize = 2, tabSize = 1 }.applyTo(w.get());
     CHECK(w->tabSize.get() == 1);
     CHECK(w->shadowSize.get() == 2_px);
@@ -97,7 +97,7 @@ WidgetProtected<W>* unprotect(std::shared_ptr<W> w) {
 TEST_CASE("Selectors") {
     using namespace Selectors;
 
-    RC<Widget> w = rcnew Widget{
+    Rc<Widget> w = rcnew Widget{
         id      = "primary",
         classes = { "success", "large" },
 
@@ -144,7 +144,7 @@ TEST_CASE("Selectors") {
 TEST_CASE("Styles") {
     using namespace Selectors;
     using enum WidgetState;
-    RC<Stylesheet> ss = rcnew Stylesheet{
+    Rc<Stylesheet> ss = rcnew Stylesheet{
         Style{
             Type{ "button" },
             { padding = Edges{ 20 } },
@@ -180,14 +180,14 @@ TEST_CASE("Styles") {
         },
     };
 
-    RC<Widget> w1 = rcnew Widget{
+    Rc<Widget> w1 = rcnew Widget{
         id = "primary",
     };
 
     CHECK(w1->id.get() == "primary");
     CHECK(w1->shadowSize.get() == Length(0));
 
-    RC<Widget> w2 = rcnew Widget{
+    Rc<Widget> w2 = rcnew Widget{
         stylesheet = ss,
         id         = "first",
         id         = "primary",
@@ -223,7 +223,7 @@ TEST_CASE("Styles") {
 TEST_CASE("separate SizeL") {
 
     using namespace Selectors;
-    RC<const Stylesheet> stylesheet = rcnew Stylesheet{
+    Rc<const Stylesheet> stylesheet = rcnew Stylesheet{
         Style{
             Type{ Widget::widgetType },
             Rules{
@@ -232,7 +232,7 @@ TEST_CASE("separate SizeL") {
         },
     };
 
-    RC<Widget> w1 = rcnew Widget{
+    Rc<Widget> w1 = rcnew Widget{
         Arg::stylesheet = stylesheet,
     };
 
@@ -240,7 +240,7 @@ TEST_CASE("separate SizeL") {
     unprotect(w1)->restyleIfRequested();
     CHECK(w1->dimensions.get() == SizeL{ undef, 1_em });
 
-    RC<Widget> w2 = rcnew Widget{
+    Rc<Widget> w2 = rcnew Widget{
         Arg::stylesheet = stylesheet,
         width           = 200,
     };
@@ -252,7 +252,7 @@ TEST_CASE("separate SizeL") {
 
 TEST_CASE("separate SizeL 2") {
     using namespace Selectors;
-    RC<const Stylesheet> stylesheet = rcnew Stylesheet{
+    Rc<const Stylesheet> stylesheet = rcnew Stylesheet{
         Style{
             Type{ Widget::widgetType },
             Rules{
@@ -261,7 +261,7 @@ TEST_CASE("separate SizeL 2") {
         },
     };
 
-    RC<Widget> w1 = rcnew Widget{
+    Rc<Widget> w1 = rcnew Widget{
         Arg::stylesheet = stylesheet,
     };
 
@@ -269,7 +269,7 @@ TEST_CASE("separate SizeL 2") {
     unprotect(w1)->restyleIfRequested();
     CHECK(w1->dimensions.get() == SizeL{ 1_em, 1_em });
 
-    RC<Widget> w2 = rcnew Widget{
+    Rc<Widget> w2 = rcnew Widget{
         Arg::stylesheet = stylesheet,
         width           = 200,
     };
@@ -280,7 +280,7 @@ TEST_CASE("separate SizeL 2") {
 }
 
 TEST_CASE("resolving") {
-    RC<Widget> w           = rcnew Widget{};
+    Rc<Widget> w           = rcnew Widget{};
     w->borderRadius        = 10_px;
     w->borderRadiusTopLeft = 1_px;
 
@@ -290,7 +290,7 @@ TEST_CASE("resolving") {
 }
 
 TEST_CASE("inherit") {
-    RC<Widget> w1 = rcnew Widget{
+    Rc<Widget> w1 = rcnew Widget{
         fontSize = 20_px,
         rcnew Widget{
             fontSize = 200_perc,
@@ -303,10 +303,10 @@ TEST_CASE("inherit") {
         },
     };
 
-    RC<Widget> w2   = w1->widgets().front();
+    Rc<Widget> w2   = w1->widgets().front();
 
-    RC<Widget> w1ch = w1->widgets().back();
-    RC<Widget> w2ch = w2->widgets().back();
+    Rc<Widget> w1ch = w1->widgets().back();
+    Rc<Widget> w2ch = w2->widgets().back();
 
     CHECK(w1->fontSize.get() == 20_px);
     CHECK(w1->fontSize.resolved() == 20);

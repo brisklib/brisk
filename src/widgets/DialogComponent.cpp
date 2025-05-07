@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -44,34 +44,42 @@ void DialogComponent::close(bool result) {
     bindings->assign(this->m_result, result);
     if (result) {
         accepted();
-        onAccepted();
     } else {
         rejected();
-        onRejected();
     }
     closeWindow();
 }
 
-RC<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okBtn, std::string cancelBtn) {
-    return rcnew HLayout{ margin = { 15, 10 }, //
-                          rcnew Spacer{},
-                          (buttons && DialogButtons::OK)
-                              ? rcnew Button{ rcnew Text{ std::move(okBtn) }, id = "dialog-ok",
-                                              onClick = lifetime() |
-                                                        [this] {
-                                                            accept();
-                                                        },
-                                              margin = { 4, 0 } }
-                              : nullptr,
-                          (buttons && DialogButtons::Cancel)
-                              ? rcnew Button{ rcnew Text{ std::move(cancelBtn) }, id = "dialog-cancel",
-                                              onClick = lifetime() |
-                                                        [this] {
-                                                            reject();
-                                                        },
-                                              margin = { 4, 0 } }
-                              : nullptr,
-                          rcnew Spacer{} };
+Rc<Widget> DialogComponent::dialogButtons(DialogButtons buttons, std::string okBtn, std::string cancelBtn,
+                                          const Rules& rules) {
+    Rc<Widget> btnOk, btnCancel;
+    if (buttons && DialogButtons::OK) {
+        btnOk = rcnew Button{
+            rcnew Text{ std::move(okBtn) },
+            id      = "dialog-ok",
+            onClick = lifetime() |
+                      [this] {
+                          accept();
+                      },
+        };
+    }
+    if (buttons && DialogButtons::Cancel) {
+        btnCancel = rcnew Button{
+            rcnew Text{ std::move(cancelBtn) },
+            id      = "dialog-cancel",
+            onClick = lifetime() |
+                      [this] {
+                          reject();
+                      },
+        };
+    }
+
+    return rcnew HLayout{
+        rules,
+        gapColumn = 8,
+        btnOk,
+        btnCancel,
+    };
 }
 
 void DialogComponent::rejected() {}
@@ -88,7 +96,7 @@ void DialogComponent::accept() {
 
 DialogComponent::~DialogComponent() {}
 
-void DialogComponent::configureWindow(RC<GUIWindow> window) {
+void DialogComponent::configureWindow(Rc<GuiWindow> window) {
     Component::configureWindow(window);
     window->setTitle("Dialog"_tr);
     window->windowFit = WindowFit::FixedSize;
@@ -98,7 +106,7 @@ void DialogComponent::configureWindow(RC<GUIWindow> window) {
 TextInputDialog::TextInputDialog(std::string prompt, std::string defaultValue)
     : m_prompt(std::move(prompt)), m_value(std::move(defaultValue)) {}
 
-RC<Widget> TextInputDialog::build() {
+Rc<Widget> TextInputDialog::build() {
     return rcnew VLayout{
         stylesheet = Graphene::stylesheet(),
         Graphene::darkColors(),
@@ -111,7 +119,7 @@ RC<Widget> TextInputDialog::build() {
 MessageDialog::MessageDialog(std::string text, std::string icon)
     : m_text(std::move(text)), m_icon(std::move(icon)) {}
 
-RC<Widget> MessageDialog::build() {
+Rc<Widget> MessageDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),
                           rcnew Text{ this->text, margin = { 15, 10 } },
                           dialogButtons(DialogButtons::OK | DialogButtons::Cancel) };
@@ -120,7 +128,7 @@ RC<Widget> MessageDialog::build() {
 ConfirmDialog::ConfirmDialog(std::string text, std::string icon)
     : m_text(std::move(text)), m_icon(std::move(icon)) {}
 
-RC<Widget> ConfirmDialog::build() {
+Rc<Widget> ConfirmDialog::build() {
     return rcnew VLayout{ stylesheet = Graphene::stylesheet(), Graphene::darkColors(),
                           rcnew Text{ this->text, margin = { 15, 10 } },
                           dialogButtons(DialogButtons::OK | DialogButtons::Cancel) };

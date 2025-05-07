@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -27,7 +27,7 @@
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/Lock.hpp>
 #include <brisk/core/internal/Fixed.hpp>
-#include <brisk/core/IO.hpp>
+#include <brisk/core/Io.hpp>
 #include <brisk/core/Text.hpp>
 
 #include <numeric>
@@ -141,7 +141,7 @@ struct FontFace {
     hb_font_t* hb_font;
     Bytes bytes;
 
-    bool isSVG() const noexcept {
+    bool isSvg() const noexcept {
         return (flags && FontFlags::EnableColor) && FT_HAS_SVG(face);
     }
 
@@ -185,7 +185,7 @@ struct FontFace {
                                            (const FT_Byte*)data.data(), data.size(), 0, &face));
         HANDLE_FT_ERROR(FT_Select_Charmap(face, FT_ENCODING_UNICODE));
 
-        hscale           = isSVG() ? 1 : manager->m_hscale;
+        hscale           = isSvg() ? 1 : manager->m_hscale;
 
         FT_Matrix matrix = { toFixed16(1.0f / HORIZONTAL_OVERSAMPLING * hscale), toFixed16(0), toFixed16(0),
                              toFixed16(1.0f) };
@@ -256,7 +256,7 @@ struct FontFace {
         cache.clear();
     }
 
-    GlyphID codepointToGlyph(char32_t codepoint) const {
+    GlyphId codepointToGlyph(char32_t codepoint) const {
         return FT_Get_Char_Index(face, (FT_ULong)(codepoint));
     }
 
@@ -274,7 +274,7 @@ struct FontFace {
         return numRemoved;
     }
 
-    std::optional<GlyphData> loadGlyphCached(float fontSize, GlyphID glyphIndex) {
+    std::optional<GlyphData> loadGlyphCached(float fontSize, GlyphId glyphIndex) {
         if (auto it = cache.find(glyphCacheKey(fontSize, glyphIndex)); it != cache.end()) {
             it->second.time = currentTime();
             return it->second;
@@ -292,7 +292,7 @@ struct FontFace {
         }
     }
 
-    float getGlyphAdvance(GlyphID glyphIndex) {
+    float getGlyphAdvance(GlyphId glyphIndex) {
         FT_Int32 ftFlags = FT_LOAD_DEFAULT | FT_LOAD_TARGET_LIGHT;
         if (flags && FontFlags::DisableHinting) {
             ftFlags |= FT_LOAD_NO_HINTING;
@@ -306,9 +306,9 @@ struct FontFace {
         return fromFixed6(slot->advance.x) / float(hscale);
     }
 
-    std::optional<GlyphData> loadGlyph(GlyphID glyphIndex) {
+    std::optional<GlyphData> loadGlyph(GlyphId glyphIndex) {
         FT_Int32 ftFlags;
-        if (isSVG()) {
+        if (isSvg()) {
             ftFlags = FT_LOAD_TARGET_LIGHT | FT_LOAD_SVG_ONLY | FT_LOAD_COLOR;
         } else {
             ftFlags = FT_LOAD_RENDER | FT_LOAD_TARGET_LIGHT;
@@ -325,7 +325,7 @@ struct FontFace {
         }
         HANDLE_FT_ERROR(err);
 
-        if (isSVG()) {
+        if (isSvg()) {
             if (face->glyph->format != FT_GLYPH_FORMAT_SVG) {
                 LOG_WARN(font, "Cannot load svg glyph #{} from a SVG font {}", glyphIndex, familyName());
                 return std::nullopt;
@@ -423,7 +423,7 @@ FT_Error svg_port_render(FT_GlyphSlot slot, FT_Pointer* state) {
         pixels += slot->bitmap.pitch;
     }
 
-    // RC<Image> img           = rcnew Image(slot->bitmap.buffer, Size(slot->bitmap.width, slot->bitmap.rows),
+    // Rc<Image> img           = rcnew Image(slot->bitmap.buffer, Size(slot->bitmap.width, slot->bitmap.rows),
     //   slot->bitmap.pitch, ImageFormat::RGBA);
 
     slot->bitmap.pixel_mode = FT_PIXEL_MODE_BGRA;
@@ -567,7 +567,7 @@ FontFace* FontManager::findFontByKey(FontKey fontKey) const {
     return nullptr;
 }
 
-std::pair<FontFace*, GlyphID> FontManager::lookupCodepoint(const Font& font, char32_t codepoint,
+std::pair<FontFace*, GlyphId> FontManager::lookupCodepoint(const Font& font, char32_t codepoint,
                                                            bool fallbackToUndef) const {
     if (codepoint < U' ')
         return { nullptr, UINT32_MAX };
@@ -577,7 +577,7 @@ std::pair<FontFace*, GlyphID> FontManager::lookupCodepoint(const Font& font, cha
             continue;
         FontFace* face = findFontByKey(FontKey{ list[offset], font.style, font.weight });
         if (face) {
-            GlyphID id = FT_Get_Char_Index(face->face, (FT_ULong)(codepoint));
+            GlyphId id = FT_Get_Char_Index(face->face, (FT_ULong)(codepoint));
             if (id != 0)
                 return { face, id };
         }
@@ -608,7 +608,7 @@ FontManager::FontKey FontManager::faceToKey(Internal::FontFace* face) const {
 
 void FontManager::addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily) {
     lock_quard_cond lk(m_lock);
-    SmallVector<std::pair<FontKey, RC<FontFace>>, 1> aliasesToAdd;
+    SmallVector<std::pair<FontKey, Rc<FontFace>>, 1> aliasesToAdd;
     for (const auto& f : m_fonts) {
         if (std::get<0>(f.first) == existingFontFamily) {
             FontKey k      = f.first;
@@ -633,10 +633,10 @@ void FontManager::addFont(std::string fontFamily, FontStyle style, FontWeight we
     }
 }
 
-status<IOError> FontManager::addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
+status<IoError> FontManager::addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
                                              const fs::path& path) {
     lock_quard_cond lk(m_lock);
-    expected<Bytes, IOError> b = readBytes(path);
+    expected<Bytes, IoError> b = readBytes(path);
     if (b) {
         addFont(std::move(fontFamily), style, weight, *b);
         return {};
@@ -654,7 +654,7 @@ static bool isFontExt(std::string_view ext) {
     return cmpi(ext, ".ttf") || cmpi(ext, ".otf");
 }
 
-static std::optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& path) {
+static std::optional<OsFont> fontQuickInfo(FT_Library library, const fs::path& path) {
     FT_Face face;
     FT_Error err = FT_New_Face(library, path.string().c_str(), 0, &face);
     if (err)
@@ -663,7 +663,7 @@ static std::optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& p
         FT_Done_Face(face);
     };
 
-    OSFont font;
+    OsFont font;
     font.path   = path;
     font.weight = FontWeight::Regular;
     font.style  = FontStyle::Normal;
@@ -706,14 +706,14 @@ static std::optional<OSFont> fontQuickInfo(FT_Library library, const fs::path& p
     return font;
 }
 
-std::vector<OSFont> FontManager::installedFonts(bool rescan) const {
+std::vector<OsFont> FontManager::installedFonts(bool rescan) const {
     lock_quard_cond lk(m_lock);
     if (m_osFonts.empty() || rescan) {
         m_osFonts.clear();
         for (fs::path path : fontFolders()) {
             for (auto f : fs::directory_iterator(path)) {
                 if (f.is_regular_file() && isFontExt(f.path().extension().string())) {
-                    if (std::optional<OSFont> fontInfo =
+                    if (std::optional<OsFont> fontInfo =
                             fontQuickInfo(static_cast<FT_Library>(m_ft_library), f.path())) {
                         m_osFonts.push_back(std::move(*fontInfo));
                     }
@@ -1164,7 +1164,7 @@ PreparedText FontManager::prepare(const TextWithOptions& text, std::span<const F
     return doPrepare(text, fonts, offsets, width);
 }
 
-void FontManager::testRender(RC<Image> image, const PreparedText& prepared, Point origin,
+void FontManager::testRender(Rc<Image> image, const PreparedText& prepared, Point origin,
                              TestRenderFlags flags, std::initializer_list<int> xlines,
                              std::initializer_list<int> ylines) const {
     lock_quard_cond lk(m_lock);
@@ -1444,7 +1444,7 @@ int GlyphRun::hscale() const noexcept {
 }
 
 bool GlyphRun::hasColor() const noexcept {
-    return face && face->isSVG();
+    return face && face->isSvg();
 }
 
 RectangleF GlyphRun::bounds(GlyphRunBounds boundsType) const {
@@ -1949,9 +1949,9 @@ float FontMetrics::vertBounds() const noexcept {
 }
 
 TextWithOptions::TextWithOptions(std::string_view text, TextOptions options, TextDirection defaultDirection) {
-    this->options          = options & ~TextOptions::HTML;
+    this->options          = options & ~TextOptions::Html;
     this->defaultDirection = defaultDirection;
-    if (options && TextOptions::HTML) {
+    if (options && TextOptions::Html) {
         auto rich = RichText::fromHtml(text);
         if (rich)
             std::tie(this->text, this->richText) = *rich;
@@ -1962,9 +1962,9 @@ TextWithOptions::TextWithOptions(std::string_view text, TextOptions options, Tex
 
 TextWithOptions::TextWithOptions(std::u16string_view text, TextOptions options,
                                  TextDirection defaultDirection) {
-    this->options          = options & ~TextOptions::HTML;
+    this->options          = options & ~TextOptions::Html;
     this->defaultDirection = defaultDirection;
-    if (options && TextOptions::HTML) {
+    if (options && TextOptions::Html) {
         auto rich = RichText::fromHtml(utf16ToUtf8(text));
         if (rich)
             std::tie(this->text, this->richText) = *rich;
@@ -1975,9 +1975,9 @@ TextWithOptions::TextWithOptions(std::u16string_view text, TextOptions options,
 
 TextWithOptions::TextWithOptions(std::u32string_view text, TextOptions options,
                                  TextDirection defaultDirection) {
-    this->options          = options & ~TextOptions::HTML;
+    this->options          = options & ~TextOptions::Html;
     this->defaultDirection = defaultDirection;
-    if (options && TextOptions::HTML) {
+    if (options && TextOptions::Html) {
         auto rich = RichText::fromHtml(utf32ToUtf8(text));
         if (rich)
             std::tie(this->text, this->richText) = *rich;
@@ -1987,9 +1987,9 @@ TextWithOptions::TextWithOptions(std::u32string_view text, TextOptions options,
 }
 
 TextWithOptions::TextWithOptions(std::u32string text, TextOptions options, TextDirection defaultDirection) {
-    this->options          = options & ~TextOptions::HTML;
+    this->options          = options & ~TextOptions::Html;
     this->defaultDirection = defaultDirection;
-    if (options && TextOptions::HTML) {
+    if (options && TextOptions::Html) {
         auto rich = RichText::fromHtml(utf32ToUtf8(text));
         if (rich)
             std::tie(this->text, this->richText) = *rich;
@@ -2036,7 +2036,7 @@ struct FontFormatEx : FontAndColor {
     bool operator==(const FontFormatEx&) const = default;
 };
 
-struct Visitor final : public HTMLSAX {
+struct Visitor final : public HtmlSax {
     std::u32string text;
     RichText richText;
     std::vector<FontFormatEx> fontStack{

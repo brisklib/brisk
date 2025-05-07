@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -20,7 +20,7 @@
  */
 #include <brisk/widgets/TextEditor.hpp>
 #include <brisk/widgets/Item.hpp>
-#include <brisk/widgets/ContextPopup.hpp>
+#include <brisk/widgets/Menu.hpp>
 #include <brisk/widgets/Spacer.hpp>
 #include <brisk/core/Text.hpp>
 #include "utf8proc.h"
@@ -45,17 +45,17 @@ TextEditor::TextEditor(Construction construction, ArgumentsView<TextEditor> args
 }
 
 void TextEditor::createContextMenu() {
-    apply(rcnew ContextPopup{
-        Arg::role       = "context",
+    apply(rcnew Menu{
+        Arg::role       = "menu",
+        Arg::classes    = { "withicons" },
         Arg::fontFamily = Font::DefaultPlusIconsEmoji,
         Arg::fontSize   = FontSize::Normal,
         rcnew Item{
             Arg::icon = ICON_scissors,
             rcnew Text{ "Cut||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::X, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::X },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -66,9 +66,8 @@ void TextEditor::createContextMenu() {
             Arg::icon = ICON_copy,
             rcnew Text{ "Copy||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::C, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::C },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -79,9 +78,8 @@ void TextEditor::createContextMenu() {
             Arg::icon = ICON_clipboard,
             rcnew Text{ "Paste||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::V, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::V },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -92,9 +90,8 @@ void TextEditor::createContextMenu() {
             Arg::icon = ICON_x,
             rcnew Text{ "Delete||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::Del, KeyModifiers::None),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::None, KeyCode::Del },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -104,9 +101,8 @@ void TextEditor::createContextMenu() {
         rcnew Item{
             rcnew Text{ "Select All||Menu"_tr },
             rcnew Spacer{},
-            rcnew Text{
-                hotKeyToString(KeyCode::A, KeyModifiers::ControlOrCommand),
-                Arg::classes = { "hotkeyhint" },
+            rcnew ShortcutHint{
+                { KeyModifiers::ControlOrCommand, KeyCode::A },
             },
             Arg::onClick = lifetime() |
                            [this] {
@@ -456,7 +452,7 @@ void TextEditor::onEvent(Event& event) {
                 setTextInternal(utf32ToUtf8(normalizeCompose(text)));
                 break;
             case KeyCode::Enter:
-            case KeyCode::KPEnter:
+            case KeyCode::NumEnter:
                 if (m_multiline) {
                     typeCharacter(text, '\n');
                     event.stopPropagation();
@@ -623,7 +619,7 @@ PasswordEditor::PasswordEditor(Construction construction, ArgumentsView<Password
     args.apply(this);
 }
 
-RC<Widget> PasswordEditor::cloneThis() const {
+Rc<Widget> PasswordEditor::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 

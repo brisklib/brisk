@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -19,7 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "PlatformWindow.hpp"
-#include <brisk/graphics/SVG.hpp>
+#include <brisk/graphics/Svg.hpp>
 #include <brisk/window/Window.hpp>
 #include "Cursors.hpp"
 #include <brisk/window/Types.hpp>
@@ -42,12 +42,12 @@ namespace Internal {
 
 PlatformCursors platformCursors;
 
-void PlatformCursors::registerCursor(Cursor cursor, SVGCursor svgCursor) {
+void PlatformCursors::registerCursor(Cursor cursor, SvgCursor svgCursor) {
     BRISK_ASSERT(!isSystem(cursor));
     m_svgCursors.insert_or_assign(cursor, std::move(svgCursor));
 }
 
-RC<SystemCursor> PlatformCursors::getCursor(Cursor cursor, float scale_) {
+Rc<SystemCursor> PlatformCursors::getCursor(Cursor cursor, float scale_) {
     if (isSystem(cursor)) {
         initSystemCursors();
         return m_systemCursors.at(cursor);
@@ -59,7 +59,7 @@ RC<SystemCursor> PlatformCursors::getCursor(Cursor cursor, float scale_) {
         return it->second;
     }
     if (auto it = m_svgCursors.find(cursor); it != m_svgCursors.end()) {
-        RC<Image> bmp  = SVGImage(it->second.svg).render(SizeF(SVGCursor::size) * scale);
+        Rc<Image> bmp  = SvgImage(it->second.svg).render(SizeF(SvgCursor::size) * scale);
         auto svgCursor = cursorFromImage(
             bmp, Point(std::lround(it->second.hotspot.x * scale), std::lround(it->second.hotspot.y * scale)),
             scale);
@@ -87,11 +87,11 @@ void PlatformCursors::initSystemCursors() {
 }
 
 PlatformCursors::PlatformCursors() {
-    m_svgCursors.insert_or_assign(Cursor::Grab, SVGCursor{ std::string(cursorGrabSvg), Point{ 12, 12 } });
+    m_svgCursors.insert_or_assign(Cursor::Grab, SvgCursor{ std::string(cursorGrabSvg), Point{ 12, 12 } });
     m_svgCursors.insert_or_assign(Cursor::GrabDeny,
-                                  SVGCursor{ std::string(cursorGrabDenySvg), Point{ 12, 12 } });
+                                  SvgCursor{ std::string(cursorGrabDenySvg), Point{ 12, 12 } });
     m_svgCursors.insert_or_assign(Cursor::GrabReady,
-                                  SVGCursor{ std::string(cursorGrabReadySvg), Point{ 12, 12 } });
+                                  SvgCursor{ std::string(cursorGrabReadySvg), Point{ 12, 12 } });
 }
 
 bool PlatformCursors::isSystem(Cursor cursor) {
@@ -221,6 +221,16 @@ void PlatformWindow::windowMoved(Point position) {
     }
     uiScheduler->dispatch([window = m_window, position] {
         window->windowMoved(position);
+    });
+}
+
+void PlatformWindow::windowNonClientClicked() {
+    mustBeMainThread();
+    if (!isVisible()) {
+        return;
+    }
+    uiScheduler->dispatch([window = m_window] {
+        window->windowNonClientClicked();
     });
 }
 

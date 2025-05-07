@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -20,10 +20,12 @@
  */
 #pragma once
 
+#include <brisk/gui/Event.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <memory>
 #include <brisk/core/internal/Function.hpp>
 #include <brisk/core/Binding.hpp>
+#include <brisk/core/Utilities.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <stack>
 
@@ -56,6 +58,8 @@ using Drawable = function<void(Canvas&)>;
 
 class WidgetTree {
 public:
+    WidgetTree(InputQueue* inputQueue = nullptr) noexcept;
+
     std::shared_ptr<Widget> root() const noexcept;
     void setRoot(std::shared_ptr<Widget> root);
     void rescale();
@@ -73,6 +77,8 @@ public:
     void disableTransitions();
 
     void invalidateRect(Rectangle rect);
+    void setInputQueue(InputQueue* inputQueue);
+    Nullable<InputQueue> inputQueue() const;
 
     Callbacks<Widget*> onAttached;
     Callbacks<Widget*> onDetached;
@@ -111,5 +117,6 @@ private:
     bool m_fullRepaint          = true;
     bool m_painting             = false;
     bool m_savedDebugBoundaries = false;
+    InputQueue* m_inputQueue    = nullptr;
 };
 } // namespace Brisk

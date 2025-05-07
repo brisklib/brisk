@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -73,11 +73,11 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
     return 0;
 }
 
-[[nodiscard]] HTTPResponse httpFetch(const HTTPRequest& request, RC<Stream> requestBody,
-                                     RC<Stream> responseBody) {
+[[nodiscard]] HttpResponse httpFetch(const HttpRequest& request, Rc<Stream> requestBody,
+                                     Rc<Stream> responseBody) {
     CURL* curl = curl_easy_init();
     if (!curl) {
-        return HTTPResponse{ FetchErrorCode::failedInit };
+        return HttpResponse{ FetchErrorCode::failedInit };
     }
     SCOPE_EXIT {
         curl_easy_cleanup(curl);
@@ -105,7 +105,7 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
         uint64_t size = requestBody->size();
         if (size != invalidSize) {
             curl_easy_setopt(curl,
-                             request.method == HTTPMethod::Put ? CURLOPT_INFILESIZE_LARGE
+                             request.method == HttpMethod::Put ? CURLOPT_INFILESIZE_LARGE
                                                                : CURLOPT_POSTFIELDSIZE_LARGE,
                              curl_off_t(size));
         } else {
@@ -124,22 +124,22 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
     }
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, long(request.timeout.count()));
     switch (request.method) {
-    case HTTPMethod::Auto:
-    case HTTPMethod::Get:
+    case HttpMethod::Auto:
+    case HttpMethod::Get:
         break;
-    case HTTPMethod::Post:
+    case HttpMethod::Post:
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
         break;
-    case HTTPMethod::Put:
+    case HttpMethod::Put:
         curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
         break;
-    case HTTPMethod::Head:
+    case HttpMethod::Head:
         curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
         break;
-    case HTTPMethod::Delete:
+    case HttpMethod::Delete:
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
         break;
-    case HTTPMethod::Patch:
+    case HttpMethod::Patch:
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
         break;
     default:
@@ -149,13 +149,13 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
     case 0: // no auth
         break;
     case 1: { // basic
-        auto& basic = std::get<HTTPBasicAuth>(request.authentication);
+        auto& basic = std::get<HttpBasicAuth>(request.authentication);
         curl_easy_setopt(curl, CURLOPT_USERNAME, basic.username.c_str());
         curl_easy_setopt(curl, CURLOPT_PASSWORD, basic.password.c_str());
         break;
     }
     case 2: { // bearer
-        auto& bearer = std::get<HTTPBearerAuth>(request.authentication);
+        auto& bearer = std::get<HttpBearerAuth>(request.authentication);
         curl_easy_setopt(curl, CURLOPT_XOAUTH2_BEARER, bearer.token.c_str());
         break;
     }
@@ -163,7 +163,7 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
         BRISK_UNREACHABLE();
     }
 
-    HTTPResponse response;
+    HttpResponse response;
     response.error = FetchErrorCode::ok;
 
     CURLcode res   = curl_easy_perform(curl);
@@ -201,9 +201,9 @@ std::string fetchErrorCodeString(FetchErrorCode code) {
 }
 } // namespace Internal
 
-std::pair<HTTPResponse, Bytes> httpFetchBytes(const HTTPRequest& request) {
-    RC<MemoryStream> memory = rcnew MemoryStream{};
-    HTTPResponse response   = httpFetch(request, nullptr, memory);
+std::pair<HttpResponse, Bytes> httpFetchBytes(const HttpRequest& request) {
+    Rc<MemoryStream> memory = rcnew MemoryStream{};
+    HttpResponse response   = httpFetch(request, nullptr, memory);
     return { std::move(response), std::move(memory->data()) };
 }
 } // namespace Brisk

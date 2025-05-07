@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -30,7 +30,7 @@ using Internal::compressionBatchSize;
 
 class ZLibDecoder : public SequentialReader {
 public:
-    explicit ZLibDecoder(RC<Stream> reader) : reader(std::move(reader)) {
+    explicit ZLibDecoder(Rc<Stream> reader) : reader(std::move(reader)) {
         buffer.reset(new std::byte[compressionBatchSize]);
         bufferUsed  = 0;
 
@@ -91,7 +91,7 @@ public:
     }
 
 private:
-    RC<Stream> reader;
+    Rc<Stream> reader;
     z_stream strm{};
     std::unique_ptr<std::byte[]> buffer;
     size_t bufferUsed = 0;
@@ -100,7 +100,7 @@ private:
 
 class ZLibEncoder final : public SequentialWriter {
 public:
-    explicit ZLibEncoder(RC<Stream> writer, CompressionLevel level, bool gzip = false)
+    explicit ZLibEncoder(Rc<Stream> writer, CompressionLevel level, bool gzip = false)
         : writer(std::move(writer)) {
         buffer.reset(new std::byte[compressionBatchSize]);
 
@@ -161,25 +161,25 @@ public:
     }
 
 private:
-    RC<Stream> writer;
+    Rc<Stream> writer;
     z_stream strm{};
     std::unique_ptr<std::byte[]> buffer;
 };
 
-RC<Stream> gzipDecoder(RC<Stream> reader) {
-    return RC<Stream>(new ZLibDecoder(std::move(reader)));
+Rc<Stream> gzipDecoder(Rc<Stream> reader) {
+    return Rc<Stream>(new ZLibDecoder(std::move(reader)));
 }
 
-RC<Stream> gzipEncoder(RC<Stream> writer, CompressionLevel level) {
-    return RC<Stream>(new ZLibEncoder(std::move(writer), level, true));
+Rc<Stream> gzipEncoder(Rc<Stream> writer, CompressionLevel level) {
+    return Rc<Stream>(new ZLibEncoder(std::move(writer), level, true));
 }
 
-RC<Stream> zlibDecoder(RC<Stream> reader) {
-    return RC<Stream>(new ZLibDecoder(std::move(reader)));
+Rc<Stream> zlibDecoder(Rc<Stream> reader) {
+    return Rc<Stream>(new ZLibDecoder(std::move(reader)));
 }
 
-RC<Stream> zlibEncoder(RC<Stream> writer, CompressionLevel level) {
-    return RC<Stream>(new ZLibEncoder(std::move(writer), level, false));
+Rc<Stream> zlibEncoder(Rc<Stream> writer, CompressionLevel level) {
+    return Rc<Stream>(new ZLibEncoder(std::move(writer), level, false));
 }
 
 int zlibCompress(Bytef* dest, uLongf* destLen, const Bytef* source, uLong sourceLen, int level, bool gzip) {

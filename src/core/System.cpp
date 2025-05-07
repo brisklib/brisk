@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -25,7 +25,7 @@
 
 namespace Brisk {
 
-OSUname osUname() {
+OsUname osUname() {
     uv_utsname_t buf;
     if (uv_os_uname(&buf) < 0)
         return {};
@@ -41,6 +41,24 @@ CpuInfo cpuInfo() {
         uv_free_cpu_info(buf, count);
     };
     return { buf[0].model, buf[0].speed };
+}
+
+CpuUsage cpuUsage() {
+    CpuUsage usage;
+    uv_cpu_info_t* buf = nullptr;
+    int count          = 0;
+    if (uv_cpu_info(&buf, &count) < 0)
+        return {};
+    SCOPE_EXIT {
+        uv_free_cpu_info(buf, count);
+    };
+    usage.usage.resize_for_overwrite(count);
+    for (int i = 0; i < count; ++i) {
+        usage.usage[i].user = buf[i].cpu_times.user / 1000.0;
+        usage.usage[i].sys  = buf[i].cpu_times.sys / 1000.0;
+        usage.usage[i].idle = buf[i].cpu_times.idle / 1000.0;
+    }
+    return usage;
 }
 
 MemoryInfo memoryInfo() {

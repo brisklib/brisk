@@ -6,8 +6,15 @@
             "host": true
         },
         {
+            "name": "pack-resource"
+        },
+        {
             "name": "icowriter",
             "host": true,
+            "platform": "windows"
+        },
+        {
+            "name": "icowriter",
             "platform": "windows"
         },
         {
@@ -89,10 +96,13 @@
             ]
         },
         {
-            "name": "tinyxml2"
+            "name": "pegtl"
         },
         {
-            "name": "pegtl"
+            "name": "cpptrace"
+        },
+        {
+            "name": "tl-function-ref"
         }
     ],
     "builtin-baseline": "f176b58f35a75f9f8f54099cd9df97d2e2793a2e",

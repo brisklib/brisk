@@ -10,10 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "brisk/core/internal/llvm/SmallVector.h"
+#include <brisk/core/internal/llvm/SmallVector.h>
 #include <string>
-#include "brisk/core/internal/llvm/MemAlloc.h"
-#include "brisk/core/internal/Throw.hpp"
+#include <brisk/core/internal/llvm/MemAlloc.h>
+#include <brisk/core/internal/Throw.hpp>
 #include <cstdint>
 #include <stdexcept>
 using namespace llvm;

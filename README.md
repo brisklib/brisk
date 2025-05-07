@@ -43,7 +43,7 @@ const NameValueOrderedList<TextAlign> textAlignList{ { "Start", TextAlign::Start
 
 class Example : public Component {
 public:
-    RC<Widget> build() final {
+    Rc<Widget> build() final {
         // rcnew Widget{...} is equivalent to std::shared_ptr<Widget>(new Widget{...})
         return rcnew Widget{
             layout = Layout::Vertical,

@@ -4,7 +4,7 @@
  * Cross-platform application framework
  * --------------------------------------------------------------
  *
- * Copyright (C) 2024 Brisk Developers
+ * Copyright (C) 2025 Brisk Developers
  *
  * This file is part of the Brisk library.
  *
@@ -31,7 +31,7 @@ using Internal::compressionBatchSize;
 
 class LZ4Decoder : public SequentialReader {
 public:
-    explicit LZ4Decoder(RC<Stream> reader) : reader(std::move(reader)) {
+    explicit LZ4Decoder(Rc<Stream> reader) : reader(std::move(reader)) {
         buffer.reset(new std::byte[compressionBatchSize]);
         bufferSize = bufferConsumed = 0;
         LZ4F_errorCode_t result     = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
@@ -104,7 +104,7 @@ public:
     }
 
 private:
-    RC<Stream> reader;
+    Rc<Stream> reader;
     LZ4F_dctx* dctx = nullptr;
     std::unique_ptr<std::byte[]> buffer;
     size_t bufferSize     = 0;
@@ -121,7 +121,7 @@ static_assert(lz4Level(CompressionLevel::Highest) == LZ4HC_CLEVEL_MAX);
 
 class LZ4Encoder final : public SequentialWriter {
 public:
-    explicit LZ4Encoder(RC<Stream> writer, CompressionLevel level) : writer(std::move(writer)) {
+    explicit LZ4Encoder(Rc<Stream> writer, CompressionLevel level) : writer(std::move(writer)) {
 
         LZ4F_errorCode_t result = LZ4F_createCompressionContext(&cctx, LZ4F_VERSION);
         if (LZ4F_isError(result)) {
@@ -220,7 +220,7 @@ public:
     }
 
 private:
-    RC<Stream> writer;
+    Rc<Stream> writer;
     bool headerWritten = false;
     LZ4F_cctx* cctx    = nullptr;
     LZ4F_preferences_t preferences{};
@@ -228,12 +228,12 @@ private:
     size_t bufferSize{};
 };
 
-RC<Stream> lz4Decoder(RC<Stream> reader) {
-    return RC<Stream>(new LZ4Decoder(std::move(reader)));
+Rc<Stream> lz4Decoder(Rc<Stream> reader) {
+    return Rc<Stream>(new LZ4Decoder(std::move(reader)));
 }
 
-RC<Stream> lz4Encoder(RC<Stream> writer, CompressionLevel level) {
-    return RC<Stream>(new LZ4Encoder(std::move(writer), level));
+Rc<Stream> lz4Encoder(Rc<Stream> writer, CompressionLevel level) {
+    return Rc<Stream>(new LZ4Encoder(std::move(writer), level));
 }
 
 Bytes lz4Encode(BytesView data, CompressionLevel level) {
