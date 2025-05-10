@@ -1602,7 +1602,7 @@ void Widget::clear() {
     requestRestyle();
 }
 
-void Widget::removeIf(function<bool(Widget*)> predicate) {
+void Widget::removeIf(function_ref<bool(Widget*)> predicate) {
     size_t num     = 0;
     size_t removed = 0;
     while (m_widgets.size() > num) {
@@ -3155,4 +3155,14 @@ bool Widget::hasParent(Widget* parent, bool includePopup) const {
     return false;
 }
 
+void Widget::bubble(function_ref<bool(Widget*)> fn, bool includePopup) {
+    Rc<Widget> current = this->shared_from_this();
+    while (current) {
+        if (!fn(current.get()))
+            return;
+        if (current->m_zorder != ZOrder::Normal && !includePopup)
+            return;
+        current = current->m_parent ? current->m_parent->shared_from_this() : nullptr;
+    }
+}
 } // namespace Brisk

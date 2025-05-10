@@ -26,6 +26,7 @@
 #include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
+#include <brisk/core/internal/FunctionRef.hpp>
 
 namespace Brisk {
 
@@ -1335,7 +1336,7 @@ private:
         bool entriesChanged = false;
         Rc<Scheduler> queue;
 
-        void disconnectIf(std::function<bool(const std::pair<BindingAddress, Entry>&)> pred);
+        void disconnectIf(function_ref<bool(const std::pair<BindingAddress, Entry>&)> pred);
     };
 
     uint32_t m_counter = 0;

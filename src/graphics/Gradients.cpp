@@ -57,7 +57,7 @@ GradientData::GradientData(const Gradient& gradient) {
     }
 }
 
-GradientData::GradientData(const function<ColorW(float)>& func) {
+GradientData::GradientData(function_ref<ColorW(float)> func) {
     for (size_t i = 0; i < gradientResolution; i++) {
         data[i] = ColorF(func(static_cast<float>(i) / (gradientResolution - 1))).premultiply();
     }

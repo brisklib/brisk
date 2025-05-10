@@ -485,7 +485,7 @@ template std::basic_string<wchar_t> utfToUtf<wchar_t, wchar_t>(std::basic_string
 
 template <typename InChar, UtfPolicy policy = UtfPolicy::ReplaceInvalid>
 std::basic_string<InChar> utfTransform(std::basic_string_view<InChar> text,
-                                       const function<char32_t(char32_t)>& fn,
+                                       function_ref<char32_t(char32_t)> fn,
                                        CUtfPolicy<policy> = CUtfPolicy<policy>{}) {
     const size_t len =
         text.empty() ? 0 : utfMaxElements(InChar{}) * utfCodepoints(text.data(), text.data() + text.size());
@@ -498,7 +498,7 @@ std::basic_string<InChar> utfTransform(std::basic_string_view<InChar> text,
 
 template <typename InChar>
 std::basic_string<InChar> utfTransform(std::basic_string_view<InChar> text,
-                                       const function<char32_t(char32_t)>& fn, UtfPolicy policy) {
+                                       function_ref<char32_t(char32_t)> fn, UtfPolicy policy) {
     if (policy == UtfPolicy::ReplaceInvalid)
         return utfTransform<InChar>(text, fn, CUtfPolicy<UtfPolicy::ReplaceInvalid>{});
     else
@@ -506,12 +506,12 @@ std::basic_string<InChar> utfTransform(std::basic_string_view<InChar> text,
 }
 
 template std::basic_string<char> utfTransform<char>(std::basic_string_view<char> sv,
-                                                    const function<char32_t(char32_t)>& fn, UtfPolicy policy);
+                                                    function_ref<char32_t(char32_t)> fn, UtfPolicy policy);
 template std::basic_string<char16_t> utfTransform<char16_t>(std::basic_string_view<char16_t> sv,
-                                                            const function<char32_t(char32_t)>& fn,
+                                                            function_ref<char32_t(char32_t)> fn,
                                                             UtfPolicy policy);
 template std::basic_string<char32_t> utfTransform<char32_t>(std::basic_string_view<char32_t> sv,
-                                                            const function<char32_t(char32_t)>& fn,
+                                                            function_ref<char32_t(char32_t)> fn,
                                                             UtfPolicy policy);
 
 template <typename Char>
@@ -564,7 +564,7 @@ template std::basic_string<char16_t> utfNormalize<char16_t>(std::basic_string_vi
 template std::basic_string<char32_t> utfNormalize<char32_t>(std::basic_string_view<char32_t> text,
                                                             UtfNormalization normalization, UtfPolicy policy);
 
-std::string asciiTransform(std::string_view text, const function<char32_t(char32_t)>& fn) {
+std::string asciiTransform(std::string_view text, function_ref<char32_t(char32_t)> fn) {
     std::string result(text.size(), ' ');
     for (size_t i = 0; i < text.size(); ++i) {
         result[i] = fn(text[i]);
