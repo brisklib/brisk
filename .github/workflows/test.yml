@@ -142,9 +142,9 @@ jobs:
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
     - name: Build
       run: |
-        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}} -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}} -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
         cmake --build build-release --target install
-        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}} -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug
+        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}} -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug
         cmake --build build-debug   --target install
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
@@ -178,9 +178,9 @@ jobs:
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
     - name: Build
       run: |
-        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++-19 -DCMAKE_C_COMPILER=clang-19
+        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++-19 -DCMAKE_C_COMPILER=clang-19
         cmake --build build-release --target install
-        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER=clang++-19 -DCMAKE_C_COMPILER=clang-19
+        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER=clang++-19 -DCMAKE_C_COMPILER=clang-19
         cmake --build build-debug   --target install
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
@@ -221,9 +221,9 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{startsWith(matrix.triplet, 'arm64-') && 'x64_arm64' || (startsWith(matrix.triplet, 'x64-') && 'x64' || 'x64_x86')}}
-        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_HOST_TRIPLET=%VCPKG_DEFAULT_HOST_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
+        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_HOST_TRIPLET=%VCPKG_DEFAULT_HOST_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
         cmake --build build-release --target install
-        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_HOST_TRIPLET=%VCPKG_DEFAULT_HOST_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
+        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_HOST_TRIPLET=%VCPKG_DEFAULT_HOST_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DCMAKE_BUILD_TYPE=Debug   -DCMAKE_CXX_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_C_COMPILER="%LLVM_DIR%/bin/clang-cl.exe" -DCMAKE_LINKER="%LLVM_DIR%/bin/lld-link.exe"
         cmake --build build-debug   --target install
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
