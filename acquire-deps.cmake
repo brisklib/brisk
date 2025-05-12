@@ -2,14 +2,21 @@ set(ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 set(URL https://download.brisklib.com/brisk-deps/{TRIPLET}-{DEP_HASH}.tar.xz)
 
-if (DEFINED ENV{VCPKG_TARGET_TRIPLET})
-    set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_TARGET_TRIPLET})
-else ()
-    if (DEFINED ENV{VCPKG_DEFAULT_TRIPLET})
-        set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_DEFAULT_TRIPLET})
+if (NOT DEFINED VCPKG_TARGET_TRIPLET)
+    message(STATUS "VCPKG_TARGET_TRIPLET is not defined, checking environment...")
+
+    if (DEFINED ENV{VCPKG_TARGET_TRIPLET})
+        set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_TARGET_TRIPLET})
+        message(STATUS "Using VCPKG_TARGET_TRIPLET environment variable (${VCPKG_TARGET_TRIPLET})")
     else ()
-        message(FATAL_ERROR "Set VCPKG_TARGET_TRIPLET or VCPKG_DEFAULT_TRIPLET environment variable")
+        if (DEFINED ENV{VCPKG_DEFAULT_TRIPLET})
+            set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_DEFAULT_TRIPLET})
+            message(STATUS "Using VCPKG_DEFAULT_TRIPLET environment variable (${VCPKG_TARGET_TRIPLET})")
+        else ()
+            message(FATAL_ERROR "Set VCPKG_TARGET_TRIPLET cmake variable or VCPKG_TARGET_TRIPLET or VCPKG_DEFAULT_TRIPLET environment variable")
+        endif ()
     endif ()
+
 endif ()
 
 include(${ROOT}/dep-hash.cmake)
