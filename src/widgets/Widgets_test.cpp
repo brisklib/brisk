@@ -24,6 +24,7 @@
 #include <brisk/gui/Icons.hpp>
 #include "Catch2Utils.hpp"
 #include "../graphics/VisualTests.hpp"
+#include <brisk/graphics/Offscreen.hpp>
 
 namespace Brisk {
 
@@ -254,5 +255,52 @@ TEST_CASE("Widget Shadow") {
                              shadowSpread = 10, shadowColor = Palette::black,
                              backgroundColor = Palette::white },
                {}, { 320, 320 }, 1, Palette::white);
+}
+
+TEST_CASE("Switch animation") {
+    WebpAnimationEncoder anim;
+    Size size{ 360, 180 };
+
+    WidgetTree tree;
+    // tree.disableTransitions();
+    tree.disableRealtimeMode();
+    Brisk::pixelRatio() = 2.f;
+    tree.setViewportRectangle({ Point{}, size });
+    bool val = false;
+    BindingRegistration val_r(&val, nullptr);
+    tree.setRoot(rcnew Container{
+        windowColor = 0x131419_rgb,
+        std::move(rcnew Row{ rcnew Switch{ rcnew Text{ "Switch" }, value = Value{ &val } } }),
+    });
+
+    constexpr int fps = 30;
+
+    OffscreenCanvas offscreen(size, 2.f);
+    tree.update();
+    tree.paint(offscreen.canvas(), Palette::black, true);
+    anim.addFrame(offscreen.render(), std::chrono::milliseconds(1000 / fps));
+
+    val = true;
+    bindings->notify(&val);
+
+    for (int i = 0; i < fps; ++i) {
+        bindings->assign(frameStartTime) += 1.0 / fps;
+        tree.update();
+        tree.paint(offscreen.canvas(), Palette::black, true);
+        anim.addFrame(offscreen.render(), std::chrono::milliseconds(1000 / fps));
+    }
+
+    val = false;
+    bindings->notify(&val);
+
+    for (int i = 0; i < fps; ++i) {
+        bindings->assign(frameStartTime) += 1.0 / fps;
+        tree.update();
+        tree.paint(offscreen.canvas(), Palette::black, true);
+        anim.addFrame(offscreen.render(), std::chrono::milliseconds(1000 / fps));
+    }
+
+    fs::create_directories(PROJECT_BINARY_DIR "/visualTest");
+    REQUIRE(writeBytes(PROJECT_BINARY_DIR "/visualTest/switch.webp", anim.encode()).has_value());
 }
 } // namespace Brisk
