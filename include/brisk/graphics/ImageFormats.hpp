@@ -122,6 +122,22 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
 [[nodiscard]] Bytes webpEncode(Rc<Image> image, std::optional<float> quality = std::nullopt,
                                bool lossless = false);
 
+class WebpAnimationEncoder {
+public:
+    explicit WebpAnimationEncoder(std::optional<float> quality = std::nullopt, bool lossless = false);
+    ~WebpAnimationEncoder();
+    void addFrame(Rc<Image> image, std::chrono::milliseconds duration);
+
+    Bytes encode(Color backgroundColor = Palette::transparent, int repeats = 0);
+
+private:
+    std::optional<float> m_quality;
+    bool m_lossless;
+    struct Private;
+    std::unique_ptr<Private> m_priv;
+    bool m_error = false;
+};
+
 /**
  * @brief Encodes an image to the specified format using the provided codec.
  *
