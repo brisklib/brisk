@@ -8,8 +8,6 @@ on:
       - '**'
 
 env:
-  VCPKG_OVERLAY_TRIPLETS: cmake/triplets
-  VCPKG_OVERLAY_PORTS: cmake/ports
   AWS_ACCESS_KEY_ID: ${{secrets.GHBIN_ACCESS_KEY}}
   AWS_SECRET_ACCESS_KEY: ${{secrets.GHBIN_SECRET_KEY}}
   AWS_DEFAULT_REGION: fra1

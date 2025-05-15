@@ -27,13 +27,6 @@ if (APPLE)
         CACHE STRING "" FORCE)
 endif ()
 
-set(VCPKG_OVERLAY_TRIPLETS
-    ${BRISK_ROOT}/cmake/triplets
-    CACHE STRING "")
-set(VCPKG_OVERLAY_PORTS
-    ${BRISK_ROOT}/cmake/ports
-    CACHE STRING "")
-
 list(APPEND CMAKE_MODULE_PATH ${BRISK_ROOT}/cmake/packages)
 
 if (NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg.cmake" AND NOT DEFINED HAS_VCPKG)
