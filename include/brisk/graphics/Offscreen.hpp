@@ -27,22 +27,22 @@
 namespace Brisk {
 
 /**
- * @class OffscreenRendering
+ * @class OffscreenCanvas
  * @brief Class for handling offscreen rendering.
  */
-class OffscreenRendering {
+class OffscreenCanvas {
 public:
     /**
-     * @brief Constructs an OffscreenRendering object with the specified size and pixel ratio.
+     * @brief Constructs an OffscreenCanvas object with the specified size and pixel ratio.
      * @param size The dimensions of the rendering target.
      * @param pixelRatio The ratio of pixels to physical pixels (default is 1.0).
      */
-    OffscreenRendering(Size size, float pixelRatio = 1.f);
+    OffscreenCanvas(Size size, float pixelRatio = 1.f);
 
     /**
-     * @brief Destructor for the OffscreenRendering object.
+     * @brief Destructor for the OffscreenCanvas object.
      */
-    ~OffscreenRendering();
+    ~OffscreenCanvas();
 
     /**
      * @brief Renders the offscreen image and returns the resulting image.
@@ -63,10 +63,19 @@ public:
     Canvas& canvas();
 
 private:
-    Rc<ImageRenderTarget> m_target;            ///< The render target for offscreen rendering.
-    Rc<RenderEncoder> m_encoder;               ///< The render encoder used during rendering.
-    std::unique_ptr<RenderPipeline> m_context; ///< The context for the rendering pipeline.
-    std::unique_ptr<Canvas> m_canvas;          ///< The canvas used for drawing.
+    struct State {
+        Rc<ImageRenderTarget> target;            ///< The render target for offscreen rendering.
+        Rc<RenderEncoder> encoder;               ///< The render encoder used during rendering.
+        std::unique_ptr<RenderPipeline> context; ///< The context for the rendering pipeline.
+        std::unique_ptr<Canvas> canvas;          ///< The canvas used for drawing.
+
+        State(Rc<RenderDevice> device, Size size, float pixelRatio);
+        Rc<Image> render() &&;
+    };
+
+    Size m_size;
+    float m_pixelRatio;
+    std::optional<State> m_state;
 };
 
 } // namespace Brisk

@@ -22,10 +22,10 @@
 
 namespace Brisk {
 
-OffscreenGuiRendering::OffscreenGuiRendering(int width, int height, float pixelRatio)
-    : OffscreenRendering({ width, height }, pixelRatio) {}
+OffscreenGuiCanvas::OffscreenGuiCanvas(int width, int height, float pixelRatio)
+    : OffscreenCanvas({ width, height }, pixelRatio) {}
 
-void OffscreenGuiRendering::updateAndPaint(WidgetTree& tree) {
+void OffscreenGuiCanvas::updateAndPaint(WidgetTree& tree) {
     tree.setViewportRectangle(rect());
     tree.update();
     tree.paint(this->canvas(), {}, true);

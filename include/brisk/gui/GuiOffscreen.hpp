@@ -25,9 +25,9 @@
 
 namespace Brisk {
 
-class OffscreenGuiRendering : public OffscreenRendering {
+class OffscreenGuiCanvas : public OffscreenCanvas {
 public:
-    OffscreenGuiRendering(int width, int height, float pixelRatio = 1.f);
+    OffscreenGuiCanvas(int width, int height, float pixelRatio = 1.f);
     void updateAndPaint(WidgetTree& tree);
 };
 } // namespace Brisk

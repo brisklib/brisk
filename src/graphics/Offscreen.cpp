@@ -25,34 +25,51 @@
 
 namespace Brisk {
 
-OffscreenRendering::OffscreenRendering(Size size, float pixelRatio) {
-    auto renderDevice = getRenderDevice();
-    if (!renderDevice.has_value()) {
-        throwException(ERuntime("Render device is null"));
-    }
-    m_target            = (*renderDevice)->createImageTarget(size);
-    m_encoder           = (*renderDevice)->createEncoder();
+OffscreenCanvas::OffscreenCanvas(Size size, float pixelRatio)
+    : m_size(size), m_pixelRatio(pixelRatio) {}
+
+OffscreenCanvas::State::State(Rc<RenderDevice> device, Size size, float pixelRatio) {
+    target              = device->createImageTarget(size);
+    encoder             = device->createEncoder();
     Brisk::pixelRatio() = pixelRatio;
-    m_context.reset(new RenderPipeline(m_encoder, m_target));
+    context.reset(new RenderPipeline(encoder, target));
+    canvas.reset(new Canvas(*context));
 }
 
-Rectangle OffscreenRendering::rect() const {
-    Size size = m_target->size();
-    return { 0, 0, size.width, size.height };
+Rc<Image> OffscreenCanvas::State::render() && {
+    canvas.reset();
+    context.reset();
+    encoder->wait();
+    encoder.reset();
+    Rc<Image> result = target->image();
+    target.reset();
+    return result;
 }
 
-Canvas& OffscreenRendering::canvas() {
-    if (!m_canvas)
-        m_canvas.reset(new Canvas(*m_context));
-    return *m_canvas;
+Rectangle OffscreenCanvas::rect() const {
+    if (!m_state)
+        return {};
+    return { Point{}, m_state->target->size() };
 }
 
-Rc<Image> OffscreenRendering::render() {
-    m_canvas.reset();  // Finish painting.
-    m_context.reset(); // Finish rendering.
-    m_encoder->wait(); // Wait until the image is fully rendered on the GPU.
-    return m_target->image();
+Canvas& OffscreenCanvas::canvas() {
+    if (!m_state) {
+        auto renderDevice = getRenderDevice();
+        if (!renderDevice.has_value()) {
+            throwException(ERuntime("Render device is null"));
+        }
+        m_state.emplace(renderDevice.value(), m_size, m_pixelRatio);
+    }
+    return *m_state->canvas;
 }
 
-OffscreenRendering::~OffscreenRendering() {}
+Rc<Image> OffscreenCanvas::render() {
+    if (!m_state)
+        return nullptr;
+    Rc<Image> result = std::move(*m_state).render();
+    m_state.reset();
+    return result;
+}
+
+OffscreenCanvas::~OffscreenCanvas() = default;
 } // namespace Brisk
