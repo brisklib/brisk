@@ -80,6 +80,8 @@ public:
     void setInputQueue(InputQueue* inputQueue);
     Nullable<InputQueue> inputQueue() const;
 
+    void disableRealtimeMode();
+
     Callbacks<Widget*> onAttached;
     Callbacks<Widget*> onDetached;
 
@@ -117,6 +119,7 @@ private:
     bool m_fullRepaint          = true;
     bool m_painting             = false;
     bool m_savedDebugBoundaries = false;
+    bool m_realtime             = true;
     InputQueue* m_inputQueue    = nullptr;
 };
 } // namespace Brisk

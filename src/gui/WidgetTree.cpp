@@ -131,8 +131,13 @@ void WidgetTree::groupsBeforeLayout() {
     }
 }
 
+void WidgetTree::disableRealtimeMode() {
+    m_realtime = false;
+}
+
 void WidgetTree::update() {
-    bindings->assign(frameStartTime, currentTime());
+    if (m_realtime)
+        bindings->assign(frameStartTime, currentTime());
 
     groupsBeforeFrame();
 
