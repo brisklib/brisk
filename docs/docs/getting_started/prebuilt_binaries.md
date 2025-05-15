@@ -17,6 +17,7 @@ In the *assets* section of the release page on GitHub:
 https://github.com/brisklib/brisk/releases/latest
 
 You should download
+
 1. `Brisk-Prebuilt-<VERSION>-<TRIPLET>.tar.xz` that contains the Brisk binary package, and
 2. `Brisk-Dependencies-<HASH>-<TRIPLET>.tar.xz` that contains the Brisk dependencies.
 
@@ -32,13 +33,13 @@ These artifacts that include only the triplet (e.g. `x64-linux`) in their names 
 
 ### CMake Variables for Building Applications with Prebuilt Brisk and Dependencies
 
-| CMake variable         | Value                                                                                          |
-|------------------------|------------------------------------------------------------------------------------------------|
-| `CMAKE_PREFIX_PATH`    | `<brisk-prebuilt>/lib/cmake`                                                                   |
-| `CMAKE_TOOLCHAIN_FILE` | `<brisk-dependencies>/scripts/buildsystems/vcpkg.cmake`                                        |
-| `VCPKG_INSTALLED_DIR`  | `<brisk-dependencies>/installed`                                                               |
-| `VCPKG_TARGET_TRIPLET` | Must match downloaded package’s triplet                                                        |
-| `VCPKG_HOST_TRIPLET`   | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
+| CMake variable                      | Value                                                                                          |
+|-------------------------------------|------------------------------------------------------------------------------------------------|
+| `CMAKE_PREFIX_PATH`                 | `<brisk-prebuilt>/lib/cmake`                                                                   |
+| <nobr>`CMAKE_TOOLCHAIN_FILE`</nobr> | `<brisk-dependencies>/scripts/buildsystems/vcpkg.cmake`                                        |
+| `VCPKG_INSTALLED_DIR`               | `<brisk-dependencies>/installed`                                                               |
+| `VCPKG_TARGET_TRIPLET`              | Must match downloaded package’s triplet                                                        |
+| `VCPKG_HOST_TRIPLET`                | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
 
 Replace `<brisk-prebuilt>` with the path where the `Brisk-Prebuilt-<VERSION>-<TRIPLET>.tar.xz` archive was extracted.
 Also, replace `<brisk-dependencies>` with the path where the `Brisk-Dependencies-<VERSION>-<TRIPLET>.tar.xz` archive was extracted.
@@ -70,22 +71,22 @@ cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
 
 ### CMake Variables for Building Brisk with Prebuilt Dependencies
 
-| CMake variable         | Value                                                                                          |
-|------------------------|------------------------------------------------------------------------------------------------|
-| `CMAKE_TOOLCHAIN_FILE` | `<brisk-repository>/vcpkg_exported/scripts/buildsystems/vcpkg.cmake`                           |
-| `VCPKG_INSTALLED_DIR`  | `<brisk-repository>/vcpkg_installed`                                                           |
-| `VCPKG_TARGET_TRIPLET` | Must match downloaded package’s triplet                                                        |
-| `VCPKG_HOST_TRIPLET`   | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
+| CMake variable                      | Value                                                                                          |
+|-------------------------------------|------------------------------------------------------------------------------------------------|
+| <nobr>`CMAKE_TOOLCHAIN_FILE`</nobr> | `<brisk-repository>/vcpkg_exported/scripts/buildsystems/vcpkg.cmake`                           |
+| `VCPKG_INSTALLED_DIR`               | `<brisk-repository>/vcpkg_installed`                                                           |
+| `VCPKG_TARGET_TRIPLET`              | Must match downloaded package’s triplet                                                        |
+| `VCPKG_HOST_TRIPLET`                | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
 
 ### CMake Variables for Building Applications with Prebuilt Dependencies
 
-| CMake variable         | Value                                                                                          |
-|------------------------|------------------------------------------------------------------------------------------------|
-| `CMAKE_PREFIX_PATH`    | `<brisk-install-path>/lib/cmake`                                                               |
-| `CMAKE_TOOLCHAIN_FILE` | `<brisk-repository>/vcpkg_exported/scripts/buildsystems/vcpkg.cmake`                           |
-| `VCPKG_INSTALLED_DIR`  | `<brisk-repository>/vcpkg_installed`                                                           |
-| `VCPKG_TARGET_TRIPLET` | Must match downloaded package’s triplet                                                        |
-| `VCPKG_HOST_TRIPLET`   | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
+| CMake variable                      | Value                                                                                          |
+|-------------------------------------|------------------------------------------------------------------------------------------------|
+| `CMAKE_PREFIX_PATH`                 | `<brisk-install-path>/lib/cmake`                                                               |
+| <nobr>`CMAKE_TOOLCHAIN_FILE`</nobr> | `<brisk-repository>/vcpkg_exported/scripts/buildsystems/vcpkg.cmake`                           |
+| `VCPKG_INSTALLED_DIR`               | `<brisk-repository>/vcpkg_installed`                                                           |
+| `VCPKG_TARGET_TRIPLET`              | Must match downloaded package’s triplet                                                        |
+| `VCPKG_HOST_TRIPLET`                | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
 
 Replace `<brisk-repository>` with the path to the Brisk repository where `acquire-deps.cmake` was called.
 Also, replace `<brisk-install-path>` with the path where Brisk was installed after building (usually `<brisk-repository>/dist`).

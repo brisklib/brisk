@@ -83,6 +83,7 @@ nav:
     - Examples:
       - other_examples.md
   - Reference:
+      - index.md
   - Index:
       - auto/refindex.md
 
