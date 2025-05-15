@@ -82,35 +82,54 @@ jobs:
           C:/vcpkg/buildtrees
 
   deps-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        triplet: ["x64-osx", "arm64-osx"]
     runs-on: macos-latest
     env:
-      VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
-      VCPKG_DEFAULT_HOST_TRIPLET: ${{matrix.triplet}}
-      VCPKG_ROOT: "$HOME/vcpkg"
+      VCPKG_ROOT: /usr/local/share/vcpkg
     steps:
     - name: Install prerequisites
       run: |
-        brew install autoconf automake autoconf-archive
-        git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
-        $HOME/vcpkg/bootstrap-vcpkg.sh -disableMetrics
-        echo "$HOME/vcpkg" >> "$GITHUB_PATH"
+        brew install autoconf automake autoconf-archive tree
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Vcpkg
+    - name: Hash
+      run: |        
+        hash=$(cmake -DDEP_HASH_SILENT=ON -P cmake/dep-hash.cmake)
+        hash=${hash:3}
+        echo "HASH=$hash" >> $GITHUB_ENV
+    - name: Vcpkg (x64)
+      env:
+        VCPKG_DEFAULT_TRIPLET: x64-osx
+        VCPKG_DEFAULT_HOST_TRIPLET: x64-osx
+        VCPKG_INSTALLED_DIR: deps-installed-x64
+        EXPORTED_DIR: ${{github.workspace}}/native/x64-osx
       run: |
         cmake -P upload-deps.cmake
+        cmake -DINSTALL=OFF -P acquire-deps.cmake
+    - name: Vcpkg (arm64)
+      env:
+        VCPKG_DEFAULT_TRIPLET: arm64-osx
+        VCPKG_DEFAULT_HOST_TRIPLET: arm64-osx
+        VCPKG_INSTALLED_DIR: deps-installed-arm64
+        EXPORTED_DIR: ${{github.workspace}}/native/arm64-osx
+      run: |
+        cmake -P upload-deps.cmake
+        cmake -DINSTALL=OFF -P acquire-deps.cmake
+    - name: Vcpkg (uni)
+      env:
+        VCPKG_DEFAULT_TRIPLET: uni-osx
+        EXPORTED_DIR: ${{github.workspace}}/fat/uni-osx
+      run: |
+        tree -L 3
+        cmake -DNATIVE_DIR=${{github.workspace}}/native -P upload-deps.cmake
+
     - name: Upload buildtrees
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: vcpkg-buildtrees-${{matrix.triplet}}
+        name: vcpkg-buildtrees-osx
         retention-days: 10
         path: |
-          /Users/runner/vcpkg/buildtrees
+          /usr/local/share/vcpkg/buildtrees
 
   build-macos:
     strategy:
@@ -121,20 +140,18 @@ jobs:
             arch: x86_64
           - triplet: "arm64-osx"
             arch: arm64
+          - triplet: "uni-osx"
+            arch: arm64;x86_64
     runs-on: macos-latest
     needs: deps-macos
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
       VCPKG_DEFAULT_HOST_TRIPLET: ${{matrix.triplet}}
-      VCPKG_ROOT: "$HOME/vcpkg"
+      VCPKG_ROOT: /usr/local/share/vcpkg
     steps:
     - name: Install prerequisites
       run: |
         brew install autoconf automake autoconf-archive
-        git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
-        $HOME/vcpkg/bootstrap-vcpkg.sh -disableMetrics
-        echo "VCPKG_INSTALLATION_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
-        echo "$HOME/vcpkg" >> "$GITHUB_PATH"
     - name: Checkout
       uses: actions/checkout@v4
     - name: Acquire dependencies
@@ -142,9 +159,9 @@ jobs:
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
     - name: Build
       run: |
-        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}} -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+        cmake -GNinja -S . -B build-release -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF "-DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}}" -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
         cmake --build build-release --target install
-        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}} -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug
+        cmake -GNinja -S . -B build-debug   -DBRISK_TESTS=OFF -DBRISK_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF "-DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}}" -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug
         cmake --build build-debug   --target install
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
@@ -563,7 +580,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        triplet: ["x64-osx", "arm64-osx"]
+        include:
+          - triplet: "x64-osx"
+            arch: x86_64
+          - triplet: "arm64-osx"
+            arch: arm64
+          - triplet: "uni-osx"
+            arch: arm64;x86_64
     runs-on: macos-latest
     needs: build-macos
     steps:
@@ -587,8 +610,8 @@ jobs:
       run: >
         cmake -GXcode
         -S repo/examples/showcase
-        -DCMAKE_OSX_ARCHITECTURES=${{ startsWith(matrix.triplet, 'x64-') && 'x86_64' || 'arm64' }}
         -B build
+        "-DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}}"
         -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
         -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
         -DVCPKG_INSTALLED_DIR=${{github.workspace}}/vcpkg_exported/installed
@@ -596,13 +619,16 @@ jobs:
     - name: Build
       run: |
         cmake --build build --config Release
+    - name: Zip bundles
+      run: |
+        ditto -c -k --sequesterRsrc --keepParent "build/Release/showcase.app" "showcase.app.zip"
     - name: Upload usage artifacts
       uses: actions/upload-artifact@v4
       with:
         name: showcase-${{matrix.triplet}}
         retention-days: 30
         path: |
-          build/Release/showcase.app
+          showcase.app.zip
 
   usage-windows:
     strategy:
