@@ -32,6 +32,13 @@ namespace Brisk {
  */
 class OffscreenCanvas {
 public:
+    OffscreenCanvas()                                  = default;
+
+    OffscreenCanvas(OffscreenCanvas&&)                 = default;
+    OffscreenCanvas(const OffscreenCanvas&)            = delete;
+    OffscreenCanvas& operator=(OffscreenCanvas&&)      = default;
+    OffscreenCanvas& operator=(const OffscreenCanvas&) = delete;
+
     /**
      * @brief Constructs an OffscreenCanvas object with the specified size and pixel ratio.
      * @param size The dimensions of the rendering target.
@@ -73,8 +80,8 @@ private:
         Rc<Image> render() &&;
     };
 
-    Size m_size;
-    float m_pixelRatio;
+    Size m_size{};
+    float m_pixelRatio = 1.f;
     std::optional<State> m_state;
     VisualSettings m_settings;
 };
