@@ -289,7 +289,7 @@ struct WidgetAnimation {
     }
 
     void frames(std::chrono::milliseconds time) {
-        frames(std::max(1ll, time.count() * fps / 1000));
+        frames(std::max(int64_t(1), int64_t(time.count() * fps / 1000)));
     }
 
     void frames(int numFrames = 1) {
