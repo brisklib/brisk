@@ -37,7 +37,7 @@ public:
      * @param size The dimensions of the rendering target.
      * @param pixelRatio The ratio of pixels to physical pixels (default is 1.0).
      */
-    OffscreenCanvas(Size size, float pixelRatio = 1.f);
+    OffscreenCanvas(Size size, float pixelRatio = 1.f, const VisualSettings& settings = {});
 
     /**
      * @brief Destructor for the OffscreenCanvas object.
@@ -69,13 +69,14 @@ private:
         std::unique_ptr<RenderPipeline> context; ///< The context for the rendering pipeline.
         std::unique_ptr<Canvas> canvas;          ///< The canvas used for drawing.
 
-        State(Rc<RenderDevice> device, Size size, float pixelRatio);
+        State(Rc<RenderDevice> device, Size size, float pixelRatio, const VisualSettings& settings);
         Rc<Image> render() &&;
     };
 
     Size m_size;
     float m_pixelRatio;
     std::optional<State> m_state;
+    VisualSettings m_settings;
 };
 
 } // namespace Brisk

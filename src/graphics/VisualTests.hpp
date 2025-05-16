@@ -109,11 +109,13 @@ static void visualTestMono(const std::string& referenceImageName, Size size, Fn&
 
 inline ColorF defaultBackColor  = Palette::transparent;
 inline float defaultMaximumDiff = 0.05f;
+inline bool defaultSubPixelText = true;
 
 template <bool profile = false, bool passRenderTarget = false, typename Fn>
 static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn,
                        ColorF backColor = defaultBackColor, float maximumDiff = defaultMaximumDiff,
-                       std::initializer_list<RendererBackend> backends = rendererBackends) {
+                       std::initializer_list<RendererBackend> backends = rendererBackends,
+                       bool subPixelText                               = defaultSubPixelText) {
 
     for (RendererBackend bk : backends) {
         INFO(fmt::to_string(bk));
@@ -132,7 +134,8 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
         REQUIRE(target->size() == size);
 
         Rc<RenderEncoder> encoder = device->createEncoder();
-        encoder->setVisualSettings(VisualSettings{ .blueLightFilter = 0, .gamma = 1, .subPixelText = false });
+        encoder->setVisualSettings(
+            VisualSettings{ .blueLightFilter = 0, .gamma = 1, .subPixelText = subPixelText });
 
         visualTest<PixelFormat::BGRA>(
             referenceImageName, size,

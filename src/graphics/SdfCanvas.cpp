@@ -274,13 +274,16 @@ void SdfCanvas::drawColorMask(SpriteResources sprites, std::span<const GeometryG
 void SdfCanvas::drawText(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                          RenderStateExArgs args) {
     RenderStateEx style(ShaderType::Text, glyphs.size(), args);
-    Simd<float, 4> abcd{ style.coordMatrix.a, style.coordMatrix.b, style.coordMatrix.c, style.coordMatrix.d };
-    if (horizontalAll(eq(abcd, Simd<float, 4>{ 1.f, 0.f, 0.f, 1.f }))) {
-        style.subpixelMode = SubpixelMode::RGB;
-    } else if (horizontalAll(eq(abcd, Simd<float, 4>{ -1.f, -0.f, -0.f, -1.f }))) {
-        style.subpixelMode = SubpixelMode::BGR;
-    } else {
-        style.subpixelMode = SubpixelMode::Off;
+    if (style.subpixelMode != SubpixelMode::Off) {
+        Simd<float, 4> abcd{ style.coordMatrix.a, style.coordMatrix.b, style.coordMatrix.c,
+                             style.coordMatrix.d };
+        if (horizontalAll(eq(abcd, Simd<float, 4>{ 1.f, 0.f, 0.f, 1.f }))) {
+            style.subpixelMode = SubpixelMode::RGB;
+        } else if (horizontalAll(eq(abcd, Simd<float, 4>{ -1.f, -0.f, -0.f, -1.f }))) {
+            style.subpixelMode = SubpixelMode::BGR;
+        } else {
+            style.subpixelMode = SubpixelMode::Off;
+        }
     }
     style.spriteOversampling = fonts->hscale();
     style.sprites            = std::move(sprites);

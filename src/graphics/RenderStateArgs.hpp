@@ -191,6 +191,7 @@ constexpr inline Argument<Tag::TextureChannel> textureChannel{};
 constexpr inline Argument<Tag::CoordMatrix> coordMatrix{};
 constexpr inline Argument<Tag::SamplerMode> samplerMode{};
 constexpr inline Argument<Tag::Scissors> scissors{};
+constexpr inline Argument<Tag::SubpixelMode> subpixelMode{};
 
 } // namespace Arg
 

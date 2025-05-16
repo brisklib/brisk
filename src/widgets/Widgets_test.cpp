@@ -275,7 +275,7 @@ TEST_CASE("Switch animation") {
 
     constexpr int fps = 30;
 
-    OffscreenCanvas offscreen(size, 2.f);
+    OffscreenCanvas offscreen(size, 2.f, { .subPixelText = false });
     tree.update();
     tree.paint(offscreen.canvas(), Palette::black, true);
     anim.addFrame(offscreen.render(), std::chrono::milliseconds(1000 / fps));

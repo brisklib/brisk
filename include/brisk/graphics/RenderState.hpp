@@ -188,7 +188,7 @@ public:
 
     Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     int spriteOversampling    = 1;
-    SubpixelMode subpixelMode = SubpixelMode::Off;
+    SubpixelMode subpixelMode = SubpixelMode::RGB;
 
     PatternCodes pattern{};
     int reserved1         = 0;

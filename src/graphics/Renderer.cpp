@@ -126,6 +126,10 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
         flush();
     }
 
+    if (!m_encoder->visualSettings().subPixelText) {
+        cmd.subpixelMode = SubpixelMode::Off;
+    }
+
     if (cmd.gradientHandle) {
         cmd.multigradient = m_resources.gradientAtlas->addEntry(cmd.gradientHandle, m_resources.firstCommand,
                                                                 m_resources.currentCommand);

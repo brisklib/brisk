@@ -25,12 +25,14 @@
 
 namespace Brisk {
 
-OffscreenCanvas::OffscreenCanvas(Size size, float pixelRatio)
-    : m_size(size), m_pixelRatio(pixelRatio) {}
+OffscreenCanvas::OffscreenCanvas(Size size, float pixelRatio, const VisualSettings& settings)
+    : m_size(size), m_pixelRatio(pixelRatio), m_settings(settings) {}
 
-OffscreenCanvas::State::State(Rc<RenderDevice> device, Size size, float pixelRatio) {
-    target              = device->createImageTarget(size);
-    encoder             = device->createEncoder();
+OffscreenCanvas::State::State(Rc<RenderDevice> device, Size size, float pixelRatio,
+                              const VisualSettings& settings) {
+    target  = device->createImageTarget(size);
+    encoder = device->createEncoder();
+    encoder->setVisualSettings(settings);
     Brisk::pixelRatio() = pixelRatio;
     context.reset(new RenderPipeline(encoder, target));
     canvas.reset(new Canvas(*context));
@@ -58,7 +60,7 @@ Canvas& OffscreenCanvas::canvas() {
         if (!renderDevice.has_value()) {
             throwException(ERuntime("Render device is null"));
         }
-        m_state.emplace(renderDevice.value(), m_size, m_pixelRatio);
+        m_state.emplace(renderDevice.value(), m_size, m_pixelRatio, m_settings);
     }
     return *m_state->canvas;
 }

@@ -86,31 +86,34 @@ TEST_CASE("Renderer - fonts") {
     REQUIRE(ttf2.has_value());
     fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
 
-    renderTest(
-        "rr-fonts", { 1200, 600 },
-        [&](RenderContext& context) {
-            Canvas canvas(context, CanvasFlags::Sdf);
+    for (bool subpixel : { false, true }) {
+        renderTest(
+            "rr-fonts{}"_fmt(subpixel ? "-subpixel" : ""), { 1200, 600 },
+            [&](RenderContext& context) {
+                Canvas canvas(context, CanvasFlags::Sdf);
+                canvas.setSubpixelTextRendering(subpixel);
 
-            Rectangle rect;
-            ColorF c;
-            canvas.setFont(Font{ "Lato", 27.f });
-            for (int i = 0; i < 10; ++i) {
-                c    = ColorOf<float, ColorGamma::sRGB>(i / 9.f);
-                rect = Rectangle{ 0, i * 60, 600, (i + 1) * 60 };
-                canvas.setFillColor(c);
-                canvas.fillRect(rect);
-                canvas.setFillColor(Palette::white);
-                canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
-                c    = ColorOf<float, ColorGamma::sRGB>(1.f - i / 9.f);
-                rect = Rectangle{ 600, i * 60, 1200, (i + 1) * 60 };
-                canvas.setFillColor(c);
-                canvas.fillRect(rect);
-                canvas.setFillColor(Palette::black);
-                canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
-            }
-            CHECK(canvas.rasterizedPaths() == 0);
-        },
-        ColorF{ 1.f, 1.f });
+                Rectangle rect;
+                ColorF c;
+                canvas.setFont(Font{ "Lato", 27.f });
+                for (int i = 0; i < 10; ++i) {
+                    c    = ColorOf<float, ColorGamma::sRGB>(i / 9.f);
+                    rect = Rectangle{ 0, i * 60, 600, (i + 1) * 60 };
+                    canvas.setFillColor(c);
+                    canvas.fillRect(rect);
+                    canvas.setFillColor(Palette::white);
+                    canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
+                    c    = ColorOf<float, ColorGamma::sRGB>(1.f - i / 9.f);
+                    rect = Rectangle{ 600, i * 60, 1200, (i + 1) * 60 };
+                    canvas.setFillColor(c);
+                    canvas.fillRect(rect);
+                    canvas.setFillColor(Palette::black);
+                    canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
+                }
+                CHECK(canvas.rasterizedPaths() == 0);
+            },
+            ColorF{ 1.f, 1.f });
+    }
 }
 
 TEST_CASE("Html text") {
