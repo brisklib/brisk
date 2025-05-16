@@ -215,9 +215,10 @@ Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRep
         // the loop will process those new drawables in the subsequent iterations.
     } while (!m_layer.empty());
 
-    m_dirtyRect = std::nullopt;
+    m_dirtyRect   = std::nullopt;
+    m_fullRepaint = false;
 
-    m_painting  = false;
+    m_painting    = false;
 
     if (Internal::debugBoundaries && m_inputQueue) {
         std::optional<Rectangle> rect = m_inputQueue->getAtMouse<Rectangle>([](Widget* w) {
