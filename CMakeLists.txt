@@ -295,7 +295,7 @@ install(
     CONFIGURATIONS Debug Release)
 
 set(DEP_HASH_SILENT ON)
-include(dep-hash.cmake)
+include(cmake/dep-hash.cmake)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Package-README.md.in ${CMAKE_CURRENT_BINARY_DIR}/Package-README.md)
 

@@ -37,8 +37,6 @@ bool separateUiThread = true;
 
 Nullable<WindowApplication> windowApplication;
 
-Rc<TaskQueue> uiScheduler;
-
 void WindowApplication::quit(int exitCode) {
     m_exitCode = exitCode;
     if (Internal::wakeUpMainThread) {

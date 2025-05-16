@@ -24,7 +24,7 @@
 #include <string_view>
 #include <vector>
 #include "Json.hpp"
-#include "internal/Function.hpp"
+#include "internal/FunctionRef.hpp"
 
 namespace Brisk {
 
@@ -429,8 +429,7 @@ enum : char32_t {
  * @return A transformed string.
  */
 template <typename Char>
-std::basic_string<Char> utfTransform(std::basic_string_view<Char> text,
-                                     const function<char32_t(char32_t)>& fn,
+std::basic_string<Char> utfTransform(std::basic_string_view<Char> text, function_ref<char32_t(char32_t)> fn,
                                      UtfPolicy policy = UtfPolicy::Default);
 
 /**
@@ -440,7 +439,7 @@ std::basic_string<Char> utfTransform(std::basic_string_view<Char> text,
  * @param fn A function to transform each UTF codepoint.
  * @return A transformed ASCII string.
  */
-std::string asciiTransform(AsciiStringView text, const function<char32_t(char32_t)>& fn);
+std::string asciiTransform(AsciiStringView text, function_ref<char32_t(char32_t)> fn);
 
 /**
  * @brief Transforms UTF-8 text using a provided function.
@@ -450,7 +449,7 @@ std::string asciiTransform(AsciiStringView text, const function<char32_t(char32_
  * @param policy The policy to handle invalid characters.
  * @return A transformed UTF-8 encoded string.
  */
-inline std::string utf8Transform(U8StringView text, const function<char32_t(char32_t)>& fn,
+inline std::string utf8Transform(U8StringView text, function_ref<char32_t(char32_t)> fn,
                                  UtfPolicy policy = UtfPolicy::Default) {
     return utfTransform(text, fn, policy);
 }
@@ -463,7 +462,7 @@ inline std::string utf8Transform(U8StringView text, const function<char32_t(char
  * @param policy The policy to handle invalid characters.
  * @return A transformed UTF-16 encoded string.
  */
-inline std::u16string utf16Transform(U16StringView text, const function<char32_t(char32_t)>& fn,
+inline std::u16string utf16Transform(U16StringView text, function_ref<char32_t(char32_t)> fn,
                                      UtfPolicy policy = UtfPolicy::Default) {
     return utfTransform(text, fn, policy);
 }
@@ -476,7 +475,7 @@ inline std::u16string utf16Transform(U16StringView text, const function<char32_t
  * @param policy The policy to handle invalid characters.
  * @return A transformed UTF-32 encoded string.
  */
-inline std::u32string utf32Transform(U32StringView text, const function<char32_t(char32_t)>& fn,
+inline std::u32string utf32Transform(U32StringView text, function_ref<char32_t(char32_t)> fn,
                                      UtfPolicy policy = UtfPolicy::Default) {
     return utfTransform(text, fn, policy);
 }

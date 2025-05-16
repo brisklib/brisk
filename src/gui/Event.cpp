@@ -335,7 +335,7 @@ std::tuple<std::shared_ptr<Widget>, int> InputQueue::getAt(Point pt, int offset,
     return std::tuple<std::shared_ptr<Widget>, int>{ nullptr, INT_MAX };
 }
 
-bool InputQueue::mouseAtBubble(const function<bool(Widget*)>& fn, bool bubble, bool useMouseCapture) const {
+bool InputQueue::mouseAtBubble(function_ref<bool(Widget*)> fn, bool bubble, bool useMouseCapture) const {
 
     if (lastMouseEvent) {
         std::shared_ptr<Widget> w = std::get<0>(getAt(lastMouseEvent->point, useMouseCapture ? -1 : 0));

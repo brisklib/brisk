@@ -67,8 +67,6 @@ extern std::atomic_bool debugBoundaries;
 extern std::atomic_bool debugDirtyRect;
 } // namespace Internal
 
-using BindingFunc = function<void(Widget*)>;
-
 class Stylesheet;
 struct Rules;
 
@@ -724,17 +722,7 @@ public:
 
     IteratorEx begin(bool reverse) const;
 
-    template <typename Fn>
-    void bubble(Fn&& fn, bool includePopup = false) {
-        Rc<Widget> current = this->shared_from_this();
-        while (current) {
-            if (!fn(current.get()))
-                return;
-            if (current->m_zorder != ZOrder::Normal && !includePopup)
-                return;
-            current = current->m_parent ? current->m_parent->shared_from_this() : nullptr;
-        }
-    }
+    void bubble(function_ref<bool(Widget*)> fn, bool includePopup = false);
 
     bool hasParent(Widget* parent, bool includePopup = false) const;
 
@@ -972,7 +960,7 @@ public:
     Widget* parent() const noexcept;
 
     void removeAt(size_t pos);
-    void removeIf(function<bool(Widget*)> predicate);
+    void removeIf(function_ref<bool(Widget*)> predicate);
     void remove(Widget* widget);
     void clear();
 

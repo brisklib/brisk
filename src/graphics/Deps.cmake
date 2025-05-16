@@ -41,7 +41,7 @@ target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} PNG::PNG)
 
 # >WebP
 find_package(WebP CONFIG REQUIRED)
-target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} WebP::webp WebP::webpdecoder)
+target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} WebP::webp WebP::webpdecoder WebP::libwebpmux)
 # /WebP
 
 # >libjpeg-turbo

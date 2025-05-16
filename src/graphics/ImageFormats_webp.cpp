@@ -22,6 +22,7 @@
 #include <brisk/core/Utilities.hpp>
 
 #include <webp/encode.h>
+#include <webp/mux.h>
 #include <webp/decode.h>
 
 namespace Brisk {
@@ -32,31 +33,72 @@ struct webp_deleter {
         WebPFree(ptr);
     }
 };
+
+struct WebpData : WebPData {
+
+    WebpData() {
+        bytes = nullptr;
+        size  = 0;
+    }
+
+    ~WebpData() {
+        WebPFree((void*)bytes);
+    }
+
+    WebpData(const WebpData&)            = delete;
+    WebpData& operator=(const WebpData&) = delete;
+
+    WebpData(WebpData&& other) noexcept {
+        swap(other);
+    }
+
+    WebpData& operator=(WebpData&& other) noexcept {
+        swap(other);
+        return *this;
+    }
+
+    void swap(WebpData& other) {
+        std::swap(bytes, other.bytes);
+        std::swap(size, other.size);
+    }
+
+    uint8_t** mutableBytes() {
+        return const_cast<uint8_t**>(&bytes);
+    }
+
+    Bytes toBytes() const {
+        return Bytes(reinterpret_cast<const std::byte*>(bytes),
+                     reinterpret_cast<const std::byte*>(bytes) + size);
+    }
+};
+
 } // namespace
 
-[[nodiscard]] Bytes webpEncode(Rc<Image> image, std::optional<float> quality, bool lossless) {
+[[nodiscard]] static WebpData encodeToWebpData(Rc<Image> image, std::optional<float> quality, bool lossless) {
     if (image->pixelType() != PixelType::U8Gamma) {
         throwException(EImageError("Webp codec doesn't support encoding {} format", image->format()));
     }
 
-    auto rd         = image->mapRead<ImageFormat::Unknown_U8Gamma>();
+    auto rd = image->mapRead<ImageFormat::Unknown_U8Gamma>();
 
-    uint8_t* output = nullptr;
-    Bytes result;
-    size_t sz;
+    WebpData result{};
     if (lossless) {
         switch (image->pixelFormat()) {
         case PixelFormat::RGBA:
-            sz = WebPEncodeLosslessRGBA(rd.data(), rd.width(), rd.height(), rd.byteStride(), &output);
+            result.size = WebPEncodeLosslessRGBA(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                                 result.mutableBytes());
             break;
         case PixelFormat::RGB:
-            sz = WebPEncodeLosslessRGB(rd.data(), rd.width(), rd.height(), rd.byteStride(), &output);
+            result.size = WebPEncodeLosslessRGB(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                                result.mutableBytes());
             break;
         case PixelFormat::BGRA:
-            sz = WebPEncodeLosslessBGRA(rd.data(), rd.width(), rd.height(), rd.byteStride(), &output);
+            result.size = WebPEncodeLosslessBGRA(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                                 result.mutableBytes());
             break;
         case PixelFormat::BGR:
-            sz = WebPEncodeLosslessBGR(rd.data(), rd.width(), rd.height(), rd.byteStride(), &output);
+            result.size = WebPEncodeLosslessBGR(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                                result.mutableBytes());
             break;
         default:
             return result;
@@ -64,35 +106,31 @@ struct webp_deleter {
     } else {
         switch (image->pixelFormat()) {
         case PixelFormat::RGBA:
-            sz = WebPEncodeRGBA(rd.data(), rd.width(), rd.height(), rd.byteStride(),
-                                quality.value_or(defaultImageQuality), &output);
+            result.size = WebPEncodeRGBA(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                         quality.value_or(defaultImageQuality), result.mutableBytes());
             break;
         case PixelFormat::RGB:
-            sz = WebPEncodeRGB(rd.data(), rd.width(), rd.height(), rd.byteStride(),
-                               quality.value_or(defaultImageQuality), &output);
+            result.size = WebPEncodeRGB(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                        quality.value_or(defaultImageQuality), result.mutableBytes());
             break;
         case PixelFormat::BGRA:
-            sz = WebPEncodeBGRA(rd.data(), rd.width(), rd.height(), rd.byteStride(),
-                                quality.value_or(defaultImageQuality), &output);
+            result.size = WebPEncodeBGRA(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                         quality.value_or(defaultImageQuality), result.mutableBytes());
             break;
         case PixelFormat::BGR:
-            sz = WebPEncodeBGR(rd.data(), rd.width(), rd.height(), rd.byteStride(),
-                               quality.value_or(defaultImageQuality), &output);
+            result.size = WebPEncodeBGR(rd.data(), rd.width(), rd.height(), rd.byteStride(),
+                                        quality.value_or(defaultImageQuality), result.mutableBytes());
             break;
         default:
             return result;
         }
     }
-    SCOPE_EXIT {
-        WebPFree(output);
-    };
-
-    if (!sz)
-        return result;
-    result.resize(sz);
-    std::memcpy(result.data(), output, sz);
-    WebPFree(output);
     return result;
+}
+
+[[nodiscard]] Bytes webpEncode(Rc<Image> image, std::optional<float> quality, bool lossless) {
+    WebpData result = encodeToWebpData(std::move(image), quality, lossless);
+    return result.toBytes();
 }
 
 [[nodiscard]] expected<Rc<Image>, ImageIoError> webpDecode(BytesView bytes, ImageFormat format,
@@ -127,6 +165,50 @@ struct webp_deleter {
     if (premultiplyAlpha)
         wr.premultiplyAlpha();
     return img;
+}
+
+struct WebpAnimationEncoder::Private {
+    WebPMux* mux;
+};
+
+WebpAnimationEncoder::WebpAnimationEncoder(std::optional<float> quality, bool lossless)
+    : m_quality(quality), m_lossless(lossless), m_priv(new Private{}) {
+    m_priv->mux = WebPMuxNew();
+}
+
+WebpAnimationEncoder::~WebpAnimationEncoder() {
+    WebPMuxDelete(m_priv->mux);
+}
+
+void WebpAnimationEncoder::addFrame(Rc<Image> image, std::chrono::milliseconds duration) {
+    WebpData result = encodeToWebpData(std::move(image), m_quality, m_lossless);
+    if (result.size == 0) {
+        m_error = true;
+        return;
+    }
+
+    WebPMuxFrameInfo frame{};
+    frame.id        = WEBP_CHUNK_ANMF;
+    frame.duration  = duration.count();
+    frame.bitstream = result;
+
+    if (WebPMuxError err = WebPMuxPushFrame(m_priv->mux, &frame, /* copy data */ 1); err != WEBP_MUX_OK) {
+        m_error = true;
+    }
+}
+
+Bytes WebpAnimationEncoder::encode(Color backgroundColor, int repeats) {
+    if (m_error)
+        return {};
+    // Set animation parameters
+    WebPMuxAnimParams anim_params = {
+        std::bit_cast<uint32_t>(backgroundColor.v.shuffle(/* ARGB*/ size_constants<3, 0, 1, 2>{})),
+        repeats,
+    };
+    WebPMuxSetAnimationParams(m_priv->mux, &anim_params);
+    WebpData output;
+    WebPMuxAssemble(m_priv->mux, &output);
+    return output.toBytes();
 }
 
 } // namespace Brisk

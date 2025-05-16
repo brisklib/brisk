@@ -12,11 +12,15 @@ The Brisk library is in the beta stage, so there may be breaking changes, and th
 * [Building Brisk and Dependencies from Source](getting_started/building.md)
 * [Hello, world Example](getting_started/hello_world.md)
 
-## Basic usage
+## Basic Usage
 
 * [Data Binding](basic/binding.md)
 * [Resources](basic/resources.md)
 * [Working with Graphics](basic/graphics.md)
+
+## Advanced Usage
+
+* [Integrating Brisk into an existing application](advanced/integrating.md)
 
 ## [Examples](other_examples.md)
 

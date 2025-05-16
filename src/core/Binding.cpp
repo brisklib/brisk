@@ -228,7 +228,7 @@ void Bindings::disconnect(BindingHandle handle) {
     }
 }
 
-void Bindings::Region::disconnectIf(std::function<bool(const std::pair<BindingAddress, Entry>&)> pred) {
+void Bindings::Region::disconnectIf(function_ref<bool(const std::pair<BindingAddress, Entry>&)> pred) {
     for (auto it = entries.begin(); it != entries.end();) {
         if (pred(*it)) [[unlikely]] {
             entriesChanged = true;

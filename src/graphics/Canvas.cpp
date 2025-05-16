@@ -96,6 +96,7 @@ void Canvas::drawRasterizedPath(const RasterizedPath& path, const Internal::Pain
                                 Quad3 scissors) {
     ++m_rasterizedPaths;
     RenderStateEx renderState(ShaderType::Mask, 1, nullptr);
+    renderState.subpixelMode = SubpixelMode::Off;
     applier(&renderState, paint);
     renderState.scissorQuad = scissors;
     SdfCanvas::prepareStateInplace(renderState);
@@ -226,6 +227,8 @@ const Canvas::State Canvas::defaultState{
     StrokeParams{},         /* dashArray */
     1.f,                    /* opacity */
     FillParams{},           /* fillRule */
+    Font{},                 /* font*/
+    true,                   /* subpixelText */
 };
 
 Canvas::Canvas(RenderContext& context, CanvasFlags flags)
@@ -425,6 +428,14 @@ void Canvas::setFont(const Font& font) {
     m_state.font = font;
 }
 
+bool Canvas::getSubpixelTextRendering() const {
+    return m_state.subpixelText;
+}
+
+void Canvas::setSubpixelTextRendering(bool value) {
+    m_state.subpixelText = value;
+}
+
 void Canvas::reset() {
     m_state = defaultState;
 }
@@ -504,9 +515,12 @@ void Canvas::fillText(PointF position, PointF alignment, const PreparedText& tex
     }
     sdf(this).drawText(
         position, text,
-        std::tuple{ scissors = m_state.clipRect,
-                    Internal::PaintAndTransform{ m_state.fillPaint, m_state.transform, m_state.opacity },
-                    coordMatrix = m_state.transform });
+        std::tuple{
+            scissors = m_state.clipRect,
+            Internal::PaintAndTransform{ m_state.fillPaint, m_state.transform, m_state.opacity },
+            coordMatrix  = m_state.transform,
+            subpixelMode = m_state.subpixelText ? SubpixelMode::RGB : SubpixelMode::Off,
+        });
 }
 
 void Canvas::fillText(TextWithOptions text, PointF position, PointF alignment) {

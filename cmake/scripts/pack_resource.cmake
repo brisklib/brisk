@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.22)
+
 if (DEFINED IN
     AND DEFINED OUT
     AND DEFINED CMD)

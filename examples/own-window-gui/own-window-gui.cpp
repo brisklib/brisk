@@ -54,9 +54,9 @@ struct OneWindow {
     WidgetTree tree{ &input };     // Widget tree for GUI management
 };
 
-std::array<OneWindow, numWindows> windows; // Array of window instances
-
 int main() {
+    std::array<OneWindow, numWindows> windows; // Array of window instances
+
     // Register fonts bundled with the application for GUI use
     registerBuiltinFonts();
 
@@ -74,8 +74,6 @@ int main() {
 
     // Disable OpenGL context creation for GLFW windows
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    uiScheduler = rcnew TaskQueue();
 
     // Create and configure windows
     for (int i = 0; i < numWindows; ++i) {
@@ -133,6 +131,8 @@ int main() {
         // Create render target for the window
         windows[i].target = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
         windows[i].target->setVSyncInterval(1); // Enable vertical sync
+        // Create a render encoder for drawing
+        windows[i].encoder = (*device)->createEncoder();
     }
 
     // Ensure GLFW resources are cleaned up on exit
@@ -157,15 +157,13 @@ int main() {
             rcnew Button{
                 rcnew Text{ "Close app" },
                 onClick = staticLifetime |
-                          [i]() {
+                          [&, i]() {
                               glfwSetWindowShouldClose(windows[i].win, GLFW_TRUE);
                           },
             },
         });
     }
 
-    // Create a render encoder for drawing
-    Rc<RenderEncoder> encoder = (*device)->createEncoder();
 
     bool exit                 = false;
 
@@ -193,7 +191,7 @@ int main() {
 
             // Render the widget tree
             {
-                RenderPipeline pipeline(encoder, windows[i].target);
+                RenderPipeline pipeline(windows[i].encoder, windows[i].target);
                 Canvas canvas(pipeline);
                 windows[i].tree.paint(canvas, Palette::transparent, true);
             }
@@ -234,7 +232,7 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
     }
 #endif
     // Clean up Brisk resources
-    Brisk::startup(hInstance, lpCmdLine);
+    Brisk::shutdown();
     return exitCode;
 }
 

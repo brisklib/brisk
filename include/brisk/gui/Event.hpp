@@ -32,6 +32,7 @@
 #include <brisk/window/Types.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/FunctionRef.hpp>
 
 namespace Brisk {
 
@@ -573,11 +574,10 @@ struct InputQueue {
      * @param useMouseCapture Whether to use mouse capture information.
      * @return True if the function succeeds, false otherwise.
      */
-    bool mouseAtBubble(const function<bool(Widget*)>& fn, bool bubble = true,
-                       bool useMouseCapture = true) const;
+    bool mouseAtBubble(function_ref<bool(Widget*)> fn, bool bubble = true, bool useMouseCapture = true) const;
 
     template <typename T>
-    std::optional<T> getAtMouse(const function<std::optional<T>(Widget*)>& fn, bool bubble = true,
+    std::optional<T> getAtMouse(function_ref<std::optional<T>(Widget*)> fn, bool bubble = true,
                                 bool useMouseCapture = true) const {
         std::optional<T> value;
         if (mouseAtBubble(

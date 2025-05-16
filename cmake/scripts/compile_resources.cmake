@@ -17,6 +17,8 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
+cmake_minimum_required(VERSION 3.22)
+
 set(_RESOURCES_DATA_DIR
     ${CMAKE_BINARY_DIR}/resources
     CACHE PATH "")
@@ -32,7 +34,9 @@ find_program(PACK_RESOURCE_TOOL NAMES pack_resource REQUIRED)
 define_property(
     TARGET
     PROPERTY "BRISK_RESOURCES"
-    INHERITED)
+    INHERITED
+    BRIEF_DOCS "List of Brisk resources per target"
+    FULL_DOCS "List of Brisk resources per target")
 
 function (strip_build_interface input_string output_var)
     string(REGEX REPLACE "\\$<BUILD_INTERFACE:([^>]*)>" "\\1" stripped_string "${input_string}")

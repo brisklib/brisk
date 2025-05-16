@@ -24,6 +24,8 @@
 #include <brisk/gui/Icons.hpp>
 #include "Catch2Utils.hpp"
 #include "../graphics/VisualTests.hpp"
+#include <brisk/graphics/Offscreen.hpp>
+#include <random>
 
 namespace Brisk {
 
@@ -86,16 +88,23 @@ static void widgetTest(const std::string& name, Rc<Widget> widget, std::initiali
     });
 }
 
-static Event mouseMove(float x, float y) {
+static Event mouseMove(PointF pt) {
     EventMouseMoved event;
-    event.point = { x, y };
+    event.point = pt;
     return event;
 }
 
-static Event mousePress(float x, float y) {
+static Event mousePress(PointF pt) {
     EventMouseButtonPressed event;
     event.button    = MouseButton::Left;
-    event.downPoint = event.point = { x, y };
+    event.downPoint = event.point = pt;
+    return event;
+}
+
+static Event mouseRelease(PointF pt) {
+    EventMouseButtonReleased event;
+    event.button = MouseButton::Left;
+    event.point  = pt;
     return event;
 }
 
@@ -108,11 +117,11 @@ TEST_CASE("Widget Button") {
 }
 
 TEST_CASE("Widget Button Hovered") {
-    widgetTest("widget-button-hovered", rcnew Button{ rcnew Text{ "Button" } }, { mouseMove(180, 60) });
+    widgetTest("widget-button-hovered", rcnew Button{ rcnew Text{ "Button" } }, { mouseMove({ 180, 60 }) });
 }
 
 TEST_CASE("Widget Button Pressed") {
-    widgetTest("widget-button-pressed", rcnew Button{ rcnew Text{ "Button" } }, { mousePress(180, 60) });
+    widgetTest("widget-button-pressed", rcnew Button{ rcnew Text{ "Button" } }, { mousePress({ 180, 60 }) });
 }
 
 TEST_CASE("Widget Button Disabled") {
@@ -254,5 +263,279 @@ TEST_CASE("Widget Shadow") {
                              shadowSpread = 10, shadowColor = Palette::black,
                              backgroundColor = Palette::white },
                {}, { 320, 320 }, 1, Palette::white);
+}
+
+using namespace std::literals::chrono_literals;
+
+struct WidgetAnimation {
+    WebpAnimationEncoder anim;
+    InputQueue input;
+    WidgetTree tree{ &input };
+    OffscreenCanvas offscreen;
+    Rc<Image> pendingFrame;
+    std::chrono::milliseconds pendingFrameDuration{};
+    int pixelScale;
+    int fps;
+
+    WidgetAnimation(Size size, bool transitions = true, int pixelScale = 3, int fps = 30)
+        : pixelScale(pixelScale), fps(fps) {
+        offscreen = OffscreenCanvas(size * pixelScale, pixelScale, { .subPixelText = false });
+
+        if (!transitions)
+            tree.disableTransitions();
+        tree.disableRealtimeMode();
+        Brisk::pixelRatio() = pixelScale;
+        tree.setViewportRectangle({ Point{}, size * pixelScale });
+    }
+
+    void frames(std::chrono::milliseconds time) {
+        frames(std::max(int64_t(1), int64_t(time.count() * fps / 1000)));
+    }
+
+    void frames(int numFrames = 1) {
+        std::chrono::milliseconds dur = std::chrono::milliseconds(1000 / fps);
+        for (int i = 0; i < numFrames; ++i) {
+            tree.update();
+            if (!pendingFrame || !tree.paintRect().empty()) {
+                flush();
+                tree.paint(offscreen.canvas(), Palette::transparent, true);
+                pendingFrame = offscreen.render();
+            }
+            pendingFrameDuration += dur;
+            bindings->assign(frameStartTime) += 1.0 / fps;
+        }
+    }
+
+    void flush() {
+        if (pendingFrame) {
+            anim.addFrame(std::move(pendingFrame), pendingFrameDuration);
+            pendingFrame         = {};
+            pendingFrameDuration = {};
+        }
+    }
+
+    void save(std::string_view name) {
+        flush();
+        fs::path targetPath = fs::path(PROJECT_BINARY_DIR "/visualTest/") / name;
+        fs::create_directories(targetPath.parent_path());
+        REQUIRE(writeBytes(targetPath, anim.encode()).has_value());
+    }
+};
+
+TEST_CASE("Switch animation") {
+    WidgetAnimation animation({ 180, 60 }, true);
+
+    bool val = false;
+    BindingRegistration val_r(&val, nullptr);
+    animation.tree.setRoot(rcnew Container{
+        rcnew Row{ rcnew Switch{ rcnew Text{ "Switch" }, value = Value{ &val } } },
+    });
+    animation.frames();
+
+    val = true;
+    bindings->notify(&val);
+
+    animation.frames(1000ms);
+
+    val = false;
+    bindings->notify(&val);
+
+    animation.frames(1000ms);
+    animation.save("animation/switch.webp");
+}
+
+TEST_CASE("CheckBox animation") {
+    WidgetAnimation animation({ 180, 60 }, true);
+
+    bool val = false;
+    BindingRegistration val_r(&val, nullptr);
+    animation.tree.setRoot(rcnew Container{
+        rcnew Row{ rcnew CheckBox{ rcnew Text{ "CheckBox" }, value = Value{ &val } } },
+    });
+    animation.frames();
+
+    val = true;
+    bindings->notify(&val);
+
+    animation.frames(1000ms);
+
+    val = false;
+    bindings->notify(&val);
+
+    animation.frames(1000ms);
+    animation.save("animation/checkbox.webp");
+}
+
+TEST_CASE("ToggleButton animation") {
+    WidgetAnimation animation({ 180, 60 }, true);
+
+    bool val = false;
+    BindingRegistration val_r(&val, nullptr);
+    animation.tree.setRoot(rcnew Container{
+        rcnew Row{ rcnew ToggleButton{ rcnew Text{ "ToggleButton" }, value = Value{ &val } } },
+    });
+    animation.frames();
+
+    val = true;
+    bindings->notify(&val);
+
+    animation.frames(1000ms);
+
+    val = false;
+    bindings->notify(&val);
+
+    animation.frames(1000ms);
+    animation.save("animation/togglebutton.webp");
+}
+
+TEST_CASE("Slider animation") {
+    WidgetAnimation animation({ 180, 60 }, true);
+
+    float val = 0;
+    BindingRegistration val_r(&val, nullptr);
+    animation.tree.setRoot(rcnew Container{
+        rcnew Row{ rcnew Slider{ width = 80_apx, value = Value{ &val }, minimum = -1, maximum = 1 } },
+    });
+
+    for (float x = 0.f; x < 2 * std::numbers::pi; x += 0.1f) {
+        val = std::sin(x);
+        bindings->notify(&val);
+        animation.frames(1);
+    }
+    animation.save("animation/slider.webp");
+}
+
+TEST_CASE("Button states animation") {
+    WidgetAnimation animation({ 180, 60 }, true);
+
+    float val = 0;
+    BindingRegistration val_r(&val, nullptr);
+    Rc<Button> btn;
+    animation.tree.setRoot(rcnew Container{
+        rcnew Row{ rcnew Button{ storeWidget(&btn), "Button"_Text } },
+    });
+
+    animation.input.addEvent(mouseMove(btn->rect().center()));
+    dynamicPointerCast<Text>(btn->widgets().front())->text = "Hover";
+
+    animation.frames(1250ms);
+
+    animation.input.addEvent(mousePress(btn->rect().center()));
+    dynamicPointerCast<Text>(btn->widgets().front())->text = "Pressed";
+
+    animation.frames(1250ms);
+
+    animation.input.addEvent(mouseRelease(btn->rect().center()));
+    dynamicPointerCast<Text>(btn->widgets().front())->text = "Hover";
+
+    animation.frames(1250ms);
+
+    animation.input.addEvent(mouseMove({}));
+    dynamicPointerCast<Text>(btn->widgets().front())->text = "Normal";
+
+    animation.frames(1250ms);
+
+    animation.save("animation/button-states.webp");
+}
+
+TEST_CASE("Text wordWrap animation") {
+    WidgetAnimation animation({ 288, 192 }, true);
+
+    std::ignore = fonts->addFontFromFile("Noto", FontStyle::Normal, FontWeight::Regular,
+                                         PROJECT_SOURCE_DIR "/resources/fonts/GoNotoCurrent-Regular.ttf");
+
+    float val;
+    BindingRegistration val_r(&val, nullptr);
+    animation.tree.setRoot(rcnew Container{
+        alignItems       = Align::Stretch,
+        layout           = Layout::Vertical,
+        fontFamily       = "Noto",
+        contentOverflowX = ContentOverflow::Allow,
+        gapRow           = 4_apx,
+        padding          = 4_apx,
+        rcnew HLayout{
+            gapColumn = 4_apx,
+            flexGrow  = 1,
+            flexBasis = 0,
+            rcnew Text{
+                "Hello, universe. This is an example of text.",
+                wordWrap        = true,
+                width           = Value{ &val },
+                backgroundColor = 0xFFFFFF'20_rgba,
+            },
+            rcnew Text{
+                "مرحباً يا كون. هذا مثال للنص.",
+                textAlign       = TextAlign::End,
+                wordWrap        = true,
+                flexBasis       = 0,
+                flexGrow        = 1,
+                backgroundColor = 0xFFFFFF'20_rgba,
+            },
+        },
+        rcnew HLayout{
+            gapColumn = 4_apx,
+            flexGrow  = 1,
+            flexBasis = 0,
+            rcnew Text{
+                "שלום, יקום. זהו דוגמה לטקסט.",
+                textAlign       = TextAlign::End,
+                wordWrap        = true,
+                width           = Value{ &val },
+                backgroundColor = 0xFFFFFF'20_rgba,
+            },
+            rcnew Text{
+                "你好，宇宙。这是一个文本示例。",
+                wordWrap        = true,
+                flexBasis       = 0,
+                flexGrow        = 1,
+                backgroundColor = 0xFFFFFF'20_rgba,
+            },
+        },
+    });
+
+    for (int i = 0; i < 80; ++i) {
+        val = 144 - 8 + std::sin(i / 40. * std::numbers::pi) * 70.f;
+        bindings->notify(&val);
+        animation.frames(2);
+    }
+
+    animation.save("animation/textwrap.webp");
+}
+
+TEST_CASE("TextEditor animation") {
+    WidgetAnimation animation({ 180, 60 }, true);
+
+    std::string val;
+    BindingRegistration val_r(&val, nullptr);
+    animation.tree.setRoot(rcnew Container{
+        rcnew Row{
+            padding = 4_apx,
+            rcnew TextEditor{ text = Value{ &val }, flexGrow = 1, fontSize = 125_perc, autofocus = true },
+            flexGrow = 1 },
+    });
+
+    std::u32string text = U"Hello, Brisk! 🚀🎨📝 fi Áñ";
+
+    std::mt19937 rnd(123);
+    std::uniform_int_distribution<> uniform(75, 150);
+    for (char32_t ch : text) {
+        animation.input.addEvent(EventCharacterTyped{ .character = ch });
+        int32_t delay = uniform(rnd);
+        animation.frames(delay * 1ms);
+    }
+    animation.frames(800ms);
+    for (char32_t ch : text) {
+        animation.input.addEvent(EventKeyPressed{ EventKey{ {}, KeyCode::Left } });
+        animation.frames(40ms);
+    }
+    animation.frames(600ms);
+    animation.input.addEvent(
+        EventKeyPressed{ EventKey{ EventInput{ {}, KeyModifiers::ControlOrCommand }, KeyCode::A } });
+
+    animation.frames(600ms);
+    animation.input.addEvent(EventKeyPressed{ EventKey{ {}, KeyCode::Del } });
+    animation.frames(600ms);
+
+    animation.save("animation/texteditor.webp");
 }
 } // namespace Brisk

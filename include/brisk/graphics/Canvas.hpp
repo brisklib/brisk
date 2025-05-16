@@ -582,6 +582,9 @@ public:
      */
     void setFont(const Font& font);
 
+    bool getSubpixelTextRendering() const;
+    void setSubpixelTextRendering(bool value);
+
     /**
      * @brief Fills text at a specified position with alignment.
      *
@@ -758,6 +761,7 @@ public:
         float opacity;             ///< The current opacity value (0.0 to 1.0).
         FillParams fillParams;     ///< The current fill parameters (e.g., fill rule).
         Font font;                 ///< The current font settings.
+        bool subpixelText;
     };
 
     /**

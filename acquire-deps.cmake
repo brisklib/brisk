@@ -1,18 +1,32 @@
+cmake_minimum_required(VERSION 3.22)
+
 set(ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 set(URL https://download.brisklib.com/brisk-deps/{TRIPLET}-{DEP_HASH}.tar.xz)
 
-if (DEFINED ENV{VCPKG_TARGET_TRIPLET})
-    set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_TARGET_TRIPLET})
-else ()
-    if (DEFINED ENV{VCPKG_DEFAULT_TRIPLET})
-        set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_DEFAULT_TRIPLET})
+if (NOT DEFINED VCPKG_TARGET_TRIPLET)
+    message(STATUS "VCPKG_TARGET_TRIPLET is not defined, checking environment...")
+
+    if (DEFINED ENV{VCPKG_TARGET_TRIPLET})
+        set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_TARGET_TRIPLET})
+        message(STATUS "Using VCPKG_TARGET_TRIPLET environment variable (${VCPKG_TARGET_TRIPLET})")
     else ()
-        message(FATAL_ERROR "Set VCPKG_TARGET_TRIPLET or VCPKG_DEFAULT_TRIPLET environment variable")
+        if (DEFINED ENV{VCPKG_DEFAULT_TRIPLET})
+            set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_DEFAULT_TRIPLET})
+            message(STATUS "Using VCPKG_DEFAULT_TRIPLET environment variable (${VCPKG_TARGET_TRIPLET})")
+        else ()
+            message(
+                FATAL_ERROR
+                    "Set VCPKG_TARGET_TRIPLET cmake variable or VCPKG_TARGET_TRIPLET or VCPKG_DEFAULT_TRIPLET environment variable"
+            )
+        endif ()
     endif ()
+
 endif ()
 
-include(${ROOT}/dep-hash.cmake)
+include(${ROOT}/cmake/get_triplet.cmake)
+
+include(${ROOT}/cmake/dep-hash.cmake)
 
 # Define the URL and destination file for download
 string(REPLACE "{DEP_HASH}" "${DEP_HASH}" URL "${URL}")
@@ -51,30 +65,39 @@ else ()
 
 endif ()
 
-if (NOT EXISTS ${ROOT}/vcpkg_exported)
+if (DEFINED ENV{EXPORTED_DIR})
+    set(EXPORTED_DIR $ENV{EXPORTED_DIR})
+else ()
+    set(EXPORTED_DIR ${ROOT}/vcpkg_exported)
+endif ()
+
+if (NOT EXISTS ${EXPORTED_DIR})
 
     message(STATUS "Extracting archive")
 
     # Create the vcpkg_exported directory
-    file(MAKE_DIRECTORY ${ROOT}/vcpkg_exported)
+    file(MAKE_DIRECTORY ${EXPORTED_DIR})
 
     # Extract the archive
-    file(ARCHIVE_EXTRACT INPUT "${DEST_FILE}" DESTINATION "${ROOT}/vcpkg_exported" VERBOSE)
+    file(ARCHIVE_EXTRACT INPUT "${DEST_FILE}" DESTINATION "${EXPORTED_DIR}" VERBOSE)
 
-    file(GLOB VCPKG_INSTALLED_CONTENTS ${ROOT}/vcpkg_installed/*)
-    if (NOT VCPKG_INSTALLED_CONTENTS STREQUAL "")
-        message(
-            FATAL_ERROR
-                "${ROOT}/vcpkg_installed is not empty. Remove it and run the script again to install dependencies")
+    if (NOT DEFINED INSTALL OR INSTALL)
+
+        file(GLOB VCPKG_INSTALLED_CONTENTS ${ROOT}/vcpkg_installed/*)
+        if (NOT VCPKG_INSTALLED_CONTENTS STREQUAL "")
+            message(
+                FATAL_ERROR "${ROOT}/vcpkg_installed is not empty. Remove it and run the script again to install dependencies")
+        endif ()
+
+        file(REMOVE_RECURSE ${ROOT}/vcpkg_installed)
+
+        file(RENAME ${EXPORTED_DIR}/installed ${ROOT}/vcpkg_installed)
+
     endif ()
-
-    file(REMOVE_RECURSE ${ROOT}/vcpkg_installed)
-
-    file(RENAME ${ROOT}/vcpkg_exported/installed ${ROOT}/vcpkg_installed)
 
 else ()
 
-    message(STATUS "Directory ${ROOT}/vcpkg_exported already exists. Remove it to force extraction from the archive")
+    message(STATUS "Directory ${EXPORTED_DIR} already exists. Remove it to force extraction from the archive")
 
 endif ()
 

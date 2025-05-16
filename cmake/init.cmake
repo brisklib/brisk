@@ -17,6 +17,8 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
+cmake_minimum_required(VERSION 3.22)
+
 include_guard(GLOBAL)
 
 if (APPLE)
@@ -24,13 +26,6 @@ if (APPLE)
         "11"
         CACHE STRING "" FORCE)
 endif ()
-
-set(VCPKG_OVERLAY_TRIPLETS
-    ${BRISK_ROOT}/cmake/triplets
-    CACHE STRING "")
-set(VCPKG_OVERLAY_PORTS
-    ${BRISK_ROOT}/cmake/ports
-    CACHE STRING "")
 
 list(APPEND CMAKE_MODULE_PATH ${BRISK_ROOT}/cmake/packages)
 
@@ -84,22 +79,20 @@ if (NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg.cmake" AND NOT DEFINED HAS_VCPKG)
         ${CMAKE_SOURCE_DIR}/vcpkg_installed
         CACHE PATH "")
 
-    if (NOT DEFINED VCPKG_TARGET_TRIPLET)
-        if (WIN32)
-            set(VCPKG_HOST_TRIPLET
-                "x64-windows-static-md"
-                CACHE STRING "" FORCE)
-            set(VCPKG_TARGET_TRIPLET
-                ${VCPKG_HOST_TRIPLET}
-                CACHE STRING "" FORCE)
-        endif ()
-    endif ()
-
     message(STATUS "Vcpkg is set up successfully")
 
 else ()
     message(STATUS "Vcpkg is already set up via toolchain. Brisk will use it for dependencies")
 endif ()
+
+include(${CMAKE_CURRENT_LIST_DIR}/get_triplet.cmake)
+
+set(VCPKG_TARGET_TRIPLET
+    ${VCPKG_TARGET_TRIPLET}
+    CACHE STRING "" FORCE)
+set(VCPKG_HOST_TRIPLET
+    ${VCPKG_HOST_TRIPLET}
+    CACHE STRING "" FORCE)
 
 set(_BRISK_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/../include)
 
@@ -107,22 +100,16 @@ if ("${VCPKG_TARGET_TRIPLET}" MATCHES "windows-static$")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif ()
 
-set(SUPPORTED_TRIPLETS
-    "x64-linux"
-    "x64-osx"
-    "arm64-osx"
-    "x64-windows-static"
-    "x86-windows-static"
-    "x64-windows-static-md"
-    "x86-windows-static-md"
-    "arm64-windows-static"
-    "arm64-windows-static-md")
-
-# Check if the specified triplet is in the list of supported triplets
-if (NOT VCPKG_TARGET_TRIPLET IN_LIST SUPPORTED_TRIPLETS)
-    message(WARNING "The specified VCPKG_TARGET_TRIPLET ${VCPKG_TARGET_TRIPLET} is not supported.")
-    message(WARNING "Supported triplets are: ${SUPPORTED_TRIPLETS}")
+if ("${VCPKG_TARGET_TRIPLET}" STREQUAL "uni-osx")
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+elseif ("${VCPKG_TARGET_TRIPLET}" STREQUAL "arm64-osx")
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+elseif ("${VCPKG_TARGET_TRIPLET}" STREQUAL "x64-osx")
+    set(CMAKE_OSX_ARCHITECTURES "x86_64")
 endif ()
+set(CMAKE_OSX_ARCHITECTURES
+    ${CMAKE_OSX_ARCHITECTURES}
+    CACHE STRING "" FORCE)
 
 if (CMAKE_CROSSCOMPILING)
     set(VCPKG_USE_HOST_TOOLS

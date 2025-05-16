@@ -2,10 +2,21 @@
 
 Dependency management in Brisk is based on Vcpkg, and [Vcpkg triplets](https://learn.microsoft.com/en-us/vcpkg/concepts/triplets) are used to select the target architecture and environment.
 
-If you're unsure which triplet to choose, the recommendations are as follows:
-- `x64-windows-static-md` for Windows
-- `x64-linux` for Linux
-- `arm64-osx` for ARM-based Macs (or `x64-osx` for Intel-based Macs).
+If you're unsure which triplet to choose, these are default used by Brisk:
+
+* **Windows**: `x64-windows-static-md` (x86\_64)
+* **Linux**: `x64-linux` (x86\_64)
+* **macOS (prebuilt dependencies)**: `uni-osx` (arm64/x86\_64 universal binaries)
+* **macOS (custom build)**: `arm64-osx` for ARM-based Macs (or `x64-osx` for Intel-based Macs)
+
+!!! note "uni-osx"
+    The `uni-osx` triplet is supported only with prebuilt binaries and dependencies because Vcpkg does not support building universal binaries for macOS.
+    This triplet is a synthetic one used by Brisk to represent macOS universal binaries that combine `x64-osx` and `arm64-osx` binaries.
+    To build dependencies, use one of the Vcpkg-supported triplets: `x64-osx` or `arm64-osx`.  
+    Alternatively, use prebuilt dependencies if you need to work with universal binaries.
+
+All these triplets use static linking for dependencies and dynamic linking for the C runtime (CRT).
+
 
 Note that Vcpkg uses different default settings for Windows (`x64-windows`) and macOS (`x64-osx`).
 
@@ -32,12 +43,9 @@ For more information, consult the official Vcpkg documentation.
 
 Brisk is tested and works on the following triplets:
 
-|       | x86                                    | x64                                    | arm                                    | arm64                                    |
-|-------|----------------------------------------|----------------------------------------|----------------------------------------|------------------------------------------|
-| Linux | —                                      | :white_check_mark: x64-linux           | :construction:                         | :construction:                           |
-| macOS | —                                      | :white_check_mark: x64-osx             | —                                      | :white_check_mark: arm64-osx             |
-| Windows (static runtime) | :white_check_mark: x86-windows-static   | :white_check_mark: x64-windows-static  | :construction:                         | :white_check_mark: arm64-windows-static  |
-| Windows (dynamic runtime) | :white_check_mark: x86-windows-static-md | :white_check_mark: x64-windows-static-md | :construction:                         | :white_check_mark: arm64-windows-static-md |
-
-!!! warning ""
-    Cross-compiling from Intel-based macOS to ARM is not currently supported; a Mac with Apple Silicon is required.
+|                           | x86                                      | x64                                      | arm64                                      | uni (arm64, x64)           |
+|---------------------------|------------------------------------------|------------------------------------------|--------------------------------------------|----------------------------|
+| Linux                     | —                                        | :white_check_mark: x64-linux             | :construction:                             | —                          |
+| macOS                     | —                                        | :white_check_mark: x64-osx               | :white_check_mark: arm64-osx               | :white_check_mark: uni-osx |
+| Windows (static runtime)  | :white_check_mark: x86-windows-static    | :white_check_mark: x64-windows-static    | :white_check_mark: arm64-windows-static    | —                          |
+| Windows (dynamic runtime) | :white_check_mark: x86-windows-static-md | :white_check_mark: x64-windows-static-md | :white_check_mark: arm64-windows-static-md | —                          |

@@ -28,6 +28,7 @@
 #include <brisk/core/internal/Function.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/core/internal/Generation.hpp>
+#include <brisk/core/internal/FunctionRef.hpp>
 
 namespace Brisk {
 
@@ -85,7 +86,7 @@ struct GradientData {
      * @brief Constructs GradientData from a function mapping float to ColorW.
      * @param func The function to map positions to colors.
      */
-    explicit GradientData(const function<ColorW(float)>& func);
+    explicit GradientData(function_ref<ColorW(float)> func);
 
     /**
      * @brief Constructs GradientData from a vector of colors and a gamma correction factor.
