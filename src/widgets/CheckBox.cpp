@@ -29,15 +29,16 @@ static void checkMark(Canvas& canvas, RectangleF markRect, ColorW color, float i
 
     if (interpolatedValue == 0)
         return;
-    PointF p1 = markRect.at(20 / 24.f, 6 / 24.f);
+
+    PointF p1 = markRect.at(4 / 24.f, 12 / 24.f);
     PointF p2 = markRect.at(9 / 24.f, 17 / 24.f);
-    PointF p3 = markRect.at(4 / 24.f, 12 / 24.f);
-    p1.v      = mix(interpolatedValue, p2.v, p1.v);
-    p3.v      = mix(interpolatedValue, p2.v, p3.v);
+    PointF p3 = markRect.at(20 / 24.f, 6 / 24.f);
     Path path;
     path.moveTo(p1);
-    path.lineTo(p2);
-    path.lineTo(p3);
+    path.lineTo(PointF(mix(std::min(interpolatedValue * (16.f / 5.f), 1.f), p1.v, p2.v)));
+    if (interpolatedValue * 16.f > 5.f) {
+        path.lineTo(PointF(mix((interpolatedValue - (5.f / 16.f)) * (16.f / 11.f), p2.v, p3.v)));
+    }
     canvas.setStrokeColor(color.multiplyAlpha(0.75f));
     canvas.setCapStyle(CapStyle::Round);
     canvas.strokePath(std::move(path));
