@@ -234,7 +234,7 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
     }
 #endif
     // Clean up Brisk resources
-    Brisk::startup(hInstance, lpCmdLine);
+    Brisk::shutdown();
     return exitCode;
 }
 
