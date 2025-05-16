@@ -75,8 +75,6 @@ int main() {
     // Disable OpenGL context creation for GLFW windows
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    uiScheduler = rcnew TaskQueue();
-
     // Create and configure windows
     for (int i = 0; i < numWindows; ++i) {
         // Create a GLFW window (500x500 pixels)

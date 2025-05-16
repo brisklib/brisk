@@ -33,8 +33,10 @@ void initializeCommon(InitializationFlags flags) {
 
         if (flags && InitializationFlags::Threading) {
             mainScheduler = rcnew TaskQueue();
+            uiScheduler   = rcnew TaskQueue();
         } else {
             mainScheduler = nullptr;
+            uiScheduler   = nullptr;
         }
         if (flags && InitializationFlags::Settings) {
             settings = new Settings{};
@@ -54,6 +56,7 @@ void finalizeCommon() {
         }
 
         mainScheduler = nullptr;
+        uiScheduler   = nullptr;
     }
 }
 

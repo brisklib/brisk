@@ -48,10 +48,23 @@ struct CommonInitializer {
 };
 
 #ifdef BRISK_WINDOWS
+/**
+ * @brief Initializes the application on Windows with the specified module handle and command line.
+ * @param moduleHandle Handle to the application module (HINSTANCE).
+ * @param cmdLine Command line arguments as a wide-character string.
+ */
 void startup(void* moduleHandle, wchar_t* cmdLine);
 #endif
 
+/**
+ * @brief Initializes the application with command line arguments.
+ * @param argc Number of command line arguments.
+ * @param argv Array of command line argument strings.
+ */
 void startup(int argc, char** argv);
 
+/**
+ * @brief Finalizes the application, releasing resources.
+ */
 void shutdown();
 } // namespace Brisk
