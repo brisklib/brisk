@@ -1998,6 +1998,7 @@ Rc<Widget> Widget::clone() const {
 Widget::Widget(const Widget&) = default;
 
 Widget::Widget(Construction construction) : m_layoutEngine{ this } {
+    registerBuiltinFonts();
     setPropState(fontFamily.index, PropState::Inherited);
     setPropState(fontStyle.index, PropState::Inherited);
     setPropState(fontWeight.index, PropState::Inherited);
@@ -2206,7 +2207,9 @@ void Widget::childrenAdded() {
 }
 
 void Widget::parentChanged() {
-    resolveProperties(AffectResolve | AffectFont | AffectLayout | AffectStyle);
+    if (m_parent) {
+        resolveProperties(AffectResolve | AffectFont | AffectLayout | AffectStyle);
+    }
     onParentChanged();
     if (m_parent) {
         for (const auto& fn : m_onParentSet) {
