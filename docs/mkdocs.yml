@@ -83,6 +83,52 @@ nav:
     - Widgets:
       - widgets/button.md
       - widgets/combobox.md
+      - widgets/checkbox.md
+      - widgets/colorbutton.md
+      - widgets/colorpalette.md
+      - widgets/colorsliders.md
+      - widgets/colorview.md
+      - widgets/dot.md
+      - widgets/gradientview.md
+      - widgets/guide.md
+      - widgets/hint.md
+      - widgets/hyperlink.md
+      - widgets/imageview.md
+      - widgets/item.md
+      - widgets/knob.md
+      - widgets/line.md
+      - widgets/listbox.md
+      - widgets/menu.md
+      - widgets/notificationview.md
+      - widgets/page.md
+      - widgets/pages.md
+      - widgets/passwordeditor.md
+      - widgets/popupbox.md
+      - widgets/popupbutton.md
+      - widgets/popupdialog.md
+      - widgets/progress.md
+      - widgets/radiobutton.md
+      - widgets/scrollbox.md
+      - widgets/shortcuthint.md
+      - widgets/slider.md
+      - widgets/spacer.md
+      - widgets/spinbox.md
+      - widgets/spinner.md
+      - widgets/svgimageview.md
+      - widgets/switch.md
+      - widgets/tabbutton.md
+      - widgets/table.md
+      - widgets/tablecell.md
+      - widgets/tableheader.md
+      - widgets/tablerow.md
+      - widgets/tabs.md
+      - widgets/text.md
+      - widgets/texteditor.md
+      - widgets/togglebutton.md
+      - widgets/updownbuttons.md
+      - widgets/valuewidget.md
+      - widgets/viewport.md
+      - widgets/webgpuwidget.md
     - Advanced:
       - advanced/integrating.md
     - Examples:
