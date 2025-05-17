@@ -80,6 +80,8 @@ nav:
       - basic/binding.md
       - basic/resources.md
       - basic/graphics.md
+    - Advanced:
+      - advanced/integrating.md
     - Examples:
       - other_examples.md
   - Reference:
