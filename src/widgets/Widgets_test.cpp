@@ -218,6 +218,8 @@ TEST_CASE("Widget ComboBox Color") {
 TEST_CASE("Widget ComboBox Gradient") {
     widgetTest("widget-combobox-gradient",
                rcnew ComboBox{
+                   alignSelf = Align::FlexStart,
+                   marginTop = 12_apx,
                    rcnew Menu{
                        visible  = true,
                        minWidth = 4.8_em,
