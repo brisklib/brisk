@@ -80,6 +80,9 @@ nav:
       - basic/binding.md
       - basic/resources.md
       - basic/graphics.md
+    - Widgets:
+      - widgets/button.md
+      - widgets/combobox.md
     - Advanced:
       - advanced/integrating.md
     - Examples:

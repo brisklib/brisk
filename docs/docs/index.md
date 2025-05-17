@@ -18,6 +18,11 @@ The Brisk library is in the beta stage, so there may be breaking changes, and th
 * [Resources](basic/resources.md)
 * [Working with Graphics](basic/graphics.md)
 
+## Widgets
+
+* [Button](widgets/button.md)
+* [ComboBox](widgets/combobox.md)
+
 ## Advanced Usage
 
 * [Integrating Brisk into an existing application](advanced/integrating.md)
