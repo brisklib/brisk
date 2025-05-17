@@ -20,8 +20,7 @@ The Brisk library is in the beta stage, so there may be breaking changes, and th
 
 ## Widgets
 
-* [Button](widgets/button.md)
-* [ComboBox](widgets/combobox.md)
+* [List of all Brisk Widgets](widgets/all.md)
 
 ## Advanced Usage
 

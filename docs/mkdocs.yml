@@ -81,6 +81,7 @@ nav:
       - basic/resources.md
       - basic/graphics.md
     - Widgets:
+      - widgets/all.md
       - widgets/button.md
       - widgets/combobox.md
       - widgets/checkbox.md
