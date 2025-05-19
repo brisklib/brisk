@@ -1,13 +1,21 @@
 site_name: Brisk
+site_url: https://docs.brisklib.com
+
 theme:
   name: "material"
   custom_dir: custom/
   font:
     text: Source Sans 3
   features:
+    - content.tabs.link
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
     - navigation.tabs
     - navigation.top
     - content.code.copy
+    - toc.integrate
+    - toc.follow
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -39,11 +47,16 @@ extra:
 
 copyright: "Copyright &copy; 2025 Brisk"
 
+extra_css:
+  - style.css
+
 plugins:
   - search
   - privacy
+  - glightbox
 
 markdown_extensions:
+  - attr_list
   - admonition
   - footnotes
   - meta
@@ -72,7 +85,6 @@ nav:
     - about.md
     - Getting Started:
       - getting_started/prerequisites.md
-      - getting_started/triplets.md
       - getting_started/prebuilt_binaries.md
       - getting_started/building.md
       - getting_started/hello_world.md
@@ -131,6 +143,7 @@ nav:
       - widgets/viewport.md
       - widgets/webgpuwidget.md
     - Advanced:
+      - advanced/triplets.md
       - advanced/integrating.md
     - Examples:
       - other_examples.md

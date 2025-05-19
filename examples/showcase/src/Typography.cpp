@@ -159,13 +159,13 @@ static Builder iconsBuilder() {
     return Builder([](Widget* target) {
         constexpr int columns = 16;
         auto iconFontFamily   = Font::Icons;
-        int iconFontSize      = 25;
+        int iconFontSize      = 22;
         for (int icon = ICON__first; icon < ICON__last; icon += columns) {
             Rc<HLayout> glyphs = rcnew HLayout{
                 rcnew Text{
                     fmt::format("{:04X}", icon),
                     textVerticalAlign = TextAlign::Center,
-                    dimensions        = { 60, 50 },
+                    dimensions        = { 36, 36 },
                 },
             };
             for (int c = 0; c < columns; c++) {
@@ -178,7 +178,7 @@ static Builder iconsBuilder() {
                     textVerticalAlign = TextAlign::Center,
                     fontFamily        = iconFontFamily,
                     fontSize          = iconFontSize,
-                    dimensions        = { 50, 50 },
+                    dimensions        = { 36, 36 },
                     onClick           = staticLifetime |
                               [ch] {
                                   Clipboard::setText(fmt::format("\\u{:04X}", uint32_t(ch)));
@@ -281,7 +281,7 @@ Rc<Widget> ShowcaseTypography::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             padding    = { 8_apx, 8_apx },
             flexWrap   = Wrap::Wrap,
-            maxWidth   = 960_apx,
+            maxWidth   = 640_apx,
             gap        = { 10_apx },
             fontFamily = Font::Emoji,
 

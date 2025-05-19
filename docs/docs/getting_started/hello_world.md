@@ -15,13 +15,13 @@ The "Hello, World" project will consist of three main files:
 
 1. `CMakeLists.txt` – Project setup
 2. `main.cpp` – Application code
-3. `icon.png` – Brisk icon (must be in PNG format, with a minimum size of 512x512). Download an example icon from https://github.com/brisklib/brisk-helloworld/raw/main/icon.png.
+3. `icon.png` – Brisk icon (must be in PNG format, with a minimum size of 512x512). Download an example icon from [https://github.com/brisklib/brisk-helloworld/raw/main/icon.png](https://github.com/brisklib/brisk-helloworld/raw/main/icon.png){target="_blank"}.
 
 ### CMakeLists.txt
 
 Create a `CMakeLists.txt` file in your project directory with the following contents:
 
-```cmake
+```cmake title="CMakeLists.txt"
 # Minimum supported CMake version is 3.22
 cmake_minimum_required(VERSION 3.22)
 
@@ -55,7 +55,7 @@ brisk_setup_executable(main)
 
 Create a `main.cpp` file in the same directory with the following code:
 
-```cpp
+```cpp title="main.cpp"
 #include <brisk/gui/Component.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/widgets/Graphene.hpp>
@@ -96,29 +96,107 @@ int briskMain() {
 
 ### icon.png
 
-Place an icon named `icon.png` in your project directory. You can download an example from [this link](https://github.com/brisklib/brisk-helloworld/raw/main/icon.png).
+Place an icon named `icon.png` in your project directory. You can download an example from the [Brisk repository](https://github.com/brisklib/brisk-helloworld/raw/main/icon.png).
 
 ## Step 2: Build the Application
 
 With all files in place, you can now build the project.
 
-1. Open a terminal in your project directory.
-2. Run the following commands to create a build directory, configure the project, set the required CMake variables, and build the executable:
+=== "macOS"
+    === "Generating Xcode project"
+        ```bash
+        mkdir build
+        cmake -GXcode -S . -B build \
+            -DCMAKE_PREFIX_PATH=<path-to-brisk>/lib/cmake \
+            -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_INSTALLED_DIR=<path-to-installed> \
+            -DVCPKG_TARGET_TRIPLET=uni-osx \
+            -DVCPKG_HOST_TRIPLET=uni-osx
+        ```
 
-   ```bash
-   mkdir build
-   cmake -S . -B build \
-     -DCMAKE_PREFIX_PATH=<path-to-brisk/lib/cmake> \
-     -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg/scripts/buildsystems/vcpkg.cmake> \
-     -DVCPKG_INSTALLED_DIR=<path-to-vcpkg-installed>
-   cmake --build build
-   ```
+        The project files will be placed in the `build` directory and can be opened in Xcode.
 
-   For Windows you should also set the triplet: `-DVCPKG_TARGET_TRIPLET=x64-windows-static-md`.
+    === "Building using Ninja"
+        ```bash
+        mkdir build
+        cmake -GNinja -S . -B build \
+            -DCMAKE_PREFIX_PATH=<path-to-brisk>/lib/cmake \
+            -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_INSTALLED_DIR=<path-to-installed> \
+            -DVCPKG_TARGET_TRIPLET=uni-osx \
+            -DVCPKG_HOST_TRIPLET=uni-osx
+        cmake --build build
+        ```
 
-   Replace `path-to-brisk/lib/cmake` with the actual path to the `lib/cmake` directory inside the Brisk package, `<path-to-vcpkg/scripts/buildsystems/vcpkg.cmake>` with the path to the Vcpkg toolchain file, and `<path-to-vcpkg-installed>` with the path to your Vcpkg `installed` directory.
+=== "Linux"
 
-3. After a successful build, you should have an executable named `main` in the build directory.
+    === "Building using Ninja"
+        ```bash
+        mkdir build
+        cmake -GNinja -S . -B build \
+            -DCMAKE_PREFIX_PATH=<path-to-brisk>/lib/cmake \
+            -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_INSTALLED_DIR=<path-to-installed> \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DVCPKG_HOST_TRIPLET=x64-linux
+        cmake --build build
+        ```
+
+=== "Windows"
+
+    === "Generating Visual Studio project"
+        Use PowerShell to execute the commands below.
+
+        ```powershell
+        mkdir build
+        cmake -G"Visual Studio 17 2022"  -S . -B build `
+            -DCMAKE_PREFIX_PATH=<path-to-brisk>\lib\cmake `
+            -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>\scripts\buildsystems\vcpkg.cmake `
+            -DVCPKG_INSTALLED_DIR=<path-to-installed> `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
+            -DVCPKG_HOST_TRIPLET=x64-windows-static-md
+        ```
+
+        The project files will be placed in the `build` directory and can be opened in Visual Studio.
+
+    === "Building using Ninja"
+        Use the Visual Studio Developer Command Prompt (PowerShell) to execute the commands below.
+
+        ```powershell
+        mkdir build
+        cmake -GNinja -S . -B build `
+            -DCMAKE_PREFIX_PATH=<path-to-brisk>/lib/cmake `
+            -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake `
+            -DVCPKG_INSTALLED_DIR=<path-to-installed> `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
+            -DVCPKG_HOST_TRIPLET=x64-windows-static-md
+        cmake --build build
+        ```
+
+### Path Substitution
+
+Depending on how you set up Brisk and its dependencies, replace the following placeholder paths accordingly:
+
+#### **Using Prebuilt Dependencies & Brisk Binaries**
+
+* Replace `path-to-brisk` with the directory where the `Brisk-Prebuilt-...tar.xz` archive was extracted.
+* Replace `path-to-vcpkg` with the directory containing Vcpkg. If Vcpkg is not installed globally, use the directory where `Brisk-Dependencies-...tar.xz` was extracted.
+* `path-to-installed` should point to the `installed` subdirectory inside the extracted `Brisk-Dependencies-...tar.xz` directory.
+
+#### **Using Prebuilt Dependencies but Building Brisk from Source**
+
+* Replace `path-to-brisk` with the `CMAKE_INSTALL_PREFIX` path you used (usually the `dist` subdirectory in the Brisk repository).
+* Replace `path-to-vcpkg` with the Vcpkg directory. If not installed globally, use the `vcpkg_exported` directory inside the Brisk repository.
+* `path-to-installed` should point to the `vcpkg_installed` directory within the Brisk repository.
+
+#### **Building Brisk and Dependencies from Source**
+
+* Replace `path-to-brisk` with the `CMAKE_INSTALL_PREFIX` path (usually the `dist` subdirectory in the Brisk repository).
+* Replace `path-to-vcpkg` with the Vcpkg directory. If Vcpkg is not installed globally, Brisk should have downloaded and installed a local copy in the repository during the first build.
+* `path-to-installed` should point to the `vcpkg_installed` directory within the Brisk repository.
+
+After a successful build, the `main` executable should be available in the build directory.
+
 
 ## Step 3: Run the Application
 
