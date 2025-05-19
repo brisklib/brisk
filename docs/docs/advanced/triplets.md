@@ -1,27 +1,30 @@
 # Choosing Architecture (Triplets)
 
-Dependency management in Brisk is based on Vcpkg, and [Vcpkg triplets](https://learn.microsoft.com/en-us/vcpkg/concepts/triplets) are used to select the target architecture and environment.
+Dependency management in Brisk is based on Vcpkg, and [Vcpkg triplets](https://learn.microsoft.com/en-us/vcpkg/concepts/triplets){target="_blank"} are used to select the target architecture and environment.
 
 If you're unsure which triplet to choose, these are default used by Brisk:
 
-* **Windows**: `x64-windows-static-md` (x86\_64)
-* **Linux**: `x64-linux` (x86\_64)
-* **macOS (prebuilt dependencies)**: `uni-osx` (arm64/x86\_64 universal binaries)
-* **macOS (custom build)**: `arm64-osx` for ARM-based Macs (or `x64-osx` for Intel-based Macs)
+=== "macOS"
+    * For prebuilt dependencies: `uni-osx` (arm64/x86\_64 universal binaries)
+    * For custom build: `arm64-osx` for ARM-based Macs (or `x64-osx` for Intel-based Macs)
+    
+    !!! note "uni-osx"
+        The `uni-osx` triplet is supported only with prebuilt binaries and dependencies because Vcpkg does not support building universal binaries for macOS.
+        This triplet is a synthetic one used by Brisk to represent macOS universal binaries that combine `x64-osx` and `arm64-osx` binaries.
+        To build dependencies, use one of the Vcpkg-supported triplets: `x64-osx` or `arm64-osx`.  
+        Alternatively, use prebuilt dependencies if you need to work with universal binaries.
 
-!!! note "uni-osx"
-    The `uni-osx` triplet is supported only with prebuilt binaries and dependencies because Vcpkg does not support building universal binaries for macOS.
-    This triplet is a synthetic one used by Brisk to represent macOS universal binaries that combine `x64-osx` and `arm64-osx` binaries.
-    To build dependencies, use one of the Vcpkg-supported triplets: `x64-osx` or `arm64-osx`.  
-    Alternatively, use prebuilt dependencies if you need to work with universal binaries.
+=== "Linux"
+    `x64-linux` (x86\_64)
+
+=== "Windows"
+    `x64-windows-static-md` (x86\_64)
+    
+    Note that the `x64-windows` and `x86-windows` triplets are **not** supported by Brisk, and the build will fail if any of these triplets is used.
 
 All these triplets use static linking for dependencies and dynamic linking for the C runtime (CRT).
 
-
 Note that Vcpkg uses different default settings for Windows (`x64-windows`) and macOS (`x64-osx`).
-
-!!! warning "Unsupported triplets"
-    The `x64-windows` and `x86-windows` triplets are not supported by Brisk, and a build will fail if this triplet is used.
 
 !!! note "Dependencies linking"
     Currently, Brisk supports only static linking of dependencies; dynamic linking for Brisk libraries will be available in a future release.

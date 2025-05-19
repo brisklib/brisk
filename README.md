@@ -9,7 +9,7 @@ Initially developed for a graphics-intensive proprietary project with a complex 
 
 Recommended reading:
 
-➡️ [Brisk Design and Feature Overview](docs/docs/about.md) ⬅️
+➡️ [Brisk Design and Feature Overview](https://docs.brisklib.com/about/) ⬅️
 
 [Documentation on docs.brisklib.com](https://docs.brisklib.com)
 

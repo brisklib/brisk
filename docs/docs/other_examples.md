@@ -32,5 +32,4 @@ See the `examples` directory in the Brisk repository for advanced examples of us
 - Custom styling
 - Application-wide settings
 
-https://github.com/brisklib/brisk/tree/main/examples
-
+[https://github.com/brisklib/brisk/tree/main/examples](https://github.com/brisklib/brisk/tree/main/examples){target="_blank"}

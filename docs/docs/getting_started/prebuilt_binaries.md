@@ -10,39 +10,51 @@ Below are instructions for acquiring the necessary binaries to build Brisk appli
 
 You can download the Brisk library binaries along with all required dependencies:
 
-#### For Brisk Releases
+#### Brisk Releases
 
 In the *assets* section of the release page on GitHub:
 
-https://github.com/brisklib/brisk/releases/latest
+[https://github.com/brisklib/brisk/releases/latest](https://github.com/brisklib/brisk/releases/latest){target="_blank"}
 
-You should download
+!!! note ""
+    === "macOS"
+        For macOS, download 
 
-1. `Brisk-Prebuilt-<VERSION>-<TRIPLET>.tar.xz` that contains the Brisk binary package, and
-2. `Brisk-Dependencies-<HASH>-<TRIPLET>.tar.xz` that contains the Brisk dependencies.
+        * `Brisk-Prebuilt-...-uni-osx.tar.xz`, and
+        * `Brisk-Dependencies-...-uni-osx.tar.xz`
 
-For guidance on choosing the right triplet, see [Choosing architecture (triplets)](triplets.md).
+        This package contains binaries for both Intel- and ARM-based Macs.
 
-#### For Automated (Nightly) Builds
+    === "Linux"
+        For x86_64 Linux, download 
 
-GitHub Actions artifacts include archives with header files and static libraries:
+        * `Brisk-Prebuilt-...-x64-linux.tar.xz`, and
+        * `Brisk-Dependencies-...-x64-linux.tar.xz`
 
-https://github.com/brisklib/brisk/actions/workflows/test.yml?query=branch%3Amain+
+    === "Windows"
+        For x86_64 Windows, download
+
+        * `Brisk-Prebuilt-...-x64-windows-static-md.tar.xz`, and
+        * `Brisk-Dependencies-...-x64-windows-static-md.tar.xz`
+
+        To target ARM Windows, download
+
+        * `Brisk-Prebuilt-...-arm64-windows-static-md.tar.xz`, and
+        * `Brisk-Dependencies-...-arm64-windows-static-md.tar.xz`
+
+For guidance on choosing the right triplet, see [Choosing architecture (triplets)](../advanced/triplets.md).
+
+[How to extract a `tar.xz` archive](#extracting-tarxz-files).
+
+#### Automated (Nightly) Builds
+
+If you're interested in the latest features, you can find the automated builds in the GitHub Actions artifacts:
+
+[https://github.com/brisklib/brisk/actions/workflows/test.yml?query=branch%3Amain+](https://github.com/brisklib/brisk/actions/workflows/test.yml?query=branch%3Amain+){target="_blank"}
 
 These artifacts that include only the triplet (e.g. `x64-linux`) in their names include both the Brisk package and the Brisk dependencies.
 
-### CMake Variables for Building Applications with Prebuilt Brisk and Dependencies
-
-| CMake variable                      | Value                                                                                          |
-|-------------------------------------|------------------------------------------------------------------------------------------------|
-| `CMAKE_PREFIX_PATH`                 | `<brisk-prebuilt>/lib/cmake`                                                                   |
-| <nobr>`CMAKE_TOOLCHAIN_FILE`</nobr> | `<brisk-dependencies>/scripts/buildsystems/vcpkg.cmake`                                        |
-| `VCPKG_INSTALLED_DIR`               | `<brisk-dependencies>/installed`                                                               |
-| `VCPKG_TARGET_TRIPLET`              | Must match downloaded package’s triplet                                                        |
-| `VCPKG_HOST_TRIPLET`                | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
-
-Replace `<brisk-prebuilt>` with the path where the `Brisk-Prebuilt-<VERSION>-<TRIPLET>.tar.xz` archive was extracted.
-Also, replace `<brisk-dependencies>` with the path where the `Brisk-Dependencies-<VERSION>-<TRIPLET>.tar.xz` archive was extracted.
+[How to extract a `tar.xz` archive](#extracting-tarxz-files).
 
 ## Acquiring Only Brisk Dependencies
 
@@ -50,12 +62,18 @@ Alternatively, you can choose to fetch prebuilt dependencies but build the Brisk
 
 This approach is useful if you plan to modify Brisk's source code.
 
-To download only the prebuilt dependencies, use the following command. Set the `VCPKG_DEFAULT_TRIPLET` or `VCPKG_TARGET_TRIPLET` environment variable to match your system's architecture (see [List of Available Triplets](triplets.md#list-of-supported-triplets)).
+To download only the prebuilt dependencies, use the following command. Set the `VCPKG_DEFAULT_TRIPLET` or `VCPKG_TARGET_TRIPLET` environment variable to match your system's architecture (see [List of Available Triplets](../advanced/triplets.md#list-of-supported-triplets)).
 
 ```bash
 cd brisk/repository
 cmake -P acquire-deps.cmake
 ```
+
+??? tip "Download specific triplet"
+    ```bash
+    cd brisk/repository
+    cmake -DVCPKG_TARGET_TRIPLET=<TRIPLET> -P acquire-deps.cmake
+    ```
 
 After executing this command, the `vcpkg_exported` and `vcpkg_installed` directories will be created.
 
@@ -71,22 +89,24 @@ cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
 
 ### CMake Variables for Building Brisk with Prebuilt Dependencies
 
-| CMake variable                      | Value                                                                                          |
-|-------------------------------------|------------------------------------------------------------------------------------------------|
-| <nobr>`CMAKE_TOOLCHAIN_FILE`</nobr> | `<brisk-repository>/vcpkg_exported/scripts/buildsystems/vcpkg.cmake`                           |
-| `VCPKG_INSTALLED_DIR`               | `<brisk-repository>/vcpkg_installed`                                                           |
-| `VCPKG_TARGET_TRIPLET`              | Must match downloaded package’s triplet                                                        |
-| `VCPKG_HOST_TRIPLET`                | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
-
-### CMake Variables for Building Applications with Prebuilt Dependencies
+These CMake variables are required for building __the Brisk libraries__.
 
 | CMake variable                      | Value                                                                                          |
 |-------------------------------------|------------------------------------------------------------------------------------------------|
-| `CMAKE_PREFIX_PATH`                 | `<brisk-install-path>/lib/cmake`                                                               |
 | <nobr>`CMAKE_TOOLCHAIN_FILE`</nobr> | `<brisk-repository>/vcpkg_exported/scripts/buildsystems/vcpkg.cmake`                           |
 | `VCPKG_INSTALLED_DIR`               | `<brisk-repository>/vcpkg_installed`                                                           |
 | `VCPKG_TARGET_TRIPLET`              | Must match downloaded package’s triplet                                                        |
 | `VCPKG_HOST_TRIPLET`                | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
 
 Replace `<brisk-repository>` with the path to the Brisk repository where `acquire-deps.cmake` was called.
-Also, replace `<brisk-install-path>` with the path where Brisk was installed after building (usually `<brisk-repository>/dist`).
+
+## Extracting .tar.xz files
+
+=== "macOS"
+    Open Terminal, navigate to the archive's directory using `cd`, then run `tar -xf archive.tar.xz` to extract.
+
+=== "Linux"
+    Open a terminal, navigate to the archive's directory using `cd`, then run `tar -xf archive.tar.xz` to extract.
+
+=== "Windows"
+    Install 7-Zip or WinRAR, right-click the `.tar.xz` file, select "Extract" or "Extract Here" from the context menu. Alternatively, use WSL (Windows Subsystem for Linux) and run `tar -xf archive.tar.xz` in a Linux terminal.
