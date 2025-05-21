@@ -53,6 +53,9 @@
     },
     {
       "name": "libuv"
+    },
+    {
+      "name": "tl-function-ref"
     }
   ],
   "overrides": [
