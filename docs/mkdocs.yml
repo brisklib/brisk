@@ -9,8 +9,6 @@ theme:
   features:
     - content.tabs.link
     - navigation.footer
-    - navigation.instant
-    - navigation.instant.progress
     - navigation.tabs
     - navigation.top
     - content.code.copy
