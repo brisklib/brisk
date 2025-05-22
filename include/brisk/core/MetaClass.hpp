@@ -90,7 +90,7 @@ struct MetaClassImpl : public MetaClass {
  */
 #define BRISK_DYNAMIC_CLASS_ROOT(ClassName)                                                                  \
 public:                                                                                                      \
-    static constinit inline MetaClassRoot metaClass{ #ClassName };                                           \
+    static constexpr MetaClassRoot metaClass{ #ClassName };                                                  \
     static constexpr const MetaClass* staticMetaClass() noexcept {                                           \
         return &metaClass;                                                                                   \
     }                                                                                                        \
@@ -107,7 +107,7 @@ public:                                                                         
  */
 #define BRISK_DYNAMIC_CLASS(ClassName, BaseClass)                                                            \
 private:                                                                                                     \
-    static constinit inline MetaClassImpl<ClassName, BaseClass> metaClass{ #ClassName };                     \
+    static constexpr MetaClassImpl<ClassName, BaseClass> metaClass{ #ClassName };                            \
                                                                                                              \
 public:                                                                                                      \
     static constexpr const MetaClass* staticMetaClass() noexcept {                                           \
