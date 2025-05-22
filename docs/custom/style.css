@@ -23,6 +23,14 @@
 .md-typeset h5,.md-typeset h6 {
     font-weight: 700;
 }
-body {
+[data-md-color-scheme=slate] {
+    --md-hue: 225deg;
     --md-typeset-table-color: #00000060 !important;
+    --md-default-bg-color: hsla(var(--md-hue), 15%, 9%, 1) !important;
+    --md-default-bg-color--light: hsla(var(--md-hue), 15%, 9%, 0.54) !important;
+    --md-default-bg-color--lighter: hsla(var(--md-hue), 15%, 9%, 0.26) !important;
+    --md-default-bg-color--lightest: hsla(var(--md-hue), 15%, 9%, 0.07) !important;
+    --md-footer-bg-color: hsla(var(--md-hue), 15%, 6%, 0.87) !important;
+    --md-footer-bg-color--dark: hsla(var(--md-hue), 15%, 4%, 1) !important;
+    --md-code-bg-color: hsla(var(--md-hue), 15%, 14%, 1);
 }
