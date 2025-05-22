@@ -45,36 +45,61 @@ Alternatively, but not recommended, you can download the sources as a `.zip` arc
 
 In this case, updating requires downloading a new archive and replacing the directory contents.
 
-## Building Brisk
+## Building Brisk (Prebuilt Dependencies)
 
-!!! note "Prebuilt Binaries"
+!!! tip "Prebuilt Binaries"
     Building Brisk and its dependencies may take a significant amount of time on your system.
     Alternatively, you can download prebuilt binaries from our build server (see [Prebuilt Binaries](prebuilt_binaries.md)).
+
+To acquire the prebuilt dependencies, execute the following command in the Brisk repository directory:
+
+=== "macOS"
+
+    ```bash
+    cmake -DVCPKG_TARGET_TRIPLET=uni-osx -P acquire-deps.cmake
+    ```
+
+=== "Linux"
+
+    ```bash
+    cmake -DVCPKG_TARGET_TRIPLET=x64-linux -P acquire-deps.cmake
+    ```
+
+=== "Windows"
+
+    ```bash
+    cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -P acquire-deps.cmake
+    ```
 
 The recommended way to build the Brisk library is with Ninja:
 
 === "macOS"
+
     ```bash
     cd path/to/brisk/repo
-    cmake -GNinja -S . -B build-release -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=uni-osx -DCMAKE_BUILD_TYPE=Release
+    cmake -GNinja -S . -B build-release -DVCPKG_MANIFEST_INSTALL=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=uni-osx -DCMAKE_TOOLCHAIN_FILE=vcpkg_exported/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Release
     cmake --build build-release --target install
-    cmake -GNinja -S . -B build-debug -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=uni-osx -DCMAKE_BUILD_TYPE=Debug
+    cmake -GNinja -S . -B build-debug -DVCPKG_MANIFEST_INSTALL=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=uni-osx -DCMAKE_TOOLCHAIN_FILE=vcpkg_exported/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Debug
     cmake --build build-debug --target install
     ```
+
 === "Linux"
+
     ```bash
     cd path/to/brisk/repo
-    cmake -GNinja -S . -B build-release -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_BUILD_TYPE=Release
+    cmake -GNinja -S . -B build-release -DVCPKG_MANIFEST_INSTALL=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_TOOLCHAIN_FILE=vcpkg_exported/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Release
     cmake --build build-release --target install
-    cmake -GNinja -S . -B build-debug -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_BUILD_TYPE=Debug
+    cmake -GNinja -S . -B build-debug -DVCPKG_MANIFEST_INSTALL=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_TOOLCHAIN_FILE=vcpkg_exported/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Debug
     cmake --build build-debug --target install
     ```
+
 === "Windows"
-    ```batch
+
+    ```powershell
     cd path\to\brisk\repo
-    cmake -GNinja -S . -B build-release -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -DCMAKE_BUILD_TYPE=Release
+    cmake -GNinja -S . -B build-release -DVCPKG_MANIFEST_INSTALL=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -DCMAKE_TOOLCHAIN_FILE=vcpkg_exported/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Release
     cmake --build build-release --target install
-    cmake -GNinja -S . -B build-debug -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -DCMAKE_BUILD_TYPE=Debug
+    cmake -GNinja -S . -B build-debug -DVCPKG_MANIFEST_INSTALL=OFF -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -DCMAKE_TOOLCHAIN_FILE=vcpkg_exported/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Debug
     cmake --build build-debug --target install
     ```
 
@@ -84,50 +109,66 @@ You can replace `<TRIPLET>` with one of valid [triplets](../advanced/triplets.md
 
 On Windows, these commands should be executed in the Visual Studio Developer Command Prompt.
 
-This command will export all Brisk dependencies to the `vcpkg_exported` directory:
-```bash
-cd path/to/brisk/repo
-vcpkg export --raw --output-dir=. --output=vcpkg_exported
-```
+After executing the above commands, you’ll get the following new directories in the Brisk root directory:
 
-!!! note "Vcpkg"
-    If Vcpkg is not installed globally, Brisk will check out the Vcpkg repository at `path/to/brisk/repo/vcpkg` and use this local copy to build dependencies. In this case, the command above should be modified as follows:
-    === "macOS"
-        `vcpkg/vcpkg export --raw --output-dir=. --output=vcpkg_exported`
+1. `dist` — stores Brisk’s static libraries and headers.
+2. `vcpkg_exported` — contains minimal vcpkg installation required for Brisk.
+3. `vcpkg_installed` — contains all dependencies needed for building and linking applications with Brisk.
 
-    === "Linux"
-        `vcpkg/vcpkg export --raw --output-dir=. --output=vcpkg_exported`
+These directories are relocatable, so you can move them to another directory or computer if needed.
 
-    === "Windows"
-        `vcpkg\vcpkg export --raw --output-dir=. --output=vcpkg_exported`
+## Building Brisk And Dependencies
+
+!!! tip "Prebuilt Binaries"
+    Building Brisk and its dependencies may take a significant amount of time on your system.
+    Alternatively, you can download prebuilt binaries from our build server (see [Prebuilt Binaries](prebuilt_binaries.md)).
+
+To build Brisk dependencies the latest version of Vcpkg is required.
+
+=== "macOS"
+
+    ```bash
+    cd path/to/brisk/repo
+    cmake -GNinja -S . -B build-release -DVCPKG_MANIFEST_INSTALL=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=uni-osx -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root-directory>/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-release --target install
+    cmake -GNinja -S . -B build-debug -DVCPKG_MANIFEST_INSTALL=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=uni-osx -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root-directory>/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Debug
+    cmake --build build-debug --target install
+    ```
+
+=== "Linux"
+
+    ```bash
+    cd path/to/brisk/repo
+    cmake -GNinja -S . -B build-release -DVCPKG_MANIFEST_INSTALL=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root-directory>/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-release --target install
+    cmake -GNinja -S . -B build-debug -DVCPKG_MANIFEST_INSTALL=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root-directory>/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Debug
+    cmake --build build-debug --target install
+    ```
+
+=== "Windows"
+
+    ```powershell
+    cd path\to\brisk\repo
+    cmake -GNinja -S . -B build-release -DVCPKG_MANIFEST_INSTALL=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root-directory>/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-release --target install
+    cmake -GNinja -S . -B build-debug -DVCPKG_MANIFEST_INSTALL=ON -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root-directory>/scripts/buildsystems/vcpkg.cmake -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_BUILD_TYPE=Debug
+    cmake --build build-debug --target install
+    ```
+
+Replace `<vcpkg-root-directory>` with the path to the Vcpkg root directory.
 
 After executing the above commands, you’ll get the following new directories in the Brisk root directory:
 
 1. `dist` — stores Brisk’s static libraries and headers.
-2. `vcpkg_exported` — contains all dependencies needed for building and linking applications with Brisk.
+2. `vcpkg_installed` — contains all dependencies needed for building and linking applications with Brisk.
 
-These directories are relocatable, so you can move them to another directory or computer if needed.
-
-### CMake Options
+## CMake Options
 
 You can enable/disable options when configuring Brisk in CMake by adding `-DOPTION=ON` or `-DOPTION=OFF` to the command line.
 
 - `BRISK_WEBGPU` enables building WebGPU graphics backend. Default value is `ON` on macOS/Linux and `OFF` on Windows.
 - `BRISK_D3D11` enables building D3D11 graphics backend on Windows. Default value is `ON` on Windows.
 - `BRISK_TESTS` and `BRISK_EXAMPLES` control whether the Brisk tests and examples will be compiled or not. Default is `ON` in standalone mode and `OFF` when used with `add_subdirectory`.
-
-### CMake Variables for Building Applications with Brisk Built from Source
-
-| CMake variable                      | Value                                                                                          |
-|-------------------------------------|------------------------------------------------------------------------------------------------|
-| `CMAKE_PREFIX_PATH`                 | `<brisk-install-path>/lib/cmake` (`<brisk-repository>/dist`)                                   |
-| <nobr>`CMAKE_TOOLCHAIN_FILE`</nobr> | `<vcpkg-root>/scripts/buildsystems/vcpkg.cmake`                                                |
-| `VCPKG_INSTALLED_DIR`               | `<brisk-repository>/vcpkg_installed`                                                           |
-| `VCPKG_TARGET_TRIPLET`              | Triplet used when building                                                                     |
-| `VCPKG_HOST_TRIPLET`                | Equal to `VCPKG_TARGET_TRIPLET` or `x64-windows-static-md` (Cross-compiling to ARM on Windows) |
-
-Replace `<brisk-repository>` with the path to the Brisk repository where `acquire-deps.cmake` was called.
-Also, replace `<brisk-install-path>` with the path where Brisk was installed after building (usually `<brisk-repository>/dist`).
 
 ## Building Brisk with Your Project (`add_subdirectory`)
 
