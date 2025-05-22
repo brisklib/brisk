@@ -90,18 +90,10 @@ struct MetaClassImpl : public MetaClass {
  */
 #define BRISK_DYNAMIC_CLASS_ROOT(ClassName)                                                                  \
 public:                                                                                                      \
-    static constinit inline MetaClassRoot metaClass{ #ClassName };                                           \
-    /**                                                                                                      \
-     * @brief Returns a pointer to the static metadata of this class.                                        \
-     * @return Const pointer to the MetaClass instance.                                                      \
-     */                                                                                                      \
+    static constexpr MetaClassRoot metaClass{ #ClassName };                                                  \
     static constexpr const MetaClass* staticMetaClass() noexcept {                                           \
         return &metaClass;                                                                                   \
     }                                                                                                        \
-    /**                                                                                                      \
-     * @brief Returns a pointer to the dynamic metadata of this instance.                                    \
-     * @return Const pointer to the MetaClass instance.                                                      \
-     */                                                                                                      \
     virtual const MetaClass* dynamicMetaClass() const noexcept {                                             \
         return &metaClass;                                                                                   \
     }
@@ -115,20 +107,12 @@ public:                                                                         
  */
 #define BRISK_DYNAMIC_CLASS(ClassName, BaseClass)                                                            \
 private:                                                                                                     \
-    static constinit inline MetaClassImpl<ClassName, BaseClass> metaClass{ #ClassName };                     \
+    static constexpr MetaClassImpl<ClassName, BaseClass> metaClass{ #ClassName };                            \
                                                                                                              \
 public:                                                                                                      \
-    /**                                                                                                      \
-     * @brief Returns a pointer to the static metadata of this class.                                        \
-     * @return Const pointer to the MetaClass instance.                                                      \
-     */                                                                                                      \
     static constexpr const MetaClass* staticMetaClass() noexcept {                                           \
         return &metaClass;                                                                                   \
     }                                                                                                        \
-    /**                                                                                                      \
-     * @brief Returns a pointer to the dynamic metadata of this instance.                                    \
-     * @return Const pointer to the MetaClass instance.                                                      \
-     */                                                                                                      \
     const MetaClass* dynamicMetaClass() const noexcept override {                                            \
         return &metaClass;                                                                                   \
     }

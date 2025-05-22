@@ -86,6 +86,7 @@ nav:
       - getting_started/prebuilt_binaries.md
       - getting_started/building.md
       - getting_started/hello_world.md
+      - getting_started/troubleshooting.md
     - Basic usage:
       - basic/binding.md
       - basic/resources.md

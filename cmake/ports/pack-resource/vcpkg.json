@@ -27,7 +27,7 @@
       "name": "brotli"
     },
     {
-        "name": "concurrentqueue"
+      "name": "concurrentqueue"
     },
     {
       "name": "tl-expected"
@@ -47,6 +47,9 @@
     },
     {
       "name": "libuv"
+    },
+    {
+      "name": "tl-function-ref"
     }
   ],
   "overrides": [

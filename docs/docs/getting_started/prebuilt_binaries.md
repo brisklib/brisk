@@ -103,10 +103,24 @@ Replace `<brisk-repository>` with the path to the Brisk repository where `acquir
 ## Extracting .tar.xz files
 
 === "macOS"
-    Open Terminal, navigate to the archive's directory using `cd`, then run `tar -xf archive.tar.xz` to extract.
+    Open Terminal, navigate to the archive's directory using `cd`, then run
+    
+    ```
+    tar -xf archive.tar.xz
+    ```
 
 === "Linux"
-    Open a terminal, navigate to the archive's directory using `cd`, then run `tar -xf archive.tar.xz` to extract.
+    Open a terminal, navigate to the archive's directory using `cd`, then run 
+
+    ```
+    tar -xf archive.tar.xz
+    ```
 
 === "Windows"
-    Install 7-Zip or WinRAR, right-click the `.tar.xz` file, select "Extract" or "Extract Here" from the context menu. Alternatively, use WSL (Windows Subsystem for Linux) and run `tar -xf archive.tar.xz` in a Linux terminal.
+    Since Windows 10 version 1803 (build 17063), the `tar` command is included by default. Open Command Prompt or PowerShell, navigate to the archive's directory using `cd`, then run:
+
+    ```powershell
+    tar -xf archive.tar.xz
+    ```
+
+    Alternatively, you can install 7-Zip or WinRAR, right-click the `.tar.xz` file, and select "Extract" or "Extract Here" from the context menu. You can also use WSL (Windows Subsystem for Linux) and run the same `tar` command in a Linux terminal.

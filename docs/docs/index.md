@@ -10,6 +10,7 @@ The Brisk library is in the beta stage, so there may be breaking changes, and th
 * [Prebuilt Binaries](getting_started/prebuilt_binaries.md)
 * [Building Brisk and Dependencies from Source](getting_started/building.md)
 * [Hello, world Example](getting_started/hello_world.md)
+* [Troubleshooting](getting_started/troubleshooting.md)
 
 ## Basic Usage
 

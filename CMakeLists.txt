@@ -38,6 +38,10 @@ project(
     VERSION ${BRISK_VERSION}
     LANGUAGES CXX C)
 
+if (WIN32 AND NOT MSVC)
+    message(FATAL_ERROR "Brisk requires MSVC or an MSVC-compatible compiler (e.g., clang-cl) on Windows")
+endif ()
+
 get_directory_property(BRISK_PARENT_DIR PARENT_DIRECTORY)
 if (NOT BRISK_PARENT_DIR)
     set(BRISK_STANDALONE TRUE)
