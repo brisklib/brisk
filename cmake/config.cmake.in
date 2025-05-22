@@ -1,5 +1,9 @@
 @PACKAGE_INIT@
 
+if (WIN32 AND NOT MSVC)
+    message(FATAL_ERROR "Brisk requires MSVC or an MSVC-compatible compiler (e.g., clang-cl) on Windows")
+endif ()
+
 include(${CMAKE_CURRENT_LIST_DIR}/BriskTargets.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/BriskConfigVersion.cmake)
