@@ -23,8 +23,8 @@
 #include "Brisk.h"
 
 #define BRISK_VERSION_MAJOR 0
-#define BRISK_VERSION_MINOR 9
-#define BRISK_VERSION_PATCH 8
+#define BRISK_VERSION_MINOR 10
+#define BRISK_VERSION_PATCH 0
 #define BRISK_VERSION_METADATA "-beta"
 
 #define BRISK_VERSION                                                                                        \
