@@ -67,7 +67,7 @@ protected:
         path.close();
         path.transform(Matrix::translation(m_rect.x2, m_rect.y1));
         auto&& clipRect = canvas.saveClipRect();
-        *clipRect       = m_rect; // New clip rect
+        *clipRect       = clipRect->intersection(m_rect); // New clip rect
         canvas.setFillColor(m_lineColor.multiplyAlpha(0.3f));
         canvas.drawPath(std::move(path));
 
@@ -131,6 +131,7 @@ Rc<Widget> dataView(Rc<DataSourceViewModel> viewModel, Value<bool> showPlots) {
     return rcnew Widget{
         gap              = 8_apx,
         layout           = Layout::Vertical,
+        flexGrow         = 1,
         contentOverflowX = ContentOverflow::Allow,
         rcnew Text{
             viewModel->caption(),
@@ -138,10 +139,13 @@ Rc<Widget> dataView(Rc<DataSourceViewModel> viewModel, Value<bool> showPlots) {
             marginLeft = 16_apx,
         },
         rcnew Widget{
-            padding  = 8_apx,
-            gap      = 8_apx,
-            layout   = Layout::Horizontal,
-            flexWrap = Wrap::Wrap,
+            contentOverflowY = ContentOverflow::Allow,
+            overflowScrollY  = OverflowScroll::Enable,
+            flexGrow         = 1,
+            padding          = 8_apx,
+            gap              = 8_apx,
+            layout           = Layout::Horizontal,
+            flexWrap         = Wrap::Wrap,
             Builder{
                 [viewModel, showPlots](Widget* w) {
                     for (int i = 0; i < viewModel->count(); ++i)
