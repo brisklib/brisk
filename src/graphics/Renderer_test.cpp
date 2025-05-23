@@ -960,10 +960,17 @@ TEST_CASE("SDF-Border") {
     }
     for (int i = 128; i <= 4096; i *= 2) {
         renderTest<true>("raster-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
+            auto dur1 = Internal::performancePathScanline;
+            auto dur2 = Internal::performancePathRasterization;
             Canvas canvas(context, CanvasFlags::None);
             canvas.setFillColor(Palette::transparent);
             canvas.setStrokePaint(LinearGradient({ 0, 0 }, PointF(i, i), Palette::blue, Palette::green));
             canvas.drawRect({ 0.5f, 0.5f, i - 0.5f, i - 0.5f });
+            fmt::println("{} CPU rasterization times: {} {}\n", "raster-border-" + std::to_string(i),
+                         std::chrono::duration_cast<std::chrono::microseconds>(
+                             Internal::performancePathScanline - dur1),
+                         std::chrono::duration_cast<std::chrono::microseconds>(
+                             Internal::performancePathRasterization - dur2));
             REQUIRE(canvas.rasterizedPaths() > 0);
         });
     }

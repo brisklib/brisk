@@ -30,6 +30,9 @@
 
 namespace Brisk {
 
+PerformanceDuration Internal::performancePathScanline{ 0 };
+PerformanceDuration Internal::performancePathRasterization{ 0 };
+
 void Path::checkNewSegment() {
     if (mNewSegment) {
         moveTo(0, 0);
@@ -884,16 +887,21 @@ static Rc<Image> rleToMask(Rle rle, Size size) {
 
 static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(Path path, const FillOrStrokeParams& params,
                                                          Rectangle clip) {
-
     Rle rle;
-    if (const FillParams* fill = get_if<FillParams>(&params)) {
-        rle = rasterize(path, fill->fillRule, clip == noClipRect ? Rectangle{} : clip);
-    } else if (const StrokeParams* stroke = get_if<StrokeParams>(&params)) {
-        rle = rasterize(path, stroke->capStyle, stroke->joinStyle, stroke->strokeWidth, stroke->miterLimit,
-                        clip == noClipRect ? Rectangle{} : clip);
+    Rectangle bounds;
+    {
+        Stopwatch sw(Internal::performancePathRasterization);
+
+        if (const FillParams* fill = get_if<FillParams>(&params)) {
+            rle = rasterize(path, fill->fillRule, clip == noClipRect ? Rectangle{} : clip);
+        } else if (const StrokeParams* stroke = get_if<StrokeParams>(&params)) {
+            rle = rasterize(path, stroke->capStyle, stroke->joinStyle, stroke->strokeWidth,
+                            stroke->miterLimit, clip == noClipRect ? Rectangle{} : clip);
+        }
+        bounds = rle.boundingRect();
+        rle.translate(Point{ -bounds.x1, -bounds.y1 });
     }
-    Rectangle bounds = rle.boundingRect();
-    rle.translate(Point{ -bounds.x1, -bounds.y1 });
+    Stopwatch sw(Internal::performancePathScanline);
     return { rleToMask(rle, bounds.size()), bounds };
 }
 

@@ -27,6 +27,7 @@
 #include <variant>
 #include <brisk/core/internal/InlineVector.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
+#include <brisk/core/Time.hpp>
 #include "internal/Sprites.hpp"
 
 namespace Brisk {
@@ -111,6 +112,8 @@ using FillOrStrokeParams = std::variant<FillParams, StrokeParams>;
 struct Path;
 
 namespace Internal {
+extern PerformanceDuration performancePathScanline;
+extern PerformanceDuration performancePathRasterization;
 /**
  * @brief Rasterizes the given path with specified parameters and clipping rectangle.
  *
