@@ -846,6 +846,12 @@ BRISK_ALWAYS_INLINE uint32_t div255(uint32_t n) {
 }
 
 BRISK_ALWAYS_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint32_t len) {
+    if (src == 0)
+        return;
+    if (src >= 255) {
+        memset(dst, 255, len);
+        return;
+    }
     for (uint32_t j = 0; j < len; ++j) {
         dst->grey = dst->grey + div255(src * (255 - dst->grey));
         ++dst;
