@@ -893,6 +893,7 @@ bool Widget::setChildrenOffset(Point offset) {
         if (!w->m_ignoreChildrenOffset)
             w->reposition(difference);
     }
+    invalidate();
     return true;
 }
 
