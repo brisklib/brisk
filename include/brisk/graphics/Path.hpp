@@ -122,7 +122,7 @@ extern PerformanceDuration performancePathRasterization;
  * @param clipRect The clipping rectangle. Use noClipRect to disable clipping.
  * @return RasterizedPath The resulting rasterized path.
  */
-RasterizedPath rasterizePath(Path path, const FillOrStrokeParams& params, Rectangle clipRect);
+RasterizedPath rasterizePath(const Path& path, const FillOrStrokeParams& params, Rectangle clipRect);
 } // namespace Internal
 
 class Dasher;
@@ -375,14 +375,14 @@ struct Path {
     /// Rasterizes the path for filling.
     /// @param fill Fill parameters.
     /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const FillParams& fill, Rectangle clipRect = noClipRect) {
+    RasterizedPath rasterize(const FillParams& fill, Rectangle clipRect = noClipRect) const {
         return Internal::rasterizePath(*this, fill, clipRect);
     }
 
     /// Rasterizes the path for stroking.
     /// @param stroke Stroke parameters.
     /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const StrokeParams& stroke, Rectangle clipRect = noClipRect) {
+    RasterizedPath rasterize(const StrokeParams& stroke, Rectangle clipRect = noClipRect) const {
         return Internal::rasterizePath(*this, stroke, clipRect);
     }
 

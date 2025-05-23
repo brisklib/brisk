@@ -861,7 +861,7 @@ BRISK_ALWAYS_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint
     }
 }
 
-static Rc<Image> rleToMask(Rle rle, Size size) {
+static Rc<Image> rleToMask(const Rle& rle, Size size) {
     if (rle.empty())
         return nullptr;
     Rc<Image> bitmap = rcnew Image(size, ImageFormat::Greyscale_U8Gamma);
@@ -885,7 +885,7 @@ static Rc<Image> rleToMask(Rle rle, Size size) {
     return bitmap;
 }
 
-static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(Path path, const FillOrStrokeParams& params,
+static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(const Path& path, const FillOrStrokeParams& params,
                                                          Rectangle clip) {
     Rle rle;
     Rectangle bounds;
@@ -905,7 +905,7 @@ static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(Path path, const FillOr
     return { rleToMask(rle, bounds.size()), bounds };
 }
 
-RasterizedPath Internal::rasterizePath(Path path, const FillOrStrokeParams& params, Rectangle clipRect) {
+RasterizedPath Internal::rasterizePath(const Path& path, const FillOrStrokeParams& params, Rectangle clipRect) {
     std::tuple<Rc<Image>, Rectangle> imageAndRect = rasterizeToImage(path, params, clipRect);
     if (!std::get<0>(imageAndRect)) {
         return RasterizedPath{ nullptr, {} };

@@ -243,8 +243,8 @@ public:
      * @param clipRect The clipping rectangle in canvas coordinates.
      * @param opacity The opacity value (0.0 to 1.0) for rendering.
      */
-    void strokePath(Path path, const Paint& strokePaint, const StrokeParams& params, const Matrix& matrix,
-                    RectangleF clipRect, float opacity);
+    void strokePath(const Path& path, const Paint& strokePaint, const StrokeParams& params,
+                    const Matrix& matrix, RectangleF clipRect, float opacity);
 
     /**
      * @brief Fills a path on the canvas with specified parameters.
@@ -259,8 +259,8 @@ public:
      * @param clipRect The clipping rectangle in canvas coordinates.
      * @param opacity The opacity value (0.0 to 1.0) for rendering.
      */
-    void fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                  RectangleF clipRect, float opacity);
+    void fillPath(const Path& path, const Paint& fillPaint, const FillParams& fillParams,
+                  const Matrix& matrix, RectangleF clipRect, float opacity);
 
     /**
      * @brief Draws a path on the canvas with both stroke and fill using specified parameters.
@@ -278,7 +278,7 @@ public:
      * @param clipRect The clipping rectangle in canvas coordinates.
      * @param opacity The opacity value (0.0 to 1.0) for rendering.
      */
-    void drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+    void drawPath(const Path& path, const Paint& strokePaint, const StrokeParams& strokeParams,
                   const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
                   RectangleF clipRect, float opacity);
 
@@ -461,7 +461,7 @@ public:
      *
      * @param path The Path struct to stroke.
      */
-    void strokePath(Path path);
+    void strokePath(const Path& path);
 
     /**
      * @brief Fills a given path with the current fill settings.
@@ -471,7 +471,7 @@ public:
      *
      * @param path The Path struct to fill.
      */
-    void fillPath(Path path);
+    void fillPath(const Path& path);
 
     /**
      * @brief Draws a given path with the current stroke and fill settings.
@@ -481,7 +481,7 @@ public:
      *
      * @param path The Path struct to draw.
      */
-    void drawPath(Path path);
+    void drawPath(const Path& path);
 
     /**
      * @brief Strokes a rectangle with the current stroke settings.

@@ -493,7 +493,7 @@ static void drawRect(Canvas& canvas, TestMode mode, RectangleF r) {
     }
 }
 
-static void drawPath(Canvas& canvas, TestMode mode, Path p) {
+static void drawPath(Canvas& canvas, TestMode mode, const Path& p) {
     switch (mode) {
     case Fill:
         canvas.fillPath(p);
