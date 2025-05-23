@@ -180,7 +180,7 @@ ColorPalette::ColorPalette(Construction construction, ColorW color, ArgumentsVie
             addColor(Palette::Standard::lime, v, c), addColor(Palette::Standard::green, v, c),
             addColor(Palette::Standard::teal, v, c), addColor(Palette::Standard::cyan, v, c),
             addColor(Palette::Standard::blue, v, c), addColor(Palette::Standard::indigo, v, c),
-            addColor(Palette::Standard::violet, v, c), addColor(Palette::Standard::fuchsia, v, c) });
+            addColor(Palette::Standard::fuchsia, v, c), addColor(Palette::Standard::pink, v, c) });
     }
 #endif
 

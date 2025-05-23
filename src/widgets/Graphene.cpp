@@ -650,8 +650,8 @@ Rc<const Stylesheet> stylesheet() {
         Style{ Class{ "cyan" }, { backgroundColor = Palette::Standard::cyan } },
         Style{ Class{ "blue" }, { backgroundColor = Palette::Standard::blue } },
         Style{ Class{ "indigo" }, { backgroundColor = Palette::Standard::indigo } },
-        Style{ Class{ "violet" }, { backgroundColor = Palette::Standard::violet } },
         Style{ Class{ "fuchsia" }, { backgroundColor = Palette::Standard::fuchsia } },
+        Style{ Class{ "pink" }, { backgroundColor = Palette::Standard::pink } },
     };
 }
 } // namespace Graphene
