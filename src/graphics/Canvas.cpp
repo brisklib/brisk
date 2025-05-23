@@ -115,6 +115,10 @@ static bool sdfCompat(const StrokeParams& strokeParams, bool closed) {
            (strokeParams.joinStyle == JoinStyle::Round || strokeParams.joinStyle == JoinStyle::Miter);
 }
 
+static bool isTransparent(const Paint& paint) {
+    return paint.index() == 0 && (std::get<0>(paint).a == 0);
+}
+
 static bool colorOrSimpleGradient(const Paint& paint) {
     return paint.index() == 0 || paint.index() == 1 && (std::get<1>(paint).colorStops().size() <= 2);
 }
@@ -149,8 +153,10 @@ void Canvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& s
             return;
         }
     }
-    fillPath(path, fillPaint, fillParams, matrix, clipRect, opacity);
-    strokePath(path, strokePaint, strokeParams, matrix, clipRect, opacity);
+    if (!isTransparent(fillPaint))
+        fillPath(path, fillPaint, fillParams, matrix, clipRect, opacity);
+    if (!isTransparent(strokePaint) && strokeParams.strokeWidth > 0)
+        strokePath(path, strokePaint, strokeParams, matrix, clipRect, opacity);
 }
 
 static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect) {
