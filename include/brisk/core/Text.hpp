@@ -25,6 +25,7 @@
 #include "Encoding.hpp"
 #include <brisk/core/internal/FixedString.hpp>
 #include <brisk/core/Encoding.hpp>
+#include <charconv>
 
 namespace Brisk {
 
