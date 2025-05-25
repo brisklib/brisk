@@ -596,4 +596,13 @@ constexpr FormatString<s> operator""_fmt() noexcept {
     return {};
 }
 
+template <typename T>
+inline std::optional<T> toNumber(std::string_view str) {
+    T value;
+    if (std::from_chars(str.data(), str.data() + str.size(), value).ec == std::errc{})
+        return value;
+    else
+        return std::nullopt;
+}
+
 } // namespace Brisk
