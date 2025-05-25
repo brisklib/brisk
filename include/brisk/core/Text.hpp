@@ -606,4 +606,31 @@ inline std::optional<T> toNumber(std::string_view str) {
         return std::nullopt;
 }
 
+namespace Internal {
+
+template <size_t N>
+struct FmtString : public FixedString<N>, public fmt::detail::compile_string {
+    using char_type = char;
+
+    using FixedString<N>::FixedString;
+
+    constexpr operator fmt::basic_string_view<char_type>() const {
+        return fmt::detail_exported::compile_string_to_view<char_type>(
+            fmt::basic_string_view<char_type>(this->string()));
+    }
+};
+
+template <size_t N>
+FmtString(const char (&)[N]) -> FmtString<N - 1>;
+
+} // namespace Internal
+
+template <Internal::FmtString fmt>
+struct FixedFormatter {
+    template <typename T>
+    std::string operator()(T value) const {
+        return fmt::format(fmt, value);
+    }
+};
+
 } // namespace Brisk
