@@ -686,6 +686,16 @@ struct Value {
         });
     }
 
+    friend Value operator!(Value op1)
+        requires requires(T t) {
+            { !t } -> std::convertible_to<T>;
+        }
+    {
+        return op1.transform([](T x) -> T {
+            return !x;
+        });
+    }
+
     struct Operand {
         const Value& value;
 
@@ -703,18 +713,6 @@ struct Value {
                     return x != y;
                 },
                 op1.value, op2.value);
-        }
-
-        friend Value operator!(Operand op1)
-            requires requires(T t) {
-                { !t } -> std::convertible_to<T>;
-            }
-        {
-            return Brisk::transform(
-                [](T x) -> T {
-                    return !x;
-                },
-                op1.value);
         }
     };
 
