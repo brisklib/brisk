@@ -233,7 +233,7 @@ public:
                 onClick = lifetime() |
                           [this]() {
                               // Notify bindings about the change
-                    bindings->assign(m_label) = "Updated text";
+                    *bindings->modify(m_label) = "Updated text";
                 },
             },
 

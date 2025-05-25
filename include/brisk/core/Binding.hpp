@@ -1169,8 +1169,40 @@ public:
     };
 
     template <std::equality_comparable T>
-    AutoNotify<T> assign(T& variable) {
+    [[deprecated("Use *bindings->modify()")]] AutoNotify<T> assign(T& variable) {
         return AutoNotify<T>{ this, variable };
+    }
+
+    template <typename T>
+    class ModifyProxy {
+    private:
+        Bindings* bindings;
+        T* value;
+
+    public:
+        explicit ModifyProxy(Bindings* bindings, T* value) noexcept : bindings(bindings), value(value) {}
+
+        ModifyProxy(ModifyProxy&&)                 = default;
+        ModifyProxy(const ModifyProxy&)            = delete;
+        ModifyProxy& operator=(ModifyProxy&&)      = delete;
+        ModifyProxy& operator=(const ModifyProxy&) = delete;
+
+        ~ModifyProxy() {
+            bindings->notify(value);
+        }
+
+        T* operator->() const noexcept {
+            return value;
+        }
+
+        T& operator*() const noexcept {
+            return *value;
+        }
+    };
+
+    template <std::equality_comparable T>
+    ModifyProxy<T> modify(T& variable) {
+        return ModifyProxy<T>{ this, &variable };
     }
 
     template <std::equality_comparable T>

@@ -54,17 +54,17 @@ TEST_CASE("Bindings") {
     CHECK(src == 125);
     CHECK(dst == 250);
 
-    bindings->assign(dst) = 1000;
+    *bindings->modify(dst) = 1000;
 
     CHECK(src == 500);
     CHECK(dst == 1000);
 
-    ++bindings->assign(dst);
+    ++*bindings->modify(dst);
 
     CHECK(src == 500.5);
     CHECK(dst == 1001);
 
-    ++bindings->assign(dst);
+    ++*bindings->modify(dst);
 
     CHECK(src == 501);
     CHECK(dst == 1002);
@@ -73,7 +73,7 @@ TEST_CASE("Bindings") {
 
     CHECK(bindings->numHandlers() == 0);
 
-    ++bindings->assign(dst);
+    ++*bindings->modify(dst);
 
     CHECK(src == 501);
     CHECK(dst == 1003);

@@ -304,7 +304,7 @@ struct WidgetAnimation {
                 pendingFrame = offscreen.render();
             }
             pendingFrameDuration += dur;
-            bindings->assign(frameStartTime) += 1.0 / fps;
+            *bindings->modify(frameStartTime) += 1.0 / fps;
         }
     }
 
