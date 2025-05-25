@@ -253,13 +253,6 @@ private:
     Internal::RuleOp m_op;
 };
 
-template <typename Enum>
-std::underlying_type_t<Enum> to_underlying(Enum e)
-    requires std::is_enum_v<Enum>
-{
-    return static_cast<std::underlying_type_t<Enum>>(e);
-}
-
 struct RuleCmpLess {
     bool operator()(const Rule& x, const Rule& y) {
         if (x.name() < y.name())

@@ -487,6 +487,24 @@ struct Value {
     }
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
+              std::invocable<typename U::value_type> Backward>
+        Value<U> transform(Forward&& forward, Backward&& backward) && requires(!IsOptional<T>) &&
+        IsOptional<U>&& IsOptional<std::invoke_result_t<Backward, typename U::value_type>> {
+        return Value<U>{
+            [forward = std::move(forward), get = std::move(m_get)]() -> U {
+                return forward(get());
+            },
+            [backward = std::move(backward), set = std::move(m_set)](U newValue) {
+                if (set && newValue.has_value())
+                    if (auto val = backward(std::move(*newValue)))
+                        set(*val);
+            },
+            std::move(m_srcAddresses),
+            std::move(m_destAddress),
+        };
+    }
+
+    template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<U> Backward>
     Value<U> transform(Forward&& forward, Backward&& backward) const& {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward), std::forward<Backward>(backward));
@@ -544,11 +562,12 @@ struct Value {
             [get = std::move(m_get), compare]() -> bool {
                 return get() == compare;
             },
-            bidirectional ? [set = std::move(m_set), compare](bool newValue) {
+            bidirectional ? Value<bool>::SetFn([set = std::move(m_set), compare](bool newValue) {
                 if (newValue)
                     if (set)
                         set(compare);
-            } : SetFn(nullptr),
+            })
+                          : Value<bool>::SetFn(nullptr),
             std::move(m_srcAddresses),
             std::move(m_destAddress),
         };
@@ -556,6 +575,24 @@ struct Value {
 
     Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) const& {
         return Value<T>{ *this }.equal(std::move(compare), bidirectional);
+    }
+
+    Value<std::optional<T>> makeOptional() && {
+        return Value<std::optional<T>>{
+            [get = std::move(m_get)]() -> std::optional<T> {
+                return std::optional<T>(get());
+            },
+            [set = std::move(m_set)](std::optional<T> value) {
+                if (value)
+                    set(std::move(*value));
+            },
+            std::move(m_srcAddresses),
+            std::move(m_destAddress),
+        };
+    }
+
+    Value<std::optional<T>> makeOptional() const& {
+        return Value<T>{ *this }.makeOptional();
     }
 
 #define BRISK_BINDING_OP(oper, op)                                                                           \
@@ -667,10 +704,22 @@ struct Value {
                 },
                 op1.value, op2.value);
         }
+
+        friend Value operator!(Operand op1)
+            requires requires(T t) {
+                { !t } -> std::convertible_to<T>;
+            }
+        {
+            return Brisk::transform(
+                [](T x) -> T {
+                    return !x;
+                },
+                op1.value);
+        }
     };
 
     Operand operator*() const {
-        return *this;
+        return { *this };
     }
 
     const GetFn& getter() const& noexcept {
@@ -834,9 +883,16 @@ Value<FT> remapLog(Value<T> value, std::type_identity_t<FT> min, std::type_ident
  * @endcode
  */
 template <typename T>
-Value<std::string> toString(Value<T> value, std::string fmtstr = "{}") {
-    return value.transform([get = value.getter(), fmtstr = std::move(fmtstr)]() {
-        return fmt::format(fmtstr, get());
+Value<std::string> toString(Value<T> value, std::string fmtstr) {
+    return std::move(value).transform([fmtstr = std::move(fmtstr)](T val) -> std::string {
+        return fmt::format(fmt::runtime(fmtstr), val);
+    });
+}
+
+template <typename T>
+Value<std::string> toString(Value<T> value) {
+    return std::move(value).transform([](T val) -> std::string {
+        return fmt::to_string(val);
     });
 }
 /**
@@ -962,7 +1018,10 @@ public:
                                bool updateNow = true, std::string_view destDesc = {},
                                std::string_view srcDesc = {}) {
         std::lock_guard lk(m_mutex);
-        static_assert(std::is_convertible_v<TDest, TSrc> && std::is_convertible_v<TSrc, TDest>);
+        static_assert(std::is_convertible_v<typename Internal::optional_value_type<TDest>::type,
+                                            typename Internal::optional_value_type<TSrc>::type> &&
+                      std::is_convertible_v<typename Internal::optional_value_type<TSrc>::type,
+                                            typename Internal::optional_value_type<TDest>::type>);
         uint64_t id  = BindingHandle::generate();
         int numAdded = 0;
         numAdded += internalConnect(id, dest, src, type, updateNow, destDesc, srcDesc);
@@ -1295,7 +1354,9 @@ private:
                     enqueueInto(
                         destQueue,
                         [dest, value = std::move(value)]() {
-                            dest.set(static_cast<TDest>(value));
+                            if (auto optValue = Internal::wrapOptional(std::move(value))) {
+                                dest.set(*optValue);
+                            }
                         },
                         ExecuteImmediately::IfOnThread);
                 },
@@ -1315,9 +1376,11 @@ private:
                 [=, dest = std::move(dest), val = std::move(val),
                  destRegionWeak = std::move(destRegionWeak)]() {
                     if (auto destRegion = destRegionWeak.lock()) {
-                        dest.set(static_cast<TDest>(val));
-                        LOG_BINDING(binding, "handler: set | {} <- ({}) <- {}", destDesc, toStringSafe(val),
-                                    srcDesc);
+                        if (auto optVal = Internal::wrapOptional(val)) {
+                            dest.set(*optVal);
+                            LOG_BINDING(binding, "handler: set | {} <- ({}) <- {}", destDesc,
+                                        toStringSafe(val), srcDesc);
+                        }
                     }
                 },
                 type == BindType::Immediate ? ExecuteImmediately::IfOnThread
@@ -1822,6 +1885,12 @@ public:
         set(std::move(value));
     }
 
+    void operator=(std::same_as<Value<std::optional<Type>>> auto value)
+        requires(!IsOptional<Type>)
+    {
+        set(std::move(value));
+    }
+
     void operator=(BindableCallback<> bindableCallback) {
         bindings->listen(Value{ this }, std::move(bindableCallback));
     }
@@ -1831,6 +1900,14 @@ public:
     }
 
     void set(Value<Type> value) {
+        BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
+        bindings->connectBidir(Value{ this }, std::move(value));
+    }
+
+    void set(std::same_as<Value<std::optional<Type>>> auto value)
+        requires(!IsOptional<Type>)
+    {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
         bindings->connectBidir(Value{ this }, std::move(value));

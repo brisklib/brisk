@@ -1009,4 +1009,85 @@ struct AutoSingleton {
     }
 };
 
+template <typename T, typename Func>
+std::optional<std::invoke_result_t<Func, const T&>> transformOptional(const std::optional<T>& opt,
+                                                                      Func&& func) {
+    if (opt.has_value()) {
+        return std::optional<std::invoke_result_t<Func, const T&>>{ std::forward<Func>(func)(*opt) };
+    }
+    return std::nullopt;
+}
+
+template <typename T, typename Func>
+std::optional<std::invoke_result_t<Func, T&&>> transformOptional(std::optional<T>&& opt, Func&& func) {
+    if (opt.has_value()) {
+        return std::optional<std::invoke_result_t<Func, T&&>>{ std::forward<Func>(func)(std::move(*opt)) };
+    }
+    return std::nullopt;
+}
+
+template <typename Enum>
+std::underlying_type_t<Enum> to_underlying(Enum e)
+    requires std::is_enum_v<Enum>
+{
+    return static_cast<std::underlying_type_t<Enum>>(e);
+}
+
+template <typename T>
+concept IsOptional = std::same_as<T, std::optional<typename T::value_type>>;
+
+namespace Internal {
+template <typename T>
+struct optional_value_type {
+    using type = T;
+};
+
+template <IsOptional T>
+struct optional_value_type<T> {
+    using type = typename T::value_type;
+};
+
+template <typename T>
+std::optional<T> wrapOptional(std::optional<T>&& value) {
+    return std::move(value);
+}
+
+template <typename T>
+const std::optional<T>& wrapOptional(const std::optional<T>& value) {
+    return value;
+}
+
+template <typename T>
+struct FakeOptional {
+    T value;
+
+    const T& operator*() const& noexcept {
+        return value;
+    }
+
+    T&& operator*() && noexcept {
+        return std::move(value);
+    }
+
+    constexpr operator bool() const noexcept {
+        return true;
+    }
+};
+
+template <typename T>
+FakeOptional<T&&> wrapOptional(T&& value)
+    requires(!IsOptional<std::remove_cvref_t<T>>)
+{
+    return FakeOptional<T&&>{ std::move(value) };
+}
+
+template <typename T>
+FakeOptional<const T&> wrapOptional(const T& value)
+    requires(!IsOptional<std::remove_cvref_t<T>>)
+{
+    return FakeOptional<const T&>{ value };
+}
+
+} // namespace Internal
+
 } // namespace Brisk
