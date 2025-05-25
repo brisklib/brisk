@@ -2262,6 +2262,10 @@ bool Widget::isDisabled() const noexcept {
     return m_state && WidgetState::Disabled;
 }
 
+bool Widget::isEnabled() const noexcept {
+    return !isDisabled();
+}
+
 Widget* Widget::parent() const noexcept {
     return m_parent;
 }
@@ -3057,12 +3061,17 @@ const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
 const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread;
 
 const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled{};
+const Argument<Tag::PropArg<decltype(Widget::enabled)>> enabled{};
 const Argument<Tag::PropArg<decltype(Widget::selected)>> selected{};
 
 } // namespace Arg
 
 void Widget::setDisabled(bool value) {
     toggleState(WidgetState::Disabled, value);
+}
+
+void Widget::setEnabled(bool value) {
+    setDisabled(!value);
 }
 
 void Widget::setSelected(bool value) {
