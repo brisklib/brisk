@@ -179,7 +179,7 @@ public:
      * @return A future that will contain the result of the callable when it completes.
      * @threadsafe This method is thread-safe and can be called from any thread.
      */
-    template <typename Callable, typename ReturnType = std::invoke_result_t<Callable>>
+    template <std::invocable<> Callable, typename ReturnType = std::invoke_result_t<Callable>>
     std::future<ReturnType> dispatch(Callable&& func,
                                      ExecuteImmediately mode = ExecuteImmediately::IfOnThread)
         requires(!std::is_same_v<ReturnType, void>)
@@ -203,7 +203,7 @@ public:
         return result;
     }
 
-    template <typename Callable, typename ReturnType = std::invoke_result_t<Callable>>
+    template <std::invocable<> Callable, typename ReturnType = std::invoke_result_t<Callable>>
     ReturnType dispatchAndWait(Callable&& func, ExecuteImmediately mode = ExecuteImmediately::IfOnThread)
         requires(!std::is_same_v<ReturnType, void>)
     {
