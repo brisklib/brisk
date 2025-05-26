@@ -983,7 +983,7 @@ public:
     void apply(WidgetGroup* group);
 
     virtual void onChildAdded(Widget* w);
-    virtual void childrenAdded();
+    virtual void childrenChanged();
 
     std::optional<size_t> indexOf(const Widget* widget) const;
 
@@ -1241,7 +1241,7 @@ protected:
     Size viewportSize() const noexcept;
     void setRect(Rectangle rect);
 
-    void rebuildOne(Builder builder);
+    size_t rebuildOne(Builder builder);
 
     virtual Ptr getContextWidget();
 

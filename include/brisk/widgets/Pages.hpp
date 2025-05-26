@@ -110,7 +110,7 @@ public:
 protected:
     int m_value = 0;
     void updateTabs();
-    void childrenAdded() override;
+    void childrenChanged() override;
 
     void onConstructed() override;
 
