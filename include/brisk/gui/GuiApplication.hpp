@@ -37,6 +37,12 @@ public:
 
     [[nodiscard]] int run(Rc<Component> mainComponent);
 
+    template <std::invocable<> Fn>
+    [[nodiscard]] int run(Fn&& fn) {
+        Rc<Component> component = uiScheduler->dispatchAndWait(std::move(fn));
+        return run(std::move(component));
+    }
+
     void modalRun(Rc<Component> modalComponent);
 
     void addWindow(Rc<Component> component, bool makeVisible = true);
