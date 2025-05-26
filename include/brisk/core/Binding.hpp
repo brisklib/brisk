@@ -946,15 +946,15 @@ struct BindableCallback {
     constexpr BindableCallback(Callback<Args...> callback, BindingAddress address)
         : callback(std::move(callback)), address(address) {}
 
-    template <typename Class>
-    constexpr BindableCallback(Class* class_, void (Class::*method)(Args...))
+    template <typename Class, typename... FnArgs>
+    constexpr BindableCallback(Class* class_, void (Class::*method)(FnArgs...))
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
           address(toBindingAddress(class_)) {}
 
-    template <typename Class>
-    constexpr BindableCallback(const Class* class_, void (Class::*method)(Args...) const)
+    template <typename Class, typename... FnArgs>
+    constexpr BindableCallback(const Class* class_, void (Class::*method)(FnArgs...) const)
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
