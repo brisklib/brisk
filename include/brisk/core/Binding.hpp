@@ -521,10 +521,10 @@ struct Value {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward));
     }
 
-    template <std::invocable<T, T> Fn>
-    friend Value<std::invoke_result_t<Fn, T, T>> binary(Value left, Value right, Fn&& fn) {
-        return Value<T>{
-            [fn = std::move(fn), leftGet = std::move(left.m_get), rightGet = std::move(right.m_get)]() -> T {
+    template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
+    friend Value<R> binary(Value left, Value right, Fn&& fn) {
+        return Value<R>{
+            [fn = std::move(fn), leftGet = std::move(left.m_get), rightGet = std::move(right.m_get)]() -> R {
                 return fn(leftGet(), rightGet());
             },
             nullptr,
@@ -533,10 +533,10 @@ struct Value {
         };
     }
 
-    template <std::invocable<T, T> Fn>
-    friend Value<std::invoke_result_t<Fn, T, T>> binary(Value left, std::type_identity_t<T> right, Fn&& fn) {
-        return Value<T>{
-            [fn = std::move(fn), leftGet = std::move(left.m_get), right = std::move(right)]() -> T {
+    template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
+    friend Value<R> binary(Value left, std::type_identity_t<T> right, Fn&& fn) {
+        return Value<R>{
+            [fn = std::move(fn), leftGet = std::move(left.m_get), right = std::move(right)]() -> R {
                 return fn(leftGet(), right);
             },
             nullptr,
@@ -545,10 +545,10 @@ struct Value {
         };
     }
 
-    template <std::invocable<T, T> Fn>
-    friend Value<std::invoke_result_t<Fn, T, T>> binary(std::type_identity_t<T> left, Value right, Fn&& fn) {
-        return Value<T>{
-            [fn = std::move(fn), left = std::move(left), rightGet = std::move(right.m_get)]() -> T {
+    template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
+    friend Value<R> binary(std::type_identity_t<T> left, Value right, Fn&& fn) {
+        return Value<R>{
+            [fn = std::move(fn), left = std::move(left), rightGet = std::move(right.m_get)]() -> R {
                 return fn(left, rightGet());
             },
             nullptr,
@@ -595,130 +595,60 @@ struct Value {
         return Value<T>{ *this }.makeOptional();
     }
 
-#define BRISK_BINDING_OP(oper, op)                                                                           \
-    friend inline Value oper(Value left, Value right)                                                        \
-        requires requires(T l, T r) {                                                                        \
-            { l op r } -> std::convertible_to<T>;                                                            \
-        }                                                                                                    \
+#define BRISK_BINDING_BINARY_OP(op)                                                                          \
+    friend inline auto operator op(Value left, Value right)                                                  \
+        requires requires { left.get() op right.get(); }                                                     \
+    {                                                                                                        \
+        return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
+            return l op r;                                                                                   \
+        });                                                                                                  \
+    }                                                                                                        \
+    friend inline auto operator op(Value left, T right)                                                      \
+        requires requires { left.get() op right; }                                                           \
+    {                                                                                                        \
+        return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
+            return l op r;                                                                                   \
+        });                                                                                                  \
+    }                                                                                                        \
+    friend inline auto operator op(T left, Value right)                                                      \
+        requires requires { left op right.get(); }                                                           \
     {                                                                                                        \
         return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
             return l op r;                                                                                   \
         });                                                                                                  \
     }
 
-    friend inline Value operator+(Value left, Value right)
-        requires requires(T l, T r) {
-            { l + r } -> std ::convertible_to<T>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l + r;
-        });
+#define BRISK_BINDING_PREFIX_OP(op)                                                                          \
+    friend auto operator op(Value op1)                                                                       \
+        requires requires { op op1.get(); }                                                                  \
+    {                                                                                                        \
+        return std::move(op1).transform([](T x) -> T {                                                       \
+            return op x;                                                                                     \
+        });                                                                                                  \
     }
 
-    friend inline Value operator-(Value left, Value right)
-        requires requires(T l, T r) {
-            { l - r } -> std ::convertible_to<T>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l - r;
-        });
-    }
+    BRISK_BINDING_BINARY_OP(+)
+    BRISK_BINDING_BINARY_OP(-)
+    BRISK_BINDING_BINARY_OP(*)
+    BRISK_BINDING_BINARY_OP(/)
+    BRISK_BINDING_BINARY_OP(%)
+    BRISK_BINDING_BINARY_OP(&)
+    BRISK_BINDING_BINARY_OP(^)
+    BRISK_BINDING_BINARY_OP(|)
+    BRISK_BINDING_BINARY_OP(&&)
+    BRISK_BINDING_BINARY_OP(||)
+    BRISK_BINDING_BINARY_OP(<)
+    BRISK_BINDING_BINARY_OP(>)
+    BRISK_BINDING_BINARY_OP(<<)
+    BRISK_BINDING_BINARY_OP(>>)
+    BRISK_BINDING_BINARY_OP(<=)
+    BRISK_BINDING_BINARY_OP(>=)
+    BRISK_BINDING_BINARY_OP(==)
+    BRISK_BINDING_BINARY_OP(!=)
 
-    friend inline Value operator*(Value left, Value right)
-        requires requires(T l, T r) {
-            { l* r } -> std ::convertible_to<T>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l * r;
-        });
-    }
-
-    friend inline Value operator/(Value left, Value right)
-        requires requires(T l, T r) {
-            { l / r } -> std ::convertible_to<T>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l / r;
-        });
-    }
-
-    friend inline Value<bool> operator<(Value left, Value right)
-        requires requires(T l, T r) {
-            { l < r } -> std ::convertible_to<bool>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l < r;
-        });
-    }
-
-    friend inline Value<bool> operator>(Value left, Value right)
-        requires requires(T l, T r) {
-            { l > r } -> std ::convertible_to<bool>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l > r;
-        });
-    }
-
-    friend inline Value<bool> operator<=(Value left, Value right)
-        requires requires(T l, T r) {
-            { l <= r } -> std ::convertible_to<bool>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l <= r;
-        });
-    }
-
-    friend inline Value<bool> operator>=(Value left, Value right)
-        requires requires(T l, T r) {
-            { l >= r } -> std ::convertible_to<bool>;
-        }
-    {
-        return binary(std ::move(left), std ::move(right), [](T l, T r) {
-            return l >= r;
-        });
-    }
-
-    friend Value operator!(Value op1)
-        requires requires(T t) {
-            { !t } -> std::convertible_to<T>;
-        }
-    {
-        return op1.transform([](T x) -> T {
-            return !x;
-        });
-    }
-
-    struct Operand {
-        const Value& value;
-
-        friend Value<bool> operator==(Operand op1, Operand op2) {
-            return Brisk::transform(
-                [](T x, T y) -> bool {
-                    return x == y;
-                },
-                op1.value, op2.value);
-        }
-
-        friend Value<bool> operator!=(Operand op1, Operand op2) {
-            return Brisk::transform(
-                [](T x, T y) -> bool {
-                    return x != y;
-                },
-                op1.value, op2.value);
-        }
-    };
-
-    Operand operator*() const {
-        return { *this };
-    }
+    BRISK_BINDING_PREFIX_OP(-)
+    BRISK_BINDING_PREFIX_OP(~)
+    BRISK_BINDING_PREFIX_OP(!)
 
     const GetFn& getter() const& noexcept {
         return m_get;
