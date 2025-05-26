@@ -39,6 +39,7 @@ public:
 protected:
     void onEvent(Event& event) override;
     void onChanged() override;
+    void childrenChanged() override;
     std::shared_ptr<Item> findSelected() const;
     void append(Rc<Widget> widget) override;
     Ptr cloneThis() const override;

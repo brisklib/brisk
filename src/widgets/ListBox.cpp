@@ -24,9 +24,19 @@ namespace Brisk {
 
 void ListBox::onEvent(Event& event) {
     Base::onEvent(event);
+    if (event.pressed()) {
+        value = -1;
+    }
 }
 
 void ListBox::onChanged() {}
+
+void ListBox::childrenChanged() {
+    Base::childrenChanged();
+    if (m_value > widgets().size()) {
+        value = -1;
+    }
+}
 
 std::shared_ptr<Item> ListBox::findSelected() const {
     if (!m_constructed)
@@ -46,7 +56,8 @@ void ListBox::append(Rc<Widget> widget) {
     item->closesPopup   = false;
     item->tabStop       = true;
     item->selectOnFocus = true;
-    item->selected      = Value{ &value }.equal(this->widgets().size());
+    bindings->connectBidir(Value{ &item->selected }, Value{ &value }.equal(this->widgets().size()),
+                           BindType::Immediate);
     Base::append(std::move(item));
 }
 
