@@ -600,10 +600,32 @@ constexpr FormatString<s> operator""_fmt() noexcept {
 template <typename T>
 inline std::optional<T> toNumber(std::string_view str) {
     T value;
+#ifdef __APPLE__
+    if constexpr (std::is_floating_point_v<T>) {
+        std::string string(str);
+        char* end;
+        errno = 0;
+        if constexpr (std::is_same_v<T, float>) {
+            value = std::strtof(string.c_str(), &end);
+        } else {
+            value = std::strtod(string.c_str(), &end);
+        }
+        if (end == string.c_str() || end != string.c_str() + string.size() || errno == ERANGE) {
+            return std::nullopt;
+        }
+        return value;
+    } else {
+        if (std::from_chars(str.data(), str.data() + str.size(), value).ec == std::errc{})
+            return value;
+        else
+            return std::nullopt;
+    }
+#else
     if (std::from_chars(str.data(), str.data() + str.size(), value).ec == std::errc{})
         return value;
     else
         return std::nullopt;
+#endif
 }
 
 namespace Internal {

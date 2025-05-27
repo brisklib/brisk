@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
+#include "Catch2Utils.hpp"
 #include <fmt/format.h>
 #include <string_view>
 #include <brisk/core/Text.hpp>
@@ -74,4 +75,22 @@ TEST_CASE("shorten") {
 
     CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 3, 0.f, U"...") == "...");
     CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 1, 0.f, U"...") == "...");
+}
+
+TEST_CASE("toNumber") {
+    CHECK(toNumber<float>("123.0") == 123.f);
+    CHECK(toNumber<float>("123.") == 123.f);
+    CHECK(toNumber<float>("123") == 123.f);
+    CHECK(toNumber<float>("123e0") == 123.f);
+    CHECK(toNumber<float>("-1.23e2") == -123.f);
+    CHECK(toNumber<float>("12345"sv.substr(0, 3)) == 123.f);
+    CHECK(toNumber<float>("+1.23e") == std::nullopt);
+
+    CHECK(toNumber<double>("123.0") == 123.);
+    CHECK(toNumber<double>("123.") == 123.);
+    CHECK(toNumber<double>("123") == 123.);
+    CHECK(toNumber<double>("123e0") == 123.);
+    CHECK(toNumber<double>("-1.23e2") == -123.);
+    CHECK(toNumber<double>("12345"sv.substr(0, 3)) == 123.);
+    CHECK(toNumber<double>("+1.23e") == std::nullopt);
 }
