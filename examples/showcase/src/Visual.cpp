@@ -38,7 +38,7 @@ const NameValueOrderedList<TextAlign> textAlignList{
     { "Right", TextAlign::End },
 };
 
-Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
 
     static const Rules cell = Rules{
         layout  = Layout::Horizontal,
@@ -77,11 +77,18 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
                 rcnew ComboBox{
                     Value{ &m_textAlign },
                     notManaged(&textAlignList),
+                    enabled = globalEnabled,
                     width = 110_apx,
                 },
                 rcnew Text{ "Font size: " },
 
-                rcnew Slider{ value = Value{ &m_fontSize }, minimum = 0.25f, maximum = 4.f, width = 300_apx },
+                rcnew Slider{
+                    value   = Value{ &m_fontSize },
+                    minimum = 0.25f,
+                    maximum = 4.f,
+                    width   = 300_apx,
+                    enabled = globalEnabled,
+                },
             },
             // contentOverflowX prevents this widget from stretching because of Text
             contentOverflowX = ContentOverflow::Allow,
@@ -191,7 +198,11 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
                 active     = Value{ &m_active },
             },
             gapColumn = 10_apx,
-            rcnew CheckBox{ value = Value{ &m_active }, rcnew Text{ "Active" } },
+            rcnew CheckBox{
+                value = Value{ &m_active },
+                rcnew Text{ "Active" },
+                enabled = globalEnabled,
+            },
         },
 
         rcnew Text{ "Progress (widgets/Progress.hpp)", classes = { "section-header" } },
@@ -204,7 +215,11 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
                 dimensions = { 400_apx, 20_apx },
             },
             gapColumn = 10_apx,
-            rcnew CheckBox{ value = Value{ &m_progressActive }, rcnew Text{ "Active" } },
+            rcnew CheckBox{
+                value = Value{ &m_progressActive },
+                rcnew Text{ "Active" },
+                enabled = globalEnabled,
+            },
         },
 
         rcnew Text{ "ImageView (widgets/ImageView.hpp)", classes = { "section-header" } },
@@ -298,7 +313,11 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
                 isHintVisible   = Value{ &m_hintActive },
             },
             gapColumn = 10_apx,
-            rcnew CheckBox{ value = Value{ &m_hintActive }, rcnew Text{ "Show hint" } },
+            rcnew CheckBox{
+                value = Value{ &m_hintActive },
+                rcnew Text{ "Show hint" },
+                enabled = globalEnabled,
+            },
         },
 
         rcnew Text{ "Shadow", classes = { "section-header" } },
@@ -310,8 +329,15 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications) {
                 shadowSize  = Value{ &m_shadowSize },
                 shadowColor = 0x1050E8_rgb,
                 clip        = WidgetClip::None,
+                enabled     = globalEnabled,
             },
-            rcnew Slider{ value = Value{ &m_shadowSize }, minimum = 0.f, maximum = 40.f, width = 300_apx },
+            rcnew Slider{
+                value   = Value{ &m_shadowSize },
+                minimum = 0.f,
+                maximum = 40.f,
+                width   = 300_apx,
+                enabled = globalEnabled,
+            },
         },
 
         rcnew Text{ "Widget borders", classes = { "section-header" } },

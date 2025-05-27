@@ -31,7 +31,7 @@
 
 namespace Brisk {
 
-Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -41,7 +41,13 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew Slider{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, width = 250_apx },
+                rcnew Slider{
+                    value   = Value{ &m_value },
+                    minimum = 0.f,
+                    maximum = 100.f,
+                    width   = 250_apx,
+                    enabled = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -54,8 +60,14 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew Slider{ value = Value{ &m_value }, hintFormatter = "x={:.1f}", minimum = 0.f,
-                              maximum = 100.f, width = 250_apx },
+                rcnew Slider{
+                    value         = Value{ &m_value },
+                    hintFormatter = "x={:.1f}",
+                    minimum       = 0.f,
+                    maximum       = 100.f,
+                    width         = 250_apx,
+                    enabled       = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -64,8 +76,15 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew Slider{ value = Value{ &m_y }, hintFormatter = "y={:.1f}", minimum = 0.f,
-                              maximum = 100.f, width = 250_apx, dimensions = { 20_apx, 80_apx } },
+                rcnew Slider{
+                    value         = Value{ &m_y },
+                    hintFormatter = "y={:.1f}",
+                    minimum       = 0.f,
+                    maximum       = 100.f,
+                    width         = 250_apx,
+                    dimensions    = { 20_apx, 80_apx },
+                    enabled       = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -75,7 +94,13 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew Knob{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, dimensions = 30_apx },
+                rcnew Knob{
+                    value      = Value{ &m_value },
+                    minimum    = 0.f,
+                    maximum    = 100.f,
+                    dimensions = 30_apx,
+                    enabled    = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -90,7 +115,13 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew SpinBox{ value = Value{ &m_value }, minimum = 0.f, maximum = 100.f, width = 90_apx },
+                rcnew SpinBox{
+                    value   = Value{ &m_value },
+                    minimum = 0.f,
+                    maximum = 100.f,
+                    width   = 90_apx,
+                    enabled = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -105,7 +136,12 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew TextEditor(Value{ &m_text }, fontSize = 150_perc, width = 100_perc),
+                rcnew TextEditor{
+                    Value{ &m_text },
+                    fontSize = 150_perc,
+                    width    = 100_perc,
+                    enabled  = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -118,29 +154,49 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew Text{ "multiline = true", classes = { "section-header" } },
 
-        rcnew TextEditor(Value{ &m_multilineText }, fontSize = 150_perc, height = 5_em, multiline = true,
-                         textVerticalAlign = TextAlign::Start, width = auto_),
+        rcnew TextEditor{
+            Value{ &m_multilineText },
+            fontSize          = 150_perc,
+            height            = 5_em,
+            multiline         = true,
+            textVerticalAlign = TextAlign::Start,
+            width             = auto_,
+            enabled           = globalEnabled,
+        },
 
         rcnew Text{ "PasswordEditor (widgets/TextEditor.hpp)", classes = { "section-header" } },
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew PasswordEditor(Value{ &m_password }, width = 100_perc, fontFamily = Font::Monospace,
-                                     passwordChar =
-                                         Value{ &m_hidePassword }.transform([](bool v) -> char32_t {
-                                             return v ? '*' : 0;
-                                         })),
+                rcnew PasswordEditor{
+                    Value{ &m_password },
+                    width        = 100_perc,
+                    fontFamily   = Font::Monospace,
+                    passwordChar = Value{ &m_hidePassword }.transform([](bool v) -> char32_t {
+                        return v ? '*' : 0;
+                    }),
+                    enabled = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
-            rcnew CheckBox{ value = Value{ &m_hidePassword }, rcnew Text{ "Hide password" } },
+            rcnew CheckBox{
+                value = Value{ &m_hidePassword },
+                rcnew Text{ "Hide password" },
+                enabled = globalEnabled,
+            },
         },
 
         rcnew Text{ "Basic HTML", classes = { "section-header" } },
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew TextEditor(Value{ &m_html }, fontSize = 150_perc, width = 100_perc),
+                rcnew TextEditor{
+                    Value{ &m_html },
+                    fontSize = 150_perc,
+                    width    = 100_perc,
+                    enabled  = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -164,7 +220,11 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew ColorSliders{ Value{ &m_color }, false },
+                rcnew ColorSliders{
+                    Value{ &m_color },
+                    false,
+                    enabled = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -174,7 +234,10 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew ColorPalette{ Value{ &m_color } },
+                rcnew ColorPalette{
+                    Value{ &m_color },
+                    enabled = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -184,7 +247,11 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications) {
 
         rcnew HLayout{
             rcnew Widget{
-                rcnew ColorButton{ Value{ &m_color }, false },
+                rcnew ColorButton{
+                    Value{ &m_color },
+                    false,
+                    enabled = globalEnabled,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,

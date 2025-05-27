@@ -69,6 +69,7 @@ protected:
     std::string m_editable = "ABCDEF";
 
     bool m_lightTheme      = false;
+    bool m_globalEnabled   = true;
 
     Rc<Widget> build() final;
     void unhandledEvent(Event& event) final;
@@ -79,6 +80,7 @@ protected:
 public:
     BRISK_PROPERTIES_BEGIN
     Property<This, float, &This::m_progress> progress;
+    Property<This, bool, &This::m_globalEnabled> globalEnabled;
     BRISK_PROPERTIES_END
 };
 

@@ -53,6 +53,7 @@ void ListBox::append(Rc<Widget> widget) {
     if (!item) {
         item = rcnew Item{ std::move(widget) };
     }
+    item->enabled       = Value{ &this->enabled };
     item->closesPopup   = false;
     item->tabStop       = true;
     item->selectOnFocus = true;

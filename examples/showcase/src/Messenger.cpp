@@ -80,7 +80,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
     }
 }
 
-Rc<Widget> ShowcaseMessenger::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseMessenger::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
     return rcnew VLayout{
         flexGrow      = 1,
         padding       = 16_apx,

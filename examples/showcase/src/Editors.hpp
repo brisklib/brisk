@@ -27,7 +27,7 @@ namespace Brisk {
 
 class ShowcaseEditors : public BindableObject<ShowcaseEditors, &uiScheduler> {
 public:
-    Rc<Widget> build(Rc<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications, Value<bool> globalEnabled);
 
 private:
     WidthGroup m_group;

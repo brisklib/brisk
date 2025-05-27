@@ -383,7 +383,7 @@ struct Root {
     }
 };
 
-// type
+// state
 struct State {
     explicit State(WidgetState state) noexcept : state(state) {}
 

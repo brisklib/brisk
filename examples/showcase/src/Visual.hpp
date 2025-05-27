@@ -28,7 +28,7 @@ class ShowcaseVisual : public BindableObject<ShowcaseVisual, &uiScheduler> {
 public:
     ShowcaseVisual();
 
-    Rc<Widget> build(Rc<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications, Value<bool> globalEnabled);
 
 private:
     WidthGroup m_group;

@@ -125,7 +125,7 @@ TEST_CASE("Widget Button Pressed") {
 }
 
 TEST_CASE("Widget Button Disabled") {
-    widgetTest("widget-button-disabled", rcnew Button{ rcnew Text{ "Button" }, disabled = true });
+    widgetTest("widget-button-disabled", rcnew Button{ rcnew Text{ "Button" }, enabled = false });
 }
 
 TEST_CASE("Widget ToggleButton") {

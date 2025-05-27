@@ -28,7 +28,7 @@ class ShowcaseMessenger : public BindableObject<ShowcaseMessenger, &uiScheduler>
 public:
     ShowcaseMessenger();
 
-    Rc<Widget> build(Rc<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications, Value<bool> globalEnabled);
 
 private:
     enum class Status {

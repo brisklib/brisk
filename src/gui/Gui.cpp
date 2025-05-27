@@ -1332,6 +1332,9 @@ void Widget::processEvent(Event& event) {
         toggleState(WidgetState::KeyFocused, false);
     }
 
+    if (isDisabled())
+        return;
+
     if (event.shouldBubble()) {
         bubbleEvent(event, pressed ? WidgetState::Pressed : WidgetState::None,
                     released ? WidgetState::Pressed : WidgetState::None, false);
@@ -1437,7 +1440,7 @@ void Widget::bubbleEvent(Event& event, WidgetState enable, WidgetState disable, 
     bubble(
         [&](Widget* current) BRISK_INLINE_LAMBDA {
             current->setState((current->m_state | enable) & ~disable);
-            if (event)
+            if (event && current->isEnabled())
                 current->onEvent(event);
             return true;
         },
@@ -3061,10 +3064,6 @@ const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
 const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThickness;
 const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
 const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread;
-
-const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled{};
-const Argument<Tag::PropArg<decltype(Widget::enabled)>> enabled{};
-const Argument<Tag::PropArg<decltype(Widget::selected)>> selected{};
 
 } // namespace Arg
 

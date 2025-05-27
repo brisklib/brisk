@@ -36,7 +36,7 @@ ShowcaseBinding::ShowcaseBinding() {
     bindings->listen(Value{ &frameStartTime }, BindableCallback<>(this, &ShowcaseBinding::onTimer));
 }
 
-Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -45,8 +45,13 @@ Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications) {
             rcnew Widget{
                 layout     = Layout::Vertical,
                 alignItems = AlignItems::FlexStart,
-                rcnew ToggleButton{ value = Value{ &m_open }, "Open hidden content"_Text,
-                                    rcnew Text{ ICON_x }, twoState = true },
+                rcnew ToggleButton{
+                    value = Value{ &m_open },
+                    "Open hidden content"_Text,
+                    rcnew Text{ ICON_x },
+                    twoState = true,
+                    enabled  = globalEnabled,
+                },
                 rcnew Widget{
                     visible         = Value{ &m_open },
                     padding         = 16_apx,
@@ -64,10 +69,20 @@ Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications) {
             rcnew Widget{
                 rcnew Widget{
                     gapColumn = 4_apx,
-                    rcnew Knob{ value = Value{ &m_value1 }, minimum = 0.f, maximum = 100.f,
-                                dimensions = 30_apx },
-                    rcnew Slider{ value = Value{ &m_value1 }, minimum = 0.f, maximum = 100.f,
-                                  width = 250_apx },
+                    rcnew Knob{
+                        value      = Value{ &m_value1 },
+                        minimum    = 0.f,
+                        maximum    = 100.f,
+                        dimensions = 30_apx,
+                        enabled    = globalEnabled,
+                    },
+                    rcnew Slider{
+                        value   = Value{ &m_value1 },
+                        minimum = 0.f,
+                        maximum = 100.f,
+                        width   = 250_apx,
+                        enabled = globalEnabled,
+                    },
                 },
                 &m_group,
             },
@@ -78,10 +93,20 @@ Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications) {
             rcnew Widget{
                 rcnew Widget{
                     gapColumn = 4_apx,
-                    rcnew Knob{ value = Value{ &m_value2 }, minimum = 0.f, maximum = 100.f,
-                                dimensions = 30_apx },
-                    rcnew Slider{ value = Value{ &m_value2 }.readOnly(), minimum = 0.f, maximum = 100.f,
-                                  width = 250_apx },
+                    rcnew Knob{
+                        value      = Value{ &m_value2 },
+                        minimum    = 0.f,
+                        maximum    = 100.f,
+                        dimensions = 30_apx,
+                        enabled    = globalEnabled,
+                    },
+                    rcnew Slider{
+                        value   = Value{ &m_value2 }.readOnly(),
+                        minimum = 0.f,
+                        maximum = 100.f,
+                        width   = 250_apx,
+                        enabled = globalEnabled,
+                    },
                 },
                 &m_group,
             },
@@ -92,10 +117,20 @@ Rc<Widget> ShowcaseBinding::build(Rc<Notifications> notifications) {
             rcnew Widget{
                 rcnew Widget{
                     gapColumn = 4_apx,
-                    rcnew Knob{ value = Value{ &m_value3 }.readOnly(), minimum = 0.f, maximum = 100.f,
-                                dimensions = 30_apx },
-                    rcnew Slider{ value = Value{ &m_value3 }, minimum = 0.f, maximum = 100.f,
-                                  width = 250_apx },
+                    rcnew Knob{
+                        value      = Value{ &m_value3 }.readOnly(),
+                        minimum    = 0.f,
+                        maximum    = 100.f,
+                        dimensions = 30_apx,
+                        enabled    = globalEnabled,
+                    },
+                    rcnew Slider{
+                        value   = Value{ &m_value3 },
+                        minimum = 0.f,
+                        maximum = 100.f,
+                        width   = 250_apx,
+                        enabled = globalEnabled,
+                    },
                 },
                 &m_group,
             },

@@ -22,10 +22,16 @@
 
 namespace Brisk {
 
-static void checkMark(Canvas& canvas, RectangleF markRect, ColorW color, float interpolatedValue) {
+static void checkMark(Canvas& canvas, RectangleF markRect, ColorW color, float interpolatedValue,
+                      bool disabled) {
     canvas.setStrokeColor(color.multiplyAlpha(0.35f));
     canvas.setStrokeWidth(1._dp);
-    canvas.strokeRect(markRect.withPadding(1_dp), 2_dp);
+    if (disabled) {
+        canvas.setFillColor(0x80808080_rgba);
+        canvas.fillRect(markRect.withPadding(1_dp), 2_dp);
+    } else {
+        canvas.strokeRect(markRect.withPadding(1_dp), 2_dp);
+    }
 
     if (interpolatedValue == 0)
         return;
@@ -54,7 +60,7 @@ void checkBoxPainter(Canvas& canvas, const Widget& widget_) {
 
     Rectangle markRect      = widget.rect().alignedRect({ idp(14), idp(14) }, { 0.0f, 0.5f });
     boxPainter(canvas, widget, markRect);
-    checkMark(canvas, markRect, widget.color.current(), interpolatedValue);
+    checkMark(canvas, markRect, widget.color.current(), interpolatedValue, widget_.isDisabled());
 }
 
 void CheckBox::paint(Canvas& canvas) const {
