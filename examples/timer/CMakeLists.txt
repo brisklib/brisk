@@ -17,23 +17,18 @@
 # If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial license. For commercial
 # licensing options, please visit: https://brisklib.com
 #
+cmake_minimum_required(VERSION 3.22)
 
-add_subdirectory(calc)
-add_subdirectory(showcase)
-add_subdirectory(splash-screen)
-add_subdirectory(dashboard)
+project(timer)
 
-if (glfw3_FOUND)
-    add_subdirectory(own-window)
-    add_subdirectory(own-window-gui)
+if (NOT _BRISK_INCLUDE_DIR)
+    find_package(Brisk CONFIG REQUIRED)
 endif ()
 
-if (BRISK_WEBGPU)
-    add_subdirectory(webgpu-demo)
-endif ()
+add_executable(timer main.cpp)
 
-add_subdirectory(counter)
-add_subdirectory(temperature_converter)
-add_subdirectory(flight_booker)
-add_subdirectory(timer)
-add_subdirectory(crud)
+target_link_libraries(timer PRIVATE brisk-widgets brisk-executable)
+
+brisk_target_remove_resources(timer fonts/default/bold.ttf fonts/default/light.ttf)
+
+brisk_setup_executable(timer)
