@@ -46,8 +46,8 @@ void Pages::updateTabs() {
     internalChanged();
 }
 
-void Pages::childrenAdded() {
-    Base::childrenAdded();
+void Pages::childrenChanged() {
+    Base::childrenChanged();
     updateTabs();
 }
 

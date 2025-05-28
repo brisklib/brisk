@@ -945,6 +945,8 @@ public:
 
     bool isDisabled() const noexcept;
 
+    bool isEnabled() const noexcept;
+
     ////////////////////////////////////////////////////////////////////////////////
     // Tree & Children
     ////////////////////////////////////////////////////////////////////////////////
@@ -981,7 +983,7 @@ public:
     void apply(WidgetGroup* group);
 
     virtual void onChildAdded(Widget* w);
-    virtual void childrenAdded();
+    virtual void childrenChanged();
 
     std::optional<size_t> indexOf(const Widget* widget) const;
 
@@ -1239,7 +1241,7 @@ protected:
     Size viewportSize() const noexcept;
     void setRect(Rectangle rect);
 
-    void rebuildOne(Builder builder);
+    size_t rebuildOne(Builder builder);
 
     virtual Ptr getContextWidget();
 
@@ -1351,6 +1353,7 @@ private:
     void layoutResetRecursively();
 
     void setDisabled(bool);
+    void setEnabled(bool);
     void setSelected(bool);
 
     template <size_t index, typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
@@ -1525,7 +1528,9 @@ public:
     Property<This, Trigger<>, &This::m_onClick> onClick;
     Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;
 
-    Property<This, bool, &This::m_state, &This::isDisabled, &This::setDisabled> disabled;
+    [[deprecated("Use Widget::enabled instead")]] Property<This, bool, &This::m_state, &This::isDisabled,
+                                                           &This::setDisabled> disabled;
+    Property<This, bool, &This::m_state, &This::isEnabled, &This::setEnabled> enabled;
     Property<This, bool, &This::m_state, &This::isSelected, &This::setSelected> selected;
     BRISK_PROPERTIES_END
 };
@@ -1670,9 +1675,6 @@ extern const Argument<Tag::PropArg<decltype(Widget::minHeight)>> minHeight;
 extern const Argument<Tag::PropArg<decltype(Widget::gapColumn)>> gapColumn;
 extern const Argument<Tag::PropArg<decltype(Widget::gapRow)>> gapRow;
 
-extern const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled;
-extern const Argument<Tag::PropArg<decltype(Widget::selected)>> selected;
-
 extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures;
 
 extern const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
@@ -1682,6 +1684,12 @@ extern const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread
 
 constexpr inline Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick{};
 constexpr inline Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick{};
+
+[[deprecated(
+    "Use Widget::enabled instead")]] constexpr inline Argument<Tag::PropArg<decltype(Widget::disabled)>>
+    disabled{};
+constexpr inline Argument<Tag::PropArg<decltype(Widget::enabled)>> enabled{};
+constexpr inline Argument<Tag::PropArg<decltype(Widget::selected)>> selected{};
 
 } // namespace Arg
 

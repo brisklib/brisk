@@ -57,12 +57,12 @@ Type compatibility is flexible as long as a conversion exists.
 int one = 111;
 uint64_t two = 222;
 bindings->connectBidir(Value{ &one }, Value{ &two });
-bindings->assign(two) = 3; // Updates `two` to 3 and notifies of the change
+*bindings->modify(two) = 3; // Updates `two` to 3 and notifies of the change
 // `one` is also updated:
 BRISK_ASSERT(one == 3);
 
 // In the opposite direction:
-bindings->assign(one) = 7; // Updates `one` to 7 and notifies of the change
+*bindings->modify(one) = 7; // Updates `one` to 7 and notifies of the change
 // `two` is also updated:
 BRISK_ASSERT(two == 7);
 ```

@@ -57,8 +57,8 @@ void DataSourceViewModel::update() {
     m_model->update();
     BRISK_ASSERT(m_values.size() == m_model->count());
     for (int i = 0; i < m_values.size(); ++i) {
-        bindings->assign(m_values[i]) = m_model->get(i);
-        bindings->assign(m_labels[i]) = m_model->label(i);
+        *bindings->modify(m_values[i]) = m_model->get(i);
+        *bindings->modify(m_labels[i]) = m_model->label(i);
     }
     m_updated.trigger();
 }

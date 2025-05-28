@@ -26,10 +26,11 @@
 
 namespace Brisk {
 
-static Rc<Widget> osDialogButton(std::string text, BindableCallback<> fn) {
+static Rc<Widget> osDialogButton(std::string text, BindableCallback<> fn, Value<bool> globalEnabled) {
     return rcnew HLayout{
         rcnew Button{
             rcnew Text{ std::move(text) },
+            enabled = globalEnabled,
             onClick = std::move(fn),
         },
     };
@@ -53,7 +54,7 @@ public:
     }
 };
 
-Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -64,6 +65,7 @@ Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Button{
                 rcnew Text{ "Open window" },
+                enabled = globalEnabled,
                 onClick = lifetime() |
                           [this]() {
                               Rc<SmallComponent> comp = rcnew SmallComponent();
@@ -73,6 +75,7 @@ Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
 
             rcnew Button{
                 rcnew Text{ "Open modal window" },
+                enabled = globalEnabled,
                 onClick = lifetime() |
                           [this]() {
                               Rc<SmallComponent> comp = rcnew SmallComponent();
@@ -83,6 +86,7 @@ Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Button{
                 rcnew Text{ "TextInputDialog" },
+                enabled = globalEnabled,
                 onClick = lifetime() |
                           []() {
                               Rc<TextInputDialog> dialog = rcnew TextInputDialog{ "Enter name", "World" };
@@ -101,6 +105,7 @@ Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Button{
                 rcnew Text{ "Open Dialog" },
+                enabled = globalEnabled,
                 onClick = lifetime() |
                           [this]() {
                               bindings->assign(m_popupDialog, true);
@@ -118,41 +123,53 @@ Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
 
         rcnew Text{ "OS dialogs (window/OsDialogs.hpp)", classes = { "section-header" } },
         osDialogButton(
-            "Open URL", lifetime() |
-                            []() {
-                                Shell::openURLInBrowser("https://www.brisklib.com/");
-                            }),
+            "Open URL",
+            lifetime() |
+                []() {
+                    Shell::openURLInBrowser("https://www.brisklib.com/");
+                },
+            globalEnabled),
         osDialogButton(
-            "Open folder", lifetime() |
-                               []() {
-                                   Shell::openFolder(defaultFolder(DefaultFolder::Documents));
-                               }),
+            "Open folder",
+            lifetime() |
+                []() {
+                    Shell::openFolder(defaultFolder(DefaultFolder::Documents));
+                },
+            globalEnabled),
 
         osDialogButton(
-            "Message box (Info)", lifetime() |
-                                      []() {
-                                          Shell::showMessage("title", "message", MessageBoxType::Info);
-                                      }),
+            "Message box (Info)",
+            lifetime() |
+                []() {
+                    Shell::showMessage("title", "message", MessageBoxType::Info);
+                },
+            globalEnabled),
         osDialogButton(
-            "Message box (Warning)", lifetime() |
-                                         []() {
-                                             Shell::showMessage("title", "message", MessageBoxType::Warning);
-                                         }),
+            "Message box (Warning)",
+            lifetime() |
+                []() {
+                    Shell::showMessage("title", "message", MessageBoxType::Warning);
+                },
+            globalEnabled),
         osDialogButton(
-            "Message box (Error)", lifetime() |
-                                       []() {
-                                           Shell::showMessage("title", "message", MessageBoxType::Error);
-                                       }),
+            "Message box (Error)",
+            lifetime() |
+                []() {
+                    Shell::showMessage("title", "message", MessageBoxType::Error);
+                },
+            globalEnabled),
         osDialogButton(
-            "Dialog (OK, Cancel)", lifetime() |
-                                       [this]() {
-                                           if (Shell::showDialog("title", "message", DialogButtons::OKCancel,
-                                                                 MessageBoxType::Info) == DialogResult::OK)
-                                               m_text += "OK clicked\n";
-                                           else
-                                               m_text += "Cancel clicked\n";
-                                           bindings->notify(&m_text);
-                                       }),
+            "Dialog (OK, Cancel)",
+            lifetime() |
+                [this]() {
+                    if (Shell::showDialog("title", "message", DialogButtons::OKCancel,
+                                          MessageBoxType::Info) == DialogResult::OK)
+                        m_text += "OK clicked\n";
+                    else
+                        m_text += "Cancel clicked\n";
+                    bindings->notify(&m_text);
+                },
+            globalEnabled),
         osDialogButton(
             "Dialog (Yes, No, Cancel)",
             lifetime() |
@@ -166,39 +183,44 @@ Rc<Widget> ShowcaseDialogs::build(Rc<Notifications> notifications) {
                     else
                         m_text += "Cancel clicked\n";
                     bindings->notify(&m_text);
-                }),
+                },
+            globalEnabled),
         osDialogButton(
-            "Open File", lifetime() |
-                             [this]() {
-                                 auto file = Shell::showOpenDialog({ { "*.txt", "Text files" } },
-                                                                   defaultFolder(DefaultFolder::Documents));
-                                 if (file)
-                                     m_text += file->string() + "\n";
-                                 else
-                                     m_text += "(nullopt)\n";
-                                 bindings->notify(&m_text);
-                             }),
+            "Open File",
+            lifetime() |
+                [this]() {
+                    auto file = Shell::showOpenDialog({ { "*.txt", "Text files" } },
+                                                      defaultFolder(DefaultFolder::Documents));
+                    if (file)
+                        m_text += file->string() + "\n";
+                    else
+                        m_text += "(nullopt)\n";
+                    bindings->notify(&m_text);
+                },
+            globalEnabled),
         osDialogButton(
-            "Open Files", lifetime() |
-                              [this]() {
-                                  auto files = Shell::showOpenDialogMulti(
-                                      { { "*.txt", "Text files" }, Shell::anyFile() },
-                                      defaultFolder(DefaultFolder::Documents));
-                                  for (fs::path file : files)
-                                      m_text += file.string() + "\n";
-                                  bindings->notify(&m_text);
-                              }),
+            "Open Files",
+            lifetime() |
+                [this]() {
+                    auto files = Shell::showOpenDialogMulti({ { "*.txt", "Text files" }, Shell::anyFile() },
+                                                            defaultFolder(DefaultFolder::Documents));
+                    for (fs::path file : files)
+                        m_text += file.string() + "\n";
+                    bindings->notify(&m_text);
+                },
+            globalEnabled),
         osDialogButton(
-            "Pick folder", lifetime() |
-                               [this]() {
-                                   auto folder =
-                                       Shell::showFolderDialog(defaultFolder(DefaultFolder::Documents));
-                                   if (folder)
-                                       m_text += folder->string() + "\n";
-                                   else
-                                       m_text += "(nullopt)\n";
-                                   bindings->notify(&m_text);
-                               }),
+            "Pick folder",
+            lifetime() |
+                [this]() {
+                    auto folder = Shell::showFolderDialog(defaultFolder(DefaultFolder::Documents));
+                    if (folder)
+                        m_text += folder->string() + "\n";
+                    else
+                        m_text += "(nullopt)\n";
+                    bindings->notify(&m_text);
+                },
+            globalEnabled),
         rcnew Text{
             text       = Value{ &m_text },
             fontFamily = Font::Monospace,

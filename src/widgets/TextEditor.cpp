@@ -197,7 +197,7 @@ void TextEditor::paint(Canvas& canvas) const {
     canvas.setFillColor(textColor);
     canvas.fillText(pos, m_preparedText);
 
-    if (isFocused() && m_blinkState) {
+    if (isFocused() && m_blinkState && !isDisabled()) {
         uint32_t caretGrapheme =
             m_preparedText.characterToGrapheme(std::clamp(cursor, 0u, uint32_t(m_cachedText.size())));
 
@@ -300,6 +300,9 @@ void TextEditor::selectWordAtCursor() {
 
 void TextEditor::onEvent(Event& event) {
     Base::onEvent(event);
+
+    if (isDisabled())
+        return;
     const Rectangle textRect = m_clientRect;
     std::u32string text;
     if (event.doubleClicked()) {

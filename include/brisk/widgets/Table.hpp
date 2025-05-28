@@ -100,7 +100,7 @@ public:
 
     void onEvent(Event& event) override;
 
-    void childrenAdded() override;
+    void childrenChanged() override;
 
     std::array<WidthGroup, 32> columns;
 

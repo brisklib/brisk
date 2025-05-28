@@ -893,6 +893,7 @@ bool Widget::setChildrenOffset(Point offset) {
         if (!w->m_ignoreChildrenOffset)
             w->reposition(difference);
     }
+    invalidate();
     return true;
 }
 
@@ -1041,7 +1042,7 @@ void Widget::apply(WidgetGroup* group) {
     }
 }
 
-void Widget::rebuildOne(Builder builder) {
+size_t Widget::rebuildOne(Builder builder) {
     const size_t position     = m_widgets.size();
     const size_t builderCount = m_builders.size();
 
@@ -1053,13 +1054,12 @@ void Widget::rebuildOne(Builder builder) {
     if (builder.kind != BuilderKind::Once) {
         m_builders.push_back(BuilderData{ std::move(builder), uint32_t(position), uint32_t(count) });
     }
-    if (count) {
-        childrenAdded();
-    }
+    return m_widgets.size() - position;
 }
 
 void Widget::apply(Builder builder) {
-    rebuildOne(std::move(builder));
+    if (rebuildOne(std::move(builder)))
+        childrenChanged();
 }
 
 void Widget::doRebuild() {
@@ -1076,6 +1076,7 @@ void Widget::rebuild(bool force) {
         std::swap(widgetsCopy, m_widgets);
         std::swap(buildersCopy, m_builders);
         size_t copied = 0;
+        size_t added  = 0;
 
         for (BuilderData& g : buildersCopy) {
             if (!(g.builder.kind == BuilderKind::Delayed || force))
@@ -1084,7 +1085,7 @@ void Widget::rebuild(bool force) {
                              std::make_move_iterator(widgetsCopy.begin() + g.position));
             // reapply & store new BuilderData
             g.builder.kind = BuilderKind::Regular;
-            rebuildOne(g.builder);
+            added += rebuildOne(g.builder);
             copied = g.position + g.count;
         }
         if (copied < widgetsCopy.size()) {
@@ -1095,6 +1096,9 @@ void Widget::rebuild(bool force) {
             if (p) {
                 childRemoved(std::move(p));
             }
+        }
+        if (added || !widgetsCopy.empty()) {
+            childrenChanged();
         }
     }
 }
@@ -1328,6 +1332,9 @@ void Widget::processEvent(Event& event) {
         toggleState(WidgetState::KeyFocused, false);
     }
 
+    if (isDisabled())
+        return;
+
     if (event.shouldBubble()) {
         bubbleEvent(event, pressed ? WidgetState::Pressed : WidgetState::None,
                     released ? WidgetState::Pressed : WidgetState::None, false);
@@ -1433,7 +1440,7 @@ void Widget::bubbleEvent(Event& event, WidgetState enable, WidgetState disable, 
     bubble(
         [&](Widget* current) BRISK_INLINE_LAMBDA {
             current->setState((current->m_state | enable) & ~disable);
-            if (event)
+            if (event && current->isEnabled())
                 current->onEvent(event);
             return true;
         },
@@ -1593,13 +1600,14 @@ static void assign_inherited(PropState state, Internal::Transition<T>& target, T
 }
 
 void Widget::clear() {
-    while (!m_widgets.empty()) {
-        Ptr p = m_widgets.front();
-        m_widgets.erase(m_widgets.begin());
-        childRemoved(p);
+    if (!m_widgets.empty()) {
+        do {
+            Ptr p = m_widgets.front();
+            m_widgets.erase(m_widgets.begin());
+            childRemoved(p);
+        } while (!m_widgets.empty());
+        childrenChanged();
     }
-    requestUpdateLayout();
-    requestRestyle();
 }
 
 void Widget::removeIf(function_ref<bool(Widget*)> predicate) {
@@ -1616,8 +1624,7 @@ void Widget::removeIf(function_ref<bool(Widget*)> predicate) {
         }
     }
     if (removed) {
-        requestUpdateLayout();
-        requestRestyle();
+        childrenChanged();
     }
 }
 
@@ -1632,6 +1639,7 @@ void Widget::childRemoved(Ptr child) {}
 void Widget::removeChild(WidgetConstIterator it) {
     childRemoved(*it);
     m_widgets.erase(it);
+    childrenChanged();
 }
 
 void Widget::addChild(Ptr w) {
@@ -1644,8 +1652,7 @@ void Widget::replaceChild(WidgetIterator it, Ptr newWidget) {
     (*it)->setTree(m_tree);
     (*it)->m_parent = this;
     (*it)->parentChanged();
-    requestRestyle();
-    requestUpdateLayout();
+    childrenChanged();
 }
 
 void Widget::insertChild(WidgetConstIterator it, Ptr w) {
@@ -1653,8 +1660,8 @@ void Widget::insertChild(WidgetConstIterator it, Ptr w) {
     w->m_parent = this;
     w->setTree(m_tree);
     w->parentChanged();
-    requestRestyle();
     childAdded(w.get());
+    childrenChanged();
 }
 
 void Widget::childAdded(Widget* w) {
@@ -1674,12 +1681,10 @@ void Widget::append(Rc<Widget> widget) {
         }
         widget->m_widgets.clear();
         widget->m_builders.clear();
-        requestUpdateLayout();
-        childrenAdded();
+        childrenChanged();
     } else {
         addChild(std::move(widget));
-        requestUpdateLayout();
-        childrenAdded();
+        childrenChanged();
     }
 }
 
@@ -2202,7 +2207,8 @@ Rc<Widget> Widget::cloneThis() const {
     BRISK_CLONE_IMPLEMENTATION
 }
 
-void Widget::childrenAdded() {
+void Widget::childrenChanged() {
+    requestUpdateLayout();
     requestRestyle();
 }
 
@@ -2259,6 +2265,10 @@ bool Widget::isKeyFocused() const noexcept {
 
 bool Widget::isDisabled() const noexcept {
     return m_state && WidgetState::Disabled;
+}
+
+bool Widget::isEnabled() const noexcept {
+    return !isDisabled();
 }
 
 Widget* Widget::parent() const noexcept {
@@ -3055,13 +3065,14 @@ const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThic
 const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
 const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread;
 
-const Argument<Tag::PropArg<decltype(Widget::disabled)>> disabled{};
-const Argument<Tag::PropArg<decltype(Widget::selected)>> selected{};
-
 } // namespace Arg
 
 void Widget::setDisabled(bool value) {
     toggleState(WidgetState::Disabled, value);
+}
+
+void Widget::setEnabled(bool value) {
+    setDisabled(!value);
 }
 
 void Widget::setSelected(bool value) {

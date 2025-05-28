@@ -30,7 +30,7 @@
 
 namespace Brisk {
 
-Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -49,6 +49,7 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
                         rcnew Item{ checked = Value<bool>::mutableValue(true), checkable = true,
                                     rcnew Text{ "Item with checkbox" } },
                     },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -68,6 +69,7 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
                         rcnew ColorView{ Palette::Standard::index(4) },
                         rcnew ColorView{ Palette::Standard::index(5) },
                     },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -93,6 +95,7 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
                         rcnew Text{ "November" },
                         rcnew Text{ "December" },
                     },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -110,6 +113,7 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
                             return rcnew Text{ fmt::to_string(index) };
                         }),
                     },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -128,6 +132,7 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
                         rcnew ColorView{ Palette::Standard::index(4) },
                         rcnew ColorView{ Palette::Standard::index(5) },
                     },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -162,6 +167,7 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
                         },
 
                     },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -178,6 +184,7 @@ Rc<Widget> ShowcaseDropdowns::build(Rc<Notifications> notifications) {
                     "D"_Text,
                     "E"_Text,
                     "F"_Text,
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },

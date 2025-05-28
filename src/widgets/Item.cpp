@@ -59,8 +59,6 @@ void Item::onChildAdded(Widget* w) {
 
 void Item::onEvent(Event& event) {
     Base::onEvent(event);
-    if (isDisabled())
-        return;
     if (m_tabStop && event.pressed(m_rect)) {
         if (!isFocused())
             focus();

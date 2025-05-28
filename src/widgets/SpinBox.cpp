@@ -31,6 +31,7 @@ void SpinBox::onChildAdded(Widget* w) {
     }
     if (auto* btns = buttons.matchesType(w)) {
         btns->flexGrow = 0;
+        btns->enabled  = Value{ &this->enabled };
         ArgumentsView<Button>{
             std::tuple{
                 Arg::onClick = lifetime() |
@@ -102,6 +103,7 @@ void UpDownButtons::onChildAdded(Widget* w) {
         btn->clickEvent     = ButtonClickEvent::MouseDown;
         btn->repeatDelay    = 0.5;
         btn->repeatInterval = 0.25;
+        btn->enabled        = Value{ &this->enabled };
     }
 }
 

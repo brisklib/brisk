@@ -493,7 +493,7 @@ static void drawRect(Canvas& canvas, TestMode mode, RectangleF r) {
     }
 }
 
-static void drawPath(Canvas& canvas, TestMode mode, Path p) {
+static void drawPath(Canvas& canvas, TestMode mode, const Path& p) {
     switch (mode) {
     case Fill:
         canvas.fillPath(p);
@@ -536,8 +536,8 @@ TEST_CASE("Canvas optimization") {
             [&](RenderContext& context) {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
-                canvas.setFillPaint(LinearGradient({ 20, 20 }, { 80, 80 }, Palette::Standard::cyan,
-                                                   Palette::Standard::fuchsia));
+                canvas.setFillPaint(
+                    LinearGradient({ 20, 20 }, { 80, 80 }, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix().scale(0.75f, 0.75f, 50.f, 50.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -549,7 +549,7 @@ TEST_CASE("Canvas optimization") {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillPaint(
-                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix().rotate(60.f, 50.f, 50.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -562,7 +562,7 @@ TEST_CASE("Canvas optimization") {
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setStrokeWidth(0.15f);
                 canvas.setFillPaint(
-                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix::scaling(100.f));
                 drawRect(canvas, mode, { 0.2f, 0.2f, 0.8f, 0.8f });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -574,7 +574,7 @@ TEST_CASE("Canvas optimization") {
                 Canvas canvas(context, flags);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillPaint(
-                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix::scaling(10.f));
                 drawRect(canvas, mode, { 2, 2, 8, 8 });
                 CHECK(canvas.rasterizedPaths() == 0);
@@ -587,7 +587,7 @@ TEST_CASE("Canvas optimization") {
                 canvas.setJoinStyle(JoinStyle::Miter);
                 canvas.setStrokeWidth(15.f);
                 canvas.setFillPaint(
-                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::fuchsia));
+                    RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
                 CHECK(canvas.rasterizedPaths() == 0);
             },
@@ -635,12 +635,12 @@ TEST_CASE("Canvas transform") {
     renderTest("canvas-transform", Size{ 128, 64 }, [](RenderContext& context) {
         Canvas canvas(context, CanvasFlags::Sdf);
         canvas.setFillColor(Palette::Standard::green);
-        canvas.setStrokeColor(Palette::Standard::fuchsia);
+        canvas.setStrokeColor(Palette::Standard::pink);
         canvas.setStrokeWidth(4.f);
         canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
         canvas.transform(Matrix().rotate(10.f, { 32.f, 32.f }));
         canvas.transform(Matrix::translation(64.f, 0));
-        canvas.setFillColor(Palette::Standard::fuchsia);
+        canvas.setFillColor(Palette::Standard::pink);
         canvas.setStrokeColor(Palette::Standard::green);
         canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
     });
@@ -788,7 +788,7 @@ TEST_CASE("GradientType") {
                        PointF pt2{ 260, 260 };
                        Canvas canvas(context);
                        canvas.setFillPaint(Gradient(gradientType, pt1, pt2, Palette::Standard::yellow,
-                                                    Palette::Standard::violet));
+                                                    Palette::Standard::fuchsia));
 
                        canvas.fillRect({ 0, 0, 320, 320 });
                        canvas.setFillColor(Palette::black);
@@ -956,6 +956,22 @@ TEST_CASE("SDF-Border") {
             canvas.setStrokePaint(LinearGradient({ 0, 0 }, PointF(i, i), Palette::blue, Palette::green));
             canvas.drawRect({ 0.5f, 0.5f, i - 0.5f, i - 0.5f });
             REQUIRE(canvas.rasterizedPaths() == 0);
+        });
+    }
+    for (int i = 128; i <= 4096; i *= 2) {
+        renderTest<true>("raster-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
+            auto dur1 = Internal::performancePathScanline;
+            auto dur2 = Internal::performancePathRasterization;
+            Canvas canvas(context, CanvasFlags::None);
+            canvas.setFillColor(Palette::transparent);
+            canvas.setStrokePaint(LinearGradient({ 0, 0 }, PointF(i, i), Palette::blue, Palette::green));
+            canvas.drawRect({ 0.5f, 0.5f, i - 0.5f, i - 0.5f });
+            fmt::println("{} CPU rasterization times: {} {}\n", "raster-border-" + std::to_string(i),
+                         std::chrono::duration_cast<std::chrono::microseconds>(
+                             Internal::performancePathScanline - dur1),
+                         std::chrono::duration_cast<std::chrono::microseconds>(
+                             Internal::performancePathRasterization - dur2));
+            REQUIRE(canvas.rasterizedPaths() > 0);
         });
     }
 }

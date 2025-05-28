@@ -169,6 +169,7 @@ Rc<const Stylesheet> stylesheet() {
                 borderColor                     = styleVar<selectedColor>,
                 borderColor | Hover             = adjustColor(styleVar<selectedColor>, +8),
                 borderColor | Pressed           = adjustColor(styleVar<selectedColor>, -8),
+                borderColor | Disabled          = adjustColor(styleVar<selectedColor>, 0, 0),
                 borderColorTransition           = scaleValue(styleVar<animationSpeed>, 0.25),
                 borderColorTransition | Hover   = scaleValue(styleVar<animationSpeed>, 0.15),
                 borderColorTransition | Pressed = scaleValue(styleVar<animationSpeed>, 0.02),
@@ -220,10 +221,11 @@ Rc<const Stylesheet> stylesheet() {
         Style{
             Type{ TextEditor::widgetType },
             {
-                backgroundColor           = styleVar<editorColor>,
-                backgroundColor | Focused = adjustColor(styleVar<editorColor>, +20 * 0.2f /* 1.2f */),
-                backgroundColor | Hover   = adjustColor(styleVar<editorColor>, +20 * 0.2f /* 1.2f */),
-                backgroundColorTransition = scaleValue(styleVar<animationSpeed>, 0.25),
+                backgroundColor            = styleVar<editorColor>,
+                backgroundColor | Focused  = adjustColor(styleVar<editorColor>, +20 * 0.2f /* 1.2f */),
+                backgroundColor | Hover    = adjustColor(styleVar<editorColor>, +20 * 0.2f /* 1.2f */),
+                backgroundColor | Disabled = adjustColor(styleVar<editorColor>, -5),
+                backgroundColorTransition  = scaleValue(styleVar<animationSpeed>, 0.25),
                 backgroundColorTransition | Focused = scaleValue(styleVar<animationSpeed>, 0.05),
                 backgroundColorTransition | Hover   = scaleValue(styleVar<animationSpeed>, 0.15),
                 borderColor                         = 0xC0C0C0_rgb,
@@ -232,8 +234,10 @@ Rc<const Stylesheet> stylesheet() {
                 borderRadius                        = scaleValue(styleVar<boxRadius>, 0.5f),
                 borderWidth                         = 1.f,
                 color                               = Palette::black,
+                color | Disabled                    = Palette::black.multiplyAlpha(0.5f),
                 padding                             = { 7_apx, 6_apx },
                 cursor                              = Cursor::IBeam,
+                cursor | Disabled                   = Cursor::Arrow,
                 height                              = 1_em,
             },
         },
@@ -329,6 +333,7 @@ Rc<const Stylesheet> stylesheet() {
                 borderColor                     = styleVar<selectedColor>,
                 borderColor | Hover             = adjustColor(styleVar<selectedColor>, +8),
                 borderColor | Pressed           = adjustColor(styleVar<selectedColor>, -8),
+                borderColor | Disabled          = adjustColor(styleVar<selectedColor>, 0, 0),
                 borderColorTransition           = scaleValue(styleVar<animationSpeed>, 0.25),
                 borderColorTransition | Hover   = scaleValue(styleVar<animationSpeed>, 0.15),
                 borderColorTransition | Pressed = scaleValue(styleVar<animationSpeed>, 0.02),
@@ -650,8 +655,8 @@ Rc<const Stylesheet> stylesheet() {
         Style{ Class{ "cyan" }, { backgroundColor = Palette::Standard::cyan } },
         Style{ Class{ "blue" }, { backgroundColor = Palette::Standard::blue } },
         Style{ Class{ "indigo" }, { backgroundColor = Palette::Standard::indigo } },
-        Style{ Class{ "violet" }, { backgroundColor = Palette::Standard::violet } },
         Style{ Class{ "fuchsia" }, { backgroundColor = Palette::Standard::fuchsia } },
+        Style{ Class{ "pink" }, { backgroundColor = Palette::Standard::pink } },
     };
 }
 } // namespace Graphene

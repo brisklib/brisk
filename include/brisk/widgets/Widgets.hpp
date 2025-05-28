@@ -37,6 +37,7 @@
 #include "Knob.hpp"
 #include "Layouts.hpp"
 #include "Line.hpp"
+#include "ListBox.hpp"
 #include "Item.hpp"
 #include "Notifications.hpp"
 #include "Pages.hpp"

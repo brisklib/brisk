@@ -22,6 +22,16 @@ Recommended reading:
 ![MSVC 2022](https://img.shields.io/badge/MSVC-2022%2B-green.svg?style=flat-square)
 ![Xcode 14.3+](https://img.shields.io/badge/Xcode-14.3%2B-green.svg?style=flat-square)
 
+### Our other projects
+
+<div align="center">
+
+[**🔴 KFR**](https://github.com/kfrlib/kfr) is a modern C++ DSP library. Includes IIR/FIR filters + filter design, FFT/DFT, Convolution, Resampling. Optimized for all kinds of x86 and ARM architectures. *(GPL/Commercial)*
+
+[**🟢 CxxDox**](https://github.com/kfrlib/cxxdox) — C++ documentation generator. *(MIT)*
+
+</div>
+
 ### Key Features 🌟
 
 - **Declarative GUI**: Enables the creation of complex GUIs in C++ using a flexible declarative syntax.
@@ -75,7 +85,7 @@ public:
                 onClick = lifetime() |
                           [this]() {
                               // Notify bindings about the change
-                              bindings->assign(m_label) = "Updated text";
+                              *bindings->modify(m_label) = "Updated text";
                           },
             },
 

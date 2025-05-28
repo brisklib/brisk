@@ -29,8 +29,8 @@ void Table::onEvent(Event& event) {
     }
 }
 
-void Table::childrenAdded() {
-    Widget::childrenAdded();
+void Table::childrenChanged() {
+    Widget::childrenChanged();
     for (const Rc<Widget>& w1 : *this) {
         if (TableRow* row = dynamicCast<TableRow*>(w1.get())) {
             int i = 0;

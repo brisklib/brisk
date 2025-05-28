@@ -76,16 +76,16 @@ constexpr inline Color teal    = 0x00BAA7_rgb; ///< Teal color.
 constexpr inline Color cyan    = 0x00A5EC_rgb; ///< Cyan color.
 constexpr inline Color blue    = 0x0085FF_rgb; ///< Blue color.
 constexpr inline Color indigo  = 0x6363ED_rgb; ///< Indigo color.
-constexpr inline Color violet  = 0xBC3AB2_rgb; ///< Violet color.
-constexpr inline Color fuchsia = 0xE90678_rgb; ///< Fuchsia color.
+constexpr inline Color fuchsia = 0xCC2EBF_rgb; ///< Fuchsia color.
+constexpr inline Color pink    = 0xE01078_rgb; ///< Pink color.
 
 /**
  * @brief Array of all standard colors.
  */
 constexpr inline Color all[]   = {
-    Palette::Standard::red,  Palette::Standard::orange, Palette::Standard::amber,  Palette::Standard::yellow,
-    Palette::Standard::lime, Palette::Standard::green,  Palette::Standard::teal,   Palette::Standard::cyan,
-    Palette::Standard::blue, Palette::Standard::indigo, Palette::Standard::violet, Palette::Standard::fuchsia
+    Palette::Standard::red,  Palette::Standard::orange, Palette::Standard::amber,   Palette::Standard::yellow,
+    Palette::Standard::lime, Palette::Standard::green,  Palette::Standard::teal,    Palette::Standard::cyan,
+    Palette::Standard::blue, Palette::Standard::indigo, Palette::Standard::fuchsia, Palette::Standard::pink
 };
 
 /**

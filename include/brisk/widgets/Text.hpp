@@ -22,6 +22,7 @@
 
 #include <brisk/gui/Gui.hpp>
 #include <brisk/core/Utilities.hpp>
+#include <brisk/core/Localization.hpp>
 
 namespace Brisk {
 
@@ -124,7 +125,7 @@ void applier(Text* target, ArgVal<Tag::Named<"text">, T> value) {
 }
 
 inline Rc<Text> operator""_Text(const char* text, size_t size) {
-    return rcnew Text{ std::string_view(text, size) };
+    return rcnew Text{ locale->translate(std::string_view(text, size)) };
 }
 
 inline namespace Arg {

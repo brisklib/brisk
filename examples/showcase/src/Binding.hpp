@@ -27,7 +27,7 @@ namespace Brisk {
 class ShowcaseBinding : public BindableObject<ShowcaseBinding, &uiScheduler> {
 public:
     ShowcaseBinding();
-    Rc<Widget> build(Rc<Notifications> notifications);
+    Rc<Widget> build(Rc<Notifications> notifications, Value<bool> globalEnabled);
 
 private:
     void onTimer();

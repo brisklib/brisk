@@ -25,24 +25,18 @@ namespace Brisk {
 void Switch::onEvent(Event& event) {
     Widget::onEvent(event);
     if (event.pressed()) {
-        if (!isDisabled()) {
-            focus();
-        }
+        focus();
         event.stopPropagation();
     } else if (event.released()) {
-        if (!isDisabled()) {
-            if (auto m = event.as<EventMouse>()) {
-                if (m_rect.contains(m->point) || m->point.x > m_rect.center().x != m_value) {
-                    doClick();
-                }
+        if (auto m = event.as<EventMouse>()) {
+            if (m_rect.contains(m->point) || m->point.x > m_rect.center().x != m_value) {
+                doClick();
             }
         }
         event.stopPropagation();
     } else if (event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::Space)) {
-        if (!isDisabled()) {
-            toggleState(WidgetState::Pressed, true);
-            doClick();
-        }
+        toggleState(WidgetState::Pressed, true);
+        doClick();
         event.stopPropagation();
     } else if (event.keyReleased(KeyCode::Enter) || event.keyReleased(KeyCode::Space)) {
         toggleState(WidgetState::Pressed, false);

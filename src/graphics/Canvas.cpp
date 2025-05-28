@@ -130,7 +130,7 @@ static float roundRadius(JoinStyle joinStyle, float radius) {
     return std::max(radius, joinStyle == JoinStyle::Miter ? 0.f : 0.5f);
 }
 
-void Canvas::drawPath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+void Canvas::drawPath(const Path& path, const Paint& strokePaint, const StrokeParams& strokeParams,
                       const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
                       RectangleF clipRect, float opacity) {
     if (opacity == 0 || clipRect.empty())
@@ -160,9 +160,43 @@ static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect) 
                : Rectangle(matrix.transform(clipRect).roundOutward());
 }
 
-void Canvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                      RectangleF clipRect, float opacity) {
-    if (opacity == 0 || clipRect.empty())
+template <typename T>
+struct CopyOrRef {
+    CopyOrRef(T&& copy) : copy(std::move(copy)) {}
+
+    CopyOrRef(T& ref)                      = delete;
+    CopyOrRef(const CopyOrRef&)            = delete;
+    CopyOrRef(CopyOrRef&&)                 = delete;
+    CopyOrRef& operator=(const CopyOrRef&) = delete;
+    CopyOrRef& operator=(CopyOrRef&&)      = delete;
+
+    CopyOrRef(const T& ref) noexcept : ref(&ref) {}
+
+    const T& operator*() const noexcept {
+        return ref ? *ref : *copy;
+    }
+
+    template <typename Fn>
+    void apply(Fn&& fn) & {
+        if (ref) {
+            copy = fn(*ref);
+            ref  = nullptr;
+        } else {
+            copy = fn(std::move(*copy));
+        }
+    }
+
+    std::optional<T> copy;
+    const T* ref = nullptr;
+};
+
+static bool isTransparent(const Paint& paint) {
+    return paint.index() == 0 && (std::get<0>(paint).a == 0);
+}
+
+void Canvas::fillPath(const Path& path, const Paint& fillPaint, const FillParams& fillParams,
+                      const Matrix& matrix, RectangleF clipRect, float opacity) {
+    if (opacity < 0.04f || clipRect.empty() || isTransparent(fillPaint))
         return;
     if ((m_flags && CanvasFlags::Sdf) && matrix.isUniformScale() && sdfCompat(fillParams)) {
         if (auto rrect = path.asRoundRectangle()) {
@@ -176,14 +210,19 @@ void Canvas::fillPath(Path path, const Paint& fillPaint, const FillParams& fillP
             return;
         }
     }
-    path = std::move(path).transformed(matrix);
-    drawRasterizedPath(path.rasterize(fillParams, transformedClipRect(matrix, clipRect)),
+    CopyOrRef transformedPath(path);
+    if (!matrix.isIdentity()) {
+        transformedPath.apply([&]<typename T>(T&& x) {
+            return std::forward<T>(x).transformed(matrix);
+        });
+    }
+    drawRasterizedPath((*transformedPath).rasterize(fillParams, transformedClipRect(matrix, clipRect)),
                        Internal::PaintAndTransform{ fillPaint, matrix, opacity }, clipRect);
 }
 
-void Canvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams& strokeParams,
+void Canvas::strokePath(const Path& path, const Paint& strokePaint, const StrokeParams& strokeParams,
                         const Matrix& matrix, RectangleF clipRect, float opacity) {
-    if (opacity == 0 || clipRect.empty())
+    if (opacity < 0.04f || clipRect.empty() || strokeParams.strokeWidth < 1e-6 || isTransparent(strokePaint))
         return;
     if ((m_flags && CanvasFlags::Sdf) && matrix.isUniformScale() &&
         sdfCompat(strokeParams, path.isClosed())) {
@@ -209,14 +248,22 @@ void Canvas::strokePath(Path path, const Paint& strokePaint, const StrokeParams&
             return;
         }
     }
+    CopyOrRef transformedPath(path);
 
     if (!strokeParams.dashArray.empty()) {
-        path = path.dashed(strokeParams.dashArray, strokeParams.dashOffset);
+        transformedPath.apply([&]<typename T>(T&& x) {
+            return std::forward<T>(x).dashed(strokeParams.dashArray, strokeParams.dashOffset);
+        });
     }
-    path        = std::move(path).transformed(matrix);
+    if (!matrix.isIdentity()) {
+        transformedPath.apply([&]<typename T>(T&& x) {
+            return std::forward<T>(x).transformed(matrix);
+        });
+    }
     float scale = matrix.estimateScale();
-    drawRasterizedPath(path.rasterize(strokeParams.scale(scale), transformedClipRect(matrix, clipRect)),
-                       Internal::PaintAndTransform{ strokePaint, matrix, opacity }, clipRect);
+    drawRasterizedPath(
+        (*transformedPath).rasterize(strokeParams.scale(scale), transformedClipRect(matrix, clipRect)),
+        Internal::PaintAndTransform{ strokePaint, matrix, opacity }, clipRect);
 }
 
 const Canvas::State Canvas::defaultState{
@@ -483,19 +530,19 @@ void Canvas::resetClipRect() {
     m_state.clipRect = noClipRect;
 }
 
-void Canvas::strokePath(Path path) {
-    strokePath(std::move(path), m_state.strokePaint, m_state.strokeParams, m_state.transform,
-               m_state.clipRect, m_state.opacity);
+void Canvas::strokePath(const Path& path) {
+    strokePath(path, m_state.strokePaint, m_state.strokeParams, m_state.transform, m_state.clipRect,
+               m_state.opacity);
 }
 
-void Canvas::fillPath(Path path) {
-    fillPath(std::move(path), m_state.fillPaint, m_state.fillParams, m_state.transform, m_state.clipRect,
+void Canvas::fillPath(const Path& path) {
+    fillPath(path, m_state.fillPaint, m_state.fillParams, m_state.transform, m_state.clipRect,
              m_state.opacity);
 }
 
-void Canvas::drawPath(Path path) {
-    drawPath(std::move(path), m_state.strokePaint, m_state.strokeParams, m_state.fillPaint,
-             m_state.fillParams, m_state.transform, m_state.clipRect, m_state.opacity);
+void Canvas::drawPath(const Path& path) {
+    drawPath(path, m_state.strokePaint, m_state.strokeParams, m_state.fillPaint, m_state.fillParams,
+             m_state.transform, m_state.clipRect, m_state.opacity);
 }
 
 void Canvas::drawImage(RectangleF rect, Rc<Image> image, Matrix matrix, SamplerMode samplerMode,

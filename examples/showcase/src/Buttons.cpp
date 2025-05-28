@@ -31,7 +31,7 @@
 
 namespace Brisk {
 
-Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
     return rcnew VLayout{
         flexGrow = 1,
         padding  = 16_apx,
@@ -41,6 +41,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
             rcnew Widget{
                 rcnew Button{
                     rcnew Text{ "Button 1" },
+                    enabled = globalEnabled,
                     onClick = lifetime() |
                               [notifications]() {
                                   notifications->show(rcnew Text{ "Button 1 clicked" });
@@ -48,8 +49,8 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
                 },
                 rcnew Button{
                     rcnew Text{ "Disabled Button" },
-                    disabled = true,
-                    onClick  = lifetime() |
+                    enabled = false,
+                    onClick = lifetime() |
                               [notifications]() {
                                   notifications->show(rcnew Text{ "Disabled Button clicked" });
                               },
@@ -61,6 +62,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
             rcnew Widget{
                 rcnew Button{
                     rcnew Text{ ICON_settings "  Button with icon" },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -91,6 +93,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
 </svg>)SVG",
                         dimensions = { 18_apx, 18_apx },
                     },
+                    enabled   = globalEnabled,
                     gapColumn = 5_apx,
                     rcnew Text{ "Button with icon" },
                 },
@@ -116,6 +119,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
                         },
                         dimensions = { 70_apx, 25_apx },
                     },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },
@@ -127,14 +131,17 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
             alignItems = AlignItems::FlexStart,
             rcnew Button{
                 rcnew Text{ "Button with color applied" },
+                enabled             = globalEnabled,
                 Graphene::mainColor = 0xFF4791_rgb,
             },
             rcnew Button{
                 rcnew Text{ "Button with reduced padding" },
+                enabled = globalEnabled,
                 padding = 4_px,
             },
             rcnew Button{
                 rcnew Text{ "Button with flat style" },
+                enabled = globalEnabled,
                 classes = { "flat" },
             },
             &m_group,
@@ -145,6 +152,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
                     rcnew Text{
                         "Hold to repeat action",
                     },
+                    enabled        = globalEnabled,
                     repeatDelay    = 0.2,
                     repeatInterval = 0.2,
                     onClick        = lifetime() |
@@ -165,9 +173,24 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 squircleCorners = false,
-                rcnew Button{ rcnew Text{ "First" }, &m_btnGroup, borderRadius = 15_px },
-                rcnew Button{ rcnew Text{ "Second" }, &m_btnGroup, borderRadius = 15_px },
-                rcnew Button{ rcnew Text{ "Third" }, &m_btnGroup, borderRadius = 15_px },
+                rcnew Button{
+                    rcnew Text{ "First" },
+                    enabled = globalEnabled,
+                    &m_btnGroup,
+                    borderRadius = 15_px,
+                },
+                rcnew Button{
+                    rcnew Text{ "Second" },
+                    enabled = globalEnabled,
+                    &m_btnGroup,
+                    borderRadius = 15_px,
+                },
+                rcnew Button{
+                    rcnew Text{ "Third" },
+                    enabled = globalEnabled,
+                    &m_btnGroup,
+                    borderRadius = 15_px,
+                },
                 &m_group,
             },
             gapColumn = 10_apx,
@@ -177,6 +200,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
             rcnew Button{
                 gapColumn = 3_apx,
                 rcnew Text{ "This button contains" },
+                enabled = globalEnabled,
                 rcnew Table{
                     classes = { "table-padding-4" },
                     rcnew TableRow{
@@ -195,7 +219,8 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 rcnew ToggleButton{
-                    value = Value{ &m_toggled },
+                    value   = Value{ &m_toggled },
+                    enabled = globalEnabled,
                     rcnew Text{ "ToggleButton 1" },
                 },
                 &m_group,
@@ -204,7 +229,8 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 rcnew ToggleButton{
-                    value = Value{ &m_toggled },
+                    value   = Value{ &m_toggled },
+                    enabled = globalEnabled,
                     rcnew Text{ "ToggleButton 2" },
                 },
                 &m_group,
@@ -215,7 +241,8 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 rcnew ToggleButton{
-                    value = Value{ &m_toggled },
+                    value   = Value{ &m_toggled },
+                    enabled = globalEnabled,
                     rcnew Text{ "Off" },
                     rcnew Text{ "On" },
                     twoState = true,
@@ -229,7 +256,8 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 rcnew CheckBox{
-                    value = Value{ &m_toggled },
+                    value   = Value{ &m_toggled },
+                    enabled = globalEnabled,
                     rcnew Text{ "CheckBox" },
                 },
                 &m_group,
@@ -241,7 +269,8 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 rcnew Switch{
-                    value = Value{ &m_toggled },
+                    value   = Value{ &m_toggled },
+                    enabled = globalEnabled,
                     rcnew Text{ "Switch" },
                 },
                 &m_group,
@@ -253,12 +282,14 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
         rcnew HLayout{
             rcnew Widget{
                 rcnew RadioButton{
-                    value = Value{ &m_toggled },
+                    value   = Value{ &m_toggled },
+                    enabled = globalEnabled,
                     rcnew Text{ "On" },
                 },
                 gapColumn = 6_apx,
                 rcnew RadioButton{
-                    value = Value{ &m_toggled }.transform(std::logical_not<>{}, std::logical_not<>{}),
+                    value   = !Value{ &m_toggled },
+                    enabled = globalEnabled,
                     rcnew Text{ "Off" },
                 },
                 &m_group,
@@ -272,6 +303,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications) {
                 rcnew Hyperlink{
                     "https://brisklib.com",
                     rcnew Text{ "Click to visit brisklib.com" },
+                    enabled = globalEnabled,
                 },
                 &m_group,
             },

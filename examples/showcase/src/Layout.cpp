@@ -23,7 +23,7 @@
 
 namespace Brisk {
 
-Rc<Widget> ShowcaseLayout::build(Rc<Notifications> notifications) {
+Rc<Widget> ShowcaseLayout::build(Rc<Notifications> notifications, Value<bool> globalEnabled) {
     return rcnew VLayout{
         flexGrow         = 1,
         padding          = 16_apx,

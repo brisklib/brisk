@@ -12,12 +12,21 @@
     - Custom widgets
     - Menus and actions
     - Shortcuts
-    - MVVM pattern
     - File dialogs
     - Custom styling
     - Application-wide settings
 
 You are free to modify the code of any example and use it as a starting point for your own projects, whether GPL-licensed or proprietary, depending on the Brisk license you own.
+
+### 7GUIs Tasks
+
+The following examples implement tasks from the 7GUIs benchmark, showcasing Brisk's capabilities in handling common GUI programming challenges:
+
+- `counter`: A simple counter application with a display and an increment button, demonstrating basic state management and event handling in Brisk.
+- `timer`: A timer application that tracks elapsed time with start, stop, and reset functionality, showcasing real-time updates and timer logic.
+- `temperature_converter`: A bidirectional temperature converter between Celsius and Fahrenheit, illustrating two-way data binding and input validation.
+- `flight_booker`: A flight booking interface for selecting one-way or return flights with date validation, demonstrating conditional UI logic and form handling.
+- `crud`: A Create-Read-Update-Delete application for managing a list of items, implemented using the Model-View-ViewModel (MVVM) pattern to separate data logic from the UI.
 
 ## Other Licenses
 

@@ -145,6 +145,12 @@ Rc<Widget> ShowcaseComponent::build() {
                                   this->tree().root()->apply(Graphene::darkColors());
                           },
             },
+            rcnew ToggleButton{
+                padding = 8_dpx,
+                rcnew Text{ ICON_check },
+                borderWidth = 1_dpx,
+                value       = Value{ &globalEnabled },
+            },
         },
         rcnew Pages{
             value  = Value{ &m_activePage },
@@ -153,15 +159,33 @@ Rc<Widget> ShowcaseComponent::build() {
                 rcnew Tabs{
                     layout = Layout::Vertical,
                 },
-            rcnew Page{ "Buttons", rcnew VScrollBox{ flexGrow = 1, m_buttons->build(notifications) } },
-            rcnew Page{ "Dropdowns", rcnew VScrollBox{ flexGrow = 1, m_dropdowns->build(notifications) } },
-            rcnew Page{ "Editors", rcnew VScrollBox{ flexGrow = 1, m_editors->build(notifications) } },
-            rcnew Page{ "Visual", rcnew VScrollBox{ flexGrow = 1, m_visual->build(notifications) } },
-            rcnew Page{ "Layout", rcnew VScrollBox{ flexGrow = 1, m_layout->build(notifications) } },
-            rcnew Page{ "Dialogs", rcnew VScrollBox{ flexGrow = 1, m_dialogs->build(notifications) } },
-            rcnew Page{ "Typography", rcnew VScrollBox{ flexGrow = 1, m_typography->build(notifications) } },
-            rcnew Page{ "Messenger", rcnew VScrollBox{ flexGrow = 1, m_messenger->build(notifications) } },
-            rcnew Page{ "Binding", rcnew VScrollBox{ flexGrow = 1, m_binding->build(notifications) } },
+            rcnew Page{
+                "Buttons",
+                rcnew VScrollBox{ flexGrow = 1, m_buttons->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{ "Dropdowns",
+                        rcnew VScrollBox{ flexGrow = 1,
+                                          m_dropdowns->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{
+                "Editors",
+                rcnew VScrollBox{ flexGrow = 1, m_editors->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{
+                "Visual",
+                rcnew VScrollBox{ flexGrow = 1, m_visual->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{
+                "Layout",
+                rcnew VScrollBox{ flexGrow = 1, m_layout->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{
+                "Dialogs",
+                rcnew VScrollBox{ flexGrow = 1, m_dialogs->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{ "Typography",
+                        rcnew VScrollBox{ flexGrow = 1,
+                                          m_typography->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{ "Messenger",
+                        rcnew VScrollBox{ flexGrow = 1,
+                                          m_messenger->build(notifications, Value{ &globalEnabled }) } },
+            rcnew Page{
+                "Binding",
+                rcnew VScrollBox{ flexGrow = 1, m_binding->build(notifications, Value{ &globalEnabled }) } },
             flexGrow = 1,
         },
         flexGrow = 1,

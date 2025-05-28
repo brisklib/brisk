@@ -1,24 +1,44 @@
-# Brisk Changlog
+# Brisk Changelog
+
+## 0.10.0
+
+### Added
+
+* Universal binary support for macOS.
+* Non-realtime mode for `WidgetTree`.
+* WebP animation support.
+* `toNumber` function.
+* New way to modify and notify.
+* Support for optionals in bindings.
+* `Widget::enabled` property.
+* `FixedFormatter` class that acts as a value formatter.
+* More `Value` operators.
+* 7GUIs tasks: counter, timer, temperature, booker, CRUD.
+
+### Changed
+
+* Documentation updated.
+* `OffscreenCanvas` is now reusable.
+* `CheckBox` animation updated.
+* `uiScheduler` moved to the Core module.
+* Register built-in fonts in widget constructor.
+* Adjusted standard palette colors.
+* Optimization: Skip rasterization if transparent.
+* Optimized `blendRow`.
+* Various `Canvas` optimizations.
+* Make `"_Text"` literals translatable.
+* Adjust style of `TextEditor` when disabled.
+* `BindableCallback`: non-strict argument types.
+* `ListBox`: clicking outside items resets selection.
+
+### Fixed
+
+* `Canvas`: subpixel settings.
+* Minor fixes to the `Dashboard` example.
+* Invalidate widget on scroll.
+* Corrected `Disabled` state for most widgets.
 
 ## 0.9.8
-
-### Renames
-
-- **C++**
-  - Standardized capitalization for abbreviations, treating them as normal words (e.g., `HTTPResponse` → `HttpResponse`).
-  - `GUIApplication` to `GuiApplication` and `GUIWindow` to `GuiWindow`.
-  - `separateRenderThread` to `separateUiThread`.
-  - `Palette::light_green` to `Palette::lightGreen` and similar color names.
-  - `ItemList` to `Menu`.
-  - `BindingObject` to `BindableObject`.
-  - `KeyCode::Kp*` to `KeyCode::Num*`.
-  - `Os*Handle` to `Native*Handle`.
-  - `setMinimumMaximumSize` to `setMinimumMaximumSizes`.
-  - `wordWrap` function to `textWordWrap`.
-- **CMake**
-  - `APPLE_BUNDLE` to `APPLE_BUNDLE_ID`.
-- **Directories**
-  - Some directories were also renamed to reflect changes in class naming. If you encounter issues with pulling updates, clone the repository into a separate directory.
 
 ### Added
 
@@ -92,6 +112,24 @@
 - Allowed closing component windows from any thread.
 - Ensured both host and target tools are built during cross-compilation.
 - Prevented window centering unless its size is changed.
+
+### Renamed
+
+- **C++**
+  - Standardized capitalization for abbreviations, treating them as normal words (e.g., `HTTPResponse` → `HttpResponse`).
+  - `GUIApplication` to `GuiApplication` and `GUIWindow` to `GuiWindow`.
+  - `separateRenderThread` to `separateUiThread`.
+  - `Palette::light_green` to `Palette::lightGreen` and similar color names.
+  - `ItemList` to `Menu`.
+  - `BindingObject` to `BindableObject`.
+  - `KeyCode::Kp*` to `KeyCode::Num*`.
+  - `Os*Handle` to `Native*Handle`.
+  - `setMinimumMaximumSize` to `setMinimumMaximumSizes`.
+  - `wordWrap` function to `textWordWrap`.
+- **CMake**
+  - `APPLE_BUNDLE` to `APPLE_BUNDLE_ID`.
+- **Directories**
+  - Some directories were also renamed to reflect changes in class naming. If you encounter issues with pulling updates, clone the repository into a separate directory.
 
 ## 0.9.7
 

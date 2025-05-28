@@ -42,30 +42,24 @@ void Button::onRefresh() {
 void Button::onEvent(Event& event) {
     Widget::onEvent(event);
     if (event.pressed()) {
-        if (!isDisabled()) {
-            focus();
-            if (std::isfinite(m_repeatDelay) && std::isfinite(m_repeatInterval)) {
-                m_repeatState = { currentTime() + m_repeatDelay, 0 };
-            }
-            if (m_clickEvent == ButtonClickEvent::MouseDown) {
-                doClick();
-            }
+        focus();
+        if (std::isfinite(m_repeatDelay) && std::isfinite(m_repeatInterval)) {
+            m_repeatState = { currentTime() + m_repeatDelay, 0 };
+        }
+        if (m_clickEvent == ButtonClickEvent::MouseDown) {
+            doClick();
         }
         event.stopPropagation();
     } else if (event.released(m_rect)) {
-        if (!isDisabled()) {
-            if (m_clickEvent == ButtonClickEvent::MouseUp) {
-                doClick();
-            }
+        if (m_clickEvent == ButtonClickEvent::MouseUp) {
+            doClick();
         }
         m_repeatState = std::nullopt;
         event.stopPropagation();
     } else if ((m_keyEvents && ButtonKeyEvents::AcceptsEnter) && event.keyPressed(KeyCode::Enter) ||
                (m_keyEvents && ButtonKeyEvents::AcceptsSpace) && event.keyPressed(KeyCode::Space)) {
-        if (!isDisabled()) {
-            toggleState(WidgetState::Pressed, true);
-            doClick();
-        }
+        toggleState(WidgetState::Pressed, true);
+        doClick();
         event.stopPropagation();
     } else if ((m_keyEvents && ButtonKeyEvents::AcceptsEnter) && event.keyReleased(KeyCode::Enter) ||
                (m_keyEvents && ButtonKeyEvents::AcceptsSpace) && event.keyReleased(KeyCode::Space)) {

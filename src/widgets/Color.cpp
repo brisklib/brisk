@@ -68,6 +68,7 @@ ColorSliders::ColorSliders(Construction construction, ColorW color, bool alpha,
         Arg::flexGrow        = 1,
         Arg::minimum         = 0,
         Arg::maximum         = 1,
+        Arg::enabled         = Value{ &this->enabled },
     });
     apply(rcnew Slider{
         Arg::value           = colorSubvalue<ColorComp::G>(Value{ &value }),
@@ -77,6 +78,7 @@ ColorSliders::ColorSliders(Construction construction, ColorW color, bool alpha,
         Arg::flexGrow        = 1,
         Arg::minimum         = 0,
         Arg::maximum         = 1,
+        Arg::enabled         = Value{ &this->enabled },
     });
     apply(rcnew Slider{
         Arg::value           = colorSubvalue<ColorComp::B>(Value{ &value }),
@@ -86,6 +88,7 @@ ColorSliders::ColorSliders(Construction construction, ColorW color, bool alpha,
         Arg::flexGrow        = 1,
         Arg::minimum         = 0,
         Arg::maximum         = 1,
+        Arg::enabled         = Value{ &this->enabled },
     });
     if (alpha) {
         apply(rcnew Slider{
@@ -96,6 +99,7 @@ ColorSliders::ColorSliders(Construction construction, ColorW color, bool alpha,
             Arg::flexGrow        = 1,
             Arg::minimum         = 0,
             Arg::maximum         = 1,
+            Arg::enabled         = Value{ &this->enabled },
         });
     }
 }
@@ -180,7 +184,7 @@ ColorPalette::ColorPalette(Construction construction, ColorW color, ArgumentsVie
             addColor(Palette::Standard::lime, v, c), addColor(Palette::Standard::green, v, c),
             addColor(Palette::Standard::teal, v, c), addColor(Palette::Standard::cyan, v, c),
             addColor(Palette::Standard::blue, v, c), addColor(Palette::Standard::indigo, v, c),
-            addColor(Palette::Standard::violet, v, c), addColor(Palette::Standard::fuchsia, v, c) });
+            addColor(Palette::Standard::fuchsia, v, c), addColor(Palette::Standard::pink, v, c) });
     }
 #endif
 
@@ -215,6 +219,7 @@ Rc<Widget> ColorPalette::addColor(ColorW swatch, float brightness, float chroma)
                        [this, c]() BRISK_INLINE_LAMBDA {
                            value = c;
                        },
+        Arg::enabled = Value{ &this->enabled },
     };
 }
 
@@ -239,8 +244,13 @@ ColorButton::ColorButton(Construction construction, Value<ColorW> prop, bool alp
 
     apply(rcnew ColorView{ prop });
     apply(rcnew PopupBox{ rcnew HLayout{ rcnew ColorView{ prop, Arg::classes = { "large" } },
-                                         rcnew ColorSliders{ prop, alpha, Arg::flexGrow = 1 } },
-                          rcnew ColorPalette(prop) });
+                                         rcnew ColorSliders{
+                                             prop,
+                                             alpha,
+                                             Arg::flexGrow = 1,
+                                             Arg::enabled  = Value{ &this->enabled },
+                                         } },
+                          rcnew ColorPalette{ prop, Arg::enabled = Value{ &this->enabled } } });
 }
 
 void GradientView::paint(Canvas& canvas) const {

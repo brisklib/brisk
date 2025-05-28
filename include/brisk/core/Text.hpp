@@ -25,6 +25,7 @@
 #include "Encoding.hpp"
 #include <brisk/core/internal/FixedString.hpp>
 #include <brisk/core/Encoding.hpp>
+#include <charconv>
 
 namespace Brisk {
 
@@ -595,5 +596,63 @@ template <Internal::FixedString s>
 constexpr FormatString<s> operator""_fmt() noexcept {
     return {};
 }
+
+template <typename T>
+inline std::optional<T> toNumber(std::string_view str) {
+    T value;
+#ifdef __APPLE__
+    if constexpr (std::is_floating_point_v<T>) {
+        std::string string(str);
+        char* end;
+        errno = 0;
+        if constexpr (std::is_same_v<T, float>) {
+            value = std::strtof(string.c_str(), &end);
+        } else {
+            value = std::strtod(string.c_str(), &end);
+        }
+        if (end == string.c_str() || end != string.c_str() + string.size() || errno == ERANGE) {
+            return std::nullopt;
+        }
+        return value;
+    } else {
+        if (std::from_chars(str.data(), str.data() + str.size(), value).ec == std::errc{})
+            return value;
+        else
+            return std::nullopt;
+    }
+#else
+    if (std::from_chars(str.data(), str.data() + str.size(), value).ec == std::errc{})
+        return value;
+    else
+        return std::nullopt;
+#endif
+}
+
+namespace Internal {
+
+template <size_t N>
+struct FmtString : public FixedString<N>, public fmt::detail::compile_string {
+    using char_type = char;
+
+    using FixedString<N>::FixedString;
+
+    constexpr operator fmt::basic_string_view<char_type>() const {
+        return fmt::detail_exported::compile_string_to_view<char_type>(
+            fmt::basic_string_view<char_type>(this->string()));
+    }
+};
+
+template <size_t N>
+FmtString(const char (&)[N]) -> FmtString<N - 1>;
+
+} // namespace Internal
+
+template <Internal::FmtString fmt>
+struct FixedFormatter {
+    template <typename T>
+    std::string operator()(T value) const {
+        return fmt::format(fmt, value);
+    }
+};
 
 } // namespace Brisk
