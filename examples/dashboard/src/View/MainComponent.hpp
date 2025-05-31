@@ -30,7 +30,7 @@
 #include <brisk/gui/Component.hpp>
 #include <brisk/graphics/Fonts.hpp>
 #include <brisk/gui/Icons.hpp>
-#include "ViewModel.hpp"
+#include "ViewModel/ViewModel.hpp"
 #include <brisk/gui/Action.hpp>
 #include <brisk/gui/Groups.hpp>
 #include <brisk/widgets/Notifications.hpp>

@@ -20,11 +20,38 @@
  */
 #pragma once
 
-#include "ViewModel.hpp"
-
-#include <brisk/gui/Gui.hpp>
+#include "Model/Model.hpp"
+#include <brisk/core/Rc.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 namespace App {
 
-Rc<Widget> dataView(Rc<DataSourceViewModel> viewModel, Value<bool> showPlots);
-}
+using namespace Brisk;
+
+class DataSourceViewModel : public BindableObject<DataSourceViewModel, &uiScheduler> {
+public:
+    DataSourceViewModel(Rc<DataSourceModel> model, Value<int> updateTrigger);
+
+    std::string caption() const;
+
+    int count() const;
+
+    std::string cap() const;
+
+    Value<Normalized> value(int index) const;
+
+    Value<Trigger<>> updated() const;
+
+    Value<std::string> label(int index) const;
+
+    Json json() const;
+
+protected:
+    Rc<DataSourceModel> m_model;
+    BindableList<Normalized> m_values;
+    BindableList<std::string> m_labels;
+    Trigger<> m_updated;
+    void update();
+};
+
+} // namespace App
