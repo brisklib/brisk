@@ -485,7 +485,7 @@ public:
     }
 
     void set(Value<ValueType> value) {
-        bindings->connectBidir(Value<ValueType>{ this }, std::move(value));
+        bindings->connectBidir(Value<ValueType>{ this }, std::move(value), BindType::Immediate);
     }
 
     template <invocable_r<ValueType> Fn>
@@ -1529,9 +1529,9 @@ public:
     Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;
 
     [[deprecated("Use Widget::enabled instead")]] Property<This, bool, &This::m_state, &This::isDisabled,
-                                                           &This::setDisabled> disabled;
-    Property<This, bool, &This::m_state, &This::isEnabled, &This::setEnabled> enabled;
-    Property<This, bool, &This::m_state, &This::isSelected, &This::setSelected> selected;
+                                                           &This::setDisabled, nullptr, false> disabled;
+    Property<This, bool, &This::m_state, &This::isEnabled, &This::setEnabled, nullptr, false> enabled;
+    Property<This, bool, &This::m_state, &This::isSelected, &This::setSelected, nullptr, false> selected;
     BRISK_PROPERTIES_END
 };
 

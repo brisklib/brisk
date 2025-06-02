@@ -60,8 +60,11 @@ void Item::onChildAdded(Widget* w) {
 void Item::onEvent(Event& event) {
     Base::onEvent(event);
     if (m_tabStop && event.pressed(m_rect)) {
-        if (!isFocused())
+        if (!isFocused()) {
+            if (m_selectOnFocus)
+                selected = true;
             focus();
+        }
         event.stopPropagation();
     }
     if (event.released(m_rect) || event.keyPressed(KeyCode::Enter) || event.keyPressed(KeyCode::Space)) {

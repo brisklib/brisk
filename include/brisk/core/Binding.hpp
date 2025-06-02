@@ -1830,7 +1830,7 @@ public:
     void set(Value<Type> value) {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        bindings->connectBidir(Value{ this }, std::move(value));
+        bindings->connectBidir(Value{ this }, std::move(value), BindType::Immediate);
     }
 
     void set(std::same_as<Value<std::optional<Type>>> auto value)
@@ -1838,7 +1838,7 @@ public:
     {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        bindings->connectBidir(Value{ this }, std::move(value));
+        bindings->connectBidir(Value{ this }, std::move(value), BindType::Immediate);
     }
 
     BindingAddress address() const {
