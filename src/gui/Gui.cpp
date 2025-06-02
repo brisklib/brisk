@@ -1079,13 +1079,17 @@ void Widget::rebuild(bool force) {
         size_t added  = 0;
 
         for (BuilderData& g : buildersCopy) {
-            if (!(g.builder.kind == BuilderKind::Delayed || force))
-                continue;
-            m_widgets.insert(m_widgets.end(), std::make_move_iterator(widgetsCopy.begin() + copied),
-                             std::make_move_iterator(widgetsCopy.begin() + g.position));
-            // reapply & store new BuilderData
+            bool run = g.builder.kind == BuilderKind::Delayed || force;
+            m_widgets.insert(
+                m_widgets.end(), std::make_move_iterator(widgetsCopy.begin() + copied),
+                std::make_move_iterator(widgetsCopy.begin() + g.position + (!run ? g.count : 0)));
             g.builder.kind = BuilderKind::Regular;
-            added += rebuildOne(g.builder);
+            if (run) {
+                added += rebuildOne(std::move(g.builder));
+            } else {
+                m_builders.push_back(
+                    BuilderData{ std::move(g.builder), uint32_t(m_widgets.size() - g.count), g.count });
+            }
             copied = g.position + g.count;
         }
         if (copied < widgetsCopy.size()) {
