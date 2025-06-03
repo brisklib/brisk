@@ -1286,7 +1286,7 @@ void Widget::paintChildren(Canvas& canvas) const {
         return;
 
     for (const Rc<Widget>& w : *this) {
-        if (!w->m_visible || w->m_hidden || w->m_clipRect.empty())
+        if (!w->m_isVisible || w->m_hidden || w->m_clipRect.empty())
             continue;
         if (m_tree && w->m_zorder != ZOrder::Normal) {
             m_tree->requestLayer(w->drawable());
@@ -1451,6 +1451,14 @@ void Widget::bubbleEvent(Event& event, WidgetState enable, WidgetState disable, 
         includePopup);
 }
 
+void Widget::processTreeVisibility(bool isVisible) {
+    isVisible = isVisible && m_visible;
+    processVisibility(isVisible);
+    for (const Rc<Widget>& w : *this) {
+        w->processTreeVisibility(isVisible);
+    }
+}
+
 void Widget::updateGeometry(HitTestMap::State& state) {
     auto self                     = shared_from_this();
     Rectangle mouse_rect          = m_rect;
@@ -1466,8 +1474,6 @@ void Widget::updateGeometry(HitTestMap::State& state) {
         state.mouseTransparent = false;
     else if (m_mouseInteraction == MouseInteraction::Disable)
         state.mouseTransparent = true;
-
-    processVisibility(state.visible);
 
     if (auto inputQueue = this->inputQueue()) {
         if (m_focusCapture && state.visible) {
@@ -1825,6 +1831,14 @@ void Widget::requestUpdates(PropFlags flags) {
     if (flags && AffectPaint) {
         invalidate();
     }
+    if (flags && AffectVisibility) {
+        requestUpdateVisibility();
+    }
+}
+
+void Widget::requestUpdateVisibility() {
+    if (m_tree)
+        m_tree->requestUpdateVisibility();
 }
 
 void Widget::resolveProperties(PropFlags flags) {
@@ -2214,6 +2228,7 @@ Rc<Widget> Widget::cloneThis() const {
 void Widget::childrenChanged() {
     requestUpdateLayout();
     requestRestyle();
+    requestUpdateVisibility();
 }
 
 void Widget::parentChanged() {

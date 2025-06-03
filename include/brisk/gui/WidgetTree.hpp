@@ -93,6 +93,7 @@ private:
     void requestAnimationFrame(std::weak_ptr<Widget> widget);
     void requestRebuild(std::weak_ptr<Widget> widget);
     void requestUpdateGeometry();
+    void requestUpdateVisibility();
     bool transitionsAllowed();
     void attach(Widget* widget);
     void detach(Widget* widget);
@@ -111,6 +112,7 @@ private:
     double m_refreshTime           = 0;
     bool m_disableTransitions      = false;
     bool m_updateGeometryRequested = false;
+    bool m_updateVisibilityRequested = true;
     std::set<WidgetGroup*> m_groups;
     Rectangle m_viewportRectangle{};
     bool m_viewportRectangleChanged = true;

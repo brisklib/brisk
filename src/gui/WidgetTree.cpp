@@ -141,38 +141,47 @@ void WidgetTree::update() {
 
     groupsBeforeFrame();
 
-    if (frameStartTime >= m_refreshTime + refreshInterval) [[unlikely]] {
-        for (WidgetGroup* g : m_groups) {
-            g->beforeRefresh();
-        }
-        m_root->refreshTree();
-        m_refreshTime = frameStartTime;
-    }
-    processAnimation();
-    processRebuild();
-
-    groupsBeforeLayout();
-
-    m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
-    m_viewportRectangleChanged = false;
-
-    if (m_updateGeometryRequested) {
+    // Phase 1. Calling user code (Input, animation, queued tasks)
+    {
         if (m_inputQueue)
-            m_inputQueue->reset();
-        HitTestMap::State state;
-        m_root->updateGeometry(state);
-        m_updateGeometryRequested = false;
+            m_inputQueue->processEvents();
+        processAnimation();
+        processRebuild();
+        if (frameStartTime >= m_refreshTime + refreshInterval) [[unlikely]] {
+            for (WidgetGroup* g : m_groups) {
+                g->beforeRefresh();
+            }
+            m_root->refreshTree();
+            m_refreshTime = frameStartTime;
+        }
+
+        if (m_updateVisibilityRequested) {
+            m_root->processTreeVisibility(true);
+            m_updateVisibilityRequested = false;
+        }
     }
-    if (m_inputQueue)
-        m_inputQueue->processEvents();
 
-    m_root->restyleIfRequested();
-    m_disableTransitions = false;
+    // Phase 2. Style
+    {
+        m_root->restyleIfRequested();
+        m_disableTransitions = false;
+    }
 
-    groupsBeforeLayout();
+    // Phase 3. Layout
+    {
+        groupsBeforeLayout();
 
-    m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
-    m_viewportRectangleChanged = false;
+        m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
+        m_viewportRectangleChanged = false;
+
+        if (m_updateGeometryRequested) {
+            if (m_inputQueue)
+                m_inputQueue->reset();
+            HitTestMap::State state;
+            m_root->updateGeometry(state);
+            m_updateGeometryRequested = false;
+        }
+    }
 }
 
 Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint) {
@@ -287,4 +296,7 @@ Nullable<InputQueue> WidgetTree::inputQueue() const {
 
 WidgetTree::WidgetTree(InputQueue* inputQueue) noexcept : m_inputQueue(inputQueue) {}
 
+void WidgetTree::requestUpdateVisibility() {
+    m_updateVisibilityRequested = true;
+}
 } // namespace Brisk

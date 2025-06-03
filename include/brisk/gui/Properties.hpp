@@ -146,8 +146,9 @@ enum class PropFlags : uint16_t {
     RelativeToParent = 1 << 7,
     AffectPaint      = 1 << 8,
     AffectHint       = 1 << 9,
+    AffectVisibility = 1 << 10,
 
-    Compound         = 1 << 10,
+    Compound         = 1 << 11,
 };
 
 template <>

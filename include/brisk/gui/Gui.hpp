@@ -485,7 +485,7 @@ public:
     }
 
     void set(Value<ValueType> value) {
-        bindings->connectBidir(Value<ValueType>{ this }, std::move(value), BindType::Immediate);
+        bindings->connectBidir(Value<ValueType>{ this }, std::move(value), BindType::Default);
     }
 
     template <invocable_r<ValueType> Fn>
@@ -605,7 +605,7 @@ inline void applier(Target* target,
     BRISK_ASSERT(target);
     BRISK_ASSUME(target);
     PropertyType prop{ target };
-    prop.listen(value.value.callback, value.value.address, BindType::Immediate);
+    prop.listen(value.value.callback, value.value.address, BindType::Default);
 }
 
 template <std::derived_from<Widget> Target, typename PropertyType, typename U>
@@ -905,6 +905,7 @@ public:
     void apply(const Attributes& arg);
 
     void requestUpdateLayout();
+    void requestUpdateVisibility();
     virtual void onLayoutUpdated();
     Size contentSize() const noexcept;
     SizeF computeSize(AvailableSize size);
@@ -1339,6 +1340,7 @@ private:
     void childRemoved(Ptr child);
 
     void processVisibility(bool isVisible);
+    void processTreeVisibility(bool isVisible);
     void reposition(Point relativeOffset);
     void refreshTree();
 
@@ -1453,7 +1455,7 @@ public:
     GuiProperty<65, TextDecoration, AffectFont | Inheritable | AffectPaint, &This::m_textDecoration>
         textDecoration;
     GuiProperty<66, PointL, AffectLayout, &This::m_translate> translate;
-    GuiProperty<67, bool, AffectLayout, &This::m_visible> visible;
+    GuiProperty<67, bool, AffectLayout | AffectVisibility, &This::m_visible> visible;
     GuiProperty<68, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
                 &This::m_wordSpacing>
         wordSpacing;

@@ -622,9 +622,13 @@ struct Value {
     friend auto operator op(Value op1)                                                                       \
         requires requires { op op1.get(); }                                                                  \
     {                                                                                                        \
-        return std::move(op1).transform([](T x) -> T {                                                       \
-            return op x;                                                                                     \
-        });                                                                                                  \
+        return std::move(op1).transform(                                                                     \
+            [](T x) -> T {                                                                                   \
+                return op x;                                                                                 \
+            },                                                                                               \
+            [](T x) -> T {                                                                                   \
+                return op x;                                                                                 \
+            });                                                                                              \
     }
 
     BRISK_BINDING_BINARY_OP(+)
@@ -829,6 +833,8 @@ Value<std::string> toString(Value<T> value) {
 enum class BindType : uint8_t {
     Immediate, ///< Listeners will be notified immediately.
     Deferred,  ///< Listeners will be notified via a target object queue.
+
+    Default = Immediate,
 };
 
 /**
@@ -935,14 +941,14 @@ public:
      * @tparam TSrc The type of the source value.
      * @param dest The destination value.
      * @param src The source value.
-     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param type The binding type (Immediate or Deferred).
      * @param updateNow If true, immediately updates `dest` with the current value of `src`.
      * @param destDesc Optional description for the destination value.
      * @param srcDesc Optional description for the source value.
      * @return BindingHandle A handle that allows manually disconnecting the binding.
      */
     template <typename TDest, typename TSrc>
-    BindingHandle connectBidir(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
+    BindingHandle connectBidir(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Default,
                                bool updateNow = true, std::string_view destDesc = {},
                                std::string_view srcDesc = {}) {
         std::lock_guard lk(m_mutex);
@@ -969,14 +975,14 @@ public:
      * @tparam TSrc The type of the source value.
      * @param dest The destination value.
      * @param src The source value.
-     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param type The binding type (Immediate or Deferred).
      * @param updateNow If true, immediately updates `dest` with the current value of `src`.
      * @param destDesc Optional description for the destination value.
      * @param srcDesc Optional description for the source value.
      * @return BindingHandle A handle that allows manually disconnecting the binding.
      */
     template <typename TDest, typename TSrc>
-    BindingHandle connect(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
+    BindingHandle connect(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Default,
                           bool updateNow = true, std::string_view destDesc = {},
                           std::string_view srcDesc = {}) {
         std::lock_guard lk(m_mutex);
@@ -1057,25 +1063,25 @@ public:
 
     template <typename T>
     BindingHandle listen(Value<T> src, Callback<> callback, BindingAddress address = staticBindingAddress,
-                         BindType type = BindType::Immediate) {
+                         BindType type = BindType::Default) {
         return connect(Value<T>::listener(std::move(callback), address), src, type, false);
     }
 
     template <typename T>
     BindingHandle listen(Value<T> src, Callback<ValueArgument<T>> callback,
-                         BindingAddress address = staticBindingAddress, BindType type = BindType::Immediate) {
+                         BindingAddress address = staticBindingAddress, BindType type = BindType::Default) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback), address), src, type, false);
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, BindableCallback<> callback, BindType type = BindType::Immediate) {
+    BindingHandle listen(Value<T> src, BindableCallback<> callback, BindType type = BindType::Default) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
     template <typename T>
     BindingHandle listen(Value<T> src, BindableCallback<ValueArgument<T>> callback,
-                         BindType type = BindType::Immediate) {
+                         BindType type = BindType::Default) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
@@ -1746,12 +1752,12 @@ public:
     static_assert(field != nullptr || getter != nullptr);
 
     void listen(Callback<ValueArgument<T>> callback, BindingAddress address = staticBindingAddress,
-                BindType bindType = BindType::Immediate) {
+                BindType bindType = BindType::Default) {
         bindings->listen(Value{ this }, std::move(callback), address, bindType);
     }
 
     void listen(Callback<> callback, BindingAddress address = staticBindingAddress,
-                BindType bindType = BindType::Immediate) {
+                BindType bindType = BindType::Default) {
         bindings->listen(Value{ this }, std::move(callback), address, bindType);
     }
 
@@ -1830,7 +1836,7 @@ public:
     void set(Value<Type> value) {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        bindings->connectBidir(Value{ this }, std::move(value), BindType::Immediate);
+        bindings->connectBidir(Value{ this }, std::move(value), BindType::Default);
     }
 
     void set(std::same_as<Value<std::optional<Type>>> auto value)
@@ -1838,7 +1844,7 @@ public:
     {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        bindings->connectBidir(Value{ this }, std::move(value), BindType::Immediate);
+        bindings->connectBidir(Value{ this }, std::move(value), BindType::Default);
     }
 
     BindingAddress address() const {
