@@ -127,6 +127,8 @@ struct PointOf {
      */
     constexpr PointOf(const PointOf& p) noexcept = default;
 
+    constexpr PointOf(const SizeOf<T>& size) noexcept : x(size.x), y(size.y) {}
+
     /**
      * @brief Equality operator.
      *
@@ -787,6 +789,8 @@ struct SizeOf {
     /// @param s The SizeOf instance to copy from.
     constexpr SizeOf(const SizeOf& s) noexcept = default;
 
+    constexpr SizeOf(const PointOf<T>& pt) noexcept : x(pt.x), y(pt.y) {}
+
     /// @brief Access operator for retrieving component by index.
     /// @param i The index of the component (0 for x, 1 for y).
     /// @return The component value at index i.
@@ -881,6 +885,8 @@ struct SizeOf<T> {
     /// @brief Copy constructor.
     /// @param s The SizeOf instance to copy from.
     constexpr SizeOf(const SizeOf& s) noexcept = default;
+
+    constexpr SizeOf(const PointOf<T>& pt) noexcept : v(pt.v) {}
 
     /// @brief Conversion operator to a different SizeOf type.
     /// @tparam U The type to convert to.
