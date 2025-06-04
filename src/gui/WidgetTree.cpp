@@ -38,6 +38,7 @@ void WidgetTree::setRoot(std::shared_ptr<Widget> root) {
         if (m_root) {
             m_root->setTree(this);
         }
+        m_layoutIsActual = false;
     }
 }
 
@@ -141,46 +142,59 @@ void WidgetTree::update() {
 
     groupsBeforeFrame();
 
-    // Phase 1. Calling user code (Input, animation, queued tasks)
-    {
+    if (!m_layoutIsActual) {
+        processEventsAndAnimations();
+        applyStyleChanges();
+        updateLayoutAndGeometry();
+        m_layoutIsActual = true;
+    }
+
+    processEventsAndAnimations();
+
+    applyStyleChanges();
+    updateLayoutAndGeometry();
+    m_layoutIsActual = true;
+}
+
+void WidgetTree::processEventsAndAnimations() {
+    if (m_layoutIsActual) {
         if (m_inputQueue)
             m_inputQueue->processEvents();
-        processAnimation();
-        processRebuild();
-        if (frameStartTime >= m_refreshTime + refreshInterval) [[unlikely]] {
-            for (WidgetGroup* g : m_groups) {
-                g->beforeRefresh();
-            }
-            m_root->refreshTree();
-            m_refreshTime = frameStartTime;
-        }
-
-        if (m_updateVisibilityRequested) {
-            m_root->processTreeVisibility(true);
-            m_updateVisibilityRequested = false;
-        }
     }
 
-    // Phase 2. Style
-    {
-        m_root->restyleIfRequested();
-        m_disableTransitions = false;
+    processAnimation();
+    processRebuild();
+
+    if (frameStartTime >= m_refreshTime + refreshInterval) [[unlikely]] {
+        for (WidgetGroup* g : m_groups) {
+            g->beforeRefresh();
+        }
+        m_root->refreshTree();
+        m_refreshTime = frameStartTime;
     }
 
-    // Phase 3. Layout
-    {
-        groupsBeforeLayout();
+    if (m_updateVisibilityRequested) {
+        m_root->processTreeVisibility(true);
+        m_updateVisibilityRequested = false;
+    }
+}
 
-        m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
-        m_viewportRectangleChanged = false;
+void WidgetTree::applyStyleChanges() {
+    m_root->restyleIfRequested();
+}
 
-        if (m_updateGeometryRequested) {
-            if (m_inputQueue)
-                m_inputQueue->reset();
-            HitTestMap::State state;
-            m_root->updateGeometry(state);
-            m_updateGeometryRequested = false;
-        }
+void WidgetTree::updateLayoutAndGeometry() {
+    groupsBeforeLayout();
+
+    m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
+    m_viewportRectangleChanged = false;
+
+    if (m_updateGeometryRequested) {
+        if (m_inputQueue)
+            m_inputQueue->reset();
+        HitTestMap::State state;
+        m_root->updateGeometry(state);
+        m_updateGeometryRequested = false;
     }
 }
 
@@ -255,11 +269,11 @@ void WidgetTree::addGroup(WidgetGroup* group) {
 }
 
 bool WidgetTree::transitionsAllowed() {
-    return !m_disableTransitions;
+    return m_transitions;
 }
 
 void WidgetTree::disableTransitions() {
-    m_disableTransitions = true;
+    m_transitions = false;
 }
 
 void WidgetTree::setViewportRectangle(Rectangle rect) {
