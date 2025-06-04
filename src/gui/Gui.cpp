@@ -856,7 +856,7 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     } else {
         rect = m_rect;
     }
-    Point bottomRight{ 0, 0 };
+    Point bottomRight{ INT_MIN, INT_MIN };
     RectangleF rectOffset = rect.withOffset(m_childrenOffset);
     computeClipRect();
     computeHintRect();
@@ -866,15 +866,18 @@ int32_t Widget::applyLayoutRecursively(RectangleF rectangle) {
     for (const Ptr& w : *this) {
         if (w->m_ignoreChildrenOffset) {
             counter += w->applyLayoutRecursively(rect);
-            bottomRight = max(bottomRight, w->m_rect.p2);
+            if (w->m_placement == Placement::Normal)
+                bottomRight = max(bottomRight, w->m_rect.p2);
         } else {
             counter += w->applyLayoutRecursively(rectOffset);
-            bottomRight = max(bottomRight, w->m_rect.p2 - m_childrenOffset);
+            if (w->m_placement == Placement::Normal)
+                bottomRight = max(bottomRight, w->m_rect.p2 - m_childrenOffset);
         }
         if (w->m_visible)
             m_subtreeRect = m_subtreeRect.union_(w->m_subtreeRect);
     }
-    if (assign(m_contentSize, Size((bottomRight - Point(rect.p1)).v))) {
+    Size contentSize = bottomRight == Point{ INT_MIN, INT_MIN } ? Size{} : Size(bottomRight - Point(rect.p1));
+    if (assign(m_contentSize, contentSize)) {
         ++counter;
     }
     if (counter) {
