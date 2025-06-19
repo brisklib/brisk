@@ -89,7 +89,7 @@ struct Transition {
         }
     }
 
-    void tick(float transitionDuration, EasingFunction easing) {
+    bool tick(float transitionDuration, EasingFunction easing) {
         if (isActive()) {
             float elapsed = frameStartTime - startTime;
             if (elapsed >= transitionDuration) {
@@ -98,7 +98,9 @@ struct Transition {
             } else {
                 current = mix(easing(elapsed / transitionDuration), startValue, stopValue);
             }
+            return true;
         }
+        return false;
     }
 
     bool isActive() const noexcept {

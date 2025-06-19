@@ -255,49 +255,21 @@ struct Construction {
 
 #define WIDGET
 
-namespace Internal {
-template <typename T>
-struct ResolvedType {
-    using Type = T;
-};
-
-template <>
-struct ResolvedType<Length> {
-    using Type = float;
-};
-
-template <>
-struct ResolvedType<EdgesL> {
-    using Type = EdgesF;
-};
-
-template <>
-struct ResolvedType<CornersL> {
-    using Type = CornersF;
-};
-} // namespace Internal
-
-template <typename T>
-using ResolvedType = typename Internal::ResolvedType<T>::Type;
-
 struct WidgetActions {
     function<void(Widget*)> onParentSet;
 };
 
 namespace Internal {
 
-template <typename InputT>
 struct Resolve {
-    using ResolvedT = typename ResolvedType<InputT>::Type;
-
-    constexpr Resolve(InputT value, ResolvedT resolved = {}) noexcept : value(value), resolved(resolved) {}
+    constexpr Resolve(Length value, float resolved = {}) noexcept : value(value), resolved(resolved) {}
 
     constexpr bool operator==(const Resolve& other) const noexcept {
         return value == other.value;
     }
 
-    InputT value;
-    ResolvedT resolved;
+    Length value;
+    float resolved;
 };
 
 struct WidgetProps {};
@@ -332,8 +304,7 @@ template <typename Callable, typename R, typename... Args>
 concept invocable_r = std::is_invocable_r_v<R, Callable, Args...>;
 
 namespace Internal {
-constexpr inline size_t numProperties = 111;
-extern const std::string_view propNames[numProperties];
+constexpr inline size_t numProperties = 102;
 
 template <typename T, int subfield = -1>
 struct PropFieldType {
@@ -357,7 +328,7 @@ struct PropFieldStorageType<T, true, false> {
 
 template <typename T>
 struct PropFieldStorageType<T, false, true> {
-    using Type = Internal::Resolve<T>;
+    using Type = Internal::Resolve;
 };
 
 } // namespace Internal
@@ -368,148 +339,6 @@ using PropFieldType = typename Internal::PropFieldType<T, subfield>::Type;
 template <typename T, PropFlags flags>
 using PropFieldStorageType = typename Internal::PropFieldStorageType<T, flags && PropFlags::Transition,
                                                                      flags && PropFlags::Resolvable>::Type;
-
-template <size_t index_, typename Type_, PropFlags flags_,
-          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
-struct GuiPropertyCompound {
-    using Type      = Type_;
-    using ValueType = Type;
-
-    static_assert(index_ == static_cast<size_t>(-1) || index_ < Internal::numProperties);
-
-    constexpr static PropFlags flags = (Properties::flags | ...) | PropFlags::Compound;
-
-    static std::string_view name() noexcept {
-        return Internal::propNames[index_];
-    }
-
-    void internalSet(ValueType value);
-    void internalSetInherit();
-
-    void operator=(Type value) {
-        this->internalSet(std::move(value));
-    }
-
-    void operator=(Inherit inherit)
-        requires(isInheritable(flags_))
-    {
-        this->internalSetInherit();
-    }
-
-    OptConstRef<Type> get() const noexcept;
-    OptConstRef<ResolvedType<Type>> resolved() const noexcept
-        requires(isResolvable(flags_));
-
-    void set(Type value) {
-        this->internalSet(std::move(value));
-    }
-
-    void set(Inherit)
-        requires(isInheritable(flags_))
-    {
-        this->internalSetInherit();
-    }
-
-    BindingAddress address() const noexcept;
-
-    Widget* this_pointer;
-};
-
-template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field_,
-          int subfield_ = -1>
-struct GuiProperty {
-public:
-    using Type      = T;
-    using ValueType = PropFieldType<T, subfield_>;
-
-    static_assert(index_ == static_cast<size_t>(-1) || index_ < Internal::numProperties);
-
-    static ValueType sub(const Type& value) {
-        if constexpr (subfield == -1)
-            return value;
-        else
-            return accessField<subfield>(value);
-    }
-
-    static std::string_view name() noexcept {
-        return Internal::propNames[index_];
-    }
-
-    constexpr static size_t index    = index_;
-
-    constexpr static auto field      = field_;
-    constexpr static int subfield    = subfield_;
-
-    constexpr static PropFlags flags = flags_;
-
-    operator ValueType() const noexcept {
-        return this->get();
-    }
-
-    void operator=(ValueType value) {
-        this->internalSet(std::move(value));
-    }
-
-    void operator=(Inherit inherit)
-        requires(isInheritable(flags_))
-    {
-        this->internalSetInherit();
-    }
-
-    bool isOverridden() const noexcept;
-
-    OptConstRef<ValueType> get() const noexcept;
-
-    OptConstRef<ResolvedType<ValueType>> resolved() const noexcept
-        requires(isResolvable(flags_));
-    OptConstRef<ValueType> current() const noexcept
-        requires(isTransition(flags_));
-
-    void internalSet(ValueType value);
-    void internalSetInherit();
-
-    void set(ValueType value) {
-        internalSet(std::move(value));
-    }
-
-    void set(Inherit inherit)
-        requires(isInheritable(flags_))
-    {
-        this->internalSetInherit();
-    }
-
-    BindingAddress address() const noexcept;
-
-    void operator=(Value<ValueType> value) {
-        this->set(std::move(value));
-    }
-
-    void set(Value<ValueType> value) {
-        bindings->connectBidir(Value<ValueType>{ this }, std::move(value), BindType::Default);
-    }
-
-    template <invocable_r<ValueType> Fn>
-    void operator=(Fn&& fn) {
-        this->internalSet(std::forward<Fn>(fn)());
-    }
-
-    template <invocable_r<ValueType> Fn>
-    void set(Fn&& fn) {
-        this->internalSet(std::forward<Fn>(fn)());
-    }
-
-    template <invocable_r<ValueType, Widget*> Fn>
-    void operator=(Fn&& fn) {
-        this->internalSet(std::forward<Fn>(fn)(this_pointer));
-    }
-
-    template <invocable_r<ValueType, Widget*> Fn>
-    void set(Fn&& fn) {
-        this->internalSet(std::forward<Fn>(fn)(this_pointer));
-    }
-
-    Widget* this_pointer;
-};
 
 namespace Internal {
 template <typename Type>
@@ -537,64 +366,13 @@ namespace Tag {
 template <typename PropertyType>
 struct PropArg;
 
-template <typename PropertyType>
-    requires(!PropertyType::isTrigger)
-struct PropArg<PropertyType> : PropertyTag {
-    using Type = typename PropertyType::ValueType;
-
-    struct ExtraTypes {
-        static void accept(Value<Type>);
-        static void accept(function<Type()>);
-        static void accept(function<Type(Widget*)>);
-    };
-};
-
-template <typename PropertyType>
-    requires PropertyType::isTrigger
-struct PropArg<PropertyType> : PropertyTag {
-    using Type = typename PropertyType::ValueType;
-
-    struct ExtraTypes {
-        static void accept(BindableCallback<>);
-        static void accept(BindableCallback<ValueArgument<Type>>);
-    };
-};
-
-template <size_t index, typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
-          int subfield>
-BRISK_IF_GNU(requires(!requires {
-    { T::isTrigger };
-}))
-struct PropArg<GuiProperty<index, T, flags, field, subfield>> : PropertyTag {
-    using Type = typename GuiProperty<index, T, flags, field, subfield>::ValueType;
+template <typename Class, typename T, PropertyIndex index>
+struct PropArg<Property<Class, T, index>> : PropertyTag {
+    using Type = T;
 
     static std::string_view name() noexcept {
-        return GuiProperty<index, T, flags, field, subfield>::name();
+        return Property<Class, T, index>::traits().name;
     }
-
-    struct ExtraTypes {
-        static void accept(Inherit)
-            requires(isInheritable(flags));
-        static void accept(Value<Type>);
-        static void accept(function<Type()>);
-        static void accept(function<Type(Widget*)>);
-    };
-};
-
-template <size_t index_, typename Type_, PropFlags flags_,
-          PropFieldStorageType<Type_, flags_> Widget::* field, typename... Properties>
-struct PropArg<GuiPropertyCompound<index_, Type_, flags_, field, Properties...>> : PropertyTag {
-
-    static std::string_view name() noexcept {
-        return GuiPropertyCompound<index_, Type_, flags_, field, Properties...>::name();
-    }
-
-    using Type = Type_;
-
-    struct ExtraTypes {
-        static void accept(function<Type()>);
-        static void accept(function<Type(Widget*)>);
-    };
 };
 
 } // namespace Tag
@@ -617,6 +395,175 @@ inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, U>&
 }
 
 using StyleVarType = std::variant<std::monostate, ColorW, EdgesL, float, int>;
+
+namespace Internal {
+
+template <typename WidgetClass, typename ValueType>
+struct PropGui {
+    ValueType(WidgetClass::* field);
+    PropFlags flags;
+    const char* name = nullptr;
+
+    void set(WidgetClass* self, ValueType value) const {
+        self->propSet(
+            { this },
+            [&]() -> bool {
+                if (self->*field == value) {
+                    return false;
+                }
+                self->*field = std::move(value);
+                return true;
+            },
+            flags, toBindingAddress(&(self->*field)));
+    }
+
+    void set(WidgetClass* self, Inherit) const {
+        self->propInherit({ this }, flags);
+    }
+
+    ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
+        return (self->*field);
+    }
+
+    ValueOrConstRef<ValueType> current(const WidgetClass* self) const noexcept {
+        return (self->*field);
+    }
+
+    BindingAddress address(const WidgetClass* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename WidgetClass, typename ValueType>
+PropGui(ValueType(WidgetClass::*), PropFlags, const char* = nullptr) -> PropGui<WidgetClass, ValueType>;
+
+template <typename WidgetClass, typename ValueType>
+struct PropGui<WidgetClass, Transition<ValueType>> {
+    Transition<ValueType>(WidgetClass::* field);
+    float(WidgetClass::* duration);
+    PropFlags flags;
+    const char* name = nullptr;
+
+    void set(WidgetClass* self, ValueType value) const {
+        self->propSet(
+            { this },
+            [&]() -> bool {
+                if (!(self->*field).set(value, self->transitionAllowed() ? self->*duration : 0.f)) {
+                    return false;
+                }
+                if ((self->*field).isActive()) {
+                    self->requestAnimationFrame();
+                }
+                return true;
+            },
+            flags, toBindingAddress(&(self->*field)));
+    }
+
+    void set(WidgetClass* self, Inherit value) const {
+        self->propInherit({ this }, flags);
+    }
+
+    ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
+        return (self->*field).stopValue;
+    }
+
+    ValueType current(const WidgetClass* self) const noexcept {
+        return (self->*field).current;
+    }
+
+    BindingAddress address(const WidgetClass* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename WidgetClass, typename ValueType>
+PropGui(Transition<ValueType>(WidgetClass::*), float(WidgetClass::*), PropFlags, const char* = nullptr)
+    -> PropGui<WidgetClass, Transition<ValueType>>;
+
+template <typename WidgetClass>
+struct PropGui<WidgetClass, Resolve> {
+    Resolve(WidgetClass::* field);
+    PropFlags flags;
+    const char* name = nullptr;
+
+    void set(WidgetClass* self, Length value) const {
+        self->propSet(
+            { this },
+            [&]() -> bool {
+                if ((self->*field).value == value) {
+                    return false;
+                }
+                (self->*field).value = std::move(value);
+                return true;
+            },
+            flags, toBindingAddress(&(self->*field)));
+    }
+
+    void set(WidgetClass* self, Inherit) const {
+        self->propInherit({ this }, flags);
+    }
+
+    Length get(const WidgetClass* self) const noexcept {
+        return (self->*field).value;
+    }
+
+    float current(const WidgetClass* self) const noexcept {
+        return (self->*field).resolved;
+    }
+
+    BindingAddress address(const WidgetClass* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename WidgetClass, template <typename T> typename TypeTemplate, typename SubType,
+          typename CurrentSubType, PropertyIndex index0, PropertyIndex... indices>
+struct PropGuiCompound {
+    const char* name = nullptr;
+
+    template <PropertyIndex Index>
+    constexpr static decltype(auto) traits() noexcept {
+        return Property<WidgetClass, SubType, Index>::traits(); // get<Index>(WidgetClass::properties());
+    }
+
+    // using SubType          = decltype(def0().get(nullptr));
+    // using CurrentSubType   = decltype(def0().current(nullptr));
+    using ValueType        = TypeTemplate<SubType>;
+    using CurrentValueType = TypeTemplate<CurrentSubType>;
+
+    static_assert(std::is_trivially_copyable_v<ValueType>);
+    static_assert(std::is_trivially_copyable_v<CurrentValueType>);
+
+    ValueType get(const WidgetClass* self) const noexcept {
+        return ValueType{
+            traits<index0>().get(self),
+            traits<indices>().get(self)...,
+        };
+    }
+
+    void set(WidgetClass* self, ValueType value) const {
+        traits<index0>().set(self, value[0]);
+        size_t i = 0;
+        ((traits<indices>().set(self, value[++i])), ...);
+    }
+
+    void set(WidgetClass* self, Inherit) const {
+        traits<index0>().set(self, Inherit{});
+        ((traits<indices>().set(self, Inherit{})), ...);
+    }
+
+    CurrentValueType current(const WidgetClass* self) const noexcept {
+        return CurrentValueType{
+            traits<index0>().current(self),
+            traits<indices>().current(self)...,
+        };
+    }
+
+    BindingAddress address(const WidgetClass* self) const noexcept {
+        return mergeAddresses(traits<index0>().address(self), traits<indices>().address(self)...);
+    }
+};
+} // namespace Internal
 
 class WIDGET Widget : public BindableObject<Widget, &uiScheduler> {
     BRISK_DYNAMIC_CLASS_ROOT(Widget)
@@ -1011,6 +958,24 @@ public:
     bool isMenu() const noexcept;
     void setMenuRoot();
 
+    bool transitionAllowed() const noexcept;
+
+    /**
+     * @brief Checks if the specified property is overridden.
+     *
+     * @param prop The identifier of the property to check.
+     * @return true if the property is overridden, false otherwise.
+     */
+    bool isOverridden(PropertyId prop) const noexcept;
+
+    /**
+     * @brief Checks if the specified property is inherited.
+     *
+     * @param prop The identifier of the property to check.
+     * @return true if the property is inherited, false otherwise.
+     */
+    bool isInherited(PropertyId prop) const noexcept;
+
     using enum PropFlags;
 
     friend struct Rules;
@@ -1019,6 +984,13 @@ protected:
     friend struct InputQueue;
     friend class Stylesheet;
     friend class WidgetTree;
+
+    template <typename WidgetClass, typename ValueType>
+    friend struct Internal::PropGui;
+
+    void propInherit(PropertyId prop, PropFlags flags);
+
+    void propSet(PropertyId prop, function_ref<bool()> assign, PropFlags flags, BindingAddress address);
 
     WidgetTree* m_tree = nullptr;
 
@@ -1060,10 +1032,6 @@ protected:
     Point m_hintTextOffset{ 0, 0 };
     PreparedText m_hintPrepared;
 
-    EdgesL m_margin{ 0, 0, 0, 0 };
-    EdgesL m_padding{ 0, 0, 0, 0 };
-    EdgesL m_borderWidth{ 0, 0, 0, 0 };
-
     Internal::Transition<ColorW> m_backgroundColor{ Palette::transparent };
     Internal::Transition<ColorW> m_borderColor{ Palette::transparent };
     Internal::Transition<ColorW> m_color{ Palette::white };
@@ -1073,19 +1041,17 @@ protected:
     float m_borderColorTransition          = 0;
     float m_colorTransition                = 0;
     float m_shadowColorTransition          = 0;
+    float m_scrollBarColorTransition       = 0;
     EasingFunction m_backgroundColorEasing = &easeLinear;
     EasingFunction m_borderColorEasing     = &easeLinear;
     EasingFunction m_colorEasing           = &easeLinear;
     EasingFunction m_shadowColorEasing     = &easeLinear;
+    EasingFunction m_scrollBarColorEasing  = &easeLinear;
 
     // point/size
     PointL m_absolutePosition{ undef, undef }; // for popup only
     PointL m_anchor{ undef, undef };           // for popup only
-    SizeL m_minDimensions{ undef, undef };
-    SizeL m_maxDimensions{ undef, undef };
-    SizeL m_dimensions{ undef, undef };
-    PointL m_translate{ 0, 0 }; // translation relative to own size
-    SizeL m_gap{ 0, 0 };
+    PointL m_translate{ 0, 0 };                // translation relative to own size
     PointF m_shadowOffset{ 0, 0 };
 
     // pointers
@@ -1106,14 +1072,82 @@ protected:
     Cursor m_cursor                = Cursor::NotSet;
     int m_tabGroupId               = -1;
 
-    Internal::Resolve<CornersL> m_borderRadius{ CornersL(0_px), CornersF(0.f) };
-    Internal::Resolve<Length> m_shadowSize{ 0_px };
-    Internal::Resolve<Length> m_fontSize{ FontSize::Normal, dp(FontSize::Normal) };
-    Internal::Resolve<Length> m_tabSize{ 40, 40 };
-    Internal::Resolve<Length> m_letterSpacing{ 0_px, 0.f };
-    Internal::Resolve<Length> m_wordSpacing{ 0_px, 0.f };
-    Internal::Resolve<Length> m_scrollBarThickness{ 8_px, 8.f };
-    Internal::Resolve<Length> m_scrollBarRadius{ 0_px, 0.f };
+    Internal::Resolve m_shadowSize{ 0_px };
+    Internal::Resolve m_fontSize{ FontSize::Normal, dp(FontSize::Normal) };
+    Internal::Resolve m_tabSize{ 40, 40 };
+    Internal::Resolve m_letterSpacing{ 0_px, 0.f };
+    Internal::Resolve m_wordSpacing{ 0_px, 0.f };
+    Internal::Resolve m_scrollBarThickness{ 8_px, 8.f };
+    Internal::Resolve m_scrollBarRadius{ 0_px, 0.f };
+    Internal::Resolve m_borderRadiusTopLeft{ 0, 0.f };
+    Internal::Resolve m_borderRadiusTopRight{ 0, 0.f };
+    Internal::Resolve m_borderRadiusBottomLeft{ 0, 0.f };
+    Internal::Resolve m_borderRadiusBottomRight{ 0, 0.f };
+
+    CornersL getBorderRadius() const noexcept {
+        return { m_borderRadiusTopLeft.value, m_borderRadiusTopRight.value, m_borderRadiusBottomLeft.value,
+                 m_borderRadiusBottomRight.value };
+    }
+
+    CornersF getBorderRadiusResolved() const noexcept {
+        return { m_borderRadiusTopLeft.resolved, m_borderRadiusTopRight.resolved,
+                 m_borderRadiusBottomLeft.resolved, m_borderRadiusBottomRight.resolved };
+    }
+
+    Length m_borderWidthLeft   = 0;
+    Length m_borderWidthTop    = 0;
+    Length m_borderWidthRight  = 0;
+    Length m_borderWidthBottom = 0;
+
+    EdgesL getBorderWidth() const noexcept {
+        return { m_borderWidthLeft, m_borderWidthTop, m_borderWidthRight, m_borderWidthBottom };
+    }
+
+    Length m_width  = undef;
+    Length m_height = undef;
+
+    SizeL getDimensions() const noexcept {
+        return { m_width, m_height };
+    }
+
+    Length m_gapColumn = 0;
+    Length m_gapRow    = 0;
+
+    SizeL getGap() const noexcept {
+        return { m_gapColumn, m_gapRow };
+    }
+
+    Length m_marginLeft   = 0;
+    Length m_marginTop    = 0;
+    Length m_marginRight  = 0;
+    Length m_marginBottom = 0;
+
+    EdgesL getMargin() const noexcept {
+        return { m_marginLeft, m_marginTop, m_marginRight, m_marginBottom };
+    }
+
+    Length m_maxWidth  = undef;
+    Length m_maxHeight = undef;
+
+    SizeL getMaxDimensions() const noexcept {
+        return { m_maxWidth, m_maxHeight };
+    }
+
+    Length m_minWidth  = undef;
+    Length m_minHeight = undef;
+
+    SizeL getMinDimensions() const noexcept {
+        return { m_minWidth, m_minHeight };
+    }
+
+    Length m_paddingLeft   = 0;
+    Length m_paddingTop    = 0;
+    Length m_paddingRight  = 0;
+    Length m_paddingBottom = 0;
+
+    EdgesL getPadding() const noexcept {
+        return { m_paddingLeft, m_paddingTop, m_paddingRight, m_paddingBottom };
+    }
 
     // uint8_t
     mutable WidgetState m_state         = WidgetState::None;
@@ -1131,8 +1165,6 @@ protected:
     Placement m_placement               = Placement::Normal;
     ZOrder m_zorder                     = ZOrder::Normal;
     WidgetClip m_clip                   = WidgetClip::Normal;
-    OverflowScrollBoth m_overflowScroll{ OverflowScroll::Disable, OverflowScroll::Disable };
-    ContentOverflowBoth m_contentOverflow{ ContentOverflow::Default, ContentOverflow::Default };
     AlignContent m_alignContent         = AlignContent::FlexStart;
     Wrap m_flexWrap                     = Wrap::NoWrap;
     BoxSizingPerAxis m_boxSizing        = BoxSizingPerAxis::BorderBox;
@@ -1141,20 +1173,34 @@ protected:
     TextAlign m_textVerticalAlign       = TextAlign::Center;
     MouseInteraction m_mouseInteraction = MouseInteraction::Inherit;
 
-    bool m_tabStop                      = false;
-    bool m_tabGroup                     = false;
-    bool m_visible                      = true;
-    bool m_hidden                       = false;
-    bool m_autofocus                    = false;
-    bool m_mousePassThrough             = false;
-    bool m_autoMouseCapture             = true;
-    bool m_mouseAnywhere                = false;
-    bool m_focusCapture                 = false;
-    bool m_stateTriggersRestyle         = false;
-    bool m_isHintExclusive              = false;
-    bool m_isHintVisible                = false;
-    bool m_autoHint                     = true;
-    bool m_squircleCorners              = false;
+    OverflowScroll m_overflowScrollX    = OverflowScroll::Disable;
+    OverflowScroll m_overflowScrollY    = OverflowScroll::Disable;
+
+    OverflowScrollBoth getOverflowScroll() const noexcept {
+        return { m_overflowScrollX, m_overflowScrollY };
+    }
+
+    ContentOverflow m_contentOverflowX = ContentOverflow::Default;
+    ContentOverflow m_contentOverflowY = ContentOverflow::Default;
+
+    ContentOverflowBoth getContentOverflow() const noexcept {
+        return { m_contentOverflowX, m_contentOverflowY };
+    }
+
+    bool m_tabStop              = false;
+    bool m_tabGroup             = false;
+    bool m_visible              = true;
+    bool m_hidden               = false;
+    bool m_autofocus            = false;
+    bool m_mousePassThrough     = false;
+    bool m_autoMouseCapture     = true;
+    bool m_mouseAnywhere        = false;
+    bool m_focusCapture         = false;
+    bool m_stateTriggersRestyle = false;
+    bool m_isHintExclusive      = false;
+    bool m_isHintVisible        = false;
+    bool m_autoHint             = true;
+    bool m_squircleCorners      = false;
 
     std::array<bool, 2> m_scrollBarDrag{ false, false };
     int m_savedScrollOffset = 0;
@@ -1169,9 +1215,8 @@ protected:
 
     void updateScrollAxes();
 
-    std::bitset<Internal::propStateBits * Internal::numProperties> m_propStates;
-    Internal::PropState getPropState(size_t index) const noexcept;
-    void setPropState(size_t index, Internal::PropState state) noexcept;
+    std::set<PropertyId> m_overriddenProperties;
+    std::set<PropertyId> m_inheritedProperties;
 
     std::map<uint64_t, StyleVarType> m_styleVars;
 
@@ -1251,8 +1296,6 @@ protected:
 
     void stateChanged(WidgetState oldState, WidgetState newState);
 
-    bool transitionAllowed();
-
     virtual void onVisible();
     virtual void onHidden();
     virtual void onRefresh();
@@ -1277,28 +1320,6 @@ protected:
     void resolveProperties(PropFlags flags);
     void restyleIfRequested();
     void requestUpdates(PropFlags flags);
-
-    bool isOverridden(size_t index) const noexcept;
-
-    template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
-    OptConstRef<PropFieldType<T, subfield>> getter() const noexcept;
-
-    template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
-    OptConstRef<ResolvedType<PropFieldType<T, subfield>>> getterResolved() const noexcept;
-
-    template <typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field, int subfield>
-    OptConstRef<PropFieldType<T, subfield>> getterCurrent() const noexcept;
-
-    template <typename T>
-    float Widget::* transitionField(Internal::Transition<T> Widget::* field) const noexcept;
-
-    template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
-              int subfield>
-    void setter(PropFieldType<T, subfield> value);
-
-    template <typename T, size_t index, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
-              int subfield>
-    void setter(Inherit);
 
 private:
     Point m_childrenOffset{ 0, 0 };
@@ -1358,13 +1379,196 @@ private:
     void setEnabled(bool);
     void setSelected(bool);
 
-    template <size_t index, typename T, PropFlags flags, PropFieldStorageType<T, flags> Widget::* field,
-              int subfield>
-    friend struct GuiProperty;
-
     using This                      = Widget;
 
     constexpr static size_t noIndex = static_cast<size_t>(-1);
+
+public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /* 0 */ Internal::PropField{ &This::m_onClick, "onClick" },
+            /* 1 */ Internal::PropField{ &This::m_onDoubleClick, "onDoubleClick" },
+            /* 2 */
+            Internal::PropGetterSetter{ &This::m_state, &This::isEnabled, &This::setEnabled, "enabled" },
+            /* 3 */
+            Internal::PropGetterSetter{ &This::m_state, &This::isSelected, &This::setSelected, "selected" },
+            /* 4 */ Internal::PropGui{ &Widget::m_absolutePosition, AffectLayout, "absolutePosition" },
+            /* 5 */ Internal::PropGui{ &Widget::m_alignContent, AffectLayout, "alignContent" },
+            /* 6 */ Internal::PropGui{ &Widget::m_alignItems, AffectLayout, "alignItems" },
+            /* 7 */ Internal::PropGui{ &Widget::m_alignSelf, AffectLayout, "alignSelf" },
+            /* 8 */ Internal::PropGui{ &Widget::m_anchor, AffectLayout, "anchor" },
+            /* 9 */ Internal::PropGui{ &Widget::m_aspect, AffectLayout, "aspect" },
+            /* 10 */ Internal::PropGui{ &Widget::m_backgroundColorEasing, None, "backgroundColorEasing" },
+            /* 11 */
+            Internal::PropGui{ &Widget::m_backgroundColorTransition, None, "backgroundColorTransition" },
+            /* 12 */
+            Internal::PropGui{ &Widget::m_backgroundColor, &Widget::m_backgroundColorTransition,
+                               Transition | AffectPaint, "backgroundColor" },
+            /* 13 */ Internal::PropGui{ &Widget::m_borderColorEasing, None, "borderColorEasing" },
+            /* 14 */ Internal::PropGui{ &Widget::m_borderColorTransition, None, "borderColorTransition" },
+            /* 15 */
+            Internal::PropGui{ &Widget::m_borderColor, &Widget::m_borderColorTransition,
+                               Transition | AffectPaint, "borderColor" },
+            /* 16 */ Internal::PropGui{ &Widget::m_clip, AffectLayout | AffectPaint, "clip" },
+            /* 17 */ Internal::PropGui{ &Widget::m_colorEasing, None, "colorEasing" },
+            /* 18 */ Internal::PropGui{ &Widget::m_colorTransition, None, "colorTransition" },
+            /* 19 */
+            Internal::PropGui{ &Widget::m_color, &Widget::m_colorTransition,
+                               Transition | Inheritable | AffectPaint, "color" },
+            /* 20 */ Internal::PropGui{ &Widget::m_shadowOffset, AffectPaint, "shadowOffset" },
+            /* 21 */ Internal::PropGui{ &Widget::m_cursor, None, "cursor" },
+            /* 22 */ Internal::PropGui{ &Widget::m_flexBasis, AffectLayout, "flexBasis" },
+            /* 23 */ Internal::PropGui{ &Widget::m_flexGrow, AffectLayout, "flexGrow" },
+            /* 24 */ Internal::PropGui{ &Widget::m_flexShrink, AffectLayout, "flexShrink" },
+            /* 25 */ Internal::PropGui{ &Widget::m_flexWrap, AffectLayout, "flexWrap" },
+            /* 26 */
+            Internal::PropGui{ &Widget::m_fontFamily, AffectLayout | AffectFont | Inheritable | AffectPaint,
+                               "fontFamily" },
+            /* 27 */
+            Internal::PropGui{ &Widget::m_fontSize,
+                               AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable |
+                                   RelativeToParent | AffectPaint,
+                               "fontSize" },
+            /* 28 */
+            Internal::PropGui{ &Widget::m_fontStyle, AffectLayout | AffectFont | Inheritable | AffectPaint,
+                               "fontStyle" },
+            /* 29 */
+            Internal::PropGui{ &Widget::m_fontWeight, AffectLayout | AffectFont | Inheritable | AffectPaint,
+                               "fontWeight" },
+            /* 30 */ Internal::PropGui{ &Widget::m_hidden, AffectPaint, "hidden" },
+            /* 31 */ Internal::PropGui{ &Widget::m_justifyContent, AffectLayout, "justifyContent" },
+            /* 32 */ Internal::PropGui{ &Widget::m_layoutOrder, AffectLayout, "layoutOrder" },
+            /* 33 */ Internal::PropGui{ &Widget::m_layout, AffectLayout, "layout" },
+            /* 34 */
+            Internal::PropGui{ &Widget::m_letterSpacing,
+                               AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
+                               "letterSpacing" },
+            /* 35 */ Internal::PropGui{ &Widget::m_opacity, AffectPaint, "opacity" },
+            /* 36 */ Internal::PropGui{ &Widget::m_placement, AffectLayout, "placement" },
+            /* 37 */
+            Internal::PropGui{ &Widget::m_shadowSize, Resolvable | Inheritable | AffectPaint, "shadowSize" },
+            /* 38 */
+            Internal::PropGui{ &Widget::m_shadowColor, &Widget::m_shadowColorTransition,
+                               Transition | AffectPaint, "shadowColor" },
+            /* 39 */ Internal::PropGui{ &Widget::m_shadowColorTransition, None, "shadowColorTransition" },
+            /* 40 */ Internal::PropGui{ &Widget::m_shadowColorEasing, None, "shadowColorEasing" },
+            /* 41 */
+            Internal::PropGui{ &Widget::m_tabSize,
+                               AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
+                               "tabSize" },
+            /* 42 */ Internal::PropGui{ &Widget::m_textAlign, Inheritable | AffectPaint, "textAlign" },
+            /* 43 */
+            Internal::PropGui{ &Widget::m_textVerticalAlign, Inheritable | AffectPaint, "textVerticalAlign" },
+            /* 44 */
+            Internal::PropGui{ &Widget::m_textDecoration, AffectFont | Inheritable | AffectPaint,
+                               "textDecoration" },
+            /* 45 */ Internal::PropGui{ &Widget::m_translate, AffectLayout, "translate" },
+            /* 46 */ Internal::PropGui{ &Widget::m_visible, AffectLayout | AffectVisibility, "visible" },
+            /* 47 */
+            Internal::PropGui{ &Widget::m_wordSpacing,
+                               AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
+                               "wordSpacing" },
+            /* 48 */ Internal::PropGui{ &Widget::m_alignToViewport, AffectLayout, "alignToViewport" },
+            /* 49 */ Internal::PropGui{ &Widget::m_boxSizing, AffectLayout, "boxSizing" },
+            /* 50 */ Internal::PropGui{ &Widget::m_zorder, AffectLayout, "zorder" },
+            /* 51 */
+            Internal::PropGui{ &Widget::m_stateTriggersRestyle, AffectStyle, "stateTriggersRestyle" },
+            /* 52 */ Internal::PropGui{ &Widget::m_id, AffectStyle, "id" },
+            /* 53 */ Internal::PropGui{ &Widget::m_role, AffectStyle, "role" },
+            /* 54 */ Internal::PropGui{ &Widget::m_classes, AffectStyle, "classes" },
+            /* 55 */ Internal::PropGui{ &Widget::m_mouseInteraction, None, "mouseInteraction" },
+            /* 56 */ Internal::PropGui{ &Widget::m_mousePassThrough, None, "mousePassThrough" },
+            /* 57 */ Internal::PropGui{ &Widget::m_autoMouseCapture, None, "autoMouseCapture" },
+            /* 58 */ Internal::PropGui{ &Widget::m_mouseAnywhere, None, "mouseAnywhere" },
+            /* 59 */ Internal::PropGui{ &Widget::m_focusCapture, None, "focusCapture" },
+            /* 60 */ Internal::PropGui{ &Widget::m_isHintVisible, AffectPaint, "isHintVisible" },
+            /* 61 */ Internal::PropGui{ &Widget::m_tabStop, None, "tabStop" },
+            /* 62 */ Internal::PropGui{ &Widget::m_tabGroup, None, "tabGroup" },
+            /* 63 */ Internal::PropGui{ &Widget::m_autofocus, None, "autofocus" },
+            /* 64 */ Internal::PropGui{ &Widget::m_autoHint, None, "autoHint" },
+            /* 65 */
+            Internal::PropGui{ &Widget::m_squircleCorners, AffectPaint | Inheritable, "squircleCorners" },
+            /* 66 */ Internal::PropGui{ &Widget::m_delegate, None, "delegate" },
+            /* 67 */ Internal::PropGui{ &Widget::m_hint, AffectLayout | AffectPaint | AffectHint, "hint" },
+            /* 68 */ Internal::PropGui{ &Widget::m_stylesheet, AffectStyle, "stylesheet" },
+            /* 69 */ Internal::PropGui{ &Widget::m_painter, AffectPaint, "painter" },
+            /* 70 */ Internal::PropGui{ &Widget::m_isHintExclusive, None, "isHintExclusive" },
+            /* 71 */
+            Internal::PropGui{ &Widget::m_fontFeatures, AffectLayout | AffectFont | Inheritable | AffectPaint,
+                               "fontFeatures" },
+            /* 72 */
+            Internal::PropGui{ &Widget::m_scrollBarColor, &Widget::m_scrollBarColorTransition,
+                               Transition | Inheritable | AffectPaint, "scrollBarColor" },
+            /* 73 */
+            Internal::PropGui{ &Widget::m_scrollBarThickness, Resolvable | AffectPaint,
+                               "scrollBarThickness" },
+            /* 74 */
+            Internal::PropGui{ &Widget::m_scrollBarRadius, Resolvable | AffectPaint, "scrollBarRadius" },
+            /* 75 */ Internal::PropGui{ &Widget::m_shadowSpread, AffectPaint, "shadowSpread" },
+            /* 76 */
+            Internal::PropGui{ &Widget::m_borderRadiusTopLeft, Resolvable | Inheritable | AffectPaint,
+                               "borderRadiusTopLeft" },
+            /* 77 */
+            Internal::PropGui{ &Widget::m_borderRadiusTopRight, Resolvable | Inheritable | AffectPaint,
+                               "borderRadiusTopRight" },
+            /* 78 */
+            Internal::PropGui{ &Widget::m_borderRadiusBottomLeft, Resolvable | Inheritable | AffectPaint,
+                               "borderRadiusBottomLeft" },
+            /* 79 */
+            Internal::PropGui{ &Widget::m_borderRadiusBottomRight, Resolvable | Inheritable | AffectPaint,
+                               "borderRadiusBottomRight" },
+            /* 80 */
+            Internal::PropGui{ &Widget::m_borderWidthLeft, AffectLayout | AffectPaint, "borderWidthLeft" },
+            /* 81 */
+            Internal::PropGui{ &Widget::m_borderWidthTop, AffectLayout | AffectPaint, "borderWidthTop" },
+            /* 82 */
+            Internal::PropGui{ &Widget::m_borderWidthRight, AffectLayout | AffectPaint, "borderWidthRight" },
+            /* 83 */
+            Internal::PropGui{ &Widget::m_borderWidthBottom, AffectLayout | AffectPaint,
+                               "borderWidthBottom" },
+            /* 84 */ Internal::PropGui{ &Widget::m_width, AffectLayout, "width" },
+            /* 85 */ Internal::PropGui{ &Widget::m_height, AffectLayout, "height" },
+            /* 86 */ Internal::PropGui{ &Widget::m_gapColumn, AffectLayout, "gapColumn" },
+            /* 87 */ Internal::PropGui{ &Widget::m_gapRow, AffectLayout, "gapRow" },
+            /* 88 */ Internal::PropGui{ &Widget::m_marginLeft, AffectLayout, "marginLeft" },
+            /* 89 */ Internal::PropGui{ &Widget::m_marginTop, AffectLayout, "marginTop" },
+            /* 90 */ Internal::PropGui{ &Widget::m_marginRight, AffectLayout, "marginRight" },
+            /* 91 */ Internal::PropGui{ &Widget::m_marginBottom, AffectLayout, "marginBottom" },
+            /* 92 */ Internal::PropGui{ &Widget::m_maxWidth, AffectLayout, "maxWidth" },
+            /* 93 */ Internal::PropGui{ &Widget::m_maxHeight, AffectLayout, "maxHeight" },
+            /* 94 */ Internal::PropGui{ &Widget::m_minWidth, AffectLayout, "minWidth" },
+            /* 95 */ Internal::PropGui{ &Widget::m_minHeight, AffectLayout, "minHeight" },
+            /* 96 */ Internal::PropGui{ &Widget::m_paddingLeft, AffectLayout, "paddingLeft" },
+            /* 97 */ Internal::PropGui{ &Widget::m_paddingTop, AffectLayout, "paddingTop" },
+            /* 98 */ Internal::PropGui{ &Widget::m_paddingRight, AffectLayout, "paddingRight" },
+            /* 99 */ Internal::PropGui{ &Widget::m_paddingBottom, AffectLayout, "paddingBottom" },
+            /* 100 */ Internal::PropGui{ &Widget::m_overflowScrollX, AffectLayout, "overflowScrollX" },
+            /* 101 */ Internal::PropGui{ &Widget::m_overflowScrollY, AffectLayout, "overflowScrollY" },
+            /* 102 */ Internal::PropGui{ &Widget::m_contentOverflowX, AffectLayout, "contentOverflowX" },
+            /* 103 */ Internal::PropGui{ &Widget::m_contentOverflowY, AffectLayout, "contentOverflowY" },
+            /* 104 */
+            Internal::PropGui{ &Widget::m_scrollBarColorTransition, None, "scrollBarColorTransition" },
+            /* 105 */ Internal::PropGui{ &Widget::m_scrollBarColorEasing, None, "scrollBarColorEasing" },
+            /* 106 */
+            Internal::PropGuiCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>{ "borderRadius" },
+            /* 107 */
+            Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>{ "borderWidth" },
+            /* 108 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 84, 85>{ "dimensions" },
+            /* 109 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 86, 87>{ "gap" },
+            /* 110 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>{ "margin" },
+            /* 111 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 92, 93>{ "maxDimensions" },
+            /* 112 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 94, 95>{ "minDimensions" },
+            /* 113 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>{ "padding" },
+            /* 114 */
+            Internal::PropGuiCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>{
+                "overflowScroll" },
+            /* 115 */
+            Internal::PropGuiCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>{
+                "contentOverflow" },
+        };
+        return props;
+    }
 
 public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1372,176 +1576,125 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     BRISK_PROPERTIES_BEGIN
-    GuiProperty<0, PointL, AffectLayout, &This::m_absolutePosition> absolutePosition;
-    GuiProperty<1, AlignContent, AffectLayout, &This::m_alignContent> alignContent;
-    GuiProperty<2, AlignItems, AffectLayout, &This::m_alignItems> alignItems;
-    GuiProperty<3, AlignSelf, AffectLayout, &This::m_alignSelf> alignSelf;
-    GuiProperty<4, PointL, AffectLayout, &This::m_anchor> anchor;
-    GuiProperty<5, OptFloat, AffectLayout, &This::m_aspect> aspect;
-    GuiProperty<6, EasingFunction, None, &This::m_backgroundColorEasing> backgroundColorEasing;
-    GuiProperty<7, float, None, &This::m_backgroundColorTransition> backgroundColorTransition;
-    GuiProperty<8, ColorW, Transition | AffectPaint, &This::m_backgroundColor> backgroundColor;
-    GuiProperty<9, EasingFunction, None, &This::m_borderColorEasing> borderColorEasing;
-    GuiProperty<10, float, None, &This::m_borderColorTransition> borderColorTransition;
-    GuiProperty<11, ColorW, Transition | AffectPaint, &This::m_borderColor> borderColor;
-    GuiProperty<12, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 0>
-        borderRadiusTopLeft;
-    GuiProperty<13, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 1>
-        borderRadiusTopRight;
-    GuiProperty<14, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 2>
-        borderRadiusBottomLeft;
-    GuiProperty<15, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius, 3>
-        borderRadiusBottomRight;
-    GuiProperty<16, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 0> borderWidthLeft;
-    GuiProperty<17, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 1> borderWidthTop;
-    GuiProperty<18, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 2> borderWidthRight;
-    GuiProperty<19, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth, 3> borderWidthBottom;
-    GuiProperty<20, WidgetClip, AffectLayout | AffectPaint, &This::m_clip> clip;
-    GuiProperty<21, EasingFunction, None, &This::m_colorEasing> colorEasing;
-    GuiProperty<22, float, None, &This::m_colorTransition> colorTransition;
-    GuiProperty<23, ColorW, Transition | Inheritable | AffectPaint, &This::m_color> color;
-    GuiProperty<24, PointF, AffectPaint, &This::m_shadowOffset> shadowOffset;
-    GuiProperty<25, Cursor, None, &This::m_cursor> cursor;
-    GuiProperty<26, SizeL, AffectLayout, &This::m_dimensions, 0> width;
-    GuiProperty<27, SizeL, AffectLayout, &This::m_dimensions, 1> height;
-    GuiProperty<28, Length, AffectLayout, &This::m_flexBasis> flexBasis;
-    GuiProperty<29, OptFloat, AffectLayout, &This::m_flexGrow> flexGrow;
-    GuiProperty<30, OptFloat, AffectLayout, &This::m_flexShrink> flexShrink;
-    GuiProperty<31, Wrap, AffectLayout, &This::m_flexWrap> flexWrap;
-    GuiProperty<32, std::string, AffectLayout | AffectFont | Inheritable | AffectPaint, &This::m_fontFamily>
-        fontFamily;
-    GuiProperty<33, Length,
-                AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable | RelativeToParent |
-                    AffectPaint,
-                &This::m_fontSize>
-        fontSize;
-    GuiProperty<34, FontStyle, AffectLayout | AffectFont | Inheritable | AffectPaint, &This::m_fontStyle>
-        fontStyle;
-    GuiProperty<35, FontWeight, AffectLayout | AffectFont | Inheritable | AffectPaint, &This::m_fontWeight>
-        fontWeight;
-    GuiProperty<36, SizeL, AffectLayout, &This::m_gap, 0> gapColumn;
-    GuiProperty<37, SizeL, AffectLayout, &This::m_gap, 1> gapRow;
-    GuiProperty<38, bool, AffectPaint, &This::m_hidden> hidden;
-    GuiProperty<39, Justify, AffectLayout, &This::m_justifyContent> justifyContent;
-    GuiProperty<40, LayoutOrder, AffectLayout, &This::m_layoutOrder> layoutOrder;
-    GuiProperty<41, Layout, AffectLayout, &This::m_layout> layout;
-    GuiProperty<42, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                &This::m_letterSpacing>
-        letterSpacing;
-    GuiProperty<43, EdgesL, AffectLayout, &This::m_margin, 0> marginLeft;
-    GuiProperty<44, EdgesL, AffectLayout, &This::m_margin, 1> marginTop;
-    GuiProperty<45, EdgesL, AffectLayout, &This::m_margin, 2> marginRight;
-    GuiProperty<46, EdgesL, AffectLayout, &This::m_margin, 3> marginBottom;
-    GuiProperty<47, SizeL, AffectLayout, &This::m_maxDimensions, 0> maxWidth;
-    GuiProperty<48, SizeL, AffectLayout, &This::m_maxDimensions, 1> maxHeight;
-    GuiProperty<49, SizeL, AffectLayout, &This::m_minDimensions, 0> minWidth;
-    GuiProperty<50, SizeL, AffectLayout, &This::m_minDimensions, 1> minHeight;
-    GuiProperty<51, float, AffectPaint, &This::m_opacity> opacity;
-    // 52 unused
-    GuiProperty<53, EdgesL, AffectLayout, &This::m_padding, 0> paddingLeft;
-    GuiProperty<54, EdgesL, AffectLayout, &This::m_padding, 1> paddingTop;
-    GuiProperty<55, EdgesL, AffectLayout, &This::m_padding, 2> paddingRight;
-    GuiProperty<56, EdgesL, AffectLayout, &This::m_padding, 3> paddingBottom;
-    GuiProperty<57, Placement, AffectLayout, &This::m_placement> placement;
-    GuiProperty<58, Length, Resolvable | Inheritable | AffectPaint, &This::m_shadowSize> shadowSize;
-    GuiProperty<59, ColorW, Transition | AffectPaint, &This::m_shadowColor> shadowColor;
-    GuiProperty<60, float, None, &This::m_shadowColorTransition> shadowColorTransition;
-    GuiProperty<61, EasingFunction, None, &This::m_shadowColorEasing> shadowColorEasing;
-    GuiProperty<62, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                &This::m_tabSize>
-        tabSize;
-    GuiProperty<63, TextAlign, Inheritable | AffectPaint, &This::m_textAlign> textAlign;
-    GuiProperty<64, TextAlign, Inheritable | AffectPaint, &This::m_textVerticalAlign> textVerticalAlign;
-    GuiProperty<65, TextDecoration, AffectFont | Inheritable | AffectPaint, &This::m_textDecoration>
-        textDecoration;
-    GuiProperty<66, PointL, AffectLayout, &This::m_translate> translate;
-    GuiProperty<67, bool, AffectLayout | AffectVisibility, &This::m_visible> visible;
-    GuiProperty<68, Length, AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                &This::m_wordSpacing>
-        wordSpacing;
-    GuiProperty<69, AlignToViewport, AffectLayout, &This::m_alignToViewport> alignToViewport;
-    GuiProperty<70, BoxSizingPerAxis, AffectLayout, &This::m_boxSizing> boxSizing;
-    GuiProperty<71, ZOrder, AffectLayout, &This::m_zorder> zorder;
-    GuiProperty<72, bool, AffectStyle, &This::m_stateTriggersRestyle> stateTriggersRestyle;
-    GuiProperty<73, std::string, AffectStyle, &This::m_id> id;
-    GuiProperty<74, std::string_view, AffectStyle, &This::m_role> role;
-    GuiProperty<75, Classes, AffectStyle, &This::m_classes> classes;
-    GuiProperty<76, MouseInteraction, None, &This::m_mouseInteraction> mouseInteraction;
-    GuiProperty<77, bool, None, &This::m_mousePassThrough> mousePassThrough;
-    GuiProperty<78, bool, None, &This::m_autoMouseCapture> autoMouseCapture;
-    GuiProperty<79, bool, None, &This::m_mouseAnywhere> mouseAnywhere;
-    GuiProperty<80, bool, None, &This::m_focusCapture> focusCapture;
-    GuiProperty<81, bool, AffectPaint, &This::m_isHintVisible> isHintVisible;
-    GuiProperty<82, bool, None, &This::m_tabStop> tabStop;
-    GuiProperty<83, bool, None, &This::m_tabGroup> tabGroup;
-    GuiProperty<84, bool, None, &This::m_autofocus> autofocus;
-    GuiProperty<85, bool, None, &This::m_autoHint> autoHint;
-    GuiProperty<86, bool, AffectPaint | Inheritable, &This::m_squircleCorners> squircleCorners;
-    GuiProperty<87, EventDelegate*, None, &This::m_delegate> delegate;
-    GuiProperty<88, std::string, AffectLayout | AffectPaint | AffectHint, &This::m_hint> hint;
-    GuiProperty<89, std::shared_ptr<const Stylesheet>, AffectStyle, &This::m_stylesheet> stylesheet;
-    GuiProperty<90, Painter, AffectPaint, &This::m_painter> painter;
-    GuiProperty<91, bool, None, &This::m_isHintExclusive> isHintExclusive;
+    Property<Widget, Trigger<>, 0> onClick;
+    Property<Widget, Trigger<>, 1> onDoubleClick;
+    Property<Widget, bool, 2> enabled;
+    Property<Widget, bool, 3> selected;
+    Property<Widget, PointL, 4> absolutePosition;
+    Property<Widget, AlignContent, 5> alignContent;
+    Property<Widget, AlignItems, 6> alignItems;
+    Property<Widget, AlignSelf, 7> alignSelf;
+    Property<Widget, PointL, 8> anchor;
+    Property<Widget, OptFloat, 9> aspect;
+    Property<Widget, EasingFunction, 10> backgroundColorEasing;
+    Property<Widget, float, 11> backgroundColorTransition;
+    Property<Widget, ColorW, 12> backgroundColor;
+    Property<Widget, EasingFunction, 13> borderColorEasing;
+    Property<Widget, float, 14> borderColorTransition;
+    Property<Widget, ColorW, 15> borderColor;
+    Property<Widget, WidgetClip, 16> clip;
+    Property<Widget, EasingFunction, 17> colorEasing;
+    Property<Widget, float, 18> colorTransition;
+    Property<Widget, ColorW, 19> color;
+    Property<Widget, PointF, 20> shadowOffset;
+    Property<Widget, Cursor, 21> cursor;
+    Property<Widget, Length, 22> flexBasis;
+    Property<Widget, OptFloat, 23> flexGrow;
+    Property<Widget, OptFloat, 24> flexShrink;
+    Property<Widget, Wrap, 25> flexWrap;
+    Property<Widget, std::string, 26> fontFamily;
+    Property<Widget, Length, 27> fontSize;
+    Property<Widget, FontStyle, 28> fontStyle;
+    Property<Widget, FontWeight, 29> fontWeight;
+    Property<Widget, bool, 30> hidden;
+    Property<Widget, Justify, 31> justifyContent;
+    Property<Widget, LayoutOrder, 32> layoutOrder;
+    Property<Widget, Layout, 33> layout;
+    Property<Widget, Length, 34> letterSpacing;
+    Property<Widget, float, 35> opacity;
+    Property<Widget, Placement, 36> placement;
+    Property<Widget, Length, 37> shadowSize;
+    Property<Widget, ColorW, 38> shadowColor;
+    Property<Widget, float, 39> shadowColorTransition;
+    Property<Widget, EasingFunction, 40> shadowColorEasing;
+    Property<Widget, Length, 41> tabSize;
+    Property<Widget, TextAlign, 42> textAlign;
+    Property<Widget, TextAlign, 43> textVerticalAlign;
+    Property<Widget, TextDecoration, 44> textDecoration;
+    Property<Widget, PointL, 45> translate;
+    Property<Widget, bool, 46> visible;
+    Property<Widget, Length, 47> wordSpacing;
+    Property<Widget, AlignToViewport, 48> alignToViewport;
+    Property<Widget, BoxSizingPerAxis, 49> boxSizing;
+    Property<Widget, ZOrder, 50> zorder;
+    Property<Widget, bool, 51> stateTriggersRestyle;
+    Property<Widget, std::string, 52> id;
+    Property<Widget, std::string_view, 53> role;
+    Property<Widget, Classes, 54> classes;
+    Property<Widget, MouseInteraction, 55> mouseInteraction;
+    Property<Widget, bool, 56> mousePassThrough;
+    Property<Widget, bool, 57> autoMouseCapture;
+    Property<Widget, bool, 58> mouseAnywhere;
+    Property<Widget, bool, 59> focusCapture;
+    Property<Widget, bool, 60> isHintVisible;
+    Property<Widget, bool, 61> tabStop;
+    Property<Widget, bool, 62> tabGroup;
+    Property<Widget, bool, 63> autofocus;
+    Property<Widget, bool, 64> autoHint;
+    Property<Widget, bool, 65> squircleCorners;
+    Property<Widget, EventDelegate*, 66> delegate;
+    Property<Widget, std::string, 67> hint;
+    Property<Widget, std::shared_ptr<const Stylesheet>, 68> stylesheet;
+    Property<Widget, Painter, 69> painter;
+    Property<Widget, bool, 70> isHintExclusive;
+    Property<Widget, OpenTypeFeatureFlags, 71> fontFeatures;
+    Property<Widget, ColorW, 72> scrollBarColor;
+    Property<Widget, Length, 73> scrollBarThickness;
+    Property<Widget, Length, 74> scrollBarRadius;
+    Property<Widget, float, 75> shadowSpread;
+    Property<Widget, Length, 76> borderRadiusTopLeft;
+    Property<Widget, Length, 77> borderRadiusTopRight;
+    Property<Widget, Length, 78> borderRadiusBottomLeft;
+    Property<Widget, Length, 79> borderRadiusBottomRight;
+    Property<Widget, Length, 80> borderWidthLeft;
+    Property<Widget, Length, 81> borderWidthTop;
+    Property<Widget, Length, 82> borderWidthRight;
+    Property<Widget, Length, 83> borderWidthBottom;
+    Property<Widget, Length, 84> width;
+    Property<Widget, Length, 85> height;
+    Property<Widget, Length, 86> gapColumn;
+    Property<Widget, Length, 87> gapRow;
+    Property<Widget, Length, 88> marginLeft;
+    Property<Widget, Length, 89> marginTop;
+    Property<Widget, Length, 90> marginRight;
+    Property<Widget, Length, 91> marginBottom;
+    Property<Widget, Length, 92> maxWidth;
+    Property<Widget, Length, 93> maxHeight;
+    Property<Widget, Length, 94> minWidth;
+    Property<Widget, Length, 95> minHeight;
+    Property<Widget, Length, 96> paddingLeft;
+    Property<Widget, Length, 97> paddingTop;
+    Property<Widget, Length, 98> paddingRight;
+    Property<Widget, Length, 99> paddingBottom;
+    Property<Widget, OverflowScroll, 100> overflowScrollX;
+    Property<Widget, OverflowScroll, 101> overflowScrollY;
+    Property<Widget, ContentOverflow, 102> contentOverflowX;
+    Property<Widget, ContentOverflow, 103> contentOverflowY;
+    Property<Widget, float, 104> scrollBarColorTransition;
+    Property<Widget, EasingFunction, 105> scrollBarColorEasing;
+    Property<Widget, CornersL, 106> borderRadius;
+    Property<Widget, EdgesL, 107> borderWidth;
+    Property<Widget, SizeL, 108> dimensions;
+    Property<Widget, SizeL, 109> gap;
+    Property<Widget, EdgesL, 110> margin;
+    Property<Widget, SizeL, 111> maxDimensions;
+    Property<Widget, SizeL, 112> minDimensions;
+    Property<Widget, EdgesL, 113> padding;
+    Property<Widget, OverflowScrollBoth, 114> overflowScroll;
+    Property<Widget, ContentOverflowBoth, 115> contentOverflow;
 
-    GuiPropertyCompound<92, CornersL, Resolvable | Inheritable | AffectPaint, &This::m_borderRadius,
-                        decltype(borderRadiusTopLeft), decltype(borderRadiusTopRight),
-                        decltype(borderRadiusBottomLeft), decltype(borderRadiusBottomRight)>
-        borderRadius;
-    GuiPropertyCompound<93, EdgesL, AffectLayout | AffectPaint, &This::m_borderWidth,
-                        decltype(borderWidthLeft), decltype(borderWidthTop), decltype(borderWidthRight),
-                        decltype(borderWidthBottom)>
-        borderWidth;
-    GuiPropertyCompound<94, SizeL, AffectLayout, &This::m_dimensions, decltype(width), decltype(height)>
-        dimensions;
-    GuiPropertyCompound<95, SizeL, AffectLayout, &This::m_gap, decltype(gapColumn), decltype(gapRow)> gap;
-    GuiPropertyCompound<96, EdgesL, AffectLayout, &This::m_margin, decltype(marginLeft), decltype(marginTop),
-                        decltype(marginRight), decltype(marginBottom)>
-        margin;
-    GuiPropertyCompound<97, SizeL, AffectLayout, &This::m_maxDimensions, decltype(maxWidth),
-                        decltype(maxHeight)>
-        maxDimensions;
-    GuiPropertyCompound<98, SizeL, AffectLayout, &This::m_minDimensions, decltype(minWidth),
-                        decltype(minHeight)>
-        minDimensions;
-    GuiPropertyCompound<99, EdgesL, AffectLayout, &This::m_padding, decltype(paddingLeft),
-                        decltype(paddingTop), decltype(paddingRight), decltype(paddingBottom)>
-        padding;
-    GuiProperty<100, OpenTypeFeatureFlags, AffectLayout | AffectFont | Inheritable | AffectPaint,
-                &This::m_fontFeatures>
-        fontFeatures;
-
-    GuiProperty<101, ColorW, Transition | Inheritable | AffectPaint, &This::m_scrollBarColor> scrollBarColor;
-    GuiProperty<102, Length, Resolvable | AffectPaint, &This::m_scrollBarThickness> scrollBarThickness;
-    GuiProperty<103, Length, Resolvable | AffectPaint, &This::m_scrollBarRadius> scrollBarRadius;
-    GuiProperty<104, float, AffectPaint, &This::m_shadowSpread> shadowSpread;
-
-    GuiProperty<105, OverflowScrollBoth, AffectLayout, &This::m_overflowScroll, 0> overflowScrollX;
-    GuiProperty<106, OverflowScrollBoth, AffectLayout, &This::m_overflowScroll, 1> overflowScrollY;
-    GuiPropertyCompound<107, OverflowScrollBoth, AffectLayout, &This::m_overflowScroll,
-                        decltype(overflowScrollX), decltype(overflowScrollY)>
-        overflowScroll;
-
-    GuiProperty<108, ContentOverflowBoth, AffectLayout, &This::m_contentOverflow, 0> contentOverflowX;
-    GuiProperty<109, ContentOverflowBoth, AffectLayout, &This::m_contentOverflow, 1> contentOverflowY;
-    GuiPropertyCompound<110, ContentOverflowBoth, AffectLayout, &This::m_contentOverflow,
-                        decltype(contentOverflowX), decltype(contentOverflowY)>
-        contentOverflow;
-
-    Property<This, Trigger<>, &This::m_onClick> onClick;
-    Property<This, Trigger<>, &This::m_onDoubleClick> onDoubleClick;
-
-    [[deprecated("Use Widget::enabled instead")]] Property<This, bool, &This::m_state, &This::isDisabled,
-                                                           &This::setDisabled, nullptr, false> disabled;
-    Property<This, bool, &This::m_state, &This::isEnabled, &This::setEnabled, nullptr, false> enabled;
-    Property<This, bool, &This::m_state, &This::isSelected, &This::setSelected, nullptr, false> selected;
     BRISK_PROPERTIES_END
 };
-
-template <size_t index_, typename T, PropFlags flags_, PropFieldStorageType<T, flags_> Widget::* field_,
-          int subfield_>
-inline bool GuiProperty<index_, T, flags_, field_, subfield_>::isOverridden() const noexcept {
-    return this_pointer->getPropState(index_) && Internal::PropState::Overriden;
-}
 
 constinit inline size_t widgetSize = sizeof(Widget);
 
@@ -1687,9 +1840,6 @@ extern const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread
 constexpr inline Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick{};
 constexpr inline Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick{};
 
-[[deprecated(
-    "Use Widget::enabled instead")]] constexpr inline Argument<Tag::PropArg<decltype(Widget::disabled)>>
-    disabled{};
 constexpr inline Argument<Tag::PropArg<decltype(Widget::enabled)>> enabled{};
 constexpr inline Argument<Tag::PropArg<decltype(Widget::selected)>> selected{};
 

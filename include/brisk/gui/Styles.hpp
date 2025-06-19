@@ -27,9 +27,7 @@ namespace Brisk {
 
 template <PropertyTag Tag>
 struct TagWithState : Tag::PropertyTag {
-    using Type       = typename Tag::Type;
-
-    using ExtraTypes = typename Tag::ExtraTypes;
+    using Type = typename Tag::Type;
 };
 
 template <PropertyTag Tag, typename Type>
@@ -47,7 +45,7 @@ struct Argument<TagWithState<Tag>> : Tag {
         return { std::move(value), state };
     }
 
-    template <MatchesExtraTypes<Tag> U>
+    template <typename U>
     constexpr ArgVal<TagWithState<Tag>, U> operator=(U value) const {
         return { std::move(value), state };
     }
@@ -97,7 +95,7 @@ struct StyleProperty {
     }
 
     template <typename Tag>
-    StyleProperty(TypeId<Tag>)
+    StyleProperty(std::type_identity<Tag>)
         requires PropertyTag<Tag> || StyleVarTag<Tag>
     {
         using Type = typename Tag::Type;
@@ -109,11 +107,9 @@ struct StyleProperty {
             }
             if ((widgetState & state) == state) {
                 if constexpr (PropertyTag<Tag>) {
-                    if constexpr (MatchesExtraTypes<Inherit, Tag>) {
-                        if (op == RuleOp::Inherit) {
-                            applier(widget, ArgVal<Tag, Inherit>{ inherit });
-                            return;
-                        }
+                    if (op == RuleOp::Inherit) {
+                        applier(widget, ArgVal<Tag, Inherit>{ inherit });
+                        return;
                     }
                 }
                 Type value;
@@ -161,7 +157,7 @@ struct StyleProperty {
 
 template <typename Tag>
 const StyleProperty* styleProperty() {
-    static const StyleProperty& instance{ TypeId<Tag>{} };
+    static const StyleProperty& instance{ std::type_identity<Tag>{} };
     return &instance;
 }
 

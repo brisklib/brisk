@@ -91,9 +91,20 @@ private:
     void updateWindowLimits();
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &GuiWindow::m_windowFit, "windowFit" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<GuiWindow, WindowFit, &GuiWindow::m_windowFit> windowFit;
+    Property<GuiWindow, WindowFit, 0> windowFit;
     BRISK_PROPERTIES_END
 };
+
+;
 
 } // namespace Brisk

@@ -86,12 +86,21 @@ private:
     Json m_data = JsonObject();
     mutable std::shared_mutex m_mutex;
     bool m_mocked = false;
-    Trigger<> m_trigger;
+    Trigger<> m_changed;
     BindingRegistration m_lt{ this, mainScheduler };
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /* 0 */ Internal::PropField{ &Settings::m_changed, "changed" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Settings, Trigger<>, &Settings::m_trigger> changed;
+    Property<Settings, Trigger<>, 0> changed;
     BRISK_PROPERTIES_END
 };
 

@@ -105,7 +105,7 @@ ColorSliders::ColorSliders(Construction construction, ColorW color, bool alpha,
 }
 
 void ColorView::paint(Canvas& canvas) const {
-    float radius = horizontalAbsMax(m_borderRadius.resolved.v);
+    float radius = horizontalAbsMax(getBorderRadiusResolved().v);
     if (radius == 0)
         radius = 0.001f;
     canvas.setFillColor(m_value);

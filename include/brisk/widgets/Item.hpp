@@ -76,20 +76,34 @@ protected:
     explicit Item(Construction construction, ArgumentsView<Item> args);
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &Item::m_icon, "icon" },
+            /*1*/ Internal::PropField{ &Item::m_checkable, "checkable" },
+            /*2*/ Internal::PropFieldNotify{ &Item::m_checked, &Item::onChanged, "checked" },
+            /*3*/ Internal::PropField{ &Item::m_closesPopup, "closesPopup" },
+            /*4*/ Internal::PropField{ &Item::m_focusOnHover, "focusOnHover" },
+            /*5*/ Internal::PropField{ &Item::m_selectOnFocus, "selectOnFocus" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
     /**
      * @brief The icon property of the Item.
      *
      * This property represents the icon displayed in the item.
      */
-    Property<Item, std::string, &Item::m_icon> icon;
+    Property<Item, std::string, 0> icon;
 
     /**
      * @brief The checkable property of the Item.
      *
      * This property indicates whether the item contains a checkbox and can be checked/unchecked.
      */
-    Property<Item, bool, &Item::m_checkable> checkable;
+    Property<Item, bool, 1> checkable;
 
     /**
      * @brief The checked property of the Item.
@@ -97,7 +111,7 @@ public:
      * This property represents the checkbox state of the item. It triggers the @ref onChanged
      * function when the state changes.
      */
-    Property<Item, bool, &Item::m_checked, nullptr, nullptr, &Item::onChanged> checked;
+    Property<Item, bool, 2> checked;
 
     /**
      * @brief The closesPopup property of the Item.
@@ -105,16 +119,16 @@ public:
      * If true, clicking the item will close the nearest parent widget that is a popup.
      * This is typically used for menu items.
      */
-    Property<Item, bool, &Item::m_closesPopup> closesPopup;
+    Property<Item, bool, 3> closesPopup;
 
     /**
      * @brief The focusOnHover property of the Item.
      *
      * If true, the widget will take focus on mouse hover, similar to how a menu item behaves.
      */
-    Property<Item, bool, &Item::m_focusOnHover> focusOnHover;
+    Property<Item, bool, 4> focusOnHover;
 
-    Property<Item, bool, &Item::m_selectOnFocus> selectOnFocus;
+    Property<Item, bool, 5> selectOnFocus;
     BRISK_PROPERTIES_END
 };
 

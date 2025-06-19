@@ -1090,4 +1090,15 @@ FakeOptional<const T&> wrapOptional(const T& value)
 
 } // namespace Internal
 
+template <typename... Types>
+struct TypeList {};
+
 } // namespace Brisk
+
+template <std::size_t I, typename... T>
+struct std::tuple_element<I, Brisk::TypeList<T...>> {
+    using type = std::tuple_element_t<I, std::tuple<T...>>;
+};
+
+template <typename... T>
+struct std::tuple_size<Brisk::TypeList<T...>> : std::integral_constant<size_t, sizeof...(T)> {};

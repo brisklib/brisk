@@ -64,6 +64,10 @@ Rc<Widget> ToggleButton::cloneThis() const { BRISK_CLONE_IMPLEMENTATION }
 ToggleButton::ToggleButton(Construction construction, ArgumentsView<ToggleButton> args)
     : Base{ construction, nullptr } {
     args.apply(this);
+}
+
+void ToggleButton::onConstructed() {
+    Base::onConstructed();
     updateState();
 }
 } // namespace Brisk

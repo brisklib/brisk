@@ -48,17 +48,32 @@ protected:
     void updateState();
     virtual void onChanged();
     Ptr cloneThis() const override;
+    void onConstructed() override;
     explicit ToggleButton(Construction construction, ArgumentsView<ToggleButton> args);
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &ToggleButton::m_value, &ToggleButton::onChanged, "value" },
+            /*1*/ Internal::PropField{ &ToggleButton::m_twoState, "twoState" },
+            /*2*/ Internal::PropField{ &ToggleButton::m_interpolatedValue, "interpolatedValue" },
+            /*3*/
+            Internal::PropField{ &ToggleButton::m_interpolatedValueTransitionOn,
+                                 "interpolatedValueTransitionOn" },
+            /*4*/
+            Internal::PropField{ &ToggleButton::m_interpolatedValueTransitionOff,
+                                 "interpolatedValueTransitionOff" }
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<ToggleButton, bool, &ToggleButton::m_twoState> twoState;
-    Property<ToggleButton, bool, &ToggleButton::m_value, nullptr, nullptr, &ToggleButton::onChanged> value;
-    Property<ToggleButton, const float, &ToggleButton::m_interpolatedValue> interpolatedValue;
-    Property<ToggleButton, float, &ToggleButton::m_interpolatedValueTransitionOn>
-        interpolatedValueTransitionOn;
-    Property<ToggleButton, float, &ToggleButton::m_interpolatedValueTransitionOff>
-        interpolatedValueTransitionOff;
+    Property<ToggleButton, bool, 0> value;
+    Property<ToggleButton, bool, 1> twoState;
+    Property<ToggleButton, const float, 2> interpolatedValue;
+    Property<ToggleButton, float, 3> interpolatedValueTransitionOn;
+    Property<ToggleButton, float, 4> interpolatedValueTransitionOff;
     BRISK_PROPERTIES_END
 };
 

@@ -39,7 +39,7 @@ public:
     }
 
     template <size_t N, WidgetArgument... Args>
-    explicit Text(const char (&text)[N], const Args&... args)
+    explicit Text(const char(&text)[N], const Args&... args)
         : Text{ Construction{ widgetType }, std::string(text), std::tuple{ args... } } {
         endConstruction();
     }
@@ -91,7 +91,7 @@ protected:
     CacheWithInvalidation<Cached, CacheKey, Text, &Text::updateCache> m_cache{ this };
     CacheWithInvalidation<Cached2, CacheKey2, Text, &Text::updateCache2> m_cache2{ this };
 
-    void paint(Canvas& canvas) const override;
+    void paint(Canvas & canvas) const override;
     std::optional<std::string> textContent() const override;
     void onFontChanged() override;
     void onChanged();
@@ -104,18 +104,27 @@ private:
     float calcFontSizeFor(const Font& font, const std::string& m_text) const;
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &Text::m_text, &Text::onChanged, "text" },
+            /*1*/ Internal::PropFieldNotify{ &Text::m_wordWrap, &Text::onChanged, "wordWrap" },
+            /*2*/ Internal::PropFieldNotify{ &Text::m_rotation, &Text::onChanged, "rotation" },
+            /*3*/ Internal::PropFieldNotify{ &Text::m_textAutoSize, &Text::onChanged, "textAutoSize" },
+            /*4*/
+            Internal::PropFieldNotify{ &Text::m_textAutoSizeRange, &Text::onChanged, "textAutoSizeRange" },
+            /*5*/ Internal::PropFieldNotify{ &Text::m_textOptions, &Text::onChanged, "textOptions" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Text, std::string, &Text::m_text, nullptr, nullptr, &Text::onChanged> //
-        text;
-    Property<Text, bool, &Text::m_wordWrap, nullptr, nullptr, &Text::onChanged> //
-        wordWrap;
-    Property<Text, Rotation, &Text::m_rotation, nullptr, nullptr, &Text::onChanged> //
-        rotation;
-    Property<Text, TextAutoSize, &Text::m_textAutoSize, nullptr, nullptr, &Text::onChanged> //
-        textAutoSize;
-    Property<Text, Range<float>, &Text::m_textAutoSizeRange, nullptr, nullptr, &Text::onChanged> //
-        textAutoSizeRange;
-    Property<Text, TextOptions, &Text::m_textOptions, nullptr, nullptr, &Text::onChanged> textOptions;
+    Property<Text, std::string, 0> text;
+    Property<Text, bool, 1> wordWrap;
+    Property<Text, Rotation, 2> rotation;
+    Property<Text, TextAutoSize, 3> textAutoSize;
+    Property<Text, Range<float>, 4> textAutoSizeRange;
+    Property<Text, TextOptions, 5> textOptions;
     BRISK_PROPERTIES_END
 };
 

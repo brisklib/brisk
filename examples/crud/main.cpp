@@ -99,12 +99,24 @@ private:
     int m_selectedIndex = -1;
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &ViewModel::m_filteredList },
+            /*1*/ Internal::PropField{ &ViewModel::m_prefix },
+            /*2*/ Internal::PropField{ &ViewModel::m_name },
+            /*3*/ Internal::PropField{ &ViewModel::m_surname },
+            /*4*/ Internal::PropField{ &ViewModel::m_selectedIndex },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<ViewModel, std::vector<std::pair<Person, size_t>>, &ViewModel::m_filteredList> filteredList;
-    Property<ViewModel, std::string, &ViewModel::m_prefix> prefix;
-    Property<ViewModel, std::string, &ViewModel::m_name> name;
-    Property<ViewModel, std::string, &ViewModel::m_surname> surname;
-    Property<ViewModel, int, &ViewModel::m_selectedIndex> selectedIndex;
+    Property<ViewModel, std::vector<std::pair<Person, size_t>>, 0> filteredList;
+    Property<ViewModel, std::string, 1> prefix;
+    Property<ViewModel, std::string, 2> name;
+    Property<ViewModel, std::string, 3> surname;
+    Property<ViewModel, int, 4> selectedIndex;
     BRISK_PROPERTIES_END
 };
 

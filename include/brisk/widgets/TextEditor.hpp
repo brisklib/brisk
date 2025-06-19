@@ -117,14 +117,27 @@ private:
     void selectionChanged();
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &TextEditor::m_text, &TextEditor::updateState, "text" },
+            /*1*/ Internal::PropField{ &TextEditor::m_onEnter, "onEnter" },
+            /*2*/ Internal::PropField{ &TextEditor::m_placeholder, "placeholder" },
+            /*3*/
+            Internal::PropFieldNotify{ &TextEditor::m_passwordChar, &TextEditor::updateState,
+                                       "passwordChar" },
+            /*4*/
+            Internal::PropFieldNotify{ &TextEditor::m_multiline, &TextEditor::updateState, "multiline" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<TextEditor, std::string, &TextEditor::m_text, nullptr, nullptr, &TextEditor::updateState> text;
-    Property<TextEditor, Trigger<>, &TextEditor::m_onEnter> onEnter;
-    Property<TextEditor, std::string, &TextEditor::m_placeholder> placeholder;
-    Property<TextEditor, char32_t, &TextEditor::m_passwordChar, nullptr, nullptr, &TextEditor::updateState>
-        passwordChar;
-    Property<TextEditor, bool, &TextEditor::m_multiline, nullptr, nullptr, &TextEditor::updateState>
-        multiline;
+    Property<TextEditor, std::string, 0> text;
+    Property<TextEditor, Trigger<>, 1> onEnter;
+    Property<TextEditor, std::string, 2> placeholder;
+    Property<TextEditor, char32_t, 3> passwordChar;
+    Property<TextEditor, bool, 4> multiline;
     BRISK_PROPERTIES_END
 };
 

@@ -27,6 +27,7 @@
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/tuplet/Tuplet.hpp>
 
 namespace Brisk {
 
@@ -71,6 +72,16 @@ struct BindingAddress {
     }
 
     constexpr bool operator==(const BindingAddress&) const noexcept = default;
+
+    friend BindingAddress mergeAddresses(std::convertible_to<BindingAddress> auto... addresses) {
+        size_t sum         = (addresses->size + ...);
+        const uint8_t* min = std::min({ addresses->min()... });
+        const uint8_t* max = std::max({ addresses->max()... });
+        if (max - min == sum) {
+            return { min, sum };
+        }
+        return { nullptr, 0 };
+    }
 };
 
 /**
@@ -1734,22 +1745,45 @@ inline void operator^=(Prop& prop, Arg&& arg)
     prop.set(prop.get() ^ std::forward<Arg>(arg));
 }
 
-template <typename Class, typename T, auto std::type_identity_t<Class>::* field,
-          std::remove_const_t<T> (Class::*getter)() const = nullptr,
-          void (Class::*setter)(std::remove_const_t<T>) = nullptr, auto changed = nullptr, bool notify = true>
+template <typename T>
+using ValueOrConstRef = std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>;
+
+template <typename T, typename Class, typename ValueType>
+concept PropertyTraits = requires(T traits, Class* self, ValueType value) {
+    { traits.address(self) } noexcept -> std::convertible_to<BindingAddress>;
+    {
+        traits.get(const_cast<const Class*>(self))
+    } noexcept -> std::same_as<ValueOrConstRef<std::remove_const_t<ValueType>>>;
+    { traits.name } -> std::convertible_to<const char*>;
+} && (std::is_const_v<ValueType> || requires(T traits, Class* self, ValueType value) {
+                             { traits.set(self, std::move(value)) };
+                             { traits.set(self, static_cast<const ValueType&>(value)) };
+                         });
+
+using PropertyIndex = uint32_t;
+
+struct PropertyId {
+    const void* address;
+    constexpr auto operator<=>(const PropertyId& other) const noexcept = default;
+};
+
+template <typename Class, typename T, PropertyIndex index>
 struct Property {
-public:
     static_assert(!std::is_volatile_v<T>);
     static_assert(!std::is_reference_v<T>);
 
-    using Type                      = std::remove_const_t<T>;
-    using ValueType                 = Type;
+    using Type      = std::remove_const_t<T>;
+    using ValueType = Type;
+
+    Class* this_pointer;
 
     constexpr static bool isTrigger = Internal::isTrigger<T>;
 
     constexpr static bool isMutable = !std::is_const_v<T>;
 
-    static_assert(field != nullptr || getter != nullptr);
+    constexpr static const /* PropertyTraits<Class, T> */ auto& traits() noexcept {
+        return tuplet::get<index>(Class::properties());
+    }
 
     void listen(Callback<ValueArgument<T>> callback, BindingAddress address = staticBindingAddress,
                 BindType bindType = BindType::Default) {
@@ -1761,58 +1795,70 @@ public:
         bindings->listen(Value{ this }, std::move(callback), address, bindType);
     }
 
-    operator Type() const noexcept {
+    operator PropertyId() const noexcept {
+        return { &traits() };
+    }
+
+    operator ValueOrConstRef<Type>() const noexcept {
         return get();
     }
 
-    void operator=(Type value)
-        requires isMutable
-    {
+    void operator=(const ValueType& value) {
+        set(value);
+    }
+
+    void operator=(ValueType&& value) {
         set(std::move(value));
     }
 
-    Type get() const noexcept {
+    template <typename U>
+    void operator=(U&& value) {
+        set(std::forward<U>(value));
+    }
+
+    template <typename U>
+    static consteval bool accepts() {
+        return requires(Class* ptr, U value) { traits().set(ptr, std::move(value)); };
+    }
+
+    [[nodiscard]] ValueOrConstRef<T> get() const noexcept {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        if BRISK_IF_GNU_ATTR (constexpr)
-            (getter == nullptr) {
-                if constexpr (std::is_convertible_v<decltype(this_pointer->*field), Type>) {
-                    static_assert(field != nullptr);
-                    return this_pointer->*field;
-                } else {
-                    return {};
-                }
-            }
-        else {
-            return (this_pointer->*getter)();
+        return traits().get(this_pointer);
+    }
+
+    [[nodiscard]] decltype(auto) current() const noexcept {
+        BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
+        if constexpr (requires {
+                          { traits().current(this_pointer) } noexcept;
+                      }) {
+            return traits().current(this_pointer);
+        } else {
+            // Fallback to get() if current() is not defined
+            return get();
         }
     }
 
-    void set(Type value)
-        requires isMutable
+    void set(const ValueType& value) const {
+        static_assert(isMutable, "Attempt to write to immutable property");
+        traits().set(this_pointer, value);
+    }
+
+    void set(ValueType&& value) const {
+        static_assert(isMutable, "Attempt to write to immutable property");
+        traits().set(this_pointer, std::move(value));
+    }
+
+    template <typename U>
+    void set(U&& value) const
+        requires(accepts<U>())
     {
-        BRISK_ASSERT(this_pointer);
-        BRISK_ASSUME(this_pointer);
-        if BRISK_IF_GNU_ATTR (constexpr)
-            (setter == nullptr) {
-                static_assert(field != nullptr);
-                if constexpr (requires { this_pointer->*field = std::move(value); }) {
-                    // NOLINTBEGIN(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
-                    if (value == this_pointer->*field)
-                        return; // Not changed
-                    // NOLINTEND(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
-                    this_pointer->*field = std::move(value);
-                }
-            }
-        else {
-            (this_pointer->*setter)(std::move(value));
-        }
-        if constexpr (notify) {
-            bindings->notify(&(this_pointer->*field));
-        }
-        if constexpr (changed != nullptr) {
-            (this_pointer->*changed)();
-        }
+        traits().set(this_pointer, std::forward<U>(value));
+    }
+
+    [[nodiscard]] static std::string_view name() noexcept {
+        return traits().name == nullptr ? std::string_view{} : traits().name;
     }
 
     void operator=(Value<Type> value) {
@@ -1847,22 +1893,152 @@ public:
         bindings->connectBidir(Value{ this }, std::move(value), BindType::Default);
     }
 
-    BindingAddress address() const {
+    BindingAddress address() const noexcept {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        return toBindingAddress(&(this_pointer->*field));
+        return traits().address(this_pointer);
     }
-
-    Class* this_pointer;
 };
 
 namespace Internal {
 
-struct Dummy1 {
-    bool m_v;
+template <typename Class, typename ValueType>
+struct PropField {
+    ValueType(Class::* field);
+    const char* name = nullptr;
+
+    void set(Class* self, ValueType value) const {
+        bindings->assign(self->*field, std::move(value));
+    }
+
+    ValueOrConstRef<ValueType> get(const Class* self) const noexcept {
+        return (self->*field);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
 };
 
-static_assert(PropertyLike<Property<Dummy1, bool, &Dummy1::m_v>>);
+template <typename Class, typename ValueType>
+struct PropField<Class, std::atomic<ValueType>> {
+    std::atomic<ValueType>(Class::* field);
+    const char* name = nullptr;
+
+    void set(Class* self, ValueType value) const {
+        ValueType previous = (self->*field).exchange(value, std::memory_order_relaxed);
+        if (previous != value) {
+            bindings->notify(&(self->*field));
+        }
+    }
+
+    ValueOrConstRef<ValueType> get(const Class* self) const noexcept {
+        return (self->*field).load(std::memory_order_relaxed);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename ValueType>
+PropField(ValueType(Class::*), const char* = nullptr) -> PropField<Class, ValueType>;
+
+template <typename Class, typename ValueType>
+struct alignas(sizeof(void*)) PropFieldNotify {
+    ValueType(Class::* field);
+
+    uint32_t isConst = 0;
+
+    union {
+        void (Class::*notify)();
+        void (Class::*notifyConst)() const;
+    };
+
+    const char* name                                           = nullptr;
+
+    constexpr PropFieldNotify(const PropFieldNotify&) noexcept = default;
+    constexpr PropFieldNotify(PropFieldNotify&&) noexcept      = default;
+
+    template <typename Class2>
+    constexpr PropFieldNotify(ValueType(Class::* field), void (Class2::*notify)(), const char* name = nullptr)
+        : field(field), isConst{ 0 }, notify{ static_cast<void (Class::*)()>(notify) }, name(name) {}
+
+    template <typename Class2>
+    constexpr PropFieldNotify(ValueType(Class::* field), void (Class2::*notifyConst)() const,
+                              const char* name = nullptr)
+        : field(field), isConst{ 1 }, notifyConst{ static_cast<void (Class::*)() const>(notifyConst) },
+          name(name) {}
+
+    void set(Class* self, ValueType value) const {
+        if (bindings->assign(self->*field, std::move(value))) {
+            if (!isConst) {
+                (self->*(notify))();
+            } else if (notifyConst) {
+                (self->*(notifyConst))();
+            }
+        }
+    }
+
+    ValueOrConstRef<ValueType> get(const Class* self) const noexcept {
+        return (self->*field);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename Fn, typename ValueType>
+PropFieldNotify(ValueType(Class::*), Fn&&, const char* = nullptr) -> PropFieldNotify<Class, ValueType>;
+
+template <typename Class, typename ValueType>
+struct PropFieldSetter {
+    ValueType(Class::* field);
+    void (Class::*setter)(ValueType);
+    const char* name = nullptr;
+
+    void set(Class* self, ValueType value) const {
+        (self->*setter)(std::move(value));
+    }
+
+    ValueType get(const Class* self) const noexcept {
+        return (self->*field);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename ValueType>
+PropFieldSetter(ValueType(Class::*), void (Class::*)(ValueType), const char* = nullptr)
+    -> PropFieldSetter<Class, ValueType>;
+
+template <typename Class, typename FieldType, typename ValueType>
+struct PropGetterSetter {
+    FieldType(Class::* field);
+    ValueType (Class::*getter)() const noexcept;
+    void (Class::*setter)(ValueType);
+    const char* name = "";
+
+    void set(Class* self, ValueType value) const {
+        (self->*setter)(std::move(value));
+    }
+
+    ValueType get(const Class* self) const noexcept {
+        return (self->*getter)();
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename FieldType, typename ValueType>
+PropGetterSetter(FieldType(Class::*), ValueType (Class::*)() const noexcept, void (Class::*)(ValueType),
+                 const char* = nullptr) -> PropGetterSetter<Class, FieldType, ValueType>;
+
 } // namespace Internal
 
 #define BRISK_PROPERTIES union

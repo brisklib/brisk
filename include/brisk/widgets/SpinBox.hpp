@@ -71,8 +71,16 @@ protected:
     explicit SpinBox(Construction construction, ArgumentsView<SpinBox> args);
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &SpinBox::m_valueFormatter, "valueFormatter" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<SpinBox, ValueFormatter, &SpinBox::m_valueFormatter> valueFormatter;
+    Property<SpinBox, ValueFormatter, 0> valueFormatter;
     BRISK_PROPERTIES_END
 };
 

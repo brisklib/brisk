@@ -69,13 +69,27 @@ protected:
     explicit Button(Construction construction, ArgumentsView<Button> args);
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &Button::m_repeatDelay, "repeatDelay" },
+            /*1*/ Internal::PropField{ &Button::m_repeatInterval, "repeatInterval" },
+            /*2*/ Internal::PropField{ &Button::m_clickEvent, "clickEvent" },
+            /*3*/ Internal::PropField{ &Button::m_keyEvents, "keyEvents" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Button, double, &Button::m_repeatDelay> repeatDelay;
-    Property<Button, double, &Button::m_repeatInterval> repeatInterval;
-    Property<Button, ButtonClickEvent, &Button::m_clickEvent> clickEvent;
-    Property<Button, ButtonKeyEvents, &Button::m_keyEvents> keyEvents;
+    Property<Button, double, 0> repeatDelay;
+    Property<Button, double, 1> repeatInterval;
+    Property<Button, ButtonClickEvent, 2> clickEvent;
+    Property<Button, ButtonKeyEvents, 3> keyEvents;
     BRISK_PROPERTIES_END
 };
+
+;
 
 inline namespace Arg {
 constexpr inline Argument<Tag::PropArg<decltype(Button::repeatDelay)>> repeatDelay{};

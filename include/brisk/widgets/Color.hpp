@@ -52,8 +52,17 @@ protected:
     ColorView(Construction construction, ColorW color, ArgumentsView<ColorView> args);
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &ColorView::m_value, &ColorView::invalidate, "value" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<ColorView, ColorW, &ColorView::m_value, nullptr, nullptr, &ColorView::invalidate> value;
+    Property<ColorView, ColorW, 0> value;
     BRISK_PROPERTIES_END
 };
 
@@ -84,8 +93,17 @@ protected:
                           ArgumentsView<ColorSliders> args);
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &ColorSliders::m_value, &ColorSliders::invalidate, "value" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<ColorSliders, ColorW, &ColorSliders::m_value> value;
+    Property<ColorSliders, ColorW, 0> value;
     BRISK_PROPERTIES_END
 };
 
@@ -113,8 +131,17 @@ protected:
     explicit ColorPalette(Construction construction, ColorW color, ArgumentsView<ColorPalette> args);
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &ColorPalette::m_value, &ColorPalette::invalidate, "value" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<ColorPalette, ColorW, &ColorPalette::m_value> value;
+    Property<ColorPalette, ColorW, 0> value;
     BRISK_PROPERTIES_END
 };
 

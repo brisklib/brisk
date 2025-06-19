@@ -78,9 +78,18 @@ protected:
     void saveScreenshot(Rc<Image> image);
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            Internal::PropField{ &This::m_progress, "progress" },
+            Internal::PropField{ &This::m_globalEnabled, "globalEnabled" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<This, float, &This::m_progress> progress;
-    Property<This, bool, &This::m_globalEnabled> globalEnabled;
+    Property<This, float, 0> progress;
+    Property<This, bool, 1> globalEnabled;
     BRISK_PROPERTIES_END
 };
 

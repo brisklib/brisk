@@ -34,15 +34,6 @@
 
 namespace Brisk {
 
-template <typename T>
-using OptConstRef = std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>;
-
-static_assert(std::is_same_v<OptConstRef<int>, int>);
-static_assert(std::is_same_v<OptConstRef<ColorW>, ColorW>);
-static_assert(std::is_same_v<OptConstRef<std::string_view>, std::string_view>);
-static_assert(std::is_same_v<OptConstRef<std::string>, const std::string&>);
-static_assert(std::is_same_v<OptConstRef<std::vector<int>>, const std::vector<int>&>);
-
 enum class Placement : uint8_t {
     Normal,   // In-flow
     Absolute, // Absolute in parent widget
@@ -153,26 +144,6 @@ enum class PropFlags : uint16_t {
 
 template <>
 constexpr inline bool isBitFlags<PropFlags> = true;
-
-namespace Internal {
-constexpr size_t indexFromFlags(PropFlags flags) noexcept {
-    return (static_cast<uint16_t>(flags) >> 8) & 0b11;
-}
-
-enum class PropState : uint8_t {
-    None      = 0,
-    Overriden = 1, // Don't apply style
-    Inherited = 2, // Copy from parent
-
-    Mask      = Overriden | Inherited,
-};
-
-constexpr inline size_t propStateBits = std::bit_width(static_cast<uint8_t>(PropState::Mask));
-
-} // namespace Internal
-
-template <>
-constexpr inline bool isBitFlags<Internal::PropState> = true;
 
 namespace Tag {
 struct PropertyTag {};

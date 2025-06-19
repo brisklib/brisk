@@ -78,9 +78,18 @@ protected:
         canvas.fillText("0%", rect.at(1.f, 1.f), { 1.f, 1.f });
     }
 
+private:
+public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            Internal::PropField{ &Plot::m_lineColor, "lineColor" },
+        };
+        return props;
+    }
+
 public:
     BRISK_PROPERTIES_BEGIN
-    Property<Plot, ColorW, &Plot::m_lineColor> lineColor;
+    Property<Plot, ColorW, 0> lineColor;
     BRISK_PROPERTIES_END
 };
 

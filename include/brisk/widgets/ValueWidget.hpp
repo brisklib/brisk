@@ -89,29 +89,45 @@ protected:
     explicit ValueWidget(Construction construction, ArgumentsView<ValueWidget> args);
 
 private:
-    double getNormValue() const;
+    double getNormValue() const noexcept;
     void setNormValue(double value);
     void setValue(double value);
     void onChangedParams();
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldSetter{ &ValueWidget::m_value, &ValueWidget::setValue, "value" },
+            /*1*/
+            Internal::PropGetterSetter{ &ValueWidget::m_value, &ValueWidget::getNormValue,
+                                        &ValueWidget::setNormValue, "normalizedValue" },
+            /*2*/
+            Internal::PropFieldNotify{ &ValueWidget::m_minimum, &ValueWidget::onChangedParams, "minimum" },
+            /*3*/
+            Internal::PropFieldNotify{ &ValueWidget::m_maximum, &ValueWidget::onChangedParams, "maximum" },
+            /*4*/ Internal::PropFieldNotify{ &ValueWidget::m_step, &ValueWidget::onChangedParams, "step" },
+            /*5*/ Internal::PropFieldNotify{ &ValueWidget::m_snap, &ValueWidget::onChangedParams, "snap" },
+            /*6*/
+            Internal::PropFieldNotify{ &ValueWidget::m_pageStep, &ValueWidget::onChangedParams, "pageStep" },
+            /*7*/ Internal::PropField{ &ValueWidget::m_hintFormatter, "hintFormatter" },
+            /*8*/ Internal::PropField{ &ValueWidget::m_wheelModifiers, "wheelModifiers" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<ValueWidget, double, &ValueWidget::m_value, nullptr, &ValueWidget::setValue,
-             &ValueWidget::onChanged>
-        value;
-    Property<ValueWidget, double, &ValueWidget::m_value, &ValueWidget::getNormValue,
-             &ValueWidget::setNormValue>
-        normalizedValue;
-    Property<ValueWidget, double, &ValueWidget::m_minimum, nullptr, nullptr, &ValueWidget::onChangedParams>
-        minimum;
-    Property<ValueWidget, double, &ValueWidget::m_maximum, nullptr, nullptr, &ValueWidget::onChangedParams>
-        maximum;
-    Property<ValueWidget, double, &ValueWidget::m_step, nullptr, nullptr, &ValueWidget::onChangedParams> step;
-    Property<ValueWidget, bool, &ValueWidget::m_snap, nullptr, nullptr, &ValueWidget::onChangedParams> snap;
-    Property<ValueWidget, double, &ValueWidget::m_pageStep, nullptr, nullptr, &ValueWidget::onChangedParams>
-        pageStep;
-    Property<ValueWidget, ValueFormatter, &ValueWidget::m_hintFormatter> hintFormatter;
-    Property<ValueWidget, KeyModifiers, &ValueWidget::m_wheelModifiers> wheelModifiers;
+    Property<ValueWidget, double, 0> value;
+    Property<ValueWidget, double, 1> normalizedValue;
+
+    Property<ValueWidget, double, 2> minimum;
+    Property<ValueWidget, double, 3> maximum;
+    Property<ValueWidget, double, 4> step;
+    Property<ValueWidget, bool, 5> snap;
+    Property<ValueWidget, double, 6> pageStep;
+
+    Property<ValueWidget, ValueFormatter, 7> hintFormatter;
+    Property<ValueWidget, KeyModifiers, 8> wheelModifiers;
     BRISK_PROPERTIES_END
 };
 

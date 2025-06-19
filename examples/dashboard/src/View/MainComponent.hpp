@@ -62,9 +62,18 @@ private:
     void saveToJson();
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            Internal::PropField{ &MainComponent::m_refreshInterval, "refreshInterval" },
+            Internal::PropField{ &MainComponent::m_showPlots, "showPlots" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<MainComponent, int, &MainComponent::m_refreshInterval> refreshInterval;
-    Property<MainComponent, bool, &MainComponent::m_showPlots> showPlots;
+    Property<MainComponent, int, 0> refreshInterval;
+    Property<MainComponent, bool, 1> showPlots;
     BRISK_PROPERTIES_END
 };
 } // namespace App

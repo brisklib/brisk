@@ -77,8 +77,17 @@ protected:
     Ptr cloneThis() const override;
 
 public:
+
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &SvgImageView::m_svg, "svg" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<SvgImageView, SvgImage, &SvgImageView::m_svg> svg;
+    Property<SvgImageView, SvgImage, 0> svg;
     BRISK_PROPERTIES_END
 };
 

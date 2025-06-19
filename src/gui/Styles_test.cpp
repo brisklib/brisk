@@ -76,8 +76,9 @@ TEST_CASE("Rules") {
 template <std::derived_from<Widget> W>
 class WidgetProtected : public W {
 public:
-    using W::m_dimensions;
+    using W::m_height;
     using W::m_type;
+    using W::m_width;
     using W::resolveProperties;
     using W::restyleIfRequested;
     using W::setState;
@@ -284,7 +285,7 @@ TEST_CASE("resolving") {
     w->borderRadius        = 10_px;
     w->borderRadiusTopLeft = 1_px;
 
-    CornersF radius        = w->borderRadius.resolved();
+    CornersF radius        = w->borderRadius.current();
 
     CHECK(radius == CornersF{ 1, 10, 10, 10 });
 }
@@ -309,13 +310,13 @@ TEST_CASE("inherit") {
     Rc<Widget> w2ch = w2->widgets().back();
 
     CHECK(w1->fontSize.get() == 20_px);
-    CHECK(w1->fontSize.resolved() == 20);
+    CHECK(w1->fontSize.current() == 20);
     CHECK(w2->fontSize.get() == 200_perc);
-    CHECK(w2->fontSize.resolved() == 40);
+    CHECK(w2->fontSize.current() == 40);
 
     CHECK(w1ch->fontSize.get() == 20_px);
-    CHECK(w1ch->fontSize.resolved() == 20);
+    CHECK(w1ch->fontSize.current() == 20);
     CHECK(w2ch->fontSize.get() == 200_perc);
-    CHECK(w2ch->fontSize.resolved() == 40);
+    CHECK(w2ch->fontSize.current() == 40);
 }
 } // namespace Brisk

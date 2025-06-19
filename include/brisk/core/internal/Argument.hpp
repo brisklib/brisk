@@ -110,9 +110,6 @@ struct ArgVal {
     }
 };
 
-template <typename T, typename Tag>
-concept MatchesExtraTypes = requires(T val) { Tag::ExtraTypes::accept(val); };
-
 template <typename Tag>
 struct Argument : Tag {
     using ValueType = typename Tag::Type;
@@ -121,7 +118,7 @@ struct Argument : Tag {
         return { std::move(value) };
     }
 
-    template <MatchesExtraTypes<Tag> U>
+    template <typename U>
     constexpr ArgVal<Tag, U> operator=(U value) const {
         return { std::move(value) };
     }
