@@ -23,25 +23,26 @@
 
 namespace Brisk {
 
-static Simd<double, 3> convertColorSpace(ColorSpace dest, const Simd<double, 3>& value, ColorSpace source);
+static Simd<double, 3> convertColorSpace(ColorSpace dest, const Simd<double, 3>& value,
+                                         ColorSpace source) noexcept;
 
-inline double wrapHue(double value) {
+inline double wrapHue(double value) noexcept {
     value -= 360.0 * static_cast<long long>(value / 360.0);
     return value < 0.0 ? value + 360.0 : value;
 }
 
-inline Simd<double, 3> wrapHue(Simd<double, 3> value) {
+inline Simd<double, 3> wrapHue(Simd<double, 3> value) noexcept {
     value[2] = wrapHue(value[2]);
     return value;
 }
 
-Trichromatic Trichromatic::convert(ColorSpace destSpace) const {
+Trichromatic Trichromatic::convert(ColorSpace destSpace) const noexcept {
     if (colorSpace == destSpace)
         return *this;
     return Trichromatic(convertColorSpace(destSpace, value, colorSpace), destSpace);
 }
 
-Trichromatic Trichromatic::convert(ColorSpace destSpace, ColorConversionMode mode) const {
+Trichromatic Trichromatic::convert(ColorSpace destSpace, ColorConversionMode mode) const noexcept {
     Trichromatic result = convert(destSpace);
     if (result.inGamut())
         return result.clamped();
@@ -56,7 +57,7 @@ Trichromatic Trichromatic::convert(ColorSpace destSpace, ColorConversionMode mod
     }
 }
 
-Trichromatic Trichromatic::nearestValid() const {
+Trichromatic Trichromatic::nearestValid() const noexcept {
     switch (colorSpace) {
     case ColorSpace::CIELAB: // clamp L to 0-100
     case ColorSpace::CIELCH: // clamp L to 0-100, wrap H to 0-360
@@ -96,7 +97,7 @@ Trichromatic Trichromatic::nearestValid() const {
     return result.clamped();
 }
 
-Trichromatic Trichromatic::clamped() const {
+Trichromatic Trichromatic::clamped() const noexcept {
     switch (colorSpace) {
     case ColorSpace::sRGBLinear:
     case ColorSpace::sRGBGamma:
@@ -121,7 +122,7 @@ Trichromatic Trichromatic::clamped() const {
     }
 }
 
-bool Trichromatic::inGamut() const {
+bool Trichromatic::inGamut() const noexcept {
     switch (colorSpace) {
     case ColorSpace::sRGBLinear:
     case ColorSpace::sRGBGamma:
@@ -142,14 +143,14 @@ const static Simd<double, 3> illuminants[] = {
     { 100, 100, 100 },            // E illuminant, 2° observer
 };
 
-Trichromatic illuminant(Illuminant illum) {
+Trichromatic illuminant(Illuminant illum) noexcept {
     Trichromatic result;
     result.colorSpace = ColorSpace::CIEXYZ;
     result.value      = illuminants[+illum];
     return result;
 }
 
-static Simd<double, 3> lchToLab(Simd<double, 3> value) {
+static Simd<double, 3> lchToLab(Simd<double, 3> value) noexcept {
     return Simd<double, 3>{
         value[0],
         std::cos(value[2] * deg2rad<double>) * value[1],
@@ -157,7 +158,7 @@ static Simd<double, 3> lchToLab(Simd<double, 3> value) {
     };
 }
 
-static Simd<double, 3> labToLch(Simd<double, 3> value) {
+static Simd<double, 3> labToLch(Simd<double, 3> value) noexcept {
     return Simd<double, 3>{ value[0], std::hypot(value[1], value[2]),
                             wrapHue(std::atan2(value[2], value[1]) * rad2deg<double>) };
 }
@@ -166,7 +167,7 @@ using Internal::srgbGammaToLinear;
 using Internal::srgbLinearToGamma;
 
 static Simd<double, 3> convertColorSpace(const ColorSpace dest, const Simd<double, 3>& sourceValue,
-                                         ColorSpace source) {
+                                         ColorSpace source) noexcept {
     Simd<double, 3> value = sourceValue;
     for (;;) {
         if (source == dest)

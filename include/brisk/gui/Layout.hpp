@@ -176,7 +176,7 @@ private:
         return +unit < +Unit::Default;
     }
 
-    constexpr static uint32_t pack(float value, Unit unit) {
+    constexpr static uint32_t pack(float value, Unit unit) noexcept {
         if (unit >= Unit::Default) {
             return (std::bit_cast<uint32_t>(value) & valueMask) |
                    static_cast<uint32_t>(+unit - +Unit::Default);
@@ -185,7 +185,7 @@ private:
         }
     }
 
-    constexpr static float unpackValue(uint32_t value) {
+    constexpr static float unpackValue(uint32_t value) noexcept {
         if ((value & valueMask) == special) {
             return std::numeric_limits<float>::quiet_NaN();
         } else {
@@ -193,7 +193,7 @@ private:
         }
     }
 
-    constexpr static Unit unpackUnit(uint32_t value) {
+    constexpr static Unit unpackUnit(uint32_t value) noexcept {
         if ((value & valueMask) == special) {
             return static_cast<Unit>(value & unitMask);
         } else {

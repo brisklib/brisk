@@ -97,22 +97,22 @@ enum class BuilderKind {
 struct Builder {
     using PushFunc = function<void(Widget*)>;
 
-    explicit Builder(PushFunc builder, BuilderKind kind = BuilderKind::Delayed);
+    explicit Builder(PushFunc builder, BuilderKind kind = BuilderKind::Delayed) noexcept;
     PushFunc builder;
     BuilderKind kind = BuilderKind::Delayed;
 
     void run(Widget* w);
 };
 
-constexpr bool isInheritable(PropFlags flags) {
+constexpr bool isInheritable(PropFlags flags) noexcept {
     return flags && PropFlags::Inheritable;
 }
 
-constexpr bool isTransition(PropFlags flags) {
+constexpr bool isTransition(PropFlags flags) noexcept {
     return flags && PropFlags::Transition;
 }
 
-constexpr bool isResolvable(PropFlags flags) {
+constexpr bool isResolvable(PropFlags flags) noexcept {
     return flags && PropFlags::Resolvable;
 }
 
@@ -136,18 +136,19 @@ constexpr inline Argument<Tag::Depends> depends{};
 struct SingleBuilder : Builder {
     using func = function<Rc<Widget>()>;
 
-    explicit SingleBuilder(func builder);
+    explicit SingleBuilder(func builder) noexcept;
 };
 
 struct IndexedBuilder : Builder {
     using func = function<Rc<Widget>(size_t index)>;
 
-    explicit IndexedBuilder(func builder);
+    explicit IndexedBuilder(func builder) noexcept;
 };
 
 template <typename T>
 struct ListBuilder : IndexedBuilder {
-    explicit ListBuilder(std::vector<T> list, function<Rc<Widget>(const std::type_identity_t<T>&)> fn)
+    explicit ListBuilder(std::vector<T> list,
+                         function<Rc<Widget>(const std::type_identity_t<T>&)> fn) noexcept
         : IndexedBuilder([list = std::move(list), fn = std::move(fn)](size_t index)
                              BRISK_INLINE_LAMBDA -> Rc<Widget> {
                                  return index < list.size() ? fn(list[index]) : nullptr;
@@ -1384,191 +1385,124 @@ private:
     constexpr static size_t noIndex = static_cast<size_t>(-1);
 
 public:
-
-    static const auto& properties() noexcept {
-        static constexpr tuplet::tuple props{
-            /* 0 */ Internal::PropField{ &This::m_onClick, "onClick" },
-            /* 1 */ Internal::PropField{ &This::m_onDoubleClick, "onDoubleClick" },
-            /* 2 */
-            Internal::PropGetterSetter{ &This::m_state, &This::isEnabled, &This::setEnabled, "enabled" },
-            /* 3 */
-            Internal::PropGetterSetter{ &This::m_state, &This::isSelected, &This::setSelected, "selected" },
-            /* 4 */ Internal::PropGui{ &Widget::m_absolutePosition, AffectLayout, "absolutePosition" },
-            /* 5 */ Internal::PropGui{ &Widget::m_alignContent, AffectLayout, "alignContent" },
-            /* 6 */ Internal::PropGui{ &Widget::m_alignItems, AffectLayout, "alignItems" },
-            /* 7 */ Internal::PropGui{ &Widget::m_alignSelf, AffectLayout, "alignSelf" },
-            /* 8 */ Internal::PropGui{ &Widget::m_anchor, AffectLayout, "anchor" },
-            /* 9 */ Internal::PropGui{ &Widget::m_aspect, AffectLayout, "aspect" },
-            /* 10 */ Internal::PropGui{ &Widget::m_backgroundColorEasing, None, "backgroundColorEasing" },
-            /* 11 */
-            Internal::PropGui{ &Widget::m_backgroundColorTransition, None, "backgroundColorTransition" },
-            /* 12 */
-            Internal::PropGui{ &Widget::m_backgroundColor, &Widget::m_backgroundColorTransition,
-                               Transition | AffectPaint, "backgroundColor" },
-            /* 13 */ Internal::PropGui{ &Widget::m_borderColorEasing, None, "borderColorEasing" },
-            /* 14 */ Internal::PropGui{ &Widget::m_borderColorTransition, None, "borderColorTransition" },
-            /* 15 */
-            Internal::PropGui{ &Widget::m_borderColor, &Widget::m_borderColorTransition,
-                               Transition | AffectPaint, "borderColor" },
-            /* 16 */ Internal::PropGui{ &Widget::m_clip, AffectLayout | AffectPaint, "clip" },
-            /* 17 */ Internal::PropGui{ &Widget::m_colorEasing, None, "colorEasing" },
-            /* 18 */ Internal::PropGui{ &Widget::m_colorTransition, None, "colorTransition" },
-            /* 19 */
-            Internal::PropGui{ &Widget::m_color, &Widget::m_colorTransition,
-                               Transition | Inheritable | AffectPaint, "color" },
-            /* 20 */ Internal::PropGui{ &Widget::m_shadowOffset, AffectPaint, "shadowOffset" },
-            /* 21 */ Internal::PropGui{ &Widget::m_cursor, None, "cursor" },
-            /* 22 */ Internal::PropGui{ &Widget::m_flexBasis, AffectLayout, "flexBasis" },
-            /* 23 */ Internal::PropGui{ &Widget::m_flexGrow, AffectLayout, "flexGrow" },
-            /* 24 */ Internal::PropGui{ &Widget::m_flexShrink, AffectLayout, "flexShrink" },
-            /* 25 */ Internal::PropGui{ &Widget::m_flexWrap, AffectLayout, "flexWrap" },
-            /* 26 */
-            Internal::PropGui{ &Widget::m_fontFamily, AffectLayout | AffectFont | Inheritable | AffectPaint,
-                               "fontFamily" },
-            /* 27 */
-            Internal::PropGui{ &Widget::m_fontSize,
-                               AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable |
-                                   RelativeToParent | AffectPaint,
-                               "fontSize" },
-            /* 28 */
-            Internal::PropGui{ &Widget::m_fontStyle, AffectLayout | AffectFont | Inheritable | AffectPaint,
-                               "fontStyle" },
-            /* 29 */
-            Internal::PropGui{ &Widget::m_fontWeight, AffectLayout | AffectFont | Inheritable | AffectPaint,
-                               "fontWeight" },
-            /* 30 */ Internal::PropGui{ &Widget::m_hidden, AffectPaint, "hidden" },
-            /* 31 */ Internal::PropGui{ &Widget::m_justifyContent, AffectLayout, "justifyContent" },
-            /* 32 */ Internal::PropGui{ &Widget::m_layoutOrder, AffectLayout, "layoutOrder" },
-            /* 33 */ Internal::PropGui{ &Widget::m_layout, AffectLayout, "layout" },
-            /* 34 */
-            Internal::PropGui{ &Widget::m_letterSpacing,
-                               AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                               "letterSpacing" },
-            /* 35 */ Internal::PropGui{ &Widget::m_opacity, AffectPaint, "opacity" },
-            /* 36 */ Internal::PropGui{ &Widget::m_placement, AffectLayout, "placement" },
-            /* 37 */
-            Internal::PropGui{ &Widget::m_shadowSize, Resolvable | Inheritable | AffectPaint, "shadowSize" },
-            /* 38 */
-            Internal::PropGui{ &Widget::m_shadowColor, &Widget::m_shadowColorTransition,
-                               Transition | AffectPaint, "shadowColor" },
-            /* 39 */ Internal::PropGui{ &Widget::m_shadowColorTransition, None, "shadowColorTransition" },
-            /* 40 */ Internal::PropGui{ &Widget::m_shadowColorEasing, None, "shadowColorEasing" },
-            /* 41 */
-            Internal::PropGui{ &Widget::m_tabSize,
-                               AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                               "tabSize" },
-            /* 42 */ Internal::PropGui{ &Widget::m_textAlign, Inheritable | AffectPaint, "textAlign" },
-            /* 43 */
-            Internal::PropGui{ &Widget::m_textVerticalAlign, Inheritable | AffectPaint, "textVerticalAlign" },
-            /* 44 */
-            Internal::PropGui{ &Widget::m_textDecoration, AffectFont | Inheritable | AffectPaint,
-                               "textDecoration" },
-            /* 45 */ Internal::PropGui{ &Widget::m_translate, AffectLayout, "translate" },
-            /* 46 */ Internal::PropGui{ &Widget::m_visible, AffectLayout | AffectVisibility, "visible" },
-            /* 47 */
-            Internal::PropGui{ &Widget::m_wordSpacing,
-                               AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                               "wordSpacing" },
-            /* 48 */ Internal::PropGui{ &Widget::m_alignToViewport, AffectLayout, "alignToViewport" },
-            /* 49 */ Internal::PropGui{ &Widget::m_boxSizing, AffectLayout, "boxSizing" },
-            /* 50 */ Internal::PropGui{ &Widget::m_zorder, AffectLayout, "zorder" },
-            /* 51 */
-            Internal::PropGui{ &Widget::m_stateTriggersRestyle, AffectStyle, "stateTriggersRestyle" },
-            /* 52 */ Internal::PropGui{ &Widget::m_id, AffectStyle, "id" },
-            /* 53 */ Internal::PropGui{ &Widget::m_role, AffectStyle, "role" },
-            /* 54 */ Internal::PropGui{ &Widget::m_classes, AffectStyle, "classes" },
-            /* 55 */ Internal::PropGui{ &Widget::m_mouseInteraction, None, "mouseInteraction" },
-            /* 56 */ Internal::PropGui{ &Widget::m_mousePassThrough, None, "mousePassThrough" },
-            /* 57 */ Internal::PropGui{ &Widget::m_autoMouseCapture, None, "autoMouseCapture" },
-            /* 58 */ Internal::PropGui{ &Widget::m_mouseAnywhere, None, "mouseAnywhere" },
-            /* 59 */ Internal::PropGui{ &Widget::m_focusCapture, None, "focusCapture" },
-            /* 60 */ Internal::PropGui{ &Widget::m_isHintVisible, AffectPaint, "isHintVisible" },
-            /* 61 */ Internal::PropGui{ &Widget::m_tabStop, None, "tabStop" },
-            /* 62 */ Internal::PropGui{ &Widget::m_tabGroup, None, "tabGroup" },
-            /* 63 */ Internal::PropGui{ &Widget::m_autofocus, None, "autofocus" },
-            /* 64 */ Internal::PropGui{ &Widget::m_autoHint, None, "autoHint" },
-            /* 65 */
-            Internal::PropGui{ &Widget::m_squircleCorners, AffectPaint | Inheritable, "squircleCorners" },
-            /* 66 */ Internal::PropGui{ &Widget::m_delegate, None, "delegate" },
-            /* 67 */ Internal::PropGui{ &Widget::m_hint, AffectLayout | AffectPaint | AffectHint, "hint" },
-            /* 68 */ Internal::PropGui{ &Widget::m_stylesheet, AffectStyle, "stylesheet" },
-            /* 69 */ Internal::PropGui{ &Widget::m_painter, AffectPaint, "painter" },
-            /* 70 */ Internal::PropGui{ &Widget::m_isHintExclusive, None, "isHintExclusive" },
-            /* 71 */
-            Internal::PropGui{ &Widget::m_fontFeatures, AffectLayout | AffectFont | Inheritable | AffectPaint,
-                               "fontFeatures" },
-            /* 72 */
-            Internal::PropGui{ &Widget::m_scrollBarColor, &Widget::m_scrollBarColorTransition,
-                               Transition | Inheritable | AffectPaint, "scrollBarColor" },
-            /* 73 */
-            Internal::PropGui{ &Widget::m_scrollBarThickness, Resolvable | AffectPaint,
-                               "scrollBarThickness" },
-            /* 74 */
-            Internal::PropGui{ &Widget::m_scrollBarRadius, Resolvable | AffectPaint, "scrollBarRadius" },
-            /* 75 */ Internal::PropGui{ &Widget::m_shadowSpread, AffectPaint, "shadowSpread" },
-            /* 76 */
-            Internal::PropGui{ &Widget::m_borderRadiusTopLeft, Resolvable | Inheritable | AffectPaint,
-                               "borderRadiusTopLeft" },
-            /* 77 */
-            Internal::PropGui{ &Widget::m_borderRadiusTopRight, Resolvable | Inheritable | AffectPaint,
-                               "borderRadiusTopRight" },
-            /* 78 */
-            Internal::PropGui{ &Widget::m_borderRadiusBottomLeft, Resolvable | Inheritable | AffectPaint,
-                               "borderRadiusBottomLeft" },
-            /* 79 */
-            Internal::PropGui{ &Widget::m_borderRadiusBottomRight, Resolvable | Inheritable | AffectPaint,
-                               "borderRadiusBottomRight" },
-            /* 80 */
-            Internal::PropGui{ &Widget::m_borderWidthLeft, AffectLayout | AffectPaint, "borderWidthLeft" },
-            /* 81 */
-            Internal::PropGui{ &Widget::m_borderWidthTop, AffectLayout | AffectPaint, "borderWidthTop" },
-            /* 82 */
-            Internal::PropGui{ &Widget::m_borderWidthRight, AffectLayout | AffectPaint, "borderWidthRight" },
-            /* 83 */
-            Internal::PropGui{ &Widget::m_borderWidthBottom, AffectLayout | AffectPaint,
-                               "borderWidthBottom" },
-            /* 84 */ Internal::PropGui{ &Widget::m_width, AffectLayout, "width" },
-            /* 85 */ Internal::PropGui{ &Widget::m_height, AffectLayout, "height" },
-            /* 86 */ Internal::PropGui{ &Widget::m_gapColumn, AffectLayout, "gapColumn" },
-            /* 87 */ Internal::PropGui{ &Widget::m_gapRow, AffectLayout, "gapRow" },
-            /* 88 */ Internal::PropGui{ &Widget::m_marginLeft, AffectLayout, "marginLeft" },
-            /* 89 */ Internal::PropGui{ &Widget::m_marginTop, AffectLayout, "marginTop" },
-            /* 90 */ Internal::PropGui{ &Widget::m_marginRight, AffectLayout, "marginRight" },
-            /* 91 */ Internal::PropGui{ &Widget::m_marginBottom, AffectLayout, "marginBottom" },
-            /* 92 */ Internal::PropGui{ &Widget::m_maxWidth, AffectLayout, "maxWidth" },
-            /* 93 */ Internal::PropGui{ &Widget::m_maxHeight, AffectLayout, "maxHeight" },
-            /* 94 */ Internal::PropGui{ &Widget::m_minWidth, AffectLayout, "minWidth" },
-            /* 95 */ Internal::PropGui{ &Widget::m_minHeight, AffectLayout, "minHeight" },
-            /* 96 */ Internal::PropGui{ &Widget::m_paddingLeft, AffectLayout, "paddingLeft" },
-            /* 97 */ Internal::PropGui{ &Widget::m_paddingTop, AffectLayout, "paddingTop" },
-            /* 98 */ Internal::PropGui{ &Widget::m_paddingRight, AffectLayout, "paddingRight" },
-            /* 99 */ Internal::PropGui{ &Widget::m_paddingBottom, AffectLayout, "paddingBottom" },
-            /* 100 */ Internal::PropGui{ &Widget::m_overflowScrollX, AffectLayout, "overflowScrollX" },
-            /* 101 */ Internal::PropGui{ &Widget::m_overflowScrollY, AffectLayout, "overflowScrollY" },
-            /* 102 */ Internal::PropGui{ &Widget::m_contentOverflowX, AffectLayout, "contentOverflowX" },
-            /* 103 */ Internal::PropGui{ &Widget::m_contentOverflowY, AffectLayout, "contentOverflowY" },
-            /* 104 */
-            Internal::PropGui{ &Widget::m_scrollBarColorTransition, None, "scrollBarColorTransition" },
-            /* 105 */ Internal::PropGui{ &Widget::m_scrollBarColorEasing, None, "scrollBarColorEasing" },
-            /* 106 */
-            Internal::PropGuiCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>{ "borderRadius" },
-            /* 107 */
-            Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>{ "borderWidth" },
-            /* 108 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 84, 85>{ "dimensions" },
-            /* 109 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 86, 87>{ "gap" },
-            /* 110 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>{ "margin" },
-            /* 111 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 92, 93>{ "maxDimensions" },
-            /* 112 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 94, 95>{ "minDimensions" },
-            /* 113 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>{ "padding" },
-            /* 114 */
-            Internal::PropGuiCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>{
-                "overflowScroll" },
-            /* 115 */
-            Internal::PropGuiCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>{
-                "contentOverflow" },
-        };
-        return props;
-    }
+    static const tuplet::tuple<
+        /* 0 */ Internal::PropField<Widget, Trigger<>>,
+        /* 1 */ Internal::PropField<Widget, Trigger<>>,
+        /* 2 */ Internal::PropGetterSetter<Widget, WidgetState, bool>,
+        /* 3 */ Internal::PropGetterSetter<Widget, WidgetState, bool>,
+        /* 4 */ Internal::PropGui<Widget, PointL>,
+        /* 5 */ Internal::PropGui<Widget, Align>,
+        /* 6 */ Internal::PropGui<Widget, Align>,
+        /* 7 */ Internal::PropGui<Widget, Align>,
+        /* 8 */ Internal::PropGui<Widget, PointL>,
+        /* 9 */ Internal::PropGui<Widget, OptFloat>,
+        /* 10 */ Internal::PropGui<Widget, EasingFunction>,
+        /* 11 */ Internal::PropGui<Widget, float>,
+        /* 12 */ Internal::PropGui<Widget, Internal::Transition<ColorW>>,
+        /* 13 */ Internal::PropGui<Widget, EasingFunction>,
+        /* 14 */ Internal::PropGui<Widget, float>,
+        /* 15 */ Internal::PropGui<Widget, Internal::Transition<ColorW>>,
+        /* 16 */ Internal::PropGui<Widget, WidgetClip>,
+        /* 17 */ Internal::PropGui<Widget, EasingFunction>,
+        /* 18 */ Internal::PropGui<Widget, float>,
+        /* 19 */ Internal::PropGui<Widget, Internal::Transition<ColorW>>,
+        /* 20 */ Internal::PropGui<Widget, PointF>,
+        /* 21 */ Internal::PropGui<Widget, Cursor>,
+        /* 22 */ Internal::PropGui<Widget, Length>,
+        /* 23 */ Internal::PropGui<Widget, OptFloat>,
+        /* 24 */ Internal::PropGui<Widget, OptFloat>,
+        /* 25 */ Internal::PropGui<Widget, Wrap>,
+        /* 26 */ Internal::PropGui<Widget, std::string>,
+        /* 27 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 28 */ Internal::PropGui<Widget, FontStyle>,
+        /* 29 */ Internal::PropGui<Widget, FontWeight>,
+        /* 30 */ Internal::PropGui<Widget, bool>,
+        /* 31 */ Internal::PropGui<Widget, Justify>,
+        /* 32 */ Internal::PropGui<Widget, LayoutOrder>,
+        /* 33 */ Internal::PropGui<Widget, Layout>,
+        /* 34 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 35 */ Internal::PropGui<Widget, float>,
+        /* 36 */ Internal::PropGui<Widget, Placement>,
+        /* 37 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 38 */ Internal::PropGui<Widget, Internal::Transition<ColorW>>,
+        /* 39 */ Internal::PropGui<Widget, float>,
+        /* 40 */ Internal::PropGui<Widget, EasingFunction>,
+        /* 41 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 42 */ Internal::PropGui<Widget, TextAlign>,
+        /* 43 */ Internal::PropGui<Widget, TextAlign>,
+        /* 44 */ Internal::PropGui<Widget, TextDecoration>,
+        /* 45 */ Internal::PropGui<Widget, PointL>,
+        /* 46 */ Internal::PropGui<Widget, bool>,
+        /* 47 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 48 */ Internal::PropGui<Widget, AlignToViewport>,
+        /* 49 */ Internal::PropGui<Widget, BoxSizingPerAxis>,
+        /* 50 */ Internal::PropGui<Widget, ZOrder>,
+        /* 51 */ Internal::PropGui<Widget, bool>,
+        /* 52 */ Internal::PropGui<Widget, std::string>,
+        /* 53 */ Internal::PropGui<Widget, std::string_view>,
+        /* 54 */ Internal::PropGui<Widget, SmallVector<std::string, 1>>,
+        /* 55 */ Internal::PropGui<Widget, MouseInteraction>,
+        /* 56 */ Internal::PropGui<Widget, bool>,
+        /* 57 */ Internal::PropGui<Widget, bool>,
+        /* 58 */ Internal::PropGui<Widget, bool>,
+        /* 59 */ Internal::PropGui<Widget, bool>,
+        /* 60 */ Internal::PropGui<Widget, bool>,
+        /* 61 */ Internal::PropGui<Widget, bool>,
+        /* 62 */ Internal::PropGui<Widget, bool>,
+        /* 63 */ Internal::PropGui<Widget, bool>,
+        /* 64 */ Internal::PropGui<Widget, bool>,
+        /* 65 */ Internal::PropGui<Widget, bool>,
+        /* 66 */ Internal::PropGui<Widget, EventDelegate*>,
+        /* 67 */ Internal::PropGui<Widget, std::string>,
+        /* 68 */ Internal::PropGui<Widget, std::shared_ptr<const Stylesheet>>,
+        /* 69 */ Internal::PropGui<Widget, Painter>,
+        /* 70 */ Internal::PropGui<Widget, bool>,
+        /* 71 */ Internal::PropGui<Widget, OpenTypeFeatureFlags>,
+        /* 72 */ Internal::PropGui<Widget, Internal::Transition<ColorW>>,
+        /* 73 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 74 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 75 */ Internal::PropGui<Widget, float>,
+        /* 76 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 77 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 78 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 79 */ Internal::PropGui<Widget, Internal::Resolve>,
+        /* 80 */ Internal::PropGui<Widget, Length>,
+        /* 81 */ Internal::PropGui<Widget, Length>,
+        /* 82 */ Internal::PropGui<Widget, Length>,
+        /* 83 */ Internal::PropGui<Widget, Length>,
+        /* 84 */ Internal::PropGui<Widget, Length>,
+        /* 85 */ Internal::PropGui<Widget, Length>,
+        /* 86 */ Internal::PropGui<Widget, Length>,
+        /* 87 */ Internal::PropGui<Widget, Length>,
+        /* 88 */ Internal::PropGui<Widget, Length>,
+        /* 89 */ Internal::PropGui<Widget, Length>,
+        /* 90 */ Internal::PropGui<Widget, Length>,
+        /* 91 */ Internal::PropGui<Widget, Length>,
+        /* 92 */ Internal::PropGui<Widget, Length>,
+        /* 93 */ Internal::PropGui<Widget, Length>,
+        /* 94 */ Internal::PropGui<Widget, Length>,
+        /* 95 */ Internal::PropGui<Widget, Length>,
+        /* 96 */ Internal::PropGui<Widget, Length>,
+        /* 97 */ Internal::PropGui<Widget, Length>,
+        /* 98 */ Internal::PropGui<Widget, Length>,
+        /* 99 */ Internal::PropGui<Widget, Length>,
+        /* 100 */ Internal::PropGui<Widget, OverflowScroll>,
+        /* 101 */ Internal::PropGui<Widget, OverflowScroll>,
+        /* 102 */ Internal::PropGui<Widget, ContentOverflow>,
+        /* 103 */ Internal::PropGui<Widget, ContentOverflow>,
+        /* 104 */ Internal::PropGui<Widget, float>,
+        /* 105 */ Internal::PropGui<Widget, EasingFunction>,
+        /* 106 */ Internal::PropGuiCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>,
+        /* 107 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>,
+        /* 108 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 84, 85>,
+        /* 109 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 86, 87>,
+        /* 110 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>,
+        /* 111 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 92, 93>,
+        /* 112 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 94, 95>,
+        /* 113 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>,
+        /* 114 */ Internal::PropGuiCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>,
+        /* 115 */ Internal::PropGuiCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>>&
+    properties() noexcept;
 
 public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////

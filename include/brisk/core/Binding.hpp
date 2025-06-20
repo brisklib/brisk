@@ -155,7 +155,7 @@ struct Trigger {
 
     std::optional<Type> arg;
 
-    operator Type() const {
+    operator Type() const noexcept {
         BRISK_ASSERT(arg.has_value());
         return *arg;
     }
@@ -212,9 +212,9 @@ struct Value;
 namespace Internal {
 
 template <PropertyLike Prop, typename Type = typename Prop::ValueType>
-Value<Type> asValue(const Prop& prop) {
+Value<Type> asValue(const Prop& prop) noexcept {
     return Value<Type>(
-        [prop]() -> Type {
+        [prop]() noexcept -> Type {
             return prop.get();
         },
         nullptr, // read-only
@@ -222,9 +222,9 @@ Value<Type> asValue(const Prop& prop) {
 }
 
 template <PropertyLike Prop, typename Type = typename Prop::ValueType>
-Value<Type> asValue(Prop& prop) {
+Value<Type> asValue(Prop& prop) noexcept {
     return Value<Type>(
-        [prop]() -> Type {
+        [prop]() noexcept -> Type {
             return prop.get();
         },
         [prop](Type value) mutable {
@@ -245,7 +245,7 @@ template <typename T>
 concept AtomicCompatible = std::is_trivially_copyable_v<T> && std::is_copy_assignable_v<T>;
 
 template <typename... T, std::invocable<T...> Fn>
-Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values);
+Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) noexcept;
 
 /**
  * @brief Value class that manages a value with getter and setter functionality.
@@ -279,38 +279,39 @@ struct Value {
      * @param property Pointer to the property.
      */
     template <PropertyLike U>
-    [[nodiscard]] explicit Value(U* property) : Value(Internal::asValue(*property)) {}
+    [[nodiscard]] explicit Value(U* property) noexcept : Value(Internal::asValue(*property)) {}
 
     template <PropertyLike U>
-    [[nodiscard]] explicit Value(const U* property) : Value(Internal::asValue(*property)) {}
+    [[nodiscard]] explicit Value(const U* property) noexcept : Value(Internal::asValue(*property)) {}
 
-    [[nodiscard]] explicit Value(T* value) : Value(variable(value)) {}
+    [[nodiscard]] explicit Value(T* value) noexcept : Value(variable(value)) {}
 
-    [[nodiscard]] explicit Value(T* value, NotifyFn notify) : Value(variable(value, std::move(notify))) {}
+    [[nodiscard]] explicit Value(T* value, NotifyFn notify) noexcept
+        : Value(variable(value, std::move(notify))) {}
 
     template <typename NotifyClass>
-    [[nodiscard]] explicit Value(T* value, NotifyClass* self, void (NotifyClass::*notify)())
+    [[nodiscard]] explicit Value(T* value, NotifyClass* self, void (NotifyClass::*notify)()) noexcept
         : Value(variable(value, [self, notify]() {
               (self->*notify)();
           })) {}
 
-    [[nodiscard]] explicit Value(AtomicType* value)
+    [[nodiscard]] explicit Value(AtomicType* value) noexcept
         requires AtomicCompatible<T>
         : Value(variable(value)) {}
 
-    [[nodiscard]] explicit Value(AtomicType* value, NotifyFn notify)
+    [[nodiscard]] explicit Value(AtomicType* value, NotifyFn notify) noexcept
         requires AtomicCompatible<T>
         : Value(variable(value, std::move(notify))) {}
 
     template <typename NotifyClass>
-    [[nodiscard]] explicit Value(AtomicType* value, NotifyClass* self, void (NotifyClass::*notify)())
+    [[nodiscard]] explicit Value(AtomicType* value, NotifyClass* self, void (NotifyClass::*notify)()) noexcept
         requires AtomicCompatible<T>
         : Value(variable(value, [self, notify]() {
               (self->*notify)();
           })) {}
 
     template <typename U>
-    Value<U> explicitConversion() && {
+    Value<U> explicitConversion() && noexcept {
         if constexpr (requires(T t, U u) {
                           static_cast<T>(u);
                           static_cast<U>(t);
@@ -330,12 +331,12 @@ struct Value {
     }
 
     template <typename U>
-    Value(Value<U> other)
+    Value(Value<U> other) noexcept
         requires std::is_convertible_v<U, T>
         : Value(std::move(other).template implicitConversion<T>()) {}
 
     template <typename U>
-    explicit Value(Value<U> other)
+    explicit Value(Value<U> other) noexcept
         requires(!std::is_convertible_v<U, T>) && requires(U u) { static_cast<T>(u); }
         : Value(std::move(other).template explicitConversion<T>()) {}
 
@@ -352,7 +353,7 @@ struct Value {
      * @param constant The constant value to hold.
      * @return A Value representing the constant.
      */
-    [[nodiscard]] static Value constant(T constant) {
+    [[nodiscard]] static Value constant(T constant) noexcept {
         return Value{
             [constant]() -> T {
                 return constant;
@@ -368,7 +369,7 @@ struct Value {
      *
      * @return A read-only Value instance.
      */
-    [[nodiscard]] Value readOnly() && {
+    [[nodiscard]] Value readOnly() && noexcept {
         return Value{
             std::move(m_get),
             nullptr, // no-op
@@ -380,7 +381,7 @@ struct Value {
     /**
      * @brief Returns read-only version of Value
      */
-    [[nodiscard]] Value readOnly() const& {
+    [[nodiscard]] Value readOnly() const& noexcept {
         Value(*this).readOnly();
     }
 
@@ -391,7 +392,7 @@ struct Value {
      */
     [[nodiscard]] static Value mutableValue(T initialValue);
 
-    [[nodiscard]] static Value computed(function<T()> func) {
+    [[nodiscard]] static Value computed(function<T()> func) noexcept {
         return Value{
             std::move(func),
             nullptr, // no-op
@@ -399,7 +400,7 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<T> callback, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<T> callback, BindingAddress range) noexcept {
         return Value{
             nullptr,
             [callback = std::move(callback)](T newValue) {
@@ -410,7 +411,7 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<> callback, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<> callback, BindingAddress range) noexcept {
         return Value{
             nullptr,
             [callback = std::move(callback)](T newValue) {
@@ -421,25 +422,25 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value variable(T* pvalue);
+    [[nodiscard]] static Value variable(T* pvalue) noexcept;
 
-    [[nodiscard]] static Value variable(T* pvalue, NotifyFn notify);
+    [[nodiscard]] static Value variable(T* pvalue, NotifyFn notify) noexcept;
 
-    [[nodiscard]] static Value variable(AtomicType* pvalue)
+    [[nodiscard]] static Value variable(AtomicType* pvalue) noexcept
         requires AtomicCompatible<T>;
 
-    [[nodiscard]] static Value variable(AtomicType* pvalue, NotifyFn notify)
+    [[nodiscard]] static Value variable(AtomicType* pvalue, NotifyFn notify) noexcept
         requires AtomicCompatible<T>;
 
-    [[nodiscard]] bool isWritable() const {
+    [[nodiscard]] bool isWritable() const noexcept {
         return !m_set.empty();
     }
 
-    [[nodiscard]] bool isReadable() const {
+    [[nodiscard]] bool isReadable() const noexcept {
         return !m_get.empty();
     }
 
-    [[nodiscard]] bool hasAddress() const {
+    [[nodiscard]] bool hasAddress() const noexcept {
         return !m_srcAddresses.empty();
     }
 
@@ -455,7 +456,7 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) && {
+    Value<U> transform(Forward&& forward, Backward&& backward) && noexcept {
         return Value<U>{
             [forward = std::move(forward), get = std::move(m_get)]() -> U {
                 return forward(get());
@@ -471,7 +472,7 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<T, U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) && {
+    Value<U> transform(Forward&& forward, Backward&& backward) && noexcept {
         return Value<U>{
             [forward = std::move(forward), get = m_get]() -> U {
                 return forward(get());
@@ -486,7 +487,7 @@ struct Value {
     }
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>>
-    Value<U> transform(Forward&& forward) && {
+    Value<U> transform(Forward&& forward) && noexcept {
         return Value<U>{
             [forward = std::move(forward), get = std::move(m_get)]() -> U {
                 return forward(get());
@@ -499,8 +500,10 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<typename U::value_type> Backward>
-        Value<U> transform(Forward&& forward, Backward&& backward) && requires(!IsOptional<T>) &&
-        IsOptional<U>&& IsOptional<std::invoke_result_t<Backward, typename U::value_type>> {
+    Value<U> transform(Forward&& forward, Backward&& backward) && noexcept
+        requires(!IsOptional<T>) && IsOptional<U> &&
+                IsOptional<std::invoke_result_t<Backward, typename U::value_type>>
+    {
         return Value<U>{
             [forward = std::move(forward), get = std::move(m_get)]() -> U {
                 return forward(get());
@@ -517,23 +520,23 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) const& {
+    Value<U> transform(Forward&& forward, Backward&& backward) const& noexcept {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward), std::forward<Backward>(backward));
     }
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<T, U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) const& {
+    Value<U> transform(Forward&& forward, Backward&& backward) const& noexcept {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward), std::forward<Backward>(backward));
     }
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>>
-    Value<U> transform(Forward&& forward) const& {
+    Value<U> transform(Forward&& forward) const& noexcept {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward));
     }
 
     template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
-    friend Value<R> binary(Value left, Value right, Fn&& fn) {
+    friend Value<R> binary(Value left, Value right, Fn&& fn) noexcept {
         return Value<R>{
             [fn = std::move(fn), leftGet = std::move(left.m_get), rightGet = std::move(right.m_get)]() -> R {
                 return fn(leftGet(), rightGet());
@@ -545,7 +548,7 @@ struct Value {
     }
 
     template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
-    friend Value<R> binary(Value left, std::type_identity_t<T> right, Fn&& fn) {
+    friend Value<R> binary(Value left, std::type_identity_t<T> right, Fn&& fn) noexcept {
         return Value<R>{
             [fn = std::move(fn), leftGet = std::move(left.m_get), right = std::move(right)]() -> R {
                 return fn(leftGet(), right);
@@ -557,7 +560,7 @@ struct Value {
     }
 
     template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
-    friend Value<R> binary(std::type_identity_t<T> left, Value right, Fn&& fn) {
+    friend Value<R> binary(std::type_identity_t<T> left, Value right, Fn&& fn) noexcept {
         return Value<R>{
             [fn = std::move(fn), left = std::move(left), rightGet = std::move(right.m_get)]() -> R {
                 return fn(left, rightGet());
@@ -568,7 +571,7 @@ struct Value {
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) && {
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) && noexcept {
         return Value<bool>{
             [get = std::move(m_get), compare]() -> bool {
                 return get() == compare;
@@ -584,11 +587,11 @@ struct Value {
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) const& {
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) const& noexcept {
         return Value<T>{ *this }.equal(std::move(compare), bidirectional);
     }
 
-    Value<std::optional<T>> makeOptional() && {
+    Value<std::optional<T>> makeOptional() && noexcept {
         return Value<std::optional<T>>{
             [get = std::move(m_get)]() -> std::optional<T> {
                 return std::optional<T>(get());
@@ -602,26 +605,26 @@ struct Value {
         };
     }
 
-    Value<std::optional<T>> makeOptional() const& {
+    Value<std::optional<T>> makeOptional() const& noexcept {
         return Value<T>{ *this }.makeOptional();
     }
 
 #define BRISK_BINDING_BINARY_OP(op)                                                                          \
-    friend inline auto operator op(Value left, Value right)                                                  \
+    friend inline auto operator op(Value left, Value right) noexcept                                         \
         requires requires { left.get() op right.get(); }                                                     \
     {                                                                                                        \
         return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
             return l op r;                                                                                   \
         });                                                                                                  \
     }                                                                                                        \
-    friend inline auto operator op(Value left, T right)                                                      \
+    friend inline auto operator op(Value left, T right) noexcept                                             \
         requires requires { left.get() op right; }                                                           \
     {                                                                                                        \
         return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
             return l op r;                                                                                   \
         });                                                                                                  \
     }                                                                                                        \
-    friend inline auto operator op(T left, Value right)                                                      \
+    friend inline auto operator op(T left, Value right) noexcept                                             \
         requires requires { left op right.get(); }                                                           \
     {                                                                                                        \
         return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
@@ -630,7 +633,7 @@ struct Value {
     }
 
 #define BRISK_BINDING_PREFIX_OP(op)                                                                          \
-    friend auto operator op(Value op1)                                                                       \
+    friend auto operator op(Value op1) noexcept                                                              \
         requires requires { op op1.get(); }                                                                  \
     {                                                                                                        \
         return std::move(op1).transform(                                                                     \
@@ -681,27 +684,27 @@ struct Value {
         return m_set;
     }
 
-    const BindingAddresses& srcAddresses() const {
+    const BindingAddresses& srcAddresses() const noexcept {
         return m_srcAddresses;
     }
 
-    BindingAddresses addresses() const {
+    BindingAddresses addresses() const noexcept {
         BindingAddresses result = m_srcAddresses;
         result.push_back(m_destAddress);
         return result;
     }
 
     [[nodiscard]] explicit Value(GetFn get, SetFn set, BindingAddresses srcAddresses,
-                                 BindingAddress destAddress)
+                                 BindingAddress destAddress) noexcept
         : m_get(std::move(get)), m_set(std::move(set)), m_srcAddresses(std::move(srcAddresses)),
           m_destAddress(std::move(destAddress)) {}
 
-    [[nodiscard]] explicit Value(GetFn get, SetFn set, BindingAddress address)
+    [[nodiscard]] explicit Value(GetFn get, SetFn set, BindingAddress address) noexcept
         : m_get(std::move(get)), m_set(std::move(set)), m_srcAddresses{ address }, m_destAddress(address) {}
 
 private:
     template <typename U>
-    Value<U> implicitConversion() && {
+    Value<U> implicitConversion() && noexcept {
         if constexpr (std::is_convertible_v<U, T>) {
             return std::move(*this).transform(
                 [](T value) -> U {
@@ -746,7 +749,7 @@ template <PropertyLike U>
 Value(const U*) -> Value<typename U::Type>;
 
 template <typename... T, std::invocable<T...> Fn>
-Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) {
+Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) noexcept {
     BindingAddresses addresses;
     (addresses.insert(addresses.end(), values.srcAddresses().begin(), values.srcAddresses().end()), ...);
 
@@ -768,7 +771,7 @@ using floatingPointTypeOf = decltype(1.f * std::declval<T>());
 
 template <typename T, typename FT = Internal::floatingPointTypeOf<T>>
 Value<FT> remap(Value<T> value, std::type_identity_t<FT> min, std::type_identity_t<FT> max,
-                std::type_identity_t<FT> curvature = 1) {
+                std::type_identity_t<FT> curvature = 1) noexcept {
     return value.transform(
         [min, max, curvature](T inValue) -> FT {
             // full range to normalized
@@ -791,7 +794,7 @@ Value<FT> remap(Value<T> value, std::type_identity_t<FT> min, std::type_identity
 
 template <typename T, typename FT = Internal::floatingPointTypeOf<T>>
 Value<FT> remapLog(Value<T> value, std::type_identity_t<FT> min, std::type_identity_t<FT> max,
-                   std::type_identity_t<FT> cut = 0) {
+                   std::type_identity_t<FT> cut = 0) noexcept {
     return value.transform(
         [min, max, cut](T inValue) -> FT {
             // full range to normalized
@@ -826,14 +829,14 @@ Value<FT> remapLog(Value<T> value, std::type_identity_t<FT> min, std::type_ident
  * @endcode
  */
 template <typename T>
-Value<std::string> toString(Value<T> value, std::string fmtstr) {
+Value<std::string> toString(Value<T> value, std::string fmtstr) noexcept {
     return std::move(value).transform([fmtstr = std::move(fmtstr)](T val) -> std::string {
         return fmt::format(fmt::runtime(fmtstr), val);
     });
 }
 
 template <typename T>
-Value<std::string> toString(Value<T> value) {
+Value<std::string> toString(Value<T> value) noexcept {
     return std::move(value).transform([](T val) -> std::string {
         return fmt::to_string(val);
     });
@@ -867,7 +870,7 @@ struct BindingHandle {
     }
 
 private:
-    BindingHandle(uint64_t id) : m_id(id) {}
+    BindingHandle(uint64_t id) noexcept : m_id(id) {}
 
     friend class Bindings;
 
@@ -875,7 +878,7 @@ private:
      * @brief Generates a unique ID starting from 1.
      * @return A new unique ID.
      */
-    static uint64_t generate() {
+    static uint64_t generate() noexcept {
         static std::atomic_uint64_t value{ 0 };
         return ++value;
     }
@@ -890,18 +893,18 @@ struct BindableCallback {
 
     constexpr BindableCallback() noexcept : address{} {}
 
-    constexpr BindableCallback(Callback<Args...> callback, BindingAddress address)
+    constexpr BindableCallback(Callback<Args...> callback, BindingAddress address) noexcept
         : callback(std::move(callback)), address(address) {}
 
     template <typename Class, typename... FnArgs>
-    constexpr BindableCallback(Class* class_, void (Class::*method)(FnArgs...))
+    constexpr BindableCallback(Class* class_, void (Class::*method)(FnArgs...)) noexcept
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
           address(toBindingAddress(class_)) {}
 
     template <typename Class, typename... FnArgs>
-    constexpr BindableCallback(const Class* class_, void (Class::*method)(FnArgs...) const)
+    constexpr BindableCallback(const Class* class_, void (Class::*method)(FnArgs...) const) noexcept
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
@@ -1205,7 +1208,7 @@ public:
     };
 
     template <std::equality_comparable T>
-    ModifyProxy<T> modify(T& variable) {
+    ModifyProxy<T> modify(T& variable) noexcept {
         return ModifyProxy<T>{ this, &variable };
     }
 
@@ -1260,7 +1263,7 @@ private:
 
     using RegionList = SmallVector<Rc<Region>, 1>;
 
-    Rc<Scheduler> getQueue(const RegionList& regions) {
+    Rc<Scheduler> getQueue(const RegionList& regions) noexcept {
         for (const Rc<Region>& r : regions) {
             if (r && r->queue) {
                 return r->queue;
@@ -1383,7 +1386,7 @@ private:
     std::map<const uint8_t*, Rc<Region>> m_regions;
     std::vector<uint64_t> m_stack;
 
-    bool inStack(uint64_t id);
+    bool inStack(uint64_t id) noexcept;
 };
 
 extern AutoSingleton<Bindings> bindings;
@@ -1519,7 +1522,7 @@ using DeduceBindableCallback =
  * @return A deduced bindable callback type combining the callback and registration address.
  */
 template <typename Fn>
-inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration& reg, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration& reg, Fn callback) noexcept {
     return { std::move(callback), reg.m_address };
 }
 
@@ -1531,14 +1534,14 @@ inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration&
  * @return A deduced bindable callback type combining the callback and lifetime address.
  */
 template <typename Fn>
-inline constexpr DeduceBindableCallback<Fn> operator|(const BindingLifetime& lt, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingLifetime& lt, Fn callback) noexcept {
     return { std::move(callback), toBindingAddress(lt.m_address) };
 }
 
 template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::mutableValue(T initialValue) {
     struct RegisteredValue {
-        RegisteredValue(T value) : value(std::move(value)) {}
+        RegisteredValue(T value) noexcept : value(std::move(value)) {}
 
         T value;
         BindingRegistration registration{ this, nullptr };
@@ -1559,7 +1562,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue) {
+[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue) noexcept {
     if constexpr (std::is_const_v<T>) {
         return Value{
             [pvalue]() -> T {
@@ -1584,7 +1587,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue, NotifyFn notify) {
+[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue, NotifyFn notify) noexcept {
     static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
@@ -1601,7 +1604,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue)
+[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue) noexcept
     requires AtomicCompatible<T>
 {
     static_assert(!std::is_const_v<T>);
@@ -1619,7 +1622,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue, NotifyFn notify)
+[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue, NotifyFn notify) noexcept
     requires AtomicCompatible<T>
 {
     static_assert(!std::is_const_v<T>);
@@ -1817,7 +1820,7 @@ struct Property {
     }
 
     template <typename U>
-    static consteval bool accepts() {
+    static consteval bool accepts() noexcept {
         return requires(Class* ptr, U value) { traits().set(ptr, std::move(value)); };
     }
 
@@ -1961,12 +1964,13 @@ struct alignas(sizeof(void*)) PropFieldNotify {
     constexpr PropFieldNotify(PropFieldNotify&&) noexcept      = default;
 
     template <typename Class2>
-    constexpr PropFieldNotify(ValueType(Class::* field), void (Class2::*notify)(), const char* name = nullptr)
+    constexpr PropFieldNotify(ValueType(Class::* field), void (Class2::*notify)(),
+                              const char* name = nullptr) noexcept
         : field(field), isConst{ 0 }, notify{ static_cast<void (Class::*)()>(notify) }, name(name) {}
 
     template <typename Class2>
     constexpr PropFieldNotify(ValueType(Class::* field), void (Class2::*notifyConst)() const,
-                              const char* name = nullptr)
+                              const char* name = nullptr) noexcept
         : field(field), isConst{ 1 }, notifyConst{ static_cast<void (Class::*)() const>(notifyConst) },
           name(name) {}
 

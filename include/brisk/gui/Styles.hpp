@@ -41,12 +41,14 @@ template <PropertyTag Tag>
 struct Argument<TagWithState<Tag>> : Tag {
     using ValueType = typename Tag::Type;
 
-    constexpr ArgVal<TagWithState<Tag>> operator=(ValueType value) const {
+    constexpr ArgVal<TagWithState<Tag>> operator=(ValueType value) const
+        noexcept(std::is_nothrow_move_constructible_v<ValueType>) {
         return { std::move(value), state };
     }
 
     template <typename U>
-    constexpr ArgVal<TagWithState<Tag>, U> operator=(U value) const {
+    constexpr ArgVal<TagWithState<Tag>, U> operator=(U value) const
+        noexcept(std::is_nothrow_move_constructible_v<U>) {
         return { std::move(value), state };
     }
 
@@ -54,12 +56,12 @@ struct Argument<TagWithState<Tag>> : Tag {
 };
 
 template <PropertyTag Tag>
-Argument<TagWithState<Tag>> operator|(const Argument<Tag>& arg, WidgetState state) {
+Argument<TagWithState<Tag>> operator|(const Argument<Tag>& arg, WidgetState state) noexcept {
     return { .state = state };
 }
 
 template <PropertyTag Tag>
-Argument<TagWithState<Tag>> operator|(const Argument<TagWithState<Tag>>& arg, WidgetState state) {
+Argument<TagWithState<Tag>> operator|(const Argument<TagWithState<Tag>>& arg, WidgetState state) noexcept {
     return { .state = arg.state | state };
 }
 
@@ -156,7 +158,7 @@ struct StyleProperty {
 };
 
 template <typename Tag>
-const StyleProperty* styleProperty() {
+const StyleProperty* styleProperty() noexcept {
     static const StyleProperty& instance{ std::type_identity<Tag>{} };
     return &instance;
 }
@@ -250,7 +252,7 @@ private:
 };
 
 struct RuleCmpLess {
-    bool operator()(const Rule& x, const Rule& y) {
+    bool operator()(const Rule& x, const Rule& y) noexcept {
         if (x.name() < y.name())
             return true;
         if (x.name() > y.name())
@@ -266,7 +268,7 @@ struct RuleCmpLess {
 };
 
 struct RuleCmpEq {
-    bool operator()(const Rule& x, const Rule& y) {
+    bool operator()(const Rule& x, const Rule& y) noexcept {
         return x.id() == y.id() && x.state() == y.state();
     }
 };
@@ -286,21 +288,22 @@ constexpr inline Internal::Fn1Type<typename decltype(arg)::ValueType> styleVar =
     };
 
 template <typename Fn>
-inline auto adjustColor(Fn&& fn, float lightnessOffset, float chromaMultiplier = 1.f) {
+inline auto adjustColor(Fn&& fn, float lightnessOffset,
+                        float chromaMultiplier = 1.f) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), lightnessOffset, chromaMultiplier](Widget* w) {
         return fn(w).adjust(lightnessOffset, chromaMultiplier);
     };
 }
 
 template <typename Fn>
-inline auto transparency(Fn&& fn, float alpha) {
+inline auto transparency(Fn&& fn, float alpha) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), alpha](Widget* w) {
         return fn(w).multiplyAlpha(alpha);
     };
 }
 
 template <typename Fn>
-inline auto scaleValue(Fn&& fn, float scale) {
+inline auto scaleValue(Fn&& fn, float scale) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), scale](Widget* w) {
         return fn(w) * scale;
     };
@@ -320,7 +323,7 @@ inline auto scaleValue(Fn&& fn, float scale) {
  * @param background The background color.
  * @return The contrast ratio between the two colors.
  */
-inline float contrastRatio(ColorF foreground, ColorF background) {
+inline float contrastRatio(ColorF foreground, ColorF background) noexcept {
     float L1 = foreground.lightness();
     float L2 = background.lightness();
     if (!linearColor) {
@@ -347,7 +350,9 @@ inline float contrastRatio(ColorF foreground, ColorF background) {
  * @return A lambda that takes a `Widget*` and returns a `ColorW` (either primary or secondary color).
  */
 template <typename Fn>
-inline auto textColorFor(Fn&& fn, ColorW primary = Palette::white, ColorW secondary = Palette::black) {
+inline auto textColorFor(
+    Fn&& fn, ColorW primary = Palette::white,
+    ColorW secondary = Palette::black) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), primary, secondary](Widget* w) {
         ColorW c = fn(w);
         float c1 = contrastRatio(primary, c);
@@ -547,35 +552,35 @@ struct Last : public Nth {
 };
 
 template <Selector... Selectors>
-inline All<std::remove_cvref_t<Selectors>...> all(Selectors&&... selectors) {
+inline All<std::remove_cvref_t<Selectors>...> all(Selectors&&... selectors) noexcept {
     return { std::forward<Selectors>(selectors)... };
 }
 
 template <Selector Selector1, Selector Selector>
 inline All<std::remove_cvref_t<Selector1>, std::remove_cvref_t<Selector>> operator&&(Selector1&& x,
-                                                                                     Selector&& y) {
+                                                                                     Selector&& y) noexcept {
     return { std::forward<Selector1>(x), std::forward<Selector>(y) };
 }
 
 template <Selector Selector1, Selector Selector>
-inline All<Parent<std::remove_cvref_t<Selector1>>, std::remove_cvref_t<Selector>> operator>(Selector1&& x,
-                                                                                            Selector&& y) {
+inline All<Parent<std::remove_cvref_t<Selector1>>, std::remove_cvref_t<Selector>> operator>(
+    Selector1&& x, Selector&& y) noexcept {
     return { { std::forward<Selector1>(x) }, std::forward<Selector>(y) };
 }
 
 template <Selector... Selectors>
-inline Any<std::remove_cvref_t<Selectors>...> any(Selectors&&... selectors) {
+inline Any<std::remove_cvref_t<Selectors>...> any(Selectors&&... selectors) noexcept {
     return { std::forward<Selectors>(selectors)... };
 }
 
 template <Selector Selector1, Selector Selector>
 inline Any<std::remove_cvref_t<Selector1>, std::remove_cvref_t<Selector>> operator||(Selector1&& x,
-                                                                                     Selector&& y) {
+                                                                                     Selector&& y) noexcept {
     return { std::forward<Selector1>(x), std::forward<Selector>(y) };
 }
 
 template <Selector Selector1>
-inline Not<std::remove_cvref_t<Selector1>> operator!(Selector1&& x) {
+inline Not<std::remove_cvref_t<Selector1>> operator!(Selector1&& x) noexcept {
     return { std::forward<Selector1>(x) };
 }
 
@@ -583,8 +588,8 @@ inline Not<std::remove_cvref_t<Selector1>> operator!(Selector1&& x) {
 
 struct Selector {
     template <Selectors::Selector Sel>
-    Selector(Sel&& sel) : sel(std::make_shared<std::remove_cvref_t<Sel>>(std::move(sel))) {
-        match = [](const void* p, Widget* w, MatchFlags flags) {
+    Selector(Sel&& sel) noexcept : sel(std::make_shared<std::remove_cvref_t<Sel>>(std::move(sel))) {
+        match = [](const void* p, Widget* w, MatchFlags flags) noexcept {
             return reinterpret_cast<const std::remove_cvref_t<Sel>*>(p)->matches(w, flags);
         };
     }
@@ -600,7 +605,7 @@ private:
 };
 
 struct Rules {
-    Rules() = default;
+    Rules() noexcept = default;
     Rules(std::initializer_list<Rule> rules);
     Rules(std::vector<Rule> rules, bool doSort = false);
     void sort();

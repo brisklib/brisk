@@ -204,7 +204,7 @@ size_t Bindings::numRegions() const noexcept {
     return m_regions.size() - 1; // Exclude implicit static region
 }
 
-bool Bindings::inStack(uint64_t id) {
+bool Bindings::inStack(uint64_t id) noexcept {
     return std::find(m_stack.begin(), m_stack.end(), id) != m_stack.end();
 }
 

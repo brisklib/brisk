@@ -354,7 +354,7 @@ struct ColorOf {
      *
      * @return The computed lightness value.
      */
-    constexpr T lightness() const {
+    constexpr T lightness() const noexcept {
         return computeY<T>(r, g, b);
     }
 

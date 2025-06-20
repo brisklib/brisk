@@ -23,11 +23,11 @@
 
 namespace Brisk {
 
-static auto cosine = [](float x) -> float {
+static auto cosine = [](float x) noexcept -> float {
     return 0.5f * (1.f - std::cos(x * std::numbers::pi_v<float>));
 };
 
-static auto interp(float v, std::span<const float> list) -> float {
+static auto interp(float v, std::span<const float> list) noexcept -> float {
     v       = fract(v) * (list.size() - 1);
     float x = list[int(v)];
     if (fract(v) > 0)
