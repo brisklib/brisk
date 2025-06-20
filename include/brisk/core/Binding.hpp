@@ -1948,7 +1948,7 @@ template <typename Class, typename ValueType>
 PropField(ValueType(Class::*), const char* = nullptr) -> PropField<Class, ValueType>;
 
 template <typename Class, typename ValueType>
-struct alignas(sizeof(void*)) PropFieldNotify {
+struct PropFieldNotify {
     ValueType(Class::* field);
 
     uint32_t isConst = 0;
