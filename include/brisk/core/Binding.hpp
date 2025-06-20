@@ -27,7 +27,7 @@
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
-#include <brisk/core/internal/tuplet/Tuplet.hpp>
+#include <brisk/core/internal/tuplet/tuplet.hpp>
 
 namespace Brisk {
 
