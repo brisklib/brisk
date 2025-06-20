@@ -29,40 +29,28 @@ namespace Brisk {
 template <typename F>
 struct function;
 
-template <typename R, typename... Args>
-struct fn_base {
-    virtual ~fn_base() {}
+namespace Internal {
 
-    virtual R operator()(Args... args) = 0;
-#ifdef BRISK_RTTI
-    virtual const std::type_info& target_type() const noexcept = 0;
-    virtual void* target() noexcept                            = 0;
-#endif
+template <typename R, typename... Args>
+struct fn_vtable {
+    R (*invoke)(fn_vtable*, Args...);
 };
 
 template <typename Fn, typename R, typename... Args>
-struct fn_impl : public fn_base<R, Args...> {
-    template <typename Fn_>
-    fn_impl(Fn_ fn) : fn(std::forward<Fn_>(fn)) {}
-
-    ~fn_impl() override {}
-
-    R operator()(Args... args) override {
-        return fn(std::forward<Args>(args)...);
-    }
-
-#ifdef BRISK_RTTI
-    const std::type_info& target_type() const noexcept override {
-        return typeid(Fn);
-    }
-
-    void* target() noexcept override {
-        return &fn;
-    }
-#endif
-
+struct fn_vtable_impl : fn_vtable<R, Args...> {
     Fn fn;
+
+    template <typename F>
+    fn_vtable_impl(F&& fn) noexcept : fn(std::forward<F>(fn)) {
+        this->invoke = &fn_vtable_impl::invoke_impl;
+    }
+
+    static R invoke_impl(fn_vtable<R, Args...>* self, Args... args) {
+        return reinterpret_cast<fn_vtable_impl*>(self)->fn(std::forward<Args>(args)...);
+    }
 };
+
+} // namespace Internal
 
 template <typename R, typename... Args>
 struct function<R(Args...)> {
@@ -72,47 +60,33 @@ struct function<R(Args...)> {
 
     template <typename Fn>
         requires(std::is_invocable_r_v<R, Fn, Args...> && !std::is_same_v<std::decay_t<Fn>, function>)
-    function(Fn fn) : impl(new fn_impl<std::decay_t<Fn>, R, Args...>(std::move(fn))) {}
+    function(Fn fn) : impl(new Internal::fn_vtable_impl<std::decay_t<Fn>, R, Args...>(std::move(fn))) {}
 
-    function(const function&)                = default;
+    function(const function&) noexcept            = default;
 
-    function(function&&) noexcept            = default;
+    function(function&&) noexcept                 = default;
 
-    function& operator=(const function&)     = default;
+    function& operator=(const function&) noexcept = default;
 
-    function& operator=(function&&) noexcept = default;
+    function& operator=(function&&) noexcept      = default;
 
     R operator()(Args... args) const {
+        auto impl = this->impl.get();
         if (impl) {
-            return impl->operator()(std::forward<Args>(args)...);
+            return impl->invoke(impl, std::forward<Args>(args)...);
         }
         throwException(std::bad_function_call());
     }
 
-    [[nodiscard]] explicit operator bool() const {
+    [[nodiscard]] explicit operator bool() const noexcept {
         return !!impl;
     }
 
-    [[nodiscard]] bool empty() const {
+    [[nodiscard]] bool empty() const noexcept {
         return !impl;
     }
 
-    std::shared_ptr<fn_base<R, Args...>> impl;
-
-#ifdef BRISK_RTTI
-    const std::type_info& target_type() const noexcept {
-        return impl->target_type();
-    }
-
-    template <typename T>
-    T* target() const noexcept {
-        if (impl->target_type() == typeid(T)) {
-            return reinterpret_cast<T*>(impl->target());
-        } else {
-            return nullptr;
-        }
-    }
-#endif
+    std::shared_ptr<Internal::fn_vtable<R, Args...>> impl;
 
     bool operator==(const function& fn) const noexcept {
         return impl == fn.impl;
