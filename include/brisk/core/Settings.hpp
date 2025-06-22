@@ -104,5 +104,5 @@ public:
     BRISK_PROPERTIES_END
 };
 
-extern Settings* settings;
+extern Nullable<Settings> settings;
 } // namespace Brisk

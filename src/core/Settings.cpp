@@ -26,7 +26,7 @@
 
 namespace Brisk {
 
-Settings* settings = nullptr;
+Nullable<Settings> settings;
 
 Settings::Settings() {}
 
