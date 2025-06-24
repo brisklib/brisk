@@ -94,7 +94,7 @@ public:
 };
 
 inline namespace Arg {
-constexpr inline Argument<Tag::PropArg<decltype(Plot::lineColor)>> lineColor{};
+constexpr inline PropArgument<decltype(Plot::lineColor)> lineColor{};
 }
 
 static Rc<Widget> plot(Value<Trigger<>> updated, Value<Normalized> value, ColorW color, Value<bool> showPlot,

@@ -1799,6 +1799,10 @@ struct Property {
     }
 
     operator PropertyId() const noexcept {
+        return id();
+    }
+
+    static PropertyId id() noexcept {
         return { &traits() };
     }
 

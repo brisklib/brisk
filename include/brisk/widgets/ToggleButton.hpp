@@ -87,7 +87,7 @@ inline namespace Arg {
 #define BRISK__VALUE_ARG_DEFINED
 constexpr inline Argument<Tag::Named<"value">> value{};
 #endif
-constexpr inline Argument<Tag::PropArg<decltype(ToggleButton::twoState)>> twoState{};
+constexpr inline PropArgument<decltype(ToggleButton::twoState)> twoState{};
 } // namespace Arg
 
 } // namespace Brisk

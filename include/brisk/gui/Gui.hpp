@@ -364,11 +364,8 @@ void fixClone(U* ptr) noexcept {
 
 namespace Tag {
 
-template <typename PropertyType>
-struct PropArg;
-
 template <typename Class, typename T, PropertyIndex index>
-struct PropArg<Property<Class, T, index>> : PropertyTag {
+struct PropArg : PropertyTag {
     using Type = T;
 
     static std::string_view name() noexcept {
@@ -376,22 +373,34 @@ struct PropArg<Property<Class, T, index>> : PropertyTag {
     }
 };
 
+template <typename PropertyType>
+struct PropArgT;
+
+template <typename Class, typename T, PropertyIndex index>
+struct PropArgT<Property<Class, T, index>> {
+    using Type = PropArg<Class, T, index>;
+};
+
 } // namespace Tag
 
-template <std::derived_from<Widget> Target, typename PropertyType, typename... Args>
-inline void applier(Target* target,
-                    const ArgVal<Tag::PropArg<PropertyType>, BindableCallback<Args...>>& value) {
+template <typename PropertyType>
+using PropArgument = Argument<typename Tag::PropArgT<PropertyType>::Type>;
+
+template <typename Class, typename T, PropertyIndex index, typename... Args>
+inline void applier(std::type_identity_t<Class>* target,
+                    const ArgVal<Tag::PropArg<Class, T, index>, BindableCallback<Args...>>& value) {
     BRISK_ASSERT(target);
     BRISK_ASSUME(target);
-    PropertyType prop{ target };
+    Property<Class, T, index> prop{ target };
     prop.listen(value.value.callback, value.value.address, BindType::Default);
 }
 
-template <std::derived_from<Widget> Target, typename PropertyType, typename U>
-inline void applier(Target* target, const ArgVal<Tag::PropArg<PropertyType>, U>& value)
-    requires(!Internal::isTrigger<typename PropertyType::Type>)
+template <typename Class, typename T, PropertyIndex index, typename U>
+inline void applier(std::type_identity_t<Class>* target,
+                    const ArgVal<Tag::PropArg<Class, T, index>, U>& value)
+    requires(!Internal::isTrigger<T>)
 {
-    PropertyType prop{ target };
+    Property<Class, T, index> prop{ target };
     prop.set(value.value);
 }
 
@@ -1653,129 +1662,129 @@ inline WidgetActions storeWidget(std::weak_ptr<WidgetType>* ptr) {
 
 inline namespace Arg {
 
-extern const Argument<Tag::PropArg<decltype(Widget::absolutePosition)>> absolutePosition;
-extern const Argument<Tag::PropArg<decltype(Widget::alignContent)>> alignContent;
-extern const Argument<Tag::PropArg<decltype(Widget::alignItems)>> alignItems;
-extern const Argument<Tag::PropArg<decltype(Widget::alignSelf)>> alignSelf;
-extern const Argument<Tag::PropArg<decltype(Widget::anchor)>> anchor;
-extern const Argument<Tag::PropArg<decltype(Widget::aspect)>> aspect;
-extern const Argument<Tag::PropArg<decltype(Widget::backgroundColorEasing)>> backgroundColorEasing;
-extern const Argument<Tag::PropArg<decltype(Widget::backgroundColorTransition)>> backgroundColorTransition;
-extern const Argument<Tag::PropArg<decltype(Widget::backgroundColor)>> backgroundColor;
-extern const Argument<Tag::PropArg<decltype(Widget::borderColorEasing)>> borderColorEasing;
-extern const Argument<Tag::PropArg<decltype(Widget::borderColorTransition)>> borderColorTransition;
-extern const Argument<Tag::PropArg<decltype(Widget::borderColor)>> borderColor;
-extern const Argument<Tag::PropArg<decltype(Widget::borderRadius)>> borderRadius;
-extern const Argument<Tag::PropArg<decltype(Widget::borderWidth)>> borderWidth;
-extern const Argument<Tag::PropArg<decltype(Widget::clip)>> clip;
-extern const Argument<Tag::PropArg<decltype(Widget::colorEasing)>> colorEasing;
-extern const Argument<Tag::PropArg<decltype(Widget::colorTransition)>> colorTransition;
-extern const Argument<Tag::PropArg<decltype(Widget::color)>> color;
-extern const Argument<Tag::PropArg<decltype(Widget::cursor)>> cursor;
-extern const Argument<Tag::PropArg<decltype(Widget::dimensions)>> dimensions;
-extern const Argument<Tag::PropArg<decltype(Widget::flexBasis)>> flexBasis;
-extern const Argument<Tag::PropArg<decltype(Widget::flexGrow)>> flexGrow;
-extern const Argument<Tag::PropArg<decltype(Widget::flexShrink)>> flexShrink;
-extern const Argument<Tag::PropArg<decltype(Widget::flexWrap)>> flexWrap;
-extern const Argument<Tag::PropArg<decltype(Widget::fontFamily)>> fontFamily;
-extern const Argument<Tag::PropArg<decltype(Widget::fontSize)>> fontSize;
-extern const Argument<Tag::PropArg<decltype(Widget::fontStyle)>> fontStyle;
-extern const Argument<Tag::PropArg<decltype(Widget::fontWeight)>> fontWeight;
-extern const Argument<Tag::PropArg<decltype(Widget::gap)>> gap;
-extern const Argument<Tag::PropArg<decltype(Widget::hidden)>> hidden;
-extern const Argument<Tag::PropArg<decltype(Widget::justifyContent)>> justifyContent;
-extern const Argument<Tag::PropArg<decltype(Widget::layoutOrder)>> layoutOrder;
-extern const Argument<Tag::PropArg<decltype(Widget::layout)>> layout;
-extern const Argument<Tag::PropArg<decltype(Widget::letterSpacing)>> letterSpacing;
-extern const Argument<Tag::PropArg<decltype(Widget::margin)>> margin;
-extern const Argument<Tag::PropArg<decltype(Widget::maxDimensions)>> maxDimensions;
-extern const Argument<Tag::PropArg<decltype(Widget::minDimensions)>> minDimensions;
-extern const Argument<Tag::PropArg<decltype(Widget::opacity)>> opacity;
-extern const Argument<Tag::PropArg<decltype(Widget::overflowScrollX)>> overflowScrollX;
-extern const Argument<Tag::PropArg<decltype(Widget::overflowScrollY)>> overflowScrollY;
-extern const Argument<Tag::PropArg<decltype(Widget::overflowScroll)>> overflowScroll;
-extern const Argument<Tag::PropArg<decltype(Widget::contentOverflowX)>> contentOverflowX;
-extern const Argument<Tag::PropArg<decltype(Widget::contentOverflowY)>> contentOverflowY;
-extern const Argument<Tag::PropArg<decltype(Widget::contentOverflow)>> contentOverflow;
-extern const Argument<Tag::PropArg<decltype(Widget::padding)>> padding;
-extern const Argument<Tag::PropArg<decltype(Widget::placement)>> placement;
-extern const Argument<Tag::PropArg<decltype(Widget::shadowSize)>> shadowSize;
-extern const Argument<Tag::PropArg<decltype(Widget::shadowOffset)>> shadowOffset;
-extern const Argument<Tag::PropArg<decltype(Widget::shadowColor)>> shadowColor;
-extern const Argument<Tag::PropArg<decltype(Widget::shadowColorTransition)>> shadowColorTransition;
-extern const Argument<Tag::PropArg<decltype(Widget::shadowColorEasing)>> shadowColorEasing;
-extern const Argument<Tag::PropArg<decltype(Widget::tabSize)>> tabSize;
-extern const Argument<Tag::PropArg<decltype(Widget::textAlign)>> textAlign;
-extern const Argument<Tag::PropArg<decltype(Widget::textVerticalAlign)>> textVerticalAlign;
-extern const Argument<Tag::PropArg<decltype(Widget::textDecoration)>> textDecoration;
-extern const Argument<Tag::PropArg<decltype(Widget::translate)>> translate;
-extern const Argument<Tag::PropArg<decltype(Widget::visible)>> visible;
-extern const Argument<Tag::PropArg<decltype(Widget::wordSpacing)>> wordSpacing;
-extern const Argument<Tag::PropArg<decltype(Widget::alignToViewport)>> alignToViewport;
-extern const Argument<Tag::PropArg<decltype(Widget::stateTriggersRestyle)>> stateTriggersRestyle;
-extern const Argument<Tag::PropArg<decltype(Widget::id)>> id;
-extern const Argument<Tag::PropArg<decltype(Widget::role)>> role;
-extern const Argument<Tag::PropArg<decltype(Widget::classes)>> classes;
-extern const Argument<Tag::PropArg<decltype(Widget::mouseInteraction)>> mouseInteraction;
-extern const Argument<Tag::PropArg<decltype(Widget::mousePassThrough)>> mousePassThrough;
-extern const Argument<Tag::PropArg<decltype(Widget::autoMouseCapture)>> autoMouseCapture;
-extern const Argument<Tag::PropArg<decltype(Widget::mouseAnywhere)>> mouseAnywhere;
-extern const Argument<Tag::PropArg<decltype(Widget::focusCapture)>> focusCapture;
-extern const Argument<Tag::PropArg<decltype(Widget::isHintVisible)>> isHintVisible;
-extern const Argument<Tag::PropArg<decltype(Widget::tabStop)>> tabStop;
-extern const Argument<Tag::PropArg<decltype(Widget::tabGroup)>> tabGroup;
-extern const Argument<Tag::PropArg<decltype(Widget::autofocus)>> autofocus;
-extern const Argument<Tag::PropArg<decltype(Widget::autoHint)>> autoHint;
-extern const Argument<Tag::PropArg<decltype(Widget::squircleCorners)>> squircleCorners;
-extern const Argument<Tag::PropArg<decltype(Widget::delegate)>> delegate;
-extern const Argument<Tag::PropArg<decltype(Widget::hint)>> hint;
-extern const Argument<Tag::PropArg<decltype(Widget::zorder)>> zorder;
-extern const Argument<Tag::PropArg<decltype(Widget::stylesheet)>> stylesheet;
-extern const Argument<Tag::PropArg<decltype(Widget::painter)>> painter;
-extern const Argument<Tag::PropArg<decltype(Widget::isHintExclusive)>> isHintExclusive;
+extern const PropArgument<decltype(Widget::absolutePosition)> absolutePosition;
+extern const PropArgument<decltype(Widget::alignContent)> alignContent;
+extern const PropArgument<decltype(Widget::alignItems)> alignItems;
+extern const PropArgument<decltype(Widget::alignSelf)> alignSelf;
+extern const PropArgument<decltype(Widget::anchor)> anchor;
+extern const PropArgument<decltype(Widget::aspect)> aspect;
+extern const PropArgument<decltype(Widget::backgroundColorEasing)> backgroundColorEasing;
+extern const PropArgument<decltype(Widget::backgroundColorTransition)> backgroundColorTransition;
+extern const PropArgument<decltype(Widget::backgroundColor)> backgroundColor;
+extern const PropArgument<decltype(Widget::borderColorEasing)> borderColorEasing;
+extern const PropArgument<decltype(Widget::borderColorTransition)> borderColorTransition;
+extern const PropArgument<decltype(Widget::borderColor)> borderColor;
+extern const PropArgument<decltype(Widget::borderRadius)> borderRadius;
+extern const PropArgument<decltype(Widget::borderWidth)> borderWidth;
+extern const PropArgument<decltype(Widget::clip)> clip;
+extern const PropArgument<decltype(Widget::colorEasing)> colorEasing;
+extern const PropArgument<decltype(Widget::colorTransition)> colorTransition;
+extern const PropArgument<decltype(Widget::color)> color;
+extern const PropArgument<decltype(Widget::cursor)> cursor;
+extern const PropArgument<decltype(Widget::dimensions)> dimensions;
+extern const PropArgument<decltype(Widget::flexBasis)> flexBasis;
+extern const PropArgument<decltype(Widget::flexGrow)> flexGrow;
+extern const PropArgument<decltype(Widget::flexShrink)> flexShrink;
+extern const PropArgument<decltype(Widget::flexWrap)> flexWrap;
+extern const PropArgument<decltype(Widget::fontFamily)> fontFamily;
+extern const PropArgument<decltype(Widget::fontSize)> fontSize;
+extern const PropArgument<decltype(Widget::fontStyle)> fontStyle;
+extern const PropArgument<decltype(Widget::fontWeight)> fontWeight;
+extern const PropArgument<decltype(Widget::gap)> gap;
+extern const PropArgument<decltype(Widget::hidden)> hidden;
+extern const PropArgument<decltype(Widget::justifyContent)> justifyContent;
+extern const PropArgument<decltype(Widget::layoutOrder)> layoutOrder;
+extern const PropArgument<decltype(Widget::layout)> layout;
+extern const PropArgument<decltype(Widget::letterSpacing)> letterSpacing;
+extern const PropArgument<decltype(Widget::margin)> margin;
+extern const PropArgument<decltype(Widget::maxDimensions)> maxDimensions;
+extern const PropArgument<decltype(Widget::minDimensions)> minDimensions;
+extern const PropArgument<decltype(Widget::opacity)> opacity;
+extern const PropArgument<decltype(Widget::overflowScrollX)> overflowScrollX;
+extern const PropArgument<decltype(Widget::overflowScrollY)> overflowScrollY;
+extern const PropArgument<decltype(Widget::overflowScroll)> overflowScroll;
+extern const PropArgument<decltype(Widget::contentOverflowX)> contentOverflowX;
+extern const PropArgument<decltype(Widget::contentOverflowY)> contentOverflowY;
+extern const PropArgument<decltype(Widget::contentOverflow)> contentOverflow;
+extern const PropArgument<decltype(Widget::padding)> padding;
+extern const PropArgument<decltype(Widget::placement)> placement;
+extern const PropArgument<decltype(Widget::shadowSize)> shadowSize;
+extern const PropArgument<decltype(Widget::shadowOffset)> shadowOffset;
+extern const PropArgument<decltype(Widget::shadowColor)> shadowColor;
+extern const PropArgument<decltype(Widget::shadowColorTransition)> shadowColorTransition;
+extern const PropArgument<decltype(Widget::shadowColorEasing)> shadowColorEasing;
+extern const PropArgument<decltype(Widget::tabSize)> tabSize;
+extern const PropArgument<decltype(Widget::textAlign)> textAlign;
+extern const PropArgument<decltype(Widget::textVerticalAlign)> textVerticalAlign;
+extern const PropArgument<decltype(Widget::textDecoration)> textDecoration;
+extern const PropArgument<decltype(Widget::translate)> translate;
+extern const PropArgument<decltype(Widget::visible)> visible;
+extern const PropArgument<decltype(Widget::wordSpacing)> wordSpacing;
+extern const PropArgument<decltype(Widget::alignToViewport)> alignToViewport;
+extern const PropArgument<decltype(Widget::stateTriggersRestyle)> stateTriggersRestyle;
+extern const PropArgument<decltype(Widget::id)> id;
+extern const PropArgument<decltype(Widget::role)> role;
+extern const PropArgument<decltype(Widget::classes)> classes;
+extern const PropArgument<decltype(Widget::mouseInteraction)> mouseInteraction;
+extern const PropArgument<decltype(Widget::mousePassThrough)> mousePassThrough;
+extern const PropArgument<decltype(Widget::autoMouseCapture)> autoMouseCapture;
+extern const PropArgument<decltype(Widget::mouseAnywhere)> mouseAnywhere;
+extern const PropArgument<decltype(Widget::focusCapture)> focusCapture;
+extern const PropArgument<decltype(Widget::isHintVisible)> isHintVisible;
+extern const PropArgument<decltype(Widget::tabStop)> tabStop;
+extern const PropArgument<decltype(Widget::tabGroup)> tabGroup;
+extern const PropArgument<decltype(Widget::autofocus)> autofocus;
+extern const PropArgument<decltype(Widget::autoHint)> autoHint;
+extern const PropArgument<decltype(Widget::squircleCorners)> squircleCorners;
+extern const PropArgument<decltype(Widget::delegate)> delegate;
+extern const PropArgument<decltype(Widget::hint)> hint;
+extern const PropArgument<decltype(Widget::zorder)> zorder;
+extern const PropArgument<decltype(Widget::stylesheet)> stylesheet;
+extern const PropArgument<decltype(Widget::painter)> painter;
+extern const PropArgument<decltype(Widget::isHintExclusive)> isHintExclusive;
 
-extern const Argument<Tag::PropArg<decltype(Widget::borderRadiusTopLeft)>> borderRadiusTopLeft;
-extern const Argument<Tag::PropArg<decltype(Widget::borderRadiusTopRight)>> borderRadiusTopRight;
-extern const Argument<Tag::PropArg<decltype(Widget::borderRadiusBottomLeft)>> borderRadiusBottomLeft;
-extern const Argument<Tag::PropArg<decltype(Widget::borderRadiusBottomRight)>> borderRadiusBottomRight;
+extern const PropArgument<decltype(Widget::borderRadiusTopLeft)> borderRadiusTopLeft;
+extern const PropArgument<decltype(Widget::borderRadiusTopRight)> borderRadiusTopRight;
+extern const PropArgument<decltype(Widget::borderRadiusBottomLeft)> borderRadiusBottomLeft;
+extern const PropArgument<decltype(Widget::borderRadiusBottomRight)> borderRadiusBottomRight;
 
-extern const Argument<Tag::PropArg<decltype(Widget::borderWidthLeft)>> borderWidthLeft;
-extern const Argument<Tag::PropArg<decltype(Widget::borderWidthTop)>> borderWidthTop;
-extern const Argument<Tag::PropArg<decltype(Widget::borderWidthRight)>> borderWidthRight;
-extern const Argument<Tag::PropArg<decltype(Widget::borderWidthBottom)>> borderWidthBottom;
+extern const PropArgument<decltype(Widget::borderWidthLeft)> borderWidthLeft;
+extern const PropArgument<decltype(Widget::borderWidthTop)> borderWidthTop;
+extern const PropArgument<decltype(Widget::borderWidthRight)> borderWidthRight;
+extern const PropArgument<decltype(Widget::borderWidthBottom)> borderWidthBottom;
 
-extern const Argument<Tag::PropArg<decltype(Widget::marginLeft)>> marginLeft;
-extern const Argument<Tag::PropArg<decltype(Widget::marginTop)>> marginTop;
-extern const Argument<Tag::PropArg<decltype(Widget::marginRight)>> marginRight;
-extern const Argument<Tag::PropArg<decltype(Widget::marginBottom)>> marginBottom;
+extern const PropArgument<decltype(Widget::marginLeft)> marginLeft;
+extern const PropArgument<decltype(Widget::marginTop)> marginTop;
+extern const PropArgument<decltype(Widget::marginRight)> marginRight;
+extern const PropArgument<decltype(Widget::marginBottom)> marginBottom;
 
-extern const Argument<Tag::PropArg<decltype(Widget::paddingLeft)>> paddingLeft;
-extern const Argument<Tag::PropArg<decltype(Widget::paddingTop)>> paddingTop;
-extern const Argument<Tag::PropArg<decltype(Widget::paddingRight)>> paddingRight;
-extern const Argument<Tag::PropArg<decltype(Widget::paddingBottom)>> paddingBottom;
+extern const PropArgument<decltype(Widget::paddingLeft)> paddingLeft;
+extern const PropArgument<decltype(Widget::paddingTop)> paddingTop;
+extern const PropArgument<decltype(Widget::paddingRight)> paddingRight;
+extern const PropArgument<decltype(Widget::paddingBottom)> paddingBottom;
 
-extern const Argument<Tag::PropArg<decltype(Widget::width)>> width;
-extern const Argument<Tag::PropArg<decltype(Widget::height)>> height;
-extern const Argument<Tag::PropArg<decltype(Widget::maxWidth)>> maxWidth;
-extern const Argument<Tag::PropArg<decltype(Widget::maxHeight)>> maxHeight;
-extern const Argument<Tag::PropArg<decltype(Widget::minWidth)>> minWidth;
-extern const Argument<Tag::PropArg<decltype(Widget::minHeight)>> minHeight;
+extern const PropArgument<decltype(Widget::width)> width;
+extern const PropArgument<decltype(Widget::height)> height;
+extern const PropArgument<decltype(Widget::maxWidth)> maxWidth;
+extern const PropArgument<decltype(Widget::maxHeight)> maxHeight;
+extern const PropArgument<decltype(Widget::minWidth)> minWidth;
+extern const PropArgument<decltype(Widget::minHeight)> minHeight;
 
-extern const Argument<Tag::PropArg<decltype(Widget::gapColumn)>> gapColumn;
-extern const Argument<Tag::PropArg<decltype(Widget::gapRow)>> gapRow;
+extern const PropArgument<decltype(Widget::gapColumn)> gapColumn;
+extern const PropArgument<decltype(Widget::gapRow)> gapRow;
 
-extern const Argument<Tag::PropArg<decltype(Widget::fontFeatures)>> fontFeatures;
+extern const PropArgument<decltype(Widget::fontFeatures)> fontFeatures;
 
-extern const Argument<Tag::PropArg<decltype(Widget::scrollBarColor)>> scrollBarColor;
-extern const Argument<Tag::PropArg<decltype(Widget::scrollBarThickness)>> scrollBarThickness;
-extern const Argument<Tag::PropArg<decltype(Widget::scrollBarRadius)>> scrollBarRadius;
-extern const Argument<Tag::PropArg<decltype(Widget::shadowSpread)>> shadowSpread;
+extern const PropArgument<decltype(Widget::scrollBarColor)> scrollBarColor;
+extern const PropArgument<decltype(Widget::scrollBarThickness)> scrollBarThickness;
+extern const PropArgument<decltype(Widget::scrollBarRadius)> scrollBarRadius;
+extern const PropArgument<decltype(Widget::shadowSpread)> shadowSpread;
 
-constexpr inline Argument<Tag::PropArg<decltype(Widget::onClick)>> onClick{};
-constexpr inline Argument<Tag::PropArg<decltype(Widget::onDoubleClick)>> onDoubleClick{};
+constexpr inline PropArgument<decltype(Widget::onClick)> onClick{};
+constexpr inline PropArgument<decltype(Widget::onDoubleClick)> onDoubleClick{};
 
-constexpr inline Argument<Tag::PropArg<decltype(Widget::enabled)>> enabled{};
-constexpr inline Argument<Tag::PropArg<decltype(Widget::selected)>> selected{};
+constexpr inline PropArgument<decltype(Widget::enabled)> enabled{};
+constexpr inline PropArgument<decltype(Widget::selected)> selected{};
 
 } // namespace Arg
 

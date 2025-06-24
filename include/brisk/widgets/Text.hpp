@@ -142,11 +142,11 @@ inline namespace Arg {
 #define BRISK__TEXT_ARG_DEFINED
 constexpr inline Argument<Tag::Named<"text">> text{};
 #endif
-constexpr inline Argument<Tag::PropArg<decltype(Text::rotation)>> rotation{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSize)>> textAutoSize{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSizeRange)>> textAutoSizeRange{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::wordWrap)>> wordWrap{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::textOptions)>> textOptions{};
+constexpr inline PropArgument<decltype(Text::rotation)> rotation{};
+constexpr inline PropArgument<decltype(Text::textAutoSize)> textAutoSize{};
+constexpr inline PropArgument<decltype(Text::textAutoSizeRange)> textAutoSizeRange{};
+constexpr inline PropArgument<decltype(Text::wordWrap)> wordWrap{};
+constexpr inline PropArgument<decltype(Text::textOptions)> textOptions{};
 } // namespace Arg
 
 class WIDGET BackStrikedText final : public Text {

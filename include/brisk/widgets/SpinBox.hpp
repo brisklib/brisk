@@ -85,7 +85,7 @@ public:
 };
 
 inline namespace Arg {
-constexpr inline Argument<Tag::PropArg<decltype(SpinBox::valueFormatter)>> valueFormatter{};
+constexpr inline PropArgument<decltype(SpinBox::valueFormatter)> valueFormatter{};
 }
 
 } // namespace Brisk

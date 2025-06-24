@@ -92,10 +92,10 @@ public:
 ;
 
 inline namespace Arg {
-constexpr inline Argument<Tag::PropArg<decltype(Button::repeatDelay)>> repeatDelay{};
-constexpr inline Argument<Tag::PropArg<decltype(Button::repeatInterval)>> repeatInterval{};
-constexpr inline Argument<Tag::PropArg<decltype(Button::clickEvent)>> clickEvent{};
-constexpr inline Argument<Tag::PropArg<decltype(Button::keyEvents)>> keyEvents{};
+constexpr inline PropArgument<decltype(Button::repeatDelay)> repeatDelay{};
+constexpr inline PropArgument<decltype(Button::repeatInterval)> repeatInterval{};
+constexpr inline PropArgument<decltype(Button::clickEvent)> clickEvent{};
+constexpr inline PropArgument<decltype(Button::keyEvents)> keyEvents{};
 } // namespace Arg
 
 } // namespace Brisk

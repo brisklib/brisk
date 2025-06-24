@@ -66,7 +66,7 @@ public:
 };
 
 inline namespace Arg {
-constexpr inline Argument<Tag::PropArg<decltype(Menu::onItemClick)>> onItemClick{};
+constexpr inline PropArgument<decltype(Menu::onItemClick)> onItemClick{};
 }
 
 } // namespace Brisk

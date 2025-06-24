@@ -134,10 +134,10 @@ public:
 
 inline namespace Arg {
 constexpr inline Argument<Tag::Named<"checked">> checked{};
-constexpr inline Argument<Tag::PropArg<decltype(Item::checkable)>> checkable{};
-constexpr inline Argument<Tag::PropArg<decltype(Item::closesPopup)>> closesPopup{};
-constexpr inline Argument<Tag::PropArg<decltype(Item::focusOnHover)>> focusOnHover{};
-constexpr inline Argument<Tag::PropArg<decltype(Item::selectOnFocus)>> selectOnFocus{};
+constexpr inline PropArgument<decltype(Item::checkable)> checkable{};
+constexpr inline PropArgument<decltype(Item::closesPopup)> closesPopup{};
+constexpr inline PropArgument<decltype(Item::focusOnHover)> focusOnHover{};
+constexpr inline PropArgument<decltype(Item::selectOnFocus)> selectOnFocus{};
 constexpr inline Argument<Tag::Named<"icon">> icon{};
 } // namespace Arg
 

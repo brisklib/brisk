@@ -150,10 +150,10 @@ inline namespace Arg {
 #define BRISK__TEXT_ARG_DEFINED
 constexpr inline Argument<Tag::Named<"text">> text{};
 #endif
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::onEnter)>> onEnter{};
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::multiline)>> multiline{};
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::placeholder)>> placeholder{};
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::passwordChar)>> passwordChar{};
+constexpr inline PropArgument<decltype(TextEditor::onEnter)> onEnter{};
+constexpr inline PropArgument<decltype(TextEditor::multiline)> multiline{};
+constexpr inline PropArgument<decltype(TextEditor::placeholder)> placeholder{};
+constexpr inline PropArgument<decltype(TextEditor::passwordChar)> passwordChar{};
 } // namespace Arg
 
 inline constexpr char32_t defaultPasswordChar = U'\U00002022';

@@ -173,8 +173,8 @@ constexpr inline Argument<Tag::Named<"step">> step{};
 constexpr inline Argument<Tag::Named<"pageStep">> pageStep{};
 constexpr inline Argument<Tag::Named<"snap">> snap{};
 
-constexpr inline Argument<Tag::PropArg<decltype(ValueWidget::wheelModifiers)>> wheelModifiers{};
-constexpr inline Argument<Tag::PropArg<decltype(ValueWidget::hintFormatter)>> hintFormatter{};
+constexpr inline PropArgument<decltype(ValueWidget::wheelModifiers)> wheelModifiers{};
+constexpr inline PropArgument<decltype(ValueWidget::hintFormatter)> hintFormatter{};
 
 } // namespace Arg
 } // namespace Brisk
