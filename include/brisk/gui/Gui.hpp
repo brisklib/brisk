@@ -110,10 +110,6 @@ constexpr bool isInheritable(PropFlags flags) noexcept {
     return flags && PropFlags::Inheritable;
 }
 
-constexpr bool isTransition(PropFlags flags) noexcept {
-    return flags && PropFlags::Transition;
-}
-
 constexpr bool isResolvable(PropFlags flags) noexcept {
     return flags && PropFlags::Resolvable;
 }
@@ -1033,7 +1029,7 @@ protected:
     PointL m_absolutePosition{ undef, undef }; // for popup only
     PointL m_anchor{ undef, undef };           // for popup only
     PointL m_translate{ 0, 0 };                // translation relative to own size
-    PointF m_shadowOffset{ 0, 0 };
+    Animated<PointF> m_shadowOffset{ PointF{ 0, 0 } };
 
     // pointers
     Widget* m_parent               = nullptr;
@@ -1046,12 +1042,12 @@ protected:
     OptFloat m_flexGrow            = undef;
     OptFloat m_flexShrink          = undef;
     OptFloat m_aspect              = undef;
-    float m_opacity                = 1.f;
-    float m_shadowSpread           = 0;
+    Animated<float> m_opacity{ 1.f };
+    Animated<float> m_shadowSpread{ 0 };
 
     // int
-    Cursor m_cursor                = Cursor::NotSet;
-    int m_tabGroupId               = -1;
+    Cursor m_cursor  = Cursor::NotSet;
+    int m_tabGroupId = -1;
 
     Internal::Resolve m_shadowSize{ 0_px };
     Internal::Resolve m_fontSize{ FontSize::Normal, dp(FontSize::Normal) };
@@ -1386,7 +1382,7 @@ public:
         /* 17 */ int,
         /* 18 */ int,
         /* 19 */ Internal::GuiProp<Widget, Animated<ColorW>>,
-        /* 20 */ Internal::GuiProp<Widget, PointF>,
+        /* 20 */ Internal::GuiProp<Widget, Animated<PointF>>,
         /* 21 */ Internal::GuiProp<Widget, Cursor>,
         /* 22 */ Internal::GuiProp<Widget, Length>,
         /* 23 */ Internal::GuiProp<Widget, OptFloat>,
@@ -1401,7 +1397,7 @@ public:
         /* 32 */ Internal::GuiProp<Widget, LayoutOrder>,
         /* 33 */ Internal::GuiProp<Widget, Layout>,
         /* 34 */ Internal::GuiProp<Widget, Internal::Resolve>,
-        /* 35 */ Internal::GuiProp<Widget, float>,
+        /* 35 */ Internal::GuiProp<Widget, Animated<float>>,
         /* 36 */ Internal::GuiProp<Widget, Placement>,
         /* 37 */ Internal::GuiProp<Widget, Internal::Resolve>,
         /* 38 */ Internal::GuiProp<Widget, Animated<ColorW>>,
@@ -1441,7 +1437,7 @@ public:
         /* 72 */ Internal::GuiProp<Widget, Animated<ColorW>>,
         /* 73 */ Internal::GuiProp<Widget, Internal::Resolve>,
         /* 74 */ Internal::GuiProp<Widget, Internal::Resolve>,
-        /* 75 */ Internal::GuiProp<Widget, float>,
+        /* 75 */ Internal::GuiProp<Widget, Animated<float>>,
         /* 76 */ Internal::GuiProp<Widget, Internal::Resolve>,
         /* 77 */ Internal::GuiProp<Widget, Internal::Resolve>,
         /* 78 */ Internal::GuiProp<Widget, Internal::Resolve>,

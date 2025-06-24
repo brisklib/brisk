@@ -2347,8 +2347,8 @@ void boxPainter(Canvas& canvas, const Widget& widget) {
 }
 
 void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
-    ColorW m_backgroundColor = widget.backgroundColor.current().multiplyAlpha(widget.opacity.get());
-    ColorW m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.get());
+    ColorW m_backgroundColor = widget.backgroundColor.current().multiplyAlpha(widget.opacity.current());
+    ColorW m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.current());
 
     if (widget.shadowSize.current() > 0) {
         auto&& clipRect = canvas.saveClipRect();
@@ -2359,11 +2359,11 @@ void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
                 *clipRect = RectangleF(widget.parent()->clipRect());
         }
 
-        canvas.setFillColor(widget.shadowColor.current().multiplyAlpha(widget.opacity.get()));
+        canvas.setFillColor(widget.shadowColor.current().multiplyAlpha(widget.opacity.current()));
         canvas.blurRect(rect.withOffset(scalePixels(widget.shadowOffset))
-                            .withMargin(scalePixels(widget.shadowSpread.get())),
+                            .withMargin(scalePixels(widget.shadowSpread.current())),
                         widget.shadowSize.current(),
-                        widget.borderRadius.current() + scalePixels(widget.shadowSpread.get()));
+                        widget.borderRadius.current() + scalePixels(widget.shadowSpread.current()));
     }
 
     EdgesF borderWidth = widget.computedBorderWidth();
@@ -2631,12 +2631,13 @@ Rectangle Widget::adjustedRect() const noexcept {
     if (isKeyFocused()) {
         shadowSize = std::max(shadowSize, dp(focusFrameRange.max));
     }
-    return adjustForShadowSize(m_rect, shadowSize, scalePixels(m_shadowOffset), scalePixels(m_shadowSpread));
+    return adjustForShadowSize(m_rect, shadowSize, scalePixels(m_shadowOffset.current),
+                               scalePixels(m_shadowSpread.current));
 }
 
 Rectangle Widget::adjustedHintRect() const noexcept {
-    return adjustForShadowSize(m_hintRect, dp(hintShadowSize), scalePixels(m_shadowOffset),
-                               scalePixels(m_shadowSpread));
+    return adjustForShadowSize(m_hintRect, dp(hintShadowSize), scalePixels(m_shadowOffset.current),
+                               scalePixels(m_shadowSpread.current));
 }
 
 Nullable<InputQueue> Widget::inputQueue() const noexcept {
@@ -2731,7 +2732,7 @@ const tuplet::tuple<
     /* 17 */ int,
     /* 18 */ int,
     /* 19 */ Internal::GuiProp<Widget, Animated<ColorW>>,
-    /* 20 */ Internal::GuiProp<Widget, PointF>,
+    /* 20 */ Internal::GuiProp<Widget, Animated<PointF>>,
     /* 21 */ Internal::GuiProp<Widget, Cursor>,
     /* 22 */ Internal::GuiProp<Widget, Length>,
     /* 23 */ Internal::GuiProp<Widget, OptFloat>,
@@ -2746,7 +2747,7 @@ const tuplet::tuple<
     /* 32 */ Internal::GuiProp<Widget, LayoutOrder>,
     /* 33 */ Internal::GuiProp<Widget, Layout>,
     /* 34 */ Internal::GuiProp<Widget, Internal::Resolve>,
-    /* 35 */ Internal::GuiProp<Widget, float>,
+    /* 35 */ Internal::GuiProp<Widget, Animated<float>>,
     /* 36 */ Internal::GuiProp<Widget, Placement>,
     /* 37 */ Internal::GuiProp<Widget, Internal::Resolve>,
     /* 38 */ Internal::GuiProp<Widget, Animated<ColorW>>,
@@ -2786,7 +2787,7 @@ const tuplet::tuple<
     /* 72 */ Internal::GuiProp<Widget, Animated<ColorW>>,
     /* 73 */ Internal::GuiProp<Widget, Internal::Resolve>,
     /* 74 */ Internal::GuiProp<Widget, Internal::Resolve>,
-    /* 75 */ Internal::GuiProp<Widget, float>,
+    /* 75 */ Internal::GuiProp<Widget, Animated<float>>,
     /* 76 */ Internal::GuiProp<Widget, Internal::Resolve>,
     /* 77 */ Internal::GuiProp<Widget, Internal::Resolve>,
     /* 78 */ Internal::GuiProp<Widget, Internal::Resolve>,
@@ -2845,16 +2846,16 @@ Widget::properties() noexcept {
         /* 11 */
         11,
         /* 12 */
-        Internal::GuiProp{ &Widget::m_backgroundColor, Transition | AffectPaint, "backgroundColor" },
+        Internal::GuiProp{ &Widget::m_backgroundColor, AffectPaint, "backgroundColor" },
         /* 13 */ 13,
         /* 14 */ 14,
         /* 15 */
-        Internal::GuiProp{ &Widget::m_borderColor, Transition | AffectPaint, "borderColor" },
+        Internal::GuiProp{ &Widget::m_borderColor, AffectPaint, "borderColor" },
         /* 16 */ Internal::GuiProp{ &Widget::m_clip, AffectLayout | AffectPaint, "clip" },
         /* 17 */ 17,
         /* 18 */ 18,
         /* 19 */
-        Internal::GuiProp{ &Widget::m_color, Transition | Inheritable | AffectPaint, "color" },
+        Internal::GuiProp{ &Widget::m_color, Inheritable | AffectPaint, "color" },
         /* 20 */ Internal::GuiProp{ &Widget::m_shadowOffset, AffectPaint, "shadowOffset" },
         /* 21 */ Internal::GuiProp{ &Widget::m_cursor, None, "cursor" },
         /* 22 */ Internal::GuiProp{ &Widget::m_flexBasis, AffectLayout, "flexBasis" },
@@ -2888,7 +2889,7 @@ Widget::properties() noexcept {
         /* 37 */
         Internal::GuiProp{ &Widget::m_shadowSize, Resolvable | Inheritable | AffectPaint, "shadowSize" },
         /* 38 */
-        Internal::GuiProp{ &Widget::m_shadowColor, Transition | AffectPaint, "shadowColor" },
+        Internal::GuiProp{ &Widget::m_shadowColor, AffectPaint, "shadowColor" },
         /* 39 */ 39,
         /* 40 */ 40,
         /* 41 */
@@ -2935,8 +2936,7 @@ Widget::properties() noexcept {
         Internal::GuiProp{ &Widget::m_fontFeatures, AffectLayout | AffectFont | Inheritable | AffectPaint,
                            "fontFeatures" },
         /* 72 */
-        Internal::GuiProp{ &Widget::m_scrollBarColor, Transition | Inheritable | AffectPaint,
-                           "scrollBarColor" },
+        Internal::GuiProp{ &Widget::m_scrollBarColor, Inheritable | AffectPaint, "scrollBarColor" },
         /* 73 */
         Internal::GuiProp{ &Widget::m_scrollBarThickness, Resolvable | AffectPaint, "scrollBarThickness" },
         /* 74 */

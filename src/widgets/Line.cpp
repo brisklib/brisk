@@ -25,7 +25,7 @@ namespace Brisk {
 void Line::paint(Canvas& canvas) const {
     RectangleF r    = m_clientRect;
     float thickness = m_computedBorderWidth.y1;
-    canvas.setFillColor(m_color.current.multiplyAlpha(m_opacity));
+    canvas.setFillColor(m_color.current.multiplyAlpha(m_opacity.current));
     if (m_orientation == Orientation::Horizontal)
         canvas.fillRect(r.alignedRect(r.width(), thickness, 0.5f, 0.5f));
     else

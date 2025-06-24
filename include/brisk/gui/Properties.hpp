@@ -129,17 +129,14 @@ enum class PropFlags : uint16_t {
     None             = 0,
     AffectLayout     = 1 << 0,
     AffectStyle      = 1 << 1,
-    Transition       = 1 << 2,
-    Resolvable       = 1 << 3,
-    AffectResolve    = 1 << 4,
-    AffectFont       = 1 << 5,
-    Inheritable      = 1 << 6,
-    RelativeToParent = 1 << 7,
-    AffectPaint      = 1 << 8,
-    AffectHint       = 1 << 9,
-    AffectVisibility = 1 << 10,
-
-    Compound         = 1 << 11,
+    Resolvable       = 1 << 2,
+    AffectResolve    = 1 << 3,
+    AffectFont       = 1 << 4,
+    Inheritable      = 1 << 5,
+    RelativeToParent = 1 << 6,
+    AffectPaint      = 1 << 7,
+    AffectHint       = 1 << 8,
+    AffectVisibility = 1 << 9,
 };
 
 template <>

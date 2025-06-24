@@ -112,9 +112,9 @@ SizeF Text::measure(AvailableSize size) const {
 
 void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
-    if (m_opacity > 0.f) {
+    if (m_opacity.current > 0.f) {
         RectangleF inner = m_clientRect;
-        ColorW color     = m_color.current.multiplyAlpha(m_opacity);
+        ColorW color     = m_color.current.multiplyAlpha(m_opacity.current);
         auto prepared    = m_cache2->prepared;
 
         canvas.setFillColor(color);
@@ -161,7 +161,7 @@ Text::Cached2 Text::updateCache2(const CacheKey2& key) {
 }
 
 void BackStrikedText::paint(Canvas& canvas) const {
-    ColorW color = m_color.current.multiplyAlpha(m_opacity);
+    ColorW color = m_color.current.multiplyAlpha(m_opacity.current);
     canvas.setFillColor(color);
     canvas.setFont(font());
     canvas.fillText(m_text, m_clientRect,
