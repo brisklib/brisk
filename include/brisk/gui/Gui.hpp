@@ -20,14 +20,24 @@
  */
 #pragma once
 
-#include <brisk/core/Binding.hpp>
-#include <brisk/core/BasicTypes.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/MetaClass.hpp>
+#include <brisk/core/Brisk.h>
 
 BRISK_CLANG_PRAGMA(clang diagnostic push)
 BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 
+#include <set>
+#include <fmt/ranges.h>
+#include <spdlog/spdlog.h>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
+#include <type_traits>
+#include <utility>
+#include <brisk/core/Binding.hpp>
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/MetaClass.hpp>
+#include <brisk/core/internal/cityhash.hpp>
 #include <brisk/window/Types.hpp>
 #include <brisk/window/Window.hpp>
 #include <brisk/core/Compression.hpp>
@@ -38,14 +48,6 @@ BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 #include <brisk/core/internal/Typename.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Color.hpp>
-#include <set>
-#include <fmt/ranges.h>
-#include <spdlog/spdlog.h>
-#include <typeindex>
-#include <typeinfo>
-#include <unordered_map>
-#include <type_traits>
-#include <utility>
 #include <brisk/core/internal/SmallVector.hpp>
 #include "internal/Animation.hpp"
 #include "Properties.hpp"
@@ -307,39 +309,7 @@ concept invocable_r = std::is_invocable_r_v<R, Callable, Args...>;
 namespace Internal {
 constexpr inline size_t numProperties = 102;
 
-template <typename T, int subfield = -1>
-struct PropFieldType {
-    using Type = FieldType<T, subfield>;
-};
-
-template <typename T>
-struct PropFieldType<T, -1> {
-    using Type = T;
-};
-
-template <typename T, bool Transition, bool Resolvable>
-struct PropFieldStorageType {
-    using Type = T;
-};
-
-template <typename T>
-struct PropFieldStorageType<T, true, false> {
-    using Type = Internal::Transition<T>;
-};
-
-template <typename T>
-struct PropFieldStorageType<T, false, true> {
-    using Type = Internal::Resolve;
-};
-
 } // namespace Internal
-
-template <typename T, int subfield = -1>
-using PropFieldType = typename Internal::PropFieldType<T, subfield>::Type;
-
-template <typename T, PropFlags flags>
-using PropFieldStorageType = typename Internal::PropFieldStorageType<T, flags && PropFlags::Transition,
-                                                                     flags && PropFlags::Resolvable>::Type;
 
 namespace Internal {
 template <typename Type>
@@ -448,25 +418,28 @@ template <typename WidgetClass, typename ValueType>
 GuiProp(ValueType(WidgetClass::*), PropFlags, const char* = nullptr) -> GuiProp<WidgetClass, ValueType>;
 
 template <typename WidgetClass, typename ValueType>
-struct GuiProp<WidgetClass, Transition<ValueType>> {
-    Transition<ValueType>(WidgetClass::* field);
-    float(WidgetClass::* duration);
+struct GuiProp<WidgetClass, Animated<ValueType>> {
+    Animated<ValueType>(WidgetClass::* field);
     PropFlags flags;
     const char* name = nullptr;
 
     void set(WidgetClass* self, ValueType value) const {
         self->propSet(
             { this },
-            [&]() -> bool {
-                if (!(self->*field).set(value, self->transitionAllowed() ? self->*duration : 0.f)) {
-                    return false;
+            [self, field = this->field, id = PropertyId{ this }, value]() -> bool {
+                if ((self->*field).value == value) {
+                    return false; // No change
                 }
-                if ((self->*field).isActive()) {
+                PropertyAnimations& anim = self->animations();
+                (self->*field).value     = value;
+                if (self->transitionAllowed() && anim.startTransition((self->*field).current, value, id)) {
                     self->requestAnimationFrame();
+                } else {
+                    (self->*field).current = value;
                 }
                 return true;
             },
-            flags, toBindingAddress(&(self->*field)));
+            flags, toBindingAddress(&(self->*field).value));
     }
 
     void set(WidgetClass* self, Inherit value) const {
@@ -474,7 +447,7 @@ struct GuiProp<WidgetClass, Transition<ValueType>> {
     }
 
     ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
-        return (self->*field).stopValue;
+        return (self->*field).value;
     }
 
     ValueType current(const WidgetClass* self) const noexcept {
@@ -482,13 +455,13 @@ struct GuiProp<WidgetClass, Transition<ValueType>> {
     }
 
     BindingAddress address(const WidgetClass* self) const noexcept {
-        return toBindingAddress(&(self->*field));
+        return toBindingAddress(&(self->*field).value);
     }
 };
 
 template <typename WidgetClass, typename ValueType>
-GuiProp(Transition<ValueType>(WidgetClass::*), float(WidgetClass::*), PropFlags, const char* = nullptr)
-    -> GuiProp<WidgetClass, Transition<ValueType>>;
+GuiProp(Animated<ValueType>(WidgetClass::*), float(WidgetClass::*), PropFlags, const char* = nullptr)
+    -> GuiProp<WidgetClass, Animated<ValueType>>;
 
 template <typename WidgetClass>
 struct GuiProp<WidgetClass, Resolve> {
@@ -528,16 +501,14 @@ struct GuiProp<WidgetClass, Resolve> {
 
 template <typename WidgetClass, template <typename T> typename TypeTemplate, typename SubType,
           typename CurrentSubType, PropertyIndex index0, PropertyIndex... indices>
-struct PropGuiCompound {
+struct GuiPropCompound {
     const char* name = nullptr;
 
     template <PropertyIndex Index>
     constexpr static decltype(auto) traits() noexcept {
-        return Property<WidgetClass, SubType, Index>::traits(); // get<Index>(WidgetClass::properties());
+        return Property<WidgetClass, SubType, Index>::traits();
     }
 
-    // using SubType          = decltype(def0().get(nullptr));
-    // using CurrentSubType   = decltype(def0().current(nullptr));
     using ValueType        = TypeTemplate<SubType>;
     using CurrentValueType = TypeTemplate<CurrentSubType>;
 
@@ -986,6 +957,14 @@ public:
      */
     bool isInherited(PropertyId prop) const noexcept;
 
+    PropertyAnimations& animations() noexcept {
+        return m_animations;
+    }
+
+    const PropertyAnimations& animations() const noexcept {
+        return m_animations;
+    }
+
     using enum PropFlags;
 
     friend struct Rules;
@@ -1003,6 +982,8 @@ protected:
     void propSet(PropertyId prop, function_ref<bool()> assign, PropFlags flags, BindingAddress address);
 
     WidgetTree* m_tree = nullptr;
+
+    PropertyAnimations m_animations;
 
     Rc<const Stylesheet> m_stylesheet;
     Painter m_painter;
@@ -1042,21 +1023,11 @@ protected:
     Point m_hintTextOffset{ 0, 0 };
     PreparedText m_hintPrepared;
 
-    Internal::Transition<ColorW> m_backgroundColor{ Palette::transparent };
-    Internal::Transition<ColorW> m_borderColor{ Palette::transparent };
-    Internal::Transition<ColorW> m_color{ Palette::white };
-    Internal::Transition<ColorW> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
-    Internal::Transition<ColorW> m_scrollBarColor{ Palette::grey };
-    float m_backgroundColorTransition      = 0;
-    float m_borderColorTransition          = 0;
-    float m_colorTransition                = 0;
-    float m_shadowColorTransition          = 0;
-    float m_scrollBarColorTransition       = 0;
-    EasingFunction m_backgroundColorEasing = &easeLinear;
-    EasingFunction m_borderColorEasing     = &easeLinear;
-    EasingFunction m_colorEasing           = &easeLinear;
-    EasingFunction m_shadowColorEasing     = &easeLinear;
-    EasingFunction m_scrollBarColorEasing  = &easeLinear;
+    Animated<ColorW> m_backgroundColor{ Palette::transparent };
+    Animated<ColorW> m_borderColor{ Palette::transparent };
+    Animated<ColorW> m_color{ Palette::white };
+    Animated<ColorW> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
+    Animated<ColorW> m_scrollBarColor{ Palette::grey };
 
     // point/size
     PointL m_absolutePosition{ undef, undef }; // for popup only
@@ -1405,16 +1376,16 @@ public:
         /* 7 */ Internal::GuiProp<Widget, Align>,
         /* 8 */ Internal::GuiProp<Widget, PointL>,
         /* 9 */ Internal::GuiProp<Widget, OptFloat>,
-        /* 10 */ Internal::GuiProp<Widget, EasingFunction>,
-        /* 11 */ Internal::GuiProp<Widget, float>,
-        /* 12 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
-        /* 13 */ Internal::GuiProp<Widget, EasingFunction>,
-        /* 14 */ Internal::GuiProp<Widget, float>,
-        /* 15 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
+        /* 10 */ int,
+        /* 11 */ int,
+        /* 12 */ Internal::GuiProp<Widget, Animated<ColorW>>,
+        /* 13 */ int,
+        /* 14 */ int,
+        /* 15 */ Internal::GuiProp<Widget, Animated<ColorW>>,
         /* 16 */ Internal::GuiProp<Widget, WidgetClip>,
-        /* 17 */ Internal::GuiProp<Widget, EasingFunction>,
-        /* 18 */ Internal::GuiProp<Widget, float>,
-        /* 19 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
+        /* 17 */ int,
+        /* 18 */ int,
+        /* 19 */ Internal::GuiProp<Widget, Animated<ColorW>>,
         /* 20 */ Internal::GuiProp<Widget, PointF>,
         /* 21 */ Internal::GuiProp<Widget, Cursor>,
         /* 22 */ Internal::GuiProp<Widget, Length>,
@@ -1433,9 +1404,9 @@ public:
         /* 35 */ Internal::GuiProp<Widget, float>,
         /* 36 */ Internal::GuiProp<Widget, Placement>,
         /* 37 */ Internal::GuiProp<Widget, Internal::Resolve>,
-        /* 38 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
-        /* 39 */ Internal::GuiProp<Widget, float>,
-        /* 40 */ Internal::GuiProp<Widget, EasingFunction>,
+        /* 38 */ Internal::GuiProp<Widget, Animated<ColorW>>,
+        /* 39 */ int,
+        /* 40 */ int,
         /* 41 */ Internal::GuiProp<Widget, Internal::Resolve>,
         /* 42 */ Internal::GuiProp<Widget, TextAlign>,
         /* 43 */ Internal::GuiProp<Widget, TextAlign>,
@@ -1467,7 +1438,7 @@ public:
         /* 69 */ Internal::GuiProp<Widget, Painter>,
         /* 70 */ Internal::GuiProp<Widget, bool>,
         /* 71 */ Internal::GuiProp<Widget, OpenTypeFeatureFlags>,
-        /* 72 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
+        /* 72 */ Internal::GuiProp<Widget, Animated<ColorW>>,
         /* 73 */ Internal::GuiProp<Widget, Internal::Resolve>,
         /* 74 */ Internal::GuiProp<Widget, Internal::Resolve>,
         /* 75 */ Internal::GuiProp<Widget, float>,
@@ -1499,18 +1470,18 @@ public:
         /* 101 */ Internal::GuiProp<Widget, OverflowScroll>,
         /* 102 */ Internal::GuiProp<Widget, ContentOverflow>,
         /* 103 */ Internal::GuiProp<Widget, ContentOverflow>,
-        /* 104 */ Internal::GuiProp<Widget, float>,
-        /* 105 */ Internal::GuiProp<Widget, EasingFunction>,
-        /* 106 */ Internal::PropGuiCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>,
-        /* 107 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>,
-        /* 108 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 84, 85>,
-        /* 109 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 86, 87>,
-        /* 110 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>,
-        /* 111 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 92, 93>,
-        /* 112 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 94, 95>,
-        /* 113 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>,
-        /* 114 */ Internal::PropGuiCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>,
-        /* 115 */ Internal::PropGuiCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>>&
+        /* 104 */ int,
+        /* 105 */ int,
+        /* 106 */ Internal::GuiPropCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>,
+        /* 107 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>,
+        /* 108 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 84, 85>,
+        /* 109 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 86, 87>,
+        /* 110 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>,
+        /* 111 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 92, 93>,
+        /* 112 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 94, 95>,
+        /* 113 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>,
+        /* 114 */ Internal::GuiPropCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>,
+        /* 115 */ Internal::GuiPropCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>>&
     properties() noexcept;
 
 public:
@@ -1529,15 +1500,9 @@ public:
     Property<Widget, AlignSelf, 7> alignSelf;
     Property<Widget, PointL, 8> anchor;
     Property<Widget, OptFloat, 9> aspect;
-    Property<Widget, EasingFunction, 10> backgroundColorEasing;
-    Property<Widget, float, 11> backgroundColorTransition;
     Property<Widget, ColorW, 12> backgroundColor;
-    Property<Widget, EasingFunction, 13> borderColorEasing;
-    Property<Widget, float, 14> borderColorTransition;
     Property<Widget, ColorW, 15> borderColor;
     Property<Widget, WidgetClip, 16> clip;
-    Property<Widget, EasingFunction, 17> colorEasing;
-    Property<Widget, float, 18> colorTransition;
     Property<Widget, ColorW, 19> color;
     Property<Widget, PointF, 20> shadowOffset;
     Property<Widget, Cursor, 21> cursor;
@@ -1558,8 +1523,6 @@ public:
     Property<Widget, Placement, 36> placement;
     Property<Widget, Length, 37> shadowSize;
     Property<Widget, ColorW, 38> shadowColor;
-    Property<Widget, float, 39> shadowColorTransition;
-    Property<Widget, EasingFunction, 40> shadowColorEasing;
     Property<Widget, Length, 41> tabSize;
     Property<Widget, TextAlign, 42> textAlign;
     Property<Widget, TextAlign, 43> textVerticalAlign;
@@ -1623,8 +1586,6 @@ public:
     Property<Widget, OverflowScroll, 101> overflowScrollY;
     Property<Widget, ContentOverflow, 102> contentOverflowX;
     Property<Widget, ContentOverflow, 103> contentOverflowY;
-    Property<Widget, float, 104> scrollBarColorTransition;
-    Property<Widget, EasingFunction, 105> scrollBarColorEasing;
     Property<Widget, CornersL, 106> borderRadius;
     Property<Widget, EdgesL, 107> borderWidth;
     Property<Widget, SizeL, 108> dimensions;
@@ -1668,17 +1629,11 @@ extern const PropArgument<decltype(Widget::alignItems)> alignItems;
 extern const PropArgument<decltype(Widget::alignSelf)> alignSelf;
 extern const PropArgument<decltype(Widget::anchor)> anchor;
 extern const PropArgument<decltype(Widget::aspect)> aspect;
-extern const PropArgument<decltype(Widget::backgroundColorEasing)> backgroundColorEasing;
-extern const PropArgument<decltype(Widget::backgroundColorTransition)> backgroundColorTransition;
 extern const PropArgument<decltype(Widget::backgroundColor)> backgroundColor;
-extern const PropArgument<decltype(Widget::borderColorEasing)> borderColorEasing;
-extern const PropArgument<decltype(Widget::borderColorTransition)> borderColorTransition;
 extern const PropArgument<decltype(Widget::borderColor)> borderColor;
 extern const PropArgument<decltype(Widget::borderRadius)> borderRadius;
 extern const PropArgument<decltype(Widget::borderWidth)> borderWidth;
 extern const PropArgument<decltype(Widget::clip)> clip;
-extern const PropArgument<decltype(Widget::colorEasing)> colorEasing;
-extern const PropArgument<decltype(Widget::colorTransition)> colorTransition;
 extern const PropArgument<decltype(Widget::color)> color;
 extern const PropArgument<decltype(Widget::cursor)> cursor;
 extern const PropArgument<decltype(Widget::dimensions)> dimensions;
@@ -1711,8 +1666,6 @@ extern const PropArgument<decltype(Widget::placement)> placement;
 extern const PropArgument<decltype(Widget::shadowSize)> shadowSize;
 extern const PropArgument<decltype(Widget::shadowOffset)> shadowOffset;
 extern const PropArgument<decltype(Widget::shadowColor)> shadowColor;
-extern const PropArgument<decltype(Widget::shadowColorTransition)> shadowColorTransition;
-extern const PropArgument<decltype(Widget::shadowColorEasing)> shadowColorEasing;
 extern const PropArgument<decltype(Widget::tabSize)> tabSize;
 extern const PropArgument<decltype(Widget::textAlign)> textAlign;
 extern const PropArgument<decltype(Widget::textVerticalAlign)> textVerticalAlign;
@@ -1793,7 +1746,82 @@ template <std::derived_from<Widget> WidgetType, Internal::FixedString Name>
 struct WithRole {
     using Type = Rc<WidgetType>;
 };
+
+template <typename Class, typename T, PropertyIndex index>
+struct TransitionDuration : SynthPropertyTag {
+    using Type = Seconds;
+
+    static std::string_view name() noexcept {
+        static std::string concatenated =
+            std::string(Property<Class, T, index>::traits().name) + "-transition-duration";
+        return concatenated;
+    }
+};
+
+template <typename Class, typename T, PropertyIndex index>
+struct TransitionEasing : SynthPropertyTag {
+    using Type = EasingFunction;
+
+    static std::string_view name() noexcept {
+        static std::string concatenated =
+            std::string(Property<Class, T, index>::traits().name) + "-transition-easing";
+        return concatenated;
+    }
+};
+
+template <typename Class, typename T, PropertyIndex index>
+struct TransitionDelay : SynthPropertyTag {
+    using Type = Seconds;
+
+    static std::string_view name() noexcept {
+        static std::string concatenated =
+            std::string(Property<Class, T, index>::traits().name) + "-transition-delay";
+        return concatenated;
+    }
+};
 } // namespace Tag
+
+template <typename Class, typename T, PropertyIndex index>
+inline Argument<Tag::TransitionDuration<Class, T, index>> transitionDuration(
+    const Argument<Tag::PropArg<Class, T, index>>& argument) {
+    return {};
+}
+
+template <typename Class, typename T, PropertyIndex index>
+inline Argument<Tag::TransitionEasing<Class, T, index>> transitionEasing(
+    const Argument<Tag::PropArg<Class, T, index>>& argument) {
+    return {};
+}
+
+template <typename Class, typename T, PropertyIndex index>
+inline Argument<Tag::TransitionDelay<Class, T, index>> transitionDelay(
+    const Argument<Tag::PropArg<Class, T, index>>& argument) {
+    return {};
+}
+
+template <typename Class, typename T, PropertyIndex index>
+void applier(Widget* target, ArgVal<Tag::TransitionDuration<Class, T, index>> value) {
+    PropertyAnimations& animations = target->animations();
+    TransitionParams params        = animations.getTransitionParams(Property<Class, T, index>::id());
+    params.duration                = value.value;
+    animations.setTransitionParams(Property<Class, T, index>::id(), params);
+}
+
+template <typename Class, typename T, PropertyIndex index>
+void applier(Widget* target, ArgVal<Tag::TransitionEasing<Class, T, index>> value) {
+    PropertyAnimations& animations = target->animations();
+    TransitionParams params        = animations.getTransitionParams(Property<Class, T, index>::id());
+    params.easing                  = value.value;
+    animations.setTransitionParams(Property<Class, T, index>::id(), params);
+}
+
+template <typename Class, typename T, PropertyIndex index>
+void applier(Widget* target, ArgVal<Tag::TransitionDelay<Class, T, index>> value) {
+    PropertyAnimations& animations = target->animations();
+    TransitionParams params        = animations.getTransitionParams(Property<Class, T, index>::id());
+    params.delay                   = value.value;
+    animations.setTransitionParams(Property<Class, T, index>::id(), params);
+}
 
 template <std::derived_from<Widget> WidgetType, Internal::FixedString Name>
 struct Argument<Tag::WithRole<WidgetType, Name>> {

@@ -78,7 +78,7 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications, Value<bool> gl
                     Value{ &m_textAlign },
                     notManaged(&textAlignList),
                     enabled = globalEnabled,
-                    width = 110_apx,
+                    width   = 110_apx,
                 },
                 rcnew Text{ "Font size: " },
 

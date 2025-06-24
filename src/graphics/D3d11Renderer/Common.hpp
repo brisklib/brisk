@@ -32,7 +32,6 @@ constexpr inline PixelFormat backBufferFormat = PixelFormat::BGRA;
 
 constexpr inline size_t maxD3d11ResourceBytes = 128 * 1048576; // Guaranteed in D3D11.0
 
-
 D3D11_TEXTURE2D_DESC texDesc(DXGI_FORMAT fmt, Size size, int samples, D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
                              UINT bind      = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
                              UINT cpuAccess = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE);

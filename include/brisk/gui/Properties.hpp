@@ -149,6 +149,8 @@ namespace Tag {
 struct PropertyTag {};
 
 struct StyleVarTag {};
+
+struct SynthPropertyTag {};
 } // namespace Tag
 
 template <typename T>
@@ -156,6 +158,12 @@ concept PropertyTag = std::derived_from<T, Tag::PropertyTag> && requires { typen
 
 template <typename T>
 concept StyleVarTag = std::derived_from<T, Tag::StyleVarTag> && requires { typename T::Type; };
+
+template <typename T>
+concept SynthPropertyTag = std::derived_from<T, Tag::SynthPropertyTag> && requires { typename T::Type; };
+
+template <typename Tag>
+concept PropertyOrSynthPropertyTag = PropertyTag<Tag> || SynthPropertyTag<Tag>;
 
 struct Inherit {};
 

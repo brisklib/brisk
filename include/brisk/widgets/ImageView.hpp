@@ -77,7 +77,6 @@ protected:
     Ptr cloneThis() const override;
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &SvgImageView::m_svg, "svg" },

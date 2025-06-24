@@ -93,7 +93,6 @@ protected:
     DialogComponent();
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &DialogComponent::m_result, "result" },
@@ -129,7 +128,6 @@ protected:
     Rc<Widget> build() override;
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &TextInputDialog::m_prompt, "prompt" },
@@ -166,7 +164,6 @@ protected:
     Rc<Widget> build() override;
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &MessageDialog::m_text, "text" },
@@ -203,7 +200,6 @@ protected:
     Rc<Widget> build() override;
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &ConfirmDialog::m_text, "text" },

@@ -25,19 +25,19 @@
 
 namespace Brisk {
 
-template <PropertyTag Tag>
-struct TagWithState : Tag::PropertyTag {
+template <PropertyOrSynthPropertyTag Tag>
+struct TagWithState : Tag {
     using Type = typename Tag::Type;
 };
 
-template <PropertyTag Tag, typename Type>
+template <PropertyOrSynthPropertyTag Tag, typename Type>
 struct ArgVal<TagWithState<Tag>, Type> {
     using ValueType = Type;
     ValueType value;
     WidgetState state;
 };
 
-template <PropertyTag Tag>
+template <PropertyOrSynthPropertyTag Tag>
 struct Argument<TagWithState<Tag>> : Tag {
     using ValueType = typename Tag::Type;
 
@@ -55,12 +55,12 @@ struct Argument<TagWithState<Tag>> : Tag {
     WidgetState state;
 };
 
-template <PropertyTag Tag>
+template <PropertyOrSynthPropertyTag Tag>
 Argument<TagWithState<Tag>> operator|(const Argument<Tag>& arg, WidgetState state) noexcept {
     return { .state = state };
 }
 
-template <PropertyTag Tag>
+template <PropertyOrSynthPropertyTag Tag>
 Argument<TagWithState<Tag>> operator|(const Argument<TagWithState<Tag>>& arg, WidgetState state) noexcept {
     return { .state = arg.state | state };
 }
@@ -98,7 +98,7 @@ struct StyleProperty {
 
     template <typename Tag>
     StyleProperty(std::type_identity<Tag>)
-        requires PropertyTag<Tag> || StyleVarTag<Tag>
+        requires PropertyTag<Tag> || StyleVarTag<Tag> || SynthPropertyTag<Tag>
     {
         using Type = typename Tag::Type;
         name       = Tag::name();
@@ -171,46 +171,31 @@ struct Rule {
     template <typename Tag, typename U>
     Rule(ArgVal<Tag, U> value) {
         m_property = Internal::styleProperty<Tag>();
+        using Type = typename Tag::Type;
+
         if constexpr (std::is_same_v<U, Inherit>) {
             m_op = Internal::RuleOp::Inherit;
+        } else if constexpr (std::is_convertible_v<U, Type>) {
+            m_op      = Internal::RuleOp::Value;
+            m_storage = std::make_shared<Type>(static_cast<Type>(std::move(value.value)));
         } else {
-            m_op       = Internal::RuleOp::Value;
-            using Type = typename Tag::Type;
-            m_storage  = std::make_shared<Type>(static_cast<Type>(std::move(value.value)));
+            static_assert(std::is_invocable_r_v<Type, U> || std::is_invocable_r_v<Type, U, Widget*>);
+            m_op = Internal::RuleOp::Function;
+            Internal::StyleFunction<Type> fn;
+            if constexpr (std::is_invocable_r_v<Type, U>) {
+                fn = [fn = std::move(value.value)](Widget*) -> Type {
+                    return fn();
+                };
+            } else {
+                fn = function<Type(Widget*)>(std::move(value.value));
+            }
+            m_storage = std::make_shared<Internal::StyleFunction<Type>>(std::move(fn));
         }
         m_state = WidgetState::None;
     }
 
     template <typename Tag, typename U>
     Rule(ArgVal<TagWithState<Tag>, U> value) : Rule(ArgVal<Tag, U>{ std::move(value.value) }) {
-        m_state = value.state;
-    }
-
-    template <typename Tag, typename Fn>
-    Rule(ArgVal<Tag, Fn> value)
-        requires std::is_invocable_r_v<typename Tag::Type, Fn> ||
-                 std::is_invocable_r_v<typename Tag::Type, Fn, Widget*>
-    {
-        m_property = Internal::styleProperty<Tag>();
-        using Type = typename Tag::Type;
-        m_op       = Internal::RuleOp::Function;
-        Internal::StyleFunction<Type> fn;
-        if constexpr (std::is_invocable_r_v<typename Tag::Type, Fn>) {
-            fn = [fn = std::move(value.value)](Widget*) -> Type {
-                return fn();
-            };
-        } else {
-            fn = function<Type(Widget*)>(std::move(value.value));
-        }
-        m_storage = std::make_shared<Internal::StyleFunction<Type>>(std::move(fn));
-        m_state   = WidgetState::None;
-    }
-
-    template <typename Tag, typename Fn>
-    Rule(ArgVal<TagWithState<Tag>, Fn> value)
-        requires std::is_invocable_r_v<typename Tag::Type, Fn> ||
-                 std::is_invocable_r_v<typename Tag::Type, Fn, Widget*>
-        : Rule(ArgVal<Tag, Fn>{ std::move(value.value) }) {
         m_state = value.state;
     }
 
@@ -674,7 +659,6 @@ struct StyleVariableTag : Tag::StyleVarTag {
 
 constexpr inline Argument<StyleVariableTag<ColorW, "windowColor"_hash>> windowColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "selectedColor"_hash>> selectedColor{};
-constexpr inline Argument<StyleVariableTag<float, "animationSpeed"_hash>> animationSpeed{};
 constexpr inline Argument<StyleVariableTag<ColorW, "focusFrameColor"_hash>> focusFrameColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "hintBackgroundColor"_hash>> hintBackgroundColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "hintTextColor"_hash>> hintTextColor{};

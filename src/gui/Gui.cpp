@@ -1770,9 +1770,9 @@ BRISK_INLINE static T getFallback(Widget* widget, T Widget::* field, std::type_i
 }
 
 template <typename T>
-BRISK_INLINE static T getFallback(Widget* widget, Internal::Transition<T> Widget::* field,
+BRISK_INLINE static T getFallback(Widget* widget, Animated<T> Widget::* field,
                                   std::type_identity_t<T> fallback) {
-    return widget ? (widget->*field).stopValue : fallback;
+    return widget ? (widget->*field).value : fallback;
 }
 
 BRISK_INLINE static Length getFallback(Widget* widget, Internal::Resolve Widget::* field, Length fallback) {
@@ -2145,16 +2145,11 @@ void Widget::requestRebuild() {
 
 void Widget::animationFrame() {
     m_animationRequested = false;
-    if (m_color.isActive() || m_borderColor.isActive() || m_backgroundColor.isActive() ||
-        m_shadowColor.isActive() || m_scrollBarColor.isActive() || isKeyFocused())
+
+    if (m_animations.isActive() || isKeyFocused())
         requestAnimationFrame();
 
-    // No need to notify bindings here, because bindings depend on the final values of the properties
-    m_color.tick(m_colorTransition, m_colorEasing);
-    m_borderColor.tick(m_borderColorTransition, m_borderColorEasing);
-    m_backgroundColor.tick(m_backgroundColorTransition, m_backgroundColorEasing);
-    m_shadowColor.tick(m_shadowColorTransition, m_shadowColorEasing);
-    m_scrollBarColor.tick(m_scrollBarColorTransition, m_scrollBarColorEasing);
+    m_animations.tick();
     if (isKeyFocused()) {
         invalidate();
     }
@@ -2460,17 +2455,11 @@ const PropArgument<decltype(Widget::alignItems)> alignItems{};
 const PropArgument<decltype(Widget::alignSelf)> alignSelf{};
 const PropArgument<decltype(Widget::anchor)> anchor{};
 const PropArgument<decltype(Widget::aspect)> aspect{};
-const PropArgument<decltype(Widget::backgroundColorEasing)> backgroundColorEasing{};
-const PropArgument<decltype(Widget::backgroundColorTransition)> backgroundColorTransition{};
 const PropArgument<decltype(Widget::backgroundColor)> backgroundColor{};
-const PropArgument<decltype(Widget::borderColorEasing)> borderColorEasing{};
-const PropArgument<decltype(Widget::borderColorTransition)> borderColorTransition{};
 const PropArgument<decltype(Widget::borderColor)> borderColor{};
 const PropArgument<decltype(Widget::borderRadius)> borderRadius{};
 const PropArgument<decltype(Widget::borderWidth)> borderWidth{};
 const PropArgument<decltype(Widget::clip)> clip{};
-const PropArgument<decltype(Widget::colorEasing)> colorEasing{};
-const PropArgument<decltype(Widget::colorTransition)> colorTransition{};
 const PropArgument<decltype(Widget::color)> color{};
 const PropArgument<decltype(Widget::cursor)> cursor{};
 const PropArgument<decltype(Widget::dimensions)> dimensions{};
@@ -2503,8 +2492,6 @@ const PropArgument<decltype(Widget::placement)> placement{};
 const PropArgument<decltype(Widget::shadowSize)> shadowSize{};
 const PropArgument<decltype(Widget::shadowOffset)> shadowOffset{};
 const PropArgument<decltype(Widget::shadowColor)> shadowColor{};
-const PropArgument<decltype(Widget::shadowColorTransition)> shadowColorTransition{};
-const PropArgument<decltype(Widget::shadowColorEasing)> shadowColorEasing{};
 const PropArgument<decltype(Widget::tabSize)> tabSize{};
 const PropArgument<decltype(Widget::textAlign)> textAlign{};
 const PropArgument<decltype(Widget::textVerticalAlign)> textVerticalAlign{};
@@ -2734,16 +2721,16 @@ const tuplet::tuple<
     /* 7 */ Internal::GuiProp<Widget, Align>,
     /* 8 */ Internal::GuiProp<Widget, PointL>,
     /* 9 */ Internal::GuiProp<Widget, OptFloat>,
-    /* 10 */ Internal::GuiProp<Widget, EasingFunction>,
-    /* 11 */ Internal::GuiProp<Widget, float>,
-    /* 12 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
-    /* 13 */ Internal::GuiProp<Widget, EasingFunction>,
-    /* 14 */ Internal::GuiProp<Widget, float>,
-    /* 15 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
+    /* 10 */ int,
+    /* 11 */ int,
+    /* 12 */ Internal::GuiProp<Widget, Animated<ColorW>>,
+    /* 13 */ int,
+    /* 14 */ int,
+    /* 15 */ Internal::GuiProp<Widget, Animated<ColorW>>,
     /* 16 */ Internal::GuiProp<Widget, WidgetClip>,
-    /* 17 */ Internal::GuiProp<Widget, EasingFunction>,
-    /* 18 */ Internal::GuiProp<Widget, float>,
-    /* 19 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
+    /* 17 */ int,
+    /* 18 */ int,
+    /* 19 */ Internal::GuiProp<Widget, Animated<ColorW>>,
     /* 20 */ Internal::GuiProp<Widget, PointF>,
     /* 21 */ Internal::GuiProp<Widget, Cursor>,
     /* 22 */ Internal::GuiProp<Widget, Length>,
@@ -2762,9 +2749,9 @@ const tuplet::tuple<
     /* 35 */ Internal::GuiProp<Widget, float>,
     /* 36 */ Internal::GuiProp<Widget, Placement>,
     /* 37 */ Internal::GuiProp<Widget, Internal::Resolve>,
-    /* 38 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
-    /* 39 */ Internal::GuiProp<Widget, float>,
-    /* 40 */ Internal::GuiProp<Widget, EasingFunction>,
+    /* 38 */ Internal::GuiProp<Widget, Animated<ColorW>>,
+    /* 39 */ int,
+    /* 40 */ int,
     /* 41 */ Internal::GuiProp<Widget, Internal::Resolve>,
     /* 42 */ Internal::GuiProp<Widget, TextAlign>,
     /* 43 */ Internal::GuiProp<Widget, TextAlign>,
@@ -2796,7 +2783,7 @@ const tuplet::tuple<
     /* 69 */ Internal::GuiProp<Widget, Painter>,
     /* 70 */ Internal::GuiProp<Widget, bool>,
     /* 71 */ Internal::GuiProp<Widget, OpenTypeFeatureFlags>,
-    /* 72 */ Internal::GuiProp<Widget, Internal::Transition<ColorW>>,
+    /* 72 */ Internal::GuiProp<Widget, Animated<ColorW>>,
     /* 73 */ Internal::GuiProp<Widget, Internal::Resolve>,
     /* 74 */ Internal::GuiProp<Widget, Internal::Resolve>,
     /* 75 */ Internal::GuiProp<Widget, float>,
@@ -2828,18 +2815,18 @@ const tuplet::tuple<
     /* 101 */ Internal::GuiProp<Widget, OverflowScroll>,
     /* 102 */ Internal::GuiProp<Widget, ContentOverflow>,
     /* 103 */ Internal::GuiProp<Widget, ContentOverflow>,
-    /* 104 */ Internal::GuiProp<Widget, float>,
-    /* 105 */ Internal::GuiProp<Widget, EasingFunction>,
-    /* 106 */ Internal::PropGuiCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>,
-    /* 107 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>,
-    /* 108 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 84, 85>,
-    /* 109 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 86, 87>,
-    /* 110 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>,
-    /* 111 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 92, 93>,
-    /* 112 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 94, 95>,
-    /* 113 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>,
-    /* 114 */ Internal::PropGuiCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>,
-    /* 115 */ Internal::PropGuiCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>>&
+    /* 104 */ int,
+    /* 105 */ int,
+    /* 106 */ Internal::GuiPropCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>,
+    /* 107 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>,
+    /* 108 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 84, 85>,
+    /* 109 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 86, 87>,
+    /* 110 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>,
+    /* 111 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 92, 93>,
+    /* 112 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 94, 95>,
+    /* 113 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>,
+    /* 114 */ Internal::GuiPropCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>,
+    /* 115 */ Internal::GuiPropCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>>&
 Widget::properties() noexcept {
     static constexpr tuplet::tuple props{
         /* 0 */ Internal::PropField{ &This::m_onClick, "onClick" },
@@ -2854,23 +2841,20 @@ Widget::properties() noexcept {
         /* 7 */ Internal::GuiProp{ &Widget::m_alignSelf, AffectLayout, "alignSelf" },
         /* 8 */ Internal::GuiProp{ &Widget::m_anchor, AffectLayout, "anchor" },
         /* 9 */ Internal::GuiProp{ &Widget::m_aspect, AffectLayout, "aspect" },
-        /* 10 */ Internal::GuiProp{ &Widget::m_backgroundColorEasing, None, "backgroundColorEasing" },
+        /* 10 */ 10,
         /* 11 */
-        Internal::GuiProp{ &Widget::m_backgroundColorTransition, None, "backgroundColorTransition" },
+        11,
         /* 12 */
-        Internal::GuiProp{ &Widget::m_backgroundColor, &Widget::m_backgroundColorTransition,
-                           Transition | AffectPaint, "backgroundColor" },
-        /* 13 */ Internal::GuiProp{ &Widget::m_borderColorEasing, None, "borderColorEasing" },
-        /* 14 */ Internal::GuiProp{ &Widget::m_borderColorTransition, None, "borderColorTransition" },
+        Internal::GuiProp{ &Widget::m_backgroundColor, Transition | AffectPaint, "backgroundColor" },
+        /* 13 */ 13,
+        /* 14 */ 14,
         /* 15 */
-        Internal::GuiProp{ &Widget::m_borderColor, &Widget::m_borderColorTransition, Transition | AffectPaint,
-                           "borderColor" },
+        Internal::GuiProp{ &Widget::m_borderColor, Transition | AffectPaint, "borderColor" },
         /* 16 */ Internal::GuiProp{ &Widget::m_clip, AffectLayout | AffectPaint, "clip" },
-        /* 17 */ Internal::GuiProp{ &Widget::m_colorEasing, None, "colorEasing" },
-        /* 18 */ Internal::GuiProp{ &Widget::m_colorTransition, None, "colorTransition" },
+        /* 17 */ 17,
+        /* 18 */ 18,
         /* 19 */
-        Internal::GuiProp{ &Widget::m_color, &Widget::m_colorTransition,
-                           Transition | Inheritable | AffectPaint, "color" },
+        Internal::GuiProp{ &Widget::m_color, Transition | Inheritable | AffectPaint, "color" },
         /* 20 */ Internal::GuiProp{ &Widget::m_shadowOffset, AffectPaint, "shadowOffset" },
         /* 21 */ Internal::GuiProp{ &Widget::m_cursor, None, "cursor" },
         /* 22 */ Internal::GuiProp{ &Widget::m_flexBasis, AffectLayout, "flexBasis" },
@@ -2904,10 +2888,9 @@ Widget::properties() noexcept {
         /* 37 */
         Internal::GuiProp{ &Widget::m_shadowSize, Resolvable | Inheritable | AffectPaint, "shadowSize" },
         /* 38 */
-        Internal::GuiProp{ &Widget::m_shadowColor, &Widget::m_shadowColorTransition, Transition | AffectPaint,
-                           "shadowColor" },
-        /* 39 */ Internal::GuiProp{ &Widget::m_shadowColorTransition, None, "shadowColorTransition" },
-        /* 40 */ Internal::GuiProp{ &Widget::m_shadowColorEasing, None, "shadowColorEasing" },
+        Internal::GuiProp{ &Widget::m_shadowColor, Transition | AffectPaint, "shadowColor" },
+        /* 39 */ 39,
+        /* 40 */ 40,
         /* 41 */
         Internal::GuiProp{ &Widget::m_tabSize,
                            AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint, "tabSize" },
@@ -2952,8 +2935,8 @@ Widget::properties() noexcept {
         Internal::GuiProp{ &Widget::m_fontFeatures, AffectLayout | AffectFont | Inheritable | AffectPaint,
                            "fontFeatures" },
         /* 72 */
-        Internal::GuiProp{ &Widget::m_scrollBarColor, &Widget::m_scrollBarColorTransition,
-                           Transition | Inheritable | AffectPaint, "scrollBarColor" },
+        Internal::GuiProp{ &Widget::m_scrollBarColor, Transition | Inheritable | AffectPaint,
+                           "scrollBarColor" },
         /* 73 */
         Internal::GuiProp{ &Widget::m_scrollBarThickness, Resolvable | AffectPaint, "scrollBarThickness" },
         /* 74 */
@@ -2999,24 +2982,23 @@ Widget::properties() noexcept {
         /* 101 */ Internal::GuiProp{ &Widget::m_overflowScrollY, AffectLayout, "overflowScrollY" },
         /* 102 */ Internal::GuiProp{ &Widget::m_contentOverflowX, AffectLayout, "contentOverflowX" },
         /* 103 */ Internal::GuiProp{ &Widget::m_contentOverflowY, AffectLayout, "contentOverflowY" },
-        /* 104 */
-        Internal::GuiProp{ &Widget::m_scrollBarColorTransition, None, "scrollBarColorTransition" },
-        /* 105 */ Internal::GuiProp{ &Widget::m_scrollBarColorEasing, None, "scrollBarColorEasing" },
+        /* 104 */ 104,
+        /* 105 */ 105,
         /* 106 */
-        Internal::PropGuiCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>{ "borderRadius" },
+        Internal::GuiPropCompound<Widget, CornersOf, Length, float, 76, 77, 78, 79>{ "borderRadius" },
         /* 107 */
-        Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>{ "borderWidth" },
-        /* 108 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 84, 85>{ "dimensions" },
-        /* 109 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 86, 87>{ "gap" },
-        /* 110 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>{ "margin" },
-        /* 111 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 92, 93>{ "maxDimensions" },
-        /* 112 */ Internal::PropGuiCompound<Widget, SizeOf, Length, Length, 94, 95>{ "minDimensions" },
-        /* 113 */ Internal::PropGuiCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>{ "padding" },
+        Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 80, 81, 82, 83>{ "borderWidth" },
+        /* 108 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 84, 85>{ "dimensions" },
+        /* 109 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 86, 87>{ "gap" },
+        /* 110 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 88, 89, 90, 91>{ "margin" },
+        /* 111 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 92, 93>{ "maxDimensions" },
+        /* 112 */ Internal::GuiPropCompound<Widget, SizeOf, Length, Length, 94, 95>{ "minDimensions" },
+        /* 113 */ Internal::GuiPropCompound<Widget, EdgesOf, Length, Length, 96, 97, 98, 99>{ "padding" },
         /* 114 */
-        Internal::PropGuiCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>{
+        Internal::GuiPropCompound<Widget, SizeOf, OverflowScroll, OverflowScroll, 100, 101>{
             "overflowScroll" },
         /* 115 */
-        Internal::PropGuiCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>{
+        Internal::GuiPropCompound<Widget, SizeOf, ContentOverflow, ContentOverflow, 102, 103>{
             "contentOverflow" },
     };
     return props;

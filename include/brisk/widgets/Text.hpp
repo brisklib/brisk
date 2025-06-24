@@ -39,7 +39,7 @@ public:
     }
 
     template <size_t N, WidgetArgument... Args>
-    explicit Text(const char(&text)[N], const Args&... args)
+    explicit Text(const char (&text)[N], const Args&... args)
         : Text{ Construction{ widgetType }, std::string(text), std::tuple{ args... } } {
         endConstruction();
     }
@@ -91,7 +91,7 @@ protected:
     CacheWithInvalidation<Cached, CacheKey, Text, &Text::updateCache> m_cache{ this };
     CacheWithInvalidation<Cached2, CacheKey2, Text, &Text::updateCache2> m_cache2{ this };
 
-    void paint(Canvas & canvas) const override;
+    void paint(Canvas& canvas) const override;
     std::optional<std::string> textContent() const override;
     void onFontChanged() override;
     void onChanged();

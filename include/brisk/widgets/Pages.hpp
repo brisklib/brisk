@@ -84,7 +84,6 @@ protected:
     explicit Page(Construction construction, std::string title, ArgumentsView<Page> args);
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &Page::m_title, "title" },
@@ -133,7 +132,6 @@ private:
     void internalChanged();
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropFieldNotify{ &Pages::m_value, &Pages::onChanged, "value" },

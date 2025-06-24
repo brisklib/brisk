@@ -90,7 +90,6 @@ private:
     BindingRegistration m_lt{ this, mainScheduler };
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /* 0 */ Internal::PropField{ &Settings::m_changed, "changed" },

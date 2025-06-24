@@ -49,7 +49,6 @@ protected:
     explicit Menu(Construction construction, ArgumentsView<Menu> args);
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &Menu::m_onItemClick, "onItemClick" },

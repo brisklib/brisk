@@ -69,7 +69,6 @@ protected:
     explicit Button(Construction construction, ArgumentsView<Button> args);
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &Button::m_repeatDelay, "repeatDelay" },

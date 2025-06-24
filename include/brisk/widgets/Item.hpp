@@ -76,7 +76,6 @@ protected:
     explicit Item(Construction construction, ArgumentsView<Item> args);
 
 public:
-
     static const auto& properties() noexcept {
         static constexpr tuplet::tuple props{
             /*0*/ Internal::PropField{ &Item::m_icon, "icon" },

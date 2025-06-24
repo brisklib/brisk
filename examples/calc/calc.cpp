@@ -125,7 +125,6 @@ public:
             Graphene::darkColors(),
             minWidth            = 320_apx,
             windowColor         = 0x2E3747_rgb,
-            animationSpeed      = 0.5,
             Graphene::mainColor = 0x555B6E_rgb,
             alignItems          = AlignItems::Stretch,
             rcnew Text{
