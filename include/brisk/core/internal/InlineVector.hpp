@@ -88,6 +88,7 @@ struct inline_vector {
     using const_iterator   = const_pointer;
 
     constexpr inline_vector() noexcept : m_size(0) {}
+    constexpr ~inline_vector() noexcept = default;
 
     constexpr inline_vector(const inline_vector&) noexcept            = default;
     constexpr inline_vector(inline_vector&&) noexcept                 = default;
@@ -226,7 +227,7 @@ struct inline_vector {
 #endif
     }
 
-    T m_values[N];
+    T m_values[N]{};
     stored_size_type m_size;
 };
 } // namespace Brisk
