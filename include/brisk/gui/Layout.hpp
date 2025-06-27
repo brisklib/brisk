@@ -142,6 +142,7 @@ struct LengthOf {
         case LengthUnit::AlignedPixels:
             return std::round(value() * pixelRatio());
         }
+        BRISK_UNREACHABLE();
     }
 
     template <Unit srcUnit, Unit dstUnit = Unit::Default>
