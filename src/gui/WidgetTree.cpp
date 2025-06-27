@@ -310,6 +310,13 @@ Nullable<InputQueue> WidgetTree::inputQueue() const {
 
 WidgetTree::WidgetTree(InputQueue* inputQueue) noexcept : m_inputQueue(inputQueue) {}
 
+WidgetTree::~WidgetTree() {
+    m_root.reset();
+    m_animationQueue.clear();
+    m_rebuildQueue.clear();
+    m_groups.clear();
+}
+
 void WidgetTree::requestUpdateVisibility() {
     m_updateVisibilityRequested = true;
 }

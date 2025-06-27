@@ -59,6 +59,7 @@ using Drawable = function<void(Canvas&)>;
 class WidgetTree {
 public:
     WidgetTree(InputQueue* inputQueue = nullptr) noexcept;
+    ~WidgetTree();
 
     std::shared_ptr<Widget> root() const noexcept;
     void setRoot(std::shared_ptr<Widget> root);
