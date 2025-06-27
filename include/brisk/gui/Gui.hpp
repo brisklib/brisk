@@ -75,9 +75,9 @@ struct Rules;
 struct EventDelegate;
 
 struct Painter {
-    using PaintFunc    = function<void(Canvas&, const Widget&)>;
+    using PaintFunc              = function<void(Canvas&, const Widget&)>;
 
-    Painter() noexcept = default;
+    constexpr Painter() noexcept = default;
     explicit Painter(PaintFunc painter);
     PaintFunc painter;
 
@@ -261,6 +261,8 @@ struct WidgetActions {
 namespace Internal {
 
 struct Resolve {
+    constexpr Resolve() noexcept = default;
+
     constexpr Resolve(Length value, float resolved = {}) noexcept : value(value), resolved(resolved) {}
 
     constexpr bool operator==(const Resolve& other) const noexcept {
