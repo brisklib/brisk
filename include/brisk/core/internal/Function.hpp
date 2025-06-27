@@ -54,9 +54,9 @@ struct fn_vtable_impl : fn_vtable<R, Args...> {
 
 template <typename R, typename... Args>
 struct function<R(Args...)> {
-    function() noexcept = default;
+    constexpr function() noexcept = default;
 
-    function(std::nullptr_t) noexcept {}
+    constexpr function(std::nullptr_t) noexcept {}
 
     template <typename Fn>
         requires(std::is_invocable_r_v<R, Fn, Args...> && !std::is_same_v<std::decay_t<Fn>, function>)
