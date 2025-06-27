@@ -23,6 +23,7 @@
 #include <bit>
 #include <limits>
 #include <functional>
+#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/BasicTypes.hpp>
 #include <fmt/format.h>
@@ -121,6 +122,26 @@ struct LengthOf {
 
     constexpr float value() const noexcept {
         return unpackValue(m_packed);
+    }
+
+    constexpr float staticResolve() const noexcept {
+        switch (unit()) {
+        case LengthUnit::Undefined:
+        case LengthUnit::Auto:
+        case LengthUnit::Em:
+        case LengthUnit::Vw:
+        case LengthUnit::Vh:
+        case LengthUnit::Vmin:
+        case LengthUnit::Vmax:
+        case LengthUnit::Percent:
+            return std::numeric_limits<float>::quiet_NaN();
+        case LengthUnit::Pixels:
+            return value() * pixelRatio();
+        case LengthUnit::DevicePixels:
+            return value();
+        case LengthUnit::AlignedPixels:
+            return std::round(value() * pixelRatio());
+        }
     }
 
     template <Unit srcUnit, Unit dstUnit = Unit::Default>

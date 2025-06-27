@@ -166,6 +166,10 @@ struct Inherit {};
 
 constexpr inline Inherit inherit{};
 
+struct Initial {};
+
+constexpr inline Initial initial{};
+
 template <>
 inline constexpr std::initializer_list<NameValuePair<Layout>> defaultNames<Layout>{
     { "Horizontal", Layout::Horizontal },

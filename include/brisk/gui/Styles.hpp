@@ -76,6 +76,7 @@ enum class RuleOp : uint8_t {
     Value,
     Function,
     Inherit,
+    Initial,
 };
 
 struct StyleProperty {
@@ -109,9 +110,17 @@ struct StyleProperty {
             }
             if ((widgetState & state) == state) {
                 if constexpr (PropertyTag<Tag>) {
-                    if (op == RuleOp::Inherit) {
-                        applier(widget, ArgVal<Tag, Inherit>{ inherit });
-                        return;
+                    if constexpr (Tag::template accepts<Inherit>()) {
+                        if (op == RuleOp::Inherit) {
+                            applier(widget, ArgVal<Tag, Inherit>{ inherit });
+                            return;
+                        }
+                    }
+                    if constexpr (Tag::template accepts<Initial>()) {
+                        if (op == RuleOp::Initial) {
+                            applier(widget, ArgVal<Tag, Initial>{ initial });
+                            return;
+                        }
                     }
                 }
                 Type value;
@@ -122,6 +131,8 @@ struct StyleProperty {
         toString = [](RuleOp op, const StyleValuePtr& rule) -> std::string {
             if (op == RuleOp::Inherit) {
                 return "(inherit)";
+            } else if (op == RuleOp::Initial) {
+                return "(initial)";
             } else if (op == RuleOp::Function) {
                 return "(dynamic)";
             }
@@ -136,7 +147,11 @@ struct StyleProperty {
         equals = [](RuleOp op1, const StyleValuePtr& rule1, RuleOp op2, const StyleValuePtr& rule2) -> bool {
             if (op1 == RuleOp::Inherit && op2 == RuleOp::Inherit)
                 return true;
+            if (op1 == RuleOp::Initial && op2 == RuleOp::Initial)
+                return true;
             if (op1 == RuleOp::Inherit || op2 == RuleOp::Inherit)
+                return false;
+            if (op1 == RuleOp::Initial || op2 == RuleOp::Initial)
                 return false;
             if (op1 == RuleOp::Function || op2 == RuleOp::Function)
                 return false;
@@ -175,6 +190,8 @@ struct Rule {
 
         if constexpr (std::is_same_v<U, Inherit>) {
             m_op = Internal::RuleOp::Inherit;
+        } else if constexpr (std::is_same_v<U, Initial>) {
+            m_op = Internal::RuleOp::Initial;
         } else if constexpr (std::is_convertible_v<U, Type>) {
             m_op      = Internal::RuleOp::Value;
             m_storage = std::make_shared<Type>(static_cast<Type>(std::move(value.value)));

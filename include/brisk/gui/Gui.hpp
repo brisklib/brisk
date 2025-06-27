@@ -336,6 +336,11 @@ template <typename Class, typename T, PropertyIndex index>
 struct PropArg : PropertyTag {
     using Type = T;
 
+    template <typename U>
+    static consteval bool accepts() noexcept {
+        return Property<Class, T, index>::template accepts<U>();
+    }
+
     static std::string_view name() noexcept {
         return Property<Class, T, index>::traits().name;
     }
@@ -376,11 +381,42 @@ using StyleVarType = std::variant<std::monostate, ColorW, EdgesL, float, int>;
 
 namespace Internal {
 
+template <typename T>
+struct IsConstexprCompatible {
+    constexpr static bool value = true;
+};
+
+template <typename T, typename Tr, typename A>
+struct IsConstexprCompatible<std::basic_string<T, Tr, A>> {
+    constexpr static bool value = false;
+};
+
 template <typename WidgetClass, typename ValueType>
 struct GuiProp {
     ValueType(WidgetClass::* field);
+    std::conditional_t<IsConstexprCompatible<ValueType>::value, ValueType, ValueType (*)()> initialValue;
     PropFlags flags;
     const char* name = nullptr;
+
+    ValueType getInitialValue() const {
+        if constexpr (IsConstexprCompatible<ValueType>::value) {
+            return initialValue;
+        } else {
+            if (initialValue) {
+                return initialValue();
+            } else {
+                return ValueType{};
+            }
+        }
+    }
+
+    void initialize(WidgetClass* self) const {
+        (self->*field) = getInitialValue();
+    }
+
+    void reset(WidgetClass* self) const {
+        set(self, getInitialValue());
+    }
 
     void set(WidgetClass* self, ValueType value) const {
         self->propSet(
@@ -399,6 +435,10 @@ struct GuiProp {
         self->propInherit({ this }, flags);
     }
 
+    void set(WidgetClass* self, Initial) const {
+        reset(self);
+    }
+
     ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
         return (self->*field);
     }
@@ -413,13 +453,23 @@ struct GuiProp {
 };
 
 template <typename WidgetClass, typename ValueType>
-GuiProp(ValueType(WidgetClass::*), PropFlags, const char* = nullptr) -> GuiProp<WidgetClass, ValueType>;
+GuiProp(ValueType(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags, const char* = nullptr)
+    -> GuiProp<WidgetClass, ValueType>;
 
 template <typename WidgetClass, typename ValueType>
 struct GuiProp<WidgetClass, Animated<ValueType>> {
     Animated<ValueType>(WidgetClass::* field);
+    ValueType initialValue;
     PropFlags flags;
     const char* name = nullptr;
+
+    void initialize(WidgetClass* self) const {
+        (self->*field) = initialValue;
+    }
+
+    void reset(WidgetClass* self) const {
+        set(self, initialValue);
+    }
 
     void set(WidgetClass* self, ValueType value) const {
         self->propSet(
@@ -440,8 +490,12 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
             flags, toBindingAddress(&(self->*field).value));
     }
 
-    void set(WidgetClass* self, Inherit value) const {
+    void set(WidgetClass* self, Inherit) const {
         self->propInherit({ this }, flags);
+    }
+
+    void set(WidgetClass* self, Initial) const {
+        reset(self);
     }
 
     ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
@@ -458,14 +512,24 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
 };
 
 template <typename WidgetClass, typename ValueType>
-GuiProp(Animated<ValueType>(WidgetClass::*), float(WidgetClass::*), PropFlags, const char* = nullptr)
-    -> GuiProp<WidgetClass, Animated<ValueType>>;
+GuiProp(Animated<ValueType>(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags,
+        const char* = nullptr) -> GuiProp<WidgetClass, Animated<ValueType>>;
 
 template <typename WidgetClass>
 struct GuiProp<WidgetClass, Resolve> {
     Resolve(WidgetClass::* field);
+    Length initialValue;
     PropFlags flags;
     const char* name = nullptr;
+
+    void initialize(WidgetClass* self) const {
+        (self->*field).value    = initialValue;
+        (self->*field).resolved = initialValue.staticResolve();
+    }
+
+    void reset(WidgetClass* self) const {
+        set(self, initialValue);
+    }
 
     void set(WidgetClass* self, Length value) const {
         self->propSet(
@@ -482,6 +546,10 @@ struct GuiProp<WidgetClass, Resolve> {
 
     void set(WidgetClass* self, Inherit) const {
         self->propInherit({ this }, flags);
+    }
+
+    void set(WidgetClass* self, Initial) const {
+        reset(self);
     }
 
     Length get(const WidgetClass* self) const noexcept {
@@ -513,6 +581,11 @@ struct GuiPropCompound {
     static_assert(std::is_trivially_copyable_v<ValueType>);
     static_assert(std::is_trivially_copyable_v<CurrentValueType>);
 
+    void reset(WidgetClass* self) const {
+        traits<index0>().reset(self);
+        (traits<indices>().reset(self), ...);
+    }
+
     ValueType get(const WidgetClass* self) const noexcept {
         return ValueType{
             traits<index0>().get(self),
@@ -523,12 +596,16 @@ struct GuiPropCompound {
     void set(WidgetClass* self, ValueType value) const {
         traits<index0>().set(self, value[0]);
         size_t i = 0;
-        ((traits<indices>().set(self, value[++i])), ...);
+        (traits<indices>().set(self, value[++i]), ...);
     }
 
     void set(WidgetClass* self, Inherit) const {
         traits<index0>().set(self, Inherit{});
-        ((traits<indices>().set(self, Inherit{})), ...);
+        (traits<indices>().set(self, Inherit{}), ...);
+    }
+
+    void set(WidgetClass* self, Initial) const {
+        reset(self);
     }
 
     CurrentValueType current(const WidgetClass* self) const noexcept {
@@ -1021,47 +1098,47 @@ protected:
     Point m_hintTextOffset{ 0, 0 };
     PreparedText m_hintPrepared;
 
-    Animated<ColorW> m_backgroundColor{ Palette::transparent };
-    Animated<ColorW> m_borderColor{ Palette::transparent };
-    Animated<ColorW> m_color{ Palette::white };
-    Animated<ColorW> m_shadowColor{ Palette::black.multiplyAlpha(0.66f) };
-    Animated<ColorW> m_scrollBarColor{ Palette::grey };
+    Animated<ColorW> m_backgroundColor;
+    Animated<ColorW> m_borderColor;
+    Animated<ColorW> m_color;
+    Animated<ColorW> m_shadowColor;
+    Animated<ColorW> m_scrollBarColor;
 
     // point/size
-    PointL m_absolutePosition{ undef, undef }; // for popup only
-    PointL m_anchor{ undef, undef };           // for popup only
-    PointL m_translate{ 0, 0 };                // translation relative to own size
-    Animated<PointF> m_shadowOffset{ PointF{ 0, 0 } };
+    PointL m_absolutePosition; // for popup only
+    PointL m_anchor;           // for popup only
+    PointL m_translate;        // translation relative to own size
+    Animated<PointF> m_shadowOffset;
 
     // pointers
-    Widget* m_parent               = nullptr;
-    EventDelegate* m_delegate      = nullptr;
+    Widget* m_parent = nullptr;
+    EventDelegate* m_delegate;
 
     // float
     mutable float m_regenerateTime = 0.0;
     mutable float m_relayoutTime   = 0.0;
     float m_hoverTime              = -1.0;
-    OptFloat m_flexGrow            = undef;
-    OptFloat m_flexShrink          = undef;
-    OptFloat m_aspect              = undef;
-    Animated<float> m_opacity{ 1.f };
-    Animated<float> m_shadowSpread{ 0 };
+    OptFloat m_flexGrow;
+    OptFloat m_flexShrink;
+    OptFloat m_aspect;
+    Animated<float> m_opacity;
+    Animated<float> m_shadowSpread;
 
     // int
-    Cursor m_cursor  = Cursor::NotSet;
+    Cursor m_cursor;
     int m_tabGroupId = -1;
 
-    Internal::Resolve m_shadowSize{ 0_px };
-    Internal::Resolve m_fontSize{ FontSize::Normal, dp(FontSize::Normal) };
-    Internal::Resolve m_tabSize{ 40, 40 };
-    Internal::Resolve m_letterSpacing{ 0_px, 0.f };
-    Internal::Resolve m_wordSpacing{ 0_px, 0.f };
-    Internal::Resolve m_scrollBarThickness{ 8_px, 8.f };
-    Internal::Resolve m_scrollBarRadius{ 0_px, 0.f };
-    Internal::Resolve m_borderRadiusTopLeft{ 0, 0.f };
-    Internal::Resolve m_borderRadiusTopRight{ 0, 0.f };
-    Internal::Resolve m_borderRadiusBottomLeft{ 0, 0.f };
-    Internal::Resolve m_borderRadiusBottomRight{ 0, 0.f };
+    Internal::Resolve m_shadowSize;
+    Internal::Resolve m_fontSize;
+    Internal::Resolve m_tabSize;
+    Internal::Resolve m_letterSpacing;
+    Internal::Resolve m_wordSpacing;
+    Internal::Resolve m_scrollBarThickness;
+    Internal::Resolve m_scrollBarRadius;
+    Internal::Resolve m_borderRadiusTopLeft;
+    Internal::Resolve m_borderRadiusTopRight;
+    Internal::Resolve m_borderRadiusBottomLeft;
+    Internal::Resolve m_borderRadiusBottomRight;
 
     CornersL getBorderRadius() const noexcept {
         return { m_borderRadiusTopLeft.value, m_borderRadiusTopRight.value, m_borderRadiusBottomLeft.value,
@@ -1073,113 +1150,113 @@ protected:
                  m_borderRadiusBottomLeft.resolved, m_borderRadiusBottomRight.resolved };
     }
 
-    Length m_borderWidthLeft   = 0;
-    Length m_borderWidthTop    = 0;
-    Length m_borderWidthRight  = 0;
-    Length m_borderWidthBottom = 0;
+    Length m_borderWidthLeft;
+    Length m_borderWidthTop;
+    Length m_borderWidthRight;
+    Length m_borderWidthBottom;
 
     EdgesL getBorderWidth() const noexcept {
         return { m_borderWidthLeft, m_borderWidthTop, m_borderWidthRight, m_borderWidthBottom };
     }
 
-    Length m_width  = undef;
-    Length m_height = undef;
+    Length m_width;
+    Length m_height;
 
     SizeL getDimensions() const noexcept {
         return { m_width, m_height };
     }
 
-    Length m_gapColumn = 0;
-    Length m_gapRow    = 0;
+    Length m_gapColumn;
+    Length m_gapRow;
 
     SizeL getGap() const noexcept {
         return { m_gapColumn, m_gapRow };
     }
 
-    Length m_marginLeft   = 0;
-    Length m_marginTop    = 0;
-    Length m_marginRight  = 0;
-    Length m_marginBottom = 0;
+    Length m_marginLeft;
+    Length m_marginTop;
+    Length m_marginRight;
+    Length m_marginBottom;
 
     EdgesL getMargin() const noexcept {
         return { m_marginLeft, m_marginTop, m_marginRight, m_marginBottom };
     }
 
-    Length m_maxWidth  = undef;
-    Length m_maxHeight = undef;
+    Length m_maxWidth;
+    Length m_maxHeight;
 
     SizeL getMaxDimensions() const noexcept {
         return { m_maxWidth, m_maxHeight };
     }
 
-    Length m_minWidth  = undef;
-    Length m_minHeight = undef;
+    Length m_minWidth;
+    Length m_minHeight;
 
     SizeL getMinDimensions() const noexcept {
         return { m_minWidth, m_minHeight };
     }
 
-    Length m_paddingLeft   = 0;
-    Length m_paddingTop    = 0;
-    Length m_paddingRight  = 0;
-    Length m_paddingBottom = 0;
+    Length m_paddingLeft;
+    Length m_paddingTop;
+    Length m_paddingRight;
+    Length m_paddingBottom;
 
     EdgesL getPadding() const noexcept {
         return { m_paddingLeft, m_paddingTop, m_paddingRight, m_paddingBottom };
     }
 
     // uint8_t
-    mutable WidgetState m_state         = WidgetState::None;
-    std::string m_fontFamily            = Font::DefaultPlusIconsEmoji;
-    FontStyle m_fontStyle               = FontStyle::Normal;
-    FontWeight m_fontWeight             = FontWeight::Regular;
-    OpenTypeFeatureFlags m_fontFeatures = {};
-    TextDecoration m_textDecoration     = TextDecoration::None;
-    AlignSelf m_alignSelf               = AlignSelf::Auto;
-    Justify m_justifyContent            = Justify::FlexStart;
-    Length m_flexBasis                  = auto_;
-    AlignItems m_alignItems             = AlignItems::Stretch;
-    Layout m_layout                     = Layout::Horizontal;
-    LayoutOrder m_layoutOrder           = LayoutOrder::Direct;
-    Placement m_placement               = Placement::Normal;
-    ZOrder m_zorder                     = ZOrder::Normal;
-    WidgetClip m_clip                   = WidgetClip::Normal;
-    AlignContent m_alignContent         = AlignContent::FlexStart;
-    Wrap m_flexWrap                     = Wrap::NoWrap;
-    BoxSizingPerAxis m_boxSizing        = BoxSizingPerAxis::BorderBox;
-    AlignToViewport m_alignToViewport   = AlignToViewport::None;
-    TextAlign m_textAlign               = TextAlign::Start;
-    TextAlign m_textVerticalAlign       = TextAlign::Center;
-    MouseInteraction m_mouseInteraction = MouseInteraction::Inherit;
+    mutable WidgetState m_state = WidgetState::None;
+    std::string m_fontFamily;
+    FontStyle m_fontStyle;
+    FontWeight m_fontWeight;
+    OpenTypeFeatureFlags m_fontFeatures;
+    TextDecoration m_textDecoration;
+    AlignSelf m_alignSelf;
+    Justify m_justifyContent;
+    Length m_flexBasis;
+    AlignItems m_alignItems;
+    Layout m_layout;
+    LayoutOrder m_layoutOrder;
+    Placement m_placement;
+    ZOrder m_zorder;
+    WidgetClip m_clip;
+    AlignContent m_alignContent;
+    Wrap m_flexWrap;
+    BoxSizingPerAxis m_boxSizing;
+    AlignToViewport m_alignToViewport;
+    TextAlign m_textAlign;
+    TextAlign m_textVerticalAlign;
+    MouseInteraction m_mouseInteraction;
 
-    OverflowScroll m_overflowScrollX    = OverflowScroll::Disable;
-    OverflowScroll m_overflowScrollY    = OverflowScroll::Disable;
+    OverflowScroll m_overflowScrollX;
+    OverflowScroll m_overflowScrollY;
 
     OverflowScrollBoth getOverflowScroll() const noexcept {
         return { m_overflowScrollX, m_overflowScrollY };
     }
 
-    ContentOverflow m_contentOverflowX = ContentOverflow::Default;
-    ContentOverflow m_contentOverflowY = ContentOverflow::Default;
+    ContentOverflow m_contentOverflowX;
+    ContentOverflow m_contentOverflowY;
 
     ContentOverflowBoth getContentOverflow() const noexcept {
         return { m_contentOverflowX, m_contentOverflowY };
     }
 
-    bool m_tabStop              = false;
-    bool m_tabGroup             = false;
-    bool m_visible              = true;
-    bool m_hidden               = false;
-    bool m_autofocus            = false;
-    bool m_mousePassThrough     = false;
-    bool m_autoMouseCapture     = true;
-    bool m_mouseAnywhere        = false;
-    bool m_focusCapture         = false;
-    bool m_stateTriggersRestyle = false;
-    bool m_isHintExclusive      = false;
-    bool m_isHintVisible        = false;
-    bool m_autoHint             = true;
-    bool m_squircleCorners      = false;
+    bool m_tabStop;
+    bool m_tabGroup;
+    bool m_visible;
+    bool m_hidden;
+    bool m_autofocus;
+    bool m_mousePassThrough;
+    bool m_autoMouseCapture;
+    bool m_mouseAnywhere;
+    bool m_focusCapture;
+    bool m_stateTriggersRestyle;
+    bool m_isHintExclusive;
+    bool m_isHintVisible;
+    bool m_autoHint;
+    bool m_squircleCorners;
 
     std::array<bool, 2> m_scrollBarDrag{ false, false };
     int m_savedScrollOffset = 0;
@@ -1418,7 +1495,7 @@ public:
         /* 51 */ Internal::GuiProp<Widget, bool>,
         /* 52 */ Internal::GuiProp<Widget, std::string>,
         /* 53 */ Internal::GuiProp<Widget, std::string_view>,
-        /* 54 */ Internal::GuiProp<Widget, SmallVector<std::string, 1>>,
+        /* 54 */ Internal::PropFieldNotify<Widget, SmallVector<std::string, 1>>,
         /* 55 */ Internal::GuiProp<Widget, MouseInteraction>,
         /* 56 */ Internal::GuiProp<Widget, bool>,
         /* 57 */ Internal::GuiProp<Widget, bool>,
@@ -1432,8 +1509,8 @@ public:
         /* 65 */ Internal::GuiProp<Widget, bool>,
         /* 66 */ Internal::GuiProp<Widget, EventDelegate*>,
         /* 67 */ Internal::GuiProp<Widget, std::string>,
-        /* 68 */ Internal::GuiProp<Widget, std::shared_ptr<const Stylesheet>>,
-        /* 69 */ Internal::GuiProp<Widget, Painter>,
+        /* 68 */ Internal::PropFieldNotify<Widget, std::shared_ptr<const Stylesheet>>,
+        /* 69 */ Internal::PropFieldNotify<Widget, Painter>,
         /* 70 */ Internal::GuiProp<Widget, bool>,
         /* 71 */ Internal::GuiProp<Widget, OpenTypeFeatureFlags>,
         /* 72 */ Internal::GuiProp<Widget, Animated<ColorW>>,
