@@ -44,8 +44,7 @@ void WidgetTree::setRoot(std::shared_ptr<Widget> root) {
 
 void WidgetTree::rescale() {
     if (m_root) {
-        LOG_INFO(tree, "rescale");
-        m_root->resolveProperties(PropFlags::AffectLayout | PropFlags::AffectFont);
+        m_root->resolveAndInherit();
     }
 }
 

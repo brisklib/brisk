@@ -170,6 +170,9 @@ public:
         if (transitionIt == m_transitions.end()) {
             return false; // No transition defined for this property
         }
+        if (transitionIt->second.duration <= 0s) {
+            return false; // Zero duration means no transition
+        }
         auto interpFunc = transitionFunction(transitionIt->second, value, std::move(targetValue));
         AnimationFunction animationFunc = animateValue(&value, std::move(interpFunc));
         startAnimation(propertyId, std::move(animationFunc));

@@ -126,17 +126,18 @@ enum FontSize : uint8_t {
 using Classes = SmallVector<std::string, 1>;
 
 enum class PropFlags : uint16_t {
-    None             = 0,
-    AffectLayout     = 1 << 0,
-    AffectStyle      = 1 << 1,
-    Resolvable       = 1 << 2,
-    AffectResolve    = 1 << 3,
-    AffectFont       = 1 << 4,
-    Inheritable      = 1 << 5,
-    RelativeToParent = 1 << 6,
-    AffectPaint      = 1 << 7,
-    AffectHint       = 1 << 8,
-    AffectVisibility = 1 << 9,
+    None                       = 0,
+    AffectLayout               = 1 << 0,
+    AffectStyle                = 1 << 1,
+    AffectFont                 = 1 << 2,
+    AffectPaint                = 1 << 3,
+    AffectHint                 = 1 << 4,
+    AffectVisibility           = 1 << 5,
+
+    RelativeToFontSize         = 0 << 8,
+    RelativeToShortestSide     = 1 << 8,
+    RelativeToHalfShortestSide = 2 << 8,
+    RelativeMask               = 3 << 8,
 };
 
 template <>

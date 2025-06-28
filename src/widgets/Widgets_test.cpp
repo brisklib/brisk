@@ -81,6 +81,7 @@ static void widgetTest(const std::string& name, Rc<Widget> widget, std::initiali
         windowColor = winColor,
         std::move(widget),
     });
+    tree.rescale();
     renderTest(name, tree.viewportRectangle().size(), [&](RenderContext& context) {
         Canvas canvas(context);
         tree.update();

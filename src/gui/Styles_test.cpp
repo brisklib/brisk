@@ -292,14 +292,18 @@ TEST_CASE("resolving") {
 
 TEST_CASE("inherit") {
     Rc<Widget> w1 = rcnew Widget{
+        // w1
         fontSize = 20_px,
         rcnew Widget{
+            // w2
             fontSize = 200_perc,
             rcnew Widget{
+                // w2ch
                 // fontSize = inherit
             },
         },
         rcnew Widget{
+            // w1ch
             // fontSize = inherit
         },
     };
@@ -318,5 +322,54 @@ TEST_CASE("inherit") {
     CHECK(w1ch->fontSize.current() == 20);
     CHECK(w2ch->fontSize.get() == 200_perc);
     CHECK(w2ch->fontSize.current() == 40);
+}
+
+TEST_CASE("inherit2") {
+    using namespace Selectors;
+    Rc<const Stylesheet> stylesheet = rcnew Stylesheet{
+        Style{
+            Id{ "A" },
+            Rules{
+                color = Palette::red,
+            },
+        },
+    };
+
+    Rc<Widget> w1 = rcnew Widget{
+        Arg::stylesheet = stylesheet,
+        id              = "A",
+
+        rcnew Widget{},
+    };
+
+    unprotect(w1)->restyleIfRequested();
+    CHECK(w1->color.get() == ColorW(Palette::red));
+    CHECK(w1->widgets().front()->color.get() == ColorW(Palette::red));
+}
+
+TEST_CASE("Style with states") {
+    using namespace Selectors;
+    using enum WidgetState;
+    Rc<const Stylesheet> stylesheet = rcnew Stylesheet{
+        Style{
+            Id{ "A" },
+            Rules{
+                color            = Palette::white,
+                color | Selected = Palette::red,
+            },
+        },
+    };
+
+    Rc<Widget> w1 = rcnew Widget{
+        Arg::stylesheet = stylesheet,
+        id              = "A",
+        rcnew Widget{},
+    };
+    unprotect(w1)->restyleIfRequested();
+    CHECK(w1->color.get() == ColorW(Palette::white));
+    CHECK(w1->widgets().front()->color.get() == ColorW(Palette::white));
+    w1->selected.set(true);
+    CHECK(w1->color.get() == ColorW(Palette::red));
+    CHECK(w1->widgets().front()->color.get() == ColorW(Palette::red));
 }
 } // namespace Brisk

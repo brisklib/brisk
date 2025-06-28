@@ -57,7 +57,7 @@ Rules& Rules::merge(const Rules& other) {
 }
 
 void Rules::applyTo(Widget* widget) const {
-    Widget::StyleApplying styleApplying(widget);
+    Widget::StyleApplying styleApplying;
     for (const Rule& r : rules) {
         r.applyTo(widget);
     }

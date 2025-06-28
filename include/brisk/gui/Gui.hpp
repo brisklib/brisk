@@ -106,14 +106,6 @@ struct Builder {
     void run(Widget* w);
 };
 
-constexpr bool isInheritable(PropFlags flags) noexcept {
-    return flags && PropFlags::Inheritable;
-}
-
-constexpr bool isResolvable(PropFlags flags) noexcept {
-    return flags && PropFlags::Resolvable;
-}
-
 namespace Tag {
 struct Depends {
     using Type = Value<Trigger<>>;
@@ -398,6 +390,10 @@ struct GuiProp {
     PropFlags flags;
     const char* name = nullptr;
 
+    PropertyId id() const noexcept {
+        return { this };
+    }
+
     ValueType getInitialValue() const {
         if constexpr (IsConstexprCompatible<ValueType>::value) {
             return initialValue;
@@ -418,21 +414,24 @@ struct GuiProp {
         set(self, getInitialValue());
     }
 
-    void set(WidgetClass* self, ValueType value) const {
-        self->propSet(
-            { this },
-            [&]() -> bool {
-                if (self->*field == value) {
-                    return false;
-                }
-                self->*field = std::move(value);
-                return true;
-            },
-            flags, toBindingAddress(&(self->*field)));
+    void set(WidgetClass* self, ValueType value, bool inherit = false, bool override = true) const {
+        if (!self->propChanging(this, inherit, override))
+            return;
+        if (self->*field == value) {
+            return;
+        }
+        bindings->assign(self->*field, std::move(value));
+        self->propChanged(this);
     }
 
-    void set(WidgetClass* self, Inherit) const {
-        self->propInherit({ this }, flags);
+    void set(WidgetClass* self, Inherit, bool override = true) const {
+        if constexpr (std::is_same_v<WidgetClass, Widget>) {
+            if (Widget* parent = self->parent()) {
+                set(self, parent->*field, true, override);
+            } else {
+                set(self, getInitialValue(), true, override);
+            }
+        }
     }
 
     void set(WidgetClass* self, Initial) const {
@@ -463,6 +462,10 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
     PropFlags flags;
     const char* name = nullptr;
 
+    PropertyId id() const noexcept {
+        return { this };
+    }
+
     void initialize(WidgetClass* self) const {
         (self->*field) = initialValue;
     }
@@ -471,27 +474,31 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
         set(self, initialValue);
     }
 
-    void set(WidgetClass* self, ValueType value) const {
-        self->propSet(
-            { this },
-            [self, field = this->field, id = PropertyId{ this }, value]() -> bool {
-                if ((self->*field).value == value) {
-                    return false; // No change
-                }
-                PropertyAnimations& anim = self->animations();
-                (self->*field).value     = value;
-                if (self->transitionAllowed() && anim.startTransition((self->*field).current, value, id)) {
-                    self->requestAnimationFrame();
-                } else {
-                    (self->*field).current = value;
-                }
-                return true;
-            },
-            flags, toBindingAddress(&(self->*field).value));
+    void set(WidgetClass* self, ValueType value, bool inherit = false, bool override = true) const {
+        if (!self->propChanging(this, inherit, override)) {
+            return;
+        }
+        if ((self->*field).value == value) {
+            return;
+        }
+        PropertyAnimations& anim = self->animations();
+        bindings->assign((self->*field).value, value);
+        if (self->transitionAllowed() && anim.startTransition((self->*field).current, value, id())) {
+            self->requestAnimationFrame();
+        } else {
+            (self->*field).current = value;
+        }
+        self->propChanged(this);
     }
 
-    void set(WidgetClass* self, Inherit) const {
-        self->propInherit({ this }, flags);
+    void set(WidgetClass* self, Inherit, bool override = true) const {
+        if constexpr (std::is_same_v<WidgetClass, Widget>) {
+            if (Widget* parent = self->parent()) {
+                set(self, (parent->*field).value, true, override);
+            } else {
+                set(self, initialValue, true, override);
+            }
+        }
     }
 
     void set(WidgetClass* self, Initial) const {
@@ -522,6 +529,10 @@ struct GuiProp<WidgetClass, Resolve> {
     PropFlags flags;
     const char* name = nullptr;
 
+    PropertyId id() const noexcept {
+        return { this };
+    }
+
     void initialize(WidgetClass* self) const {
         (self->*field).value    = initialValue;
         (self->*field).resolved = initialValue.staticResolve();
@@ -531,21 +542,25 @@ struct GuiProp<WidgetClass, Resolve> {
         set(self, initialValue);
     }
 
-    void set(WidgetClass* self, Length value) const {
-        self->propSet(
-            { this },
-            [&]() -> bool {
-                if ((self->*field).value == value) {
-                    return false;
-                }
-                (self->*field).value = std::move(value);
-                return true;
-            },
-            flags, toBindingAddress(&(self->*field)));
+    void set(WidgetClass* self, Length value, bool inherit = false, bool override = true) const {
+        if (!self->propChanging(this, inherit, override)) {
+            return;
+        }
+        if ((self->*field).value == value) {
+            return;
+        }
+        bindings->assign((self->*field).value, value);
+        self->propChanged(this);
     }
 
-    void set(WidgetClass* self, Inherit) const {
-        self->propInherit({ this }, flags);
+    void set(WidgetClass* self, Inherit, bool override = true) const {
+        if constexpr (std::is_same_v<WidgetClass, Widget>) {
+            if (Widget* parent = self->parent()) {
+                set(self, (parent->*field).value, true, override);
+            } else {
+                set(self, initialValue, true, override);
+            }
+        }
     }
 
     void set(WidgetClass* self, Initial) const {
@@ -1052,9 +1067,33 @@ protected:
     template <typename WidgetClass, typename ValueType>
     friend struct Internal::GuiProp;
 
-    void propInherit(PropertyId prop, PropFlags flags);
+    bool propChanging(PropertyId id, bool inherited, bool override);
 
-    void propSet(PropertyId prop, function_ref<bool()> assign, PropFlags flags, BindingAddress address);
+    template <typename Traits>
+    bool propChanging(const Traits* prop, bool inherited, bool override) {
+        return propChanging(prop->id(), inherited, override);
+    }
+
+    template <typename Traits>
+    void propChangedPropagate(const Traits* prop) {
+        for (const Rc<Widget>& w : *this) {
+            if (w.get()->isInherited(prop->id())) {
+                prop->set(w.get(), prop->get(this), true);
+            }
+        }
+    }
+
+    template <typename Traits>
+    void propChanged(const Traits* prop) {
+        requestUpdates(prop->flags);
+        propChangedPropagate(prop);
+    }
+
+    template <typename WidgetType>
+    void propChanged(const Internal::GuiProp<WidgetType, Internal::Resolve>* prop) {
+        resolveProperty(prop);
+        propChangedPropagate(prop);
+    }
 
     WidgetTree* m_tree = nullptr;
 
@@ -1065,13 +1104,15 @@ protected:
 
     std::optional<PointF> m_mousePos;
 
-    bool m_inConstruction : 1       = true;
-    bool m_constructed : 1          = false;
-    bool m_isPopup : 1              = false; // affected by closeNearestPopup
-    bool m_processClicks : 1        = true;
-    bool m_styleApplying : 1        = false;
-    bool m_ignoreChildrenOffset : 1 = false;
-    bool m_isMenuRoot : 1           = false; // affected by closeMenuChain
+    static inline bool m_styleApplying = false;
+
+    bool m_inConstruction : 1          = true;
+    bool m_constructed : 1             = false;
+    bool m_isPopup : 1                 = false; // affected by closeNearestPopup
+    bool m_processClicks : 1           = true;
+    bool m_ignoreChildrenOffset : 1    = false;
+    bool m_isMenuRoot : 1              = false; // affected by closeMenuChain
+    bool m_destroying : 1              = false;
 
     // functions
     Trigger<> m_onClick;
@@ -1284,15 +1325,15 @@ protected:
     RestyleState m_restyleState = RestyleState::NeedRestyle;
 
     struct StyleApplying {
-        explicit StyleApplying(Widget* widget) : widget(widget) {
-            widget->m_styleApplying = true;
+        StyleApplying() {
+            std::swap(styleApplyingSaved, m_styleApplying);
         }
 
         ~StyleApplying() {
-            widget->m_styleApplying = false;
+            std::swap(styleApplyingSaved, m_styleApplying);
         }
 
-        Widget* widget;
+        bool styleApplyingSaved = true;
     };
 
     Widget(const Widget&);
@@ -1373,7 +1414,10 @@ protected:
     /// @brief
     virtual void close(Widget* sender);
 
-    void resolveProperties(PropFlags flags);
+    void resolveAndInherit();
+    void resolveProperties();
+    void inheritProperties();
+    bool resolveProperty(const Internal::GuiProp<Widget, Internal::Resolve>* prop);
     void restyleIfRequested();
     void requestUpdates(PropFlags flags);
 

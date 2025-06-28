@@ -610,6 +610,7 @@ IndexedBuilder::IndexedBuilder(IndexedBuilder::func builder) noexcept
       }) {}
 
 Widget::~Widget() noexcept {
+    m_destroying = true;
     invalidate();
     for (const Ptr& w : *this) {
         w->m_parent = nullptr;
@@ -1764,23 +1765,7 @@ float Widget::resolveFontHeight() const {
     return fonts->metrics(font()).vertBounds();
 }
 
-template <typename T>
-BRISK_INLINE static T getFallback(Widget* widget, T Widget::* field, std::type_identity_t<T> fallback) {
-    return widget ? widget->*field : fallback;
-}
-
-template <typename T>
-BRISK_INLINE static T getFallback(Widget* widget, Animated<T> Widget::* field,
-                                  std::type_identity_t<T> fallback) {
-    return widget ? (widget->*field).value : fallback;
-}
-
-BRISK_INLINE static Length getFallback(Widget* widget, Internal::Resolve Widget::* field, Length fallback) {
-    return widget ? (widget->*field).value : fallback;
-}
-
 void Widget::requestUpdates(PropFlags flags) {
-
     if (flags && AffectHint) {
         prepareHint();
     }
@@ -1806,102 +1791,81 @@ void Widget::requestUpdateVisibility() {
         m_tree->requestUpdateVisibility();
 }
 
-void Widget::resolveProperties(PropFlags flags) {
-    Size viewportSize = this->viewportSize();
-    if (flags && AffectFont) {
-        const Internal::Resolve parentFont =
-            getFallback(m_parent, &Widget::m_fontSize, { 100_perc, dp(FontSize::Normal) });
-        if (isInherited(fontSize)) {
-            m_fontSize = parentFont;
-        } else {
-            m_fontSize.resolved = resolveValue(m_fontSize.value, 0.f, parentFont.resolved,
-                                               ResolveParameters{ parentFont.resolved, viewportSize });
-        }
-    }
-    float resolvedFontHeight = resolveFontHeight();
+void Widget::resolveProperties() {
+    properties().for_each(Overload{
+        [this](const Internal::GuiProp<Widget, Internal::Resolve>& prop) {
+            if (prop.id() != fontSize)
+                resolveProperty(&prop);
+        },
+        [](auto prop) {},
+    });
+}
 
-    if (isInherited(shadowSize)) {
-        m_shadowSize = getFallback(m_parent, &Widget::m_shadowSize, { 0_px, 0 });
+void Widget::inheritProperties() {
+    properties().for_each(Overload{
+        [this]<typename T>(const Internal::GuiProp<Widget, T>& prop) {
+            if (m_inheritedProperties.contains(prop.id()))
+                prop.set(this, Inherit{}, false);
+        },
+        [](auto prop) {},
+    });
+}
+
+void Widget::resolveAndInherit() {
+    inheritProperties();
+    resolveProperty(&fontSize.traits());
+    resolveProperties();
+    for (Ptr w : *this) {
+        w->resolveAndInherit();
+    }
+}
+
+// Returns true if resolved value has been changed
+bool Widget::resolveProperty(const Internal::GuiProp<Widget, Internal::Resolve>* prop) {
+    Internal::Resolve& value = (this->*(prop->field));
+    bool changed;
+    if (isInherited(prop->id()) && m_parent) {
+        changed = assign(value.resolved, (m_parent->*(prop->field)).resolved);
     } else {
-        m_shadowSize.resolved = resolveValue(m_shadowSize.value, 0.f, m_rect.shortestSide() * 0.5f,
-                                             ResolveParameters{ resolvedFontHeight, viewportSize });
-    }
+        float resolvedFontHeight;
 
-    if (isInherited(squircleCorners)) {
-        m_squircleCorners = getFallback(m_parent, &Widget::m_squircleCorners, false);
-    }
-
-    if (flags && AffectFont) {
-        if (isInherited(letterSpacing)) {
-            m_letterSpacing = getFallback(m_parent, &Widget::m_letterSpacing, { 0_px, 0 });
+        if (prop->id() == fontSize) {
+            // Use parent font size for resolving
+            resolvedFontHeight = m_parent ? m_parent->m_fontSize.resolved : dp(FontSize::Normal);
         } else {
-            m_letterSpacing.resolved = resolveValue(m_letterSpacing.value, 0.f, resolvedFontHeight,
-                                                    ResolveParameters{ resolvedFontHeight, viewportSize });
-        }
-        if (isInherited(wordSpacing)) {
-            m_wordSpacing = getFallback(m_parent, &Widget::m_wordSpacing, { 0_px, 0 });
-        } else {
-            m_wordSpacing.resolved = resolveValue(m_wordSpacing.value, 0.f, resolvedFontHeight,
-                                                  ResolveParameters{ resolvedFontHeight, viewportSize });
-        }
-        if (isInherited(tabSize)) {
-            m_tabSize = getFallback(m_parent, &Widget::m_tabSize, { 0_px, 0 });
-        } else {
-            m_tabSize.resolved = resolveValue(m_tabSize.value, 0.f, resolvedFontHeight,
-                                              ResolveParameters{ resolvedFontHeight, viewportSize });
+            resolvedFontHeight = resolveFontHeight();
         }
 
-        if (isInherited(fontFamily)) {
-            m_fontFamily = getFallback(m_parent, &Widget::m_fontFamily, Font::DefaultPlusIconsEmoji);
+        Size viewportSize = this->viewportSize();
+        float reference;
+        switch (prop->flags & RelativeMask) {
+        case RelativeToFontSize:
+            reference = resolvedFontHeight;
+            break;
+        case RelativeToHalfShortestSide:
+            reference = m_rect.shortestSide() * 0.5f;
+            break;
+        case RelativeToShortestSide:
+        default:
+            reference = m_rect.shortestSide();
+            break;
         }
-        if (isInherited(fontStyle)) {
-            m_fontStyle = getFallback(m_parent, &Widget::m_fontStyle, FontStyle::Normal);
-        }
-        if (isInherited(fontWeight)) {
-            m_fontWeight = getFallback(m_parent, &Widget::m_fontWeight, FontWeight::Regular);
-        }
-        if (isInherited(textDecoration)) {
-            m_textDecoration = getFallback(m_parent, &Widget::m_textDecoration, TextDecoration::None);
-        }
-        if (isInherited(fontFeatures)) {
-            m_fontFeatures = getFallback(m_parent, &Widget::m_fontFeatures, {});
-        }
-    }
-    if (isInherited(color)) {
-        m_color = getFallback(m_parent, &Widget::m_color, Palette::white);
-    }
-    if (isInherited(textAlign)) {
-        m_textAlign = getFallback(m_parent, &Widget::m_textAlign, TextAlign::Start);
-    }
-    if (isInherited(textVerticalAlign)) {
-        m_textVerticalAlign = getFallback(m_parent, &Widget::m_textVerticalAlign, TextAlign::Center);
-    }
-    if (isInherited(scrollBarColor)) {
-        m_scrollBarColor = getFallback(m_parent, &Widget::m_scrollBarColor, Palette::grey);
-    }
-    if (isInherited(scrollBarRadius)) {
-        m_scrollBarRadius = getFallback(m_parent, &Widget::m_scrollBarRadius, 0);
-    }
-    if (isInherited(scrollBarThickness)) {
-        m_scrollBarThickness = getFallback(m_parent, &Widget::m_scrollBarThickness, 8_px);
+
+        changed =
+            assign(value.resolved, resolveValue(value.value, prop->initialValue.staticResolve(), reference,
+                                                ResolveParameters{ resolvedFontHeight, viewportSize }));
     }
 
-    for (auto* borderRadius : { &m_borderRadiusTopLeft, &m_borderRadiusTopRight, &m_borderRadiusBottomLeft,
-                                &m_borderRadiusBottomRight }) {
-        borderRadius->resolved = resolveValue(borderRadius->value, 0.f, float(m_rect.shortestSide() * 0.5f),
-                                              ResolveParameters{ resolvedFontHeight, viewportSize });
+    if (changed) {
+        requestUpdates(prop->flags);
     }
-
-    m_scrollBarThickness.resolved = resolveValue(m_scrollBarThickness.value, 0.f, m_rect.shortestSide(),
-                                                 ResolveParameters{ resolvedFontHeight, viewportSize });
-    m_scrollBarRadius.resolved    = resolveValue(m_scrollBarRadius.value, 0.f, m_rect.shortestSide(),
-                                                 ResolveParameters{ resolvedFontHeight, viewportSize });
-
-    requestUpdates(flags);
-
-    for (const Ptr& w : *this) {
-        w->resolveProperties(flags);
+    if (changed && prop->id() == fontSize) {
+        resolveProperties();
+        for (const Ptr& w : *this) {
+            w->resolveProperty(prop);
+        }
     }
+    return changed;
 }
 
 std::optional<std::string> Widget::textContent() const {
@@ -2194,9 +2158,8 @@ void Widget::childrenChanged() {
 }
 
 void Widget::parentChanged() {
-    if (m_parent) {
-        resolveProperties(AffectResolve | AffectFont | AffectLayout | AffectStyle);
-    }
+    if (m_parent)
+        resolveAndInherit();
     onParentChanged();
     if (m_parent) {
         for (const auto& fn : m_onParentSet) {
@@ -2680,40 +2643,18 @@ bool Widget::isInherited(PropertyId prop) const noexcept {
     return m_inheritedProperties.contains(prop);
 }
 
-void Widget::propInherit(PropertyId prop, PropFlags flags) {
+bool Widget::propChanging(PropertyId prop, bool inherited, bool override) {
     if (!m_styleApplying) {
-        m_overriddenProperties.insert(prop);
+        if (override)
+            m_overriddenProperties.insert(prop);
     } else if (m_overriddenProperties.contains(prop)) {
-        return; // Attempting to modify overridden property
+        return false; // Attempting to modify overridden property
     }
-
-    m_inheritedProperties.insert(prop);
-
-    if (!m_parent)
-        return; // No one to inherit from
-
-    resolveProperties(flags);
-}
-
-void Widget::propSet(PropertyId prop, function_ref<bool()> assign, PropFlags flags, BindingAddress address) {
-    if (!m_styleApplying) {
-        m_overriddenProperties.insert(prop);
-    } else if (m_overriddenProperties.contains(prop)) {
-        return; // Attempting to modify overridden property
-    }
-
-    m_inheritedProperties.erase(prop);
-
-    if (!assign())
-        return; // Not changed
-
-    if (flags && Inheritable || flags && Resolvable || flags && AffectResolve) {
-        resolveProperties(flags);
-    } else {
-        requestUpdates(flags);
-    }
-
-    bindings->notifyRange(address);
+    if (inherited)
+        m_inheritedProperties.insert(prop);
+    else
+        m_inheritedProperties.erase(prop);
+    return true;
 }
 
 const tuplet::tuple<
@@ -2862,7 +2803,7 @@ Widget::properties() noexcept {
         /* 17 */ 17,
         /* 18 */ 18,
         /* 19 */
-        Internal::GuiProp{ &Widget::m_color, Palette::white, Inheritable | AffectPaint, "color" },
+        Internal::GuiProp{ &Widget::m_color, Palette::white, AffectPaint, "color" },
         /* 20 */ Internal::GuiProp{ &Widget::m_shadowOffset, PointF{ 0, 0 }, AffectPaint, "shadowOffset" },
         /* 21 */ Internal::GuiProp{ &Widget::m_cursor, Cursor::NotSet, None, "cursor" },
         /* 22 */ Internal::GuiProp{ &Widget::m_flexBasis, auto_, AffectLayout, "flexBasis" },
@@ -2874,19 +2815,16 @@ Widget::properties() noexcept {
                                                 []() -> std::string {
                                                     return Font::DefaultPlusIconsEmoji;
                                                 },
-                                                AffectLayout | AffectFont | Inheritable | AffectPaint,
-                                                "fontFamily" },
+                                                AffectLayout | AffectFont | AffectPaint, "fontFamily" },
         /* 27 */
         Internal::GuiProp{ &Widget::m_fontSize, FontSize::Normal * 1_px,
-                           AffectLayout | Resolvable | AffectResolve | AffectFont | Inheritable |
-                               RelativeToParent | AffectPaint,
-                           "fontSize" },
+                           AffectLayout | AffectFont | RelativeToFontSize | AffectPaint, "fontSize" },
         /* 28 */
-        Internal::GuiProp{ &Widget::m_fontStyle, FontStyle::Normal,
-                           AffectLayout | AffectFont | Inheritable | AffectPaint, "fontStyle" },
+        Internal::GuiProp{ &Widget::m_fontStyle, FontStyle::Normal, AffectLayout | AffectFont | AffectPaint,
+                           "fontStyle" },
         /* 29 */
         Internal::GuiProp{ &Widget::m_fontWeight, FontWeight::Regular,
-                           AffectLayout | AffectFont | Inheritable | AffectPaint, "fontWeight" },
+                           AffectLayout | AffectFont | AffectPaint, "fontWeight" },
         /* 30 */ Internal::GuiProp{ &Widget::m_hidden, false, AffectPaint, "hidden" },
         /* 31 */
         Internal::GuiProp{ &Widget::m_justifyContent, Justify::FlexStart, AffectLayout, "justifyContent" },
@@ -2895,12 +2833,11 @@ Widget::properties() noexcept {
         /* 33 */ Internal::GuiProp{ &Widget::m_layout, Layout::Horizontal, AffectLayout, "layout" },
         /* 34 */
         Internal::GuiProp{ &Widget::m_letterSpacing, 0_px,
-                           AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                           "letterSpacing" },
+                           AffectLayout | AffectFont | AffectPaint | RelativeToFontSize, "letterSpacing" },
         /* 35 */ Internal::GuiProp{ &Widget::m_opacity, 1.f, AffectPaint, "opacity" },
         /* 36 */ Internal::GuiProp{ &Widget::m_placement, Placement::Normal, AffectLayout, "placement" },
         /* 37 */
-        Internal::GuiProp{ &Widget::m_shadowSize, 0_px, Resolvable | Inheritable | AffectPaint,
+        Internal::GuiProp{ &Widget::m_shadowSize, 0_px, AffectPaint | RelativeToHalfShortestSide,
                            "shadowSize" },
         /* 38 */
         Internal::GuiProp{ &Widget::m_shadowColor, 0x000000'AA_rgba, AffectPaint, "shadowColor" },
@@ -2908,21 +2845,20 @@ Widget::properties() noexcept {
         /* 40 */ 40,
         /* 41 */
         Internal::GuiProp{ &Widget::m_tabSize, 40_px,
-                           AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint, "tabSize" },
+                           AffectLayout | AffectFont | AffectPaint | RelativeToFontSize, "tabSize" },
         /* 42 */
-        Internal::GuiProp{ &Widget::m_textAlign, TextAlign::Start, Inheritable | AffectPaint, "textAlign" },
+        Internal::GuiProp{ &Widget::m_textAlign, TextAlign::Start, AffectPaint, "textAlign" },
         /* 43 */
-        Internal::GuiProp{ &Widget::m_textVerticalAlign, TextAlign::Center, Inheritable | AffectPaint,
+        Internal::GuiProp{ &Widget::m_textVerticalAlign, TextAlign::Center, AffectPaint,
                            "textVerticalAlign" },
         /* 44 */
-        Internal::GuiProp{ &Widget::m_textDecoration, TextDecoration::None,
-                           AffectFont | Inheritable | AffectPaint, "textDecoration" },
+        Internal::GuiProp{ &Widget::m_textDecoration, TextDecoration::None, AffectFont | AffectPaint,
+                           "textDecoration" },
         /* 45 */ Internal::GuiProp{ &Widget::m_translate, { 0, 0 }, AffectLayout, "translate" },
         /* 46 */ Internal::GuiProp{ &Widget::m_visible, true, AffectLayout | AffectVisibility, "visible" },
         /* 47 */
         Internal::GuiProp{ &Widget::m_wordSpacing, 0_px,
-                           AffectLayout | Resolvable | AffectFont | Inheritable | AffectPaint,
-                           "wordSpacing" },
+                           AffectLayout | AffectFont | AffectPaint | RelativeToFontSize, "wordSpacing" },
         /* 48 */
         Internal::GuiProp{ &Widget::m_alignToViewport, AlignToViewport::None, AffectLayout,
                            "alignToViewport" },
@@ -2946,37 +2882,35 @@ Widget::properties() noexcept {
         /* 63 */ Internal::GuiProp{ &Widget::m_autofocus, false, None, "autofocus" },
         /* 64 */ Internal::GuiProp{ &Widget::m_autoHint, true, None, "autoHint" },
         /* 65 */
-        Internal::GuiProp{ &Widget::m_squircleCorners, false, AffectPaint | Inheritable, "squircleCorners" },
+        Internal::GuiProp{ &Widget::m_squircleCorners, false, AffectPaint, "squircleCorners" },
         /* 66 */ Internal::GuiProp{ &Widget::m_delegate, nullptr, None, "delegate" },
         /* 67 */ Internal::GuiProp{ &Widget::m_hint, {}, AffectLayout | AffectPaint | AffectHint, "hint" },
         /* 68 */ Internal::PropFieldNotify{ &Widget::m_stylesheet, &Widget::requestRestyle },
         /* 69 */ Internal::PropFieldNotify{ &Widget::m_painter, &Widget::invalidate },
         /* 70 */ Internal::GuiProp{ &Widget::m_isHintExclusive, false, None, "isHintExclusive" },
         /* 71 */
-        Internal::GuiProp{ &Widget::m_fontFeatures,
-                           {},
-                           AffectLayout | AffectFont | Inheritable | AffectPaint,
-                           "fontFeatures" },
+        Internal::GuiProp{
+            &Widget::m_fontFeatures, {}, AffectLayout | AffectFont | AffectPaint, "fontFeatures" },
         /* 72 */
-        Internal::GuiProp{ &Widget::m_scrollBarColor, Palette::grey, Inheritable | AffectPaint,
-                           "scrollBarColor" },
+        Internal::GuiProp{ &Widget::m_scrollBarColor, Palette::grey, AffectPaint, "scrollBarColor" },
         /* 73 */
-        Internal::GuiProp{ &Widget::m_scrollBarThickness, 8_px, Resolvable | AffectPaint,
+        Internal::GuiProp{ &Widget::m_scrollBarThickness, 8_px, AffectPaint | RelativeToShortestSide,
                            "scrollBarThickness" },
         /* 74 */
-        Internal::GuiProp{ &Widget::m_scrollBarRadius, 0_px, Resolvable | AffectPaint, "scrollBarRadius" },
+        Internal::GuiProp{ &Widget::m_scrollBarRadius, 0_px, AffectPaint | RelativeToShortestSide,
+                           "scrollBarRadius" },
         /* 75 */ Internal::GuiProp{ &Widget::m_shadowSpread, 0, AffectPaint, "shadowSpread" },
         /* 76 */
-        Internal::GuiProp{ &Widget::m_borderRadiusTopLeft, 0_px, Resolvable | Inheritable | AffectPaint,
+        Internal::GuiProp{ &Widget::m_borderRadiusTopLeft, 0_px, AffectPaint | RelativeToShortestSide,
                            "borderRadiusTopLeft" },
         /* 77 */
-        Internal::GuiProp{ &Widget::m_borderRadiusTopRight, 0_px, Resolvable | Inheritable | AffectPaint,
+        Internal::GuiProp{ &Widget::m_borderRadiusTopRight, 0_px, AffectPaint | RelativeToShortestSide,
                            "borderRadiusTopRight" },
         /* 78 */
-        Internal::GuiProp{ &Widget::m_borderRadiusBottomLeft, 0_px, Resolvable | Inheritable | AffectPaint,
+        Internal::GuiProp{ &Widget::m_borderRadiusBottomLeft, 0_px, AffectPaint | RelativeToShortestSide,
                            "borderRadiusBottomLeft" },
         /* 79 */
-        Internal::GuiProp{ &Widget::m_borderRadiusBottomRight, 0_px, Resolvable | Inheritable | AffectPaint,
+        Internal::GuiProp{ &Widget::m_borderRadiusBottomRight, 0_px, AffectPaint | RelativeToShortestSide,
                            "borderRadiusBottomRight" },
         /* 80 */
         Internal::GuiProp{ &Widget::m_borderWidthLeft, 0, AffectLayout | AffectPaint, "borderWidthLeft" },
