@@ -77,13 +77,22 @@ Rc<const Stylesheet> stylesheet() {
 
     return rcnew Stylesheet{
         Style{
+            Universal{},
+            {
+                scrollBarThickness                     = 4_apx,
+                scrollBarThickness | Hover             = 8_apx,
+                scrollBarRadius                        = 2_px,
+                transitionDuration(scrollBarThickness) = 150ms,
+                scrollBarColor                         = transparency(styleVar<selectedColor>, 0.25f),
+                scrollBarColor | Hover                 = styleVar<selectedColor>,
+                transitionDuration(scrollBarColor)     = 150ms,
+            },
+        },
+        Style{
             Root{},
             {
-                backgroundColor    = styleVar<windowColor>,
-                color              = textColorFor(styleVar<windowColor>, textLightColor, textDarkColor),
-                scrollBarColor     = styleVar<selectedColor>,
-                scrollBarThickness = 8_apx,
-                scrollBarRadius    = 4_px,
+                backgroundColor = styleVar<windowColor>,
+                color           = textColorFor(styleVar<windowColor>, textLightColor, textDarkColor),
             },
         },
         Style{
@@ -210,10 +219,14 @@ Rc<const Stylesheet> stylesheet() {
         Style{
             Type{ Hyperlink::widgetType } > Type{ Text::widgetType },
             {
-                transitionDuration(color) = 100ms,
-                color                     = styleVar<linkColor>,
-                color | Hover             = adjustColor(styleVar<linkColor>, +50 * 0.2f /* 1.7f */),
-                color | Pressed           = adjustColor(styleVar<linkColor>, -30 * 0.2f /* 0.7f */),
+                transitionDuration(color)    = 100ms,
+                color                        = styleVar<linkColor>,
+                color | Hover                = adjustColor(styleVar<linkColor>, +50 * 0.2f /* 1.7f */),
+                color | Pressed              = adjustColor(styleVar<linkColor>, -30 * 0.2f /* 0.7f */),
+
+                fontSize                     = 15_px,
+                fontSize | Hover             = 30_px,
+                transitionDuration(fontSize) = 150ms,
             },
         },
         Style{

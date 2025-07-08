@@ -56,7 +56,7 @@ void Text::onChanged() {
 }
 
 float Text::calcFontSizeFor(const Font& font, const std::string& m_text) const {
-    float fontSize          = m_fontSize.resolved;
+    float fontSize          = m_fontSize.current;
     const float refFontSize = 32.f;
     Font refFont            = font;
     refFont.fontSize        = refFontSize;

@@ -975,7 +975,7 @@ void Widget::layoutSet() {
 void Widget::dump(int depth) const {
     fprintf(stderr, "%*s%s (v=%d/%d rect=[%d,%d ; %d,%d] dirty=%d fs=%s/%.1f/%s tr=%p) {\n", depth * 4, "",
             name().c_str(), m_visible, m_isVisible, m_rect.x1, m_rect.y1, m_rect.x2, m_rect.y2,
-            isLayoutDirty(), fmt::to_string(m_fontSize.value).c_str(), m_fontSize.resolved, "-", m_tree);
+            isLayoutDirty(), fmt::to_string(m_fontSize.value).c_str(), m_fontSize.current, "-", m_tree);
     for (const Rc<Widget>& w : *this) {
         w->dump(depth + 1);
     }
@@ -1134,7 +1134,7 @@ static void showDebugBorder(Canvas& canvas, Rectangle rect, double elapsed, Colo
 
 Widget::ScrollBarGeometry Widget::scrollBarGeometry(Orientation orientation) const noexcept {
     Range<int> range = scrollBarRange(orientation);
-    Size trackSize(m_scrollBarThickness.resolved, m_scrollBarThickness.resolved);
+    Size trackSize(m_scrollBarThickness.current, m_scrollBarThickness.current);
     trackSize[+orientation] = m_rect.size()[+orientation];
     Rectangle track         = m_rect.alignedRect(trackSize, { 1.f, 1.f });
     Rectangle thumb{};
@@ -1153,8 +1153,8 @@ void Widget::paintScrollBar(Canvas& canvas, Orientation orientation,
         canvas.fillRect(geometry.track);
     }
     if (!geometry.thumb.empty()) {
-        canvas.setFillColor(m_scrollBarColor.current.multiplyAlpha(isHovered() ? 1.f : 0.5f));
-        canvas.fillRect(geometry.thumb, m_scrollBarRadius.resolved);
+        canvas.setFillColor(m_scrollBarColor.current);
+        canvas.fillRect(geometry.thumb, m_scrollBarRadius.current);
     }
 }
 
@@ -1744,10 +1744,8 @@ void Widget::toggleClass(std::string_view className) {
 
 Font Widget::font() const {
     return Font{
-        m_fontFamily, m_fontSize.resolved,      m_fontStyle,
-        m_fontWeight, m_textDecoration,         1.2f,
-        8.f,          m_letterSpacing.resolved, m_wordSpacing.resolved,
-        0.f,          m_fontFeatures,
+        m_fontFamily, m_fontSize.current,      m_fontStyle,           m_fontWeight, m_textDecoration, 1.2f,
+        8.f,          m_letterSpacing.current, m_wordSpacing.current, 0.f,          m_fontFeatures,
     };
 }
 
@@ -1820,41 +1818,43 @@ void Widget::resolveAndInherit() {
     }
 }
 
+float Widget::propResolve(const Internal::GuiProp<Widget, Internal::Resolve>* prop, Length value) const {
+    if (isInherited(prop->id()) && m_parent) {
+        return (m_parent->*(prop->field)).current;
+    }
+
+    float resolvedFontHeight;
+
+    if (prop->id() == fontSize) {
+        // Use parent font size for resolving
+        resolvedFontHeight = m_parent ? m_parent->m_fontSize.current : dp(FontSize::Normal);
+    } else {
+        resolvedFontHeight = resolveFontHeight();
+    }
+
+    Size viewportSize = this->viewportSize();
+    float reference;
+    switch (prop->flags & RelativeMask) {
+    case RelativeToFontSize:
+        reference = resolvedFontHeight;
+        break;
+    case RelativeToHalfShortestSide:
+        reference = m_rect.shortestSide() * 0.5f;
+        break;
+    case RelativeToShortestSide:
+    default:
+        reference = m_rect.shortestSide();
+        break;
+    }
+    return resolveValue(value, prop->initialValue.staticResolve(), reference,
+                        ResolveParameters{ resolvedFontHeight, viewportSize });
+}
+
 // Returns true if resolved value has been changed
 bool Widget::resolveProperty(const Internal::GuiProp<Widget, Internal::Resolve>* prop) {
     Internal::Resolve& value = (this->*(prop->field));
-    bool changed;
-    if (isInherited(prop->id()) && m_parent) {
-        changed = assign(value.resolved, (m_parent->*(prop->field)).resolved);
-    } else {
-        float resolvedFontHeight;
-
-        if (prop->id() == fontSize) {
-            // Use parent font size for resolving
-            resolvedFontHeight = m_parent ? m_parent->m_fontSize.resolved : dp(FontSize::Normal);
-        } else {
-            resolvedFontHeight = resolveFontHeight();
-        }
-
-        Size viewportSize = this->viewportSize();
-        float reference;
-        switch (prop->flags & RelativeMask) {
-        case RelativeToFontSize:
-            reference = resolvedFontHeight;
-            break;
-        case RelativeToHalfShortestSide:
-            reference = m_rect.shortestSide() * 0.5f;
-            break;
-        case RelativeToShortestSide:
-        default:
-            reference = m_rect.shortestSide();
-            break;
-        }
-
-        changed =
-            assign(value.resolved, resolveValue(value.value, prop->initialValue.staticResolve(), reference,
-                                                ResolveParameters{ resolvedFontHeight, viewportSize }));
-    }
+    float resolved           = propResolve(prop, value.value);
+    bool changed             = assign(value.current, resolved);
 
     if (changed) {
         requestUpdates(prop->flags);
@@ -1961,9 +1961,8 @@ Widget::Widget(Construction construction) : m_layoutEngine{ this } {
                                     [](auto prop) {} });
 
     m_inheritedProperties = {
-        fontFamily,     fontStyle,          fontWeight,      textDecoration,  fontSize,
-        letterSpacing,  wordSpacing,        textAlign,       color,           fontFeatures,
-        scrollBarColor, scrollBarThickness, scrollBarRadius, squircleCorners,
+        fontFamily,  fontStyle, fontWeight, textDecoration, fontSize,       letterSpacing,
+        wordSpacing, textAlign, color,      fontFeatures,   scrollBarColor, squircleCorners,
     };
 
     beginConstruction();
@@ -2595,7 +2594,7 @@ Rectangle Widget::hintRect() const noexcept {
 }
 
 Rectangle Widget::adjustedRect() const noexcept {
-    float shadowSize = m_shadowSize.resolved;
+    float shadowSize = m_shadowSize.current;
     if (isKeyFocused()) {
         shadowSize = std::max(shadowSize, dp(focusFrameRange.max));
     }

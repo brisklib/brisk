@@ -118,17 +118,19 @@ using namespace std::chrono_literals;
  * This structure holds both the target value and the current animated value,
  * allowing smooth transitions or animations between values.
  */
-template <typename ValueType>
+template <typename ValueType, typename AnimatedType = ValueType>
 struct Animated {
     /// The target value to which the animation is progressing.
     ValueType value;
     /// The current value in the animation sequence.
-    ValueType current;
+    AnimatedType current;
     constexpr Animated() noexcept = default;
 
-    constexpr Animated(ValueType value) noexcept : value(value), current(value) {}
+    constexpr Animated(ValueType value) noexcept
+        requires std::same_as<ValueType, AnimatedType>
+        : value(value), current(value) {}
 
-    constexpr Animated(ValueType value, ValueType currentValue) noexcept
+    constexpr Animated(ValueType value, AnimatedType currentValue) noexcept
         : value(std::move(value)), current(std::move(currentValue)) {}
 
     constexpr bool operator==(const Animated& other) const noexcept = default;
@@ -165,7 +167,8 @@ class PropertyAnimations {
 public:
     /// @returns true if the property is animated, false otherwise.
     template <typename ValueType>
-    bool startTransition(ValueType& value, ValueType targetValue, PropertyId propertyId) {
+    bool startTransition(ValueType& value, ValueType targetValue, PropertyId propertyId,
+                         std::function<void()> changed = nullptr) {
         auto transitionIt = m_transitions.find(propertyId);
         if (transitionIt == m_transitions.end()) {
             return false; // No transition defined for this property
@@ -174,7 +177,7 @@ public:
             return false; // Zero duration means no transition
         }
         auto interpFunc = transitionFunction(transitionIt->second, value, std::move(targetValue));
-        AnimationFunction animationFunc = animateValue(&value, std::move(interpFunc));
+        AnimationFunction animationFunc = animateValue(&value, std::move(interpFunc), std::move(changed));
         startAnimation(propertyId, std::move(animationFunc));
         return true;
     }
@@ -227,11 +230,14 @@ private:
     }
 
     template <typename ValueType, typename InterpolationFunction>
-    static AnimationFunction animateValue(ValueType* valueToAnimate, InterpolationFunction&& func) {
-        return [valueToAnimate, func = std::move(func)](Seconds time) -> bool {
+    static AnimationFunction animateValue(ValueType* valueToAnimate, InterpolationFunction&& func,
+                                          std::function<void()> changed) {
+        return [valueToAnimate, func = std::move(func), changed = std::move(changed)](Seconds time) -> bool {
             std::pair<ValueType, bool> value = func(time);
             // No need to notify bindings here, because bindings depend on the final values of the properties
             *valueToAnimate                  = value.first;
+            if (changed)
+                changed();
             return value.second;
         };
     }

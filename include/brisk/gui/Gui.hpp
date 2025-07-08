@@ -252,18 +252,7 @@ struct WidgetActions {
 
 namespace Internal {
 
-struct Resolve {
-    constexpr Resolve() noexcept = default;
-
-    constexpr Resolve(Length value, float resolved = {}) noexcept : value(value), resolved(resolved) {}
-
-    constexpr bool operator==(const Resolve& other) const noexcept {
-        return value == other.value;
-    }
-
-    Length value;
-    float resolved;
-};
+using Resolve = Animated<Length, float>;
 
 struct WidgetProps {};
 
@@ -455,9 +444,9 @@ template <typename WidgetClass, typename ValueType>
 GuiProp(ValueType(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags, const char* = nullptr)
     -> GuiProp<WidgetClass, ValueType>;
 
-template <typename WidgetClass, typename ValueType>
-struct GuiProp<WidgetClass, Animated<ValueType>> {
-    Animated<ValueType>(WidgetClass::* field);
+template <typename WidgetClass, typename ValueType, typename AnimatedType>
+struct GuiProp<WidgetClass, Animated<ValueType, AnimatedType>> {
+    Animated<ValueType, AnimatedType>(WidgetClass::* field);
     ValueType initialValue;
     PropFlags flags;
     const char* name = nullptr;
@@ -467,7 +456,9 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
     }
 
     void initialize(WidgetClass* self) const {
-        (self->*field) = initialValue;
+        (self->*field).value   = initialValue;
+        AnimatedType resolved  = self->propResolve(this, initialValue);
+        (self->*field).current = resolved;
     }
 
     void reset(WidgetClass* self) const {
@@ -482,11 +473,20 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
             return;
         }
         PropertyAnimations& anim = self->animations();
+        AnimatedType resolved    = self->propResolve(this, value);
         bindings->assign((self->*field).value, value);
-        if (self->transitionAllowed() && anim.startTransition((self->*field).current, value, id())) {
+        std::function<void()> changed;
+        using enum PropFlags;
+        if (flags && (AffectLayout | AffectStyle | AffectFont | AffectVisibility | AffectHint)) {
+            changed = [self, this]() {
+                self->propChanged(this);
+            };
+        }
+        if (self->transitionAllowed() &&
+            anim.startTransition((self->*field).current, resolved, id(), std::move(changed))) {
             self->requestAnimationFrame();
         } else {
-            (self->*field).current = value;
+            (self->*field).current = resolved;
         }
         self->propChanged(this);
     }
@@ -509,7 +509,7 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
         return (self->*field).value;
     }
 
-    ValueType current(const WidgetClass* self) const noexcept {
+    AnimatedType current(const WidgetClass* self) const noexcept {
         return (self->*field).current;
     }
 
@@ -518,67 +518,9 @@ struct GuiProp<WidgetClass, Animated<ValueType>> {
     }
 };
 
-template <typename WidgetClass, typename ValueType>
-GuiProp(Animated<ValueType>(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags,
-        const char* = nullptr) -> GuiProp<WidgetClass, Animated<ValueType>>;
-
-template <typename WidgetClass>
-struct GuiProp<WidgetClass, Resolve> {
-    Resolve(WidgetClass::* field);
-    Length initialValue;
-    PropFlags flags;
-    const char* name = nullptr;
-
-    PropertyId id() const noexcept {
-        return { this };
-    }
-
-    void initialize(WidgetClass* self) const {
-        (self->*field).value    = initialValue;
-        (self->*field).resolved = initialValue.staticResolve();
-    }
-
-    void reset(WidgetClass* self) const {
-        set(self, initialValue);
-    }
-
-    void set(WidgetClass* self, Length value, bool inherit = false, bool override = true) const {
-        if (!self->propChanging(this, inherit, override)) {
-            return;
-        }
-        if ((self->*field).value == value) {
-            return;
-        }
-        bindings->assign((self->*field).value, value);
-        self->propChanged(this);
-    }
-
-    void set(WidgetClass* self, Inherit, bool override = true) const {
-        if constexpr (std::is_same_v<WidgetClass, Widget>) {
-            if (Widget* parent = self->parent()) {
-                set(self, (parent->*field).value, true, override);
-            } else {
-                set(self, initialValue, true, override);
-            }
-        }
-    }
-
-    void set(WidgetClass* self, Initial) const {
-        reset(self);
-    }
-
-    Length get(const WidgetClass* self) const noexcept {
-        return (self->*field).value;
-    }
-
-    float current(const WidgetClass* self) const noexcept {
-        return (self->*field).resolved;
-    }
-
-    BindingAddress address(const WidgetClass* self) const noexcept {
-        return toBindingAddress(&(self->*field));
-    }
-};
+template <typename WidgetClass, typename ValueType, typename AnimatedType>
+GuiProp(Animated<ValueType, AnimatedType>(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags,
+        const char* = nullptr) -> GuiProp<WidgetClass, Animated<ValueType, AnimatedType>>;
 
 template <typename WidgetClass, template <typename T> typename TypeTemplate, typename SubType,
           typename CurrentSubType, PropertyIndex index0, PropertyIndex... indices>
@@ -1069,6 +1011,14 @@ protected:
 
     bool propChanging(PropertyId id, bool inherited, bool override);
 
+    template <typename WidgetType, typename ValueType>
+    ValueType propResolve(const Internal::GuiProp<WidgetType, Animated<ValueType>>* prop,
+                          ValueType value) const {
+        return value;
+    }
+
+    float propResolve(const Internal::GuiProp<Widget, Internal::Resolve>* prop, Length value) const;
+
     template <typename Traits>
     bool propChanging(const Traits* prop, bool inherited, bool override) {
         return propChanging(prop->id(), inherited, override);
@@ -1086,12 +1036,14 @@ protected:
     template <typename Traits>
     void propChanged(const Traits* prop) {
         requestUpdates(prop->flags);
-        propChangedPropagate(prop);
-    }
-
-    template <typename WidgetType>
-    void propChanged(const Internal::GuiProp<WidgetType, Internal::Resolve>* prop) {
-        resolveProperty(prop);
+        if constexpr (std::is_same_v<Traits, Internal::GuiProp<Widget, Internal::Resolve>>) {
+            if (prop->id() == fontSize) {
+                resolveProperties();
+                for (const Ptr& w : *this) {
+                    w->resolveProperty(prop);
+                }
+            }
+        }
         propChangedPropagate(prop);
     }
 
@@ -1187,8 +1139,8 @@ protected:
     }
 
     CornersF getBorderRadiusResolved() const noexcept {
-        return { m_borderRadiusTopLeft.resolved, m_borderRadiusTopRight.resolved,
-                 m_borderRadiusBottomLeft.resolved, m_borderRadiusBottomRight.resolved };
+        return { m_borderRadiusTopLeft.current, m_borderRadiusTopRight.current,
+                 m_borderRadiusBottomLeft.current, m_borderRadiusBottomRight.current };
     }
 
     Length m_borderWidthLeft;
