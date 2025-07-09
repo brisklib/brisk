@@ -67,7 +67,7 @@ jobs:
     steps:
     - name: Install prerequisites
       run: |
-        choco install llvm --version=19.1.7 --no-progress -y
+        choco install llvm --no-progress -y
     - name: Checkout
       uses: actions/checkout@v4
     - name: Vcpkg
@@ -234,7 +234,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Install prerequisites
       run: |
-        choco install llvm --version=19.1.7 --no-progress -y
+        choco install llvm --no-progress -y
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
@@ -337,7 +337,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Install prerequisites
       run: |
-        choco install llvm --version=19.1.7 --no-progress -y
+        choco install llvm --no-progress -y
         choco install ninja --no-progress -y
     - name: Acquire dependencies
       run: |

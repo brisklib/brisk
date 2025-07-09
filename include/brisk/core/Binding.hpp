@@ -1250,7 +1250,7 @@ private:
 
     template <typename T>
     static std::string toStringSafe(const T& value, std::string fallback = "(value)") {
-        if constexpr (fmt::has_formatter<T, fmt::format_context>()) {
+        if constexpr (fmt::is_formattable<T>::value) {
             return fmt::to_string(value);
         } else {
             return fallback;

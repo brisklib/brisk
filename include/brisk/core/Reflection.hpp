@@ -25,6 +25,7 @@
 #include <type_traits>
 #include <iostream>
 #include <fmt/format.h>
+#include <fmt/xchar.h>
 #include <fmt/ostream.h>
 #include "internal/Constants.hpp"
 #include "internal/Span.hpp"
