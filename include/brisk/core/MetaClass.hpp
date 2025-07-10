@@ -165,11 +165,14 @@ inline To dynamicCast(From* ptr) noexcept {
  */
 template <typename Class, typename From>
 inline bool isOf(From* ptr) noexcept {
+    if constexpr (std::is_same_v<Class, From>) {
+        return true; // No need to check if the types are the same.
+    }
     if constexpr (!requires { static_cast<Class*>(static_cast<std::remove_cv_t<From>*>(nullptr)); }) {
-        return false;
+        return false; // If Class cannot be cast from From, return false.
     }
     if (!ptr) {
-        return false;
+        return false; // If the pointer is null, it cannot be of any class type.
     }
     static_assert(std::is_class_v<Class>, "isOf type must be a class type");
 
