@@ -33,7 +33,9 @@
 
 namespace Brisk {
 
-namespace yoga = facebook::yoga;
+bool Widget::m_styleApplying = false;
+
+namespace yoga               = facebook::yoga;
 
 namespace Internal {
 
@@ -2558,6 +2560,7 @@ void Widget::apply(const WidgetActions& action) {
 }
 
 void Widget::invalidate() {
+    ++m_invalidatedCounter;
     if (!m_isVisible)
         return;
     if (m_tree) {

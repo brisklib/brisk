@@ -88,8 +88,6 @@ public:
     BRISK_PROPERTIES_END
 };
 
-;
-
 inline namespace Arg {
 constexpr inline PropArgument<decltype(Button::repeatDelay)> repeatDelay{};
 constexpr inline PropArgument<decltype(Button::repeatInterval)> repeatInterval{};

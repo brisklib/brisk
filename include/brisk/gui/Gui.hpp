@@ -340,22 +340,35 @@ struct PropArgT<Property<Class, T, index>> {
 template <typename PropertyType>
 using PropArgument = Argument<typename Tag::PropArgT<PropertyType>::Type>;
 
-template <typename Class, typename T, PropertyIndex index, typename... Args>
-inline void applier(std::type_identity_t<Class>* target,
+namespace Internal {
+void invalidPropertyApplication(Widget* target, std::string_view name);
+} // namespace Internal
+
+template <std::derived_from<Widget> Class, typename T, PropertyIndex index, typename... Args>
+inline void applier(Widget* target,
                     const ArgVal<Tag::PropArg<Class, T, index>, BindableCallback<Args...>>& value) {
     BRISK_ASSERT(target);
     BRISK_ASSUME(target);
-    Property<Class, T, index> prop{ target };
-    prop.listen(value.value.callback, value.value.address, BindType::Default);
+    if (isOf<Class>(target)) {
+        Property<Class, T, index> prop{ static_cast<Class*>(target) };
+        prop.listen(value.value.callback, value.value.address, BindType::Default);
+    } else {
+        Internal::invalidPropertyApplication(target, Tag::PropArg<Class, T, index>::name());
+    }
 }
 
-template <typename Class, typename T, PropertyIndex index, typename U>
-inline void applier(std::type_identity_t<Class>* target,
-                    const ArgVal<Tag::PropArg<Class, T, index>, U>& value)
+template <std::derived_from<Widget> Class, typename T, PropertyIndex index, typename U>
+inline void applier(Widget* target, const ArgVal<Tag::PropArg<Class, T, index>, U>& value)
     requires(!Internal::isTrigger<T>)
 {
-    Property<Class, T, index> prop{ target };
-    prop.set(value.value);
+    BRISK_ASSERT(target);
+    BRISK_ASSUME(target);
+    if (isOf<Class>(target)) {
+        Property<Class, T, index> prop{ static_cast<Class*>(target) };
+        prop.set(value.value);
+    } else {
+        Internal::invalidPropertyApplication(target, Tag::PropArg<Class, T, index>::name());
+    }
 }
 
 using StyleVarType = std::variant<std::monostate, ColorW, EdgesL, float, int>;
@@ -1024,11 +1037,15 @@ protected:
         return propChanging(prop->id(), inherited, override);
     }
 
-    template <typename Traits>
-    void propChangedPropagate(const Traits* prop) {
+    template <typename Prop>
+    void propChangedPropagate(const Prop*) {}
+
+    template <typename ValueType>
+    void propChangedPropagate(const Internal::GuiProp<Widget, ValueType>* prop) {
+        const auto val = prop->get(this);
         for (const Rc<Widget>& w : *this) {
             if (w.get()->isInherited(prop->id())) {
-                prop->set(w.get(), prop->get(this), true);
+                prop->set(w.get(), val, true, false);
             }
         }
     }
@@ -1047,7 +1064,9 @@ protected:
         propChangedPropagate(prop);
     }
 
-    WidgetTree* m_tree = nullptr;
+    WidgetTree* m_tree            = nullptr;
+
+    uint32_t m_invalidatedCounter = 0;
 
     PropertyAnimations m_animations;
 
@@ -1056,15 +1075,15 @@ protected:
 
     std::optional<PointF> m_mousePos;
 
-    static inline bool m_styleApplying = false;
+    static bool m_styleApplying;
 
-    bool m_inConstruction : 1          = true;
-    bool m_constructed : 1             = false;
-    bool m_isPopup : 1                 = false; // affected by closeNearestPopup
-    bool m_processClicks : 1           = true;
-    bool m_ignoreChildrenOffset : 1    = false;
-    bool m_isMenuRoot : 1              = false; // affected by closeMenuChain
-    bool m_destroying : 1              = false;
+    bool m_inConstruction : 1       = true;
+    bool m_constructed : 1          = false;
+    bool m_isPopup : 1              = false; // affected by closeNearestPopup
+    bool m_processClicks : 1        = true;
+    bool m_ignoreChildrenOffset : 1 = false;
+    bool m_isMenuRoot : 1           = false; // affected by closeMenuChain
+    bool m_destroying : 1           = false;
 
     // functions
     Trigger<> m_onClick;
@@ -1948,6 +1967,13 @@ template <std::derived_from<Widget> WidgetType, Internal::FixedString Name>
 void applier(Widget* target, ArgVal<Tag::WithRole<WidgetType, Name>> value) {
     target->apply(std::move(value.value));
 }
+
+namespace Internal {
+inline void invalidPropertyApplication(Widget* target, std::string_view name) {
+    LOG_WARN(gui, "Property {} is not applicable to widget type {}", name,
+             target->dynamicMetaClass()->className);
+}
+} // namespace Internal
 
 int shufflePalette(int x);
 
