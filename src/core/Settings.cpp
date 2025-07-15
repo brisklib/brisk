@@ -26,7 +26,7 @@
 
 namespace Brisk {
 
-Settings* settings = nullptr;
+Nullable<Settings> settings;
 
 Settings::Settings() {}
 
@@ -50,7 +50,7 @@ void Settings::setData(std::string_view path, Json json, bool notify, bool save)
         }
     }
     if (notify) {
-        bindings->notify(&m_trigger);
+        bindings->notify(&m_changed);
     }
 }
 
@@ -77,7 +77,7 @@ void Settings::load() {
     }
     if (m_data.type() != JsonType::Object)
         m_data = JsonObject();
-    bindings->notify(&m_trigger);
+    bindings->notify(&m_changed);
 }
 
 bool Settings::isMocked() const noexcept {

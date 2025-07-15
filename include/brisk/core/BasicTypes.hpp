@@ -845,20 +845,8 @@ struct MemberFieldTraits<Type_ Class_::*> {
 #define __builtin_va_list va_list
 #endif
 
-template <typename T>
-struct TypeId {
-    using Type = T;
-};
-
 template <typename... T>
 struct TypeIDs {};
-
-struct PassThrough {
-    template <typename T>
-    BRISK_INLINE T&& operator()(T&& x) noexcept {
-        return std::forward<T>(x);
-    }
-};
 
 template <typename... Ts>
 struct Overload : Ts... {

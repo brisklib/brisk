@@ -47,6 +47,11 @@ void SizeGroup::beforeLayout(bool dirty) {
 }
 
 void VisualGroup::beforeFrame() {
+    for (size_t i = 0; i < widgets.size(); ++i) {
+        Widget* w = widgets[i];
+        if (w->rect().empty())
+            return;
+    }
     std::sort(widgets.begin(), widgets.end(),
               [n = orientation == Orientation::Horizontal ? 0 : 1](Widget* a, Widget* b) {
                   return a->rect().center()[n] < b->rect().center()[n];

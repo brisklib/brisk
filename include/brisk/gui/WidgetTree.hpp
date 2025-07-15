@@ -59,6 +59,7 @@ using Drawable = function<void(Canvas&)>;
 class WidgetTree {
 public:
     WidgetTree(InputQueue* inputQueue = nullptr) noexcept;
+    ~WidgetTree();
 
     std::shared_ptr<Widget> root() const noexcept;
     void setRoot(std::shared_ptr<Widget> root);
@@ -74,12 +75,12 @@ public:
     Rectangle paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint);
     void update();
     void requestLayer(Drawable drawable);
-    void disableTransitions();
 
     void invalidateRect(Rectangle rect);
     void setInputQueue(InputQueue* inputQueue);
     Nullable<InputQueue> inputQueue() const;
 
+    void disableTransitions();
     void disableRealtimeMode();
 
     Callbacks<Widget*> onAttached;
@@ -93,6 +94,7 @@ private:
     void requestAnimationFrame(std::weak_ptr<Widget> widget);
     void requestRebuild(std::weak_ptr<Widget> widget);
     void requestUpdateGeometry();
+    void requestUpdateVisibility();
     bool transitionsAllowed();
     void attach(Widget* widget);
     void detach(Widget* widget);
@@ -103,14 +105,18 @@ private:
     void groupsBeforePaint();
     void groupsAfterFrame();
     void groupsBeforeLayout();
+    void applyStyleChanges();
+    void processEventsAndAnimations();
+    void updateLayoutAndGeometry();
     std::shared_ptr<Widget> m_root;
     std::vector<std::weak_ptr<Widget>> m_animationQueue;
     std::vector<std::weak_ptr<Widget>> m_rebuildQueue;
     std::vector<Drawable> m_layer;
-    uint32_t m_layoutCounter       = 0;
-    double m_refreshTime           = 0;
-    bool m_disableTransitions      = false;
-    bool m_updateGeometryRequested = false;
+    uint32_t m_layoutCounter         = 0;
+    double m_refreshTime             = 0;
+    bool m_transitions               = true;
+    bool m_updateGeometryRequested   = false;
+    bool m_updateVisibilityRequested = true;
     std::set<WidgetGroup*> m_groups;
     Rectangle m_viewportRectangle{};
     bool m_viewportRectangleChanged = true;
@@ -120,6 +126,7 @@ private:
     bool m_painting             = false;
     bool m_savedDebugBoundaries = false;
     bool m_realtime             = true;
+    bool m_layoutIsActual       = false;
     InputQueue* m_inputQueue    = nullptr;
 };
 } // namespace Brisk

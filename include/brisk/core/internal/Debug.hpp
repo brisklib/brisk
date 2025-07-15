@@ -169,7 +169,7 @@ inline void assertion_failed(std::string_view details, std::string_view file, in
 
 template <typename T>
 inline std::string to_string_safe(const T& value) {
-    if constexpr (fmt::has_formatter<T, fmt::format_context>()) {
+    if constexpr (fmt::is_formattable<T>::value) {
         return fmt::to_string(value);
     } else {
         return "(value)";

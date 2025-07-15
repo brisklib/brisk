@@ -84,8 +84,16 @@ protected:
     explicit Page(Construction construction, std::string title, ArgumentsView<Page> args);
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &Page::m_title, "title" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Page, std::string, &Page::m_title> title;
+    Property<Page, std::string, 0> title;
     BRISK_PROPERTIES_END
 };
 
@@ -124,8 +132,16 @@ private:
     void internalChanged();
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &Pages::m_value, &Pages::onChanged, "value" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Pages, int, &Pages::m_value, nullptr, nullptr, &Pages::onChanged> value;
+    Property<Pages, int, 0> value;
     BRISK_PROPERTIES_END
 };
 

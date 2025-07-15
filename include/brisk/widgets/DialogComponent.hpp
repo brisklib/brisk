@@ -93,8 +93,16 @@ protected:
     DialogComponent();
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &DialogComponent::m_result, "result" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<DialogComponent, const bool, &DialogComponent::m_result> result;
+    Property<DialogComponent, const bool, 0> result;
     BRISK_PROPERTIES_END
 };
 
@@ -120,9 +128,18 @@ protected:
     Rc<Widget> build() override;
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &TextInputDialog::m_prompt, "prompt" },
+            /*1*/ Internal::PropField{ &TextInputDialog::m_value, "value" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<TextInputDialog, std::string, &TextInputDialog::m_prompt> prompt;
-    Property<TextInputDialog, std::string, &TextInputDialog::m_value> value;
+    Property<TextInputDialog, std::string, 0> prompt;
+    Property<TextInputDialog, std::string, 1> value;
     BRISK_PROPERTIES_END
 };
 
@@ -147,9 +164,18 @@ protected:
     Rc<Widget> build() override;
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &MessageDialog::m_text, "text" },
+            /*1*/ Internal::PropField{ &MessageDialog::m_icon, "icon" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<MessageDialog, std::string, &MessageDialog::m_text> text;
-    Property<MessageDialog, std::string, &MessageDialog::m_icon> icon;
+    Property<MessageDialog, std::string, 0> text;
+    Property<MessageDialog, std::string, 1> icon;
     BRISK_PROPERTIES_END
 };
 
@@ -174,9 +200,18 @@ protected:
     Rc<Widget> build() override;
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &ConfirmDialog::m_text, "text" },
+            /*1*/ Internal::PropField{ &ConfirmDialog::m_icon, "icon" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<ConfirmDialog, std::string, &ConfirmDialog::m_text> text;
-    Property<ConfirmDialog, std::string, &ConfirmDialog::m_icon> icon;
+    Property<ConfirmDialog, std::string, 0> text;
+    Property<ConfirmDialog, std::string, 1> icon;
     BRISK_PROPERTIES_END
 };
 } // namespace Brisk

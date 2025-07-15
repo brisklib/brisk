@@ -30,49 +30,6 @@ class WIDGET TextEditor : public Widget {
 private:
     using Base = Widget;
 
-public:
-    constexpr static std::string_view widgetType = "texteditor";
-
-    template <WidgetArgument... Args>
-    explicit TextEditor(const Args&... args) : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
-        endConstruction();
-    }
-
-    template <WidgetArgument... Args>
-    explicit TextEditor(Value<std::string> text, const Args&... args)
-        : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
-        bindings->connectBidir(Value{ &this->text }, std::move(text));
-        endConstruction();
-    }
-
-    Range<uint32_t> selection() const;
-
-    uint32_t caretToOffset(PointF pt) const;
-
-    void selectWordAtCursor();
-
-    void selectAll();
-    void deleteSelection();
-    void pasteFromClipboard();
-    void copyToClipboard();
-    void cutToClipboard();
-
-    uint32_t cursor        = 0;
-    int32_t selectedLength = 0; // May be negative
-
-    enum class MoveCursor {
-        Up,
-        Down,
-        Right,
-        Left,
-        LineBeginning,
-        LineEnd,
-        TextBeginning,
-        TextEnd,
-    };
-
-    void moveCursor(MoveCursor move, bool select = false);
-
 protected:
     std::string m_text;
     char32_t m_passwordChar = 0;
@@ -117,15 +74,70 @@ private:
     void selectionChanged();
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &TextEditor::m_text, &TextEditor::updateState, "text" },
+            /*1*/ Internal::PropField{ &TextEditor::m_onEnter, "onEnter" },
+            /*2*/ Internal::PropField{ &TextEditor::m_placeholder, "placeholder" },
+            /*3*/
+            Internal::PropFieldNotify{ &TextEditor::m_passwordChar, &TextEditor::updateState,
+                                       "passwordChar" },
+            /*4*/
+            Internal::PropFieldNotify{ &TextEditor::m_multiline, &TextEditor::updateState, "multiline" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<TextEditor, std::string, &TextEditor::m_text, nullptr, nullptr, &TextEditor::updateState> text;
-    Property<TextEditor, Trigger<>, &TextEditor::m_onEnter> onEnter;
-    Property<TextEditor, std::string, &TextEditor::m_placeholder> placeholder;
-    Property<TextEditor, char32_t, &TextEditor::m_passwordChar, nullptr, nullptr, &TextEditor::updateState>
-        passwordChar;
-    Property<TextEditor, bool, &TextEditor::m_multiline, nullptr, nullptr, &TextEditor::updateState>
-        multiline;
+    Property<TextEditor, std::string, 0> text;
+    Property<TextEditor, Trigger<>, 1> onEnter;
+    Property<TextEditor, std::string, 2> placeholder;
+    Property<TextEditor, char32_t, 3> passwordChar;
+    Property<TextEditor, bool, 4> multiline;
     BRISK_PROPERTIES_END
+public:
+    constexpr static std::string_view widgetType = "texteditor";
+
+    template <WidgetArgument... Args>
+    explicit TextEditor(const Args&... args) : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        endConstruction();
+    }
+
+    template <WidgetArgument... Args>
+    explicit TextEditor(Value<std::string> text, const Args&... args)
+        : TextEditor(Construction{ widgetType }, std::tuple{ args... }) {
+        bindings->connectBidir(Value{ &this->text }, std::move(text));
+        endConstruction();
+    }
+
+    Range<uint32_t> selection() const;
+
+    uint32_t caretToOffset(PointF pt) const;
+
+    void selectWordAtCursor();
+
+    void selectAll();
+    void deleteSelection();
+    void pasteFromClipboard();
+    void copyToClipboard();
+    void cutToClipboard();
+
+    uint32_t cursor        = 0;
+    int32_t selectedLength = 0; // May be negative
+
+    enum class MoveCursor {
+        Up,
+        Down,
+        Right,
+        Left,
+        LineBeginning,
+        LineEnd,
+        TextBeginning,
+        TextEnd,
+    };
+
+    void moveCursor(MoveCursor move, bool select = false);
 };
 
 template <typename T>
@@ -138,10 +150,10 @@ inline namespace Arg {
 #define BRISK__TEXT_ARG_DEFINED
 constexpr inline Argument<Tag::Named<"text">> text{};
 #endif
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::onEnter)>> onEnter{};
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::multiline)>> multiline{};
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::placeholder)>> placeholder{};
-constexpr inline Argument<Tag::PropArg<decltype(TextEditor::passwordChar)>> passwordChar{};
+constexpr inline PropArgument<decltype(TextEditor::onEnter)> onEnter{};
+constexpr inline PropArgument<decltype(TextEditor::multiline)> multiline{};
+constexpr inline PropArgument<decltype(TextEditor::placeholder)> placeholder{};
+constexpr inline PropArgument<decltype(TextEditor::passwordChar)> passwordChar{};
 } // namespace Arg
 
 inline constexpr char32_t defaultPasswordChar = U'\U00002022';

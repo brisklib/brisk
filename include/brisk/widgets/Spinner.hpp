@@ -43,8 +43,16 @@ protected:
     explicit Spinner(Construction construction, ArgumentsView<Spinner> args);
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &Spinner::m_active, "active" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Spinner, bool, &Spinner::m_active, nullptr, nullptr, &Spinner::start> active;
+    Property<Spinner, bool, 0> active;
     BRISK_PROPERTIES_END
 };
 

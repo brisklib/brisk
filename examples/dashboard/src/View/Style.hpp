@@ -37,7 +37,6 @@ const inline auto globalStyle = Rules{
     editorColor         = 0xFDFDFD_rgb,
     boxRadius           = 0.f,
     menuColor           = 0xFDFDFD_rgb,
-    animationSpeed      = 0.5f,
     boxBorderColor      = 0x070709_rgb,
     shadeColor          = 0x000000'88_rgba,
     deepColor           = 0x000000_rgb,

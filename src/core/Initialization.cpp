@@ -51,8 +51,9 @@ void finalizeCommon() {
     if (--coreInitLevel == 0) {
         if (settings) {
             settings->save();
-            delete settings;
-            settings = nullptr;
+            Settings* settings_ = settings.get();
+            settings            = nullptr;
+            delete settings_;
         }
 
         mainScheduler = nullptr;

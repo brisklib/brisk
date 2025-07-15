@@ -58,10 +58,11 @@ void ValueWidget::setValue(double value) {
     if (m_snap && m_step > 0) {
         value = roundTo(value - m_minimum, m_step) + m_minimum;
     }
-    m_value = value;
-
-    if (m_modifying && m_hintFormatter) {
-        hint = m_hintFormatter(m_value);
+    if (bindings->assign(m_value, value)) {
+        if (m_modifying && m_hintFormatter) {
+            hint = m_hintFormatter(m_value);
+        }
+        onChanged();
     }
 }
 
@@ -69,12 +70,12 @@ void ValueWidget::onChangedParams() {
     setValue(m_value);
 }
 
-double ValueWidget::getNormValue() const {
+double ValueWidget::getNormValue() const noexcept {
     return (m_value - m_minimum) / (m_maximum - m_minimum);
 }
 
 void ValueWidget::setNormValue(double normValue) {
-    value = normValue * (m_maximum - m_minimum) + m_minimum;
+    setValue(normValue * (m_maximum - m_minimum) + m_minimum);
 }
 
 void ValueWidget::pageUp(int amount) {

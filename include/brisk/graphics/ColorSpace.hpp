@@ -175,30 +175,31 @@ enum class ColorConversionMode {
 
 struct Trichromatic {
 
-    constexpr Trichromatic() : value{ 0, 0, 0 }, colorSpace(ColorSpace::sRGBLinear) {}
+    constexpr Trichromatic() noexcept : value{ 0, 0, 0 }, colorSpace(ColorSpace::sRGBLinear) {}
 
-    constexpr Trichromatic(const Trichromatic&)            = default;
-    constexpr Trichromatic& operator=(const Trichromatic&) = default;
+    constexpr Trichromatic(const Trichromatic&) noexcept            = default;
+    constexpr Trichromatic& operator=(const Trichromatic&) noexcept = default;
 
-    constexpr Trichromatic(double c1, double c2, double c3, ColorSpace colorSpace = ColorSpace::sRGBLinear)
+    constexpr Trichromatic(double c1, double c2, double c3,
+                           ColorSpace colorSpace = ColorSpace::sRGBLinear) noexcept
         : value{ c1, c2, c3 }, colorSpace(colorSpace) {}
 
-    constexpr Trichromatic(Simd<double, 3> value, ColorSpace colorSpace = ColorSpace::sRGBLinear)
+    constexpr Trichromatic(Simd<double, 3> value, ColorSpace colorSpace = ColorSpace::sRGBLinear) noexcept
         : value{ value }, colorSpace(colorSpace) {}
 
-    Trichromatic convert(ColorSpace destSpace) const;
+    Trichromatic convert(ColorSpace destSpace) const noexcept;
 
-    Trichromatic convert(ColorSpace destSpace, ColorConversionMode mode) const;
+    Trichromatic convert(ColorSpace destSpace, ColorConversionMode mode) const noexcept;
 
-    Trichromatic nearestValid() const;
+    Trichromatic nearestValid() const noexcept;
 
-    Trichromatic clamped() const;
+    Trichromatic clamped() const noexcept;
 
     // For sRGB and P3 colorspaces checks whether the values are in range [0,1]. For other color spaces always
     // returns true.
-    bool inGamut() const;
+    bool inGamut() const noexcept;
 
-    constexpr bool operator==(Trichromatic other) const {
+    constexpr bool operator==(Trichromatic other) const noexcept {
         return value == other.value;
     }
 
@@ -226,14 +227,14 @@ enum class Illuminant {
     E,
 };
 
-constexpr std::underlying_type_t<Illuminant> operator+(Illuminant value) {
+constexpr std::underlying_type_t<Illuminant> operator+(Illuminant value) noexcept {
     return static_cast<std::underlying_type_t<Illuminant>>(value);
 }
 
 namespace Internal {
 
 template <typename T, size_t N>
-constexpr BRISK_INLINE Simd<T, N> srgbGammaToLinear(Simd<T, N> x) {
+constexpr BRISK_INLINE Simd<T, N> srgbGammaToLinear(Simd<T, N> x) noexcept {
     static_assert(std::is_floating_point_v<T>);
     Simd<T, N> v = abs(x);
     if (std::is_constant_evaluated()) {
@@ -247,7 +248,7 @@ constexpr BRISK_INLINE Simd<T, N> srgbGammaToLinear(Simd<T, N> x) {
 }
 
 template <typename T, size_t N>
-constexpr BRISK_INLINE Simd<T, N> srgbLinearToGamma(Simd<T, N> x) {
+constexpr BRISK_INLINE Simd<T, N> srgbLinearToGamma(Simd<T, N> x) noexcept {
     static_assert(std::is_floating_point_v<T>);
     Simd<T, N> v = abs(x);
     if (std::is_constant_evaluated()) {
@@ -264,18 +265,18 @@ constexpr BRISK_INLINE Simd<T, N> srgbLinearToGamma(Simd<T, N> x) {
 }
 
 template <std::floating_point T>
-BRISK_INLINE T srgbGammaToLinear(T v) {
+BRISK_INLINE T srgbGammaToLinear(T v) noexcept {
     return srgbGammaToLinear(Simd{ v }).front();
 }
 
 template <std::floating_point T>
-BRISK_INLINE T srgbLinearToGamma(T v) {
+BRISK_INLINE T srgbLinearToGamma(T v) noexcept {
     return srgbLinearToGamma(Simd{ v }).front();
 }
 
 } // namespace Internal
 
-Trichromatic illuminant(Illuminant illum);
+Trichromatic illuminant(Illuminant illum) noexcept;
 
 } // namespace Brisk
 

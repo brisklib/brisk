@@ -8,10 +8,10 @@ charset = utf-8
 indent_style = space
 indent_size = 4
 
-[.sh]
+[*.sh]
 end_of_line = lf
 
-[.yml]
+[*.yml]
 indent_style = space
 indent_size = 2
 

@@ -33,7 +33,7 @@ void ListBox::onChanged() {}
 
 void ListBox::childrenChanged() {
     Base::childrenChanged();
-    if (m_value > widgets().size()) {
+    if (static_cast<int>(m_value) >= widgets().size()) {
         value = -1;
     }
 }
@@ -42,7 +42,7 @@ std::shared_ptr<Item> ListBox::findSelected() const {
     if (!m_constructed)
         return nullptr;
     auto& widgets = this->widgets();
-    int value     = std::round(m_value);
+    int value     = static_cast<int>(m_value);
     if (value < 0 || value >= widgets.size())
         return nullptr;
     return dynamicPointerCast<Item>(widgets[value]);
@@ -57,8 +57,8 @@ void ListBox::append(Rc<Widget> widget) {
     item->closesPopup   = false;
     item->tabStop       = true;
     item->selectOnFocus = true;
-    bindings->connectBidir(Value{ &item->selected }, Value{ &value }.equal(this->widgets().size()),
-                           BindType::Immediate);
+    int index           = this->widgets().size();
+    item->selected      = Value{ &value }.explicitConversion<int>().equal(index);
     Base::append(std::move(item));
 }
 

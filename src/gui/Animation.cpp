@@ -198,4 +198,53 @@ float easeInOutBounce(float t) {
 float easeLinear(float t) {
     return t;
 }
+
+void PropertyAnimations::startAnimation(PropertyId propertyId, AnimationFunction animationFunc) {
+    m_animations[propertyId] = { Seconds(frameStartTime), std::move(animationFunc) };
+}
+
+bool PropertyAnimations::isActive() const noexcept {
+    return !m_animations.empty();
+}
+
+void PropertyAnimations::tick() {
+    for (auto it = m_animations.begin(); it != m_animations.end();) {
+        if (!it->second.animation(animationSpeed * (Seconds(frameStartTime) - it->second.startTime)))
+            [[unlikely]] {
+            it = m_animations.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+TransitionParams PropertyAnimations::getTransitionParams(PropertyId id) const {
+    auto it = m_transitions.find(id);
+    return it == m_transitions.end() ? TransitionParams{} : it->second;
+};
+
+void PropertyAnimations::setTransitionParams(PropertyId id, const TransitionParams& params) {
+    if (params.duration <= 0s) [[unlikely]] {
+        if (auto it = m_animations.find(id); it != m_animations.end()) {
+            // If the transition duration is zero, we immediately apply the value
+            // and remove the animation.
+            it->second.animation(86400s); // Force immediate transition
+            m_animations.erase(it);
+        }
+        m_transitions.erase(id);
+    } else {
+        m_transitions[id] = params;
+    }
+}
+
+double TransitionParams::at(Seconds time) const noexcept {
+    if (time.count() <= delay.count()) [[unlikely]]
+        return 0;
+    if (duration.count() <= 0) [[unlikely]]
+        return 1;
+    return std::clamp((time.count() - delay.count()) / duration.count(), 0.0, 1.0);
+}
+
+double animationSpeed = 1.0;
+
 } // namespace Brisk

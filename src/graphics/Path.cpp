@@ -905,7 +905,8 @@ static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(const Path& path, const
     return { rleToMask(rle, bounds.size()), bounds };
 }
 
-RasterizedPath Internal::rasterizePath(const Path& path, const FillOrStrokeParams& params, Rectangle clipRect) {
+RasterizedPath Internal::rasterizePath(const Path& path, const FillOrStrokeParams& params,
+                                       Rectangle clipRect) {
     std::tuple<Rc<Image>, Rectangle> imageAndRect = rasterizeToImage(path, params, clipRect);
     if (!std::get<0>(imageAndRect)) {
         return RasterizedPath{ nullptr, {} };

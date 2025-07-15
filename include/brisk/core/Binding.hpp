@@ -27,6 +27,7 @@
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/tuplet/tuplet.hpp>
 
 namespace Brisk {
 
@@ -71,6 +72,16 @@ struct BindingAddress {
     }
 
     constexpr bool operator==(const BindingAddress&) const noexcept = default;
+
+    friend BindingAddress mergeAddresses(std::convertible_to<BindingAddress> auto... addresses) {
+        size_t sum         = (addresses->size + ...);
+        const uint8_t* min = std::min({ addresses->min()... });
+        const uint8_t* max = std::max({ addresses->max()... });
+        if (max - min == sum) {
+            return { min, sum };
+        }
+        return { nullptr, 0 };
+    }
 };
 
 /**
@@ -144,7 +155,7 @@ struct Trigger {
 
     std::optional<Type> arg;
 
-    operator Type() const {
+    operator Type() const noexcept {
         BRISK_ASSERT(arg.has_value());
         return *arg;
     }
@@ -201,9 +212,9 @@ struct Value;
 namespace Internal {
 
 template <PropertyLike Prop, typename Type = typename Prop::ValueType>
-Value<Type> asValue(const Prop& prop) {
+Value<Type> asValue(const Prop& prop) noexcept {
     return Value<Type>(
-        [prop]() -> Type {
+        [prop]() noexcept -> Type {
             return prop.get();
         },
         nullptr, // read-only
@@ -211,9 +222,9 @@ Value<Type> asValue(const Prop& prop) {
 }
 
 template <PropertyLike Prop, typename Type = typename Prop::ValueType>
-Value<Type> asValue(Prop& prop) {
+Value<Type> asValue(Prop& prop) noexcept {
     return Value<Type>(
-        [prop]() -> Type {
+        [prop]() noexcept -> Type {
             return prop.get();
         },
         [prop](Type value) mutable {
@@ -234,7 +245,7 @@ template <typename T>
 concept AtomicCompatible = std::is_trivially_copyable_v<T> && std::is_copy_assignable_v<T>;
 
 template <typename... T, std::invocable<T...> Fn>
-Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values);
+Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) noexcept;
 
 /**
  * @brief Value class that manages a value with getter and setter functionality.
@@ -268,38 +279,39 @@ struct Value {
      * @param property Pointer to the property.
      */
     template <PropertyLike U>
-    [[nodiscard]] explicit Value(U* property) : Value(Internal::asValue(*property)) {}
+    [[nodiscard]] explicit Value(U* property) noexcept : Value(Internal::asValue(*property)) {}
 
     template <PropertyLike U>
-    [[nodiscard]] explicit Value(const U* property) : Value(Internal::asValue(*property)) {}
+    [[nodiscard]] explicit Value(const U* property) noexcept : Value(Internal::asValue(*property)) {}
 
-    [[nodiscard]] explicit Value(T* value) : Value(variable(value)) {}
+    [[nodiscard]] explicit Value(T* value) noexcept : Value(variable(value)) {}
 
-    [[nodiscard]] explicit Value(T* value, NotifyFn notify) : Value(variable(value, std::move(notify))) {}
+    [[nodiscard]] explicit Value(T* value, NotifyFn notify) noexcept
+        : Value(variable(value, std::move(notify))) {}
 
     template <typename NotifyClass>
-    [[nodiscard]] explicit Value(T* value, NotifyClass* self, void (NotifyClass::*notify)())
+    [[nodiscard]] explicit Value(T* value, NotifyClass* self, void (NotifyClass::*notify)()) noexcept
         : Value(variable(value, [self, notify]() {
               (self->*notify)();
           })) {}
 
-    [[nodiscard]] explicit Value(AtomicType* value)
+    [[nodiscard]] explicit Value(AtomicType* value) noexcept
         requires AtomicCompatible<T>
         : Value(variable(value)) {}
 
-    [[nodiscard]] explicit Value(AtomicType* value, NotifyFn notify)
+    [[nodiscard]] explicit Value(AtomicType* value, NotifyFn notify) noexcept
         requires AtomicCompatible<T>
         : Value(variable(value, std::move(notify))) {}
 
     template <typename NotifyClass>
-    [[nodiscard]] explicit Value(AtomicType* value, NotifyClass* self, void (NotifyClass::*notify)())
+    [[nodiscard]] explicit Value(AtomicType* value, NotifyClass* self, void (NotifyClass::*notify)()) noexcept
         requires AtomicCompatible<T>
         : Value(variable(value, [self, notify]() {
               (self->*notify)();
           })) {}
 
     template <typename U>
-    Value<U> explicitConversion() && {
+    Value<U> explicitConversion() && noexcept {
         if constexpr (requires(T t, U u) {
                           static_cast<T>(u);
                           static_cast<U>(t);
@@ -319,12 +331,12 @@ struct Value {
     }
 
     template <typename U>
-    Value(Value<U> other)
+    Value(Value<U> other) noexcept
         requires std::is_convertible_v<U, T>
         : Value(std::move(other).template implicitConversion<T>()) {}
 
     template <typename U>
-    explicit Value(Value<U> other)
+    explicit Value(Value<U> other) noexcept
         requires(!std::is_convertible_v<U, T>) && requires(U u) { static_cast<T>(u); }
         : Value(std::move(other).template explicitConversion<T>()) {}
 
@@ -341,7 +353,7 @@ struct Value {
      * @param constant The constant value to hold.
      * @return A Value representing the constant.
      */
-    [[nodiscard]] static Value constant(T constant) {
+    [[nodiscard]] static Value constant(T constant) noexcept {
         return Value{
             [constant]() -> T {
                 return constant;
@@ -357,7 +369,7 @@ struct Value {
      *
      * @return A read-only Value instance.
      */
-    [[nodiscard]] Value readOnly() && {
+    [[nodiscard]] Value readOnly() && noexcept {
         return Value{
             std::move(m_get),
             nullptr, // no-op
@@ -369,7 +381,7 @@ struct Value {
     /**
      * @brief Returns read-only version of Value
      */
-    [[nodiscard]] Value readOnly() const& {
+    [[nodiscard]] Value readOnly() const& noexcept {
         Value(*this).readOnly();
     }
 
@@ -380,7 +392,7 @@ struct Value {
      */
     [[nodiscard]] static Value mutableValue(T initialValue);
 
-    [[nodiscard]] static Value computed(function<T()> func) {
+    [[nodiscard]] static Value computed(function<T()> func) noexcept {
         return Value{
             std::move(func),
             nullptr, // no-op
@@ -388,7 +400,7 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<T> callback, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<T> callback, BindingAddress range) noexcept {
         return Value{
             nullptr,
             [callback = std::move(callback)](T newValue) {
@@ -399,7 +411,7 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value listener(Callback<> callback, BindingAddress range) {
+    [[nodiscard]] static Value listener(Callback<> callback, BindingAddress range) noexcept {
         return Value{
             nullptr,
             [callback = std::move(callback)](T newValue) {
@@ -410,25 +422,25 @@ struct Value {
         };
     }
 
-    [[nodiscard]] static Value variable(T* pvalue);
+    [[nodiscard]] static Value variable(T* pvalue) noexcept;
 
-    [[nodiscard]] static Value variable(T* pvalue, NotifyFn notify);
+    [[nodiscard]] static Value variable(T* pvalue, NotifyFn notify) noexcept;
 
-    [[nodiscard]] static Value variable(AtomicType* pvalue)
+    [[nodiscard]] static Value variable(AtomicType* pvalue) noexcept
         requires AtomicCompatible<T>;
 
-    [[nodiscard]] static Value variable(AtomicType* pvalue, NotifyFn notify)
+    [[nodiscard]] static Value variable(AtomicType* pvalue, NotifyFn notify) noexcept
         requires AtomicCompatible<T>;
 
-    [[nodiscard]] bool isWritable() const {
+    [[nodiscard]] bool isWritable() const noexcept {
         return !m_set.empty();
     }
 
-    [[nodiscard]] bool isReadable() const {
+    [[nodiscard]] bool isReadable() const noexcept {
         return !m_get.empty();
     }
 
-    [[nodiscard]] bool hasAddress() const {
+    [[nodiscard]] bool hasAddress() const noexcept {
         return !m_srcAddresses.empty();
     }
 
@@ -444,7 +456,7 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) && {
+    Value<U> transform(Forward&& forward, Backward&& backward) && noexcept {
         return Value<U>{
             [forward = std::move(forward), get = std::move(m_get)]() -> U {
                 return forward(get());
@@ -460,7 +472,7 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<T, U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) && {
+    Value<U> transform(Forward&& forward, Backward&& backward) && noexcept {
         return Value<U>{
             [forward = std::move(forward), get = m_get]() -> U {
                 return forward(get());
@@ -475,7 +487,7 @@ struct Value {
     }
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>>
-    Value<U> transform(Forward&& forward) && {
+    Value<U> transform(Forward&& forward) && noexcept {
         return Value<U>{
             [forward = std::move(forward), get = std::move(m_get)]() -> U {
                 return forward(get());
@@ -488,8 +500,10 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<typename U::value_type> Backward>
-        Value<U> transform(Forward&& forward, Backward&& backward) && requires(!IsOptional<T>) &&
-        IsOptional<U>&& IsOptional<std::invoke_result_t<Backward, typename U::value_type>> {
+    Value<U> transform(Forward&& forward, Backward&& backward) && noexcept
+        requires(!IsOptional<T>) && IsOptional<U> &&
+                IsOptional<std::invoke_result_t<Backward, typename U::value_type>>
+    {
         return Value<U>{
             [forward = std::move(forward), get = std::move(m_get)]() -> U {
                 return forward(get());
@@ -506,23 +520,23 @@ struct Value {
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) const& {
+    Value<U> transform(Forward&& forward, Backward&& backward) const& noexcept {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward), std::forward<Backward>(backward));
     }
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>,
               std::invocable<T, U> Backward>
-    Value<U> transform(Forward&& forward, Backward&& backward) const& {
+    Value<U> transform(Forward&& forward, Backward&& backward) const& noexcept {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward), std::forward<Backward>(backward));
     }
 
     template <std::invocable<T> Forward, typename U = std::invoke_result_t<Forward, T>>
-    Value<U> transform(Forward&& forward) const& {
+    Value<U> transform(Forward&& forward) const& noexcept {
         return Value<T>{ *this }.transform(std::forward<Forward>(forward));
     }
 
     template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
-    friend Value<R> binary(Value left, Value right, Fn&& fn) {
+    friend Value<R> binary(Value left, Value right, Fn&& fn) noexcept {
         return Value<R>{
             [fn = std::move(fn), leftGet = std::move(left.m_get), rightGet = std::move(right.m_get)]() -> R {
                 return fn(leftGet(), rightGet());
@@ -534,7 +548,7 @@ struct Value {
     }
 
     template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
-    friend Value<R> binary(Value left, std::type_identity_t<T> right, Fn&& fn) {
+    friend Value<R> binary(Value left, std::type_identity_t<T> right, Fn&& fn) noexcept {
         return Value<R>{
             [fn = std::move(fn), leftGet = std::move(left.m_get), right = std::move(right)]() -> R {
                 return fn(leftGet(), right);
@@ -546,7 +560,7 @@ struct Value {
     }
 
     template <std::invocable<T, T> Fn, typename R = std::invoke_result_t<Fn, T, T>>
-    friend Value<R> binary(std::type_identity_t<T> left, Value right, Fn&& fn) {
+    friend Value<R> binary(std::type_identity_t<T> left, Value right, Fn&& fn) noexcept {
         return Value<R>{
             [fn = std::move(fn), left = std::move(left), rightGet = std::move(right.m_get)]() -> R {
                 return fn(left, rightGet());
@@ -557,7 +571,7 @@ struct Value {
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) && {
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) && noexcept {
         return Value<bool>{
             [get = std::move(m_get), compare]() -> bool {
                 return get() == compare;
@@ -573,11 +587,11 @@ struct Value {
         };
     }
 
-    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) const& {
+    Value<bool> equal(std::type_identity_t<T> compare, bool bidirectional = true) const& noexcept {
         return Value<T>{ *this }.equal(std::move(compare), bidirectional);
     }
 
-    Value<std::optional<T>> makeOptional() && {
+    Value<std::optional<T>> makeOptional() && noexcept {
         return Value<std::optional<T>>{
             [get = std::move(m_get)]() -> std::optional<T> {
                 return std::optional<T>(get());
@@ -591,26 +605,26 @@ struct Value {
         };
     }
 
-    Value<std::optional<T>> makeOptional() const& {
+    Value<std::optional<T>> makeOptional() const& noexcept {
         return Value<T>{ *this }.makeOptional();
     }
 
 #define BRISK_BINDING_BINARY_OP(op)                                                                          \
-    friend inline auto operator op(Value left, Value right)                                                  \
+    friend inline auto operator op(Value left, Value right) noexcept                                         \
         requires requires { left.get() op right.get(); }                                                     \
     {                                                                                                        \
         return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
             return l op r;                                                                                   \
         });                                                                                                  \
     }                                                                                                        \
-    friend inline auto operator op(Value left, T right)                                                      \
+    friend inline auto operator op(Value left, T right) noexcept                                             \
         requires requires { left.get() op right; }                                                           \
     {                                                                                                        \
         return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
             return l op r;                                                                                   \
         });                                                                                                  \
     }                                                                                                        \
-    friend inline auto operator op(T left, Value right)                                                      \
+    friend inline auto operator op(T left, Value right) noexcept                                             \
         requires requires { left op right.get(); }                                                           \
     {                                                                                                        \
         return binary(std::move(left), std::move(right), [](T l, T r) {                                      \
@@ -619,12 +633,16 @@ struct Value {
     }
 
 #define BRISK_BINDING_PREFIX_OP(op)                                                                          \
-    friend auto operator op(Value op1)                                                                       \
+    friend auto operator op(Value op1) noexcept                                                              \
         requires requires { op op1.get(); }                                                                  \
     {                                                                                                        \
-        return std::move(op1).transform([](T x) -> T {                                                       \
-            return op x;                                                                                     \
-        });                                                                                                  \
+        return std::move(op1).transform(                                                                     \
+            [](T x) -> T {                                                                                   \
+                return op x;                                                                                 \
+            },                                                                                               \
+            [](T x) -> T {                                                                                   \
+                return op x;                                                                                 \
+            });                                                                                              \
     }
 
     BRISK_BINDING_BINARY_OP(+)
@@ -666,27 +684,27 @@ struct Value {
         return m_set;
     }
 
-    const BindingAddresses& srcAddresses() const {
+    const BindingAddresses& srcAddresses() const noexcept {
         return m_srcAddresses;
     }
 
-    BindingAddresses addresses() const {
+    BindingAddresses addresses() const noexcept {
         BindingAddresses result = m_srcAddresses;
         result.push_back(m_destAddress);
         return result;
     }
 
     [[nodiscard]] explicit Value(GetFn get, SetFn set, BindingAddresses srcAddresses,
-                                 BindingAddress destAddress)
+                                 BindingAddress destAddress) noexcept
         : m_get(std::move(get)), m_set(std::move(set)), m_srcAddresses(std::move(srcAddresses)),
           m_destAddress(std::move(destAddress)) {}
 
-    [[nodiscard]] explicit Value(GetFn get, SetFn set, BindingAddress address)
+    [[nodiscard]] explicit Value(GetFn get, SetFn set, BindingAddress address) noexcept
         : m_get(std::move(get)), m_set(std::move(set)), m_srcAddresses{ address }, m_destAddress(address) {}
 
 private:
     template <typename U>
-    Value<U> implicitConversion() && {
+    Value<U> implicitConversion() && noexcept {
         if constexpr (std::is_convertible_v<U, T>) {
             return std::move(*this).transform(
                 [](T value) -> U {
@@ -731,7 +749,7 @@ template <PropertyLike U>
 Value(const U*) -> Value<typename U::Type>;
 
 template <typename... T, std::invocable<T...> Fn>
-Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) {
+Value<std::invoke_result_t<Fn, T...>> transform(Fn&& fn, const Value<T>&... values) noexcept {
     BindingAddresses addresses;
     (addresses.insert(addresses.end(), values.srcAddresses().begin(), values.srcAddresses().end()), ...);
 
@@ -753,7 +771,7 @@ using floatingPointTypeOf = decltype(1.f * std::declval<T>());
 
 template <typename T, typename FT = Internal::floatingPointTypeOf<T>>
 Value<FT> remap(Value<T> value, std::type_identity_t<FT> min, std::type_identity_t<FT> max,
-                std::type_identity_t<FT> curvature = 1) {
+                std::type_identity_t<FT> curvature = 1) noexcept {
     return value.transform(
         [min, max, curvature](T inValue) -> FT {
             // full range to normalized
@@ -776,7 +794,7 @@ Value<FT> remap(Value<T> value, std::type_identity_t<FT> min, std::type_identity
 
 template <typename T, typename FT = Internal::floatingPointTypeOf<T>>
 Value<FT> remapLog(Value<T> value, std::type_identity_t<FT> min, std::type_identity_t<FT> max,
-                   std::type_identity_t<FT> cut = 0) {
+                   std::type_identity_t<FT> cut = 0) noexcept {
     return value.transform(
         [min, max, cut](T inValue) -> FT {
             // full range to normalized
@@ -811,14 +829,14 @@ Value<FT> remapLog(Value<T> value, std::type_identity_t<FT> min, std::type_ident
  * @endcode
  */
 template <typename T>
-Value<std::string> toString(Value<T> value, std::string fmtstr) {
+Value<std::string> toString(Value<T> value, std::string fmtstr) noexcept {
     return std::move(value).transform([fmtstr = std::move(fmtstr)](T val) -> std::string {
         return fmt::format(fmt::runtime(fmtstr), val);
     });
 }
 
 template <typename T>
-Value<std::string> toString(Value<T> value) {
+Value<std::string> toString(Value<T> value) noexcept {
     return std::move(value).transform([](T val) -> std::string {
         return fmt::to_string(val);
     });
@@ -829,6 +847,8 @@ Value<std::string> toString(Value<T> value) {
 enum class BindType : uint8_t {
     Immediate, ///< Listeners will be notified immediately.
     Deferred,  ///< Listeners will be notified via a target object queue.
+
+    Default = Immediate,
 };
 
 /**
@@ -850,7 +870,7 @@ struct BindingHandle {
     }
 
 private:
-    BindingHandle(uint64_t id) : m_id(id) {}
+    BindingHandle(uint64_t id) noexcept : m_id(id) {}
 
     friend class Bindings;
 
@@ -858,7 +878,7 @@ private:
      * @brief Generates a unique ID starting from 1.
      * @return A new unique ID.
      */
-    static uint64_t generate() {
+    static uint64_t generate() noexcept {
         static std::atomic_uint64_t value{ 0 };
         return ++value;
     }
@@ -873,18 +893,18 @@ struct BindableCallback {
 
     constexpr BindableCallback() noexcept : address{} {}
 
-    constexpr BindableCallback(Callback<Args...> callback, BindingAddress address)
+    constexpr BindableCallback(Callback<Args...> callback, BindingAddress address) noexcept
         : callback(std::move(callback)), address(address) {}
 
     template <typename Class, typename... FnArgs>
-    constexpr BindableCallback(Class* class_, void (Class::*method)(FnArgs...))
+    constexpr BindableCallback(Class* class_, void (Class::*method)(FnArgs...)) noexcept
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
           address(toBindingAddress(class_)) {}
 
     template <typename Class, typename... FnArgs>
-    constexpr BindableCallback(const Class* class_, void (Class::*method)(FnArgs...) const)
+    constexpr BindableCallback(const Class* class_, void (Class::*method)(FnArgs...) const) noexcept
         : callback([class_, method](Args... args) {
               (class_->*method)(std::forward<Args>(args)...);
           }),
@@ -935,14 +955,14 @@ public:
      * @tparam TSrc The type of the source value.
      * @param dest The destination value.
      * @param src The source value.
-     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param type The binding type (Immediate or Deferred).
      * @param updateNow If true, immediately updates `dest` with the current value of `src`.
      * @param destDesc Optional description for the destination value.
      * @param srcDesc Optional description for the source value.
      * @return BindingHandle A handle that allows manually disconnecting the binding.
      */
     template <typename TDest, typename TSrc>
-    BindingHandle connectBidir(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
+    BindingHandle connectBidir(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Default,
                                bool updateNow = true, std::string_view destDesc = {},
                                std::string_view srcDesc = {}) {
         std::lock_guard lk(m_mutex);
@@ -969,14 +989,14 @@ public:
      * @tparam TSrc The type of the source value.
      * @param dest The destination value.
      * @param src The source value.
-     * @param type The binding type (Immediate or Deferred, default: Deferred).
+     * @param type The binding type (Immediate or Deferred).
      * @param updateNow If true, immediately updates `dest` with the current value of `src`.
      * @param destDesc Optional description for the destination value.
      * @param srcDesc Optional description for the source value.
      * @return BindingHandle A handle that allows manually disconnecting the binding.
      */
     template <typename TDest, typename TSrc>
-    BindingHandle connect(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Deferred,
+    BindingHandle connect(Value<TDest> dest, Value<TSrc> src, BindType type = BindType::Default,
                           bool updateNow = true, std::string_view destDesc = {},
                           std::string_view srcDesc = {}) {
         std::lock_guard lk(m_mutex);
@@ -1057,25 +1077,25 @@ public:
 
     template <typename T>
     BindingHandle listen(Value<T> src, Callback<> callback, BindingAddress address = staticBindingAddress,
-                         BindType type = BindType::Immediate) {
+                         BindType type = BindType::Default) {
         return connect(Value<T>::listener(std::move(callback), address), src, type, false);
     }
 
     template <typename T>
     BindingHandle listen(Value<T> src, Callback<ValueArgument<T>> callback,
-                         BindingAddress address = staticBindingAddress, BindType type = BindType::Immediate) {
+                         BindingAddress address = staticBindingAddress, BindType type = BindType::Default) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback), address), src, type, false);
     }
 
     template <typename T>
-    BindingHandle listen(Value<T> src, BindableCallback<> callback, BindType type = BindType::Immediate) {
+    BindingHandle listen(Value<T> src, BindableCallback<> callback, BindType type = BindType::Default) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
 
     template <typename T>
     BindingHandle listen(Value<T> src, BindableCallback<ValueArgument<T>> callback,
-                         BindType type = BindType::Immediate) {
+                         BindType type = BindType::Default) {
         return connect(Value<ValueArgument<T>>::listener(std::move(callback.callback), callback.address), src,
                        type, false);
     }
@@ -1188,7 +1208,7 @@ public:
     };
 
     template <std::equality_comparable T>
-    ModifyProxy<T> modify(T& variable) {
+    ModifyProxy<T> modify(T& variable) noexcept {
         return ModifyProxy<T>{ this, &variable };
     }
 
@@ -1230,7 +1250,7 @@ private:
 
     template <typename T>
     static std::string toStringSafe(const T& value, std::string fallback = "(value)") {
-        if constexpr (fmt::has_formatter<T, fmt::format_context>()) {
+        if constexpr (fmt::is_formattable<T>::value) {
             return fmt::to_string(value);
         } else {
             return fallback;
@@ -1243,7 +1263,7 @@ private:
 
     using RegionList = SmallVector<Rc<Region>, 1>;
 
-    Rc<Scheduler> getQueue(const RegionList& regions) {
+    Rc<Scheduler> getQueue(const RegionList& regions) noexcept {
         for (const Rc<Region>& r : regions) {
             if (r && r->queue) {
                 return r->queue;
@@ -1366,7 +1386,7 @@ private:
     std::map<const uint8_t*, Rc<Region>> m_regions;
     std::vector<uint64_t> m_stack;
 
-    bool inStack(uint64_t id);
+    bool inStack(uint64_t id) noexcept;
 };
 
 extern AutoSingleton<Bindings> bindings;
@@ -1502,7 +1522,7 @@ using DeduceBindableCallback =
  * @return A deduced bindable callback type combining the callback and registration address.
  */
 template <typename Fn>
-inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration& reg, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration& reg, Fn callback) noexcept {
     return { std::move(callback), reg.m_address };
 }
 
@@ -1514,14 +1534,14 @@ inline constexpr DeduceBindableCallback<Fn> operator|(const BindingRegistration&
  * @return A deduced bindable callback type combining the callback and lifetime address.
  */
 template <typename Fn>
-inline constexpr DeduceBindableCallback<Fn> operator|(const BindingLifetime& lt, Fn callback) {
+inline constexpr DeduceBindableCallback<Fn> operator|(const BindingLifetime& lt, Fn callback) noexcept {
     return { std::move(callback), toBindingAddress(lt.m_address) };
 }
 
 template <typename T>
 [[nodiscard]] inline Value<T> Value<T>::mutableValue(T initialValue) {
     struct RegisteredValue {
-        RegisteredValue(T value) : value(std::move(value)) {}
+        RegisteredValue(T value) noexcept : value(std::move(value)) {}
 
         T value;
         BindingRegistration registration{ this, nullptr };
@@ -1542,7 +1562,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue) {
+[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue) noexcept {
     if constexpr (std::is_const_v<T>) {
         return Value{
             [pvalue]() -> T {
@@ -1567,7 +1587,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue, NotifyFn notify) {
+[[nodiscard]] inline Value<T> Value<T>::variable(T* pvalue, NotifyFn notify) noexcept {
     static_assert(!std::is_const_v<T>);
     return Value{
         [pvalue]() -> T {
@@ -1584,7 +1604,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue)
+[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue) noexcept
     requires AtomicCompatible<T>
 {
     static_assert(!std::is_const_v<T>);
@@ -1602,7 +1622,7 @@ template <typename T>
 }
 
 template <typename T>
-[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue, NotifyFn notify)
+[[nodiscard]] inline Value<T> Value<T>::variable(AtomicType* pvalue, NotifyFn notify) noexcept
     requires AtomicCompatible<T>
 {
     static_assert(!std::is_const_v<T>);
@@ -1728,85 +1748,124 @@ inline void operator^=(Prop& prop, Arg&& arg)
     prop.set(prop.get() ^ std::forward<Arg>(arg));
 }
 
-template <typename Class, typename T, auto std::type_identity_t<Class>::* field,
-          std::remove_const_t<T> (Class::*getter)() const = nullptr,
-          void (Class::*setter)(std::remove_const_t<T>) = nullptr, auto changed = nullptr, bool notify = true>
+template <typename T>
+using ValueOrConstRef = std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>;
+
+template <typename T, typename Class, typename ValueType>
+concept PropertyTraits = requires(T traits, Class* self, ValueType value) {
+    { traits.address(self) } noexcept -> std::convertible_to<BindingAddress>;
+    {
+        traits.get(const_cast<const Class*>(self))
+    } noexcept -> std::same_as<ValueOrConstRef<std::remove_const_t<ValueType>>>;
+    { traits.name } -> std::convertible_to<const char*>;
+} && (std::is_const_v<ValueType> || requires(T traits, Class* self, ValueType value) {
+                             { traits.set(self, std::move(value)) };
+                             { traits.set(self, static_cast<const ValueType&>(value)) };
+                         });
+
+using PropertyIndex = uint32_t;
+
+struct PropertyId {
+    const void* address;
+    constexpr auto operator<=>(const PropertyId& other) const noexcept = default;
+};
+
+template <typename Class, typename T, PropertyIndex index>
 struct Property {
-public:
     static_assert(!std::is_volatile_v<T>);
     static_assert(!std::is_reference_v<T>);
 
-    using Type                      = std::remove_const_t<T>;
-    using ValueType                 = Type;
+    using Type      = std::remove_const_t<T>;
+    using ValueType = Type;
+
+    Class* this_pointer;
 
     constexpr static bool isTrigger = Internal::isTrigger<T>;
 
     constexpr static bool isMutable = !std::is_const_v<T>;
 
-    static_assert(field != nullptr || getter != nullptr);
+    constexpr static const /* PropertyTraits<Class, T> */ auto& traits() noexcept {
+        return tuplet::get<index>(Class::properties());
+    }
 
     void listen(Callback<ValueArgument<T>> callback, BindingAddress address = staticBindingAddress,
-                BindType bindType = BindType::Immediate) {
+                BindType bindType = BindType::Default) {
         bindings->listen(Value{ this }, std::move(callback), address, bindType);
     }
 
     void listen(Callback<> callback, BindingAddress address = staticBindingAddress,
-                BindType bindType = BindType::Immediate) {
+                BindType bindType = BindType::Default) {
         bindings->listen(Value{ this }, std::move(callback), address, bindType);
     }
 
-    operator Type() const noexcept {
+    operator PropertyId() const noexcept {
+        return id();
+    }
+
+    static PropertyId id() noexcept {
+        return { &traits() };
+    }
+
+    operator ValueOrConstRef<Type>() const noexcept {
         return get();
     }
 
-    void operator=(Type value)
-        requires isMutable
-    {
+    void operator=(const ValueType& value) {
+        set(value);
+    }
+
+    void operator=(ValueType&& value) {
         set(std::move(value));
     }
 
-    Type get() const noexcept {
+    template <typename U>
+    void operator=(U&& value) {
+        set(std::forward<U>(value));
+    }
+
+    template <typename U>
+    static consteval bool accepts() noexcept {
+        return requires(Class* ptr, U value) { traits().set(ptr, std::move(value)); };
+    }
+
+    [[nodiscard]] ValueOrConstRef<T> get() const noexcept {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        if BRISK_IF_GNU_ATTR (constexpr)
-            (getter == nullptr) {
-                if constexpr (std::is_convertible_v<decltype(this_pointer->*field), Type>) {
-                    static_assert(field != nullptr);
-                    return this_pointer->*field;
-                } else {
-                    return {};
-                }
-            }
-        else {
-            return (this_pointer->*getter)();
+        return traits().get(this_pointer);
+    }
+
+    [[nodiscard]] decltype(auto) current() const noexcept {
+        BRISK_ASSERT(this_pointer);
+        BRISK_ASSUME(this_pointer);
+        if constexpr (requires {
+                          { traits().current(this_pointer) } noexcept;
+                      }) {
+            return traits().current(this_pointer);
+        } else {
+            // Fallback to get() if current() is not defined
+            return get();
         }
     }
 
-    void set(Type value)
-        requires isMutable
+    void set(const ValueType& value) const {
+        static_assert(isMutable, "Attempt to write to immutable property");
+        traits().set(this_pointer, value);
+    }
+
+    void set(ValueType&& value) const {
+        static_assert(isMutable, "Attempt to write to immutable property");
+        traits().set(this_pointer, std::move(value));
+    }
+
+    template <typename U>
+    void set(U&& value) const
+        requires(accepts<U>())
     {
-        BRISK_ASSERT(this_pointer);
-        BRISK_ASSUME(this_pointer);
-        if BRISK_IF_GNU_ATTR (constexpr)
-            (setter == nullptr) {
-                static_assert(field != nullptr);
-                if constexpr (requires { this_pointer->*field = std::move(value); }) {
-                    // NOLINTBEGIN(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
-                    if (value == this_pointer->*field)
-                        return; // Not changed
-                    // NOLINTEND(clang-analyzer-core.NonNullParamChecker,clang-analyzer-core.NullDereference)
-                    this_pointer->*field = std::move(value);
-                }
-            }
-        else {
-            (this_pointer->*setter)(std::move(value));
-        }
-        if constexpr (notify) {
-            bindings->notify(&(this_pointer->*field));
-        }
-        if constexpr (changed != nullptr) {
-            (this_pointer->*changed)();
-        }
+        traits().set(this_pointer, std::forward<U>(value));
+    }
+
+    [[nodiscard]] static std::string_view name() noexcept {
+        return traits().name == nullptr ? std::string_view{} : traits().name;
     }
 
     void operator=(Value<Type> value) {
@@ -1830,7 +1889,7 @@ public:
     void set(Value<Type> value) {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        bindings->connectBidir(Value{ this }, std::move(value));
+        bindings->connectBidir(Value{ this }, std::move(value), BindType::Default);
     }
 
     void set(std::same_as<Value<std::optional<Type>>> auto value)
@@ -1838,25 +1897,156 @@ public:
     {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        bindings->connectBidir(Value{ this }, std::move(value));
+        bindings->connectBidir(Value{ this }, std::move(value), BindType::Default);
     }
 
-    BindingAddress address() const {
+    BindingAddress address() const noexcept {
         BRISK_ASSERT(this_pointer);
         BRISK_ASSUME(this_pointer);
-        return toBindingAddress(&(this_pointer->*field));
+        return traits().address(this_pointer);
     }
-
-    Class* this_pointer;
 };
 
 namespace Internal {
 
-struct Dummy1 {
-    bool m_v;
+template <typename Class, typename ValueType>
+struct PropField {
+    ValueType(Class::* field);
+    const char* name = nullptr;
+
+    void set(Class* self, ValueType value) const {
+        bindings->assign(self->*field, std::move(value));
+    }
+
+    ValueOrConstRef<ValueType> get(const Class* self) const noexcept {
+        return (self->*field);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
 };
 
-static_assert(PropertyLike<Property<Dummy1, bool, &Dummy1::m_v>>);
+template <typename Class, typename ValueType>
+struct PropField<Class, std::atomic<ValueType>> {
+    std::atomic<ValueType>(Class::* field);
+    const char* name = nullptr;
+
+    void set(Class* self, ValueType value) const {
+        ValueType previous = (self->*field).exchange(value, std::memory_order_relaxed);
+        if (previous != value) {
+            bindings->notify(&(self->*field));
+        }
+    }
+
+    ValueOrConstRef<ValueType> get(const Class* self) const noexcept {
+        return (self->*field).load(std::memory_order_relaxed);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename ValueType>
+PropField(ValueType(Class::*), const char* = nullptr) -> PropField<Class, ValueType>;
+
+template <typename Class, typename ValueType>
+struct PropFieldNotify {
+    ValueType(Class::* field);
+
+    uint32_t isConst = 0;
+
+    union {
+        void (Class::*notify)();
+        void (Class::*notifyConst)() const;
+    };
+
+    const char* name                                           = nullptr;
+
+    constexpr PropFieldNotify(const PropFieldNotify&) noexcept = default;
+    constexpr PropFieldNotify(PropFieldNotify&&) noexcept      = default;
+
+    template <typename Class2>
+    constexpr PropFieldNotify(ValueType(Class::* field), void (Class2::*notify)(),
+                              const char* name = nullptr) noexcept
+        : field(field), isConst{ 0 }, notify{ static_cast<void (Class::*)()>(notify) }, name(name) {}
+
+    template <typename Class2>
+    constexpr PropFieldNotify(ValueType(Class::* field), void (Class2::*notifyConst)() const,
+                              const char* name = nullptr) noexcept
+        : field(field), isConst{ 1 }, notifyConst{ static_cast<void (Class::*)() const>(notifyConst) },
+          name(name) {}
+
+    void set(Class* self, ValueType value) const {
+        if (bindings->assign(self->*field, std::move(value))) {
+            if (!isConst) {
+                (self->*(notify))();
+            } else if (notifyConst) {
+                (self->*(notifyConst))();
+            }
+        }
+    }
+
+    ValueOrConstRef<ValueType> get(const Class* self) const noexcept {
+        return (self->*field);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename Fn, typename ValueType>
+PropFieldNotify(ValueType(Class::*), Fn&&, const char* = nullptr) -> PropFieldNotify<Class, ValueType>;
+
+template <typename Class, typename ValueType>
+struct PropFieldSetter {
+    ValueType(Class::* field);
+    void (Class::*setter)(ValueType);
+    const char* name = nullptr;
+
+    void set(Class* self, ValueType value) const {
+        (self->*setter)(std::move(value));
+    }
+
+    ValueType get(const Class* self) const noexcept {
+        return (self->*field);
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename ValueType>
+PropFieldSetter(ValueType(Class::*), void (Class::*)(ValueType), const char* = nullptr)
+    -> PropFieldSetter<Class, ValueType>;
+
+template <typename Class, typename FieldType, typename ValueType>
+struct PropGetterSetter {
+    FieldType(Class::* field);
+    ValueType (Class::*getter)() const noexcept;
+    void (Class::*setter)(ValueType);
+    const char* name = "";
+
+    void set(Class* self, ValueType value) const {
+        (self->*setter)(std::move(value));
+    }
+
+    ValueType get(const Class* self) const noexcept {
+        return (self->*getter)();
+    }
+
+    BindingAddress address(const Class* self) const noexcept {
+        return toBindingAddress(&(self->*field));
+    }
+};
+
+template <typename Class, typename FieldType, typename ValueType>
+PropGetterSetter(FieldType(Class::*), ValueType (Class::*)() const noexcept, void (Class::*)(ValueType),
+                 const char* = nullptr) -> PropGetterSetter<Class, FieldType, ValueType>;
+
 } // namespace Internal
 
 #define BRISK_PROPERTIES union

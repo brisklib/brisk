@@ -93,7 +93,8 @@ int main() {
             OneWindow* win = reinterpret_cast<OneWindow*>(glfwGetWindowUserPointer(gw));
             EventMouseMoved event{};
             // Convert mouse coordinates to framebuffer pixels
-            event.point = PointF(xpos, ypos) * SizeF(win->framebufferSize) / SizeF(win->windowSize);
+            event.point =
+                PointF(xpos, ypos) * PointF(SizeF(win->framebufferSize)) / PointF(SizeF(win->windowSize));
             win->input.addEvent(std::move(event));
         });
 
@@ -104,7 +105,7 @@ int main() {
             glfwGetCursorPos(gw, &cur.x, &cur.y);
             EventMouseButton event{};
             // Convert mouse coordinates to framebuffer pixels
-            event.point = PointF(cur) * SizeF(win->framebufferSize) / SizeF(win->windowSize);
+            event.point = PointF(cur) * PointF(SizeF(win->framebufferSize)) / PointF(SizeF(win->windowSize));
             switch (button) {
             case GLFW_MOUSE_BUTTON_1:
                 event.button = MouseButton::Btn1;
@@ -164,8 +165,7 @@ int main() {
         });
     }
 
-
-    bool exit                 = false;
+    bool exit = false;
 
     // Main application loop
     while (!exit) {

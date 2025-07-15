@@ -65,7 +65,7 @@ public:
     constexpr ArgumentsView(std::nullptr_t) noexcept : args(nullptr), applyFn(nullptr) {}
 
     template <typename... Args>
-    ArgumentsView(const std::tuple<Args...>& args) : args(&args) {
+    ArgumentsView(const std::tuple<Args...>& args) noexcept : args(&args) {
         static_assert((Applicable<Args, Target> && ...));
 
         applyFn = [](const void* args, Target* target) BRISK_INLINE_LAMBDA {
@@ -103,26 +103,24 @@ struct ArgVal {
     ValueType value;
 
     template <typename U>
-    constexpr operator ArgVal<Tag, U, op>() const
+    constexpr operator ArgVal<Tag, U, op>() const noexcept(std::is_nothrow_convertible_v<ValueType, U>)
         requires std::convertible_to<Type, U>
     {
         return { static_cast<U>(value) };
     }
 };
 
-template <typename T, typename Tag>
-concept MatchesExtraTypes = requires(T val) { Tag::ExtraTypes::accept(val); };
-
 template <typename Tag>
 struct Argument : Tag {
     using ValueType = typename Tag::Type;
 
-    constexpr ArgVal<Tag> operator=(ValueType value) const {
+    constexpr ArgVal<Tag> operator=(ValueType value) const
+        noexcept(std::is_nothrow_move_constructible_v<ValueType>) {
         return { std::move(value) };
     }
 
-    template <MatchesExtraTypes<Tag> U>
-    constexpr ArgVal<Tag, U> operator=(U value) const {
+    template <typename U>
+    constexpr ArgVal<Tag, U> operator=(U value) const noexcept(std::is_nothrow_move_constructible_v<U>) {
         return { std::move(value) };
     }
 };
@@ -139,7 +137,8 @@ struct Argument<Tag::Named<S>> {
     using ValueType = typename Tag::Named<S>::Type; // void
 
     template <typename U>
-    constexpr ArgVal<Tag::Named<S>, U> operator=(U value) const {
+    constexpr ArgVal<Tag::Named<S>, U> operator=(U value) const
+        noexcept(std::is_nothrow_move_constructible_v<U>) {
         return { std::move(value) };
     }
 };

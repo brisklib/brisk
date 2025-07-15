@@ -25,6 +25,12 @@
 
 namespace Brisk {
 
+static_assert(std::is_same_v<ValueOrConstRef<int>, int>);
+static_assert(std::is_same_v<ValueOrConstRef<std::string_view>, std::string_view>);
+static_assert(std::is_same_v<ValueOrConstRef<std::string>, const std::string&>);
+static_assert(std::is_same_v<ValueOrConstRef<std::vector<int>>, const std::vector<int>&>);
+static_assert(std::is_same_v<ValueOrConstRef<std::array<int, 8>>, std::array<int, 8>>);
+
 AutoSingleton<Bindings> bindings;
 
 int Bindings::addHandler(const RegionList& srcRegions, uint64_t id, Handler handler,
@@ -198,7 +204,7 @@ size_t Bindings::numRegions() const noexcept {
     return m_regions.size() - 1; // Exclude implicit static region
 }
 
-bool Bindings::inStack(uint64_t id) {
+bool Bindings::inStack(uint64_t id) noexcept {
     return std::find(m_stack.begin(), m_stack.end(), id) != m_stack.end();
 }
 

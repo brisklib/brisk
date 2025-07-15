@@ -25,43 +25,43 @@
 
 namespace Brisk {
 
-template <PropertyTag Tag>
-struct TagWithState : Tag::PropertyTag {
-    using Type       = typename Tag::Type;
-
-    using ExtraTypes = typename Tag::ExtraTypes;
+template <PropertyOrSynthPropertyTag Tag>
+struct TagWithState : Tag {
+    using Type = typename Tag::Type;
 };
 
-template <PropertyTag Tag, typename Type>
+template <PropertyOrSynthPropertyTag Tag, typename Type>
 struct ArgVal<TagWithState<Tag>, Type> {
     using ValueType = Type;
     ValueType value;
     WidgetState state;
 };
 
-template <PropertyTag Tag>
+template <PropertyOrSynthPropertyTag Tag>
 struct Argument<TagWithState<Tag>> : Tag {
     using ValueType = typename Tag::Type;
 
-    constexpr ArgVal<TagWithState<Tag>> operator=(ValueType value) const {
+    constexpr ArgVal<TagWithState<Tag>> operator=(ValueType value) const
+        noexcept(std::is_nothrow_move_constructible_v<ValueType>) {
         return { std::move(value), state };
     }
 
-    template <MatchesExtraTypes<Tag> U>
-    constexpr ArgVal<TagWithState<Tag>, U> operator=(U value) const {
+    template <typename U>
+    constexpr ArgVal<TagWithState<Tag>, U> operator=(U value) const
+        noexcept(std::is_nothrow_move_constructible_v<U>) {
         return { std::move(value), state };
     }
 
     WidgetState state;
 };
 
-template <PropertyTag Tag>
-Argument<TagWithState<Tag>> operator|(const Argument<Tag>& arg, WidgetState state) {
+template <PropertyOrSynthPropertyTag Tag>
+Argument<TagWithState<Tag>> operator|(const Argument<Tag>& arg, WidgetState state) noexcept {
     return { .state = state };
 }
 
-template <PropertyTag Tag>
-Argument<TagWithState<Tag>> operator|(const Argument<TagWithState<Tag>>& arg, WidgetState state) {
+template <PropertyOrSynthPropertyTag Tag>
+Argument<TagWithState<Tag>> operator|(const Argument<TagWithState<Tag>>& arg, WidgetState state) noexcept {
     return { .state = arg.state | state };
 }
 
@@ -76,6 +76,7 @@ enum class RuleOp : uint8_t {
     Value,
     Function,
     Inherit,
+    Initial,
 };
 
 struct StyleProperty {
@@ -97,8 +98,8 @@ struct StyleProperty {
     }
 
     template <typename Tag>
-    StyleProperty(TypeId<Tag>)
-        requires PropertyTag<Tag> || StyleVarTag<Tag>
+    StyleProperty(std::type_identity<Tag>)
+        requires PropertyTag<Tag> || StyleVarTag<Tag> || SynthPropertyTag<Tag>
     {
         using Type = typename Tag::Type;
         name       = Tag::name();
@@ -109,9 +110,15 @@ struct StyleProperty {
             }
             if ((widgetState & state) == state) {
                 if constexpr (PropertyTag<Tag>) {
-                    if constexpr (MatchesExtraTypes<Inherit, Tag>) {
+                    if constexpr (Tag::template accepts<Inherit>()) {
                         if (op == RuleOp::Inherit) {
                             applier(widget, ArgVal<Tag, Inherit>{ inherit });
+                            return;
+                        }
+                    }
+                    if constexpr (Tag::template accepts<Initial>()) {
+                        if (op == RuleOp::Initial) {
+                            applier(widget, ArgVal<Tag, Initial>{ initial });
                             return;
                         }
                     }
@@ -124,6 +131,8 @@ struct StyleProperty {
         toString = [](RuleOp op, const StyleValuePtr& rule) -> std::string {
             if (op == RuleOp::Inherit) {
                 return "(inherit)";
+            } else if (op == RuleOp::Initial) {
+                return "(initial)";
             } else if (op == RuleOp::Function) {
                 return "(dynamic)";
             }
@@ -138,7 +147,11 @@ struct StyleProperty {
         equals = [](RuleOp op1, const StyleValuePtr& rule1, RuleOp op2, const StyleValuePtr& rule2) -> bool {
             if (op1 == RuleOp::Inherit && op2 == RuleOp::Inherit)
                 return true;
+            if (op1 == RuleOp::Initial && op2 == RuleOp::Initial)
+                return true;
             if (op1 == RuleOp::Inherit || op2 == RuleOp::Inherit)
+                return false;
+            if (op1 == RuleOp::Initial || op2 == RuleOp::Initial)
                 return false;
             if (op1 == RuleOp::Function || op2 == RuleOp::Function)
                 return false;
@@ -160,8 +173,8 @@ struct StyleProperty {
 };
 
 template <typename Tag>
-const StyleProperty* styleProperty() {
-    static const StyleProperty& instance{ TypeId<Tag>{} };
+const StyleProperty* styleProperty() noexcept {
+    static const StyleProperty& instance{ std::type_identity<Tag>{} };
     return &instance;
 }
 
@@ -173,46 +186,33 @@ struct Rule {
     template <typename Tag, typename U>
     Rule(ArgVal<Tag, U> value) {
         m_property = Internal::styleProperty<Tag>();
+        using Type = typename Tag::Type;
+
         if constexpr (std::is_same_v<U, Inherit>) {
             m_op = Internal::RuleOp::Inherit;
+        } else if constexpr (std::is_same_v<U, Initial>) {
+            m_op = Internal::RuleOp::Initial;
+        } else if constexpr (std::is_convertible_v<U, Type>) {
+            m_op      = Internal::RuleOp::Value;
+            m_storage = std::make_shared<Type>(static_cast<Type>(std::move(value.value)));
         } else {
-            m_op       = Internal::RuleOp::Value;
-            using Type = typename Tag::Type;
-            m_storage  = std::make_shared<Type>(static_cast<Type>(std::move(value.value)));
+            static_assert(std::is_invocable_r_v<Type, U> || std::is_invocable_r_v<Type, U, Widget*>);
+            m_op = Internal::RuleOp::Function;
+            Internal::StyleFunction<Type> fn;
+            if constexpr (std::is_invocable_r_v<Type, U>) {
+                fn = [fn = std::move(value.value)](Widget*) -> Type {
+                    return fn();
+                };
+            } else {
+                fn = function<Type(Widget*)>(std::move(value.value));
+            }
+            m_storage = std::make_shared<Internal::StyleFunction<Type>>(std::move(fn));
         }
         m_state = WidgetState::None;
     }
 
     template <typename Tag, typename U>
     Rule(ArgVal<TagWithState<Tag>, U> value) : Rule(ArgVal<Tag, U>{ std::move(value.value) }) {
-        m_state = value.state;
-    }
-
-    template <typename Tag, typename Fn>
-    Rule(ArgVal<Tag, Fn> value)
-        requires std::is_invocable_r_v<typename Tag::Type, Fn> ||
-                 std::is_invocable_r_v<typename Tag::Type, Fn, Widget*>
-    {
-        m_property = Internal::styleProperty<Tag>();
-        using Type = typename Tag::Type;
-        m_op       = Internal::RuleOp::Function;
-        Internal::StyleFunction<Type> fn;
-        if constexpr (std::is_invocable_r_v<typename Tag::Type, Fn>) {
-            fn = [fn = std::move(value.value)](Widget*) -> Type {
-                return fn();
-            };
-        } else {
-            fn = function<Type(Widget*)>(std::move(value.value));
-        }
-        m_storage = std::make_shared<Internal::StyleFunction<Type>>(std::move(fn));
-        m_state   = WidgetState::None;
-    }
-
-    template <typename Tag, typename Fn>
-    Rule(ArgVal<TagWithState<Tag>, Fn> value)
-        requires std::is_invocable_r_v<typename Tag::Type, Fn> ||
-                 std::is_invocable_r_v<typename Tag::Type, Fn, Widget*>
-        : Rule(ArgVal<Tag, Fn>{ std::move(value.value) }) {
         m_state = value.state;
     }
 
@@ -254,7 +254,7 @@ private:
 };
 
 struct RuleCmpLess {
-    bool operator()(const Rule& x, const Rule& y) {
+    bool operator()(const Rule& x, const Rule& y) noexcept {
         if (x.name() < y.name())
             return true;
         if (x.name() > y.name())
@@ -270,7 +270,7 @@ struct RuleCmpLess {
 };
 
 struct RuleCmpEq {
-    bool operator()(const Rule& x, const Rule& y) {
+    bool operator()(const Rule& x, const Rule& y) noexcept {
         return x.id() == y.id() && x.state() == y.state();
     }
 };
@@ -290,21 +290,22 @@ constexpr inline Internal::Fn1Type<typename decltype(arg)::ValueType> styleVar =
     };
 
 template <typename Fn>
-inline auto adjustColor(Fn&& fn, float lightnessOffset, float chromaMultiplier = 1.f) {
+inline auto adjustColor(Fn&& fn, float lightnessOffset,
+                        float chromaMultiplier = 1.f) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), lightnessOffset, chromaMultiplier](Widget* w) {
         return fn(w).adjust(lightnessOffset, chromaMultiplier);
     };
 }
 
 template <typename Fn>
-inline auto transparency(Fn&& fn, float alpha) {
+inline auto transparency(Fn&& fn, float alpha) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), alpha](Widget* w) {
         return fn(w).multiplyAlpha(alpha);
     };
 }
 
 template <typename Fn>
-inline auto scaleValue(Fn&& fn, float scale) {
+inline auto scaleValue(Fn&& fn, float scale) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), scale](Widget* w) {
         return fn(w) * scale;
     };
@@ -324,7 +325,7 @@ inline auto scaleValue(Fn&& fn, float scale) {
  * @param background The background color.
  * @return The contrast ratio between the two colors.
  */
-inline float contrastRatio(ColorF foreground, ColorF background) {
+inline float contrastRatio(ColorF foreground, ColorF background) noexcept {
     float L1 = foreground.lightness();
     float L2 = background.lightness();
     if (!linearColor) {
@@ -351,7 +352,9 @@ inline float contrastRatio(ColorF foreground, ColorF background) {
  * @return A lambda that takes a `Widget*` and returns a `ColorW` (either primary or secondary color).
  */
 template <typename Fn>
-inline auto textColorFor(Fn&& fn, ColorW primary = Palette::white, ColorW secondary = Palette::black) {
+inline auto textColorFor(
+    Fn&& fn, ColorW primary = Palette::white,
+    ColorW secondary = Palette::black) noexcept(std::is_nothrow_move_constructible_v<Fn>) {
     return [fn = std::move(fn), primary, secondary](Widget* w) {
         ColorW c = fn(w);
         float c1 = contrastRatio(primary, c);
@@ -551,35 +554,35 @@ struct Last : public Nth {
 };
 
 template <Selector... Selectors>
-inline All<std::remove_cvref_t<Selectors>...> all(Selectors&&... selectors) {
+inline All<std::remove_cvref_t<Selectors>...> all(Selectors&&... selectors) noexcept {
     return { std::forward<Selectors>(selectors)... };
 }
 
 template <Selector Selector1, Selector Selector>
 inline All<std::remove_cvref_t<Selector1>, std::remove_cvref_t<Selector>> operator&&(Selector1&& x,
-                                                                                     Selector&& y) {
+                                                                                     Selector&& y) noexcept {
     return { std::forward<Selector1>(x), std::forward<Selector>(y) };
 }
 
 template <Selector Selector1, Selector Selector>
-inline All<Parent<std::remove_cvref_t<Selector1>>, std::remove_cvref_t<Selector>> operator>(Selector1&& x,
-                                                                                            Selector&& y) {
+inline All<Parent<std::remove_cvref_t<Selector1>>, std::remove_cvref_t<Selector>> operator>(
+    Selector1&& x, Selector&& y) noexcept {
     return { { std::forward<Selector1>(x) }, std::forward<Selector>(y) };
 }
 
 template <Selector... Selectors>
-inline Any<std::remove_cvref_t<Selectors>...> any(Selectors&&... selectors) {
+inline Any<std::remove_cvref_t<Selectors>...> any(Selectors&&... selectors) noexcept {
     return { std::forward<Selectors>(selectors)... };
 }
 
 template <Selector Selector1, Selector Selector>
 inline Any<std::remove_cvref_t<Selector1>, std::remove_cvref_t<Selector>> operator||(Selector1&& x,
-                                                                                     Selector&& y) {
+                                                                                     Selector&& y) noexcept {
     return { std::forward<Selector1>(x), std::forward<Selector>(y) };
 }
 
 template <Selector Selector1>
-inline Not<std::remove_cvref_t<Selector1>> operator!(Selector1&& x) {
+inline Not<std::remove_cvref_t<Selector1>> operator!(Selector1&& x) noexcept {
     return { std::forward<Selector1>(x) };
 }
 
@@ -587,8 +590,8 @@ inline Not<std::remove_cvref_t<Selector1>> operator!(Selector1&& x) {
 
 struct Selector {
     template <Selectors::Selector Sel>
-    Selector(Sel&& sel) : sel(std::make_shared<std::remove_cvref_t<Sel>>(std::move(sel))) {
-        match = [](const void* p, Widget* w, MatchFlags flags) {
+    Selector(Sel&& sel) noexcept : sel(std::make_shared<std::remove_cvref_t<Sel>>(std::move(sel))) {
+        match = [](const void* p, Widget* w, MatchFlags flags) noexcept {
             return reinterpret_cast<const std::remove_cvref_t<Sel>*>(p)->matches(w, flags);
         };
     }
@@ -604,7 +607,7 @@ private:
 };
 
 struct Rules {
-    Rules() = default;
+    Rules() noexcept = default;
     Rules(std::initializer_list<Rule> rules);
     Rules(std::vector<Rule> rules, bool doSort = false);
     void sort();
@@ -673,7 +676,6 @@ struct StyleVariableTag : Tag::StyleVarTag {
 
 constexpr inline Argument<StyleVariableTag<ColorW, "windowColor"_hash>> windowColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "selectedColor"_hash>> selectedColor{};
-constexpr inline Argument<StyleVariableTag<float, "animationSpeed"_hash>> animationSpeed{};
 constexpr inline Argument<StyleVariableTag<ColorW, "focusFrameColor"_hash>> focusFrameColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "hintBackgroundColor"_hash>> hintBackgroundColor{};
 constexpr inline Argument<StyleVariableTag<ColorW, "hintTextColor"_hash>> hintTextColor{};

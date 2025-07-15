@@ -104,18 +104,27 @@ private:
     float calcFontSizeFor(const Font& font, const std::string& m_text) const;
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &Text::m_text, &Text::onChanged, "text" },
+            /*1*/ Internal::PropFieldNotify{ &Text::m_wordWrap, &Text::onChanged, "wordWrap" },
+            /*2*/ Internal::PropFieldNotify{ &Text::m_rotation, &Text::onChanged, "rotation" },
+            /*3*/ Internal::PropFieldNotify{ &Text::m_textAutoSize, &Text::onChanged, "textAutoSize" },
+            /*4*/
+            Internal::PropFieldNotify{ &Text::m_textAutoSizeRange, &Text::onChanged, "textAutoSizeRange" },
+            /*5*/ Internal::PropFieldNotify{ &Text::m_textOptions, &Text::onChanged, "textOptions" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Text, std::string, &Text::m_text, nullptr, nullptr, &Text::onChanged> //
-        text;
-    Property<Text, bool, &Text::m_wordWrap, nullptr, nullptr, &Text::onChanged> //
-        wordWrap;
-    Property<Text, Rotation, &Text::m_rotation, nullptr, nullptr, &Text::onChanged> //
-        rotation;
-    Property<Text, TextAutoSize, &Text::m_textAutoSize, nullptr, nullptr, &Text::onChanged> //
-        textAutoSize;
-    Property<Text, Range<float>, &Text::m_textAutoSizeRange, nullptr, nullptr, &Text::onChanged> //
-        textAutoSizeRange;
-    Property<Text, TextOptions, &Text::m_textOptions, nullptr, nullptr, &Text::onChanged> textOptions;
+    Property<Text, std::string, 0> text;
+    Property<Text, bool, 1> wordWrap;
+    Property<Text, Rotation, 2> rotation;
+    Property<Text, TextAutoSize, 3> textAutoSize;
+    Property<Text, Range<float>, 4> textAutoSizeRange;
+    Property<Text, TextOptions, 5> textOptions;
     BRISK_PROPERTIES_END
 };
 
@@ -133,11 +142,11 @@ inline namespace Arg {
 #define BRISK__TEXT_ARG_DEFINED
 constexpr inline Argument<Tag::Named<"text">> text{};
 #endif
-constexpr inline Argument<Tag::PropArg<decltype(Text::rotation)>> rotation{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSize)>> textAutoSize{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::textAutoSizeRange)>> textAutoSizeRange{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::wordWrap)>> wordWrap{};
-constexpr inline Argument<Tag::PropArg<decltype(Text::textOptions)>> textOptions{};
+constexpr inline PropArgument<decltype(Text::rotation)> rotation{};
+constexpr inline PropArgument<decltype(Text::textAutoSize)> textAutoSize{};
+constexpr inline PropArgument<decltype(Text::textAutoSizeRange)> textAutoSizeRange{};
+constexpr inline PropArgument<decltype(Text::wordWrap)> wordWrap{};
+constexpr inline PropArgument<decltype(Text::textOptions)> textOptions{};
 } // namespace Arg
 
 class WIDGET BackStrikedText final : public Text {

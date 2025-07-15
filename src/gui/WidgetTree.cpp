@@ -38,13 +38,13 @@ void WidgetTree::setRoot(std::shared_ptr<Widget> root) {
         if (m_root) {
             m_root->setTree(this);
         }
+        m_layoutIsActual = false;
     }
 }
 
 void WidgetTree::rescale() {
     if (m_root) {
-        LOG_INFO(tree, "rescale");
-        m_root->resolveProperties(PropFlags::AffectLayout | PropFlags::AffectFont);
+        m_root->resolveAndInherit();
     }
 }
 
@@ -141,6 +141,29 @@ void WidgetTree::update() {
 
     groupsBeforeFrame();
 
+    if (!m_layoutIsActual) {
+        processEventsAndAnimations();
+        applyStyleChanges();
+        updateLayoutAndGeometry();
+        m_layoutIsActual = true;
+    }
+
+    processEventsAndAnimations();
+
+    applyStyleChanges();
+    updateLayoutAndGeometry();
+    m_layoutIsActual = true;
+}
+
+void WidgetTree::processEventsAndAnimations() {
+    if (m_layoutIsActual) {
+        if (m_inputQueue)
+            m_inputQueue->processEvents();
+    }
+
+    processAnimation();
+    processRebuild();
+
     if (frameStartTime >= m_refreshTime + refreshInterval) [[unlikely]] {
         for (WidgetGroup* g : m_groups) {
             g->beforeRefresh();
@@ -148,9 +171,18 @@ void WidgetTree::update() {
         m_root->refreshTree();
         m_refreshTime = frameStartTime;
     }
-    processAnimation();
-    processRebuild();
 
+    if (m_updateVisibilityRequested) {
+        m_root->processTreeVisibility(true);
+        m_updateVisibilityRequested = false;
+    }
+}
+
+void WidgetTree::applyStyleChanges() {
+    m_root->restyleIfRequested();
+}
+
+void WidgetTree::updateLayoutAndGeometry() {
     groupsBeforeLayout();
 
     m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
@@ -163,16 +195,6 @@ void WidgetTree::update() {
         m_root->updateGeometry(state);
         m_updateGeometryRequested = false;
     }
-    if (m_inputQueue)
-        m_inputQueue->processEvents();
-
-    m_root->restyleIfRequested();
-    m_disableTransitions = false;
-
-    groupsBeforeLayout();
-
-    m_root->updateLayout(m_viewportRectangle, m_viewportRectangleChanged);
-    m_viewportRectangleChanged = false;
 }
 
 Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRepaint) {
@@ -246,11 +268,11 @@ void WidgetTree::addGroup(WidgetGroup* group) {
 }
 
 bool WidgetTree::transitionsAllowed() {
-    return !m_disableTransitions;
+    return m_transitions;
 }
 
 void WidgetTree::disableTransitions() {
-    m_disableTransitions = true;
+    m_transitions = false;
 }
 
 void WidgetTree::setViewportRectangle(Rectangle rect) {
@@ -287,4 +309,14 @@ Nullable<InputQueue> WidgetTree::inputQueue() const {
 
 WidgetTree::WidgetTree(InputQueue* inputQueue) noexcept : m_inputQueue(inputQueue) {}
 
+WidgetTree::~WidgetTree() {
+    m_root.reset();
+    m_animationQueue.clear();
+    m_rebuildQueue.clear();
+    m_groups.clear();
+}
+
+void WidgetTree::requestUpdateVisibility() {
+    m_updateVisibilityRequested = true;
+}
 } // namespace Brisk

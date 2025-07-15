@@ -207,15 +207,26 @@ private:
     BindingRegistration m_registration{ this, nullptr };
 
 public:
-    using This = WindowApplication;
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &WindowApplication::m_discreteGpu, "discreteGpu" },
+            /*1*/ Internal::PropField{ &WindowApplication::m_syncInterval, "syncInterval" },
+            /*2*/ Internal::PropField{ &WindowApplication::m_uiScale, "uiScale" },
+            /*3*/ Internal::PropField{ &WindowApplication::m_blueLightFilter, "blueLightFilter" },
+            /*4*/ Internal::PropField{ &WindowApplication::m_globalGamma, "globalGamma" },
+            /*5*/ Internal::PropField{ &WindowApplication::m_subPixelText, "subPixelText" },
+        };
+        return props;
+    }
 
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<This, bool, &This::m_discreteGpu> discreteGpu;
-    Property<This, int, &This::m_syncInterval> syncInterval;
-    Property<This, float, &This::m_uiScale> uiScale;
-    Property<This, float, &This::m_blueLightFilter> blueLightFilter;
-    Property<This, float, &This::m_globalGamma> globalGamma;
-    Property<This, bool, &This::m_subPixelText> subPixelText;
+    Property<WindowApplication, bool, 0> discreteGpu;
+    Property<WindowApplication, int, 1> syncInterval;
+    Property<WindowApplication, float, 2> uiScale;
+    Property<WindowApplication, float, 3> blueLightFilter;
+    Property<WindowApplication, float, 4> globalGamma;
+    Property<WindowApplication, bool, 5> subPixelText;
     BRISK_PROPERTIES_END
 };
 } // namespace Brisk

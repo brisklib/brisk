@@ -76,12 +76,17 @@ TEST_CASE("Rules") {
 template <std::derived_from<Widget> W>
 class WidgetProtected : public W {
 public:
-    using W::m_dimensions;
+    using W::m_height;
     using W::m_type;
+    using W::m_width;
     using W::resolveProperties;
     using W::restyleIfRequested;
     using W::setState;
     using W::toggleState;
+
+    uint32_t invalidatedCounter() const noexcept {
+        return this->m_invalidatedCounter;
+    }
 };
 
 template <std::derived_from<Widget> W>
@@ -284,21 +289,25 @@ TEST_CASE("resolving") {
     w->borderRadius        = 10_px;
     w->borderRadiusTopLeft = 1_px;
 
-    CornersF radius        = w->borderRadius.resolved();
+    CornersF radius        = w->borderRadius.current();
 
     CHECK(radius == CornersF{ 1, 10, 10, 10 });
 }
 
 TEST_CASE("inherit") {
     Rc<Widget> w1 = rcnew Widget{
+        // w1
         fontSize = 20_px,
         rcnew Widget{
+            // w2
             fontSize = 200_perc,
             rcnew Widget{
+                // w2ch
                 // fontSize = inherit
             },
         },
         rcnew Widget{
+            // w1ch
             // fontSize = inherit
         },
     };
@@ -309,13 +318,212 @@ TEST_CASE("inherit") {
     Rc<Widget> w2ch = w2->widgets().back();
 
     CHECK(w1->fontSize.get() == 20_px);
-    CHECK(w1->fontSize.resolved() == 20);
+    CHECK(w1->fontSize.current() == 20);
     CHECK(w2->fontSize.get() == 200_perc);
-    CHECK(w2->fontSize.resolved() == 40);
+    CHECK(w2->fontSize.current() == 40);
 
     CHECK(w1ch->fontSize.get() == 20_px);
-    CHECK(w1ch->fontSize.resolved() == 20);
+    CHECK(w1ch->fontSize.current() == 20);
     CHECK(w2ch->fontSize.get() == 200_perc);
-    CHECK(w2ch->fontSize.resolved() == 40);
+    CHECK(w2ch->fontSize.current() == 40);
+}
+
+TEST_CASE("inherit2") {
+    using namespace Selectors;
+    Rc<const Stylesheet> stylesheet = rcnew Stylesheet{
+        Style{
+            Id{ "A" },
+            Rules{
+                color = Palette::red,
+            },
+        },
+    };
+
+    Rc<Widget> w1 = rcnew Widget{
+        Arg::stylesheet = stylesheet,
+        id              = "A",
+
+        rcnew Widget{},
+    };
+
+    unprotect(w1)->restyleIfRequested();
+    CHECK(w1->color.get() == ColorW(Palette::red));
+    CHECK(w1->widgets().front()->color.get() == ColorW(Palette::red));
+}
+
+TEST_CASE("inherit3") {
+    auto w = rcnew Widget{
+        color = inherit,
+    };
+
+    auto parent = rcnew Widget{
+        color = Palette::red,
+    };
+
+    CHECK(w->color.get() == ColorW(Palette::white));    // Default
+    CHECK(parent->color.get() == ColorW(Palette::red)); // Overridden
+
+    parent->append(w);
+    CHECK(w->color.get() == ColorW(Palette::red)); // Inherited
+}
+
+TEST_CASE("inherit4") {
+    auto w = rcnew Widget{
+        color = Palette::red,
+        Builder{
+            [](Widget* target) {
+                target->apply(rcnew Widget{
+                    rcnew Widget{},
+                });
+            },
+            BuilderKind::Delayed,
+        },
+    };
+    CHECK(w->color.get() == ColorW(Palette::red)); // Overridden
+    REQUIRE(w->widgets().empty());
+
+    unprotect(w)->rebuild(false);
+
+    REQUIRE(!w->widgets().empty());
+    REQUIRE(!w->widgets().front()->widgets().empty());
+
+    CHECK(w->widgets().front()->color.get() == ColorW(Palette::red));                    // Inherited
+    CHECK(w->widgets().front()->widgets().front()->color.get() == ColorW(Palette::red)); // Inherited
+
+    w->color = Palette::blue;
+    CHECK(w->color.get() == ColorW(Palette::blue));
+
+    CHECK(w->widgets().front()->color.get() == ColorW(Palette::blue));                    // Inherited
+    CHECK(w->widgets().front()->widgets().front()->color.get() == ColorW(Palette::blue)); // Inherited
+}
+
+TEST_CASE("Stylesheet with inheritance") {
+    Rc<Widget> w2;
+    auto w = rcnew Widget{
+        stylesheet =
+            rcnew Stylesheet{
+                Style{
+                    Selectors::Id{ "A" },
+                    Rules{
+                        color           = Palette::red,
+                        backgroundColor = Palette::blue,
+                    },
+                },
+            },
+        color = 0x808080_rgb,
+        rcnew Widget{
+            storeWidget(&w2),
+            id = "A",
+            rcnew Widget{
+                id = "B",
+            },
+        },
+    };
+    unprotect(w)->restyleIfRequested();
+    CHECK(w2->color.get() == Palette::red);
+    CHECK(w2->backgroundColor.get() == Palette::blue);
+    CHECK(w2->widgets().front()->color.get() == Palette::red);
+    CHECK(w2->widgets().front()->backgroundColor.get() == Palette::transparent);
+}
+
+TEST_CASE("Style with states") {
+    using namespace Selectors;
+    using enum WidgetState;
+    Rc<const Stylesheet> stylesheet = rcnew Stylesheet{
+        Style{
+            Id{ "A" },
+            Rules{
+                color            = Palette::white,
+                color | Selected = Palette::red,
+            },
+        },
+    };
+
+    Rc<Widget> w1 = rcnew Widget{
+        Arg::stylesheet = stylesheet,
+        id              = "A",
+        rcnew Widget{},
+    };
+    unprotect(w1)->restyleIfRequested();
+    CHECK(w1->color.get() == ColorW(Palette::white));
+    CHECK(w1->widgets().front()->color.get() == ColorW(Palette::white));
+    w1->selected.set(true);
+    CHECK(w1->color.get() == ColorW(Palette::red));
+    CHECK(w1->widgets().front()->color.get() == ColorW(Palette::red));
+}
+
+class Derived : public Widget {
+    BRISK_DYNAMIC_CLASS(Derived, Widget)
+public:
+    using Base                                   = Widget;
+    constexpr static std::string_view widgetType = "derived";
+
+    template <WidgetArgument... Args>
+    explicit Derived(const Args&... args) : Derived{ Construction{ widgetType }, std::tuple{ args... } } {
+        endConstruction();
+    }
+
+private:
+    ColorW m_fillColor;
+
+    explicit Derived(Construction construction, ArgumentsView<Derived> args)
+        : Widget{ construction, nullptr } {
+        args.apply(this);
+    }
+
+public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::GuiProp{ &Derived::m_fillColor, Palette::black, AffectPaint, "fillColor" },
+        };
+        return props;
+    }
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<Derived, ColorW, 0> fillColor;
+    BRISK_PROPERTIES_END
+};
+
+inline namespace Arg {
+constexpr inline PropArgument<decltype(Derived::fillColor)> fillColor{};
+}
+
+TEST_CASE("Properties for derived widgets") {
+    auto w = rcnew Derived{
+        fillColor = Palette::green,
+    };
+
+    CHECK(w->fillColor.get() == Palette::green);
+
+    CHECK(unprotect(w)->invalidatedCounter() == 1);
+
+    w->fillColor = Palette::red;
+
+    CHECK(w->fillColor.get() == Palette::red);
+
+    CHECK(unprotect(w)->invalidatedCounter() == 2);
+}
+
+TEST_CASE("Stylesheet for derived widgets") {
+    auto style = rcnew Stylesheet{
+        Style{
+            Selectors::Type{ Derived::widgetType },
+            Rules{
+                fillColor = Palette::magenta,
+            },
+        },
+    };
+
+    auto ww = rcnew Widget{
+        stylesheet = style,
+        rcnew Derived{},
+    };
+
+    unprotect(ww)->restyleIfRequested();
+
+    REQUIRE(dynamicPointerCast<Derived>(ww->widgets().front()));
+
+    CHECK(dynamicPointerCast<Derived>(ww->widgets().front())->fillColor.get() == Palette::magenta);
 }
 } // namespace Brisk

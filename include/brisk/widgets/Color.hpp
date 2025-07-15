@@ -27,6 +27,26 @@ namespace Brisk {
 
 class WIDGET ColorView : public Widget {
     BRISK_DYNAMIC_CLASS(ColorView, Widget)
+protected:
+    ColorW m_value = Palette::black;
+
+    void paint(Canvas& canvas) const override;
+    Ptr cloneThis() const override;
+    ColorView(Construction construction, ColorW color, ArgumentsView<ColorView> args);
+
+public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &ColorView::m_value, &ColorView::invalidate, "value" },
+        };
+        return props;
+    }
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<ColorView, ColorW, 0> value;
+    BRISK_PROPERTIES_END
+
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "colorview";
@@ -43,22 +63,29 @@ public:
         : ColorView(Construction{ widgetType }, std::move(color), std::tuple{ args... }) {
         endConstruction();
     }
-
-protected:
-    ColorW m_value = Palette::black;
-
-    void paint(Canvas& canvas) const override;
-    Ptr cloneThis() const override;
-    ColorView(Construction construction, ColorW color, ArgumentsView<ColorView> args);
-
-public:
-    BRISK_PROPERTIES_BEGIN
-    Property<ColorView, ColorW, &ColorView::m_value, nullptr, nullptr, &ColorView::invalidate> value;
-    BRISK_PROPERTIES_END
 };
 
 class WIDGET ColorSliders : public Widget {
     BRISK_DYNAMIC_CLASS(ColorSliders, Widget)
+protected:
+    ColorW m_value = Palette::black;
+
+    Ptr cloneThis() const override;
+    explicit ColorSliders(Construction construction, ColorW color, bool alpha,
+                          ArgumentsView<ColorSliders> args);
+
+public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &ColorSliders::m_value, &ColorSliders::invalidate, "value" },
+        };
+        return props;
+    }
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<ColorSliders, ColorW, 0> value;
+    BRISK_PROPERTIES_END
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "colorsliders";
@@ -75,22 +102,29 @@ public:
         : ColorSliders(Construction{ widgetType }, color, alpha, std::tuple{ args... }) {
         endConstruction();
     }
-
-protected:
-    ColorW m_value = Palette::black;
-
-    Ptr cloneThis() const override;
-    explicit ColorSliders(Construction construction, ColorW color, bool alpha,
-                          ArgumentsView<ColorSliders> args);
-
-public:
-    BRISK_PROPERTIES_BEGIN
-    Property<ColorSliders, ColorW, &ColorSliders::m_value> value;
-    BRISK_PROPERTIES_END
 };
 
 class WIDGET ColorPalette final : public Widget {
     BRISK_DYNAMIC_CLASS(ColorPalette, Widget)
+protected:
+    ColorW m_value = Palette::black;
+
+    Rc<Widget> addColor(ColorW swatch, float brightness = 0.f, float chroma = 1.f);
+    Ptr cloneThis() const override;
+    explicit ColorPalette(Construction construction, ColorW color, ArgumentsView<ColorPalette> args);
+
+public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropFieldNotify{ &ColorPalette::m_value, &ColorPalette::invalidate, "value" },
+        };
+        return props;
+    }
+
+public:
+    BRISK_PROPERTIES_BEGIN
+    Property<ColorPalette, ColorW, 0> value;
+    BRISK_PROPERTIES_END
 public:
     using Base                                   = Widget;
     constexpr static std::string_view widgetType = "colorpalette";
@@ -104,18 +138,6 @@ public:
     template <WidgetArgument... Args>
     explicit ColorPalette(ColorW color, const Args&... args)
         : ColorPalette(Construction{ widgetType }, std::move(color), std::tuple{ args... }) {}
-
-protected:
-    ColorW m_value = Palette::black;
-
-    Rc<Widget> addColor(ColorW swatch, float brightness = 0.f, float chroma = 1.f);
-    Ptr cloneThis() const override;
-    explicit ColorPalette(Construction construction, ColorW color, ArgumentsView<ColorPalette> args);
-
-public:
-    BRISK_PROPERTIES_BEGIN
-    Property<ColorPalette, ColorW, &ColorPalette::m_value> value;
-    BRISK_PROPERTIES_END
 };
 
 class WIDGET ColorButton : public PopupButton {

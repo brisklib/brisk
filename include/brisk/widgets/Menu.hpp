@@ -49,14 +49,23 @@ protected:
     explicit Menu(Construction construction, ArgumentsView<Menu> args);
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            /*0*/ Internal::PropField{ &Menu::m_onItemClick, "onItemClick" },
+            /*1*/ Internal::PropField{ &Menu::m_onBecameVisible, "onBecameVisible" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<Menu, Trigger<size_t>, &Menu::m_onItemClick> onItemClick;
-    Property<Menu, Trigger<>, &Menu::m_onBecameVisible> onBecameVisible;
+    Property<Menu, Trigger<size_t>, 0> onItemClick;
+    Property<Menu, Trigger<>, 1> onBecameVisible;
     BRISK_PROPERTIES_END
 };
 
 inline namespace Arg {
-constexpr inline Argument<Tag::PropArg<decltype(Menu::onItemClick)>> onItemClick{};
+constexpr inline PropArgument<decltype(Menu::onItemClick)> onItemClick{};
 }
 
 } // namespace Brisk

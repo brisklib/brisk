@@ -127,6 +127,8 @@ struct PointOf {
      */
     constexpr PointOf(const PointOf& p) noexcept = default;
 
+    constexpr PointOf(const SizeOf<T>& size) noexcept : x(size.x), y(size.y) {}
+
     /**
      * @brief Equality operator.
      *
@@ -781,11 +783,13 @@ struct SizeOf {
     /// @tparam U The type to convert from.
     /// @param v The value to convert and initialize.
     template <std::convertible_to<T> U>
-    constexpr SizeOf(U v) : SizeOf(static_cast<T>(v)) {}
+    constexpr SizeOf(U v) noexcept : SizeOf(static_cast<T>(v)) {}
 
     /// @brief Copy constructor.
     /// @param s The SizeOf instance to copy from.
     constexpr SizeOf(const SizeOf& s) noexcept = default;
+
+    constexpr SizeOf(const PointOf<T>& pt) noexcept : x(pt.x), y(pt.y) {}
 
     /// @brief Access operator for retrieving component by index.
     /// @param i The index of the component (0 for x, 1 for y).
@@ -881,6 +885,8 @@ struct SizeOf<T> {
     /// @brief Copy constructor.
     /// @param s The SizeOf instance to copy from.
     constexpr SizeOf(const SizeOf& s) noexcept = default;
+
+    constexpr SizeOf(const PointOf<T>& pt) noexcept : v(pt.v) {}
 
     /// @brief Conversion operator to a different SizeOf type.
     /// @tparam U The type to convert to.
@@ -1129,7 +1135,7 @@ struct EdgesOf {
     /// @tparam U The type to convert from.
     /// @param v The value to convert and initialize edges.
     template <std::convertible_to<T> U>
-    constexpr EdgesOf(U v) : EdgesOf(static_cast<T>(v)) {}
+    constexpr EdgesOf(U v) noexcept : EdgesOf(static_cast<T>(v)) {}
 
     /// @brief Constructor that initializes edges with specified horizontal and vertical values.
     /// @param h The horizontal value for x1 and x2.
@@ -1449,7 +1455,7 @@ struct CornersOf {
     /// @tparam U The type to convert from.
     /// @param v The value to convert and initialize corners.
     template <std::convertible_to<T> U>
-    constexpr CornersOf(U v) : CornersOf(static_cast<T>(v)) {}
+    constexpr CornersOf(U v) noexcept : CornersOf(static_cast<T>(v)) {}
 
     /// @brief Constructor that initializes corners with specified coordinates.
     /// @param x1y1 The coordinate of the top-left corner.
@@ -1525,7 +1531,7 @@ struct CornersOf<T> {
     /// @tparam U The type to convert from.
     /// @param v The value to convert and initialize corners.
     template <std::convertible_to<T> U>
-    constexpr CornersOf(U v) : CornersOf(static_cast<T>(v)) {}
+    constexpr CornersOf(U v) noexcept : CornersOf(static_cast<T>(v)) {}
 
     /// @brief Constructor that initializes corners with specified coordinates.
     /// @param x1y1 The coordinate of the top-left corner.

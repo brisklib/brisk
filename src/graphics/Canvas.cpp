@@ -558,7 +558,7 @@ void Canvas::fillText(PointF position, const PreparedText& text) {
 
 void Canvas::fillText(PointF position, PointF alignment, const PreparedText& text) {
     if (alignment != PointF{}) {
-        position -= text.bounds().size() * alignment;
+        position -= PointF(text.bounds().size()) * alignment;
     }
     sdf(this).drawText(
         position, text,
@@ -645,7 +645,7 @@ void Canvas::fillTextSelection(PointF position, const PreparedText& text, Range<
 void Canvas::fillTextSelection(PointF position, PointF alignment, const PreparedText& text,
                                Range<uint32_t> selection) {
     if (alignment != PointF{}) {
-        position -= text.bounds().size() * alignment;
+        position -= PointF(text.bounds().size()) * alignment;
     }
     fillTextSelection(position, text, selection);
 }

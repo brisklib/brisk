@@ -37,9 +37,18 @@ private:
     bool m_showPlots      = true;
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            Internal::PropField{ &SettingsComponent::m_refreshInterval, "refreshInterval" },
+            Internal::PropField{ &SettingsComponent::m_showPlots, "showPlots" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<SettingsComponent, int, &SettingsComponent::m_refreshInterval> refreshInterval;
-    Property<SettingsComponent, bool, &SettingsComponent::m_showPlots> showPlots;
+    Property<SettingsComponent, int, 0> refreshInterval;
+    Property<SettingsComponent, bool, 1> showPlots;
     BRISK_PROPERTIES_END
 };
 } // namespace App

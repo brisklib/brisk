@@ -631,13 +631,13 @@ inline std::optional<T> toNumber(std::string_view str) {
 namespace Internal {
 
 template <size_t N>
-struct FmtString : public FixedString<N>, public fmt::detail::compile_string {
+struct FmtString : public FixedString<N> {
     using char_type = char;
 
     using FixedString<N>::FixedString;
 
     constexpr operator fmt::basic_string_view<char_type>() const {
-        return fmt::detail_exported::compile_string_to_view<char_type>(
+        return fmt::detail::compile_string_to_view<char_type>(
             fmt::basic_string_view<char_type>(this->string()));
     }
 };

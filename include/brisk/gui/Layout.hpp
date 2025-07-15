@@ -23,6 +23,7 @@
 #include <bit>
 #include <limits>
 #include <functional>
+#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/BasicTypes.hpp>
 #include <fmt/format.h>
@@ -123,6 +124,27 @@ struct LengthOf {
         return unpackValue(m_packed);
     }
 
+    constexpr float staticResolve() const noexcept {
+        switch (unit()) {
+        case LengthUnit::Undefined:
+        case LengthUnit::Auto:
+        case LengthUnit::Em:
+        case LengthUnit::Vw:
+        case LengthUnit::Vh:
+        case LengthUnit::Vmin:
+        case LengthUnit::Vmax:
+        case LengthUnit::Percent:
+            return std::numeric_limits<float>::quiet_NaN();
+        case LengthUnit::Pixels:
+            return value() * pixelRatio();
+        case LengthUnit::DevicePixels:
+            return value();
+        case LengthUnit::AlignedPixels:
+            return std::round(value() * pixelRatio());
+        }
+        BRISK_UNREACHABLE();
+    }
+
     template <Unit srcUnit, Unit dstUnit = Unit::Default>
     constexpr LengthOf convert(float scale) const noexcept {
         if (unit() == srcUnit) {
@@ -176,7 +198,7 @@ private:
         return +unit < +Unit::Default;
     }
 
-    constexpr static uint32_t pack(float value, Unit unit) {
+    constexpr static uint32_t pack(float value, Unit unit) noexcept {
         if (unit >= Unit::Default) {
             return (std::bit_cast<uint32_t>(value) & valueMask) |
                    static_cast<uint32_t>(+unit - +Unit::Default);
@@ -185,7 +207,7 @@ private:
         }
     }
 
-    constexpr static float unpackValue(uint32_t value) {
+    constexpr static float unpackValue(uint32_t value) noexcept {
         if ((value & valueMask) == special) {
             return std::numeric_limits<float>::quiet_NaN();
         } else {
@@ -193,7 +215,7 @@ private:
         }
     }
 
-    constexpr static Unit unpackUnit(uint32_t value) {
+    constexpr static Unit unpackUnit(uint32_t value) noexcept {
         if ((value & valueMask) == special) {
             return static_cast<Unit>(value & unitMask);
         } else {

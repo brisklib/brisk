@@ -401,8 +401,8 @@ static OutChar* utfConvert(OutChar* dest, OutChar* dest_end, const InChar* src, 
 template <typename OutChar, typename InChar, UtfPolicy policy = UtfPolicy::ReplaceInvalid>
 static OutChar* utfConvert(OutChar* dest, OutChar* dest_end, const InChar* src, const InChar* src_end,
                            CUtfPolicy<policy> = CUtfPolicy<policy>{}) {
-    return utfConvert<OutChar, InChar, PassThrough, policy>(dest, dest_end, src, src_end, PassThrough{},
-                                                            CUtfPolicy<policy>{});
+    return utfConvert<OutChar, InChar, std::identity, policy>(dest, dest_end, src, src_end, std::identity{},
+                                                              CUtfPolicy<policy>{});
 }
 
 template <typename InChar>

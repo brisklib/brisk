@@ -42,6 +42,12 @@ if (WIN32 AND NOT MSVC)
     message(FATAL_ERROR "Brisk requires MSVC or an MSVC-compatible compiler (e.g., clang-cl) on Windows")
 endif ()
 
+if (MSVC)
+    add_compile_options(-Zc:inline)
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:-Gy>)
+    add_link_options($<$<NOT:$<CONFIG:Debug>>:-OPT:REF> $<$<NOT:$<CONFIG:Debug>>:-OPT:ICF>)
+endif ()
+
 get_directory_property(BRISK_PARENT_DIR PARENT_DIRECTORY)
 if (NOT BRISK_PARENT_DIR)
     set(BRISK_STANDALONE TRUE)

@@ -30,7 +30,7 @@
 #include <brisk/gui/Component.hpp>
 #include <brisk/graphics/Fonts.hpp>
 #include <brisk/gui/Icons.hpp>
-#include "ViewModel.hpp"
+#include "ViewModel/ViewModel.hpp"
 #include <brisk/gui/Action.hpp>
 #include <brisk/gui/Groups.hpp>
 #include <brisk/widgets/Notifications.hpp>
@@ -62,9 +62,18 @@ private:
     void saveToJson();
 
 public:
+    static const auto& properties() noexcept {
+        static constexpr tuplet::tuple props{
+            Internal::PropField{ &MainComponent::m_refreshInterval, "refreshInterval" },
+            Internal::PropField{ &MainComponent::m_showPlots, "showPlots" },
+        };
+        return props;
+    }
+
+public:
     BRISK_PROPERTIES_BEGIN
-    Property<MainComponent, int, &MainComponent::m_refreshInterval> refreshInterval;
-    Property<MainComponent, bool, &MainComponent::m_showPlots> showPlots;
+    Property<MainComponent, int, 0> refreshInterval;
+    Property<MainComponent, bool, 1> showPlots;
     BRISK_PROPERTIES_END
 };
 } // namespace App

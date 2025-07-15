@@ -34,15 +34,6 @@
 
 namespace Brisk {
 
-template <typename T>
-using OptConstRef = std::conditional_t<std::is_trivially_copyable_v<T>, T, const T&>;
-
-static_assert(std::is_same_v<OptConstRef<int>, int>);
-static_assert(std::is_same_v<OptConstRef<ColorW>, ColorW>);
-static_assert(std::is_same_v<OptConstRef<std::string_view>, std::string_view>);
-static_assert(std::is_same_v<OptConstRef<std::string>, const std::string&>);
-static_assert(std::is_same_v<OptConstRef<std::vector<int>>, const std::vector<int>&>);
-
 enum class Placement : uint8_t {
     Normal,   // In-flow
     Absolute, // Absolute in parent widget
@@ -135,48 +126,29 @@ enum FontSize : uint8_t {
 using Classes = SmallVector<std::string, 1>;
 
 enum class PropFlags : uint16_t {
-    None             = 0,
-    AffectLayout     = 1 << 0,
-    AffectStyle      = 1 << 1,
-    Transition       = 1 << 2,
-    Resolvable       = 1 << 3,
-    AffectResolve    = 1 << 4,
-    AffectFont       = 1 << 5,
-    Inheritable      = 1 << 6,
-    RelativeToParent = 1 << 7,
-    AffectPaint      = 1 << 8,
-    AffectHint       = 1 << 9,
+    None                       = 0,
+    AffectLayout               = 1 << 0,
+    AffectStyle                = 1 << 1,
+    AffectFont                 = 1 << 2,
+    AffectPaint                = 1 << 3,
+    AffectHint                 = 1 << 4,
+    AffectVisibility           = 1 << 5,
 
-    Compound         = 1 << 10,
+    RelativeToFontSize         = 0 << 8,
+    RelativeToShortestSide     = 1 << 8,
+    RelativeToHalfShortestSide = 2 << 8,
+    RelativeMask               = 3 << 8,
 };
 
 template <>
 constexpr inline bool isBitFlags<PropFlags> = true;
 
-namespace Internal {
-constexpr size_t indexFromFlags(PropFlags flags) noexcept {
-    return (static_cast<uint16_t>(flags) >> 8) & 0b11;
-}
-
-enum class PropState : uint8_t {
-    None      = 0,
-    Overriden = 1, // Don't apply style
-    Inherited = 2, // Copy from parent
-
-    Mask      = Overriden | Inherited,
-};
-
-constexpr inline size_t propStateBits = std::bit_width(static_cast<uint8_t>(PropState::Mask));
-
-} // namespace Internal
-
-template <>
-constexpr inline bool isBitFlags<Internal::PropState> = true;
-
 namespace Tag {
 struct PropertyTag {};
 
 struct StyleVarTag {};
+
+struct SynthPropertyTag {};
 } // namespace Tag
 
 template <typename T>
@@ -185,9 +157,19 @@ concept PropertyTag = std::derived_from<T, Tag::PropertyTag> && requires { typen
 template <typename T>
 concept StyleVarTag = std::derived_from<T, Tag::StyleVarTag> && requires { typename T::Type; };
 
+template <typename T>
+concept SynthPropertyTag = std::derived_from<T, Tag::SynthPropertyTag> && requires { typename T::Type; };
+
+template <typename Tag>
+concept PropertyOrSynthPropertyTag = PropertyTag<Tag> || SynthPropertyTag<Tag>;
+
 struct Inherit {};
 
 constexpr inline Inherit inherit{};
+
+struct Initial {};
+
+constexpr inline Initial initial{};
 
 template <>
 inline constexpr std::initializer_list<NameValuePair<Layout>> defaultNames<Layout>{
