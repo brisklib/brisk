@@ -1360,6 +1360,7 @@ void Widget::onEvent(Event& event) {
             Point clickOffset = Point(event.as<EventMouseButtonReleased>()->point) - m_rect.p1;
             p->translate.set(PointL{ clickOffset.x * 1_dpx, clickOffset.y * 1_dpx });
             p->visible = true;
+            event.stopPropagation();
         }
     }
 
