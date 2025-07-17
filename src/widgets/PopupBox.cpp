@@ -24,15 +24,15 @@
 namespace Brisk {
 
 PopupBox::PopupBox(Construction construction, ArgumentsView<PopupBox> args)
-    : AutoScrollable(construction, Orientation::Vertical,
-                     std::tuple{
-                         Arg::layout          = Layout::Vertical,
-                         Arg::placement       = Placement::Absolute,
-                         Arg::zorder          = ZOrder::TopMost,
-                         Arg::mouseAnywhere   = true,
-                         Arg::focusCapture    = true,
-                         Arg::alignToViewport = AlignToViewport::XY,
-                     }) {
+    : Widget(construction, std::tuple{
+                               Arg::layout          = Layout::Vertical,
+                               Arg::placement       = Placement::Absolute,
+                               Arg::zorder          = ZOrder::TopMost,
+                               Arg::mouseAnywhere   = true,
+                               Arg::focusCapture    = true,
+                               Arg::alignToViewport = AlignToViewport::XY,
+                               Arg::overflowScrollY = OverflowScroll::Auto,
+                           }) {
     m_isPopup = true;
     args.apply(this);
 }
@@ -42,7 +42,7 @@ Rc<Widget> PopupBox::cloneThis() const {
 }
 
 void PopupBox::onEvent(Event& event) {
-    AutoScrollable::onEvent(event);
+    Base::onEvent(event);
     if (auto e = event.as<EventMouseButtonPressed>()) {
         if (!m_rect.contains(e->point)) {
             visible = false;

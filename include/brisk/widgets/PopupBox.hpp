@@ -20,16 +20,15 @@
  */
 #pragma once
 
-#include "AutoScrollable.hpp"
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 
-class WIDGET PopupBox : public AutoScrollable {
-    BRISK_DYNAMIC_CLASS(PopupBox, AutoScrollable)
+class WIDGET PopupBox : public Widget {
+    BRISK_DYNAMIC_CLASS(PopupBox, Widget)
 public:
-    using Base                                   = AutoScrollable;
+    using Base                                   = Widget;
     constexpr static std::string_view widgetType = "popupbox";
-    using AutoScrollable::apply;
 
     template <WidgetArgument... Args>
     explicit PopupBox(const Args&... args) : PopupBox(Construction{ widgetType }, std::tuple{ args... }) {
