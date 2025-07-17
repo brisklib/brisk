@@ -50,9 +50,9 @@ struct Callbacks : public std::vector<Callback<Args...>> {
 };
 
 #if 0
-#define LOG_BINDING LOG_DEBUG
+#define BRISK_LOG_BINDING BRISK_LOG_DEBUG
 #else
-#define LOG_BINDING LOG_NOP
+#define BRISK_LOG_BINDING BRISK_LOG_NOP
 #endif
 
 struct BindingAddress {
@@ -1318,7 +1318,7 @@ private:
         Handler handler = [srcQueue, destQueue, type, dest = std::move(dest), src = std::move(src),
                            destRegionWeak = std::move(destRegionWeak)]() {
             TSrc val = src.get();
-            LOG_BINDING(binding, "handler: get | {} <- ({}) <- {}", destDesc, toStringSafe(val), srcDesc);
+            BRISK_LOG_BINDING("handler: get | {} <- ({}) <- {}", destDesc, toStringSafe(val), srcDesc);
             enqueueInto(
                 destQueue,
                 [=, dest = std::move(dest), val = std::move(val),
@@ -1326,8 +1326,8 @@ private:
                     if (auto destRegion = destRegionWeak.lock()) {
                         if (auto optVal = Internal::wrapOptional(val)) {
                             dest.set(*optVal);
-                            LOG_BINDING(binding, "handler: set | {} <- ({}) <- {}", destDesc,
-                                        toStringSafe(val), srcDesc);
+                            BRISK_LOG_BINDING("handler: set | {} <- ({}) <- {}", destDesc, toStringSafe(val),
+                                              srcDesc);
                         }
                     }
                 },

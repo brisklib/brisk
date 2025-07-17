@@ -63,21 +63,21 @@ static std::vector<spdlog::sink_ptr>& sinks() {
 }
 
 static void printSystemInformation() {
-    LOG_INFO(core, "Brisk {} running on {}", Brisk::version, osName());
-    LOG_INFO(core, "Brisk build info {}", replaceAll(Brisk::buildInfo, ";", "\n"));
+    BRISK_LOG_INFO("Brisk {} running on {}", Brisk::version, osName());
+    BRISK_LOG_INFO("Brisk build info {}", replaceAll(Brisk::buildInfo, ";", "\n"));
 
-    LOG_INFO(
-        core, "steady_clock granularity = {}ns",
+    BRISK_LOG_INFO(
+        "steady_clock granularity = {}ns",
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::duration(1)).count());
-    LOG_INFO(
-        core, "high_resolution_clock granularity = {}ns",
+    BRISK_LOG_INFO(
+        "high_resolution_clock granularity = {}ns",
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::duration(1))
             .count());
-    LOG_INFO(
-        core, "system_clock granularity = {}ns",
+    BRISK_LOG_INFO(
+        "system_clock granularity = {}ns",
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::duration(1)).count());
 
-    LOG_INFO(core, "settingsFile = {}", Settings::path().string());
+    BRISK_LOG_INFO("settingsFile = {}", Settings::path().string());
 }
 
 void initializeLogs() {

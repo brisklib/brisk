@@ -1970,8 +1970,8 @@ void applier(Widget* target, ArgVal<Tag::WithRole<WidgetType, Name>> value) {
 
 namespace Internal {
 inline void invalidPropertyApplication(Widget* target, std::string_view name) {
-    LOG_WARN(gui, "Property {} is not applicable to widget type {}", name,
-             target->dynamicMetaClass()->className);
+    BRISK_LOG_WARN("Property {} is not applicable to widget type {}", name,
+                   target->dynamicMetaClass()->className);
 }
 } // namespace Internal
 

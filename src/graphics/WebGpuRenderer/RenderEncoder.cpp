@@ -376,7 +376,7 @@ void RenderEncoderWebGpu::endFrame(DurationCallback callback) {
 
                     callbackData->frameTiming->resultBuffer.Unmap();
                 } else {
-                    LOG_WARN(gpu, "Frame {} failed to map: {}", callbackData->frameId, (uint32_t)status);
+                    BRISK_LOG_WARN("Frame {} failed to map: {}", callbackData->frameId, (uint32_t)status);
                 }
                 callbackData->frameTiming->pending = false; // Mark as complete
                 delete callbackData;

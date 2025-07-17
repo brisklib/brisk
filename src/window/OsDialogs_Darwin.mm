@@ -205,8 +205,8 @@ static std::optional<fs::path> showChildOpenDialog(NativeWindow* window,
                 return path;
             }
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showOpenDialog: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showOpenDialog: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return {};
         }
     }
@@ -236,8 +236,8 @@ static std::optional<fs::path> showChildSaveDialog(NativeWindow* window,
         @try {
             dialog = [NSSavePanel savePanel];
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showSaveDialog: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showSaveDialog: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return {};
         }
         [dialog setExtensionHidden:NO];
@@ -279,8 +279,8 @@ static std::vector<fs::path> showChildOpenDialogMulti(NativeWindow* window,
         @try {
             dialog = [NSOpenPanel openPanel];
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showOpenDialogMulti: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showOpenDialogMulti: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return {};
         }
         [dialog setAllowsMultipleSelection:YES];
@@ -334,8 +334,8 @@ static std::optional<fs::path> showChildFolderDialog(NativeWindow* window, const
                 return path;
             }
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showFolderDialog: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showFolderDialog: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return std::nullopt;
         }
     }

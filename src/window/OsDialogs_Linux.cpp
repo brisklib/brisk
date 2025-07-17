@@ -112,7 +112,7 @@ void Shell::openURLInBrowser(std::string_view url) {
     std::string command                = "xdg-open " + escapeShellArg(url) + " &";
     std::pair<std::string, int> result = execCommand(command);
     if (result.second != 0) {
-        LOG_ERROR(dialogs, "xdg-open failed with exit code {}", result.second);
+        BRISK_LOG_ERROR("xdg-open failed with exit code {}", result.second);
     }
 }
 
@@ -133,7 +133,7 @@ std::optional<fs::path> Shell::showOpenDialog(std::span<const FileDialogFilter> 
 
     std::pair<std::string, int> result = execCommand(command);
     if (result.second != 0) {
-        LOG_ERROR(dialogs, "zenity failed with exit code {}", result.second);
+        BRISK_LOG_ERROR("zenity failed with exit code {}", result.second);
         return std::nullopt;
     }
 
@@ -150,7 +150,7 @@ std::vector<fs::path> Shell::showOpenDialogMulti(std::span<const FileDialogFilte
 
     std::pair<std::string, int> result = execCommand(command);
     if (result.second != 0) {
-        LOG_ERROR(dialogs, "zenity failed with exit code {}", result.second);
+        BRISK_LOG_ERROR("zenity failed with exit code {}", result.second);
         return {};
     }
     result.first                        = trim(result.first);
@@ -169,7 +169,7 @@ std::optional<fs::path> Shell::showSaveDialog(std::span<const FileDialogFilter> 
 
     std::pair<std::string, int> result = execCommand(command);
     if (result.second != 0) {
-        LOG_ERROR(dialogs, "zenity failed with exit code {}", result.second);
+        BRISK_LOG_ERROR("zenity failed with exit code {}", result.second);
         return std::nullopt;
     }
 
@@ -184,7 +184,7 @@ std::optional<fs::path> Shell::showFolderDialog(const fs::path& defaultPath) {
 
     std::pair<std::string, int> result = execCommand(command);
     if (result.second != 0) {
-        LOG_ERROR(dialogs, "zenity failed with exit code {}", result.second);
+        BRISK_LOG_ERROR("zenity failed with exit code {}", result.second);
         return std::nullopt;
     }
 

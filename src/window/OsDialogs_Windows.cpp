@@ -109,7 +109,7 @@ static std::vector<fs::path> pathDialog(NativeWindow* window,
     COMInitializer com;
     std::vector<fs::path> results;
     if (!com) {
-        LOG_ERROR(dialogs, "COM initialization failed");
+        BRISK_LOG_ERROR("COM initialization failed");
         return results;
     }
     ComPtr<Dialog> dialog;
@@ -121,7 +121,7 @@ static std::vector<fs::path> pathDialog(NativeWindow* window,
         result = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL,
                                   IID_PPV_ARGS(dialog.ReleaseAndGetAddressOf()));
     if (!SUCCEEDED(result)) {
-        LOG_ERROR(dialogs, "Cannot create CLSID_FileOpenDialog");
+        BRISK_LOG_ERROR("Cannot create CLSID_FileOpenDialog");
         return results;
     }
     FILEOPENDIALOGOPTIONS opts;
@@ -163,7 +163,7 @@ static std::vector<fs::path> pathDialog(NativeWindow* window,
     result = dialog->Show(handleFromWindow(window));
     if (!SUCCEEDED(result)) {
         if (result != HRESULT_FROM_WIN32(ERROR_CANCELLED))
-            LOG_ERROR(dialogs, "IFileOpenDialog::Show() failed");
+            BRISK_LOG_ERROR("IFileOpenDialog::Show() failed");
         return results;
     }
 
@@ -269,7 +269,7 @@ static DialogResult showChildDialog(NativeWindow* window, DialogButtons buttons,
     int btn = 0;
     if (!SUCCEEDED(TaskDialog(handleFromWindow(window), GetModuleHandleW(nullptr), utf8ToWcs(title).c_str(),
                               utf8ToWcs(message).c_str(), nullptr, btns, icon, &btn))) {
-        LOG_ERROR(dialogs, "TaskDialog() failed");
+        BRISK_LOG_ERROR("TaskDialog() failed");
         return DialogResult::Cancel;
     }
     switch (btn) {

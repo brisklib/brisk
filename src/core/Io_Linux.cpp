@@ -54,7 +54,7 @@ const std::map<std::string, std::string, std::less<>>& paths() {
             if (value.size() >= 2 && value.starts_with('"') && value.ends_with('"'))
                 value = value.substr(1, value.size() - 2);
             if (value.find_first_of("\"'\\") != std::string::npos) {
-                LOG_WARN(io, "Got problematic path for {}: {}", name, value);
+                BRISK_LOG_WARN("Got problematic path for {}: {}", name, value);
                 continue;
             }
             if (value.starts_with("$HOME")) {

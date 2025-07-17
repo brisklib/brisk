@@ -24,6 +24,6 @@
 namespace Brisk {
 
 void logException(std::string_view className, std::string_view message) {
-    LOG_DEBUG(exception, "Exception to be thrown: {} \"{}\"", className, message);
+    BRISK_LOG_DEBUG("Exception to be thrown: {} \"{}\"", className, message);
 }
 } // namespace Brisk

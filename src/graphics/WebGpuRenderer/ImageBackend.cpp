@@ -124,13 +124,13 @@ void ImageBackendWebGpu::readFromGpu(const ImageData<UntypedPixel>& data, Point 
             }
             buffer.Unmap();
         } else {
-            LOG_ERROR(webgpu, "mapResult = 0x{:08X}", static_cast<uint32_t>(mapResult));
+            BRISK_LOG_ERROR("WebGPU: mapResult = 0x{:08X}", static_cast<uint32_t>(mapResult));
         }
     } else {
         auto dur = std::chrono::high_resolution_clock::now() - time;
-        LOG_ERROR(wgpu, "WaitAny for MapAsync failed: {:08X} after {} (timeout={})", (uint32_t)status,
-                  std::chrono::duration_cast<std::chrono::microseconds>(dur),
-                  std::chrono::duration_cast<std::chrono::microseconds>(timeout));
+        BRISK_LOG_ERROR("WebGPU: WaitAny for MapAsync failed: {:08X} after {} (timeout={})", (uint32_t)status,
+                        std::chrono::duration_cast<std::chrono::microseconds>(dur),
+                        std::chrono::duration_cast<std::chrono::microseconds>(timeout));
     }
 }
 

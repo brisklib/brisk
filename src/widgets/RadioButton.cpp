@@ -36,7 +36,7 @@ static void radioMark(Canvas& canvas, RectangleF markRect, ColorW color, float i
 
 void radioButtonPainter(Canvas& canvas, const Widget& widget_) {
     if (!dynamicCast<const RadioButton*>(&widget_)) {
-        LOG_ERROR(widgets, "checkBoxPainter called for a non-CheckBox widget");
+        BRISK_LOG_ERROR("checkBoxPainter called for a non-CheckBox widget");
         return;
     }
     const RadioButton& widget = static_cast<const RadioButton&>(widget_);

@@ -122,12 +122,12 @@ bool RenderDeviceWebGpu::createDevice() {
     for (size_t i = 0; i < adapters.size(); ++i) {
         wgpu::AdapterInfo info;
         wgpu::Adapter(adapters[i].Get()).GetInfo(&info);
-        LOG_INFO(wgpu, "GPU adapter [{}] {} {} {} {:08X}:{:08X}", i, std::string_view(info.vendor),
-                 std::string_view(info.device), std::string_view(info.description), info.vendorID,
-                 info.deviceID);
+        BRISK_LOG_INFO("GPU adapter [{}] {} {} {} {:08X}:{:08X}", i, std::string_view(info.vendor),
+                       std::string_view(info.device), std::string_view(info.description), info.vendorID,
+                       info.deviceID);
     }
     if (adapters.empty()) {
-        LOG_WARN(wgpu, "No GPU adapters found");
+        BRISK_LOG_WARN("No GPU adapters found");
     }
 #endif
 
@@ -173,7 +173,7 @@ bool RenderDeviceWebGpu::createDevice() {
     deviceCache.nextInChain              = &deviceToggleDesc;
     deviceDesc.SetUncapturedErrorCallback(
         [](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView message) {
-            LOG_ERROR(wgpu, "WGPU Error: {} {}", str(type), std::string_view(message));
+            BRISK_LOG_ERROR("WGPU Error: {} {}", str(type), std::string_view(message));
             BRISK_ASSERT(false);
         });
     m_device = m_adapter.CreateDevice(&deviceDesc);
@@ -182,7 +182,7 @@ bool RenderDeviceWebGpu::createDevice() {
 
     BRISK_ASSERT(m_device.HasFeature(wgpu::FeatureName::DawnNative));
     m_device.SetLoggingCallback([](wgpu::LoggingType type, wgpu::StringView message) {
-        LOG_INFO(wgpu, "WGPU Info: {} {}", str(type), std::string_view(message));
+        BRISK_LOG_INFO("WGPU Info: {} {}", str(type), std::string_view(message));
     });
 
     m_instance = wgpu::Instance::Acquire(m_nativeInstance->Get());
@@ -194,7 +194,7 @@ bool RenderDeviceWebGpu::createDevice() {
     features.resize(featureCount);
     m_device.EnumerateFeatures(features.data());
     for (wgpu::FeatureName f : features) {
-        LOG_INFO(wgpu, "feature {}", str(f));
+        BRISK_LOG_INFO("WebGPU feature {}", str(f));
     }
 #endif
 
