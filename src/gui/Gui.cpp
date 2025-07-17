@@ -1490,6 +1490,17 @@ void Widget::updateGeometry(HitTestMap::State& state) {
     m_relayoutTime = frameStartTime;
 
     if (auto inputQueue = this->inputQueue()) {
+        if (state.visible && !state.mouseTransparent) {
+            for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
+                if (scrollSize(orientation) <= 0)
+                    continue;
+                ScrollBarGeometry geometry = scrollBarGeometry(orientation);
+                if (!geometry.track.empty()) {
+                    inputQueue->hitTest.add(self, geometry.track, false, state.zindex);
+                }
+            }
+        }
+
         if (m_focusCapture && state.visible) {
             inputQueue->leaveFocusCapture();
         }
