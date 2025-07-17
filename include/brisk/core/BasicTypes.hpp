@@ -846,7 +846,7 @@ struct MemberFieldTraits<Type_ Class_::*> {
 #endif
 
 template <typename... T>
-struct TypeIDs {};
+struct TypeIds {};
 
 template <typename... Ts>
 struct Overload : Ts... {
