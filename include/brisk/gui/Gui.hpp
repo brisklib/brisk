@@ -291,10 +291,6 @@ constexpr inline size_t numProperties = 102;
 } // namespace Internal
 
 namespace Internal {
-template <typename Type>
-using Fn0Type = Type (*)();
-template <typename Type>
-using Fn1Type = Type (*)(Widget*);
 
 template <std::derived_from<Object> U>
 void fixClone(U* ptr) noexcept {

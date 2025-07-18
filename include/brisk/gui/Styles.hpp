@@ -282,12 +282,12 @@ enum class MatchFlags {
 template <>
 constexpr inline bool isBitFlags<MatchFlags> = true;
 
-template <Argument arg>
-constexpr inline Internal::Fn1Type<typename decltype(arg)::ValueType> styleVar = [](Widget* w) ->
-    typename decltype(arg)::ValueType {
-        return w->getStyleVar<typename decltype(arg)::ValueType>(decltype(arg)::id,
-                                                                 typename decltype(arg)::ValueType{});
+template <StyleVarTag Tag>
+constexpr inline auto styleVar(const Argument<Tag>& arg) {
+    return [](Widget* w) -> typename Tag::Type {
+        return w->getStyleVar<typename Tag::Type>(Tag::id, typename Tag::Type{});
     };
+}
 
 template <typename Fn>
 inline auto adjustColor(Fn&& fn, float lightnessOffset,
