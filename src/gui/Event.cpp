@@ -550,10 +550,7 @@ void InputQueue::processEvents() {
         }
     }
 
-    if (lastMouseEvent) {
-        Rc<Widget> target = std::get<0>(getAt(lastMouseEvent->point));
-        processMouseState(target);
-    }
+    processMouseState();
 
     if (!injectedEvents.empty()) {
         events.insert(events.end(), std::make_move_iterator(injectedEvents.begin()),
@@ -823,4 +820,10 @@ void InputQueue::finishMenu() {
     menuRoot.reset();
 }
 
+void InputQueue::processMouseState() {
+    if (lastMouseEvent) {
+        Rc<Widget> target = std::get<0>(getAt(lastMouseEvent->point));
+        processMouseState(target);
+    }
+}
 } // namespace Brisk

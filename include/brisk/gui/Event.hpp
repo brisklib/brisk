@@ -549,6 +549,8 @@ struct InputQueue {
      */
     void processMouseState(const std::shared_ptr<Widget>& target);
 
+    void processMouseState();
+
     /**
      * Begins dragging an object from the given source widget.
      * @param dragSource The source widget initiating the drag.

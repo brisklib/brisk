@@ -194,6 +194,9 @@ void WidgetTree::updateLayoutAndGeometry() {
         HitTestMap::State state;
         m_root->updateGeometry(state);
         m_updateGeometryRequested = false;
+        if (m_inputQueue) {
+            m_inputQueue->processMouseState();
+        }
     }
 }
 
