@@ -526,4 +526,15 @@ TEST_CASE("Stylesheet for derived widgets") {
 
     CHECK(dynamicPointerCast<Derived>(ww->widgets().front())->fillColor.get() == Palette::magenta);
 }
+
+TEST_CASE("Apply function to properties") {
+    auto w = rcnew Widget{
+        selectedColor   = Palette::green,
+        backgroundColor = styleVar(selectedColor),
+    };
+    unprotect(w)->restyleIfRequested();
+
+    CHECK(w->getStyleVar<ColorW>(selectedColor.id) == Palette::green);
+    CHECK(w->backgroundColor.get() == Palette::green);
+}
 } // namespace Brisk

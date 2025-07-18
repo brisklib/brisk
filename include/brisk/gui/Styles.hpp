@@ -106,15 +106,21 @@ struct StyleProperty {
         }
         if ((widgetState & state) == state) {
             if constexpr (PropertyTag<Tag>) {
-                if constexpr (Tag::template accepts<Inherit>()) {
-                    if (op == RuleOp::Inherit) {
+                if (op == RuleOp::Inherit) {
+                    if constexpr (Tag::template accepts<Inherit>()) {
                         applier(widget, ArgVal<Tag, Inherit>{ inherit });
+                        return;
+                    } else {
+                        BRISK_LOG_ERROR("Property '{}' does not accept 'inherit' value", Tag::name());
                         return;
                     }
                 }
-                if constexpr (Tag::template accepts<Initial>()) {
-                    if (op == RuleOp::Initial) {
+                if (op == RuleOp::Initial) {
+                    if constexpr (Tag::template accepts<Initial>()) {
                         applier(widget, ArgVal<Tag, Initial>{ initial });
+                        return;
+                    } else {
+                        BRISK_LOG_ERROR("Property '{}' does not accept 'initial' value", Tag::name());
                         return;
                     }
                 }

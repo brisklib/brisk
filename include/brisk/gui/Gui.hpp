@@ -436,6 +436,16 @@ struct GuiProp {
         reset(self);
     }
 
+    template <invocable_r<ValueType, WidgetClass*> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn(self));
+    }
+
+    template <invocable_r<ValueType> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn());
+    }
+
     ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
         return (self->*field);
     }
@@ -514,6 +524,16 @@ struct GuiProp<WidgetClass, Animated<ValueType, AnimatedType>> {
         reset(self);
     }
 
+    template <invocable_r<ValueType, WidgetClass*> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn(self));
+    }
+
+    template <invocable_r<ValueType> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn());
+    }
+
     ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
         return (self->*field).value;
     }
@@ -572,6 +592,16 @@ struct GuiPropCompound {
 
     void set(WidgetClass* self, Initial) const {
         reset(self);
+    }
+
+    template <invocable_r<ValueType, WidgetClass*> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn(self));
+    }
+
+    template <invocable_r<ValueType> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn());
     }
 
     CurrentValueType current(const WidgetClass* self) const noexcept {
