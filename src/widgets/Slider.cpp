@@ -77,7 +77,7 @@ void Slider::onEvent(Event& event) {
         m_distance =
             horizontal ? trackRect.width() - thumbRadius * 2_dp : trackRect.height() - thumbRadius * 2_dp;
 
-        switch (const auto [flag, offset, mods] = event.dragged(thumbRect, m_drag); flag) {
+        switch (const auto [flag, offset, mods] = event.dragged(Rectangle(thumbRect), m_drag); flag) {
         case DragEvent::Started:
             m_savedValue = normalizedValue;
             startModifying();

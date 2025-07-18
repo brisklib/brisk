@@ -93,7 +93,7 @@ void HitTestMap::clear() {
     tabGroupId = 0;
 }
 
-void HitTestMap::add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, int zindex) {
+void HitTestMap::add(std::shared_ptr<Widget> w, InputShape rect, bool anywhere, int zindex) {
     if (rect.empty())
         return;
     auto it = std::lower_bound(list.begin(), list.end(), zindex,
@@ -637,7 +637,7 @@ EventType Event::type() const {
     return static_cast<EventType>(index());
 }
 
-std::tuple<DragEvent, PointF, KeyModifiers> Event::dragged(Rectangle rect, bool& dragActive) const {
+std::tuple<DragEvent, PointF, KeyModifiers> Event::dragged(InputShape rect, bool& dragActive) const {
     auto mouseDown  = as<EventMouseButtonPressed>();
     auto mouseUp    = as<EventMouseButtonReleased>();
     auto mouseMoved = as<EventMouseMoved>();
@@ -704,7 +704,7 @@ float Event::wheelScrolled(KeyModifiers mods) const {
     return wheelScrolled(WheelOrientation::Y, anywhere, mods);
 }
 
-float Event::wheelScrolled(Rectangle rect, KeyModifiers mods) const {
+float Event::wheelScrolled(InputShape rect, KeyModifiers mods) const {
     return wheelScrolled(WheelOrientation::Y, rect, mods);
 }
 
@@ -712,7 +712,7 @@ float Event::wheelScrolled(WheelOrientation orientation, KeyModifiers mods) cons
     return wheelScrolled(orientation, anywhere, mods);
 }
 
-float Event::wheelScrolled(WheelOrientation orientation, Rectangle rect, KeyModifiers mods) const {
+float Event::wheelScrolled(WheelOrientation orientation, InputShape rect, KeyModifiers mods) const {
     if (orientation == WheelOrientation::X) {
         auto e = as<EventMouseXWheel>();
         if (e && rect.contains(e->point) && ((e->mods & mods) == mods)) {
@@ -735,12 +735,12 @@ bool Event::doubleClicked() const {
     return doubleClicked(anywhere);
 }
 
-bool Event::tripleClicked(Rectangle rect) const {
+bool Event::tripleClicked(InputShape rect) const {
     auto e = as<EventMouseTripleClicked>();
     return e && rect.contains(e->point);
 }
 
-bool Event::doubleClicked(Rectangle rect) const {
+bool Event::doubleClicked(InputShape rect) const {
     auto e = as<EventMouseDoubleClicked>();
     return e && rect.contains(e->point);
 }
@@ -749,7 +749,7 @@ bool Event::released(MouseButton btn, KeyModifiers mods) const {
     return released(anywhere, btn, mods);
 }
 
-bool Event::released(Rectangle rect, MouseButton btn, KeyModifiers mods) const {
+bool Event::released(InputShape rect, MouseButton btn, KeyModifiers mods) const {
     auto e = as<EventMouseButtonReleased>();
     return e && e->button == btn && rect.contains(e->point) && ((e->mods & mods) == mods);
 }
@@ -758,7 +758,7 @@ bool Event::pressed(MouseButton btn, KeyModifiers mods) const {
     return pressed(anywhere, btn, mods);
 }
 
-bool Event::pressed(Rectangle rect, MouseButton btn, KeyModifiers mods) const {
+bool Event::pressed(InputShape rect, MouseButton btn, KeyModifiers mods) const {
     auto e = as<EventMouseButtonPressed>();
     return e && e->button == btn && rect.contains(e->point) && ((e->mods & mods) == mods);
 }

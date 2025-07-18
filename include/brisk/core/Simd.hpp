@@ -918,6 +918,18 @@ constexpr Simd<T, N> max(Simd<T, N> lhs, Simd<T, N> rhs) noexcept {
     return result;
 }
 
+template <typename T>
+constexpr T length(Simd<T, 2> v) noexcept {
+    v = v * v; // Square each component
+    return std::sqrt(v[0] + v[1]);
+}
+
+template <typename T>
+constexpr T length(Simd<T, 3> v) noexcept {
+    v = v * v; // Square each component
+    return std::sqrt(v[0] + v[1] + v[2]);
+}
+
 /**
  * @brief Clamps each element of the SIMD object between a lower and upper bound.
  *
