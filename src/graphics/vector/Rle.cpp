@@ -49,7 +49,7 @@ Rectangle Rle::boundingRect() const {
     return mBbox;
 }
 
-void Rle::setBoundingRect(const Rectangle& bbox) {
+void Rle::setBoundingRect(Rectangle bbox) {
     mBboxDirty = false;
     mBbox      = bbox;
 }

@@ -62,9 +62,9 @@ public:
     void grow(size_t, size_t);
     void convert(const Path& path);
     void convert(CapStyle, JoinStyle, float, float);
-    void moveTo(const PointF& pt);
-    void lineTo(const PointF& pt);
-    void cubicTo(const PointF& ctr1, const PointF& ctr2, const PointF end);
+    void moveTo(PointF pt);
+    void lineTo(PointF pt);
+    void cubicTo(PointF ctr1, PointF ctr2, const PointF end);
     void close();
     void end();
 
@@ -166,7 +166,7 @@ void FTOutline::convert(CapStyle cap, JoinStyle join, float width, float miterLi
     }
 }
 
-void FTOutline::moveTo(const PointF& pt) {
+void FTOutline::moveTo(PointF pt) {
     assert(ft.n_points <= SHRT_MAX - 1);
 
     ft.points[ft.n_points].x = TO_FT_COORD(pt.x);
@@ -183,7 +183,7 @@ void FTOutline::moveTo(const PointF& pt) {
     ft.n_points++;
 }
 
-void FTOutline::lineTo(const PointF& pt) {
+void FTOutline::lineTo(PointF pt) {
     assert(ft.n_points <= SHRT_MAX - 1);
 
     ft.points[ft.n_points].x = TO_FT_COORD(pt.x);
@@ -192,7 +192,7 @@ void FTOutline::lineTo(const PointF& pt) {
     ft.n_points++;
 }
 
-void FTOutline::cubicTo(const PointF& cp1, const PointF& cp2, const PointF ep) {
+void FTOutline::cubicTo(PointF cp1, PointF cp2, const PointF ep) {
     assert(ft.n_points <= SHRT_MAX - 3);
 
     ft.points[ft.n_points].x = TO_FT_COORD(cp1.x);
@@ -280,14 +280,14 @@ struct Rasterizer {
         return mRle;
     }
 
-    void update(FillRule fillRule, const Rectangle& clip) {
+    void update(FillRule fillRule, Rectangle clip) {
         mRle.reset();
         mFillRule       = fillRule;
         mClip           = clip;
         mGenerateStroke = false;
     }
 
-    void update(CapStyle cap, JoinStyle join, float width, float miterLimit, const Rectangle& clip) {
+    void update(CapStyle cap, JoinStyle join, float width, float miterLimit, Rectangle clip) {
         mRle.reset();
         mCap            = cap;
         mJoin           = join;
@@ -353,7 +353,7 @@ struct Rasterizer {
     }
 };
 
-Rle rasterize(const Path& path, FillRule fillRule, const Rectangle& clip) {
+Rle rasterize(const Path& path, FillRule fillRule, Rectangle clip) {
     if (path.empty()) {
         return {};
     }
@@ -363,8 +363,7 @@ Rle rasterize(const Path& path, FillRule fillRule, const Rectangle& clip) {
     return std::move(rasterizer.rle());
 }
 
-Rle rasterize(const Path& path, CapStyle cap, JoinStyle join, float width, float miterLimit,
-              const Rectangle& clip) {
+Rle rasterize(const Path& path, CapStyle cap, JoinStyle join, float width, float miterLimit, Rectangle clip) {
     if (path.empty() || vIsZero(width)) {
         return {};
     }

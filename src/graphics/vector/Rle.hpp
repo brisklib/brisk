@@ -45,7 +45,7 @@ public:
 
     Rectangle boundingRect() const;
 
-    void setBoundingRect(const Rectangle& bbox);
+    void setBoundingRect(Rectangle bbox);
 
     void addSpan(const Rle::Span* span, size_t count);
 
