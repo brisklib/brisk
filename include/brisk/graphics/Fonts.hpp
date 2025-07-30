@@ -1005,8 +1005,6 @@ struct TextWithOptions {
     bool operator==(const TextWithOptions& other) const noexcept = default;
 };
 
-constexpr inline size_t maxFontsInMergedFonts = 4;
-
 class FontError : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
