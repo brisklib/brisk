@@ -29,7 +29,7 @@ public:
     Size size() const final;
     void setSize(Size newSize) final;
 
-    Rc<Image> image() const final;
+    Rc<Image> image(bool reset = false) const final;
 
     ImageRenderTargetD3d11(Rc<RenderDeviceD3d11> device, Size frameSize, PixelType type,
                            DepthStencilType depthStencil, int samples);

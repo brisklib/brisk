@@ -366,13 +366,14 @@ public:
      * @brief Sets the size of the render target.
      * @param newSize The new size.
      */
-    virtual void setSize(Size newSize) = 0;
+    virtual void setSize(Size newSize)                = 0;
 
     /**
      * @brief Returns the rendered image.
+     * @param reset If true, creates a new image for the target.
      * @return The rendered image.
      */
-    virtual Rc<Image> image() const    = 0;
+    virtual Rc<Image> image(bool reset = false) const = 0;
 };
 
 /**

@@ -684,7 +684,6 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
     }
     var outColor: vec4<f32>;
     var outBlend: vec4<f32>;
-    var useBlend: bool = false;
 
     if constants.shader == shader_rectangles || constants.shader == shader_arcs {
         var sd: f32;

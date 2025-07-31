@@ -25,6 +25,9 @@
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 #include "VisualTests.hpp"
+#include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Geometry.hpp>
+#include <brisk/graphics/RenderState.hpp>
 #include <brisk/core/Time.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/graphics/Image.hpp>
@@ -974,6 +977,64 @@ TEST_CASE("SDF-Border") {
             REQUIRE(canvas.rasterizedPaths() > 0);
         });
     }
+}
+
+TEST_CASE("Layers") {
+    bool linearColorSaved = linearColor;
+    linearColor           = true;
+    static Size canvasSize{ 640, 320 };
+    renderTest<true>("layers", canvasSize, [](RenderContext& context) {
+        Rectangle bounds{ {}, canvasSize };
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect(bounds);
+        canvas.setFillColor(Palette::blue);
+        canvas.fillRect({ 50, 20, 500, 300 });
+        bool supportsLayers = canvas.beginLayer(canvasSize);
+        REQUIRE(supportsLayers);
+        canvas.setFillColor(Palette::red);
+        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
+        canvas.setFillColor(Palette::yellow);
+        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.5f, 0.5f }).withPadding(50));
+        canvas.setFillColor(Palette::green);
+        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 1.0f, 0.5f }).withPadding(50));
+        auto layer = canvas.finishLayer();
+        canvas.drawImage(bounds, layer, {}, SamplerMode::Clamp, 14.f);
+        canvas.setFillColor(Palette::magenta);
+        canvas.fillRect({ 300, 140, 640, 180 });
+    });
+    linearColor = linearColorSaved;
+}
+
+TEST_CASE("Backlayer") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    bool linearColorSaved = linearColor;
+    linearColor           = true;
+    static Size canvasSize{ 640, 320 };
+    renderTest<true>("backlayer", canvasSize, [](RenderContext& context) {
+        Rectangle bounds{ {}, canvasSize };
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect(bounds);
+        canvas.setFillColor(Palette::yellow);
+        canvas.fillRect({ 50, 20, 500, 300 });
+        canvas.setFont(Font{ "Lato", 48.f });
+        canvas.setFillColor(Palette::black);
+        canvas.fillText("Backlayer test\nLorem ipsum dolor sit amet,\nconsectetur adipiscing elit", bounds,
+                        PointF(0.5f, 0.5f));
+        auto backlayer = canvas.contentsAsImage();
+        REQUIRE(backlayer.get() != nullptr);
+
+        canvas.drawImage(bounds, backlayer, {}, SamplerMode::Clamp, 4.f);
+        canvas.setFillColor(Palette::magenta.multiplyAlpha(0.5f));
+        canvas.fillRect({ 300, 140, 640, 180 });
+        canvas.setFillColor(Palette::black);
+        canvas.fillText("Test\nTest\nTest", bounds.withPadding(40), PointF(0.f, 0.f));
+    });
+    linearColor = linearColorSaved;
 }
 
 } // namespace Brisk

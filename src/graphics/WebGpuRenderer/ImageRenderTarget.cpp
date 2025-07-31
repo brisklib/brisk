@@ -58,7 +58,11 @@ void ImageRenderTargetWebGpu::setSize(Size newSize) {
     }
 }
 
-Rc<Image> ImageRenderTargetWebGpu::image() const {
-    return m_image;
+Rc<Image> ImageRenderTargetWebGpu::image(bool reset) const {
+    Rc<Image> image = m_image;
+    if (reset) {
+        const_cast<ImageRenderTargetWebGpu*>(this)->updateImage();
+    }
+    return image;
 }
 } // namespace Brisk
