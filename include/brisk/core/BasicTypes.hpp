@@ -562,7 +562,7 @@ struct Range {
      * @param other The other range to check for intersection.
      * @return `true` if this range intersects with `other`; otherwise, `false`.
      */
-    constexpr bool intersects(const Range<T>& other) const noexcept {
+    constexpr bool intersects(const Range& other) const noexcept {
         return !intersection(other).empty();
     }
 
