@@ -327,7 +327,7 @@ void Path::close() {
     if (empty())
         return;
 
-    const PointF& lastPt = m_points.back();
+    PointF lastPt = m_points.back();
     if (!fuzzyCompare(mStartPoint, lastPt)) {
         lineTo(mStartPoint.x, mStartPoint.y);
     }

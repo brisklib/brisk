@@ -32,12 +32,12 @@ public:
     void dashed(const Path& path, Path& result);
 
 private:
-    void moveTo(const PointF& p);
-    void lineTo(const PointF& p);
-    void cubicTo(const PointF& cp1, const PointF& cp2, const PointF& e);
+    void moveTo(PointF p);
+    void lineTo(PointF p);
+    void cubicTo(PointF cp1, PointF cp2, PointF e);
     void close();
-    void addLine(const PointF& p);
-    void addCubic(const PointF& cp1, const PointF& cp2, const PointF& e);
+    void addLine(PointF p);
+    void addCubic(PointF cp1, PointF cp2, PointF e);
     void updateActiveSegment();
 
 private:

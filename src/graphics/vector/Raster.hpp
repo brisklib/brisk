@@ -28,8 +28,8 @@
 
 namespace Brisk {
 
-Rle rasterize(const Path& path, FillRule fillRule = FillRule::Winding, const Rectangle& clip = Rectangle());
+Rle rasterize(const Path& path, FillRule fillRule = FillRule::Winding, Rectangle clip = Rectangle());
 Rle rasterize(const Path& path, CapStyle cap, JoinStyle join, float width, float miterLimit,
-              const Rectangle& clip = Rectangle());
+              Rectangle clip = Rectangle());
 
 } // namespace Brisk

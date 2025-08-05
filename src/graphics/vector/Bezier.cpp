@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-Bezier Bezier::fromPoints(const PointF& p1, const PointF& p2, const PointF& p3, const PointF& p4) {
+Bezier Bezier::fromPoints(PointF p1, PointF p2, PointF p3, PointF p4) {
     Bezier b;
     b.x1 = p1.x;
     b.y1 = p1.y;

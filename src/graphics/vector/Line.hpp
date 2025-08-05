@@ -40,7 +40,7 @@ public:
 
     VLine(float x1, float y1, float x2, float y2) : mX1(x1), mY1(y1), mX2(x2), mY2(y2) {}
 
-    VLine(const PointF& p1, const PointF& p2) : mX1(p1.x), mY1(p1.y), mX2(p2.x), mY2(p2.y) {}
+    VLine(PointF p1, PointF p2) : mX1(p1.x), mY1(p1.y), mX2(p2.x), mY2(p2.y) {}
 
     float length() const {
         return length(mX1, mY1, mX2, mY2);
