@@ -57,9 +57,7 @@ public:
         bool operator==(const Span& other) const noexcept = default;
     };
 
-    using View      = std::span<const Span>;
-
-    using RleSpanCb = void (*)(size_t count, const Rle::Span* spans, void* userData);
+    using View = std::span<const Span>;
 
     bool empty() const {
         return mSpans.empty();
@@ -80,16 +78,8 @@ public:
     const std::vector<Rle::Span>& spans() const {
         return mSpans;
     }
-    enum class Op { Add, Xor, Substract };
 
-    enum class BinOp {
-        And,
-        AndNot,
-        Or,
-        Xor,
-    };
-
-    static Rle binary(const Rle& left, const Rle& right, BinOp op);
+    static Rle binary(const Rle& left, const Rle& right, MaskOp op);
 
     void addRect(Rectangle rect);
 
@@ -97,66 +87,7 @@ public:
         return { mSpans.data(), mSpans.size() };
     }
 
-    Rle operator-(const Rle& o) const {
-        if (empty())
-            return {};
-        if (o.empty())
-            return *this;
-
-        Rle result;
-        result.opSubstract(*this, o);
-        return result;
-    }
-
-    Rle operator&(const Rle& o) const {
-        if (empty() || o.empty())
-            return {};
-
-        Rle result;
-        result.opIntersect(view(), o.view());
-        return result;
-    }
-
-    void operator&=(const Rle& o) {
-        if (empty())
-            return;
-        if (o.empty()) {
-            reset();
-            return;
-        }
-        Rle result;
-        result.opIntersect(view(), o.view());
-        *this = std::move(result);
-    }
-
-    friend Rle operator-(Rectangle rect, const Rle& o) {
-        if (rect.empty())
-            return {};
-
-        Rle scratch;
-        scratch.addRect(rect);
-        Rle result;
-        result.opSubstract(scratch, o);
-        return result;
-    }
-
-    friend Rle operator&(Rectangle rect, const Rle& o) {
-        if (rect.empty() || o.empty())
-            return {};
-
-        Rle scratch;
-        scratch.addRect(rect);
-        Rle result;
-        result.opIntersect(scratch.view(), o.view());
-        return result;
-    }
-
 private:
-    void opGeneric(const Rle&, const Rle&, Op code);
-    void opSubstract(const Rle&, const Rle&);
-    void opIntersect(Rle::View a, Rle::View b);
-    void opIntersect(Rectangle, Rle::RleSpanCb, void*) const;
-
     void updateBbox() const;
 
     std::vector<Rle::Span> mSpans;

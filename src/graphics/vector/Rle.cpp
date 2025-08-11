@@ -26,15 +26,15 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <fmt/base.h>
 #include <limits>
 #include <vector>
 
 #include "Rle.hpp"
 #include "brisk/core/internal/Debug.hpp"
+#include "brisk/core/Log.hpp"
 
 namespace Brisk {
-
-using Result = std::array<Rle::Span, 255>;
 
 static inline uint8_t divBy255(int x) {
     return (x + (x >> 8) + 0x80) >> 8;
@@ -57,7 +57,14 @@ void Rle::addSpans(std::span<const Rle::Span> spans) {
 }
 
 void Rle::addSpan(Rle::Span span) {
-    addSpans(&span, 1);
+    if (!mSpans.empty() && mSpans.back().y == span.y && mSpans.back().end() == span.x &&
+        mSpans.back().coverage == span.coverage) {
+        // merge with last span
+        mSpans.back().len += span.len;
+    } else {
+        mSpans.push_back(span);
+    }
+    mBboxDirty = true;
 }
 
 Rectangle Rle::boundingRect() const {
@@ -115,363 +122,6 @@ void Rle::updateBbox() const {
     }
 }
 
-static inline void _opIntersectPrepare(Rle::View& a, Rle::View& b) {
-    auto aPtr = a.data();
-    auto aEnd = a.data() + a.size();
-    auto bPtr = b.data();
-    auto bEnd = b.data() + b.size();
-
-    // 1. advance a till it intersects with b
-    while ((aPtr != aEnd) && (aPtr->y < bPtr->y))
-        aPtr++;
-
-    // 2. advance b till it intersects with a
-    if (aPtr != aEnd)
-        while ((bPtr != bEnd) && (bPtr->y < aPtr->y))
-            bPtr++;
-
-    // update a and b object
-    a = { aPtr, size_t(aEnd - aPtr) };
-    b = { bPtr, size_t(bEnd - bPtr) };
-}
-
-static size_t _opIntersect(Rle::View& obj, Rle::View& clip, Result& result);
-
-static void _opIntersect(Rle::View a, Rle::View b, Rle::RleSpanCb cb, void* userData) {
-    if (!cb)
-        return;
-
-    _opIntersectPrepare(a, b);
-    Result result;
-    while (a.size()) {
-        auto count = _opIntersect(a, b, result);
-        if (count)
-            cb(count, result.data(), userData);
-    }
-}
-
-/*
- * This function will clip a rle list with another rle object
- * tmp_clip  : The rle list that will be use to clip the rle
- * tmp_obj   : holds the list of spans that has to be clipped
- * result    : will hold the result after the processing
- * NOTE: if the algorithm runs out of the result buffer list
- *       it will stop and update the tmp_obj with the span list
- *       that are yet to be processed as well as the tpm_clip object
- *       with the unprocessed clip spans.
- */
-
-static size_t _opIntersect(Rle::View& obj, Rle::View& clip, Result& result) {
-    auto out       = result.data();
-    auto available = result.max_size();
-    auto spans     = obj.data();
-    auto end       = obj.data() + obj.size();
-    auto clipSpans = clip.data();
-    auto clipEnd   = clip.data() + clip.size();
-    int sx1, sx2, cx1, cx2, x, len;
-
-    while (available && spans < end) {
-        if (clipSpans >= clipEnd) {
-            spans = end;
-            break;
-        }
-        if (clipSpans->y > spans->y) {
-            ++spans;
-            continue;
-        }
-        if (spans->y != clipSpans->y) {
-            ++clipSpans;
-            continue;
-        }
-        // assert(spans->y == (clipSpans->y + clip_offset_y));
-        sx1 = spans->x;
-        sx2 = sx1 + spans->len;
-        cx1 = clipSpans->x;
-        cx2 = cx1 + clipSpans->len;
-
-        if (cx1 < sx1 && cx2 < sx1) {
-            ++clipSpans;
-            continue;
-        } else if (sx1 < cx1 && sx2 < cx1) {
-            ++spans;
-            continue;
-        }
-        x   = std::max(sx1, cx1);
-        len = std::min(sx2, cx2) - x;
-        if (len) {
-            out->x        = std::max(sx1, cx1);
-            out->len      = (std::min(sx2, cx2) - out->x);
-            out->y        = spans->y;
-            out->coverage = divBy255(spans->coverage * clipSpans->coverage);
-            ++out;
-            --available;
-        }
-        if (sx2 < cx2) {
-            ++spans;
-        } else {
-            ++clipSpans;
-        }
-    }
-
-    // update the obj view yet to be processed
-    obj  = { spans, size_t(end - spans) };
-
-    // update the clip view yet to be processed
-    clip = { clipSpans, size_t(clipEnd - clipSpans) };
-
-    return result.max_size() - available;
-}
-
-/*
- * This function will clip a rle list with a given rect
- * clip      : The clip rect that will be use to clip the rle
- * tmp_obj   : holds the list of spans that has to be clipped
- * result    : will hold the result after the processing
- * NOTE: if the algorithm runs out of the result buffer list
- *       it will stop and update the tmp_obj with the span list
- *       that are yet to be processed
- */
-static size_t _opIntersect(Rectangle clip, Rle::View& obj, Result& result) {
-    auto out        = result.data();
-    auto available  = result.max_size();
-    auto ptr        = obj.data();
-    auto end        = obj.data() + obj.size();
-
-    const auto minx = clip.x1;
-    const auto miny = clip.y1;
-    const auto maxx = clip.x2 - 1;
-    const auto maxy = clip.y2 - 1;
-
-    while (available && ptr < end) {
-        const auto& span = *ptr;
-        if (span.y > maxy) {
-            ptr = end; // update spans so that we can breakout
-            break;
-        }
-        if (span.y < miny || span.x > maxx || span.x + span.len <= minx) {
-            ++ptr;
-            continue;
-        }
-        if (span.x < minx) {
-            out->len = std::min(span.len - (minx - span.x), maxx - minx + 1);
-            out->x   = minx;
-        } else {
-            out->x   = span.x;
-            out->len = std::min(span.len, uint16_t(maxx - span.x + 1));
-        }
-        if (out->len != 0) {
-            out->y        = span.y;
-            out->coverage = span.coverage;
-            ++out;
-            --available;
-        }
-        ++ptr;
-    }
-
-    // update the span list that yet to be processed
-    obj = { ptr, size_t(end - ptr) };
-
-    return result.max_size() - available;
-}
-
-static void blitXor(Rle::Span* spans, int count, uint8_t* buffer, int offsetX) {
-    while (count--) {
-        int x        = spans->x + offsetX;
-        int l        = spans->len;
-        uint8_t* ptr = buffer + x;
-        while (l--) {
-            int da = *ptr;
-            *ptr   = divBy255((255 - spans->coverage) * (da) + spans->coverage * (255 - da));
-            ptr++;
-        }
-        spans++;
-    }
-}
-
-static void blitDestinationOut(Rle::Span* spans, int count, uint8_t* buffer, int offsetX) {
-    while (count--) {
-        int x        = spans->x + offsetX;
-        int l        = spans->len;
-        uint8_t* ptr = buffer + x;
-        while (l--) {
-            *ptr = divBy255((255 - spans->coverage) * (*ptr));
-            ptr++;
-        }
-        spans++;
-    }
-}
-
-static void blitSrcOver(Rle::Span* spans, int count, uint8_t* buffer, int offsetX) {
-    while (count--) {
-        int x        = spans->x + offsetX;
-        int l        = spans->len;
-        uint8_t* ptr = buffer + x;
-        while (l--) {
-            *ptr = spans->coverage + divBy255((255 - spans->coverage) * (*ptr));
-            ptr++;
-        }
-        spans++;
-    }
-}
-
-void blitSrc(Rle::Span* spans, int count, uint8_t* buffer, int offsetX) {
-    while (count--) {
-        int x        = spans->x + offsetX;
-        int l        = spans->len;
-        uint8_t* ptr = buffer + x;
-        while (l--) {
-            *ptr = std::max(spans->coverage, *ptr);
-            ptr++;
-        }
-        spans++;
-    }
-}
-
-size_t bufferToRle(uint8_t* buffer, int size, int offsetX, int y, Rle::Span* out) {
-    size_t count  = 0;
-    uint8_t value = buffer[0];
-    int curIndex  = 0;
-
-    // size = offsetX < 0 ? size + offsetX : size;
-    for (int i = 0; i < size; i++) {
-        uint8_t curValue = buffer[0];
-        if (value != curValue) {
-            if (value) {
-                out->y        = y;
-                out->x        = offsetX + curIndex;
-                out->len      = i - curIndex;
-                out->coverage = value;
-                out++;
-                count++;
-            }
-            curIndex = i;
-            value    = curValue;
-        }
-        buffer++;
-    }
-    if (value) {
-        out->y        = y;
-        out->x        = offsetX + curIndex;
-        out->len      = size - curIndex;
-        out->coverage = value;
-        count++;
-    }
-    return count;
-}
-
-struct SpanMerger {
-    explicit SpanMerger(Rle::Op op) {
-        switch (op) {
-        case Rle::Op::Add:
-            _blitter = &blitSrcOver;
-            break;
-        case Rle::Op::Xor:
-            _blitter = &blitXor;
-            break;
-        case Rle::Op::Substract:
-            _blitter = &blitDestinationOut;
-            break;
-        }
-    }
-
-    using blitter = void (*)(Rle::Span*, int, uint8_t*, int);
-    blitter _blitter;
-    std::array<Rle::Span, 256> _result;
-    std::array<uint8_t, 1024> _buffer;
-    Rle::Span* _aStart{ nullptr };
-    Rle::Span* _bStart{ nullptr };
-
-    void revert(Rle::Span*& aPtr, Rle::Span*& bPtr) {
-        aPtr = _aStart;
-        bPtr = _bStart;
-    }
-
-    Rle::Span* data() {
-        return _result.data();
-    }
-
-    size_t merge(Rle::Span*& aPtr, const Rle::Span* aEnd, Rle::Span*& bPtr, const Rle::Span* bEnd);
-};
-
-size_t SpanMerger::merge(Rle::Span*& aPtr, const Rle::Span* aEnd, Rle::Span*& bPtr, const Rle::Span* bEnd) {
-    BRISK_ASSERT(aPtr->y == bPtr->y);
-
-    _aStart = aPtr;
-    _bStart = bPtr;
-    int lb  = std::min(aPtr->x, bPtr->x);
-    int y   = aPtr->y;
-
-    while (aPtr < aEnd && aPtr->y == y)
-        aPtr++;
-    while (bPtr < bEnd && bPtr->y == y)
-        bPtr++;
-
-    int ub     = std::max((aPtr - 1)->x + (aPtr - 1)->len, (bPtr - 1)->x + (bPtr - 1)->len);
-    int length = (lb < 0) ? ub + lb : ub - lb;
-
-    if (length <= 0 || size_t(length) >= _buffer.max_size()) {
-        // can't handle merge . skip
-        return 0;
-    }
-
-    // clear buffer
-    memset(_buffer.data(), 0, length);
-
-    // blit a to buffer
-    blitSrc(_aStart, aPtr - _aStart, _buffer.data(), -lb);
-
-    // blit b to buffer
-    _blitter(_bStart, bPtr - _bStart, _buffer.data(), -lb);
-
-    // convert buffer to span
-    return bufferToRle(_buffer.data(), length, lb, y, _result.data());
-}
-
-static size_t _opGeneric(Rle::View& a, Rle::View& b, Result& result, Rle::Op op) {
-    SpanMerger merger{ op };
-
-    auto out         = result.data();
-    size_t available = result.max_size();
-    auto aPtr        = const_cast<Rle::Span*>(a.data());
-    auto aEnd        = a.data() + a.size();
-    auto bPtr        = const_cast<Rle::Span*>(b.data());
-    auto bEnd        = b.data() + b.size();
-
-    // only logic change for substract operation.
-    const bool keep  = op != (Rle::Op::Substract);
-
-    while (available && aPtr < aEnd && bPtr < bEnd) {
-        if (aPtr->y < bPtr->y) {
-            *out++ = *aPtr++;
-            available--;
-        } else if (bPtr->y < aPtr->y) {
-            if (keep) {
-                *out++ = *bPtr;
-                available--;
-            }
-            bPtr++;
-        } else { // same y
-            auto count = merger.merge(aPtr, aEnd, bPtr, bEnd);
-            if (available >= count) {
-                if (count) {
-                    memcpy(out, merger.data(), count * sizeof(Rle::Span));
-                    out += count;
-                    available -= count;
-                }
-            } else {
-                // not enough space try next time.
-                merger.revert(aPtr, bPtr);
-                break;
-            }
-        }
-    }
-    // update the span list that yet to be processed
-    a = { aPtr, size_t(aEnd - aPtr) };
-    b = { bPtr, size_t(bEnd - bPtr) };
-
-    return result.max_size() - available;
-}
-
 void Rle::addRect(Rectangle rect) {
     int x      = rect.x1;
     int y      = rect.y1;
@@ -491,225 +141,92 @@ void Rle::addRect(Rectangle rect) {
     mBbox = rect;
 }
 
-static bool rectIntersects(Rectangle a, Rectangle b) {
-    return a.x2 > b.x1 && a.x1 < b.x2 && a.y2 > b.y1 && a.y1 < b.y2;
-}
-
-static bool rectContains(Rectangle a, Rectangle b, bool proper = false) {
-    return proper ? ((a.x1 < b.x1) && (a.x2 > b.x2) && (a.y1 < b.y1) && (a.y2 > b.y2))
-                  : ((a.x1 <= b.x1) && (a.x2 >= b.x2) && (a.y1 <= b.y1) && (a.y2 >= b.y2));
-}
-
-void Rle::opGeneric(const Rle& aObj, const Rle& bObj, Op op) {
-
-    // This routine assumes, obj1(span_y) < obj2(span_y).
-
-    auto a = aObj.view();
-    auto b = bObj.view();
-
-    // reserve some space for the result vector.
-    mSpans.reserve(a.size() + b.size());
-
-    // if two rle are disjoint
-    if (!rectIntersects(aObj.boundingRect(), bObj.boundingRect())) {
-        if (a.data()[0].y < b.data()[0].y) {
-            copy(a.data(), a.size(), mSpans);
-            copy(b.data(), b.size(), mSpans);
-        } else {
-            copy(b.data(), b.size(), mSpans);
-            copy(a.data(), a.size(), mSpans);
-        }
-    } else {
-        auto aPtr = a.data();
-        auto aEnd = a.data() + a.size();
-        auto bPtr = b.data();
-        auto bEnd = b.data() + b.size();
-
-        // 1. forward a till it intersects with b
-        while ((aPtr != aEnd) && (aPtr->y < bPtr->y))
-            aPtr++;
-
-        auto count = aPtr - a.data();
-        if (count)
-            copy(a.data(), count, mSpans);
-
-        // 2. forward b till it intersects with a
-        if (aPtr != aEnd)
-            while ((bPtr != bEnd) && (bPtr->y < aPtr->y))
-                bPtr++;
-
-        count = bPtr - b.data();
-        if (count)
-            copy(b.data(), count, mSpans);
-
-        // update a and b object
-        a = { aPtr, size_t(aEnd - aPtr) };
-        b = { bPtr, size_t(bEnd - bPtr) };
-
-        // 3. calculate the intersect region
-        Result result;
-
-        // run till all the spans are processed
-        while (a.size() && b.size()) {
-            auto count = _opGeneric(a, b, result, op);
-            if (count)
-                copy(result.data(), count, mSpans);
-        }
-        // 3. copy the rest
-        if (b.size())
-            copy(b.data(), b.size(), mSpans);
-        if (a.size())
-            copy(a.data(), a.size(), mSpans);
-    }
-
-    mBboxDirty = true;
-}
-
-void Rle::opSubstract(const Rle& aObj, const Rle& bObj) {
-    // if two rle are disjoint
-    if (!aObj.boundingRect().intersects(bObj.boundingRect())) {
-        mSpans = aObj.mSpans;
-    } else {
-        auto a    = aObj.view();
-        auto b    = bObj.view();
-
-        auto aPtr = a.data();
-        auto aEnd = a.data() + a.size();
-        auto bPtr = b.data();
-        auto bEnd = b.data() + b.size();
-
-        // 1. forward a till it intersects with b
-        while ((aPtr != aEnd) && (aPtr->y < bPtr->y))
-            aPtr++;
-        auto count = aPtr - a.data();
-        if (count)
-            copy(a.data(), count, mSpans);
-
-        // 2. forward b till it intersects with a
-        if (aPtr != aEnd)
-            while ((bPtr != bEnd) && (bPtr->y < aPtr->y))
-                bPtr++;
-
-        // update a and b object
-        a = { aPtr, size_t(aEnd - aPtr) };
-        b = { bPtr, size_t(bEnd - bPtr) };
-
-        // 3. calculate the intersect region
-        Result result;
-
-        // run till all the spans are processed
-        while (a.size() && b.size()) {
-            auto count = _opGeneric(a, b, result, Op::Substract);
-            if (count)
-                copy(result.data(), count, mSpans);
-        }
-
-        // 4. copy the rest of a
-        if (a.size())
-            copy(a.data(), a.size(), mSpans);
-    }
-
-    mBboxDirty = true;
-}
-
-void Rle::opIntersect(Rle::View a, Rle::View b) {
-    _opIntersectPrepare(a, b);
-    Result result;
-    while (a.size()) {
-        auto count = _opIntersect(a, b, result);
-        if (count)
-            copy(result.data(), count, mSpans);
-    }
-
-    updateBbox();
-}
-
-void Rle::opIntersect(Rectangle r, Rle::RleSpanCb cb, void* userData) const {
-
-    if (empty())
-        return;
-
-    if (rectContains(r, boundingRect())) {
-        cb(mSpans.size(), mSpans.data(), userData);
-        return;
-    }
-
-    auto obj = view();
-    Result result;
-    // run till all the spans are processed
-    while (obj.size()) {
-        auto count = _opIntersect(r, obj, result);
-        if (count)
-            cb(count, result.data(), userData);
-    }
-}
-
-inline bool boolOp(Rle::BinOp op, bool a, bool b) {
+inline bool boolOp(MaskOp op, bool a, bool b) {
     switch (op) {
-    case Rle::BinOp::And:
+    case MaskOp::And:
         return a && b;
-    case Rle::BinOp::AndNot:
+    case MaskOp::AndNot:
         return a && !b;
-    case Rle::BinOp::Or:
+    case MaskOp::Or:
         return a || b;
-    case Rle::BinOp::Xor:
+    case MaskOp::Xor:
         return a != b;
     default:
         BRISK_UNREACHABLE();
     }
 }
 
-inline uint8_t coverageOp(Rle::BinOp op, uint8_t a, uint8_t b) {
+inline uint8_t coverageOp(MaskOp op, uint8_t a, uint8_t b) {
     switch (op) {
-    case Rle::BinOp::And:
+    case MaskOp::And:
         return divBy255(a * b);
-    case Rle::BinOp::AndNot:
+    case MaskOp::AndNot:
         return divBy255(a * (255 - b));
-    case Rle::BinOp::Or:
+    case MaskOp::Or:
         return a + b - divBy255(a * b);
-    case Rle::BinOp::Xor:
+    case MaskOp::Xor:
         return a + b - 2 * divBy255(a * b);
     default:
         BRISK_UNREACHABLE();
     }
 }
 
-static bool spansIntersects(Rle::View a, Rle::View b) {
-    return !a.empty() && !b.empty() &&
-           Range<int, true>(a.front().y, a.back().y).intersects(Range<int, true>(b.front().y, b.back().y));
-}
-
-Rle Rle::binary(const Rle& left, const Rle& right, BinOp op) {
+Rle Rle::binary(const Rle& left, const Rle& right, MaskOp op) {
     if (left.empty() && right.empty())
         return {};
 
     bool singleLeft  = boolOp(op, true, false);
     bool singleRight = boolOp(op, false, true);
 
+    switch (op) {
+    case MaskOp::And:
+        fmt::println("Rle::binary: performing AND operation");
+        break;
+    case MaskOp::AndNot:
+        fmt::println("Rle::binary: performing AND NOT operation");
+        break;
+    case MaskOp::Or:
+        fmt::println("Rle::binary: performing OR operation");
+        break;
+    case MaskOp::Xor:
+        fmt::println("Rle::binary: performing XOR operation");
+        break;
+    default:
+        BRISK_UNREACHABLE();
+    }
+
     if (left.empty()) {
         if (singleRight) {
+            fmt::println("Rle::binary: left is empty, returning right");
             return right;
         } else {
+            fmt::println("Rle::binary: left is empty, returning empty Rle");
             return {};
         }
     }
     if (right.empty()) {
         if (singleLeft) {
+            fmt::println("Rle::binary: right is empty, returning left");
             return left;
         } else {
+            fmt::println("Rle::binary: right is empty, returning empty Rle");
             return {};
         }
     }
 
     if (!left.boundingRect().intersects(right.boundingRect())) {
+        fmt::println("Rle::binary: bounding rectangles do not intersect");
         // if two rle are disjoint
         switch (op) {
-        case BinOp::And:
+        case MaskOp::And:
+            fmt::println("Rle::binary: returning empty Rle for AND operation");
             return {};
-        case BinOp::AndNot:
+        case MaskOp::AndNot:
+            fmt::println("Rle::binary: returning left for AND NOT operation");
             return left;
-        case BinOp::Or:
-        case BinOp::Xor: {
+        case MaskOp::Or:
+        case MaskOp::Xor: {
+            fmt::println("Rle::binary: returning merged Rle for OR/XOR operation");
             // merge the two rle objects
             Rle result;
             result.mSpans.reserve(left.mSpans.size() + right.mSpans.size());
@@ -728,17 +245,32 @@ Rle Rle::binary(const Rle& left, const Rle& right, BinOp op) {
     }
 
     Rle result;
-    auto l = left.view();
-    auto r = right.view();
+    auto l       = left.view();
+    auto r       = right.view();
 
-    for (; !l.empty() & !r.empty();) {
+    auto println = [&](auto fmt, auto... args) {
+        fmt::println("    l={} r={} o={}", fmt::join(l, " "), fmt::join(r, " "),
+                     fmt::join(result.mSpans, " "));
+        fmt::println(fmt::runtime(fmt), args...);
+    };
+
+    println("Rle::binary: starting binary operation with spans intersecting");
+
+    for (; !l.empty() && !r.empty();) {
         if (!l.front().before(r.front()) && !r.front().before(l.front())) {
             // spans intersect
+            int16_t y = l.front().y;
             int16_t x = std::min(l.front().x, r.front().x);
+            BRISK_ASSERT(l.front().y == r.front().y);
+            println("Rle::binary: spans intersect at y = {} x = {}", l.front().y, x);
             for (;;) {
                 if (l.front().x <= x && r.front().x <= x) {
+                    println("Rle::binary: spans intersect at x = {}", x);
                     int16_t endX = std::min(l.front().end(), r.front().end());
                     if (boolOp(op, true, true)) {
+                        println("Rle::binary: adding span at x = {} with length = {} and coverage = {}", x,
+                                endX - x, coverageOp(op, l.front().coverage, r.front().coverage));
+                        // add the span with the coverage operation
                         result.addSpan({ x, l.front().y, static_cast<uint16_t>(endX - x),
                                          coverageOp(op, l.front().coverage, r.front().coverage) });
                     }
@@ -750,26 +282,58 @@ Rle Rle::binary(const Rle& left, const Rle& right, BinOp op) {
                     bool single = isLeft ? singleLeft : singleRight;
 
                     if (single) {
+                        println("Rle::binary: adding span from {} at x = {}", isLeft ? "left" : "right", x);
                         // add the span from the view that is not intersecting
                         result.addSpan(view.front().slice(x, other.front().x));
                     }
                     x = other.front().x;
                 }
                 if (l.front().end() == x) {
+                    println("Rle::binary: skipping span from left at x = {} y = {}", x, l.front().y);
                     l = l.subspan(1);
                 }
                 if (r.front().end() == x) {
+                    println("Rle::binary: skipping span from right at x = {} y = {}", x, r.front().y);
                     r = r.subspan(1);
                 }
-                if (l.empty() || r.empty()) {
-                    break; // only one span left
+                if (l.empty() && r.empty()) {
+                    println("Rle::binary: both spans are empty, breaking out");
+                    break;
                     // this also breaks the outer loop
                 }
+                if (r.empty() && !l.empty()) {
+                    if (singleLeft) {
+                        println("Rle::binary: adding remaining left span at y = {}", l.front().y);
+                        result.addSpan(l.front().slice(x));
+                    }
+                    println("Rle::binary: skipping remaining left span at y = {}", l.front().y);
+                    l = l.subspan(1);
+                    break;
+                }
+                if (l.empty() && !r.empty()) {
+                    if (singleRight) {
+                        println("Rle::binary: adding remaining right span at y = {}", r.front().y);
+                        result.addSpan(r.front().slice(x));
+                    }
+                    println("Rle::binary: skipping remaining right span at y = {}", r.front().y);
+                    r = r.subspan(1);
+                    break;
+                }
+                if (l.front().y != y) {
+                    println("Rle::binary: left span y changed to {}, breaking out", l.front().y);
+                    break;
+                }
+                if (r.front().y != y) {
+                    println("Rle::binary: right span y changed to {}, breaking out", r.front().y);
+                    break;
+                }
                 if (l.front().x > x && r.front().x > x) {
+                    println("Rle::binary: no more intersection at x = {}, breaking out", x);
                     break; // no more intersection
                 }
             }
         } else {
+            println("Rle::binary: spans do not intersect at y = {}", l.front().y);
             // spans do not intersect
             bool isLeft = l.front().before(r.front());
             View& view  = isLeft ? l : r;
@@ -783,11 +347,17 @@ Rle Rle::binary(const Rle& left, const Rle& right, BinOp op) {
             if (c) {
                 // add the spans from the view that is not intersecting
                 if (single) {
+                    println("Rle::binary: adding {} spans from {} at y = {}", c, isLeft ? "left" : "right",
+                            view.front().y);
                     result.addSpans(view.subspan(0, c));
                 }
+                println("Rle::binary: skipping {} spans from {} at y = {}", c, isLeft ? "left" : "right",
+                        view.front().y);
                 view = view.subspan(c);
-                if (view.empty())
+                if (view.empty()) {
+                    println("Rle::binary: {} spans are empty, breaking out", isLeft ? "left" : "right");
                     break;
+                }
             }
         }
     }
@@ -795,11 +365,13 @@ Rle Rle::binary(const Rle& left, const Rle& right, BinOp op) {
     // One of the rle is empty
     if (l.empty()) {
         if (singleRight) {
+            println("Rle::binary: left is empty, adding {} right spans", r.size());
             result.addSpans(r);
         }
         return result;
     } else { // if (r.empty())
         if (singleLeft) {
+            println("Rle::binary: right is empty, adding {} left spans", l.size());
             result.addSpans(l);
         }
         return result;
