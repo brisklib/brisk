@@ -19,7 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Canvas.hpp>
+#include <optional>
 #include "SdfCanvas.hpp"
+#include <brisk/core/Log.hpp>
+#include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {
 
@@ -102,7 +106,7 @@ void Canvas::drawRasterizedPath(const RasterizedPath& path, const Internal::Pain
     SdfCanvas::prepareStateInplace(renderState);
     GeometryGlyphs data = Internal::pathLayout(renderState.sprites, path);
     if (!data.empty()) {
-        m_context.command(std::move(renderState), std::span{ data });
+        m_context->command(std::move(renderState), std::span{ data });
     }
 }
 
@@ -279,7 +283,7 @@ const Canvas::State Canvas::defaultState{
 };
 
 Canvas::Canvas(RenderContext& context, CanvasFlags flags)
-    : m_context(context), m_flags(flags), m_state(defaultState) {}
+    : m_context(&context), m_flags(flags), m_state(defaultState) {}
 
 const Paint& Canvas::getStrokePaint() const {
     return m_state.strokePaint;
@@ -648,5 +652,101 @@ void Canvas::fillTextSelection(PointF position, PointF alignment, const Prepared
         position -= PointF(text.bounds().size()) * alignment;
     }
     fillTextSelection(position, text, selection);
+}
+
+Canvas::Layer::Layer(RenderContext* context, Size layerSize) {
+    parentPipeline = dynamicCast<RenderPipeline*>(context);
+    if (!parentPipeline) {
+        BRISK_LOG_ERROR("RenderContext doesn't implement RenderPipeline");
+        return;
+    }
+    parentPipeline->flush();
+    Rc<RenderEncoder> encoder = parentPipeline->encoder();
+    if (!encoder) {
+        return;
+    }
+    parentTarget = encoder->currentTarget();
+    if (!parentTarget) {
+        return;
+    }
+    RenderDevice* device = encoder->device();
+    if (!device) {
+        return;
+    }
+    layerTarget = device->createImageTarget(layerSize);
+    if (!layerTarget) {
+        return;
+    }
+    encoder->end(); // End the current encoder to switch to the new target.
+    layerPipeline = std::make_shared<RenderPipeline>(
+        encoder, layerTarget,
+        Palette::transparent); // begin will be called in Pipeline constructor.
+}
+
+Rc<Image> Canvas::contentsAsImage() {
+    RenderPipeline* pipeline = dynamicCast<RenderPipeline*>(m_context);
+    if (!pipeline) {
+        BRISK_LOG_ERROR("RenderContext doesn't implement RenderPipeline");
+        return nullptr;
+    }
+    Rc<RenderEncoder> encoder = pipeline->encoder();
+    if (!encoder) {
+        return nullptr;
+    }
+    Rc<RenderTarget> target = encoder->currentTarget();
+    if (!target) {
+        return nullptr;
+    }
+    if (target->type() != RenderTargetType::Image) {
+        BRISK_LOG_ERROR("Current render target is not an image target");
+        return nullptr;
+    }
+    pipeline->flush(); // Ensure all drawing commands are executed before capturing.
+    encoder->end();
+
+    ImageRenderTarget* imageTarget = static_cast<ImageRenderTarget*>(target.get());
+    Rc<Image> image                = imageTarget->image(true);
+    encoder->begin(target, Palette::transparent); // Reopen the encoder for further drawing.
+    return image;
+}
+
+Rc<Image> Canvas::finishLayer() {
+    if (m_layers.empty()) {
+        return nullptr; // No layers to finish.
+    }
+    Layer layer = std::move(m_layers.back());
+    m_layers.pop_back();
+    // Ensure all drawing commands are executed.
+    layer.layerPipeline->flush();
+    Rc<RenderEncoder> encoder = layer.layerPipeline->encoder();
+    // Switch back to the parent context.
+    layer.layerPipeline       = nullptr; // This flushes commands and ends encoding.
+    encoder->begin(layer.parentTarget, std::nullopt);
+    // Restore the previous state of the Canvas.
+    restore();
+    m_context = layer.parentPipeline;
+    // Return the rendered image from the layer.
+    return layer.layerTarget->image();
+}
+
+bool Canvas::beginLayer(Size layerSize) {
+    Layer layer(m_context, layerSize); // Create a new layer with the specified size.
+    if (!layer.ok()) {
+        BRISK_LOG_ERROR("Failed to create layer with size: {}", layerSize);
+        return false;
+    }
+    m_context = layer.layerPipeline.get(); // Set the current context to the new layer's pipeline.
+    m_layers.push_back(std::move(layer));  // Push the new layer onto the stack.
+    saveState(); // Save the current state of the Canvas before starting the new layer.
+    reset();     // Reset the Canvas state to default for the new layer.
+    return true;
+}
+
+size_t Canvas::layers() const noexcept {
+    return m_layers.size();
+}
+
+bool Canvas::supportsLayers() const noexcept {
+    return true;
 }
 } // namespace Brisk

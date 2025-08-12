@@ -42,24 +42,54 @@
 
 namespace Brisk {
 
-void Shell::openURLInBrowser(std::string_view url_str) {
+static void openURL(std::string_view url_str, bool isPath) {
     mustBeMainThread();
-    CFURLRef url = CFURLCreateWithBytes(NULL,                   // allocator
-                                        (UInt8*)url_str.data(), // URLBytes
-                                        url_str.size(),         // length
-                                        kCFStringEncodingUTF8,  // encoding
-                                        NULL                    // baseURL
-    );
-    LSOpenCFURLRef(url, 0);
-    CFRelease(url);
+    if (url_str.empty()) {
+        BRISK_LOG_ERROR("openURL: Empty URL provided");
+        return;
+    }
+
+    NSString* urlString = [[NSString alloc] initWithBytes:url_str.data()
+                                                   length:url_str.size()
+                                                 encoding:NSUTF8StringEncoding];
+    if (!urlString) {
+        BRISK_LOG_ERROR("openURL: Failed to create NSString from URL");
+        return;
+    }
+
+    NSURL* url;
+    if (isPath)
+        url = [NSURL fileURLWithPath:urlString];
+    else
+        url = [NSURL URLWithString:urlString];
+    if (!url) {
+        BRISK_LOG_ERROR("openURL: Invalid URL: {}", url_str);
+        return;
+    }
+
+    @autoreleasepool {
+        if (![[NSWorkspace sharedWorkspace] openURL:url]) {
+            BRISK_LOG_ERROR("openURL: Failed to open URL: {}", url_str);
+        }
+    }
+}
+
+void Shell::openURLInBrowser(std::string_view url_str) {
+    mainScheduler->dispatchAndWait([&]() {
+        Brisk::openURL(url_str, false);
+    });
 }
 
 void Shell::openFolder(const fs::path& path) {
-    return openURLInBrowser("file://" + path.string());
+    mainScheduler->dispatchAndWait([&]() {
+        Brisk::openURL(path.string(), true);
+    });
 }
 
 void Shell::openFileInDefaultApp(const fs::path& path) {
-    return openURLInBrowser("file://" + path.string());
+    mainScheduler->dispatchAndWait([&]() {
+        Brisk::openURL(path.string(), true);
+    });
 }
 
 static std::string buttonName(DialogButtons btn) {

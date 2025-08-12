@@ -58,7 +58,11 @@ void ImageRenderTargetD3d11::setSize(Size newSize) {
     }
 }
 
-Rc<Image> ImageRenderTargetD3d11::image() const {
-    return m_image;
+Rc<Image> ImageRenderTargetD3d11::image(bool reset) const {
+    auto image = m_image;
+    if (reset) {
+        const_cast<ImageRenderTargetD3d11*>(this)->updateImage();
+    }
+    return image;
 }
 } // namespace Brisk

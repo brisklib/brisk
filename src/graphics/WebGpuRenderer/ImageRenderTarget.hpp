@@ -29,7 +29,7 @@ public:
     Size size() const final;
     void setSize(Size newSize) final;
 
-    Rc<Image> image() const final;
+    Rc<Image> image(bool reset = false) const final;
 
     ImageRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, Size frameSize, PixelType type,
                             DepthStencilType depthStencil, int samples);

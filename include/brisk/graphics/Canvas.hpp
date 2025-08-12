@@ -219,7 +219,7 @@ public:
      * @return Reference to the RenderContext object.
      */
     RenderContext& renderContext() const {
-        return m_context;
+        return *m_context;
     }
 
     /**
@@ -893,11 +893,80 @@ public:
 
     int rasterizedPaths() const noexcept;
 
+    /**
+     * @brief Checks if the Canvas supports layer rendering.
+     *
+     * @return True if layers are supported, false otherwise.
+     */
+    [[nodiscard]] bool supportsLayers() const noexcept;
+
+    /**
+     * @brief Begins a new drawing layer with the specified size and pushes it onto the internal stack.
+     *
+     * This function creates a new layer with the given dimensions, allowing subsequent drawing
+     * operations to be performed on this layer.
+     * After finishing the layer with `finishLayer`, the layer content can be drawn to the original
+     * canvas or used as an image.
+     *
+     * @note The state of the Canvas is saved before creating the new layer and reset to its default state.
+     * @param layerSize The size of the new layer to be created.
+     */
+    [[nodiscard]] bool beginLayer(Size layerSize);
+
+    /**
+     * @brief Retrieves the current depth of the layer stack.
+     *
+     * This function returns the number of layers that have been opened
+     * using `beginLayer` but not yet closed with `finishLayer`.
+     *
+     * @return The number of open layers as an integer.
+     */
+    size_t layers() const noexcept;
+
+    /**
+     * @brief Finalizes the current drawing layer and renders its contents to an Image.
+     *
+     * This function completes the rendering process for the current layer, matching
+     * a prior call to `beginLayer`. It captures all the drawn elements on the layer
+     * and returns them as an `Image` object. This is useful for applying effects or
+     * further processing on the rendered layer.
+     *
+     * @return Rc<Image> A reference-counted pointer to the rendered Image.
+     */
+    [[nodiscard]] Rc<Image> finishLayer();
+
+    /**
+     * @brief Captures the contents of the canvas as an image.
+     *
+     * This function renders everything that has been drawn on the canvas
+     * up to this point into an Image object. The resulting image can be
+     * used for applying effects or further processing.
+     *
+     * @return Rc<Image> A reference-counted pointer to the rendered Image.
+     */
+    Rc<Image> contentsAsImage();
+
 private:
-    RenderContext& m_context;
+    struct Layer {
+        RenderPipeline* parentPipeline;
+        Rc<RenderTarget> parentTarget;
+        Rc<ImageRenderTarget> layerTarget;
+        Rc<RenderPipeline> layerPipeline;
+        Layer()                 = delete;
+        Layer(Layer&&) noexcept = default;
+
+        bool ok() const noexcept {
+            return layerPipeline.get() != nullptr;
+        }
+
+        explicit Layer(RenderContext* context, Size layerSize);
+    };
+
+    RenderContext* m_context;
     CanvasFlags m_flags = CanvasFlags::Default;
-    State m_state;              ///< The current state of the Canvas.
-    std::vector<State> m_stack; ///< The stack of saved Canvas states.
+    State m_state;               ///< The current state of the Canvas.
+    std::vector<State> m_stack;  ///< The stack of saved Canvas states.
+    std::vector<Layer> m_layers; ///< The stack of layers for rendering.
 
     int m_rasterizedPaths = 0;
     void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint,
