@@ -1014,26 +1014,29 @@ TEST_CASE("Backlayer") {
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
-    renderTest<true>("backlayer", canvasSize, [](RenderContext& context) {
-        Rectangle bounds{ {}, canvasSize };
-        Canvas canvas(context);
-        canvas.setFillColor(Palette::white);
-        canvas.fillRect(bounds);
-        canvas.setFillColor(Palette::yellow);
-        canvas.fillRect({ 50, 20, 500, 300 });
-        canvas.setFont(Font{ "Lato", 48.f });
-        canvas.setFillColor(Palette::black);
-        canvas.fillText("Backlayer test\nLorem ipsum dolor sit amet,\nconsectetur adipiscing elit", bounds,
-                        PointF(0.5f, 0.5f));
-        auto backlayer = canvas.contentsAsImage();
-        REQUIRE(backlayer.get() != nullptr);
+    renderTest<true>(
+        "backlayer", canvasSize,
+        [](RenderContext& context) {
+            Rectangle bounds{ {}, canvasSize };
+            Canvas canvas(context);
+            canvas.setFillColor(Palette::white);
+            canvas.fillRect(bounds);
+            canvas.setFillColor(Palette::yellow);
+            canvas.fillRect({ 50, 20, 500, 300 });
+            canvas.setFont(Font{ "Lato", 48.f });
+            canvas.setFillColor(Palette::black);
+            canvas.fillText("Backlayer test\nLorem ipsum dolor sit amet,\nconsectetur adipiscing elit",
+                            bounds, PointF(0.5f, 0.5f));
+            auto backlayer = canvas.contentsAsImage();
+            REQUIRE(backlayer.get() != nullptr);
 
-        canvas.drawImage(bounds, backlayer, {}, SamplerMode::Clamp, 4.f);
-        canvas.setFillColor(Palette::magenta.multiplyAlpha(0.5f));
-        canvas.fillRect({ 300, 140, 640, 180 });
-        canvas.setFillColor(Palette::black);
-        canvas.fillText("Test\nTest\nTest", bounds.withPadding(40), PointF(0.f, 0.f));
-    });
+            canvas.drawImage(bounds, backlayer, {}, SamplerMode::Clamp, 4.f);
+            canvas.setFillColor(Palette::magenta.multiplyAlpha(0.5f));
+            canvas.fillRect({ 300, 140, 640, 180 });
+            canvas.setFillColor(Palette::black);
+            canvas.fillText("Test\nTest\nTest", bounds.withPadding(40), PointF(0.f, 0.f));
+        },
+        defaultBackColor, 0.055f);
     linearColor = linearColorSaved;
 }
 
