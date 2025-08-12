@@ -25,6 +25,21 @@
 
 namespace Brisk {
 
+/**
+ * @brief Enum representing different mask operations for paths.
+ */
+enum class MaskOp : uint8_t {
+    And,
+    AndNot,
+    Or,
+    Xor,
+
+    Intersection        = And,
+    Union               = Or,
+    Difference          = AndNot,
+    SymmetricDifference = Xor,
+};
+
 namespace Internal {
 template <typename T>
 struct FloatTypeFor {

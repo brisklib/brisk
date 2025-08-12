@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include "Common.hpp"
@@ -31,13 +32,32 @@ namespace Brisk {
 class Rle {
 public:
     struct Span {
-        short x{ 0 };
-        short y{ 0 };
+        int16_t x{ 0 };
+        int16_t y{ 0 };
         uint16_t len{ 0 };
         uint8_t coverage{ 0 };
+
+        int16_t end() const noexcept {
+            return x + len;
+        }
+
+        bool before(Span other) const noexcept {
+            return y < other.y || (y == other.y && end() <= other.x);
+        }
+
+        Span slice(int16_t startX, int16_t endX = INT16_MAX) const noexcept {
+            return { startX, y, static_cast<uint16_t>(std::min(static_cast<int16_t>(x + len), endX) - startX),
+                     coverage };
+        }
+
+        friend auto format_as(Span s) {
+            return std::make_tuple(s.x, s.y, s.len, s.coverage);
+        }
+
+        bool operator==(const Span& other) const noexcept = default;
     };
 
-    using RleSpanCb = void (*)(size_t count, const Rle::Span* spans, void* userData);
+    using View = std::span<const Span>;
 
     bool empty() const {
         return mSpans.empty();
@@ -47,7 +67,9 @@ public:
 
     void setBoundingRect(Rectangle bbox);
 
-    void addSpan(const Rle::Span* span, size_t count);
+    void addSpans(const Rle::Span* span, size_t count);
+    void addSpans(std::span<const Rle::Span> spans);
+    void addSpan(Rle::Span span);
 
     void reset();
 
@@ -55,6 +77,14 @@ public:
 
     const std::vector<Rle::Span>& spans() const {
         return mSpans;
+    }
+
+    static Rle binary(const Rle& left, const Rle& right, MaskOp op);
+
+    void addRect(Rectangle rect);
+
+    View view() const {
+        return { mSpans.data(), mSpans.size() };
     }
 
 private:

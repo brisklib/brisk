@@ -248,7 +248,7 @@ void FTOutline::end() {
 static void rleGenerationCb(int count, const SW_FT_Span* spans, void* user) {
     Rle* rle      = static_cast<Rle*>(user);
     auto* rleSpan = reinterpret_cast<const Rle::Span*>(spans);
-    rle->addSpan(rleSpan, count);
+    rle->addSpans(rleSpan, count);
 }
 
 static void bboxCb(int x, int y, int w, int h, void* user) {
