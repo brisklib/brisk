@@ -177,23 +177,23 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
     }
 }
 
-void Canvas::drawRasterizedPath(const Internal::SparseMask& path, const Internal::PaintAndTransform& paint,
-                                Quad3 scissors) {
-    if (path.patches.empty()) {
+void Canvas::drawPreparedPath(const PreparedPath& path, const Internal::PaintAndTransform& paint,
+                              Quad3 scissors) {
+    if (path.m_patches.empty()) {
         return;
     }
-    RenderStateEx renderState(ShaderType::Mask, path.patches.size(), nullptr);
+    RenderStateEx renderState(ShaderType::Mask, path.m_patches.size(), nullptr);
     renderState.subpixelMode = SubpixelMode::Off;
     applier(&renderState, paint);
     renderState.scissorQuad = scissors;
     renderState.premultiply();
 
     std::vector<uint32_t> data;
-    size_t patchesSize   = path.patches.size() * (sizeof(Internal::Patch) / sizeof(uint32_t));
-    size_t patchDataSize = path.patchData.size() * (sizeof(Internal::PatchData) / sizeof(uint32_t));
+    size_t patchesSize   = path.m_patches.size() * (sizeof(Internal::Patch) / sizeof(uint32_t));
+    size_t patchDataSize = path.m_patchData.size() * (sizeof(Internal::PatchData) / sizeof(uint32_t));
     data.resize(alignUp(patchesSize, 4u) + patchDataSize);
-    memcpy(data.data(), path.patches.data(), patchesSize * sizeof(uint32_t));
-    memcpy(data.data() + alignUp(patchesSize, 4u), path.patchData.data(), patchDataSize * sizeof(uint32_t));
+    memcpy(data.data(), path.m_patches.data(), patchesSize * sizeof(uint32_t));
+    memcpy(data.data() + alignUp(patchesSize, 4u), path.m_patchData.data(), patchDataSize * sizeof(uint32_t));
 
     m_context->command(std::move(renderState), std::span{ data });
 }
@@ -262,8 +262,8 @@ void Canvas::fillPath(const Path& path, const Paint& fillPaint, const FillParams
             return std::forward<T>(x).transformed(matrix);
         });
     }
-    drawRasterizedPath((*transformedPath).rasterize(fillParams, transformedClipRect(matrix, clipRect)),
-                       Internal::PaintAndTransform{ fillPaint, matrix, opacity }, clipRect);
+    drawPreparedPath(PreparedPath((*transformedPath), fillParams, transformedClipRect(matrix, clipRect)),
+                     Internal::PaintAndTransform{ fillPaint, matrix, opacity }, clipRect);
 }
 
 void Canvas::strokePath(const Path& path, const Paint& strokePaint, const StrokeParams& strokeParams,
@@ -284,8 +284,8 @@ void Canvas::strokePath(const Path& path, const Paint& strokePaint, const Stroke
         });
     }
     float scale = matrix.estimateScale();
-    drawRasterizedPath(
-        (*transformedPath).rasterize(strokeParams.scale(scale), transformedClipRect(matrix, clipRect)),
+    drawPreparedPath(
+        PreparedPath((*transformedPath), strokeParams.scale(scale), transformedClipRect(matrix, clipRect)),
         Internal::PaintAndTransform{ strokePaint, matrix, opacity }, clipRect);
 }
 

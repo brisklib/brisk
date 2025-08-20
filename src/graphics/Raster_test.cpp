@@ -1,138 +1,136 @@
 #include "brisk/graphics/Path.hpp"
-#include "vector/Raster.hpp"
 #include "Catch2Utils.hpp"
+
+template <>
+struct fmt::formatter<Brisk::Internal::Patch> : fmt::formatter<std::string> {
+    template <typename FormatContext>
+    auto format(const Brisk::Internal::Patch& value, FormatContext& ctx) const {
+        return fmt::formatter<std::string>::format(
+            fmt::format("{{ {}, {}, {} }}", value.x, value.y, value.offset), ctx);
+    }
+};
+
+template <>
+struct fmt::formatter<Brisk::Internal::PatchData> : fmt::formatter<std::string> {
+    template <typename FormatContext>
+    auto format(const Brisk::Internal::PatchData& value, FormatContext& ctx) const {
+        return fmt::formatter<std::string>::format(
+            fmt::format("{:02X}{:02X}{:02X}{:02X}\n{:02X}{:02X}{:02X}{:02X}\n{:02X}{:02X}{:02X}{:02X}\n{:02X}"
+                        "{:02X}{:02X}{:02X}", //
+                        value.data_u8[0], value.data_u8[1], value.data_u8[2], value.data_u8[3],
+                        value.data_u8[4], value.data_u8[5], value.data_u8[6], value.data_u8[7],
+                        value.data_u8[8], value.data_u8[9], value.data_u8[10], value.data_u8[11],
+                        value.data_u8[12], value.data_u8[13], value.data_u8[14], value.data_u8[15]),
+            ctx);
+    }
+};
 
 namespace Brisk {
 
+struct PreparedPath2 : public PreparedPath {
+    using PreparedPath::patchBounds;
+    using PreparedPath::patchData;
+    using PreparedPath::patches;
+    using PreparedPath::PreparedPath;
+
+    PreparedPath2(const PreparedPath& path) : PreparedPath(path) {}
+};
+
 TEST_CASE("Rasterizer: Rasterize empty path") {
     Path path;
-    Rle rle = rasterize(path);
-    CHECK(rle.empty());
-    CHECK(rle.boundingRect().empty());
+    PreparedPath2 prepared(path);
+    CHECK(prepared.empty());
+    CHECK(prepared.patchBounds() == Rectangle{});
 }
 
-TEST_CASE("Rasterizer: Rasterize path with line") {
+TEST_CASE("Rasterizer: Rasterize empty path 2") {
     Path path;
-    path.moveTo(PointF(10, 10));
-    path.lineTo(PointF(20, 20));
-    Rle rle = rasterize(path, CapStyle::Square, JoinStyle::Miter, 1.0f, 4.0f);
-    CHECK(!rle.empty());
-    CHECK(rle.boundingRect() == Rectangle(9, 9, 21, 21));
+    path.addRect({ 10, 10, 10, 50 });
+    PreparedPath2 prepared(path);
+    CHECK(prepared.empty());
+    CHECK(prepared.patchBounds() == Rectangle{});
 }
+
+using Internal::Patch;
+using Internal::PatchData;
 
 TEST_CASE("Rasterizer: Rasterize path with rectangle") {
     Path path;
-    path.addRect({ 0, 0, 2, 2 });
-    Rle rle = rasterize(path);
-    CHECK(!rle.empty());
-    CHECK(rle.boundingRect() == Rectangle(0, 0, 2, 2));
-    REQUIRE(rle.spans().size() == 2);
-    CHECK(rle.spans()[0] == Rle::Span{ 0, 0, 2, 255 });
-    CHECK(rle.spans()[1] == Rle::Span{ 0, 1, 2, 255 });
+    path.addRect({ 0, 0, 4, 4 });
+    PreparedPath2 prepared(path);
+    CHECK(!prepared.empty());
+    CHECK(prepared.patchBounds() == Rectangle{ 0, 0, 4, 4 });
+    CHECK(prepared.patches().size() == 1);
+    CHECK(prepared.patches()[0] == Patch{ 0, 0, 0 });
+    CHECK(prepared.patchData().size() == 1);
+    CHECK(prepared.patchData()[0] == PatchData::fromBits(0b1111'1111'1111'1111));
+}
+
+TEST_CASE("Rasterizer: Rasterize path with rectangle 2") {
+    Path path;
+    path.addRect({ 2, 2, 6, 6 });
+    PreparedPath2 prepared(path);
+    CHECK(!prepared.empty());
+    CHECK(prepared.patchBounds() == Rectangle{ 0, 0, 8, 8 });
+    REQUIRE(prepared.patches().size() == 4);
+    CHECK(prepared.patches()[0] == Patch{ 0, 0, 0 });
+    CHECK(prepared.patches()[1] == Patch{ 4, 0, 1 });
+    CHECK(prepared.patches()[2] == Patch{ 0, 4, 2 });
+    CHECK(prepared.patches()[3] == Patch{ 4, 4, 3 });
+    REQUIRE(prepared.patchData().size() == 4);
+    CHECK(prepared.patchData()[0] == PatchData::fromBits(0b0000'0000'0011'0011));
+    CHECK(prepared.patchData()[1] == PatchData::fromBits(0b0000'0000'1100'1100));
+    CHECK(prepared.patchData()[2] == PatchData::fromBits(0b0011'0011'0000'0000));
+    CHECK(prepared.patchData()[3] == PatchData::fromBits(0b1100'1100'0000'0000));
 }
 
 TEST_CASE("Rasterizer: Rle binary operations") {
     Path path;
     path.addRect({ 0, 0, 2, 2 });
-    Rle rle1 = rasterize(path);
+    PreparedPath2 prepared1(path);
     path.reset();
     path.addRect({ 1, 1, 3, 3 });
-    Rle rle2 = rasterize(path);
+    PreparedPath2 prepared2(path);
 
     SECTION("And") {
-        Rle andResult = Rle::binary(rle1, rle2, MaskOp::And);
-        fmt::println("And Result:\n    {}", fmt::join(andResult.view(), "\n    "));
-        CHECK(!andResult.empty());
-        CHECK(andResult.boundingRect() == Rectangle(1, 1, 2, 2));
-        REQUIRE(andResult.spans().size() == 1);
-        CHECK(andResult.spans()[0] == Rle::Span{ 1, 1, 1, 255 });
+        PreparedPath2 result = PreparedPath::booleanOp(MaskOp::And, prepared1, prepared2);
+        CHECK(!result.empty());
+        CHECK(result.patchBounds() == Rectangle(0, 0, 4, 4));
+        REQUIRE(result.patches().size() == 1);
+        CHECK(result.patches()[0] == Patch{ 0, 0, 0 });
+        REQUIRE(result.patchData().size() == 1);
+        CHECK(result.patchData()[0] == PatchData::fromBits(0b0000'0100'0000'0000));
     }
 
     SECTION("And Not") {
-        Rle andNotResult = Rle::binary(rle1, rle2, MaskOp::AndNot);
-        fmt::println("And Not Result:\n    {}", fmt::join(andNotResult.view(), "\n    "));
-        CHECK(!andNotResult.empty());
-        CHECK(andNotResult.boundingRect() == Rectangle(0, 0, 2, 2));
-        REQUIRE(andNotResult.spans().size() == 2);
-        CHECK(andNotResult.spans()[0] == Rle::Span{ 0, 0, 2, 255 });
-        CHECK(andNotResult.spans()[1] == Rle::Span{ 0, 1, 1, 255 });
+        PreparedPath2 result = PreparedPath::booleanOp(MaskOp::AndNot, prepared1, prepared2);
+        CHECK(!result.empty());
+        CHECK(result.patchBounds() == Rectangle(0, 0, 4, 4));
+        REQUIRE(result.patches().size() == 1);
+        CHECK(result.patches()[0] == Patch{ 0, 0, 0 });
+        REQUIRE(result.patchData().size() == 1);
+        CHECK(result.patchData()[0] == PatchData::fromBits(0b1100'1000'0000'0000));
     }
 
     SECTION("Or") {
-        Rle orResult = Rle::binary(rle1, rle2, MaskOp::Or);
-        fmt::println("Or Result:\n    {}", fmt::join(orResult.view(), "\n    "));
-        CHECK(!orResult.empty());
-        CHECK(orResult.boundingRect() == Rectangle(0, 0, 3, 3));
-        REQUIRE(orResult.spans().size() == 3);
-        CHECK(orResult.spans()[0] == Rle::Span{ 0, 0, 2, 255 });
-        CHECK(orResult.spans()[1] == Rle::Span{ 0, 1, 3, 255 });
-        CHECK(orResult.spans()[2] == Rle::Span{ 1, 2, 2, 255 });
+        PreparedPath2 result = PreparedPath::booleanOp(MaskOp::Or, prepared1, prepared2);
+        CHECK(!result.empty());
+        CHECK(result.patchBounds() == Rectangle(0, 0, 4, 4));
+        REQUIRE(result.patches().size() == 1);
+        CHECK(result.patches()[0] == Patch{ 0, 0, 0 });
+        REQUIRE(result.patchData().size() == 1);
+        CHECK(result.patchData()[0] == PatchData::fromBits(0b1100'1110'0110'0000));
     }
 
     SECTION("Xor") {
-        Rle xorResult = Rle::binary(rle1, rle2, MaskOp::Xor);
-        fmt::println("Xor Result:\n    {}", fmt::join(xorResult.view(), "\n    "));
-        CHECK(!xorResult.empty());
-        CHECK(xorResult.boundingRect() == Rectangle(0, 0, 3, 3));
-        REQUIRE(xorResult.spans().size() == 4);
-        CHECK(xorResult.spans()[0] == Rle::Span{ 0, 0, 2, 255 });
-        CHECK(xorResult.spans()[1] == Rle::Span{ 0, 1, 1, 255 });
-        CHECK(xorResult.spans()[2] == Rle::Span{ 2, 1, 1, 255 });
-        CHECK(xorResult.spans()[3] == Rle::Span{ 1, 2, 2, 255 });
+        PreparedPath2 result = PreparedPath::booleanOp(MaskOp::Xor, prepared1, prepared2);
+        CHECK(!result.empty());
+        CHECK(result.patchBounds() == Rectangle(0, 0, 4, 4));
+        REQUIRE(result.patches().size() == 1);
+        CHECK(result.patches()[0] == Patch{ 0, 0, 0 });
+        REQUIRE(result.patchData().size() == 1);
+        CHECK(result.patchData()[0] == PatchData::fromBits(0b1100'1010'0110'0000));
     }
 }
 
-TEST_CASE("Rasterizer: Rle binary operations 2") {
-    Path path;
-    path.addRect({ 0, 0, 8, 1 });
-    Rle rle1 = rasterize(path);
-    path.reset();
-    path.addRect({ 1, 0, 2, 1 });
-    path.addRect({ 3, 0, 4, 1 });
-    path.addRect({ 5, 0, 10, 1 });
-    Rle rle2 = rasterize(path);
-
-    SECTION("And") {
-        Rle andResult = Rle::binary(rle1, rle2, MaskOp::And);
-        fmt::println("And Result:\n    {}", fmt::join(andResult.view(), "\n    "));
-        CHECK(!andResult.empty());
-        CHECK(andResult.boundingRect() == Rectangle(1, 0, 8, 1));
-        REQUIRE(andResult.spans().size() == 3);
-        CHECK(andResult.spans()[0] == Rle::Span{ 1, 0, 1, 255 });
-        CHECK(andResult.spans()[1] == Rle::Span{ 3, 0, 1, 255 });
-        CHECK(andResult.spans()[2] == Rle::Span{ 5, 0, 3, 255 });
-    }
-
-    SECTION("And Not") {
-        Rle andNotResult = Rle::binary(rle1, rle2, MaskOp::AndNot);
-        fmt::println("And Not Result:\n    {}", fmt::join(andNotResult.view(), "\n    "));
-        CHECK(!andNotResult.empty());
-        CHECK(andNotResult.boundingRect() == Rectangle(0, 0, 5, 1));
-        REQUIRE(andNotResult.spans().size() == 3);
-        CHECK(andNotResult.spans()[0] == Rle::Span{ 0, 0, 1, 255 });
-        CHECK(andNotResult.spans()[1] == Rle::Span{ 2, 0, 1, 255 });
-        CHECK(andNotResult.spans()[2] == Rle::Span{ 4, 0, 1, 255 });
-    }
-
-    SECTION("Or") {
-        Rle orResult = Rle::binary(rle1, rle2, MaskOp::Or);
-        fmt::println("Or Result:\n    {}", fmt::join(orResult.view(), "\n    "));
-        CHECK(!orResult.empty());
-        CHECK(orResult.boundingRect() == Rectangle(0, 0, 10, 1));
-        REQUIRE(orResult.spans().size() == 1);
-        CHECK(orResult.spans()[0] == Rle::Span{ 0, 0, 10, 255 });
-    }
-
-    SECTION("Xor") {
-        Rle xorResult = Rle::binary(rle1, rle2, MaskOp::Xor);
-        fmt::println("Xor Result:\n    {}", fmt::join(xorResult.view(), "\n    "));
-        CHECK(!xorResult.empty());
-        CHECK(xorResult.boundingRect() == Rectangle(0, 0, 10, 1));
-        REQUIRE(xorResult.spans().size() == 4);
-        CHECK(xorResult.spans()[0] == Rle::Span{ 0, 0, 1, 255 });
-        CHECK(xorResult.spans()[1] == Rle::Span{ 2, 0, 1, 255 });
-        CHECK(xorResult.spans()[2] == Rle::Span{ 4, 0, 1, 255 });
-        CHECK(xorResult.spans()[3] == Rle::Span{ 8, 0, 2, 255 });
-    }
-}
 } // namespace Brisk

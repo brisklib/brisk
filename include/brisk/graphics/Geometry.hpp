@@ -61,19 +61,35 @@ static inline uint8_t divBy255(int x) {
     return (x + (x >> 8) + 0x80) >> 8;
 }
 
-inline uint8_t coverageOp(MaskOp op, uint8_t a, uint8_t b) {
+template <size_t N>
+inline void coverageOp(MaskOp op, uint8_t* dst, const uint8_t* a, const uint8_t* b) {
+    // Optimize with SIMD
     switch (op) {
     case MaskOp::And:
-        return divBy255(a * b);
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = divBy255(a[i] * b[i]);
+        break;
     case MaskOp::AndNot:
-        return divBy255(a * (255 - b));
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = divBy255(a[i] * (255 - b[i]));
+        break;
     case MaskOp::Or:
-        return a + b - divBy255(a * b);
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = a[i] + b[i] - divBy255(a[i] * b[i]);
+        break;
     case MaskOp::Xor:
-        return a + b - 2 * divBy255(a * b);
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = a[i] + b[i] - 2 * divBy255(a[i] * b[i]);
+        break;
     default:
         BRISK_UNREACHABLE();
     }
+}
+
+inline uint8_t coverageOp(MaskOp op, uint8_t a, uint8_t b) {
+    uint8_t result;
+    coverageOp<1>(op, &result, &a, &b);
+    return result;
 }
 
 template <typename T>

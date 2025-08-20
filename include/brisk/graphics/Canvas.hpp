@@ -965,8 +965,7 @@ private:
     std::vector<State> m_stack;  ///< The stack of saved Canvas states.
     std::vector<Layer> m_layers; ///< The stack of layers for rendering.
 
-    void drawRasterizedPath(const Internal::SparseMask& path, const Internal::PaintAndTransform& paint,
-                            Quad3 scissors);
+    void drawPreparedPath(const PreparedPath& path, const Internal::PaintAndTransform& paint, Quad3 scissors);
 
     void drawTextSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                          RenderStateExArgs args);

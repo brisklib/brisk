@@ -95,6 +95,8 @@ struct StrokeParams {
             v *= value;
         return copy;
     }
+
+    bool operator==(const StrokeParams& other) const noexcept = default;
 };
 
 /**
@@ -102,6 +104,8 @@ struct StrokeParams {
  */
 struct FillParams {
     FillRule fillRule = FillRule::Winding; ///< The fill rule to be used.
+
+    bool operator==(const FillParams& other) const noexcept = default;
 };
 
 /**
@@ -115,28 +119,96 @@ namespace Internal {
 extern PerformanceDuration performancePathScanline;
 extern PerformanceDuration performancePathRasterization;
 
-using PatchData = std::array<uint32_t, 4>;
+union PatchData {
+    uint64_t data_u64[2];
+    uint32_t data_u32[4];
+    uint16_t data_u16[8];
+    uint8_t data_u8[16];
+
+    static PatchData fromBits(uint16_t bits) {
+        PatchData result;
+        for (size_t i = 0; i < 16; ++i) {
+            result.data_u8[i] = bits & (1 << (15 - i)) ? 255 : 0;
+        }
+        return result;
+    }
+
+    bool operator==(const PatchData& other) const noexcept {
+        return data_u64[0] == other.data_u64[0] && data_u64[1] == other.data_u64[1];
+    }
+
+    bool operator<(const PatchData& other) const noexcept {
+        return data_u64[0] < other.data_u64[0] ||
+               (data_u64[0] == other.data_u64[0] && data_u64[1] < other.data_u64[1]);
+    }
+
+    bool empty() const noexcept {
+        return data_u64[0] == 0 && data_u64[1] == 0;
+    }
+};
 
 struct Patch {
-    uint32_t xy;     // screen-aligned
+    uint16_t x, y;   // screen-aligned
     uint32_t offset; // index in patchData
+
+    bool operator==(const Patch& other) const noexcept {
+        return x == other.x && y == other.y;
+    }
+
+    bool operator<(const Patch& other) const noexcept {
+        uint32_t xy       = uint32_t(x) | (uint32_t(y) << 16);
+        uint32_t other_xy = uint32_t(other.x) | (uint32_t(other.y) << 16);
+        return xy < other_xy;
+    }
 };
 
-struct SparseMask {
-    std::vector<Patch> patches;
-    std::vector<PatchData> patchData;
-};
-
-/**
- * @brief Rasterizes the given path with specified parameters and clipping rectangle.
- *
- * @param path The path to rasterize.
- * @param params The fill or stroke parameters.
- * @param clipRect The clipping rectangle. Use noClipRect to disable clipping.
- * @return RasterizedPath The resulting rasterized path.
- */
-SparseMask rasterizePath(const Path& path, const FillOrStrokeParams& params, Rectangle clipRect);
+static_assert(sizeof(Patch) == 8, "Patch size must be 8 bytes");
 } // namespace Internal
+
+struct Path;
+
+class Rle;
+
+struct PreparedPath {
+public:
+    PreparedPath()                    = default;
+    PreparedPath(const PreparedPath&) = default;
+    PreparedPath(PreparedPath&&)      = default;
+    PreparedPath(const Path& path, const FillParams& params = {}, Rectangle clipRect = noClipRect);
+    PreparedPath(const Path& path, const StrokeParams& params, Rectangle clipRect = noClipRect);
+    PreparedPath(Rectangle rectangle);
+
+    static PreparedPath union_(const PreparedPath& a, const PreparedPath& b);
+    static PreparedPath intersection(const PreparedPath& a, const PreparedPath& b);
+    static PreparedPath difference(const PreparedPath& a, const PreparedPath& b);
+    static PreparedPath symmetricDifference(const PreparedPath& a, const PreparedPath& b);
+
+    static PreparedPath booleanOp(MaskOp op, const PreparedPath& a, const PreparedPath& b);
+
+    bool empty() const noexcept {
+        return m_patches.empty();
+    }
+
+protected:
+    const std::vector<Internal::Patch>& patches() const noexcept {
+        return m_patches;
+    }
+
+    const std::vector<Internal::PatchData>& patchData() const noexcept {
+        return m_patchData;
+    }
+
+    Rectangle patchBounds() const;
+
+private:
+    std::vector<Internal::Patch> m_patches;
+    std::vector<Internal::PatchData> m_patchData;
+    mutable std::optional<Rectangle> m_patchBounds;
+
+    friend class Canvas;
+    void init(Rle&& rle);
+    static PreparedPath merge(const PreparedPath& a, const PreparedPath& b);
+};
 
 class Dasher;
 
@@ -381,25 +453,6 @@ struct Path {
      * @return RectangleF The approximate bounding box.
      */
     RectangleF boundingBoxApprox() const;
-
-    std::optional<RectangleF> asRectangle() const;
-    std::optional<RectangleF> asCircle() const;
-    std::optional<std::tuple<RectangleF, float, bool>> asRoundRectangle() const;
-    std::optional<std::array<PointF, 2>> asLine() const;
-
-    /// Rasterizes the path for filling.
-    /// @param fill Fill parameters.
-    /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    Internal::SparseMask rasterize(const FillParams& fill, Rectangle clipRect = noClipRect) const {
-        return Internal::rasterizePath(*this, fill, clipRect);
-    }
-
-    /// Rasterizes the path for stroking.
-    /// @param stroke Stroke parameters.
-    /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    Internal::SparseMask rasterize(const StrokeParams& stroke, Rectangle clipRect = noClipRect) const {
-        return Internal::rasterizePath(*this, stroke, clipRect);
-    }
 
     const std::vector<Path::Element>& elements() const {
         return m_elements;
