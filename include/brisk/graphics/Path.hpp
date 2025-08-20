@@ -114,6 +114,19 @@ struct Path;
 namespace Internal {
 extern PerformanceDuration performancePathScanline;
 extern PerformanceDuration performancePathRasterization;
+
+using PatchData = std::array<uint32_t, 4>;
+
+struct Patch {
+    uint32_t xy;     // screen-aligned
+    uint32_t offset; // index in patchData
+};
+
+struct SparseMask {
+    std::vector<Patch> patches;
+    std::vector<PatchData> patchData;
+};
+
 /**
  * @brief Rasterizes the given path with specified parameters and clipping rectangle.
  *
@@ -122,7 +135,7 @@ extern PerformanceDuration performancePathRasterization;
  * @param clipRect The clipping rectangle. Use noClipRect to disable clipping.
  * @return RasterizedPath The resulting rasterized path.
  */
-RasterizedPath rasterizePath(const Path& path, const FillOrStrokeParams& params, Rectangle clipRect);
+SparseMask rasterizePath(const Path& path, const FillOrStrokeParams& params, Rectangle clipRect);
 } // namespace Internal
 
 class Dasher;
@@ -319,6 +332,8 @@ struct Path {
     void addPolygon(float points, float radius, float roundness, float startAngle, float cx, float cy,
                     Direction dir = Direction::CW);
 
+    void addPolyline(std::span<const PointF> points);
+
     /**
      * @brief Adds another path to this path.
      * @param path The path to add.
@@ -375,14 +390,14 @@ struct Path {
     /// Rasterizes the path for filling.
     /// @param fill Fill parameters.
     /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const FillParams& fill, Rectangle clipRect = noClipRect) const {
+    Internal::SparseMask rasterize(const FillParams& fill, Rectangle clipRect = noClipRect) const {
         return Internal::rasterizePath(*this, fill, clipRect);
     }
 
     /// Rasterizes the path for stroking.
     /// @param stroke Stroke parameters.
     /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const StrokeParams& stroke, Rectangle clipRect = noClipRect) const {
+    Internal::SparseMask rasterize(const StrokeParams& stroke, Rectangle clipRect = noClipRect) const {
         return Internal::rasterizePath(*this, stroke, clipRect);
     }
 

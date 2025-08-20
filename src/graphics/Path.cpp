@@ -885,6 +885,76 @@ static Rc<Image> rleToMask(const Rle& rle, Size size) {
     return bitmap;
 }
 
+static Internal::SparseMask imageToPatches(std::tuple<Rc<Image>, Rectangle> imageAndRect) {
+    auto r = std::get<0>(imageAndRect)->mapRead<ImageFormat::Greyscale_U8Gamma>();
+    using namespace Internal;
+    Rectangle bounds = std::get<1>(imageAndRect);
+    SparseMask result;
+
+    std::map<PatchData, uint32_t> lookup;
+    size_t stride = r.byteStride();
+
+    // fmt::println("imageToPatches: bounds = {}, stride = {}", bounds, stride), fflush(stdout);
+
+    // Iterate over the image in screen-aligned 4x4 patches:
+    for (uint32_t y = bounds.y1 / 4u * 4u; y < bounds.y2; y += 4u) {
+        // Get intersection of the y-range with the image bounds:
+        Range<uint32_t> yRange      = bounds.yRange().intersection(Range<uint32_t>{ y, y + 4u });
+        // Get first valid line in the range:
+        const PixelGreyscale8* line = r.line(yRange.min - bounds.y1);
+        // fmt::println("y={}, yRange={}, line = r.line({})", y, yRange, yRange.min - bounds.y1),
+        // fflush(stdout);
+
+        for (uint32_t x = bounds.x1 / 4u * 4u; x < bounds.x2; x += 4u) {
+            PatchData patchData{};
+            Range<uint32_t> xRange        = bounds.xRange().intersection(Range<uint32_t>{ x, x + 4u });
+            const PixelGreyscale8* pixels = line + xRange.min - bounds.x1;
+            uint8_t* dst                  = reinterpret_cast<uint8_t*>(patchData.data());
+            // Adjust the destination pointer to the start of the actual image data:
+            dst += (yRange.min - y) * 4u + (xRange.min - x);
+            // fmt::println("x={}, xRange={}, pixels = line + {}", x, xRange, xRange.min - bounds.x1),
+            // fflush(stdout);
+            // fmt::println("dst = patchData.data() + {} * 4 + {}", yRange.min - y, xRange.min - x),
+            // fflush(stdout);
+
+            size_t cols = xRange.distance(); // Number of pixels to copy along the x-axis:
+            switch (yRange.distance()) {     // Number of pixels to copy along the y-axis:
+            case 4u:
+                memcpy(dst + 12u, pixels + stride * 3u, cols);
+                [[fallthrough]];
+            case 3u:
+                memcpy(dst + 8u, pixels + stride * 2u, cols);
+                [[fallthrough]];
+            case 2u:
+                memcpy(dst + 4u, pixels + stride, cols);
+                [[fallthrough]];
+            case 1u:
+                memcpy(dst, pixels, cols);
+                break;
+            default:
+                break;
+            }
+
+            constexpr static PatchData empty{};
+
+            if (patchData != empty) {
+                Patch patch{ x | (y << 16u) };
+
+                auto it = lookup.find(patchData);
+                if (it != lookup.end()) {
+                    patch.offset = it->second;
+                } else {
+                    patch.offset = uint32_t(result.patchData.size());
+                    result.patchData.push_back(patchData);
+                    lookup.insert(it, std::pair{ patchData, patch.offset });
+                }
+                result.patches.push_back(patch);
+            }
+        }
+    }
+    return result;
+}
+
 static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(const Path& path, const FillOrStrokeParams& params,
                                                          Rectangle clip) {
     Rle rle;
@@ -905,19 +975,20 @@ static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(const Path& path, const
     return { rleToMask(rle, bounds.size()), bounds };
 }
 
-RasterizedPath Internal::rasterizePath(const Path& path, const FillOrStrokeParams& params,
-                                       Rectangle clipRect) {
+Internal::SparseMask Internal::rasterizePath(const Path& path, const FillOrStrokeParams& params,
+                                             Rectangle clipRect) {
     std::tuple<Rc<Image>, Rectangle> imageAndRect = rasterizeToImage(path, params, clipRect);
     if (!std::get<0>(imageAndRect)) {
-        return RasterizedPath{ nullptr, {} };
+        return Internal::SparseMask{};
     }
-    auto r = std::get<0>(imageAndRect)->mapRead();
-    RasterizedPath result;
-    result.sprite = makeSprite(r.size());
-    r.writeTo(result.sprite->bytes());
-    result.bounds = std::get<1>(imageAndRect);
-
-    return result;
+    return imageToPatches(imageAndRect);
 }
 
+void Path::addPolyline(std::span<const PointF> points) {
+    if (points.empty())
+        return;
+    moveTo(points.front());
+    for (size_t i = 1; i < points.size(); ++i)
+        lineTo(points[i]);
+}
 } // namespace Brisk

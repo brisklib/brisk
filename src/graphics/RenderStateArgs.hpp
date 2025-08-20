@@ -43,30 +43,12 @@ struct FillColor {
     }
 };
 
-struct StrokeColor {
-    using Type = ColorF;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.strokeColor1 = value;
-        state.strokeColor2 = value;
-    }
-};
-
 struct FillColors {
     using Type = GradientColors;
 
     static void apply(const Type& value, RenderStateEx& state) {
         state.fillColor1 = value.color1;
         state.fillColor2 = value.color2;
-    }
-};
-
-struct StrokeColors {
-    using Type = GradientColors;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.strokeColor1 = value.color1;
-        state.strokeColor2 = value.color2;
     }
 };
 
@@ -174,9 +156,7 @@ struct Scissors {
 inline namespace Arg {
 
 constexpr inline Argument<Tag::FillColor> fillColor{};
-constexpr inline Argument<Tag::StrokeColor> strokeColor{};
 constexpr inline Argument<Tag::FillColors> fillColors{};
-constexpr inline Argument<Tag::StrokeColors> strokeColors{};
 constexpr inline Argument<Tag::StrokeWidth> strokeWidth{};
 constexpr inline Argument<Tag::PaintOpacity> paintOpacity{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Linear>> linearGradient{};

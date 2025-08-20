@@ -1,3 +1,9 @@
+float4 tint_unpack4x8unorm(uint param_0) {
+  uint j = param_0;
+  uint4 i = uint4(j & 0xff, (j >> 8) & 0xff, (j >> 16) & 0xff, j >> 24);
+  return float4(i) / 255.0;
+}
+
 int tint_ftoi(float v) {
   return ((v <= 2147483520.0f) ? ((v < -2147483648.0f) ? -2147483648 : int(v)) : 2147483647);
 }
@@ -20,17 +26,12 @@ struct VertexOutput {
   float4 data1;
   float2 uv;
   float2 canvas_coord;
+  uint4 coverage;
 };
 
 cbuffer cbuffer_constants : register(b1) {
-  uint4 constants[15];
+  uint4 constants[13];
 };
-
-float distanceScale() {
-  float2 ac = float2(asfloat(constants[3].x), asfloat(constants[3].z));
-  return sqrt(dot(ac, ac));
-}
-
 cbuffer cbuffer_perFrame : register(b2) {
   uint4 perFrame[3];
 };
@@ -39,10 +40,6 @@ Texture2D<float4> fontTex_t : register(t9);
 Texture2D<float4> boundTexture_t : register(t10);
 SamplerState boundTexture_s : register(s6);
 SamplerState gradTex_s : register(s7);
-
-float max2(float2 pt) {
-  return max(pt.x, pt.y);
-}
 
 float2 map(float2 p1, float2 p2) {
   return float2(((p1.x * p2.x) + (p1.y * p2.y)), ((p1.x * p2.y) - (p1.y * p2.x)));
@@ -60,62 +57,8 @@ bool scissorTest(float2 p) {
   return isPointInQuad(p, asfloat(constants[1].zw), asfloat(constants[2].xy), asfloat(constants[2].zw), scissorPoint4);
 }
 
-float superLength(float2 pt) {
-  float p = 4.0f;
-  return pow((pow(pt.x, p) + pow(pt.y, p)), (1.0f / p));
-}
-
-float sdLengthEx(float2 pt, float border_radius) {
-  if ((border_radius == 0.0f)) {
-    return max2(abs(pt));
-  } else {
-    if ((border_radius > 0.0f)) {
-      return length(pt);
-    } else {
-      return superLength(pt);
-    }
-  }
-}
-
-float signedDistanceRectangle(float2 pt, float2 rect_size, float4 border_radii) {
-  float2 ext = (rect_size * 0.5f);
-  uint quadrant = (uint((pt.x >= 0.0f)) + (2u * uint((pt.y >= 0.0f))));
-  float rad = abs(border_radii[quadrant]);
-  float2 ext2 = (ext - float2(rad, rad));
-  float2 d = (abs(pt) - ext2);
-  float tint_symbol_5 = min(max(d.x, d.y), 0.0f);
-  float tint_symbol_6 = sdLengthEx(max(d, (0.0f).xx), border_radii[quadrant]);
-  return ((tint_symbol_5 + tint_symbol_6) - rad);
-}
-
-float signedDistanceArc(float2 pt, float outer_radius, float inner_radius, float start_angle, float end_angle) {
-  float outer_d = (length(pt) - outer_radius);
-  float inner_d = (length(pt) - inner_radius);
-  float circle = max(outer_d, -(inner_d));
-  if (((end_angle - start_angle) < 6.28318548202514648438f)) {
-    float2 start_sincos = -(float2(cos(start_angle), sin(start_angle)));
-    float2 end_sincos = float2(cos(end_angle), sin(end_angle));
-    float pie = 0.0f;
-    float2 add = float2(dot(pt, start_sincos), dot(pt, end_sincos));
-    if (((end_angle - start_angle) > 3.14159274101257324219f)) {
-      pie = min(add.x, add.y);
-    } else {
-      pie = max(add.x, add.y);
-    }
-    circle = max(circle, pie);
-  }
-  return circle;
-}
-
-struct Colors {
-  float4 brush;
-  float4 stroke;
-};
-
-float4 simpleGradient(float pos, bool stroke) {
-  float4 color1 = (stroke ? asfloat(constants[11]) : asfloat(constants[9]));
-  float4 color2 = (stroke ? asfloat(constants[12]) : asfloat(constants[10]));
-  return lerp(color1, color2, pos);
+float4 simpleGradient(float pos) {
+  return lerp(asfloat(constants[9]), asfloat(constants[10]), pos);
 }
 
 float4 multiGradient(float pos) {
@@ -135,66 +78,6 @@ float2 transformedTexCoord(float2 uv) {
     transformed_uv = clamp(transformed_uv, (0.5f).xx, (tex_size - 0.5f));
   }
   return (transformed_uv / tex_size);
-}
-
-float positionAlongLine(float2 from_, float2 to, float2 tint_symbol) {
-  float2 dir = normalize((to - from_));
-  float2 offs = (tint_symbol - from_);
-  return (dot(offs, dir) / length((to - from_)));
-}
-
-float sdfInfLine(float2 p, float2 p1, float2 p2) {
-  float2 dir = normalize((p2 - p1));
-  float2 normal = float2(-(dir.y), dir.x);
-  return dot((p - p1), normal);
-}
-
-float angleGradient(float2 p, float2 p1, float2 p2) {
-  float sd = sdfInfLine(p, p1, p2);
-  float2 n = map(normalize((p - p1)), normalize((p2 - p1)));
-  float first = ((atan2(n.x, n.y) * 0.15915493667125701904f) + 0.75f);
-  float second = ((atan2(-(n.x), -(n.y)) * 0.15915493667125701904f) + 0.25f);
-  return lerp(first, second, clamp((sd + 0.5f), 0.0f, 1.0f));
-}
-
-float gradientPositionForPoint(float2 tint_symbol) {
-  if ((asint(constants[14].y) == 0)) {
-    return positionAlongLine(asfloat(constants[13].xy), asfloat(constants[13].zw), tint_symbol);
-  } else {
-    if ((asint(constants[14].y) == 1)) {
-      return (length((tint_symbol - asfloat(constants[13].xy))) / length((asfloat(constants[13].zw) - asfloat(constants[13].xy))));
-    } else {
-      if ((asint(constants[14].y) == 2)) {
-        return angleGradient(tint_symbol, asfloat(constants[13].xy), asfloat(constants[13].zw));
-      } else {
-        if ((asint(constants[14].y) == 3)) {
-          float tint_symbol_21 = positionAlongLine(asfloat(constants[13].xy), asfloat(constants[13].zw), tint_symbol);
-          float tint_symbol_22 = frac(tint_symbol_21);
-          float tint_symbol_23 = abs(((tint_symbol_22 * 2.0f) - 1.0f));
-          return (1.0f - tint_symbol_23);
-        } else {
-          return 0.5f;
-        }
-      }
-    }
-  }
-}
-
-float gradientPosition(float2 canvas_coord) {
-  float pos = gradientPositionForPoint(canvas_coord);
-  return clamp(pos, 0.0f, 1.0f);
-}
-
-Colors simpleCalcColors(float2 canvas_coord) {
-  Colors result = (Colors)0;
-  float grad_pos = gradientPosition(canvas_coord);
-  if ((asint(constants[6].x) == -1)) {
-    result.brush = simpleGradient(grad_pos, false);
-  } else {
-    result.brush = multiGradient(grad_pos);
-  }
-  result.stroke = simpleGradient(grad_pos, true);
-  return result;
 }
 
 float4 sqr4(float4 x) {
@@ -218,18 +101,18 @@ float4 sampleBlur(float2 pos) {
   float2 w = (1.0f / float2(texSize));
   float2 lo = ((0.5f).xx / float2(texSize));
   float2 hi = (float2((float2(texSize) - 0.5f)) / float2(texSize));
-  float tint_symbol_7 = g1;
-  float4 tint_symbol_8 = boundTexture_t.Sample(boundTexture_s, pos);
-  float4 sum = (tint_symbol_7 * tint_symbol_8);
+  float tint_symbol_4 = g1;
+  float4 tint_symbol_5 = boundTexture_t.Sample(boundTexture_s, pos);
+  float4 sum = (tint_symbol_4 * tint_symbol_5);
   {
     for(int i = 1; (i <= half_size); i = (i + 2)) {
       {
         for(int j = 0; (j <= half_size); j = (j + 2)) {
-          float tint_symbol_9 = g1;
-          float4 tint_symbol_10 = sqr4(float2(float(i), float((i + 1))).xyxy);
-          float4 tint_symbol_11 = sqr4(float2(float(j), float((j + 1))).xxyy);
-          float4 tint_symbol_12 = exp(((tint_symbol_10 + tint_symbol_11) * g2));
-          float4 abcd = (tint_symbol_9 * tint_symbol_12);
+          float tint_symbol_6 = g1;
+          float4 tint_symbol_7 = sqr4(float2(float(i), float((i + 1))).xyxy);
+          float4 tint_symbol_8 = sqr4(float2(float(j), float((j + 1))).xxyy);
+          float4 tint_symbol_9 = exp(((tint_symbol_7 + tint_symbol_8) * g2));
+          float4 abcd = (tint_symbol_6 * tint_symbol_9);
           float ab_sum = (abcd[0] + abcd[1]);
           float cd_sum = (abcd[2] + abcd[3]);
           float abcd_sum = (ab_sum + cd_sum);
@@ -239,17 +122,17 @@ float4 sampleBlur(float2 pos) {
           float2 o = float2((((1.0f - abcd_y) * ab_y) + (abcd_y * cd_y)), abcd_y);
           float2 xy = (float2(float(i), float(j)) + o);
           float4 v1 = boundTexture_t.Sample(boundTexture_s, clamp((pos + (w * xy)), lo, hi));
-          float2 tint_symbol_13 = pos;
-          float2 tint_symbol_14 = w;
-          float2 tint_symbol_15 = conj(xy);
-          float2 tint_symbol_16 = clamp((tint_symbol_13 + (tint_symbol_14 * tint_symbol_15.yx)), lo, hi);
-          float4 v2 = boundTexture_t.Sample(boundTexture_s, tint_symbol_16);
+          float2 tint_symbol_10 = pos;
+          float2 tint_symbol_11 = w;
+          float2 tint_symbol_12 = conj(xy);
+          float2 tint_symbol_13 = clamp((tint_symbol_10 + (tint_symbol_11 * tint_symbol_12.yx)), lo, hi);
+          float4 v2 = boundTexture_t.Sample(boundTexture_s, tint_symbol_13);
           float4 v3 = boundTexture_t.Sample(boundTexture_s, clamp((pos + (w * -(xy))), lo, hi));
-          float2 tint_symbol_17 = pos;
-          float2 tint_symbol_18 = w;
-          float2 tint_symbol_19 = conj(xy.yx);
-          float2 tint_symbol_20 = clamp((tint_symbol_17 + (tint_symbol_18 * tint_symbol_19)), lo, hi);
-          float4 v4 = boundTexture_t.Sample(boundTexture_s, tint_symbol_20);
+          float2 tint_symbol_14 = pos;
+          float2 tint_symbol_15 = w;
+          float2 tint_symbol_16 = conj(xy.yx);
+          float2 tint_symbol_17 = clamp((tint_symbol_14 + (tint_symbol_15 * tint_symbol_16)), lo, hi);
+          float4 v4 = boundTexture_t.Sample(boundTexture_s, tint_symbol_17);
           sum = (sum + ((((v1 + v2) + v3) + v4) * abcd_sum));
         }
       }
@@ -258,59 +141,76 @@ float4 sampleBlur(float2 pos) {
   return sum;
 }
 
-Colors calcColors(float2 canvas_coord) {
-  if ((asint(constants[1].y) == -1)) {
-    return simpleCalcColors(canvas_coord);
+float positionAlongLine(float2 from_, float2 to, float2 tint_symbol) {
+  float2 dir = normalize((to - from_));
+  float2 offs = (tint_symbol - from_);
+  return (dot(offs, dir) / length((to - from_)));
+}
+
+float sdfInfLine(float2 p, float2 p1, float2 p2) {
+  float2 dir = normalize((p2 - p1));
+  float2 normal = float2(-(dir.y), dir.x);
+  return dot((p - p1), normal);
+}
+
+float angleGradient(float2 p, float2 p1, float2 p2) {
+  float sd = sdfInfLine(p, p1, p2);
+  float2 n = map(normalize((p - p1)), normalize((p2 - p1)));
+  float first = ((atan2(n.x, n.y) * 0.15915493667125701904f) + 0.75f);
+  float second = ((atan2(-(n.x), -(n.y)) * 0.15915493667125701904f) + 0.25f);
+  return lerp(first, second, clamp((sd + 0.5f), 0.0f, 1.0f));
+}
+
+float gradientPositionForPoint(float2 tint_symbol) {
+  if ((asint(constants[12].y) == 0)) {
+    return positionAlongLine(asfloat(constants[11].xy), asfloat(constants[11].zw), tint_symbol);
+  } else {
+    if ((asint(constants[12].y) == 1)) {
+      return (length((tint_symbol - asfloat(constants[11].xy))) / length((asfloat(constants[11].zw) - asfloat(constants[11].xy))));
+    } else {
+      if ((asint(constants[12].y) == 2)) {
+        return angleGradient(tint_symbol, asfloat(constants[11].xy), asfloat(constants[11].zw));
+      } else {
+        if ((asint(constants[12].y) == 3)) {
+          float tint_symbol_18 = positionAlongLine(asfloat(constants[11].xy), asfloat(constants[11].zw), tint_symbol);
+          float tint_symbol_19 = frac(tint_symbol_18);
+          float tint_symbol_20 = abs(((tint_symbol_19 * 2.0f) - 1.0f));
+          return (1.0f - tint_symbol_20);
+        } else {
+          return 0.5f;
+        }
+      }
+    }
   }
-  Colors result = (Colors)0;
+}
+
+float gradientPosition(float2 canvas_coord) {
+  float pos = gradientPositionForPoint(canvas_coord);
+  return clamp(pos, 0.0f, 1.0f);
+}
+
+float4 computeShadeColor(float2 canvas_coord) {
+  float4 result = float4(0.0f, 0.0f, 0.0f, 0.0f);
+  if ((asint(constants[1].y) == -1)) {
+    float grad_pos = gradientPosition(canvas_coord);
+    if ((asint(constants[6].x) == -1)) {
+      result = simpleGradient(grad_pos);
+    } else {
+      result = multiGradient(grad_pos);
+    }
+    return result;
+  }
   float2 transformed_uv = transformedTexCoord(canvas_coord);
   if ((asfloat(constants[8].w) > 0.0f)) {
-    result.brush = sampleBlur(transformed_uv);
+    result = sampleBlur(transformed_uv);
   } else {
-    result.brush = boundTexture_t.Sample(boundTexture_s, transformed_uv);
+    result = boundTexture_t.Sample(boundTexture_s, transformed_uv);
   }
-  result.brush = clamp(result.brush, (0.0f).xxxx, (1.0f).xxxx);
+  result = clamp(result, (0.0f).xxxx, (1.0f).xxxx);
   if ((asint(constants[6].x) != -1)) {
-    result.brush = multiGradient(result.brush[asint(constants[6].z)]);
+    result = multiGradient(result[asint(constants[6].z)]);
   }
-  result.stroke = (0.0f).xxxx;
   return result;
-}
-
-float toCoverage(float sd) {
-  float tint_symbol_24 = sd;
-  float tint_symbol_25 = distanceScale();
-  return clamp((0.5f - (tint_symbol_24 * tint_symbol_25)), 0.0f, 1.0f);
-}
-
-float4 fillOnly(float signed_distance, Colors colors) {
-  float4 tint_symbol_26 = colors.brush;
-  float tint_symbol_27 = toCoverage(signed_distance);
-  return (tint_symbol_26 * tint_symbol_27);
-}
-
-float4 blendNormalPremultiplied(float4 src, float4 tint_symbol_1) {
-  return float4((src.rgb + (tint_symbol_1.rgb * (1.0f - src.a))), (src.a + (tint_symbol_1.a * (1.0f - src.a))));
-}
-
-float4 fillAndStroke(float stroke_sd, float fill_sd, Colors colors) {
-  float4 tint_symbol_28 = colors.brush;
-  float tint_symbol_29 = toCoverage(fill_sd);
-  float4 backColor = (tint_symbol_28 * tint_symbol_29);
-  float4 tint_symbol_30 = colors.stroke;
-  float tint_symbol_31 = toCoverage(stroke_sd);
-  float4 foreColor = (tint_symbol_30 * tint_symbol_31);
-  return blendNormalPremultiplied(foreColor, backColor);
-}
-
-float4 signedDistanceToColor(float sd, float2 canvas_coord) {
-  float stroke_sd = (abs(sd) - (asfloat(constants[14].x) * 0.5f));
-  Colors colors = calcColors(canvas_coord);
-  if ((asfloat(constants[14].x) > 0.0f)) {
-    return fillAndStroke(stroke_sd, sd, colors);
-  } else {
-    return fillOnly(sd, colors);
-  }
 }
 
 uint tint_mod(uint lhs, uint rhs) {
@@ -336,8 +236,8 @@ float atlas(int sprite, int2 pos, uint stride) {
   if ((sprite < 0)) {
     return float((uint((pos.x & pos.y)) & 1u));
   }
-  uint tint_symbol_2 = (((uint(sprite) * 8u) + uint(pos.x)) + (uint(pos.y) * stride));
-  return fontTex_t.Load(uint3(tint_mod(tint_symbol_2, perFrame[2].x), tint_div(tint_symbol_2, perFrame[2].x), 0u)).r;
+  uint tint_symbol_1 = (((uint(sprite) * 8u) + uint(pos.x)) + (uint(pos.y) * stride));
+  return fontTex_t.Load(uint3(tint_mod(tint_symbol_1, perFrame[2].x), tint_div(tint_symbol_1, perFrame[2].x), 0u)).r;
 }
 
 float4 atlasRGBA(int sprite, int2 pos, uint stride) {
@@ -351,8 +251,8 @@ float4 atlasRGBA(int sprite, int2 pos, uint stride) {
   if ((sprite < 0)) {
     return float4((float((uint((pos.x & pos.y)) & 1u))).xxxx);
   }
-  uint tint_symbol_2 = (((uint(sprite) * 8u) + (uint(pos.x) * 4u)) + (uint(pos.y) * stride));
-  uint2 c = uint2(tint_mod(tint_symbol_2, perFrame[2].x), tint_div(tint_symbol_2, perFrame[2].x));
+  uint tint_symbol_1 = (((uint(sprite) * 8u) + (uint(pos.x) * 4u)) + (uint(pos.y) * stride));
+  uint2 c = uint2(tint_mod(tint_symbol_1, perFrame[2].x), tint_div(tint_symbol_1, perFrame[2].x));
   return float4(fontTex_t.Load(uint3(c, 0u)).r, fontTex_t.Load(uint3((c + uint2(1u, 0u)), 0u)).r, fontTex_t.Load(uint3((c + uint2(2u, 0u)), 0u)).r, fontTex_t.Load(uint3((c + uint2(3u, 0u)), 0u)).r);
 }
 
@@ -364,9 +264,9 @@ float atlasAccum(int sprite, int2 pos, uint stride) {
   }
   {
     for(int i = 0; (i < asint(constants[4].z)); i = (i + 1)) {
-      float tint_symbol_32 = alpha;
-      float tint_symbol_33 = atlas(sprite, (pos + int2(i, 0)), stride);
-      alpha = (tint_symbol_32 + tint_symbol_33);
+      float tint_symbol_21 = alpha;
+      float tint_symbol_22 = atlas(sprite, (pos + int2(i, 0)), stride);
+      alpha = (tint_symbol_21 + tint_symbol_22);
     }
   }
   return (alpha / float(asint(constants[4].z)));
@@ -386,21 +286,21 @@ float3 processSubpixelOutput(float3 rgb) {
 
 float3 atlasSubpixel(int sprite, int2 pos, uint stride) {
   if ((asint(constants[4].z) == 6)) {
-    float tint_symbol_34 = atlas(sprite, (pos + int2(-2, 0)), stride);
-    float tint_symbol_35 = atlas(sprite, (pos + int2(-1, 0)), stride);
-    float x0 = (tint_symbol_34 + tint_symbol_35);
-    float tint_symbol_36 = atlas(sprite, (pos + (0).xx), stride);
-    float tint_symbol_37 = atlas(sprite, (pos + int2(1, 0)), stride);
-    float x1 = (tint_symbol_36 + tint_symbol_37);
-    float tint_symbol_38 = atlas(sprite, (pos + int2(2, 0)), stride);
-    float tint_symbol_39 = atlas(sprite, (pos + int2(3, 0)), stride);
-    float x2 = (tint_symbol_38 + tint_symbol_39);
-    float tint_symbol_40 = atlas(sprite, (pos + int2(4, 0)), stride);
-    float tint_symbol_41 = atlas(sprite, (pos + int2(5, 0)), stride);
-    float x3 = (tint_symbol_40 + tint_symbol_41);
-    float tint_symbol_42 = atlas(sprite, (pos + int2(6, 0)), stride);
-    float tint_symbol_43 = atlas(sprite, (pos + int2(7, 0)), stride);
-    float x4 = (tint_symbol_42 + tint_symbol_43);
+    float tint_symbol_23 = atlas(sprite, (pos + int2(-2, 0)), stride);
+    float tint_symbol_24 = atlas(sprite, (pos + int2(-1, 0)), stride);
+    float x0 = (tint_symbol_23 + tint_symbol_24);
+    float tint_symbol_25 = atlas(sprite, (pos + (0).xx), stride);
+    float tint_symbol_26 = atlas(sprite, (pos + int2(1, 0)), stride);
+    float x1 = (tint_symbol_25 + tint_symbol_26);
+    float tint_symbol_27 = atlas(sprite, (pos + int2(2, 0)), stride);
+    float tint_symbol_28 = atlas(sprite, (pos + int2(3, 0)), stride);
+    float x2 = (tint_symbol_27 + tint_symbol_28);
+    float tint_symbol_29 = atlas(sprite, (pos + int2(4, 0)), stride);
+    float tint_symbol_30 = atlas(sprite, (pos + int2(5, 0)), stride);
+    float x3 = (tint_symbol_29 + tint_symbol_30);
+    float tint_symbol_31 = atlas(sprite, (pos + int2(6, 0)), stride);
+    float tint_symbol_32 = atlas(sprite, (pos + int2(7, 0)), stride);
+    float x4 = (tint_symbol_31 + tint_symbol_32);
     float3 filt = float3(0.125f, 0.25f, 0.125f);
     return float3(dot(float3(x0, x1, x2), filt), dot(float3(x1, x2, x3), filt), dot(float3(x2, x3, x4), filt));
   } else {
@@ -434,8 +334,8 @@ float2 erf(float2 x) {
 float roundedBoxShadowX(float x, float y, float sigma, float corner, float2 halfSize) {
   float delta = min(((halfSize.y - corner) - abs(y)), 0.0f);
   float curved = ((halfSize.x - corner) + sqrt(max(0.0f, ((corner * corner) - (delta * delta)))));
-  float2 tint_symbol_44 = erf(((float2((x).xx) + float2(-(curved), curved)) * (0.70710676908493041992f / sigma)));
-  float2 integral = (0.5f + (0.5f * tint_symbol_44));
+  float2 tint_symbol_33 = erf(((float2((x).xx) + float2(-(curved), curved)) * (0.70710676908493041992f / sigma)));
+  float2 integral = (0.5f + (0.5f * tint_symbol_33));
   return (integral.y - integral.x);
 }
 
@@ -451,22 +351,22 @@ float roundedBoxShadow(float2 halfSize, float2 tint_symbol, float sigma, float4 
   float corner = abs(border_radii[quadrant]);
   {
     for(int i = 0; (i < 4); i = (i + 1)) {
-      float tint_symbol_45 = value;
-      float tint_symbol_46 = roundedBoxShadowX(tint_symbol.x, (tint_symbol.y - y), sigma, corner, halfSize);
-      float tint_symbol_47 = gaussian(y, sigma);
-      value = (tint_symbol_45 + ((tint_symbol_46 * tint_symbol_47) * step));
+      float tint_symbol_34 = value;
+      float tint_symbol_35 = roundedBoxShadowX(tint_symbol.x, (tint_symbol.y - y), sigma, corner, halfSize);
+      float tint_symbol_36 = gaussian(y, sigma);
+      value = (tint_symbol_34 + ((tint_symbol_35 * tint_symbol_36) * step));
       y = (y + step);
     }
   }
   return value;
 }
 
-float4 applyGamma(float4 tint_symbol_3, float gamma) {
-  return pow(max(tint_symbol_3, (0.0f).xxxx), float4((gamma).xxxx));
+float4 applyGamma(float4 tint_symbol_2, float gamma) {
+  return pow(max(tint_symbol_2, (0.0f).xxxx), float4((gamma).xxxx));
 }
 
-float4 applyBlueLightFilter(float4 tint_symbol_3, float intensity) {
-  return (tint_symbol_3 * float4(1.0f, (1.0f - ((intensity * 0.60000002384185791016f) * 0.60000002384185791016f)), (1.0f - (intensity * 0.60000002384185791016f)), 1.0f));
+float4 applyBlueLightFilter(float4 tint_symbol_2, float intensity) {
+  return (tint_symbol_2 * float4(1.0f, (1.0f - ((intensity * 0.60000002384185791016f) * 0.60000002384185791016f)), (1.0f - (intensity * 0.60000002384185791016f)), 1.0f));
 }
 
 struct FragOut {
@@ -475,9 +375,9 @@ struct FragOut {
 };
 
 bool useBlending() {
-  bool tint_tmp_6 = (asint(constants[1].x) == 2);
+  bool tint_tmp_6 = (asint(constants[1].x) == 1);
   if (!tint_tmp_6) {
-    tint_tmp_6 = (asint(constants[1].x) == 4);
+    tint_tmp_6 = (asint(constants[1].x) == 5);
   }
   bool tint_tmp_5 = (tint_tmp_6);
   if (tint_tmp_5) {
@@ -486,124 +386,115 @@ bool useBlending() {
   return (tint_tmp_5);
 }
 
-FragOut postprocessColor(FragOut tint_symbol_3, uint2 canvas_coord) {
-  FragOut tint_symbol_4 = tint_symbol_3;
+FragOut postprocessColor(FragOut tint_symbol_2, uint2 canvas_coord) {
+  FragOut tint_symbol_3 = tint_symbol_2;
   float opacity = asfloat(constants[5].w);
   if ((constants[5].x != 0u)) {
     uint pattern_scale = (constants[5].x >> 24u);
     uint hpattern = (constants[5].x & 4095u);
     uint vpattern = (constants[5].x >> 12u);
-    uint tint_symbol_48 = samplePattern(tint_div(canvas_coord.x, pattern_scale), hpattern);
-    uint tint_symbol_49 = samplePattern(tint_div(canvas_coord.y, pattern_scale), vpattern);
-    uint p = (tint_symbol_48 & tint_symbol_49);
+    uint tint_symbol_37 = samplePattern(tint_div(canvas_coord.x, pattern_scale), hpattern);
+    uint tint_symbol_38 = samplePattern(tint_div(canvas_coord.y, pattern_scale), vpattern);
+    uint p = (tint_symbol_37 & tint_symbol_38);
     opacity = (opacity * float(p));
   }
-  tint_symbol_4.color = (tint_symbol_4.color * opacity);
+  tint_symbol_3.color = (tint_symbol_3.color * opacity);
   if (useBlending()) {
-    tint_symbol_4.blend = (tint_symbol_4.blend * opacity);
+    tint_symbol_3.blend = (tint_symbol_3.blend * opacity);
   }
   if ((asfloat(perFrame[1].x) != 0.0f)) {
-    tint_symbol_4.color = applyBlueLightFilter(tint_symbol_4.color, asfloat(perFrame[1].x));
+    tint_symbol_3.color = applyBlueLightFilter(tint_symbol_3.color, asfloat(perFrame[1].x));
     if (useBlending()) {
-      tint_symbol_4.blend = applyBlueLightFilter(tint_symbol_4.blend, asfloat(perFrame[1].x));
+      tint_symbol_3.blend = applyBlueLightFilter(tint_symbol_3.blend, asfloat(perFrame[1].x));
     }
   }
   if ((asfloat(perFrame[1].y) != 1.0f)) {
-    tint_symbol_4.color = applyGamma(tint_symbol_4.color, asfloat(perFrame[1].y));
+    tint_symbol_3.color = applyGamma(tint_symbol_3.color, asfloat(perFrame[1].y));
     if (useBlending()) {
-      tint_symbol_4.blend = applyGamma(tint_symbol_4.blend, asfloat(perFrame[1].y));
+      tint_symbol_3.blend = applyGamma(tint_symbol_3.blend, asfloat(perFrame[1].y));
     }
   }
   if (!(useBlending())) {
-    tint_symbol_4.blend = float4((tint_symbol_4.color.a).xxxx);
+    tint_symbol_3.blend = float4((tint_symbol_3.color.a).xxxx);
   }
-  return tint_symbol_4;
+  return tint_symbol_3;
 }
 
-struct tint_symbol_55 {
+struct tint_symbol_44 {
   noperspective float4 data0 : TEXCOORD0;
   noperspective float4 data1 : TEXCOORD1;
   noperspective float2 uv : TEXCOORD2;
   noperspective float2 canvas_coord : TEXCOORD3;
+  nointerpolation uint4 coverage : TEXCOORD4;
   float4 position : SV_Position;
 };
-struct tint_symbol_56 {
+struct tint_symbol_45 {
   float4 color : SV_Target0;
   float4 blend : SV_Target1;
 };
 
-FragOut fragmentMain_inner(VertexOutput tint_symbol_3) {
+FragOut fragmentMain_inner(VertexOutput tint_symbol_2) {
   if (true) {
-    if ((asint(constants[1].x) == 6)) {
-      int2 tex_coord = tint_ftoi_1(tint_symbol_3.position.xy);
-      FragOut tint_symbol_57 = {boundTexture_t.Load(int3(tex_coord, 0)), (1.0f).xxxx};
-      return tint_symbol_57;
+    if ((asint(constants[1].x) == 4)) {
+      int2 tex_coord = tint_ftoi_1(tint_symbol_2.position.xy);
+      FragOut tint_symbol_46 = {boundTexture_t.Load(int3(tex_coord, 0)), (1.0f).xxxx};
+      return tint_symbol_46;
     }
-    if (!(scissorTest(tint_symbol_3.position.xy))) {
+    if (!(scissorTest(tint_symbol_2.position.xy))) {
       discard;
     }
     float4 outColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 outBlend = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    bool useBlend = false;
-    bool tint_tmp_7 = (asint(constants[1].x) == 0);
-    if (!tint_tmp_7) {
-      tint_tmp_7 = (asint(constants[1].x) == 1);
-    }
-    if ((tint_tmp_7)) {
-      float sd = 0.0f;
-      if ((asint(constants[1].x) == 0)) {
-        sd = signedDistanceRectangle(tint_symbol_3.uv, tint_symbol_3.data0.xy, tint_symbol_3.data1);
-      } else {
-        sd = signedDistanceArc(tint_symbol_3.uv, tint_symbol_3.data0.z, tint_symbol_3.data0.w, tint_symbol_3.data1.x, tint_symbol_3.data1.y);
-      }
-      outColor = signedDistanceToColor(sd, tint_symbol_3.canvas_coord);
+    if ((asint(constants[1].x) == 2)) {
+      float tint_symbol_39 = roundedBoxShadow((tint_symbol_2.data0.xy * 0.5f), tint_symbol_2.uv, asfloat(constants[8].w), tint_symbol_2.data1);
+      outColor = (asfloat(constants[9]) * tint_symbol_39);
     } else {
-      if ((asint(constants[1].x) == 3)) {
-        float tint_symbol_50 = roundedBoxShadow((tint_symbol_3.data0.xy * 0.5f), tint_symbol_3.uv, asfloat(constants[8].w), tint_symbol_3.data1);
-        outColor = (asfloat(constants[9]) * tint_symbol_50);
-      } else {
-        bool tint_tmp_9 = (asint(constants[1].x) == 4);
-        if (!tint_tmp_9) {
-          tint_tmp_9 = (asint(constants[1].x) == 5);
-        }
-        bool tint_tmp_8 = (tint_tmp_9);
-        if (!tint_tmp_8) {
-          tint_tmp_8 = (asint(constants[1].x) == 2);
-        }
-        if ((tint_tmp_8)) {
-          int sprite = tint_ftoi(tint_symbol_3.data0.z);
-          uint stride = tint_ftou(tint_symbol_3.data0.w);
-          int2 tuv = tint_ftoi_1(tint_symbol_3.uv);
-          Colors colors = calcColors(tint_symbol_3.canvas_coord);
-          if (useBlending()) {
-            float3 tint_symbol_51 = atlasSubpixel(sprite, tuv, stride);
-            float3 rgb = processSubpixelOutput(tint_symbol_51);
-            outColor = (colors.brush * float4(rgb, 1.0f));
-            outBlend = float4((colors.brush.a * rgb), 1.0f);
+      bool tint_tmp_7 = (asint(constants[1].x) == 3);
+      if (!tint_tmp_7) {
+        tint_tmp_7 = (asint(constants[1].x) == 1);
+      }
+      if ((tint_tmp_7)) {
+        int sprite = tint_ftoi(tint_symbol_2.data0.z);
+        uint stride = tint_ftou(tint_symbol_2.data0.w);
+        int2 tuv = tint_ftoi_1(tint_symbol_2.uv);
+        float4 shadeColor = computeShadeColor(tint_symbol_2.canvas_coord);
+        if (useBlending()) {
+          float3 tint_symbol_40 = atlasSubpixel(sprite, tuv, stride);
+          float3 rgb = processSubpixelOutput(tint_symbol_40);
+          outColor = (shadeColor * float4(rgb, 1.0f));
+          outBlend = float4((shadeColor.a * rgb), 1.0f);
+        } else {
+          if ((asint(constants[1].x) == 3)) {
+            float4 tint_symbol_41 = shadeColor;
+            float4 tint_symbol_42 = atlasRGBA(sprite, tuv, stride);
+            outColor = (tint_symbol_41 * tint_symbol_42);
           } else {
-            if ((asint(constants[1].x) == 5)) {
-              float4 tint_symbol_52 = colors.brush;
-              float4 tint_symbol_53 = atlasRGBA(sprite, tuv, stride);
-              outColor = (tint_symbol_52 * tint_symbol_53);
-            } else {
-              float alpha = atlasAccum(sprite, tuv, stride);
-              outColor = (colors.brush * float4((alpha).xxxx));
-            }
+            float alpha = atlasAccum(sprite, tuv, stride);
+            outColor = (shadeColor * float4((alpha).xxxx));
           }
         }
+      } else {
+        if ((asint(constants[1].x) == 5)) {
+          uint2 xy = tint_ftou_1(tint_symbol_2.uv);
+          float cov = tint_unpack4x8unorm(tint_symbol_2.coverage[xy.y])[xy.x];
+          float4 shadeColor = computeShadeColor(tint_symbol_2.canvas_coord);
+          outColor = (shadeColor * float4((cov).xxxx));
+        } else {
+          outColor = float4(0.0f, 1.0f, 0.0f, 0.5f);
+        }
       }
     }
-    FragOut tint_symbol_58 = {outColor, outBlend};
-    return postprocessColor(tint_symbol_58, tint_ftou_1(tint_symbol_3.canvas_coord));
+    FragOut tint_symbol_47 = {outColor, outBlend};
+    return postprocessColor(tint_symbol_47, tint_ftou_1(tint_symbol_2.canvas_coord));
   }
   FragOut unused_1;
   return unused_1;
 }
 
-tint_symbol_56 fragmentMain(tint_symbol_55 tint_symbol_54) {
-  VertexOutput tint_symbol_59 = {float4(tint_symbol_54.position.xyz, (1.0f / tint_symbol_54.position.w)), tint_symbol_54.data0, tint_symbol_54.data1, tint_symbol_54.uv, tint_symbol_54.canvas_coord};
-  FragOut inner_result = fragmentMain_inner(tint_symbol_59);
-  tint_symbol_56 wrapper_result = (tint_symbol_56)0;
+tint_symbol_45 fragmentMain(tint_symbol_44 tint_symbol_43) {
+  VertexOutput tint_symbol_48 = {float4(tint_symbol_43.position.xyz, (1.0f / tint_symbol_43.position.w)), tint_symbol_43.data0, tint_symbol_43.data1, tint_symbol_43.uv, tint_symbol_43.canvas_coord, tint_symbol_43.coverage};
+  FragOut inner_result = fragmentMain_inner(tint_symbol_48);
+  tint_symbol_45 wrapper_result = (tint_symbol_45)0;
   wrapper_result.color = inner_result.color;
   wrapper_result.blend = inner_result.blend;
   return wrapper_result;

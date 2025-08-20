@@ -385,7 +385,6 @@ void Window::paintDebug(RenderContext& context) {
                         m_framebufferSize.height };
         context.setClipRect(rect);
         paintStat(canvas, rect);
-        BRISK_ASSERT(canvas.rasterizedPaths() == 0);
     }
 }
 

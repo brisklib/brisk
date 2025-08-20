@@ -41,6 +41,41 @@ enum class MaskOp : uint8_t {
 };
 
 namespace Internal {
+
+inline bool boolOp(MaskOp op, bool a, bool b) {
+    switch (op) {
+    case MaskOp::And:
+        return a && b;
+    case MaskOp::AndNot:
+        return a && !b;
+    case MaskOp::Or:
+        return a || b;
+    case MaskOp::Xor:
+        return a != b;
+    default:
+        BRISK_UNREACHABLE();
+    }
+}
+
+static inline uint8_t divBy255(int x) {
+    return (x + (x >> 8) + 0x80) >> 8;
+}
+
+inline uint8_t coverageOp(MaskOp op, uint8_t a, uint8_t b) {
+    switch (op) {
+    case MaskOp::And:
+        return divBy255(a * b);
+    case MaskOp::AndNot:
+        return divBy255(a * (255 - b));
+    case MaskOp::Or:
+        return a + b - divBy255(a * b);
+    case MaskOp::Xor:
+        return a + b - 2 * divBy255(a * b);
+    default:
+        BRISK_UNREACHABLE();
+    }
+}
+
 template <typename T>
 struct FloatTypeFor {
     using Type = float;
@@ -2393,6 +2428,14 @@ struct RectangleOf {
      */
     constexpr bool intersects(const RectangleOf& c) const noexcept {
         return !intersection(c).empty();
+    }
+
+    constexpr Range<T> xRange() const noexcept {
+        return Range<T>{ x1, x2 };
+    }
+
+    constexpr Range<T> yRange() const noexcept {
+        return Range<T>{ y1, y2 };
     }
 
     /**

@@ -102,7 +102,7 @@ void RenderEncoderD3d11::end() {
     m_currentTarget = nullptr;
 }
 
-void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<const float> data) {
+void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<const uint32_t> data) {
     ComPtr<ID3D11DeviceContext> context = m_device->m_context;
 
 #if 1
@@ -257,20 +257,20 @@ void RenderEncoderD3d11::updateConstantBuffer(std::span<const RenderState> data)
 }
 
 // Update the data buffer and possibly recreate it.
-void RenderEncoderD3d11::updateDataBuffer(std::span<const float> data) {
-    static const float dummy[4] = { 0.f };
+void RenderEncoderD3d11::updateDataBuffer(std::span<const uint32_t> data) {
+    static const uint32_t dummy[4] = { 0u, 0u, 0u, 0u };
     if (data.empty()) {
         // Ensure that buffer is not empty
         data = dummy;
     }
 
-    if (!m_dataBuffer || data.size_bytes() != m_dataBufferSize) {
+    if (!m_dataBuffer || data.size_bytes() > m_dataBufferSize) {
         m_dataSRV.Reset();
         D3D11_BUFFER_DESC bufDesc{}; // zero-initialize
         bufDesc.ByteWidth      = data.size_bytes();
-        bufDesc.Usage          = D3D11_USAGE_DYNAMIC;
+        bufDesc.Usage          = D3D11_USAGE_DEFAULT;
         bufDesc.BindFlags      = D3D11_BIND_SHADER_RESOURCE;
-        bufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        bufDesc.CPUAccessFlags = 0;
         bufDesc.MiscFlags      = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 
         D3D11_SUBRESOURCE_DATA subData{}; // zero-initialize
@@ -280,25 +280,20 @@ void RenderEncoderD3d11::updateDataBuffer(std::span<const float> data) {
             m_device->m_device->CreateBuffer(&bufDesc, &subData, m_dataBuffer.ReleaseAndGetAddressOf());
         CHECK_HRESULT(hr, return);
 
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{}; // zero-initialize
-        srvDesc.Format               = DXGI_FORMAT_R32_TYPELESS;
-        srvDesc.ViewDimension        = D3D11_SRV_DIMENSION_BUFFEREX;
-        srvDesc.BufferEx.NumElements = data.size();
-        srvDesc.BufferEx.Flags       = D3D11_BUFFEREX_SRV_FLAG_RAW;
-
-        hr = m_device->m_device->CreateShaderResourceView(m_dataBuffer.Get(), &srvDesc,
-                                                          m_dataSRV.ReleaseAndGetAddressOf());
-        CHECK_HRESULT(hr, return);
         m_dataBufferSize = data.size_bytes();
     } else if (data.size_bytes() > 0) {
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        HRESULT hr = m_device->m_context->Map(m_dataBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        CHECK_HRESULT(hr, return);
-        SCOPE_EXIT {
-            m_device->m_context->Unmap(m_dataBuffer.Get(), 0);
-        };
-        memcpy(mapped.pData, data.data(), data.size_bytes());
+        m_device->m_context->UpdateSubresource(m_dataBuffer.Get(), 0, nullptr, data.data(),
+                                               static_cast<UINT>(data.size_bytes()), 0);
     }
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{}; // zero-initialize
+    srvDesc.Format               = DXGI_FORMAT_R32_TYPELESS;
+    srvDesc.ViewDimension        = D3D11_SRV_DIMENSION_BUFFEREX;
+    srvDesc.BufferEx.NumElements = data.size();
+    srvDesc.BufferEx.Flags       = D3D11_BUFFEREX_SRV_FLAG_RAW;
+
+    HRESULT hr                   = m_device->m_device->CreateShaderResourceView(m_dataBuffer.Get(), &srvDesc,
+                                                                                m_dataSRV.ReleaseAndGetAddressOf());
+    CHECK_HRESULT(hr, return);
 }
 
 void RenderEncoderD3d11::updateAtlasTexture() {

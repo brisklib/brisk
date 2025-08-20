@@ -113,7 +113,7 @@ bool RenderPipeline::flush() {
     return true;
 }
 
-void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
+void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data) {
     if (cmd.imageHandle) {
         m_encoder->device()->createImageBackend(cmd.imageHandle);
         cmd.imageBackend = Internal::getBackend(cmd.imageHandle);
@@ -167,9 +167,8 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
     // Add padding needed to align m_data to a multiple of 4.
     m_data.resize(alignUp(m_data.size(), 4), 0);
 
-    if (cmd.shader == ShaderType::Text || cmd.shader == ShaderType::Mask ||
-        cmd.shader == ShaderType::ColorMask) {
-        float* cmdData        = m_data.data() + offs;
+    if (cmd.shader == ShaderType::Text || cmd.shader == ShaderType::ColorMask) {
+        uint32_t* cmdData     = m_data.data() + offs;
         GeometryGlyph* glyphs = reinterpret_cast<GeometryGlyph*>(cmdData);
         for (size_t i = 0; i < data.size_bytes() / sizeof(GeometryGlyph); ++i) {
             int32_t idx = static_cast<int>(glyphs[i].sprite);
@@ -200,17 +199,9 @@ void RenderPipeline::setClipRect(Rectangle clipRect) {
 }
 
 void RenderPipeline::blit(Rc<Image> image) {
-#if 1
     RenderStateEx style(ShaderType::Blit, nullptr);
     style.imageHandle = std::move(image);
     command(std::move(style), {});
-#else
-    RenderStateEx style(ShaderType::Rectangles, nullptr);
-    RectangleF rect{ {}, image->size() };
-    style.textureMatrix = Matrix{};
-    style.imageHandle   = std::move(image);
-    command(std::move(style), one(GeometryRectangle{ rect, CornersF(0.f) }));
-#endif
 }
 
 Rectangle RenderPipeline::clipRect() const {

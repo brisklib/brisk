@@ -36,10 +36,6 @@
 
 namespace Brisk {
 
-static inline uint8_t divBy255(int x) {
-    return (x + (x >> 8) + 0x80) >> 8;
-}
-
 inline static void copy(const Rle::Span* span, size_t count, std::vector<Rle::Span>& v) {
     // make sure enough memory available
     if (v.capacity() < v.size() + count)
@@ -141,35 +137,8 @@ void Rle::addRect(Rectangle rect) {
     mBbox = rect;
 }
 
-inline bool boolOp(MaskOp op, bool a, bool b) {
-    switch (op) {
-    case MaskOp::And:
-        return a && b;
-    case MaskOp::AndNot:
-        return a && !b;
-    case MaskOp::Or:
-        return a || b;
-    case MaskOp::Xor:
-        return a != b;
-    default:
-        BRISK_UNREACHABLE();
-    }
-}
-
-inline uint8_t coverageOp(MaskOp op, uint8_t a, uint8_t b) {
-    switch (op) {
-    case MaskOp::And:
-        return divBy255(a * b);
-    case MaskOp::AndNot:
-        return divBy255(a * (255 - b));
-    case MaskOp::Or:
-        return a + b - divBy255(a * b);
-    case MaskOp::Xor:
-        return a + b - 2 * divBy255(a * b);
-    default:
-        BRISK_UNREACHABLE();
-    }
-}
+using Internal::boolOp;
+using Internal::coverageOp;
 
 Rle Rle::binary(const Rle& left, const Rle& right, MaskOp op) {
     if (left.empty() && right.empty())

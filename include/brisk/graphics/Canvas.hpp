@@ -189,9 +189,8 @@ struct PaintAndTransform;
  * @brief Enum class defining flags for canvas rendering options.
  */
 enum class CanvasFlags {
-    None    = 0,  ///< No special rendering flags.
-    Sdf     = 1,  ///< Use Signed Distance Field for compatible shapes.
-    Default = Sdf ///< Default rendering flag, set to Sdf.
+    None    = 0,
+    Default = None,
 };
 
 template <>
@@ -891,8 +890,6 @@ public:
      */
     ClipRectSaver saveClipRect() &;
 
-    int rasterizedPaths() const noexcept;
-
     /**
      * @brief Checks if the Canvas supports layer rendering.
      *
@@ -968,9 +965,13 @@ private:
     std::vector<State> m_stack;  ///< The stack of saved Canvas states.
     std::vector<Layer> m_layers; ///< The stack of layers for rendering.
 
-    int m_rasterizedPaths = 0;
-    void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint,
+    void drawRasterizedPath(const Internal::SparseMask& path, const Internal::PaintAndTransform& paint,
                             Quad3 scissors);
+
+    void drawTextSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                         RenderStateExArgs args);
+    void drawColorSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                          RenderStateExArgs args);
 };
 
 } // namespace Brisk
