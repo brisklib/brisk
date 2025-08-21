@@ -119,11 +119,13 @@ namespace Internal {
 extern PerformanceDuration performancePathScanline;
 extern PerformanceDuration performancePathRasterization;
 
-union PatchData {
+union alignas(8) PatchData {
     uint64_t data_u64[2];
     uint32_t data_u32[4];
     uint16_t data_u16[8];
     uint8_t data_u8[16];
+
+    static const PatchData filled;
 
     static PatchData fromBits(uint16_t bits) {
         PatchData result;
@@ -147,6 +149,8 @@ union PatchData {
     }
 };
 
+inline const PatchData PatchData::filled = { .data_u64 = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF } };
+
 struct Patch {
     uint16_t x, y;   // screen-aligned
     uint32_t offset; // index in patchData
@@ -159,6 +163,17 @@ struct Patch {
         uint32_t xy       = uint32_t(x) | (uint32_t(y) << 16);
         uint32_t other_xy = uint32_t(other.x) | (uint32_t(other.y) << 16);
         return xy < other_xy;
+    }
+};
+
+struct PatchDataHash {
+    size_t operator()(const PatchData& data) const noexcept {
+        if constexpr (sizeof(size_t) == 8) {
+            return std::hash<uint64_t>()(data.data_u64[0]) ^ std::hash<uint64_t>()(data.data_u64[1]);
+        } else {
+            return std::hash<uint32_t>()(data.data_u32[0]) ^ std::hash<uint32_t>()(data.data_u32[1]) ^
+                   std::hash<uint32_t>()(data.data_u32[2]) ^ std::hash<uint32_t>()(data.data_u32[3]);
+        }
     }
 };
 
