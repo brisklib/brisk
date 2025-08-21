@@ -281,19 +281,25 @@ void RenderEncoderD3d11::updateDataBuffer(std::span<const uint32_t> data) {
         CHECK_HRESULT(hr, return);
 
         m_dataBufferSize = data.size_bytes();
-    } else if (data.size_bytes() > 0) {
-        m_device->m_context->UpdateSubresource(m_dataBuffer.Get(), 0, nullptr, data.data(),
-                                               static_cast<UINT>(data.size_bytes()), 0);
-    }
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{}; // zero-initialize
-    srvDesc.Format               = DXGI_FORMAT_R32_TYPELESS;
-    srvDesc.ViewDimension        = D3D11_SRV_DIMENSION_BUFFEREX;
-    srvDesc.BufferEx.NumElements = data.size();
-    srvDesc.BufferEx.Flags       = D3D11_BUFFEREX_SRV_FLAG_RAW;
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{}; // zero-initialize
+        srvDesc.Format               = DXGI_FORMAT_R32_TYPELESS;
+        srvDesc.ViewDimension        = D3D11_SRV_DIMENSION_BUFFEREX;
+        srvDesc.BufferEx.NumElements = data.size();
+        srvDesc.BufferEx.Flags       = D3D11_BUFFEREX_SRV_FLAG_RAW;
 
-    HRESULT hr                   = m_device->m_device->CreateShaderResourceView(m_dataBuffer.Get(), &srvDesc,
-                                                                                m_dataSRV.ReleaseAndGetAddressOf());
-    CHECK_HRESULT(hr, return);
+        hr = m_device->m_device->CreateShaderResourceView(m_dataBuffer.Get(), &srvDesc,
+                                                          m_dataSRV.ReleaseAndGetAddressOf());
+        CHECK_HRESULT(hr, return);
+    } else if (data.size_bytes() > 0) {
+        D3D11_BOX destRegion;
+        destRegion.left   = 0;
+        destRegion.right  = data.size_bytes();
+        destRegion.top    = 0;
+        destRegion.bottom = 1;
+        destRegion.front  = 0;
+        destRegion.back   = 1;
+        m_device->m_context->UpdateSubresource(m_dataBuffer.Get(), 0, &destRegion, data.data(), 0, 0);
+    }
 }
 
 void RenderEncoderD3d11::updateAtlasTexture() {
