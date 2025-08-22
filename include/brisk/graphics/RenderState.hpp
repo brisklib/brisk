@@ -72,6 +72,7 @@ inline bool fromJson(const Brisk::Json& j, ColorF& p) {
 }
 
 enum class ShaderType : int {
+    Rectangle = 0,
     Text      = 1, // Gradient or texture
     Shadow    = 2, // Custom paint or texture
     ColorMask = 3, // Gradient or texture

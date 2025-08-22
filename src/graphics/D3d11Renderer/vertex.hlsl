@@ -40,6 +40,10 @@ float4 norm_rect(float4 rect) {
   return float4(min(rect.xy, rect.zw), max(rect.xy, rect.zw));
 }
 
+float4 alignRectangle(float4 rect) {
+  return float4(floor(rect.xy), ceil(rect.zw));
+}
+
 struct tint_symbol_6 {
   uint vidx : SV_VertexID;
   uint inst : SV_InstanceID;
@@ -64,47 +68,55 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
   float2 position = tint_symbol_9[vidx];
   float2 uv_coord = (position + (0.5f).xx);
   float4 outPosition = (0.0f).xxxx;
-  if ((asint(constants[1].x) == 2)) {
-    float m = margin();
-    float4 tint_symbol_2 = get_data((inst * 2u));
-    float4 rect = norm_rect(tint_symbol_2);
-    output.data0 = float4((rect.zw - rect.xy), 0.0f, 0.0f);
-    float4 radii = get_data(((inst * 2u) + 1u));
-    output.data1 = radii;
-    float2 center = ((rect.xy + rect.zw) * 0.5f);
-    float2 pt = lerp((rect.xy - float2((m).xx)), (rect.zw + float2((m).xx)), uv_coord);
+  if ((asint(constants[1].x) == 0)) {
+    float4 rect = get_data(inst);
+    float4 alignedRect = alignRectangle(rect);
+    float2 pt = lerp(alignedRect.xy, alignedRect.zw, uv_coord);
+    output.data0 = rect;
     outPosition = float4(pt, 0.0f, 1.0f);
-    output.uv = (position * (((m + m) + rect.zw) - rect.xy));
   } else {
-    if ((asint(constants[1].x) == 1)) {
-      float4 tint_symbol_3 = get_data((inst * 2u));
-      float4 rect = norm_rect(tint_symbol_3);
-      float4 glyph_data = get_data(((inst * 2u) + 1u));
-      float base = rect.x;
-      rect.x = (rect.x + asfloat(perFrame[1].w));
-      rect.z = (rect.z + asfloat(perFrame[1].w));
-      rect.x = (rect.x - asfloat(perFrame[1].z));
-      rect.z = (rect.z + asfloat(perFrame[1].z));
-      outPosition = float4(lerp(rect.xy, rect.zw, uv_coord), 0.0f, 1.0f);
-      output.uv = (((outPosition.xy - float2(base, rect.y)) + float2(-(asfloat(perFrame[1].z)), 0.0f)) * float2(float(asint(constants[4].z)), 1.0f));
-      output.data0 = glyph_data;
+    if ((asint(constants[1].x) == 2)) {
+      float m = margin();
+      float4 tint_symbol_2 = get_data((inst * 2u));
+      float4 rect = norm_rect(tint_symbol_2);
+      output.data0 = float4((rect.zw - rect.xy), 0.0f, 0.0f);
+      float4 radii = get_data(((inst * 2u) + 1u));
+      output.data1 = radii;
+      float2 center = ((rect.xy + rect.zw) * 0.5f);
+      float2 pt = lerp((rect.xy - float2((m).xx)), (rect.zw + float2((m).xx)), uv_coord);
+      outPosition = float4(pt, 0.0f, 1.0f);
+      output.uv = (position * (((m + m) + rect.zw) - rect.xy));
     } else {
-      if ((asint(constants[1].x) == 3)) {
-        float4 tint_symbol_4 = get_data((inst * 2u));
-        float4 rect = norm_rect(tint_symbol_4);
+      if ((asint(constants[1].x) == 1)) {
+        float4 tint_symbol_3 = get_data((inst * 2u));
+        float4 rect = norm_rect(tint_symbol_3);
         float4 glyph_data = get_data(((inst * 2u) + 1u));
+        float base = rect.x;
+        rect.x = (rect.x + asfloat(perFrame[1].w));
+        rect.z = (rect.z + asfloat(perFrame[1].w));
+        rect.x = (rect.x - asfloat(perFrame[1].z));
+        rect.z = (rect.z + asfloat(perFrame[1].z));
         outPosition = float4(lerp(rect.xy, rect.zw, uv_coord), 0.0f, 1.0f);
-        output.uv = (outPosition.xy - rect.xy);
+        output.uv = (((outPosition.xy - float2(base, rect.y)) + float2(-(asfloat(perFrame[1].z)), 0.0f)) * float2(float(asint(constants[4].z)), 1.0f));
         output.data0 = glyph_data;
       } else {
-        if ((asint(constants[1].x) == 5)) {
-          uint4 d = data.Load4((16u * (constants[0].x + (inst >> 1u))));
-          uint patchXY = d[((inst & 1u) << 1u)];
-          uint patchOffset = d[(((inst & 1u) << 1u) + 1u)];
-          output.coverage = data.Load4((16u * ((constants[0].x + ((constants[0].z + 1u) >> 1u)) + patchOffset)));
-          float2 xy = float2(uint2((patchXY & 65535u), (patchXY >> 16u)));
-          outPosition = float4(lerp(xy, (xy + (4.0f).xx), uv_coord), 0.0f, 1.0f);
-          output.uv = (outPosition.xy - xy);
+        if ((asint(constants[1].x) == 3)) {
+          float4 tint_symbol_4 = get_data((inst * 2u));
+          float4 rect = norm_rect(tint_symbol_4);
+          float4 glyph_data = get_data(((inst * 2u) + 1u));
+          outPosition = float4(lerp(rect.xy, rect.zw, uv_coord), 0.0f, 1.0f);
+          output.uv = (outPosition.xy - rect.xy);
+          output.data0 = glyph_data;
+        } else {
+          if ((asint(constants[1].x) == 5)) {
+            uint4 d = data.Load4((16u * (constants[0].x + (inst >> 1u))));
+            uint patchCoord = d[((inst & 1u) << 1u)];
+            uint patchOffset = d[(((inst & 1u) << 1u) + 1u)];
+            output.coverage = data.Load4((16u * ((constants[0].x + ((constants[0].z + 1u) >> 1u)) + patchOffset)));
+            float2 xy = float2(uint2(((patchCoord & 4095u) * 4u), (((patchCoord >> 12u) & 4095u) * 4u)));
+            outPosition = float4(lerp(xy, (xy + float2((4.0f * float((patchCoord >> 24u))), 4.0f)), uv_coord), 0.0f, 1.0f);
+            output.uv = (outPosition.xy - xy);
+          }
         }
       }
     }

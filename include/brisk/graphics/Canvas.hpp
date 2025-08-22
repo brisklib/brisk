@@ -261,6 +261,9 @@ public:
     void fillPath(const Path& path, const Paint& fillPaint, const FillParams& fillParams,
                   const Matrix& matrix, RectangleF clipRect, float opacity);
 
+    void fillPreparedPath(const PreparedPath& path, const Paint& fillPaint, RectangleF clipRect,
+                          float opacity);
+
     /**
      * @brief Draws a path on the canvas with both stroke and fill using specified parameters.
      *

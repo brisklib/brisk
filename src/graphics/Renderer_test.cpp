@@ -125,7 +125,7 @@ TEST_CASE("Html text") {
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
     REQUIRE(ttf2.has_value());
     fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
-    
+
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
         Canvas canvas(context);
         canvas.setFillColor(Palette::white);

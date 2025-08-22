@@ -769,12 +769,12 @@ struct GreyBitmap {
 
     GreyBitmap(Size size)
         : stride(alignUp(size.width, 4) + 4), rows(size.height + 3 + 3),
-          data(std::make_unique<uint8_t[]>(stride * rows)), size(size) {
-        memset(data.get(), 0, stride * rows);
+          data(std::make_unique<uint8_t[]>(stride * rows + 4)), size(size) {
+        memset(data.get(), 0, stride * rows + 4);
     }
 
     uint8_t* line(int32_t y) const {
-        return data.get() + (y + 3) * stride;
+        return data.get() + (y + 3) * stride + 4;
     }
 };
 
@@ -811,105 +811,42 @@ struct PatchMerger {
     std::vector<Internal::Patch>& patches;
     std::vector<Internal::PatchData>& patchData;
 
-#if 1
-    std::map<PatchData, uint32_t> lookup;
-
     PatchMerger(std::vector<Internal::Patch>& patches, std::vector<Internal::PatchData>& patchData)
-        : patches(patches), patchData(patchData) {
-        for (const Patch& patch : patches) {
-            const PatchData& data = patchData[patch.offset];
-            if (cachable(data)) [[unlikely]] {
-                auto it = lookup.find(data);
-                if (it == lookup.end()) {
-                    // new patch, add it
-                    lookup.insert(std::pair{ data, patch.offset });
-                }
-            }
-        }
-    }
+        : patches(patches), patchData(patchData) {}
 
     void reserve(size_t size) {
-        patches.reserve(size);
-        patchData.reserve((size + 3) / 4);
+        patches.reserve(size / 2);
+        patchData.reserve((size + 7) / 8);
     }
 
-    BRISK_INLINE static bool cachable(const PatchData& data) {
-        return true;//data == PatchData::filled;
-    }
+    BRISK_INLINE void add(uint16_t x, uint16_t y, uint8_t len, const PatchData& data) {
+        // Extend the last patch if it matches
+        if (!patches.empty()) [[likely]] {
+            auto& back       = patches.back();
+            uint16_t back_x  = back.x();
+            uint16_t back_y  = back.y();
+            uint8_t back_len = back.len();
 
-    void add(uint16_t x, uint16_t y, const PatchData& data) {
-        if (data.empty())
-            return;
-        if (cachable(data)) [[unlikely]] {
-            auto it = lookup.find(data);
-            if (it != lookup.end()) {
-                // patch already exists, reuse offset
-                patches.emplace_back(x, y, it->second);
-            } else {
-                // new patch, add it
-                uint32_t offset = uint32_t(patchData.size());
-                patches.emplace_back(x, y, offset);
-                patchData.push_back(data);
-                lookup.insert(it, std::pair{ data, offset });
+            if (x == back_x + back_len && y == back_y && back_len < 0xff && patchData[back.offset] == data)
+                [[unlikely]] {
+                // merge with previous patch
+                back = Patch(back_x, back_y, back_len + len, back.offset);
+                return;
             }
-        } else {
-            uint32_t offset = uint32_t(patchData.size());
-            patches.emplace_back(x, y, offset);
-            patchData.push_back(data);
         }
+
+        uint32_t offset;
+        offset = uint32_t(patchData.size());
+        patchData.push_back(data);
+        patches.emplace_back(x, y, len, offset);
     }
 
     void add(std::span<const Patch> sourcePatches, const std::vector<PatchData>& sourcePatchData) {
         for (const Patch& patch : sourcePatches) {
             const PatchData& data = sourcePatchData[patch.offset];
-            add(patch.x, patch.y, data);
+            add(patch.x(), patch.y(), patch.len(), data);
         }
     }
-#else
-
-    uint32_t filledIndex = UINT32_MAX;
-
-    PatchMerger(std::vector<Internal::Patch>& patches, std::vector<Internal::PatchData>& patchData)
-        : patches(patches), patchData(patchData) {
-        auto it = std::find(patchData.begin(), patchData.end(), PatchData::filled);
-        if (it != patchData.end()) {
-            filledIndex = std::distance(patchData.begin(), it);
-        }
-    }
-
-    void reserve(size_t size) {
-        patches.reserve(size);
-        patchData.reserve((size + 3) / 4);
-    }
-
-    void add(uint16_t x, uint16_t y, const PatchData& data) {
-        if (data.empty())
-            return;
-        if (data == PatchData::filled) [[likely]] {
-            if (filledIndex != UINT32_MAX) [[likely]] {
-                // patch already exists, reuse offset
-                patches.emplace_back(x, y, filledIndex);
-            } else {
-                // new patch, add it
-                uint32_t offset = uint32_t(patchData.size());
-                filledIndex     = offset;
-                patches.emplace_back(x, y, offset);
-                patchData.push_back(data);
-            }
-        } else {
-            uint32_t offset = uint32_t(patchData.size());
-            patches.emplace_back(x, y, offset);
-            patchData.push_back(data);
-        }
-    }
-
-    void add(std::span<const Patch> sourcePatches, const std::vector<PatchData>& sourcePatchData) {
-        for (const Patch& patch : sourcePatches) {
-            const PatchData& data = sourcePatchData[patch.offset];
-            add(patch.x, patch.y, data);
-        }
-    }
-#endif
 };
 
 static SparseMask sparseMaskFromImage(const GreyBitmap& bitmap, Rectangle bounds) {
@@ -922,18 +859,20 @@ static SparseMask sparseMaskFromImage(const GreyBitmap& bitmap, Rectangle bounds
     size_t stride = bitmap.stride / 4;
 
     // Iterate over the image in screen-aligned 4x4 patches:
-    for (int32_t y = bounds.y1 / 4 * 4; y < bounds.y2; y += 4) {
-        const uint8_t* line = bitmap.line(y - bounds.y1);
+    for (uint32_t y = uint32_t(bounds.y1) / 4; y * 4 < uint32_t(bounds.y2); y++) {
+        const uint8_t* line = bitmap.line(y * 4 - bounds.y1);
 
-        for (int32_t x = bounds.x1 / 4 * 4; x < bounds.x2; x += 4) {
+        for (uint32_t x = uint32_t(bounds.x1) / 4; x * 4 < uint32_t(bounds.x2); x++) {
             PatchData patchData;
-            const uint32_t* pixels = reinterpret_cast<const uint32_t*>(line + x - bounds.x1);
+            const uint32_t* pixels = reinterpret_cast<const uint32_t*>(line + x * 4 - bounds.x1);
             patchData.data_u32[0]  = *pixels;
             patchData.data_u32[1]  = *(pixels + stride);
             patchData.data_u32[2]  = *(pixels + 2 * stride);
             patchData.data_u32[3]  = *(pixels + 3 * stride);
 
-            merger.add(uint16_t(x), uint16_t(y), patchData);
+            if (patchData.empty()) [[unlikely]]
+                continue;
+            merger.add(uint16_t(x), uint16_t(y), 1, patchData);
         }
     }
     return result;
@@ -947,7 +886,14 @@ void Path::addPolyline(std::span<const PointF> points) {
         lineTo(points[i]);
 }
 
-PreparedPath::PreparedPath(const Path& path, const FillParams& params, Rectangle clipRect) {
+PreparedPath::PreparedPath(const Path& path, const FillParams& params, Rectangle clipRect,
+                           bool optimizeRectangle) {
+    if (optimizeRectangle) {
+        if (std::optional<RectangleF> rect = path.asRectangle()) {
+            initRect(*rect);
+            return;
+        }
+    }
     Rle rle = rasterize(path, params.fillRule, clipRect == noClipRect ? Rectangle{} : clipRect);
     init(std::move(rle));
 }
@@ -970,15 +916,27 @@ void PreparedPath::init(Rle&& rle) {
     m_patchData           = std::move(sparseMask.patchData);
 }
 
-PreparedPath::PreparedPath(Rectangle rectangle) {
-    Path path;
-    path.addRect(rectangle);
-    Rle rle = rasterize(path, FillRule::Winding, noClipRect);
-    init(std::move(rle));
+void PreparedPath::initRect(RectangleF rect) {
+    if (rect.empty()) {
+        return;
+    }
+    m_rectangle = rect;
+}
+
+PreparedPath::PreparedPath(RectangleF rectangle, bool optimizeRectangle) {
+    if (optimizeRectangle) {
+        initRect(rectangle);
+    } else {
+        Path path;
+        path.addRect(rectangle);
+        Rle rle = rasterize(path, FillRule::Winding, noClipRect);
+        init(std::move(rle));
+    }
 }
 
 using Internal::boolOp;
 using Internal::coverageOp;
+using Internal::rectangleOp;
 
 static PatchData coverageOp(MaskOp op, const PatchData& a, const PatchData& b) {
     PatchData result;
@@ -986,10 +944,29 @@ static PatchData coverageOp(MaskOp op, const PatchData& a, const PatchData& b) {
     return result;
 }
 
-PreparedPath PreparedPath::booleanOp(MaskOp op, const PreparedPath& left, const PreparedPath& right) {
+PreparedPath PreparedPath::pathOp(MaskOp op, const PreparedPath& left, const PreparedPath& right) {
     if (left.empty() && right.empty()) [[unlikely]] {
         return {}; // empty mask
     }
+    if (left.isRectangle() && right.isRectangle()) [[unlikely]] {
+        // if both are rectangles, we can use the rectangle operation
+        std::optional<RectangleF> result = rectangleOp(op, left.m_rectangle, right.m_rectangle);
+        if (result)
+            return PreparedPath(*result);
+    }
+    if (left.isRectangle() && right.isRectangle()) [[unlikely]] {
+        return pathOp(op, left.toSparse(), right.toSparse());
+    }
+    if (left.isRectangle() && !right.isRectangle()) [[unlikely]] {
+        return pathOp(op, left.toSparse(), right);
+    }
+    if (!left.isRectangle() && right.isRectangle()) [[unlikely]] {
+        return pathOp(op, left, right.toSparse());
+    }
+
+    BRISK_ASSERT(left.isSparse());
+    BRISK_ASSERT(right.isSparse());
+
     bool singleLeft  = boolOp(op, true, false);
     bool singleRight = boolOp(op, false, true);
 
@@ -1028,46 +1005,94 @@ PreparedPath PreparedPath::booleanOp(MaskOp op, const PreparedPath& left, const 
         }
     }
 
-    std::span<const Internal::Patch> l = left.m_patches;
-    std::span<const Internal::Patch> r = right.m_patches;
     PreparedPath result;
     PatchMerger merger(result.m_patches, result.m_patchData);
 
+    struct PatchIterator {
+        std::span<const Patch> list;
+        uint8_t index;
+
+        PatchIterator(std::span<const Patch> list) : list(list), index(0) {}
+
+        bool empty() const {
+            return list.empty();
+        }
+
+        Patch front() const {
+            if (list.front().len() == 1)
+                return list.front();
+            return Patch(list.front().x() + index, list.front().y(), 1, list.front().offset);
+        }
+
+        Patch partial() const {
+            return Patch(list.front().x() + index, list.front().y(), list.front().len() - index,
+                         list.front().offset);
+        }
+
+        void next(uint8_t len = 1) {
+            index += len;
+            if (index >= list.front().len()) {
+                index = 0;
+                list  = list.subspan(1);
+            }
+        }
+    };
+
+    PatchIterator l{ left.m_patches };
+    PatchIterator r{ right.m_patches };
+
     for (; !l.empty() && !r.empty();) {
-        if (l.front() < r.front()) {
+        const Patch lFront = l.front();
+        const Patch rFront = r.front();
+
+        if (lFront < rFront) {
             // left patch is before right patch
             if (singleLeft) {
-                const PatchData& data = left.m_patchData[l.front().offset];
-                merger.add(l.front().x, l.front().y, data);
+                const PatchData& data = left.m_patchData[l.list.front().offset];
+                merger.add(lFront.x(), lFront.y(), 1, data);
             }
-            l = l.subspan(1);
-        } else if (r.front() < l.front()) {
+            l.next();
+        } else if (rFront < lFront) {
             // right patch is before left patch
             if (singleRight) {
-                const PatchData& data = right.m_patchData[r.front().offset];
-                merger.add(r.front().x, r.front().y, data);
+                const PatchData& data = right.m_patchData[r.list.front().offset];
+                merger.add(rFront.x(), rFront.y(), 1, data);
             }
-            r = r.subspan(1);
+            r.next();
         } else {
             // patches are equal
-            const PatchData& dataLeft  = left.m_patchData[l.front().offset];
-            const PatchData& dataRight = right.m_patchData[r.front().offset];
+            const PatchData& dataLeft  = left.m_patchData[l.list.front().offset];
+            const PatchData& dataRight = right.m_patchData[r.list.front().offset];
             PatchData dataResult       = coverageOp(op, dataLeft, dataRight);
-            merger.add(l.front().x, l.front().y, dataResult);
-            l = l.subspan(1);
-            r = r.subspan(1);
+            if (!dataResult.empty())
+                merger.add(lFront.x(), lFront.y(), 1, dataResult);
+            l.next();
+            r.next();
         }
     }
 
     if (l.empty()) {
         if (singleRight) {
             // left is empty, so we can add right
-            merger.add(r, right.m_patchData);
+            if (r.index > 0) {
+                Patch rightPartial = r.partial();
+                merger.add(rightPartial.x(), rightPartial.y(), rightPartial.len(),
+                           right.m_patchData[rightPartial.offset]);
+                r.next(rightPartial.len());
+            }
+
+            merger.add(r.list, right.m_patchData);
         }
     } else { // if (r.empty())
         if (singleLeft) {
             // right is empty, so we can add left
-            merger.add(l, left.m_patchData);
+            if (l.index > 0) {
+                Patch leftPartial = l.partial();
+                merger.add(leftPartial.x(), leftPartial.y(), leftPartial.len(),
+                           left.m_patchData[leftPartial.offset]);
+                l.next(leftPartial.len());
+            }
+            merger.add(l.list, left.m_patchData);
         }
     }
     return result;
@@ -1082,7 +1107,7 @@ PreparedPath PreparedPath::merge(const PreparedPath& a, const PreparedPath& b) {
 
     for (const Patch& patch : b.m_patches) {
         const PatchData& data = b.m_patchData[patch.offset];
-        merger.add(patch.x, patch.y, data);
+        merger.add(patch.x(), patch.y(), patch.len(), data);
     }
     return result;
 }
@@ -1093,10 +1118,10 @@ Rectangle PreparedPath::patchBounds() const {
     Rectangle bounds{ INT32_MAX, INT32_MAX, INT32_MIN, INT32_MIN };
     for (const Patch& patch : m_patches) {
         const auto& data = m_patchData[patch.offset];
-        bounds.x1        = std::min(bounds.x1, int32_t(patch.x));
-        bounds.y1        = std::min(bounds.y1, int32_t(patch.y));
-        bounds.x2        = std::max(bounds.x2, int32_t(patch.x) + 4);
-        bounds.y2        = std::max(bounds.y2, int32_t(patch.y) + 4);
+        bounds.x1        = std::min(bounds.x1, int32_t(patch.x() * 4));
+        bounds.y1        = std::min(bounds.y1, int32_t(patch.y() * 4));
+        bounds.x2        = std::max(bounds.x2, int32_t(patch.x() * 4) + 4 * patch.len());
+        bounds.y2        = std::max(bounds.y2, int32_t(patch.y() * 4) + 4);
     }
     if (bounds.empty()) {
         // empty path
@@ -1107,18 +1132,37 @@ Rectangle PreparedPath::patchBounds() const {
 }
 
 PreparedPath PreparedPath::union_(const PreparedPath& a, const PreparedPath& b) {
-    return booleanOp(MaskOp::Union, a, b);
+    return pathOp(MaskOp::Union, a, b);
 }
 
 PreparedPath PreparedPath::intersection(const PreparedPath& a, const PreparedPath& b) {
-    return booleanOp(MaskOp::Intersection, a, b);
+    return pathOp(MaskOp::Intersection, a, b);
 }
 
 PreparedPath PreparedPath::difference(const PreparedPath& a, const PreparedPath& b) {
-    return booleanOp(MaskOp::Difference, a, b);
+    return pathOp(MaskOp::Difference, a, b);
 }
 
 PreparedPath PreparedPath::symmetricDifference(const PreparedPath& a, const PreparedPath& b) {
-    return booleanOp(MaskOp::SymmetricDifference, a, b);
+    return pathOp(MaskOp::SymmetricDifference, a, b);
+}
+
+std::optional<RectangleF> Path::asRectangle() const {
+    if (m_segments != 1 || m_elements.size() != 6 || m_points.size() != 5 ||
+        !fuzzyCompare(m_points[4], m_points[0]))
+        return std::nullopt;
+    if (m_elements[0] != Element::MoveTo || m_elements[1] != Element::LineTo ||
+        m_elements[2] != Element::LineTo || m_elements[3] != Element::LineTo ||
+        m_elements[4] != Element::LineTo || m_elements[5] != Element::Close)
+        return std::nullopt;
+    if (!(vCompare(m_points[1].x, m_points[0].x) || vCompare(m_points[3].x, m_points[2].x) ||
+          vCompare(m_points[3].y, m_points[0].y) || vCompare(m_points[2].y, m_points[1].y)))
+        return std::nullopt;
+    return RectangleF{
+        std::min(m_points[0].x, m_points[3].x),
+        std::min(m_points[0].y, m_points[1].y),
+        std::max(m_points[0].x, m_points[3].x),
+        std::max(m_points[0].y, m_points[1].y),
+    };
 }
 } // namespace Brisk

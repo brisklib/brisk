@@ -152,16 +152,32 @@ union alignas(8) PatchData {
 inline const PatchData PatchData::filled = { .data_u64 = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF } };
 
 struct Patch {
-    uint16_t x, y;   // screen-aligned
+    uint32_t coord;  // screen-aligned
     uint32_t offset; // index in patchData
 
+    Patch(uint16_t x, uint16_t y, uint8_t len, uint32_t offset)
+        : coord((uint32_t(x) & 0xFFF) | ((uint32_t(y) & 0xFFF) << 12) | (uint32_t(len) << 24)),
+          offset(offset) {}
+
+    uint16_t x() const noexcept {
+        return (coord & 0xFFF);
+    }
+
+    uint16_t y() const noexcept {
+        return ((coord >> 12) & 0xFFF);
+    }
+
+    uint8_t len() const noexcept {
+        return (coord >> 24) & 0xFF;
+    }
+
     bool operator==(const Patch& other) const noexcept {
-        return x == other.x && y == other.y;
+        return coord == other.coord;
     }
 
     bool operator<(const Patch& other) const noexcept {
-        uint32_t xy       = uint32_t(x) | (uint32_t(y) << 16);
-        uint32_t other_xy = uint32_t(other.x) | (uint32_t(other.y) << 16);
+        uint32_t xy       = coord & 0xFFFFFF;
+        uint32_t other_xy = other.coord & 0xFFFFFF;
         return xy < other_xy;
     }
 };
@@ -186,25 +202,35 @@ class Rle;
 
 struct PreparedPath {
 public:
-    PreparedPath()                    = default;
-    PreparedPath(const PreparedPath&) = default;
-    PreparedPath(PreparedPath&&)      = default;
-    PreparedPath(const Path& path, const FillParams& params = {}, Rectangle clipRect = noClipRect);
+    PreparedPath()                               = default;
+    PreparedPath(const PreparedPath&)            = default;
+    PreparedPath(PreparedPath&&)                 = default;
+    PreparedPath& operator=(const PreparedPath&) = default;
+    PreparedPath& operator=(PreparedPath&&)      = default;
+    PreparedPath(const Path& path, const FillParams& params = {}, Rectangle clipRect = noClipRect,
+                 bool optimizeRectangle = true);
     PreparedPath(const Path& path, const StrokeParams& params, Rectangle clipRect = noClipRect);
-    PreparedPath(Rectangle rectangle);
+    PreparedPath(RectangleF rectangle, bool optimizeRectangle = true);
 
     static PreparedPath union_(const PreparedPath& a, const PreparedPath& b);
     static PreparedPath intersection(const PreparedPath& a, const PreparedPath& b);
     static PreparedPath difference(const PreparedPath& a, const PreparedPath& b);
     static PreparedPath symmetricDifference(const PreparedPath& a, const PreparedPath& b);
 
-    static PreparedPath booleanOp(MaskOp op, const PreparedPath& a, const PreparedPath& b);
+    static PreparedPath pathOp(MaskOp op, const PreparedPath& a, const PreparedPath& b);
 
     bool empty() const noexcept {
-        return m_patches.empty();
+        return m_patches.empty() && m_rectangle.empty();
     }
 
 protected:
+    PreparedPath toSparse() const {
+        if (isRectangle()) {
+            return PreparedPath(m_rectangle, false);
+        }
+        return *this;
+    }
+
     const std::vector<Internal::Patch>& patches() const noexcept {
         return m_patches;
     }
@@ -215,13 +241,27 @@ protected:
 
     Rectangle patchBounds() const;
 
+    bool isRectangle() const noexcept {
+        return m_patches.empty() && !m_rectangle.empty();
+    }
+
+    bool isSparse() const noexcept {
+        return !m_patches.empty();
+    }
+
+    RectangleF rectangle() const noexcept {
+        return m_rectangle;
+    }
+
 private:
     std::vector<Internal::Patch> m_patches;
     std::vector<Internal::PatchData> m_patchData;
     mutable std::optional<Rectangle> m_patchBounds;
+    RectangleF m_rectangle;
 
     friend class Canvas;
     void init(Rle&& rle);
+    void initRect(RectangleF rect);
     static PreparedPath merge(const PreparedPath& a, const PreparedPath& b);
 };
 
@@ -480,6 +520,8 @@ struct Path {
     size_t segments() const {
         return m_segments;
     }
+
+    std::optional<RectangleF> asRectangle() const;
 
 private:
     std::vector<PointF> m_points;

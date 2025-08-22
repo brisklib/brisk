@@ -37,6 +37,7 @@ const PI = 3.1415926535897932384626433832795;
 
 const atlasAlignment     = 8u;
 
+const shader_rectangle   = shader_type(0);
 const shader_text        = shader_type(1);
 const shader_shadow      = shader_type(2);
 const shader_color_mask  = shader_type(3);
@@ -180,6 +181,13 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
     return vec4<f32>(min(rect.xy, rect.zw), max(rect.xy, rect.zw));
 }
 
+fn alignRectangle(rect: vec4<f32>) -> vec4<f32> {
+    return vec4<f32>(
+        floor(rect.xy),
+        ceil(rect.zw)
+    );
+}
+
 @vertex /**/fn vertexMain(@builtin(vertex_index) vidx: u32, @builtin(instance_index) inst: u32) -> VertexOutput {
     const vertices = array<vec2<f32>, 4>(vec2<f32>(-0.5, -0.5), vec2<f32>(0.5, -0.5), vec2<f32>(-0.5, 0.5), vec2<f32>(0.5, 0.5));
 
@@ -192,7 +200,13 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
     let position: vec2<f32> = vertices[vidx];
     let uv_coord: vec2<f32> = position + vec2<f32>(0.5);
     var outPosition = vec4<f32>(0.);
-    if constants.shader == shader_shadow {
+    if constants.shader == shader_rectangle {
+        let rect = get_data(inst);
+        let alignedRect = alignRectangle(rect);
+        let pt = mix(alignedRect.xy, alignedRect.zw, uv_coord);
+        output.data0 = rect;
+        outPosition = vec4<f32>(pt, 0., 1.);
+    } else if constants.shader == shader_shadow {
         let m: f32 = margin();
         let rect = norm_rect(get_data(inst * 2u));
         output.data0 = vec4<f32>(rect.zw - rect.xy, 0., 0.);
@@ -225,11 +239,11 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
         output.data0 = glyph_data;
     } else if constants.shader == shader_mask {
         let d = data[constants.data_offset + (inst >> 1u)];
-        let patchXY: u32 = d[(inst & 1u) << 1u];
+        let patchCoord: u32 = d[(inst & 1u) << 1u];
         let patchOffset: u32 = d[((inst & 1u) << 1u) + 1u];
         output.coverage = data[constants.data_offset + ((constants.instances + 1u) >> 1u) + patchOffset];
-        let xy = vec2<f32>(vec2<u32>(patchXY & 0xffffu, (patchXY >> 16u)));
-        outPosition = vec4<f32>(mix(xy, xy + vec2<f32>(4., 4.), uv_coord), 0., 1.);
+        let xy = vec2<f32>(vec2<u32>((patchCoord & 0xfffu) * 4u, ((patchCoord >> 12u) & 0xfffu) * 4u));
+        outPosition = vec4<f32>(mix(xy, xy + vec2<f32>(4. * f32(patchCoord >> 24u), 4.), uv_coord), 0., 1.);
         output.uv = outPosition.xy - xy;
     }
 
@@ -568,6 +582,12 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
     return out;
 }
 
+fn rectangleCoverage(pt: vec2<f32>, rect: vec4<f32>) -> f32 {
+    let wh = max(vec2<f32>(0.0), min(pt.xy + vec2<f32>(0.5), rect.zw) - max(pt.xy - vec2<f32>(0.5), rect.xy));
+
+    return wh.x * wh.y;
+}
+
 @fragment /**/fn fragmentMain(in: VertexOutput) -> FragOut {
 
     if constants.shader == shader_blit {
@@ -601,9 +621,15 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
         }
     } else if constants.shader == shader_mask {
         let xy: vec2<u32> = vec2<u32>(in.uv);
-        let cov: f32 = unpack4x8unorm(in.coverage[xy.y])[xy.x];
+        let cov: f32 = unpack4x8unorm(in.coverage[xy.y & 3u])[xy.x & 3u];
         let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
         outColor = shadeColor * vec4<f32>(cov);
+    } else if constants.shader == shader_rectangle {
+        let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
+        let rect = in.data0;
+        let pixelCoverage = rectangleCoverage(in.canvas_coord, rect);
+
+        outColor = pixelCoverage * shadeColor;
     } else {
         outColor = vec4<f32>(0., 1., 0., 0.5);
     }

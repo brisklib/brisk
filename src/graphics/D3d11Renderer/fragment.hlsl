@@ -420,6 +420,11 @@ FragOut postprocessColor(FragOut tint_symbol_2, uint2 canvas_coord) {
   return tint_symbol_3;
 }
 
+float rectangleCoverage(float2 pt, float4 rect) {
+  float2 wh = max((0.0f).xx, (min((pt.xy + (0.5f).xx), rect.zw) - max((pt.xy - (0.5f).xx), rect.xy)));
+  return (wh.x * wh.y);
+}
+
 struct tint_symbol_44 {
   noperspective float4 data0 : TEXCOORD0;
   noperspective float4 data1 : TEXCOORD1;
@@ -476,11 +481,18 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_2) {
       } else {
         if ((asint(constants[1].x) == 5)) {
           uint2 xy = tint_ftou_1(tint_symbol_2.uv);
-          float cov = tint_unpack4x8unorm(tint_symbol_2.coverage[xy.y])[xy.x];
+          float cov = tint_unpack4x8unorm(tint_symbol_2.coverage[(xy.y & 3u)])[(xy.x & 3u)];
           float4 shadeColor = computeShadeColor(tint_symbol_2.canvas_coord);
           outColor = (shadeColor * float4((cov).xxxx));
         } else {
-          outColor = float4(0.0f, 1.0f, 0.0f, 0.5f);
+          if ((asint(constants[1].x) == 0)) {
+            float4 shadeColor = computeShadeColor(tint_symbol_2.canvas_coord);
+            float4 rect = tint_symbol_2.data0;
+            float pixelCoverage = rectangleCoverage(tint_symbol_2.canvas_coord, rect);
+            outColor = (pixelCoverage * shadeColor);
+          } else {
+            outColor = float4(0.0f, 1.0f, 0.0f, 0.5f);
+          }
         }
       }
     }
