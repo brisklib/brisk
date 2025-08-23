@@ -2884,7 +2884,7 @@ Widget::properties() noexcept {
         Internal::GuiProp{ &Widget::m_stateTriggersRestyle, false, AffectStyle, "stateTriggersRestyle" },
         /* 52 */ Internal::GuiProp{ &Widget::m_id, {}, AffectStyle, "id" },
         /* 53 */ Internal::GuiProp{ &Widget::m_role, {}, AffectStyle, "role" },
-        /* 54 */ Internal::PropFieldNotify{ &Widget::m_classes, &Widget::requestRestyle },
+        /* 54 */ Internal::PropFieldNotify{ &Widget::m_classes, &Widget::requestRestyle, "classes" },
         /* 55 */
         Internal::GuiProp{ &Widget::m_mouseInteraction, MouseInteraction::Inherit, None, "mouseInteraction" },
         /* 56 */ Internal::GuiProp{ &Widget::m_mousePassThrough, false, None, "mousePassThrough" },
@@ -2900,8 +2900,8 @@ Widget::properties() noexcept {
         Internal::GuiProp{ &Widget::m_squircleCorners, false, AffectPaint, "squircleCorners" },
         /* 66 */ Internal::GuiProp{ &Widget::m_delegate, nullptr, None, "delegate" },
         /* 67 */ Internal::GuiProp{ &Widget::m_hint, {}, AffectLayout | AffectPaint | AffectHint, "hint" },
-        /* 68 */ Internal::PropFieldNotify{ &Widget::m_stylesheet, &Widget::requestRestyle },
-        /* 69 */ Internal::PropFieldNotify{ &Widget::m_painter, &Widget::invalidate },
+        /* 68 */ Internal::PropFieldNotify{ &Widget::m_stylesheet, &Widget::requestRestyle, "stylesheet" },
+        /* 69 */ Internal::PropFieldNotify{ &Widget::m_painter, &Widget::invalidate, "painter" },
         /* 70 */ Internal::GuiProp{ &Widget::m_isHintExclusive, false, None, "isHintExclusive" },
         /* 71 */
         Internal::GuiProp{
