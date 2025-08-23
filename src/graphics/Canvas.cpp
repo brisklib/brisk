@@ -648,16 +648,16 @@ void Canvas::fillText(PointF position, PointF alignment, const PreparedText& tex
 
                 if (run.decoration && TextDecoration::Underline)
                     path.addPolyline(
-                        std::initializer_list{ p1 + PointF{ 0.f, run.metrics.underlineOffset() },
-                                               p2 + PointF{ 0.f, run.metrics.underlineOffset() } });
+                        std::initializer_list<PointF>{ p1 + PointF{ 0.f, run.metrics.underlineOffset() },
+                                                       p2 + PointF{ 0.f, run.metrics.underlineOffset() } });
                 if (run.decoration && TextDecoration::Overline)
                     path.addPolyline(
-                        std::initializer_list{ p1 + PointF{ 0.f, run.metrics.overlineOffset() },
-                                               p2 + PointF{ 0.f, run.metrics.overlineOffset() } });
+                        std::initializer_list<PointF>{ p1 + PointF{ 0.f, run.metrics.overlineOffset() },
+                                                       p2 + PointF{ 0.f, run.metrics.overlineOffset() } });
                 if (run.decoration && TextDecoration::LineThrough)
                     path.addPolyline(
-                        std::initializer_list{ p1 + PointF{ 0.f, run.metrics.lineThroughOffset() },
-                                               p2 + PointF{ 0.f, run.metrics.lineThroughOffset() } });
+                        std::initializer_list<PointF>{ p1 + PointF{ 0.f, run.metrics.lineThroughOffset() },
+                                                       p2 + PointF{ 0.f, run.metrics.lineThroughOffset() } });
 
                 strokePath(
                     path, runColor ? *runColor : textPaint,
