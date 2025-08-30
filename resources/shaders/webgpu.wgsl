@@ -30,19 +30,19 @@ struct VertexOutput {
     @location(1) @interpolate(linear) data1: vec4<f32>,
     @location(2) @interpolate(linear, center) uv: vec2<f32>,
     @location(3) @interpolate(linear, center) canvas_coord: vec2<f32>,
+    @location(4) @interpolate(flat) coverage: vec4<u32>,
 };
 
 const PI = 3.1415926535897932384626433832795;
 
 const atlasAlignment     = 8u;
 
-const shader_rectangles  = shader_type(0);
-const shader_arcs        = shader_type(1);
-const shader_text        = shader_type(2);
-const shader_shadow      = shader_type(3);
-const shader_mask        = shader_type(4);
-const shader_color_mask  = shader_type(5);
-const shader_blit        = shader_type(6);
+const shader_rectangle   = shader_type(0);
+const shader_text        = shader_type(1);
+const shader_shadow      = shader_type(2);
+const shader_color_mask  = shader_type(3);
+const shader_blit        = shader_type(4);
+const shader_mask        = shader_type(5);
 
 const gradient_linear    = gradient_type(0);
 const gradient_radial    = gradient_type(1);
@@ -80,7 +80,7 @@ struct UniformBlock {
     subpixel: subpixel_mode,
 
     pattern: u32,
-    reserved_1: i32,
+    reserved_1: u32,
     reserved_2: i32,
     opacity: f32,
 
@@ -103,10 +103,6 @@ struct UniformBlock {
 
     fill_color2: vec4<f32>,
 
-    stroke_color1: vec4<f32>,
-
-    stroke_color2: vec4<f32>,
-
     gradient_point1: vec2<f32>,
 
     gradient_point2: vec2<f32>,
@@ -126,15 +122,10 @@ struct UniformBlockPerFrame {
     atlas_width: u32,
 }
 
-fn distanceScale() -> f32 {
-    let ac = vec2<f32>(constants.coord_matrix_a, constants.coord_matrix_c);
-    return sqrt(dot(ac, ac));
-}
-
 @group(0) @binding(1) var<uniform> constants: UniformBlock;
 @group(0) @binding(2) var<uniform> perFrame: UniformBlockPerFrame;
 
-@group(0) @binding(3) var<storage, read> data: array<vec4<f32>>;
+@group(0) @binding(3) var<storage, read> data: array<vec4<u32>>;
 
 @group(0) @binding(8) var gradTex_t: texture_2d<f32>;
 
@@ -146,12 +137,12 @@ fn distanceScale() -> f32 {
 
 @group(0) @binding(7) var gradTex_s: sampler;
 
-fn to_screen(xy: vec2<f32>) -> vec2<f32> {
-    return xy * perFrame.viewport.zw * vec2<f32>(2., -2.) + vec2<f32>(-1., 1.);
+fn get_data(index: u32) -> vec4<f32> {
+    return bitcast<vec4<f32>>(data[constants.data_offset + index]);
 }
 
-fn max2(pt: vec2<f32>) -> f32 {
-    return max(pt.x, pt.y);
+fn to_screen(xy: vec2<f32>) -> vec2<f32> {
+    return xy * perFrame.viewport.zw * vec2<f32>(2., -2.) + vec2<f32>(-1., 1.);
 }
 
 fn map(p1: vec2<f32>, p2: vec2<f32>) -> vec2<f32> {
@@ -190,8 +181,15 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
     return vec4<f32>(min(rect.xy, rect.zw), max(rect.xy, rect.zw));
 }
 
+fn alignRectangle(rect: vec4<f32>) -> vec4<f32> {
+    return vec4<f32>(
+        floor(rect.xy),
+        ceil(rect.zw)
+    );
+}
+
 @vertex /**/fn vertexMain(@builtin(vertex_index) vidx: u32, @builtin(instance_index) inst: u32) -> VertexOutput {
-    const vertices = array(vec2<f32>(-0.5, -0.5), vec2<f32>(0.5, -0.5), vec2<f32>(-0.5, 0.5), vec2<f32>(0.5, 0.5));
+    const vertices = array<vec2<f32>, 4>(vec2<f32>(-0.5, -0.5), vec2<f32>(0.5, -0.5), vec2<f32>(-0.5, 0.5), vec2<f32>(0.5, 0.5));
 
     var output: VertexOutput;
     if constants.shader == shader_blit {
@@ -199,31 +197,28 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
         return output;
     }
 
-    let position = vertices[vidx];
+    let position: vec2<f32> = vertices[vidx];
     let uv_coord: vec2<f32> = position + vec2<f32>(0.5);
     var outPosition = vec4<f32>(0.);
-    if constants.shader == shader_rectangles || constants.shader == shader_shadow {
-        let m = margin();
-        let rect = norm_rect(data[constants.data_offset + inst * 2u]);
+    if constants.shader == shader_rectangle {
+        let rect = get_data(inst);
+        let alignedRect = alignRectangle(rect);
+        let pt = mix(alignedRect.xy, alignedRect.zw, uv_coord);
+        output.data0 = rect;
+        outPosition = vec4<f32>(pt, 0., 1.);
+    } else if constants.shader == shader_shadow {
+        let m: f32 = margin();
+        let rect = norm_rect(get_data(inst * 2u));
         output.data0 = vec4<f32>(rect.zw - rect.xy, 0., 0.);
-        let radii = data[constants.data_offset + inst * 2u + 1u];
+        let radii = get_data(inst * 2u + 1u);
         output.data1 = radii;
         let center = (rect.xy + rect.zw) * 0.5;
         let pt = mix(rect.xy - vec2<f32>(m), rect.zw + vec2<f32>(m), uv_coord);
         outPosition = vec4<f32>(pt, 0., 1.);
         output.uv = position * (m + m + rect.zw - rect.xy);
-    } else if constants.shader == shader_arcs {
-        let m = margin();
-        let dat0 = data[constants.data_offset + inst * 2u];
-        output.data0 = dat0;
-        let dat1 = data[constants.data_offset + inst * 2u + 1u];
-        output.data1 = dat1;
-
-        outPosition = vec4<f32>(mix(dat0.xy - vec2<f32>(dat0.z + m), dat0.xy + vec2<f32>(dat0.z + m), uv_coord), 0., 1.);
-        output.uv = position * (m + m + 2.0 * dat0.z);
     } else if constants.shader == shader_text {
-        var rect = norm_rect(data[constants.data_offset + inst * 2u]);
-        let glyph_data = data[constants.data_offset + inst * 2u + 1u];
+        var rect = norm_rect(get_data(inst * 2u));
+        let glyph_data = get_data(inst * 2u + 1u);
 
         let base = rect.x;
 
@@ -236,12 +231,20 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
         outPosition = vec4<f32>(mix(rect.xy, rect.zw, uv_coord), 0., 1.);
         output.uv = (outPosition.xy - vec2<f32>(base, rect.y) + vec2<f32>(-perFrame.text_rect_padding, 0.)) * vec2<f32>(f32(constants.sprite_oversampling), 1.);
         output.data0 = glyph_data;
-    } else if constants.shader == shader_mask || constants.shader == shader_color_mask {
-        let rect = norm_rect(data[constants.data_offset + inst * 2u]);
-        let glyph_data = data[constants.data_offset + inst * 2u + 1u];
+    } else if constants.shader == shader_color_mask {
+        let rect = norm_rect(get_data(inst * 2u));
+        let glyph_data = get_data(inst * 2u + 1u);
         outPosition = vec4<f32>(mix(rect.xy, rect.zw, uv_coord), 0., 1.);
         output.uv = outPosition.xy - rect.xy;
         output.data0 = glyph_data;
+    } else if constants.shader == shader_mask {
+        let d = data[constants.data_offset + (inst >> 1u)];
+        let patchCoord: u32 = d[(inst & 1u) << 1u];
+        let patchOffset: u32 = d[((inst & 1u) << 1u) + 1u];
+        output.coverage = data[constants.data_offset + ((constants.instances + 1u) >> 1u) + patchOffset];
+        let xy = vec2<f32>(vec2<u32>((patchCoord & 0xfffu) * 4u, ((patchCoord >> 12u) & 0xfffu) * 4u));
+        outPosition = vec4<f32>(mix(xy, xy + vec2<f32>(4. * f32(patchCoord >> 24u), 4.), uv_coord), 0., 1.);
+        output.uv = outPosition.xy - xy;
     }
 
     output.canvas_coord = outPosition.xy;
@@ -249,59 +252,8 @@ fn norm_rect(rect: vec4<f32>) -> vec4<f32> {
     return output;
 }
 
-fn superLength(pt: vec2<f32>) -> f32 {
-    let p = 4.0;
-    return pow(pow(pt.x, p) + pow(pt.y, p), 1.0 / p);
-}
-
-fn sdLengthEx(pt: vec2<f32>, border_radius: f32) -> f32 {
-    if border_radius == 0.0 {
-        return max2(abs(pt));
-    } else if border_radius > 0.0 {
-        return length(pt);
-    } else {
-        return superLength(pt);
-    }
-}
-
-fn signedDistanceRectangle(pt: vec2<f32>, rect_size: vec2<f32>, border_radii: vec4<f32>) -> f32 {
-    let ext = rect_size * 0.5;
-    let quadrant = u32(pt.x >= 0.) + 2u * u32(pt.y >= 0.);
-    var rad: f32 = abs(border_radii[quadrant]);
-    let ext2 = ext - vec2(rad, rad);
-    let d: vec2<f32> = abs(pt) - ext2;
-    return (min(max(d.x, d.y), 0.0) + sdLengthEx(max(d, vec2<f32>(0.)), border_radii[quadrant]) - rad);
-}
-
-fn signedDistanceArc(pt: vec2<f32>, outer_radius: f32, inner_radius: f32, start_angle: f32, end_angle: f32) -> f32 {
-    let outer_d = length(pt) - outer_radius;
-    let inner_d = length(pt) - inner_radius;
-    var circle = max(outer_d, -inner_d);
-
-    if end_angle - start_angle < 2.0 * PI {
-        let start_sincos = -vec2<f32>(cos(start_angle), sin(start_angle));
-        let end_sincos = vec2<f32>(cos(end_angle), sin(end_angle));
-        var pie: f32;
-        let add = vec2<f32>(dot(pt, start_sincos), dot(pt, end_sincos));
-        if end_angle - start_angle > PI {
-            pie = min(add.x, add.y); // union
-        } else {
-            pie = max(add.x, add.y); // intersect
-        }
-        circle = max(circle, pie);
-    }
-    return circle;
-}
-
-struct Colors {
-    brush: vec4<f32>,
-    stroke: vec4<f32>,
-}
-
-fn simpleGradient(pos: f32, stroke: bool) -> vec4<f32> {
-    let color1 = select(constants.fill_color1, constants.stroke_color1, stroke);
-    let color2 = select(constants.fill_color2, constants.stroke_color2, stroke);
-    return mix(color1, color2, pos);
+fn simpleGradient(pos: f32) -> vec4<f32> {
+    return mix(constants.fill_color1, constants.fill_color2, pos);
 }
 
 fn multiGradient(pos: f32) -> vec4<f32> {
@@ -320,18 +272,6 @@ fn transformedTexCoord(uv: vec2<f32>) -> vec2<f32> {
         transformed_uv = clamp(transformed_uv, vec2<f32>(0.5), tex_size - 0.5);
     }
     return transformed_uv / tex_size;
-}
-
-fn simpleCalcColors(canvas_coord: vec2<f32>) -> Colors {
-    var result: Colors;
-    let grad_pos = gradientPosition(canvas_coord);
-    if constants.multigradient == -1 {
-        result.brush = simpleGradient(grad_pos, false);
-    } else {
-        result.brush = multiGradient(grad_pos);
-    }
-    result.stroke = simpleGradient(grad_pos, true);
-    return result;
 }
 
 fn sqr(x: f32) -> f32 {
@@ -386,22 +326,27 @@ fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
     return sum;
 }
 
-fn calcColors(canvas_coord: vec2<f32>) -> Colors {
+fn computeShadeColor(canvas_coord: vec2<f32>) -> vec4<f32> {
+    var result: vec4<f32>;
     if constants.texture_index == -1 {
-        return simpleCalcColors(canvas_coord);
+        let grad_pos = gradientPosition(canvas_coord);
+        if constants.multigradient == -1 {
+            result = simpleGradient(grad_pos);
+        } else {
+            result = multiGradient(grad_pos);
+        }
+        return result;
     }
-    var result: Colors;
     let transformed_uv = transformedTexCoord(canvas_coord);
     if constants.blur_radius > 0.0 {
-        result.brush = sampleBlur(transformed_uv);
+        result = sampleBlur(transformed_uv);
     } else {
-        result.brush = textureSample(boundTexture_t, boundTexture_s, transformed_uv);
+        result = textureSample(boundTexture_t, boundTexture_s, transformed_uv);
     }
-    result.brush = clamp(result.brush, vec4<f32>(0.0), vec4<f32>(1.0));
+    result = clamp(result, vec4<f32>(0.0), vec4<f32>(1.0));
     if constants.multigradient != -1 {
-        result.brush = multiGradient(result.brush[constants.texture_channel]);
+        result = multiGradient(result[constants.texture_channel]);
     }
-    result.stroke = vec4(0.0);
     return result;
 }
 
@@ -452,41 +397,6 @@ fn gradientPositionForPoint(point: vec2<f32>) -> f32 {
 fn gradientPosition(canvas_coord: vec2<f32>) -> f32 {
     let pos = gradientPositionForPoint(canvas_coord);
     return clamp(pos, 0.0, 1.0);
-}
-
-fn toCoverage(sd: f32) -> f32 {
-    return clamp(0.5 - sd * distanceScale(), 0.0, 1.0);
-}
-
-fn fillOnly(signed_distance: f32, colors: Colors) -> vec4<f32> {
-    return colors.brush * toCoverage(signed_distance);
-}
-
-fn blendNormalPremultiplied(src: vec4<f32>, dst: vec4<f32>) -> vec4<f32> {
-    return vec4<f32>(src.rgb + dst.rgb * (1.0 - src.a), src.a + dst.a * (1.0 - src.a));
-}
-
-fn fillAndStroke(stroke_sd: f32, fill_sd: f32, colors: Colors) -> vec4<f32> {
-    let backColor = colors.brush * toCoverage(fill_sd);
-    let foreColor = colors.stroke * toCoverage(stroke_sd);
-    return blendNormalPremultiplied(foreColor, backColor);
-}
-
-fn signedDistanceToColor(sd: f32, canvas_coord: vec2<f32>) -> vec4<f32> {
-    let stroke_sd = abs(sd) - constants.stroke_width * 0.5;
-    if constants.texture_index == -1 
-        && constants.multigradient == -1 
-        && all(constants.fill_color1 == vec4<f32>(0))
-        && all(constants.fill_color2 == vec4<f32>(0))
-        && stroke_sd * distanceScale() > 0.5 {
-        discard;
-    }
-    let colors: Colors = calcColors(canvas_coord);
-    if constants.stroke_width > 0.0 {
-        return fillAndStroke(stroke_sd, sd, colors);
-    } else {
-        return fillOnly(sd, colors);
-    }
 }
 
 fn samplePattern(x: u32, pattern: u32) -> u32 {
@@ -672,6 +582,12 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
     return out;
 }
 
+fn rectangleCoverage(pt: vec2<f32>, rect: vec4<f32>) -> f32 {
+    let wh = max(vec2<f32>(0.0), min(pt.xy + vec2<f32>(0.5), rect.zw) - max(pt.xy - vec2<f32>(0.5), rect.xy));
+
+    return wh.x * wh.y;
+}
+
 @fragment /**/fn fragmentMain(in: VertexOutput) -> FragOut {
 
     if constants.shader == shader_blit {
@@ -685,32 +601,37 @@ fn postprocessColor(in: FragOut, canvas_coord: vec2<u32>) -> FragOut {
     var outColor: vec4<f32>;
     var outBlend: vec4<f32>;
 
-    if constants.shader == shader_rectangles || constants.shader == shader_arcs {
-        var sd: f32;
-        if constants.shader == shader_rectangles {
-            sd = signedDistanceRectangle(in.uv, in.data0.xy, in.data1);
-        } else { // shader_arcs
-            sd = signedDistanceArc(in.uv, in.data0.z, in.data0.w, in.data1.x, in.data1.y);
-        }
-        outColor = signedDistanceToColor(sd, in.canvas_coord);
-    } else if constants.shader == shader_shadow {
+    if constants.shader == shader_shadow {
         outColor = constants.fill_color1 * (roundedBoxShadow(in.data0.xy * 0.5, in.uv, constants.blur_radius, in.data1));
-    } else if constants.shader == shader_mask || constants.shader == shader_color_mask || constants.shader == shader_text {
+    } else if constants.shader == shader_color_mask || constants.shader == shader_text {
         let sprite = i32(in.data0.z);
         let stride = u32(in.data0.w);
         let tuv = vec2<i32>(in.uv);
-        let colors: Colors = calcColors(in.canvas_coord);
+        let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
 
         if useBlending() {
             let rgb = processSubpixelOutput(atlasSubpixel(sprite, tuv, stride));
-            outColor = colors.brush * vec4<f32>(rgb, 1.);
-            outBlend = vec4<f32>(colors.brush.a * rgb, 1.);
+            outColor = shadeColor * vec4<f32>(rgb, 1.);
+            outBlend = vec4<f32>(shadeColor.a * rgb, 1.);
         } else if constants.shader == shader_color_mask {
-            outColor = colors.brush * atlasRGBA(sprite, tuv, stride);
+            outColor = shadeColor * atlasRGBA(sprite, tuv, stride);
         } else {
             var alpha = atlasAccum(sprite, tuv, stride);
-            outColor = colors.brush * vec4<f32>(alpha);
+            outColor = shadeColor * vec4<f32>(alpha);
         }
+    } else if constants.shader == shader_mask {
+        let xy: vec2<u32> = vec2<u32>(in.uv);
+        let cov: f32 = unpack4x8unorm(in.coverage[xy.y & 3u])[xy.x & 3u];
+        let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
+        outColor = shadeColor * vec4<f32>(cov);
+    } else if constants.shader == shader_rectangle {
+        let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
+        let rect = in.data0;
+        let pixelCoverage = rectangleCoverage(in.canvas_coord, rect);
+
+        outColor = pixelCoverage * shadeColor;
+    } else {
+        outColor = vec4<f32>(0., 1., 0., 0.5);
     }
 
     return postprocessColor(FragOut(outColor, outBlend), vec2<u32>(in.canvas_coord));

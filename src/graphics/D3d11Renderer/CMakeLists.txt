@@ -49,7 +49,9 @@ foreach (SHADER_TYPE IN ITEMS "fragment" "vertex")
         COMMAND
             ${FXC} -nologo -T ${FXC_MODE_${SHADER_TYPE}}
             # -WX
+            -Gis -Zpr
             -O3 -E ${SHADER_TYPE}Main -Fo ${D3D11_SHADER_DIR}/${SHADER_TYPE}.fxc
+            -Fc ${D3D11_SHADER_DIR}/${SHADER_TYPE}.fxc.asm
             ${CMAKE_CURRENT_LIST_DIR}/${SHADER_TYPE}.hlsl
         DEPENDS ${CMAKE_CURRENT_LIST_DIR}/${SHADER_TYPE}.hlsl
         VERBATIM)

@@ -81,7 +81,7 @@ void RenderEncoderWebGpu::end() {
     m_currentTarget = nullptr;
 }
 
-void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span<const float> data) {
+void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span<const uint32_t> data) {
     BRISK_ASSERT(m_currentTarget);
     BRISK_ASSERT(m_queue.Get());
 
@@ -230,9 +230,9 @@ void RenderEncoderWebGpu::updateConstantBuffer(std::span<const RenderState> data
 }
 
 // Update the data buffer and possibly recreate it.
-void RenderEncoderWebGpu::updateDataBuffer(std::span<const float> data) {
+void RenderEncoderWebGpu::updateDataBuffer(std::span<const uint32_t> data) {
     size_t alignedDataSize = std::max(data.size_bytes(), size_t(16));
-    if (!m_dataBuffer || m_dataBuffer.GetSize() != alignedDataSize) {
+    if (!m_dataBuffer || alignedDataSize > m_dataBuffer.GetSize()) {
         wgpu::BufferDescriptor desc{
             .label = "DataBuffer",
             .usage = wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst,

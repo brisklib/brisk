@@ -636,6 +636,16 @@ struct MatrixOf {
         result.f = (b * e - a * f) / det;
         return result;
     }
+
+    static MatrixOf mapRect(RectangleF src, RectangleF dst) {
+        float scaleX     = (dst.x2 - dst.x1) / (src.x2 - src.x1);
+        float scaleY     = (dst.y2 - dst.y1) / (src.y2 - src.y1);
+
+        float translateX = dst.x1 - src.x1 * scaleX;
+        float translateY = dst.y1 - src.y1 * scaleY;
+
+        return { scaleX, 0, 0, scaleY, translateX, translateY };
+    }
 };
 
 using Matrix = MatrixOf<float>;

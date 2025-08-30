@@ -104,36 +104,6 @@ typedef ptrdiff_t SW_FT_PtrDist;
 /* to do all of its work.                                                */
 #define SW_FT_RENDER_POOL_SIZE 16384L
 
-typedef int (*SW_FT_Outline_MoveToFunc)(const SW_FT_Vector* to, void* user);
-
-#define SW_FT_Outline_MoveTo_Func SW_FT_Outline_MoveToFunc
-
-typedef int (*SW_FT_Outline_LineToFunc)(const SW_FT_Vector* to, void* user);
-
-#define SW_FT_Outline_LineTo_Func SW_FT_Outline_LineToFunc
-
-typedef int (*SW_FT_Outline_ConicToFunc)(const SW_FT_Vector* control,
-                                         const SW_FT_Vector* to, void* user);
-
-#define SW_FT_Outline_ConicTo_Func SW_FT_Outline_ConicToFunc
-
-typedef int (*SW_FT_Outline_CubicToFunc)(const SW_FT_Vector* control1,
-                                         const SW_FT_Vector* control2,
-                                         const SW_FT_Vector* to, void* user);
-
-#define SW_FT_Outline_CubicTo_Func SW_FT_Outline_CubicToFunc
-
-typedef struct SW_FT_Outline_Funcs_ {
-    SW_FT_Outline_MoveToFunc  move_to;
-    SW_FT_Outline_LineToFunc  line_to;
-    SW_FT_Outline_ConicToFunc conic_to;
-    SW_FT_Outline_CubicToFunc cubic_to;
-
-    int       shift;
-    SW_FT_Pos delta;
-
-} SW_FT_Outline_Funcs;
-
 #define SW_FT_DEFINE_OUTLINE_FUNCS(class_, move_to_, line_to_, conic_to_,      \
                                    cubic_to_, shift_, delta_)                  \
     static const SW_FT_Outline_Funcs class_ = {move_to_,  line_to_, conic_to_, \
@@ -1006,7 +976,7 @@ static void gray_sweep(RAS_ARG)
 /* <Return>                                                              */
 /*    Error code.  0 means success.                                      */
 /*                                                                       */
-static int SW_FT_Outline_Decompose(const SW_FT_Outline*       outline,
+int SW_FT_Outline_Decompose(const SW_FT_Outline*       outline,
                                    const SW_FT_Outline_Funcs* func_interface,
                                    void*                      user)
 {

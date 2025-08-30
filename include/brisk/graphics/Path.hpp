@@ -95,6 +95,8 @@ struct StrokeParams {
             v *= value;
         return copy;
     }
+
+    bool operator==(const StrokeParams& other) const noexcept = default;
 };
 
 /**
@@ -102,6 +104,8 @@ struct StrokeParams {
  */
 struct FillParams {
     FillRule fillRule = FillRule::Winding; ///< The fill rule to be used.
+
+    bool operator==(const FillParams& other) const noexcept = default;
 };
 
 /**
@@ -112,18 +116,113 @@ using FillOrStrokeParams = std::variant<FillParams, StrokeParams>;
 struct Path;
 
 namespace Internal {
-extern PerformanceDuration performancePathScanline;
 extern PerformanceDuration performancePathRasterization;
-/**
- * @brief Rasterizes the given path with specified parameters and clipping rectangle.
- *
- * @param path The path to rasterize.
- * @param params The fill or stroke parameters.
- * @param clipRect The clipping rectangle. Use noClipRect to disable clipping.
- * @return RasterizedPath The resulting rasterized path.
- */
-RasterizedPath rasterizePath(const Path& path, const FillOrStrokeParams& params, Rectangle clipRect);
+extern PerformanceDuration performancePathDashing;
+extern PerformanceDuration performancePathStroking;
+
 } // namespace Internal
+
+struct Path;
+
+namespace Internal {
+struct DenseMask;
+struct Patch;
+struct PatchData;
+
+struct SparseMask {
+    std::vector<Patch> patches;
+    std::vector<PatchData> patchData;
+    RectangleF rectangle;
+    Rectangle bounds{ INT32_MAX, INT32_MAX, INT32_MIN, INT32_MIN };
+
+    SparseMask();
+
+    SparseMask(RectangleF rect);
+
+    SparseMask toSparse() const;
+
+    bool intersects(const SparseMask& other) const;
+
+    bool empty() const noexcept {
+        return rectangle.empty() && patches.empty();
+    }
+
+    bool isRectangle() const noexcept {
+        return !rectangle.empty() && patches.empty();
+    }
+
+    bool isSparse() const noexcept {
+        return rectangle.empty() && !patches.empty();
+    }
+};
+
+SparseMask sparseMaskFromDense(const DenseMask& bitmap);
+
+DenseMask rasterizePath(const Path& path, FillRule fillRule = FillRule::Winding,
+                        Rectangle clip = Rectangle());
+} // namespace Internal
+
+struct PreparedPath {
+public:
+    PreparedPath();
+    PreparedPath(const PreparedPath&);
+    PreparedPath(PreparedPath&&);
+    PreparedPath& operator=(const PreparedPath&);
+    PreparedPath& operator=(PreparedPath&&);
+    PreparedPath(Internal::SparseMask&& mask);
+    PreparedPath(const Path& path, const FillParams& params = {}, Rectangle clipRect = noClipRect,
+                 bool optimizeRectangle = true);
+    PreparedPath(const Path& path, const StrokeParams& params, Rectangle clipRect = noClipRect);
+    PreparedPath(RectangleF rectangle, bool optimizeRectangle = true);
+
+    static PreparedPath union_(const PreparedPath& a, const PreparedPath& b);
+    static PreparedPath intersection(const PreparedPath& a, const PreparedPath& b);
+    static PreparedPath difference(const PreparedPath& a, const PreparedPath& b);
+    static PreparedPath symmetricDifference(const PreparedPath& a, const PreparedPath& b);
+
+    static PreparedPath pathOp(MaskOp op, const PreparedPath& a, const PreparedPath& b);
+
+    bool empty() const noexcept {
+        return m_mask.empty();
+    }
+
+protected:
+    PreparedPath toSparse() const;
+
+    const Internal::SparseMask& mask() const noexcept {
+        return m_mask;
+    }
+
+    const std::vector<Internal::Patch>& patches() const noexcept {
+        return m_mask.patches;
+    }
+
+    const std::vector<Internal::PatchData>& patchData() const noexcept {
+        return m_mask.patchData;
+    }
+
+    Rectangle patchBounds() const;
+
+    bool isRectangle() const noexcept {
+        return m_mask.isRectangle();
+    }
+
+    bool isSparse() const noexcept {
+        return m_mask.isSparse();
+    }
+
+    RectangleF rectangle() const noexcept {
+        return m_mask.rectangle;
+    }
+
+private:
+    Internal::SparseMask m_mask;
+
+    friend class Canvas;
+    void init(Internal::DenseMask&& bitmap);
+    void initRect(RectangleF rect);
+    static PreparedPath merge(const PreparedPath& a, const PreparedPath& b);
+};
 
 class Dasher;
 
@@ -140,8 +239,17 @@ struct Path {
 
     friend class Dasher;
 
-    enum class Direction : uint8_t { CCW, CW };                      ///< Enum for the direction of the path.
-    enum class Element : uint8_t { MoveTo, LineTo, CubicTo, Close }; ///< Enum for the elements of the path.
+    enum class Direction : uint8_t { CCW, CW }; ///< Enum for the direction of the path.
+    enum class Element : uint8_t {
+        MoveTo,
+        LineTo,
+        QuadraticTo,
+        CubicTo,
+        Close,
+    }; ///< Enum for the elements of the path.
+
+    using enum Direction;
+    using enum Element;
 
     /**
      * @brief Checks if the path is empty.
@@ -319,6 +427,8 @@ struct Path {
     void addPolygon(float points, float radius, float roundness, float startAngle, float cx, float cy,
                     Direction dir = Direction::CW);
 
+    void addPolyline(std::span<const PointF> points);
+
     /**
      * @brief Adds another path to this path.
      * @param path The path to add.
@@ -367,25 +477,6 @@ struct Path {
      */
     RectangleF boundingBoxApprox() const;
 
-    std::optional<RectangleF> asRectangle() const;
-    std::optional<RectangleF> asCircle() const;
-    std::optional<std::tuple<RectangleF, float, bool>> asRoundRectangle() const;
-    std::optional<std::array<PointF, 2>> asLine() const;
-
-    /// Rasterizes the path for filling.
-    /// @param fill Fill parameters.
-    /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const FillParams& fill, Rectangle clipRect = noClipRect) const {
-        return Internal::rasterizePath(*this, fill, clipRect);
-    }
-
-    /// Rasterizes the path for stroking.
-    /// @param stroke Stroke parameters.
-    /// @param clipRect Clipping rectangle. Pass noClipRect to disable clipping.
-    RasterizedPath rasterize(const StrokeParams& stroke, Rectangle clipRect = noClipRect) const {
-        return Internal::rasterizePath(*this, stroke, clipRect);
-    }
-
     const std::vector<Path::Element>& elements() const {
         return m_elements;
     }
@@ -397,6 +488,10 @@ struct Path {
     size_t segments() const {
         return m_segments;
     }
+
+    std::optional<RectangleF> asRectangle() const;
+
+    Path stroke(const StrokeParams& params) const;
 
 private:
     std::vector<PointF> m_points;

@@ -72,13 +72,12 @@ inline bool fromJson(const Brisk::Json& j, ColorF& p) {
 }
 
 enum class ShaderType : int {
-    Rectangles, // Gradient or texture
-    Arcs,       // Gradient or texture
-    Text,       // Gradient or texture
-    Shadow,     // Custom paint or texture
-    Mask,       // Gradient or texture
-    ColorMask,  // Gradient or texture
-    Blit,       // Texture
+    Rectangle = 0,
+    Text      = 1, // Gradient or texture
+    Shadow    = 2, // Custom paint or texture
+    ColorMask = 3, // Gradient or texture
+    Blit      = 4, // Texture
+    Mask      = 5, // Gradient or texture
 };
 
 struct GeometryGlyph {
@@ -88,9 +87,8 @@ struct GeometryGlyph {
     float stride;
 };
 
-struct GeometryRectangle {
-    RectangleF rectangle;
-    CornersF borderRadii;
+struct GeometryQuad {
+    PointF points[4];
 };
 
 struct GeometryArc {
@@ -181,8 +179,8 @@ public:
 
 public:
     // ---------------- SHADER -----------------
-    ShaderType shader   = ShaderType::Rectangles; ///< Type of geometry to generate
-    TextureId textureId = textureIdNone;          ///<
+    ShaderType shader   = ShaderType::Blit; ///< Type of geometry to generate
+    TextureId textureId = textureIdNone;    ///<
 
     Quad3 scissorQuad   = noClipRect;
 
@@ -191,14 +189,14 @@ public:
     SubpixelMode subpixelMode = SubpixelMode::RGB;
 
     PatternCodes pattern{};
-    int reserved1         = 0;
-    int reserved2         = 0;
-    float opacity         = 1.f; ///< Opacity. Defaults to 1
+    uint32_t filledPatches = 0;
+    int reserved2          = 0;
+    float opacity          = 1.f; ///< Opacity. Defaults to 1
 
-    int32_t multigradient = -1; ///< Gradient (-1 - disabled)
-    int blurDirections    = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
-    int textureChannel    = 0;  ///<
-    int reserved3         = 0;
+    int32_t multigradient  = -1; ///< Gradient (-1 - disabled)
+    int blurDirections     = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
+    int textureChannel     = 0;  ///<
+    int reserved3          = 0;
 
     Matrix textureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     SamplerMode samplerMode = SamplerMode::Clamp;         ///<
@@ -206,8 +204,6 @@ public:
 
     ColorF fillColor1       = Palette::white; ///< Fill (brush) color for gradient at 0%
     ColorF fillColor2       = Palette::white; ///< Fill (brush) color for gradient at 100%
-    ColorF strokeColor1     = Palette::black; ///< Stroke (pen) color for gradient at 0%
-    ColorF strokeColor2     = Palette::black; ///< Stroke (pen) color for gradient at 100%
 
     PointF gradientPoint1   = { 0.f, 0.f };     ///< 0% Gradient point
     PointF gradientPoint2   = { 100.f, 100.f }; ///< 100% Gradient point
@@ -221,6 +217,9 @@ public:
     };
 
     Rectangle shaderClip = noClipRect;
+
+    Simd<uint32_t, 4> reserved4;
+    Simd<uint32_t, 4> reserved5;
 
 public:
     bool compare(const RenderState& second) const;
@@ -269,17 +268,17 @@ static_assert(sizeof(RenderState) % 256 == 0, "sizeof(RenderState) % 256 == 0");
 class RenderContext {
     BRISK_DYNAMIC_CLASS_ROOT(RenderContext)
 public:
-    virtual void command(RenderStateEx&& cmd, std::span<const float> data = {}) = 0;
+    virtual void command(RenderStateEx&& cmd, std::span<const uint32_t> data = {}) = 0;
 
-    virtual void setClipRect(Rectangle clipRect)                                = 0;
+    virtual void setClipRect(Rectangle clipRect)                                   = 0;
 
     template <typename T>
     void command(RenderStateEx&& cmd, std::span<T> value) {
         static_assert(std::is_trivially_copy_constructible_v<T>);
-        static_assert(sizeof(T) % sizeof(float) == 0);
+        static_assert(sizeof(T) % sizeof(uint32_t) == 0);
 
-        command(std::move(cmd), std::span<const float>{ reinterpret_cast<const float*>(value.data()),
-                                                        value.size() * sizeof(T) / sizeof(float) });
+        command(std::move(cmd), std::span<const uint32_t>{ reinterpret_cast<const uint32_t*>(value.data()),
+                                                           value.size() * sizeof(T) / sizeof(uint32_t) });
     }
 
     virtual int numBatches() const = 0;

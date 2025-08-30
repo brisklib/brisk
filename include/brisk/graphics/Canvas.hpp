@@ -189,9 +189,8 @@ struct PaintAndTransform;
  * @brief Enum class defining flags for canvas rendering options.
  */
 enum class CanvasFlags {
-    None    = 0,  ///< No special rendering flags.
-    Sdf     = 1,  ///< Use Signed Distance Field for compatible shapes.
-    Default = Sdf ///< Default rendering flag, set to Sdf.
+    None    = 0,
+    Default = None,
 };
 
 template <>
@@ -261,6 +260,9 @@ public:
      */
     void fillPath(const Path& path, const Paint& fillPaint, const FillParams& fillParams,
                   const Matrix& matrix, RectangleF clipRect, float opacity);
+
+    void fillPreparedPath(const PreparedPath& path, const Paint& fillPaint, RectangleF clipRect,
+                          float opacity);
 
     /**
      * @brief Draws a path on the canvas with both stroke and fill using specified parameters.
@@ -891,8 +893,6 @@ public:
      */
     ClipRectSaver saveClipRect() &;
 
-    int rasterizedPaths() const noexcept;
-
     /**
      * @brief Checks if the Canvas supports layer rendering.
      *
@@ -968,9 +968,12 @@ private:
     std::vector<State> m_stack;  ///< The stack of saved Canvas states.
     std::vector<Layer> m_layers; ///< The stack of layers for rendering.
 
-    int m_rasterizedPaths = 0;
-    void drawRasterizedPath(const RasterizedPath& path, const Internal::PaintAndTransform& paint,
-                            Quad3 scissors);
+    void drawPreparedPath(const PreparedPath& path, const Internal::PaintAndTransform& paint, Quad3 scissors);
+
+    void drawTextSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                         RenderStateExArgs args);
+    void drawColorSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
+                          RenderStateExArgs args);
 };
 
 } // namespace Brisk

@@ -41,6 +41,57 @@ enum class MaskOp : uint8_t {
 };
 
 namespace Internal {
+
+inline bool boolOp(MaskOp op, bool a, bool b) {
+    switch (op) {
+    case MaskOp::And:
+        return a && b;
+    case MaskOp::AndNot:
+        return a && !b;
+    case MaskOp::Or:
+        return a || b;
+    case MaskOp::Xor:
+        return a != b;
+    default:
+        BRISK_UNREACHABLE();
+    }
+}
+
+static inline uint8_t divBy255(int x) {
+    return (x + (x >> 8) + 0x80) >> 8;
+}
+
+template <size_t N>
+inline void coverageOp(MaskOp op, uint8_t* dst, const uint8_t* a, const uint8_t* b) {
+    // Optimize with SIMD
+    switch (op) {
+    case MaskOp::And:
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = divBy255(a[i] * b[i]);
+        break;
+    case MaskOp::AndNot:
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = divBy255(a[i] * (255 - b[i]));
+        break;
+    case MaskOp::Or:
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = a[i] + b[i] - divBy255(a[i] * b[i]);
+        break;
+    case MaskOp::Xor:
+        for (size_t i = 0; i < N; ++i)
+            dst[i] = a[i] + b[i] - 2 * divBy255(a[i] * b[i]);
+        break;
+    default:
+        BRISK_UNREACHABLE();
+    }
+}
+
+inline uint8_t coverageOp(MaskOp op, uint8_t a, uint8_t b) {
+    uint8_t result;
+    coverageOp<1>(op, &result, &a, &b);
+    return result;
+}
+
 template <typename T>
 struct FloatTypeFor {
     using Type = float;
@@ -2395,6 +2446,14 @@ struct RectangleOf {
         return !intersection(c).empty();
     }
 
+    constexpr Range<T> xRange() const noexcept {
+        return Range<T>{ x1, x2 };
+    }
+
+    constexpr Range<T> yRange() const noexcept {
+        return Range<T>{ y1, y2 };
+    }
+
     /**
      * @brief Accesses a specific component of the rectangle.
      *
@@ -2494,5 +2553,91 @@ using RectangleF = RectangleOf<float>;
  * @brief A constant rectangle that represents no clipping area.
  */
 constexpr inline Rectangle noClipRect{ INT32_MIN, INT32_MIN, INT32_MAX, INT32_MAX };
+
+namespace Internal {
+
+inline std::optional<RectangleF> rectangleOp(MaskOp op, RectangleF a, RectangleF b) {
+    // Compute intersection rectangle
+    RectangleF inter = { std::max(a.x1, b.x1), std::max(a.y1, b.y1), std::min(a.x2, b.x2),
+                         std::min(a.y2, b.y2) };
+    bool has_inter   = (inter.x1 < inter.x2) && (inter.y1 < inter.y2);
+    float area_inter = has_inter ? (inter.x2 - inter.x1) * (inter.y2 - inter.y1) : 0.0f;
+
+    // Compute bounding rectangle
+    RectangleF bound = { std::min(a.x1, b.x1), std::min(a.y1, b.y1), std::max(a.x2, b.x2),
+                         std::max(a.y2, b.y2) };
+    float area_bound = bound.area();
+
+    // Compute areas
+    float area_a     = a.area();
+    float area_b     = b.area();
+
+    switch (op) {
+    case MaskOp::Union: {
+        float union_area = area_a + area_b - area_inter;
+        if (std::abs(area_bound - union_area) < 1e-6f) {
+            return bound;
+        }
+        return std::nullopt;
+    }
+    case MaskOp::Intersection: {
+        if (has_inter) {
+            return inter;
+        }
+        return std::nullopt;
+    }
+    case MaskOp::Difference: { // a - b
+        if (!has_inter) {
+            return a;
+        }
+        if (area_inter >= area_a) { // a subset of b
+            return std::nullopt;
+        }
+        // Check if intersection touches one full side of a
+        bool left   = (inter.x1 == a.x1) && (inter.y1 == a.y1) && (inter.y2 == a.y2) && (inter.x2 < a.x2);
+        bool right  = (inter.x2 == a.x2) && (inter.y1 == a.y1) && (inter.y2 == a.y2) && (inter.x1 > a.x1);
+        bool bottom = (inter.y1 == a.y1) && (inter.x1 == a.x1) && (inter.x2 == a.x2) && (inter.y2 < a.y2);
+        bool top    = (inter.y2 == a.y2) && (inter.x1 == a.x1) && (inter.x2 == a.x2) && (inter.y1 > a.y1);
+
+        if (left) {
+            return RectangleF{ inter.x2, a.y1, a.x2, a.y2 };
+        } else if (right) {
+            return RectangleF{ a.x1, a.y1, inter.x1, a.y2 };
+        } else if (bottom) {
+            return RectangleF{ a.x1, inter.y2, a.x2, a.y2 };
+        } else if (top) {
+            return RectangleF{ a.x1, a.y1, a.x2, inter.y1 };
+        }
+        return std::nullopt;
+    }
+    case MaskOp::Xor: {
+        // XOR = (A ∪ B) - (A ∩ B)
+        auto union_opt = rectangleOp(MaskOp::Union, a, b);
+        if (!has_inter) {
+            return union_opt; // No intersection, XOR is same as union
+        }
+        // If union is not a rectangle, XOR cannot be
+        if (!union_opt) {
+            return std::nullopt;
+        }
+        // Check containment cases
+        bool a_contains_b = (a.x1 <= b.x1) && (a.x2 >= b.x2) && (a.y1 <= b.y1) && (a.y2 >= b.y2);
+        bool b_contains_a = (b.x1 <= a.x1) && (b.x2 >= a.x2) && (b.y1 <= a.y1) && (b.y2 >= a.y2);
+
+        if (a_contains_b) {
+            // XOR = a - b
+            return rectangleOp(MaskOp::Difference, a, b);
+        } else if (b_contains_a) {
+            // XOR = b - a
+            return rectangleOp(MaskOp::Difference, b, a);
+        }
+        // If neither contains the other and intersection exists, result is not a single rectangle
+        return std::nullopt;
+    }
+    default:
+        BRISK_UNREACHABLE();
+    }
+}
+} // namespace Internal
 
 } // namespace Brisk

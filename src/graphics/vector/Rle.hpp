@@ -37,23 +37,6 @@ public:
         uint16_t len{ 0 };
         uint8_t coverage{ 0 };
 
-        int16_t end() const noexcept {
-            return x + len;
-        }
-
-        bool before(Span other) const noexcept {
-            return y < other.y || (y == other.y && end() <= other.x);
-        }
-
-        Span slice(int16_t startX, int16_t endX = INT16_MAX) const noexcept {
-            return { startX, y, static_cast<uint16_t>(std::min(static_cast<int16_t>(x + len), endX) - startX),
-                     coverage };
-        }
-
-        friend auto format_as(Span s) {
-            return std::make_tuple(s.x, s.y, s.len, s.coverage);
-        }
-
         bool operator==(const Span& other) const noexcept = default;
     };
 
@@ -79,13 +62,7 @@ public:
         return mSpans;
     }
 
-    static Rle binary(const Rle& left, const Rle& right, MaskOp op);
-
     void addRect(Rectangle rect);
-
-    View view() const {
-        return { mSpans.data(), mSpans.size() };
-    }
 
 private:
     void updateBbox() const;

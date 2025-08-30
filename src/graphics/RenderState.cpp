@@ -36,8 +36,6 @@ bool RenderState::compare(const RenderState& second) const {
 void RenderState::premultiply() {
     fillColor1   = fillColor1.premultiply();
     fillColor2   = fillColor2.premultiply();
-    strokeColor1 = strokeColor1.premultiply();
-    strokeColor2 = strokeColor2.premultiply();
 }
 
 RenderStateEx::RenderStateEx(ShaderType shader, RenderStateExArgs args) {

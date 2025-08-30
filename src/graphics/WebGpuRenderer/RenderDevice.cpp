@@ -246,7 +246,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
             .buffer =
                 wgpu::BufferBindingLayout{
                     .type           = wgpu::BufferBindingType::ReadOnlyStorage,
-                    .minBindingSize = sizeof(Simd<float, 4>),
+                    .minBindingSize = sizeof(Simd<uint32_t, 4>),
                 },
         },
         wgpu::BindGroupLayoutEntry{
@@ -315,7 +315,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
     m_limits.maxGradients = 1024;
     m_limits.maxAtlasSize =
         std::min(limits.maxTextureDimension2D * limits.maxTextureDimension2D, 128u * 1048576u);
-    m_limits.maxDataSize = limits.maxBufferSize / sizeof(float);
+    m_limits.maxDataSize = limits.maxStorageBufferBindingSize / sizeof(uint32_t);
 
     m_resources.spriteAtlas.reset(
         new SpriteAtlas(256 * 1024, m_limits.maxAtlasSize, 256 * 1024, &m_resources.mutex));

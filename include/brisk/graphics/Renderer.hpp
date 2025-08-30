@@ -210,7 +210,7 @@ public:
      * @param commands The rendering commands.
      * @param data Associated data.
      */
-    virtual void batch(std::span<const RenderState> commands, std::span<const float> data)          = 0;
+    virtual void batch(std::span<const RenderState> commands, std::span<const uint32_t> data)       = 0;
 
     /**
      * @brief Ends the rendering operation.
@@ -285,7 +285,7 @@ public:
      * @param cmd The render state command.
      * @param data Optional associated data.
      */
-    void command(RenderStateEx&& cmd, std::span<const float> data = {}) final;
+    void command(RenderStateEx&& cmd, std::span<const uint32_t> data = {}) final;
 
     /**
      * @brief Retrieves the number of batches processed.
@@ -312,7 +312,7 @@ private:
     RenderLimits m_limits;               ///< Resource limits for the pipeline.
     RenderResources& m_resources;        ///< Rendering resources.
     std::vector<RenderState> m_commands; ///< List of rendering commands queued for execution.
-    std::vector<float> m_data;           ///< Buffer for associated rendering data.
+    std::vector<uint32_t> m_data;        ///< Buffer for associated rendering data.
     std::vector<Rc<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
     Rectangle m_clipRect;                ///< The current clipping rectangle.
