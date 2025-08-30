@@ -783,6 +783,8 @@ PreparedPath::PreparedPath(const Path& path, const FillParams& params, Rectangle
 
 PreparedPath::PreparedPath(const Path& path, const StrokeParams& params, Rectangle clipRect) {
     Path stroke = path.stroke(params);
+    if (stroke.empty())
+        return;
 
     Internal::DenseMask mask;
     {

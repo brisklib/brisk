@@ -41,6 +41,8 @@ void rasterize(StridedData mask, const IntRect& pathBounds, const PathTag* tags,
 namespace Brisk::Internal {
 DenseMask rasterizePath(const Path& path, FillRule fillRule, Rectangle clip) {
     Rectangle bounds = path.boundingBoxApprox().roundOutward();
+    if (bounds.empty())
+        return DenseMask{};
     DenseMask result(bounds);
 
     Blaze::rasterize(Blaze::StridedData{ result.line(0), uint32_t(result.stride) },
