@@ -40,7 +40,7 @@ private:
         RasterizableGeometry(const Geometry *geometry,
             const LineIterationFunction iterationFunction,
             const TileBounds bounds)
-            : Geometry(geometry), IterationFunction(iterationFunction),
+            : SourceGeometry(geometry), IterationFunction(iterationFunction),
               Bounds(bounds) {}
 
         void *GetLinesForRow(const int rowIndex) const;
@@ -48,7 +48,7 @@ private:
         const int32_t *GetCoversForRow(const int rowIndex) const;
         const int32_t *GetActualCoversForRow(const int rowIndex) const;
 
-        const Geometry *Geometry = nullptr;
+        const Geometry *SourceGeometry = nullptr;
         const LineIterationFunction IterationFunction = nullptr;
         const TileBounds Bounds;
         void **Lines = nullptr;
@@ -1716,9 +1716,9 @@ inline void Rasterizer<T>::RasterizeOneItem(const RasterizableItem *item,
     // height.
     const int hh = Min(maxpy, imageSize.Height) - py;
 
-    const FillRule rule = item->Rasterizable->Geometry->Rule;
+    const FillRule rule = item->Rasterizable->SourceGeometry->Rule;
 
-    const Geometry *geometry = item->Rasterizable->Geometry;
+    const Geometry *geometry = item->Rasterizable->SourceGeometry;
     if (rule == FillRule::NonZero) {
         for (int i = 0; i < hh; i++) {
             RenderOneLine<AreaToAlphaNonZero>(bitVectorTable[i],
