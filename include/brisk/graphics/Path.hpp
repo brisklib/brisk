@@ -32,6 +32,11 @@
 
 namespace Brisk {
 
+class EGeometryError : public Exception<std::runtime_error> {
+public:
+    using Exception<std::runtime_error>::Exception; ///< Inherit constructors from the base exception class
+};
+
 /**
  * @brief Represents a rasterized path with a sprite and bounding rectangle.
  */

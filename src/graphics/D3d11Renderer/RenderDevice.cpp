@@ -285,6 +285,9 @@ Rc<WindowRenderTarget> RenderDeviceD3d11::createWindowTarget(const NativeWindow*
 
 Rc<ImageRenderTarget> RenderDeviceD3d11::createImageTarget(Size frameSize, PixelType type,
                                                            DepthStencilType depthStencil, int samples) {
+    if (frameSize.longestSide() >= 16384) {
+        throwException(EImageError("Requested image render target size is too large: {}", frameSize));
+    }
     return rcnew ImageRenderTargetD3d11(shared_from_this(), frameSize, type, depthStencil, samples);
 }
 

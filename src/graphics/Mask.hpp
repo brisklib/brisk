@@ -40,10 +40,15 @@ struct DenseMask {
 
     DenseMask() : data(nullptr), bounds{} {}
 
-    DenseMask(Rectangle bounds)
-        : stride(alignUp(bounds.width(), 4) + 4), rows(bounds.height() + 3 + 3),
-          data(std::make_unique<uint8_t[]>(stride * rows + 4)), bounds(bounds) {
-        memset(data.get(), 0, stride * rows + 4);
+    DenseMask(Rectangle bounds) {
+        if (bounds.size().longestSide() >= 16384) {
+            throwException(
+                EGeometryError("Requested image render target size is too large: {}", bounds.size()));
+        }
+        stride = alignUp(bounds.width(), 4) + 4;
+        rows   = bounds.height() + 3 + 3;
+        data   = std::make_unique<uint8_t[]>(stride * rows + 4);
+        bounds = bounds, memset(data.get(), 0, stride * rows + 4);
     }
 
     uint8_t* line(int32_t y) const {

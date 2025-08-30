@@ -60,6 +60,9 @@ void WindowRenderTargetWebGpu::recreateSwapChain() {
 }
 
 void WindowRenderTargetWebGpu::resizeBackbuffer(Size size) {
+    if (size.longestSide() >= 16384) {
+        throwException(EImageError("Requested window framebuffer size is too large: {}", size));
+    }
     if (size != m_size) {
         m_size = size;
         recreateSwapChain();

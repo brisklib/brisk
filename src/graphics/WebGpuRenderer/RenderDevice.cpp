@@ -414,6 +414,9 @@ Rc<WindowRenderTarget> RenderDeviceWebGpu::createWindowTarget(const NativeWindow
 
 Rc<ImageRenderTarget> RenderDeviceWebGpu::createImageTarget(Size frameSize, PixelType type,
                                                             DepthStencilType depthStencil, int samples) {
+    if (frameSize.longestSide() >= 16384) {
+        throwException(EImageError("Requested image render target size is too large: {}", frameSize));
+    }
     return rcnew ImageRenderTargetWebGpu(shared_from_this(), frameSize, type, depthStencil, samples);
 }
 
