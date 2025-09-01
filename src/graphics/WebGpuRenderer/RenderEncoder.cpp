@@ -134,8 +134,6 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
         }
 
         if (clampedRect != currentClipRect) {
-            BRISK_LOG_INFO("Set scissor rect: {},{} {},{}", clampedRect.x1, clampedRect.y1,
-                           clampedRect.width(), clampedRect.height());
             m_pass.SetScissorRect(clampedRect.x1, clampedRect.y1, clampedRect.width(), clampedRect.height());
             currentClipRect = clampedRect;
         }
