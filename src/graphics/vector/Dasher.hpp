@@ -34,10 +34,12 @@ public:
 private:
     void moveTo(PointF p);
     void lineTo(PointF p);
+    void quadraticTo(PointF cp, PointF e);
     void cubicTo(PointF cp1, PointF cp2, PointF e);
     void close();
     void addLine(PointF p);
     void addCubic(PointF cp1, PointF cp2, PointF e);
+    void addQuadratic(PointF cp, PointF e);
     void updateActiveSegment();
 
 private:

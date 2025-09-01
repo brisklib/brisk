@@ -605,7 +605,6 @@ void Path::addPolygon(float points, float radius, float roundness, float startAn
 
     roundness /= 100.0f;
 
-    currentAngle = (currentAngle - 90.0f) * K_PI / 180.0f;
     x            = radius * cosf(currentAngle);
     y            = radius * sinf(currentAngle);
     currentAngle += anglePerPoint * angleDir;
@@ -681,6 +680,7 @@ void Path::transform(const Matrix& m) {
     if (m.isIdentity())
         return;
     m.transform(std::span<PointF>{ m_points.data(), m_points.size() });
+    m.transform(one(mStartPoint));
 }
 
 Path Path::transformed(const Matrix& m) const& {
@@ -775,8 +775,7 @@ PreparedPath::PreparedPath(const Path& path, const FillParams& params, Rectangle
     Internal::DenseMask mask;
     {
         Stopwatch perf(Internal::performancePathRasterization);
-        mask =
-            Internal::rasterizePath(path, params.fillRule, clipRect == noClipRect ? Rectangle{} : clipRect);
+        mask = Internal::rasterizePath(path, params.fillRule, clipRect);
     }
     init(std::move(mask));
 }
@@ -789,8 +788,7 @@ PreparedPath::PreparedPath(const Path& path, const StrokeParams& params, Rectang
     Internal::DenseMask mask;
     {
         Stopwatch perf(Internal::performancePathRasterization);
-        mask = Internal::rasterizePath(stroke, FillRule::Winding,
-                                       clipRect == noClipRect ? Rectangle{} : clipRect);
+        mask = Internal::rasterizePath(stroke, FillRule::Winding, clipRect);
     }
     init(std::move(mask));
 }
@@ -1176,5 +1174,13 @@ PreparedPath::PreparedPath(Internal::SparseMask&& mask) : m_mask(std::move(mask)
 
 PreparedPath PreparedPath::toSparse() const {
     return PreparedPath{ m_mask.toSparse() };
+}
+
+Path::Path(RectangleF rectangle) {
+    addRect(rectangle);
+}
+
+Path::Path(Rectangle rectangle) {
+    addRect(RectangleF(rectangle));
 }
 } // namespace Brisk

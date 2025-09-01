@@ -61,12 +61,7 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_stroker.cpp
     ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype/v_ft_raster.cpp)
 
-if (BRISK_RASTERIZER_FREETYPE)
-    target_compile_definitions(brisk-graphics PRIVATE BRISK_RASTERIZER_FREETYPE=1)
-    target_sources(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/vector/Raster.cpp)
-else ()
-    target_sources(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/blaze/Blaze.cpp)
-endif ()
+target_sources(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/blaze/Blaze.cpp)
 
 set_property(TARGET brisk-graphics PROPERTY EXPORT_NAME Graphics)
 add_library(Brisk::Graphics ALIAS brisk-graphics)

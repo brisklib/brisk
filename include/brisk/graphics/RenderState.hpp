@@ -182,7 +182,7 @@ public:
     ShaderType shader   = ShaderType::Blit; ///< Type of geometry to generate
     TextureId textureId = textureIdNone;    ///<
 
-    Quad3 scissorQuad   = noClipRect;
+    PointF reserved0[3];
 
     Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     int spriteOversampling    = 1;
@@ -216,7 +216,7 @@ public:
         uint64_t dummy;
     };
 
-    Rectangle shaderClip = noClipRect;
+    Rectangle scissor = noClipRect;
 
     Simd<uint32_t, 4> reserved4;
     Simd<uint32_t, 4> reserved5;
@@ -270,7 +270,7 @@ class RenderContext {
 public:
     virtual void command(RenderStateEx&& cmd, std::span<const uint32_t> data = {}) = 0;
 
-    virtual void setClipRect(Rectangle clipRect)                                   = 0;
+    virtual void setGlobalScissor(Rectangle rect)                                  = 0;
 
     template <typename T>
     void command(RenderStateEx&& cmd, std::span<T> value) {

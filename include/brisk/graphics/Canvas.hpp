@@ -212,6 +212,7 @@ public:
      * @param context The rendering context used for drawing operations.
      */
     explicit Canvas(RenderContext& context, CanvasFlags flags = CanvasFlags::Default);
+    ~Canvas();
 
     /**
      * @brief Retrieves the render context for the canvas.
@@ -233,56 +234,35 @@ public:
      * @brief Draws a stroked path on the canvas with specified parameters.
      *
      * This stateless function renders a path outline using the provided stroke paint, parameters,
-     * transformation matrix, clipping rectangle, and opacity. It does not modify or access the canvas state.
+     * transformation matrix, clipping path, and opacity. It does not modify or access the canvas state.
      *
      * @param path The path to be stroked.
      * @param strokePaint The paint used for stroking the path.
      * @param params The stroke parameters (e.g., width, cap, join).
-     * @param matrix The transformation matrix to apply to the path.
-     * @param clipRect The clipping rectangle in canvas coordinates.
+     * @param matrix The transformation matrix to apply to the path and clipPath.
+     * @param clipPath The clipping path in canvas coordinates.
      * @param opacity The opacity value (0.0 to 1.0) for rendering.
      */
     void strokePath(const Path& path, const Paint& strokePaint, const StrokeParams& params,
-                    const Matrix& matrix, RectangleF clipRect, float opacity);
+                    const Matrix& matrix, const PreparedPath& clipPath, Rectangle scissor, float opacity);
 
     /**
      * @brief Fills a path on the canvas with specified parameters.
      *
      * This stateless function fills a path using the provided fill paint, parameters, transformation
-     * matrix, clipping rectangle, and opacity. It does not modify or access the canvas state.
+     * matrix, clipping path, and opacity. It does not modify or access the canvas state.
      *
      * @param path The path to be filled.
      * @param fillPaint The paint used for filling the path.
      * @param fillParams The fill parameters (e.g., fill rule).
      * @param matrix The transformation matrix to apply to the path.
-     * @param clipRect The clipping rectangle in canvas coordinates.
+     * @param clipPath The clipping path in canvas coordinates.
      * @param opacity The opacity value (0.0 to 1.0) for rendering.
      */
     void fillPath(const Path& path, const Paint& fillPaint, const FillParams& fillParams,
-                  const Matrix& matrix, RectangleF clipRect, float opacity);
+                  const Matrix& matrix, const PreparedPath& clipPath, Rectangle scissor, float opacity);
 
-    void fillPreparedPath(const PreparedPath& path, const Paint& fillPaint, RectangleF clipRect,
-                          float opacity);
-
-    /**
-     * @brief Draws a path on the canvas with both stroke and fill using specified parameters.
-     *
-     * This stateless function renders a path with both stroking and filling, using the provided stroke
-     * and fill paints, parameters, transformation matrix, clipping rectangle, and opacity. It does not
-     * modify or access the canvas state.
-     *
-     * @param path The path to be drawn.
-     * @param strokePaint The paint used for stroking the path.
-     * @param strokeParams The stroke parameters (e.g., width, cap, join).
-     * @param fillPaint The paint used for filling the path.
-     * @param fillParams The fill parameters (e.g., fill rule).
-     * @param matrix The transformation matrix to apply to the path.
-     * @param clipRect The clipping rectangle in canvas coordinates.
-     * @param opacity The opacity value (0.0 to 1.0) for rendering.
-     */
-    void drawPath(const Path& path, const Paint& strokePaint, const StrokeParams& strokeParams,
-                  const Paint& fillPaint, const FillParams& fillParams, const Matrix& matrix,
-                  RectangleF clipRect, float opacity);
+    void fillPreparedPath(const PreparedPath& path, const Paint& fillPaint, Rectangle scissor, float opacity);
 
     /**
      * @brief Retrieves the current stroke paint configuration.
@@ -697,24 +677,31 @@ public:
     void transform(const Matrix& matrix);
 
     /**
-     * @brief Retrieves the current clipping rectangle.
-     *
-     * @return An optional Rectangle object representing the clipping area. If no clipping is applied, the
-     * optional is empty.
+     * @brief Retrieves the current clipping path.
      */
-    std::optional<RectangleF> getClipRect() const;
+    const Path& getClipPath() const;
 
     /**
      * @brief Sets the clipping rectangle.
      *
      * @param rect The Rectangle object defining the new clipping area.
      */
-    void setClipRect(RectangleF rect);
+    void setClipRect(RectangleF rect) {
+        setClipPath(Path(rect));
+    }
+
+    void setClipPath(Path path);
+
+    void setScissor(Rectangle scissor);
+
+    void intersectScissor(Rectangle scissor);
+
+    void resetScissor();
 
     /**
-     * @brief Resets the clipping rectangle to cover the entire canvas.
+     * @brief Resets the clipping path to cover the entire canvas.
      */
-    void resetClipRect();
+    void resetClipPath();
 
     /**
      * @brief Resets the Canvas state to its default values.
@@ -727,7 +714,7 @@ public:
     /**
      * @brief Saves the current state of the Canvas.
      *
-     * The saved state, including clip rectangle, transform, paints, and other parameters, is
+     * The saved state, including clip path, transform, paints, and other parameters, is
      * pushed onto an internal stack and can be restored later using the restore() function.
      */
     void save();
@@ -755,7 +742,7 @@ public:
      * transformation, paints, and drawing parameters.
      */
     struct State {
-        RectangleF clipRect;       ///< The current clipping rectangle.
+        Rectangle scissor;         ///< The current scissor rectangle in device coordinates.
         Matrix transform;          ///< The current transformation matrix.
         Paint strokePaint;         ///< The current stroke paint settings.
         Paint fillPaint;           ///< The current fill paint settings.
@@ -763,7 +750,8 @@ public:
         float opacity;             ///< The current opacity value (0.0 to 1.0).
         FillParams fillParams;     ///< The current fill parameters (e.g., fill rule).
         Font font;                 ///< The current font settings.
-        bool subpixelText;
+        bool subpixelText;         ///< Whether subpixel text rendering is enabled.
+        Path clipPath;             ///< The current clipping path.
     };
 
     /**
@@ -785,7 +773,7 @@ public:
      * @brief Sets the Canvas state to the specified state.
      *
      * This function applies the provided State object to the canvas, updating all relevant
-     * properties such as clip rectangle, transform, paints, and drawing parameters.
+     * properties such as clip path, transform, paints, and drawing parameters.
      *
      * @param state The State object to apply to the canvas.
      */
@@ -851,47 +839,47 @@ public:
      * assignments and copies, assign the result to an auto&& variable, e.g.,
      * `auto&& clip = canvas.saveClipRect();`.
      */
-    struct ClipRectSaver {
-        Canvas& canvas;   ///< Reference to the associated Canvas.
-        RectangleF saved; ///< The saved clip rectangle to restore on destruction.
+    struct ScissorSaver {
+        Canvas& canvas;  ///< Reference to the associated Canvas.
+        Rectangle saved; ///< The saved scissor rectangle to restore on destruction.
 
         /**
          * @brief Constructs a ClipRectSaver, saving the current clip rectangle.
          *
          * @param canvas The Canvas whose clip rectangle is to be saved.
          */
-        ClipRectSaver(Canvas& canvas);
+        ScissorSaver(Canvas& canvas);
 
         /**
          * @brief Provides access to the current clip rectangle for modification.
          *
-         * @return Reference to the current RectangleF object.
+         * @return Reference to the current Rectangle object.
          */
-        RectangleF& operator*();
+        Rectangle& operator*();
 
         /**
          * @brief Provides pointer-like access to the current clip rectangle for modification.
          *
-         * @return Pointer to the current RectangleF object.
+         * @return Pointer to the current Rectangle object.
          */
-        RectangleF* operator->();
+        Rectangle* operator->();
 
         /**
          * @brief Destructor that restores the saved clip rectangle.
          */
-        ~ClipRectSaver();
+        ~ScissorSaver();
     };
 
     /**
-     * @brief Saves the current clip rectangle and returns a ClipRectSaver for RAII management.
+     * @brief Saves the current scissor rectangle and returns a ScissorSaver for RAII management.
      *
-     * The returned ClipRectSaver saves the current clip rectangle and restores it upon
+     * The returned ScissorSaver saves the current scissor rectangle and restores it upon
      * destruction. Assign the result to an auto&& variable to avoid unnecessary copies, e.g.,
-     * `auto&& clip = canvas.saveClipRect();`.
+     * `auto&& scissor = canvas.saveScissor();`.
      *
-     * @return A ClipRectSaver object managing the saved clip rectangle.
+     * @return A ScissorSaver object managing the saved scissor.
      */
-    ClipRectSaver saveClipRect() &;
+    ScissorSaver saveScissor() &;
 
     /**
      * @brief Checks if the Canvas supports layer rendering.
@@ -967,8 +955,11 @@ private:
     State m_state;               ///< The current state of the Canvas.
     std::vector<State> m_stack;  ///< The stack of saved Canvas states.
     std::vector<Layer> m_layers; ///< The stack of layers for rendering.
+    std::optional<PreparedPath> m_preparedClipPath;
+    const PreparedPath& preparedClipPath();
 
-    void drawPreparedPath(const PreparedPath& path, const Internal::PaintAndTransform& paint, Quad3 scissors);
+    void drawPreparedPath(const PreparedPath& path, const Internal::PaintAndTransform& paint,
+                          Rectangle scissor);
 
     void drawTextSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                          RenderStateExArgs args);

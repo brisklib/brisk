@@ -329,18 +329,75 @@ TEST_CASE("Emoji") {
         ColorF(0.5f));
 }
 
-TEST_CASE("SetClipRect") {
-    renderTest("SetClipRect0", Size{ 256, 256 }, [&](RenderContext& context) {
+TEST_CASE("GlobalScissor") {
+    renderTest("setGlobalScissor0", Size{ 256, 256 }, [&](RenderContext& context) {
         Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
         canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
         canvas.fillRect(rect);
     });
-    renderTest("SetClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
+    renderTest("setGlobalScissor1", Size{ 256, 256 }, [&](RenderContext& context) {
         Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
-        context.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        context.setGlobalScissor(Rectangle{ 10, 20, 100, 200 });
         canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+    renderTest("setGlobalScissor2", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.transform(Matrix().rotate(45, 128, 128));
+        context.setGlobalScissor(Rectangle{ 10, 20, 100, 200 });
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+}
+
+TEST_CASE("ClipRect") {
+    renderTest("setClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+    renderTest("setClipRect2", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.transform(Matrix().rotate(45, 128, 128));
+        canvas.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+}
+
+TEST_CASE("ClipPath") {
+    renderTest("setClipPath1", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        Path clipPath;
+        clipPath.addPolygon(8, 100.f, 0.f, 0.f, 128.f, 128.f);
+        canvas.setClipPath(clipPath);
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+    renderTest("setClipPath2", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Path clipPath;
+        clipPath.addPolygon(8, 100.f, 0.f, 0.f, 128.f, 128.f);
+        canvas.setClipPath(clipPath);
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        Rectangle rect({ 64 - 24, 64 - 24 }, Size{ 128 + 48, 128 + 48 });
+        canvas.fillRect(rect);
+    });
+    renderTest("setClipPath3", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Path clipPath;
+        canvas.transform(Matrix().rotate(30, 128, 128));
+        clipPath.addPolygon(8, 100.f, 0.f, 0.f, 128.f, 128.f);
+        canvas.setClipPath(clipPath);
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        Rectangle rect({ 64 - 24, 64 - 24 }, Size{ 128 + 48, 128 + 48 });
         canvas.fillRect(rect);
     });
 }
@@ -373,7 +430,7 @@ TEST_CASE("Shadow") {
             Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
-                context.setClipRect(box);
+                context.setGlobalScissor(box);
                 float shadowSize = 2 << i;
                 canvas.setFillColor(Palette::black);
                 canvas.blurRect(box.withPadding(64.f), shadowSize);
@@ -387,7 +444,7 @@ TEST_CASE("Shadow") {
             Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
-                context.setClipRect(box);
+                context.setGlobalScissor(box);
                 float boxRadius = 2 << i;
                 canvas.setFillColor(Palette::black);
                 canvas.blurRect(box.withPadding(64.f), 16.f, boxRadius);
@@ -400,7 +457,7 @@ TEST_CASE("Shadow") {
             Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
-                context.setClipRect(box);
+                context.setGlobalScissor(box);
                 float shadowSize = 1 << i;
                 canvas.setFillColor(Palette::black);
                 canvas.blurRect(box.withPadding(64.f), shadowSize, { 0.f, 32.f, 8.f, 0.f });

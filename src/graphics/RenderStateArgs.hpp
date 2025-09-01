@@ -87,14 +87,6 @@ struct FillGradient {
     }
 };
 
-struct Scissor {
-    using Type = Quad3;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.scissorQuad = value;
-    }
-};
-
 struct Patterns {
     using Type = PatternCodes;
 
@@ -143,14 +135,6 @@ struct SamplerMode {
     }
 };
 
-struct Scissors {
-    using Type = Quad3;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.scissorQuad = value;
-    }
-};
-
 } // namespace Tag
 
 inline namespace Arg {
@@ -170,7 +154,6 @@ constexpr inline Argument<Tag::BlurDirections> blurDirections{};
 constexpr inline Argument<Tag::TextureChannel> textureChannel{};
 constexpr inline Argument<Tag::CoordMatrix> coordMatrix{};
 constexpr inline Argument<Tag::SamplerMode> samplerMode{};
-constexpr inline Argument<Tag::Scissors> scissors{};
 constexpr inline Argument<Tag::SubpixelMode> subpixelMode{};
 
 } // namespace Arg

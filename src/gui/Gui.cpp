@@ -1161,7 +1161,7 @@ void Widget::paintScrollBar(Canvas& canvas, Orientation orientation,
 }
 
 void Widget::paintScrollBars(Canvas& canvas) const {
-    canvas.setClipRect(m_clipRect);
+    canvas.setScissor(m_clipRect);
     for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
         if (hasScrollBar(orientation)) {
             paintScrollBar(canvas, orientation, scrollBarGeometry(orientation));
@@ -1177,7 +1177,7 @@ void Widget::doPaint(Canvas& canvas) const {
         return;
     }
 
-    canvas.setClipRect(m_clipRect);
+    canvas.setScissor(m_clipRect);
     bool needsPaint = !m_tree || m_tree->isDirty(adjustedRect()) ||
                       (!m_hintRect.empty() && m_tree->isDirty(adjustedHintRect()));
     if (needsPaint) {
@@ -1187,7 +1187,7 @@ void Widget::doPaint(Canvas& canvas) const {
             paint(canvas);
     }
     paintChildren(canvas);
-    canvas.setClipRect(m_clipRect);
+    canvas.setScissor(m_clipRect);
     if (needsPaint) {
         postPaint(canvas);
         paintScrollBars(canvas);
@@ -2333,7 +2333,7 @@ void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
     ColorW m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.current());
 
     if (widget.shadowSize.current() > 0) {
-        auto&& clipRect = canvas.saveClipRect();
+        auto&& clipRect = canvas.saveScissor();
         if (widget.parent()) {
             if (widget.zorder != ZOrder::Normal || widget.clip == WidgetClip::None)
                 *clipRect = noClipRect;

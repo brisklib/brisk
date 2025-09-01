@@ -91,7 +91,7 @@ RenderPipeline::RenderPipeline(Rc<RenderEncoder> encoder, Rc<RenderTarget> targe
     : m_encoder(std::move(encoder)), m_resources(m_encoder->device()->resources()) {
     m_limits = m_encoder->device()->limits();
     m_encoder->begin(std::move(target), clear);
-    m_clipRect = clipRect;
+    m_globalScissor = clipRect;
 }
 
 bool RenderPipeline::flush() {
@@ -102,7 +102,7 @@ bool RenderPipeline::flush() {
         return false;
     }
     m_numBatches++;
-    if (!m_clipRect.empty()) {
+    if (!m_globalScissor.empty()) {
         m_encoder->batch(m_commands, m_data);
     }
 
@@ -114,6 +114,10 @@ bool RenderPipeline::flush() {
 }
 
 void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data) {
+    cmd.scissor = cmd.scissor.intersection(m_globalScissor);
+    if (cmd.scissor.empty())
+        return;
+
     if (cmd.imageHandle) {
         m_encoder->device()->createImageBackend(cmd.imageHandle);
         cmd.imageBackend = Internal::getBackend(cmd.imageHandle);
@@ -160,8 +164,6 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data
     cmd.dataOffset = offs / 4;
     cmd.dataSize   = data.size();
 
-    cmd.shaderClip = cmd.shaderClip.intersection(m_clipRect);
-
     m_commands.push_back(static_cast<const RenderState&>(cmd));
     m_data.insert(m_data.end(), data.begin(), data.end());
     // Add padding needed to align m_data to a multiple of 4.
@@ -194,8 +196,8 @@ int RenderPipeline::numBatches() const {
     return m_numBatches;
 }
 
-void RenderPipeline::setClipRect(Rectangle clipRect) {
-    m_clipRect = clipRect;
+void RenderPipeline::setGlobalScissor(Rectangle clipRect) {
+    m_globalScissor = clipRect;
 }
 
 void RenderPipeline::blit(Rc<Image> image) {
@@ -204,8 +206,8 @@ void RenderPipeline::blit(Rc<Image> image) {
     command(std::move(style), {});
 }
 
-Rectangle RenderPipeline::clipRect() const {
-    return m_clipRect;
+Rectangle RenderPipeline::globalScissor() const {
+    return m_globalScissor;
 }
 
 void RenderResources::reset() {

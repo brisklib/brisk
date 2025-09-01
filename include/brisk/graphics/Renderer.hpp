@@ -270,13 +270,13 @@ public:
      * @brief Retrieves the current clipping rectangle.
      * @return The current clipping rectangle in screen coordinates.
      */
-    Rectangle clipRect() const;
+    Rectangle globalScissor() const;
 
     /**
      * @brief Sets the clipping rectangle for rendering operations.
-     * @param clipRect The new clipping rectangle in screen coordinates (origin at top-left).
+     * @param scissorRect The new clipping rectangle in screen coordinates (origin at top-left).
      */
-    void setClipRect(Rectangle clipRect) final;
+    void setGlobalScissor(Rectangle scissorRect) final;
 
     using RenderContext::command;
 
@@ -315,7 +315,7 @@ private:
     std::vector<uint32_t> m_data;        ///< Buffer for associated rendering data.
     std::vector<Rc<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
-    Rectangle m_clipRect;                ///< The current clipping rectangle.
+    Rectangle m_globalScissor;                ///< The current clipping rectangle.
 };
 
 /**

@@ -242,6 +242,9 @@ struct Path {
     Path& operator=(Path&&)      = default; ///< Move constructor.
     Path& operator=(const Path&) = default; ///< Copy constructor.
 
+    Path(RectangleF rectangle);
+    Path(Rectangle rectangle);
+
     friend class Dasher;
 
     enum class Direction : uint8_t { CCW, CW }; ///< Enum for the direction of the path.

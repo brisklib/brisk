@@ -64,10 +64,10 @@ struct UniformBlock {
 
     shader: shader_type,
     texture_index: i32,
-    
-    scissorPoint1: vec2<f32>,
-    scissorPoint2: vec2<f32>,
-    scissorPoint3: vec2<f32>,
+
+    reserved_00: vec2<f32>,
+    reserved_01: vec2<f32>,
+    reserved_02: vec2<f32>,
 
     coord_matrix_a: f32,
     coord_matrix_b: f32,
@@ -155,11 +155,6 @@ fn isPointInQuad(p: vec2<f32>, q1: vec2<f32>, q2: vec2<f32>, q3: vec2<f32>, q4: 
     let yy = vec4<f32>(q1.y, q2.y, q3.y, q4.y);
     let result = (xx.yzwx - xx) * (p.y - yy) - (yy.yzwx - yy) * (p.x - xx) > vec4<f32>(0.0);
     return all(result);
-}
-
-fn scissorTest(p: vec2<f32>) -> bool {
-    let scissorPoint4 = constants.scissorPoint1 + (constants.scissorPoint3 - constants.scissorPoint2);
-    return isPointInQuad(p, constants.scissorPoint1, constants.scissorPoint2, constants.scissorPoint3, scissorPoint4);
 }
 
 fn transform2D(pos: vec2<f32>) -> vec2<f32> {
@@ -595,9 +590,6 @@ fn rectangleCoverage(pt: vec2<f32>, rect: vec4<f32>) -> f32 {
         return FragOut(textureLoad(boundTexture_t, tex_coord, 0), vec4<f32>(1.));
     }
 
-    if !scissorTest(in.position.xy) {
-        discard;
-    }
     var outColor: vec4<f32>;
     var outBlend: vec4<f32>;
 

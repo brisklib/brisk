@@ -214,7 +214,7 @@ Rectangle WidgetTree::paint(Canvas& canvas, ColorW backgroundColor, bool fullRep
     groupsBeforePaint();
 
     ++frameNumber;
-    canvas.renderContext().setClipRect(paintRect);
+    canvas.renderContext().setGlobalScissor(paintRect);
     if (backgroundColor.a != 0) {
         canvas.setFillColor(backgroundColor);
         canvas.fillRect(m_viewportRectangle);

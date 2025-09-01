@@ -121,7 +121,10 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
 
     for (size_t i = 0; i < commands.size(); ++i) {
         const RenderState& cmd = commands[i];
-        const uint32_t offs[]  = {
+        Rectangle clampedRect  = cmd.scissor.intersection(frameRect);
+        if (clampedRect.empty())
+            continue;
+        const uint32_t offs[] = {
             uint32_t(i * sizeof(RenderState)),
         };
 
@@ -130,8 +133,9 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
             bindGroup    = createBindGroup(static_cast<ImageBackendWebGpu*>(cmd.imageBackend));
         }
 
-        Rectangle clampedRect = cmd.shaderClip.intersection(frameRect);
         if (clampedRect != currentClipRect) {
+            BRISK_LOG_INFO("Set scissor rect: {},{} {},{}", clampedRect.x1, clampedRect.y1,
+                           clampedRect.width(), clampedRect.height());
             m_pass.SetScissorRect(clampedRect.x1, clampedRect.y1, clampedRect.width(), clampedRect.height());
             currentClipRect = clampedRect;
         }

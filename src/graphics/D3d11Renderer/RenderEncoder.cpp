@@ -163,7 +163,10 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
     Rectangle currentClipRect            = noClipRect;
 
     for (size_t i = 0; i < commands.size(); ++i) {
-        auto& cmd                             = commands[i];
+        auto& cmd             = commands[i];
+        Rectangle clampedRect = cmd.scissor.intersection(frameRect);
+        if (clampedRect.empty())
+            continue;
 
         [[maybe_unused]] size_t offsetInBatch = i % maxCommandsInBatch;
         if (i % maxCommandsInBatch == 0) {
@@ -181,7 +184,6 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
             context->PSSetShaderResources(10, 1, resourceViews);
         }
 
-        Rectangle clampedRect = cmd.shaderClip.intersection(frameRect);
         if (i == 0 || clampedRect != currentClipRect) {
             CD3D11_RECT d3d11Rect(clampedRect.x1, clampedRect.y1, clampedRect.x2, clampedRect.y2);
             context->RSSetScissorRects(1, &d3d11Rect);

@@ -383,7 +383,7 @@ void Window::paintDebug(RenderContext& context) {
     if (Internal::debugShowRenderTimeline) {
         Rectangle rect{ 0, m_framebufferSize.height - idp(debugPanelHeight), m_framebufferSize.width,
                         m_framebufferSize.height };
-        context.setClipRect(rect);
+        context.setGlobalScissor(rect);
         paintStat(canvas, rect);
     }
 }
