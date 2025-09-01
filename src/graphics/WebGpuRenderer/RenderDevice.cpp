@@ -84,14 +84,19 @@ bool RenderDeviceWebGpu::createDevice() {
 
 #ifdef BRISK_WINDOWS
     opt.backendType = wgpu::BackendType::D3D12;
+    bool warp       = std::getenv("BRISK_USE_SOFTWARE_RENDERER") != nullptr;
 
     dawn::native::d3d::RequestAdapterOptionsLUID optLUID;
-    if (m_display) {
-        ComPtr<IDXGIFactory> factory;
+    if (m_display || warp) {
+        ComPtr<IDXGIFactory4> factory;
         HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()));
         if (SUCCEEDED(hr)) {
-            ComPtr<IDXGIAdapter> adapter = adapterForMonitor(m_display.hMonitor(), factory);
-
+            ComPtr<IDXGIAdapter> adapter;
+            if (warp) {
+                factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
+            } else {
+                adapter = adapterForMonitor(m_display.hMonitor(), factory);
+            }
             if (adapter) {
                 DXGI_ADAPTER_DESC adapterDesc;
                 adapter->GetDesc(&adapterDesc);
@@ -437,7 +442,8 @@ RenderDeviceWebGpu::~RenderDeviceWebGpu() {
     m_dummyTexture           = nullptr;
     m_dummyTextureView       = nullptr;
 
-    m_instance.ProcessEvents();
+    if (m_instance)
+        m_instance.ProcessEvents();
 
     std::ignore     = m_adapter.MoveToCHandle(); // Avoid reference decrement
     m_nativeAdapter = nullptr;
