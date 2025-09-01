@@ -71,6 +71,14 @@ option(BRISK_INTERACTIVE_TESTS "Enable interactive tests" OFF)
 option(BRISK_RTTI "Enable RTTI for Brisk builds" ON)
 option(BRISK_EXCEPTIONS "Enable C++ exceptions for Brisk builds" ON)
 
+if (WIN32)
+    option(BRISK_USE_LATEST_D3D_WARP "Use latest D3D WARP version from NuGet instead of the system one" OFF)
+
+    if (BRISK_USE_LATEST_D3D_WARP)
+        include(cmake/installD3DWARP.cmake)
+    endif ()
+endif ()
+
 message(STATUS "BRISK_D3D11: ${BRISK_D3D11}")
 message(STATUS "BRISK_WEBGPU: ${BRISK_WEBGPU}")
 
@@ -218,6 +226,13 @@ if (BRISK_TESTS)
     add_autotests(window SOURCES ${TESTS_WINDOW} LIBRARIES brisk-window brisk-i18n-icu)
     add_autotests(gui SOURCES ${TESTS_GUI} LIBRARIES brisk-gui brisk-i18n-icu)
     add_autotests(widgets SOURCES ${TESTS_WIDGETS} LIBRARIES brisk-widgets brisk-i18n-icu)
+
+    if (BRISK_USE_LATEST_D3D_WARP)
+        place_warp_dll(graphics_tests)
+        place_warp_dll(window_tests)
+        place_warp_dll(gui_tests)
+        place_warp_dll(widgets_tests)
+    endif ()
 
 endif ()
 
