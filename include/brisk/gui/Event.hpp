@@ -313,40 +313,17 @@ struct InputShape {
     Rectangle clipRect;
 
     InputShape(Rectangle bounds = Rectangle{}, CornersF radii = CornersF{},
-               Rectangle clipRect = noClipRect) noexcept
-        : bounds(bounds), radii(radii), clipRect(clipRect) {}
+               Rectangle clipRect = noClipRect) noexcept;
 
     bool empty() const noexcept {
         return bounds.empty();
     }
 
-    Rectangle clippedBounds() const noexcept {
-        return bounds.intersection(clipRect);
-    }
+    Rectangle clippedBounds() const noexcept;
 
-    InputShape intersection(Rectangle clipRect) const noexcept {
-        return InputShape{
-            bounds,
-            radii,
-            clipRect.intersection(this->clipRect),
-        };
-    }
+    InputShape intersection(Rectangle clipRect) const noexcept;
 
-    bool contains(PointF pt) const noexcept {
-        if (!bounds.contains(pt))
-            return false;
-        if (radii == CornersF{}) {
-            return true; // No radii means the entire rectangle is valid
-        }
-        pt -= bounds.center();
-        Simd<float, 2> ext  = Simd<float, 2>(bounds.size().v) * 0.5f;
-        uint32_t quadrant   = uint32_t(pt.x >= 0.) + 2u * uint32_t(pt.y >= 0.);
-
-        float rad           = std::abs(radii[quadrant]);
-        Simd<float, 2> ext2 = ext - Simd<float, 2>(rad, rad);
-        Simd<float, 2> d    = abs(pt.v) - ext2;
-        return std::min(std::max(d[0], d[1]), 0.0f) + length(max(d, Simd<float, 2>(0.f))) - rad <= 0.f;
-    }
+    bool contains(PointF pt) const noexcept;
 };
 
 /**
@@ -462,7 +439,6 @@ struct HitTestMap {
         bool visible          = true;
         bool inTabGroup       = false;
         bool mouseTransparent = false;
-        Rectangle scissors    = Event::anywhere;
     };
 
     int tabGroupId = 0;

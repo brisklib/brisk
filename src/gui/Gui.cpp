@@ -1448,17 +1448,12 @@ void Widget::processTreeVisibility(bool isVisible) {
 }
 
 void Widget::updateGeometry(HitTestMap::State& state) {
-    auto self             = shared_from_this();
-    CornersF borderRadius = this->borderRadius.current();
-    InputShape mouseRect{ m_rect, borderRadius };
+    auto self                     = shared_from_this();
 
     HitTestMap::State saved_state = state;
     if (m_zorder != ZOrder::Normal)
         state.zindex--;
-    if (m_zorder == ZOrder::Normal)
-        mouseRect = mouseRect.intersection(saved_state.scissors);
-    state.scissors = mouseRect.clippedBounds();
-    state.visible  = state.visible && m_visible && !m_hidden;
+    state.visible = state.visible && m_visible && !m_hidden;
     if (m_mouseInteraction == MouseInteraction::Enable)
         state.mouseTransparent = false;
     else if (m_mouseInteraction == MouseInteraction::Disable)
@@ -1481,7 +1476,8 @@ void Widget::updateGeometry(HitTestMap::State& state) {
             ++inputQueue->hitTest.tabGroupId;
         }
         if (state.visible && !state.mouseTransparent)
-            inputQueue->hitTest.add(self, mouseRect, m_mouseAnywhere, state.zindex);
+            inputQueue->hitTest.add(self, InputShape{ m_rect, getBorderRadiusResolved(), m_clipRect },
+                                    m_mouseAnywhere, state.zindex);
     }
 
     for (const Ptr& w : *this) {
