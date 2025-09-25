@@ -332,7 +332,7 @@ void RenderEncoderD3d11::updateAtlasTexture() {
 void RenderEncoderD3d11::updateGradientTexture() {
     GradientAtlas* atlas = m_device->m_resources.gradientAtlas.get();
 
-    Size newSize(gradientResolution, atlas->size());
+    Size newSize(sizeof(GradientData) / sizeof(Simd<float, 4>), atlas->size());
     if (!m_gradientTexture || (m_gradient_generation <<= atlas->changed)) {
         m_gradientTexture.Reset();
         D3D11_TEXTURE2D_DESC tex = texDesc(dxFormat(PixelType::F32, PixelFormat::RGBA), newSize, 1);
