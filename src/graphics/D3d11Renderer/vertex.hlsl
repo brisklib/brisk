@@ -23,9 +23,18 @@ float2 to_screen(float2 xy) {
   return (((xy * asfloat(perFrame[0]).zw) * float2(2.0f, -2.0f)) + float2(-1.0f, 1.0f));
 }
 
+float3x2 constants_load_1(uint offset) {
+  const uint scalar_offset = ((offset + 0u)) / 4;
+  uint4 ubo_load = constants[scalar_offset / 4];
+  const uint scalar_offset_1 = ((offset + 8u)) / 4;
+  uint4 ubo_load_1 = constants[scalar_offset_1 / 4];
+  const uint scalar_offset_2 = ((offset + 16u)) / 4;
+  uint4 ubo_load_2 = constants[scalar_offset_2 / 4];
+  return float3x2(asfloat(((scalar_offset & 2) ? ubo_load.zw : ubo_load.xy)), asfloat(((scalar_offset_1 & 2) ? ubo_load_1.zw : ubo_load_1.xy)), asfloat(((scalar_offset_2 & 2) ? ubo_load_2.zw : ubo_load_2.xy)));
+}
+
 float2 transform2D(float2 pos) {
-  float3x2 coord_matrix = float3x2(float2(asfloat(constants[3].x), asfloat(constants[3].y)), float2(asfloat(constants[3].z), asfloat(constants[3].w)), float2(asfloat(constants[4].x), asfloat(constants[4].y)));
-  return mul(float3(pos, 1.0f), coord_matrix).xy;
+  return mul(float3(pos, 1.0f), constants_load_1(48u)).xy;
 }
 
 float margin() {

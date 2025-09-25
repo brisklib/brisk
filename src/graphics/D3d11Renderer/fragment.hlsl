@@ -56,12 +56,21 @@ float4 multiGradient(float pos) {
   return gradTex_t.Sample(gradTex_s, (float2((0.5f + (pos * 1023.0f)), (0.5f + float(asint(constants[6].x)))) * invDims));
 }
 
+float3x2 constants_load_2(uint offset) {
+  const uint scalar_offset = ((offset + 0u)) / 4;
+  uint4 ubo_load = constants[scalar_offset / 4];
+  const uint scalar_offset_1 = ((offset + 8u)) / 4;
+  uint4 ubo_load_1 = constants[scalar_offset_1 / 4];
+  const uint scalar_offset_2 = ((offset + 16u)) / 4;
+  uint4 ubo_load_2 = constants[scalar_offset_2 / 4];
+  return float3x2(asfloat(((scalar_offset & 2) ? ubo_load.zw : ubo_load.xy)), asfloat(((scalar_offset_1 & 2) ? ubo_load_1.zw : ubo_load_1.xy)), asfloat(((scalar_offset_2 & 2) ? ubo_load_2.zw : ubo_load_2.xy)));
+}
+
 float2 transformedTexCoord(float2 uv) {
-  float3x2 texture_matrix = float3x2(float2(asfloat(constants[7].x), asfloat(constants[7].y)), float2(asfloat(constants[7].z), asfloat(constants[7].w)), float2(asfloat(constants[8].x), asfloat(constants[8].y)));
   uint2 tint_tmp_1;
   boundTexture_t.GetDimensions(tint_tmp_1.x, tint_tmp_1.y);
   float2 tex_size = float2(tint_tmp_1);
-  float2 transformed_uv = mul(float3(uv, 1.0f), texture_matrix).xy;
+  float2 transformed_uv = mul(float3(uv, 1.0f), constants_load_2(112u)).xy;
   if ((asint(constants[8].z) == 0)) {
     transformed_uv = clamp(transformed_uv, (0.5f).xx, (tex_size - 0.5f));
   }

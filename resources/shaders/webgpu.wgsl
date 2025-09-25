@@ -69,13 +69,7 @@ struct UniformBlock {
     reserved_01: vec2<f32>,
     reserved_02: vec2<f32>,
 
-    coord_matrix_a: f32,
-    coord_matrix_b: f32,
-    coord_matrix_c: f32,
-    coord_matrix_d: f32,
-
-    coord_matrix_e: f32,
-    coord_matrix_f: f32,
+    coord_matrix: mat3x2<f32>,    
     sprite_oversampling: i32,
     subpixel: subpixel_mode,
 
@@ -88,14 +82,8 @@ struct UniformBlock {
     blur_directions: u32,
     texture_channel: i32,
     clipInScreenspace: i32,
-
-    texture_matrix_a: f32,
-    texture_matrix_b: f32,
-    texture_matrix_c: f32,
-    texture_matrix_d: f32,
-
-    texture_matrix_e: f32,
-    texture_matrix_f: f32,
+    
+    texture_matrix: mat3x2<f32>,
     samplerMode: i32,
     blur_radius: f32,
 
@@ -158,10 +146,7 @@ fn isPointInQuad(p: vec2<f32>, q1: vec2<f32>, q2: vec2<f32>, q3: vec2<f32>, q4: 
 }
 
 fn transform2D(pos: vec2<f32>) -> vec2<f32> {
-    let coord_matrix = mat3x2<f32>(constants.coord_matrix_a, constants.coord_matrix_b,
-        constants.coord_matrix_c, constants.coord_matrix_d,
-        constants.coord_matrix_e, constants.coord_matrix_f);
-    return (coord_matrix * vec3<f32>(pos, 1.0)).xy;
+    return (constants.coord_matrix * vec3<f32>(pos, 1.0)).xy;
 }
 
 fn margin() -> f32 {
@@ -258,11 +243,8 @@ fn multiGradient(pos: f32) -> vec4<f32> {
 }
 
 fn transformedTexCoord(uv: vec2<f32>) -> vec2<f32> {
-    let texture_matrix = mat3x2<f32>(constants.texture_matrix_a, constants.texture_matrix_b, constants.texture_matrix_c,
-        constants.texture_matrix_d, constants.texture_matrix_e, constants.texture_matrix_f);
-
     let tex_size = vec2<f32>(textureDimensions(boundTexture_t));
-    var transformed_uv = (texture_matrix * vec3<f32>(uv, 1.0)).xy;
+    var transformed_uv = (constants.texture_matrix * vec3<f32>(uv, 1.0)).xy;
     if constants.samplerMode == 0 {
         transformed_uv = clamp(transformed_uv, vec2<f32>(0.5), tex_size - 0.5);
     }
