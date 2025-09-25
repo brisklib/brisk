@@ -54,7 +54,7 @@ const subpixel_rgb       = subpixel_mode(1);
 const subpixel_bgr       = subpixel_mode(2);
 
 /// Must match the value in Renderer.hpp
-const gradientResolution = 1024;
+const gradientMaxStops = 24u;
 
 struct UniformBlock {
     data_offset: u32,
@@ -236,10 +236,49 @@ fn simpleGradient(pos: f32) -> vec4<f32> {
     return mix(constants.fill_color1, constants.fill_color2, pos);
 }
 
+const gradientBlocks = gradientMaxStops / 4u;
+
 fn multiGradient(pos: f32) -> vec4<f32> {
-    let invDims = vec2<f32>(1.) / vec2<f32>(textureDimensions(gradTex_t));
-    return textureSample(gradTex_t, gradTex_s,
-        vec2<f32>(0.5 + pos * f32(gradientResolution - 1), 0.5 + f32(constants.multigradient)) * invDims);
+    if pos <= 0.0 {
+        return textureLoad(gradTex_t, vec2<u32>(gradientBlocks, u32(constants.multigradient)), 0u);
+    }
+    if pos >= 1.0 {
+        return textureLoad(gradTex_t, vec2<u32>(gradientBlocks + gradientMaxStops - 1u, u32(constants.multigradient)), 0u);
+    }
+    // Iterate through stops in vec4 chunks
+    var prev: f32 = 0.0;
+
+    for (var block: u32 = 0u; block < gradientBlocks; block = block + 1u) {
+        let stops4: vec4<f32> = textureLoad(
+            gradTex_t,
+            vec2<u32>(block, u32(constants.multigradient)),
+            0u
+        );
+
+        for (var j: u32 = 0u; j < 4u; j = j + 1u) {
+            let index: u32 = block * 4u + j;
+
+            let curr: f32 = stops4[j]; // p1
+            if pos >= prev && pos < curr {
+                let c0 = textureLoad(
+                    gradTex_t,
+                    vec2<u32>(gradientBlocks + max(index - 1u, 0u), u32(constants.multigradient)),
+                    0u
+                );
+                let c1 = textureLoad(
+                    gradTex_t,
+                    vec2<u32>(
+                        gradientBlocks + index,
+                        u32(constants.multigradient)
+                    ),
+                    0u
+                );
+                return mix(c0, c1, (pos - prev) / (curr - prev + 1e-9));
+            }
+            prev = curr;
+        }
+    }
+    return vec4(0.0);
 }
 
 fn transformedTexCoord(uv: vec2<f32>) -> vec2<f32> {

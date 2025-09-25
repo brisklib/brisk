@@ -148,3 +148,4 @@ tint_symbol_7 vertexMain(tint_symbol_6 tint_symbol_5) {
   wrapper_result.coverage = inner_result.coverage;
   return wrapper_result;
 }
+

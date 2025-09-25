@@ -24,75 +24,45 @@ namespace Brisk {
 
 GradientData::GradientData(const Gradient& gradient) {
     ColorStopArray colorStops = gradient.colorStops();
-    if (colorStops.empty()) {
-        std::fill(data.begin(), data.end(), ColorF(0.f, 0.f));
-        return;
-    }
-    if (colorStops.size() == 1) {
-        std::fill(data.begin(), data.end(), ColorF(colorStops.front().color).premultiply());
-        return;
-    }
-    for (auto& stop : colorStops) {
-        stop.position = std::clamp(stop.position, 0.f, 1.f);
-    }
-    std::sort(colorStops.begin(), colorStops.end(), [](ColorStop elem1, ColorStop elem2) {
-        return elem1.position < elem2.position;
-    });
-    colorStops.front().position = 0.f;
-    colorStops.back().position  = 1.f;
-    data.front()                = ColorF(colorStops.front().color).premultiply();
-    data.back()                 = ColorF(colorStops.back().color).premultiply();
-    for (size_t i = 1; i < gradientResolution - 1; i++) {
-        float val = static_cast<float>(i) / (gradientResolution - 1);
-        auto gt = std::upper_bound(colorStops.begin(), colorStops.end(), val, [](float val, ColorStop elem) {
-            return val < elem.position;
-        });
-        if (gt == colorStops.begin()) {
-            data[i] = colorStops.front().color;
-        }
-        auto lt = std::prev(gt);
-        float t = (val - lt->position) / (gt->position - lt->position + 0.001f);
-        data[i] = mix(t, ColorF(lt->color).premultiply(), ColorF(gt->color).premultiply(),
-                      AlphaMode::Premultiplied);
-    }
-}
+    BRISK_ASSERT_MSG("Gradient must have at least one color stop", !colorStops.empty());
 
-GradientData::GradientData(function_ref<ColorW(float)> func) {
-    for (size_t i = 0; i < gradientResolution; i++) {
-        data[i] = ColorF(func(static_cast<float>(i) / (gradientResolution - 1))).premultiply();
+    size_t stopCount = std::min(colorStops.size(), gradientMaxStops);
+    for (size_t i = 0; i < stopCount; i++) {
+        positions[i] = colorStops[i].position;
+        colors[i]    = ColorF(colorStops[i].color).premultiply();
     }
-}
-
-GradientData::GradientData(const std::vector<ColorW>& list, float gamma) {
-    for (size_t i = 0; i < gradientResolution; i++) {
-        const float x          = std::pow(static_cast<float>(i) / (gradientResolution - 1), gamma);
-        const size_t max_index = list.size() - 1;
-        float index            = x * max_index;
-        if (index <= 0)
-            data[i] = ColorF(list[0]).premultiply();
-        else if (index >= max_index)
-            data[i] = ColorF(list[max_index]).premultiply();
-        else {
-            const float mu = fract(index);
-            data[i] =
-                mix(mu, ColorF(list[static_cast<size_t>(index)]).premultiply(),
-                    ColorF(list[static_cast<size_t>(index) + 1]).premultiply(), AlphaMode::Premultiplied);
-        }
+    for (size_t i = stopCount; i < gradientMaxStops; i++) {
+        positions[i] = 1.f;
+        colors[i]    = colors[stopCount - 1];
+    }
+    // Ensure positions are sorted
+    for (size_t i = 1; i < gradientMaxStops; i++) {
+        if (positions[i] < positions[i - 1])
+            positions[i] = positions[i - 1];
     }
 }
 
 ColorF GradientData::operator()(float x) const {
-    const size_t max_index = gradientResolution - 1;
-    float index            = x * max_index;
-    if (index <= 0)
-        return data[0];
-    else if (index >= max_index)
-        return data[max_index];
-    else {
-        const float mu = fract(index);
-        return mix(mu, data[static_cast<size_t>(index)], data[static_cast<size_t>(index) + 1],
-                   AlphaMode::Premultiplied);
+    if (x <= positions[0])
+        return colors[0];
+    if (x >= positions[gradientMaxStops - 1])
+        return colors[gradientMaxStops - 1];
+    size_t low  = 0;
+    size_t high = gradientMaxStops - 1;
+    while (high - low > 1) {
+        size_t mid = (low + high) / 2;
+        if (x < positions[mid])
+            high = mid;
+        else
+            low = mid;
     }
+
+    float p0 = positions[low];
+    float p1 = positions[high];
+    if (p1 > p0)
+        return mix((x - p0) / (p1 - p0), colors[low], colors[high], AlphaMode::Premultiplied);
+    else
+        return colors[low];
 }
 
 Gradient::Gradient(GradientType type) : Gradient(type, {}, {}, {}) {}

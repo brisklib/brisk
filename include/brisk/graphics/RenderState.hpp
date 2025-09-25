@@ -189,14 +189,14 @@ public:
     SubpixelMode subpixelMode = SubpixelMode::RGB;
 
     PatternCodes pattern{};
-    uint32_t filledPatches = 0;
-    int reserved2          = 0;
-    float opacity          = 1.f; ///< Opacity. Defaults to 1
+    uint32_t reserved1    = 0;
+    int reserved2         = 0;
+    float opacity         = 1.f; ///< Opacity. Defaults to 1
 
-    int32_t multigradient  = -1; ///< Gradient (-1 - disabled)
-    int blurDirections     = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
-    int textureChannel     = 0;  ///<
-    int reserved3          = 0;
+    int32_t multigradient = -1; ///< Gradient (-1 - disabled)
+    int blurDirections    = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
+    int textureChannel    = 0;  ///<
+    int reserved3         = 0;
 
     Matrix textureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
     SamplerMode samplerMode = SamplerMode::Clamp;         ///<

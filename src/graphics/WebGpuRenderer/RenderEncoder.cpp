@@ -277,9 +277,9 @@ void RenderEncoderWebGpu::updateAtlasTexture() {
 }
 
 void RenderEncoderWebGpu::updateGradientTexture() {
-    GradientAtlas* atlas = m_device->m_resources.gradientAtlas.get();
-    Size newSize(gradientResolution, atlas->data().size());
-    if (!m_gradientTexture || (m_gradient_generation <<= atlas->changed)) {
+    GradientAtlas* gradAtlas = m_device->m_resources.gradientAtlas.get();
+    Size newSize(sizeof(GradientData) / sizeof(Simd<float, 4>), gradAtlas->data().size());
+    if (!m_gradientTexture || (m_gradient_generation <<= gradAtlas->changed)) {
         if (!m_gradientTexture ||
             newSize != Size(m_gradientTexture.GetWidth(), m_gradientTexture.GetHeight())) {
             wgpu::TextureFormat fmt = wgFormat(PixelType::F32, PixelFormat::RGBA);
@@ -301,8 +301,8 @@ void RenderEncoderWebGpu::updateGradientTexture() {
         wgpu::TexelCopyBufferLayout source{};
         source.bytesPerRow = sizeof(GradientData);
         wgpu::Extent3D texSize{ uint32_t(newSize.width), uint32_t(newSize.height), 1u };
-        m_queue.WriteTexture(&destination, atlas->data().data(), atlas->data().size() * sizeof(GradientData),
-                             &source, &texSize);
+        m_queue.WriteTexture(&destination, gradAtlas->data().data(),
+                             gradAtlas->data().size() * sizeof(GradientData), &source, &texSize);
     }
 }
 

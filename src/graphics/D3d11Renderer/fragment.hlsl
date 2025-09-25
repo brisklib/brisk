@@ -39,7 +39,6 @@ Texture2D<float4> gradTex_t : register(t8);
 Texture2D<float4> fontTex_t : register(t9);
 Texture2D<float4> boundTexture_t : register(t10);
 SamplerState boundTexture_s : register(s6);
-SamplerState gradTex_s : register(s7);
 
 float2 map(float2 p1, float2 p2) {
   return float2(((p1.x * p2.x) + (p1.y * p2.y)), ((p1.x * p2.y) - (p1.y * p2.x)));
@@ -50,10 +49,35 @@ float4 simpleGradient(float pos) {
 }
 
 float4 multiGradient(float pos) {
-  uint2 tint_tmp;
-  gradTex_t.GetDimensions(tint_tmp.x, tint_tmp.y);
-  float2 invDims = ((1.0f).xx / float2(tint_tmp));
-  return gradTex_t.Sample(gradTex_s, (float2((0.5f + (pos * 1023.0f)), (0.5f + float(asint(constants[6].x)))) * invDims));
+  if ((pos <= 0.0f)) {
+    return gradTex_t.Load(uint3(6u, uint(asint(constants[6].x)), 0u));
+  }
+  if ((pos >= 1.0f)) {
+    return gradTex_t.Load(uint3(29u, uint(asint(constants[6].x)), 0u));
+  }
+  float prev = 0.0f;
+  {
+    for(uint block = 0u; (block < 6u); block = (block + 1u)) {
+      float4 stops4 = gradTex_t.Load(uint3(block, uint(asint(constants[6].x)), 0u));
+      {
+        for(uint j = 0u; (j < 4u); j = (j + 1u)) {
+          uint index = ((block * 4u) + j);
+          float curr = stops4[j];
+          bool tint_tmp = (pos >= prev);
+          if (tint_tmp) {
+            tint_tmp = (pos < curr);
+          }
+          if ((tint_tmp)) {
+            float4 c0 = gradTex_t.Load(uint3((6u + max((index - 1u), 0u)), uint(asint(constants[6].x)), 0u));
+            float4 c1 = gradTex_t.Load(uint3((6u + index), uint(asint(constants[6].x)), 0u));
+            return lerp(c0, c1, ((pos - prev) / ((curr - prev) + 0.00000000099999997172f)));
+          }
+          prev = curr;
+        }
+      }
+    }
+  }
+  return (0.0f).xxxx;
 }
 
 float3x2 constants_load_2(uint offset) {
