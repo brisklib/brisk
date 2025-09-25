@@ -50,7 +50,7 @@ bool RenderDeviceD3d11::createDevice(UINT flags) {
     if (m_display) {
         m_adapter = adapterForMonitor(m_display.hMonitor(), m_factory);
         if (m_adapter) {
-            hr = D3D11CreateDevice(m_adapter.Get(),                             //
+            hr = D3D11CreateDevice(warp ? nullptr : m_adapter.Get(),            //
                                    driverType,                                  //
                                    0,                                           //
                                    flags,                                       //
