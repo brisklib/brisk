@@ -1013,8 +1013,7 @@ TEST_CASE("Layers") {
         canvas.fillRect(bounds);
         canvas.setFillColor(Palette::blue);
         canvas.fillRect({ 50, 20, 500, 300 });
-        bool supportsLayers = canvas.beginLayer(canvasSize);
-        REQUIRE(supportsLayers);
+        canvas.beginLayer(canvasSize);
         canvas.setFillColor(Palette::red);
         canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
         canvas.setFillColor(Palette::yellow);

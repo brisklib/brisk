@@ -882,13 +882,6 @@ public:
     ScissorSaver saveScissor() &;
 
     /**
-     * @brief Checks if the Canvas supports layer rendering.
-     *
-     * @return True if layers are supported, false otherwise.
-     */
-    [[nodiscard]] bool supportsLayers() const noexcept;
-
-    /**
      * @brief Begins a new drawing layer with the specified size and pushes it onto the internal stack.
      *
      * This function creates a new layer with the given dimensions, allowing subsequent drawing
@@ -899,7 +892,7 @@ public:
      * @note The state of the Canvas is saved before creating the new layer and reset to its default state.
      * @param layerSize The size of the new layer to be created.
      */
-    [[nodiscard]] bool beginLayer(Size layerSize);
+    void beginLayer(Size layerSize);
 
     /**
      * @brief Retrieves the current depth of the layer stack.

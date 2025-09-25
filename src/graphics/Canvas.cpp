@@ -840,25 +840,20 @@ Rc<Image> Canvas::finishLayer() {
     return layer.layerTarget->image();
 }
 
-bool Canvas::beginLayer(Size layerSize) {
+void Canvas::beginLayer(Size layerSize) {
     Layer layer(m_context, layerSize); // Create a new layer with the specified size.
     if (!layer.ok()) {
         BRISK_LOG_ERROR("Failed to create layer with size: {}", layerSize);
-        return false;
+        return;
     }
     m_context = layer.layerPipeline.get(); // Set the current context to the new layer's pipeline.
     m_layers.push_back(std::move(layer));  // Push the new layer onto the stack.
     saveState(); // Save the current state of the Canvas before starting the new layer.
     reset();     // Reset the Canvas state to default for the new layer.
-    return true;
 }
 
 size_t Canvas::layers() const noexcept {
     return m_layers.size();
-}
-
-bool Canvas::supportsLayers() const noexcept {
-    return true;
 }
 
 const PreparedPath& Canvas::preparedClipPath() {
