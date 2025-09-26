@@ -605,8 +605,8 @@ void Path::addPolygon(float points, float radius, float roundness, float startAn
 
     roundness /= 100.0f;
 
-    x            = radius * cosf(currentAngle);
-    y            = radius * sinf(currentAngle);
+    x = radius * cosf(currentAngle);
+    y = radius * sinf(currentAngle);
     currentAngle += anglePerPoint * angleDir;
 
     if (vIsZero(roundness)) {
@@ -1162,6 +1162,13 @@ bool SparseMask::intersects(const SparseMask& other) const {
     return bounds.intersects(other.bounds);
 }
 
+Rectangle SparseMask::pixelBounds() const {
+    if (isRectangle())
+        return rectangle.roundOutward();
+    if (isSparse())
+        return Rectangle(bounds.x1 * 4, bounds.y1 * 4, bounds.x2 * 4 + 3, bounds.y2 * 4 + 3);
+    return Rectangle{};
+}
 } // namespace Internal
 
 Rectangle PreparedPath::patchBounds() const {

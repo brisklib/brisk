@@ -755,6 +755,40 @@ TEST_CASE("Canvas blur") {
         REQUIRE(image.has_value());
         canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
     });
+    renderTest<true>("canvas-blur4", Size{ 420, 413 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.drawImage({ 100, 200, 420, 413 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+    renderTest<true>("canvas-blur5", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.setScissor({ 40, 60, 240, 160 });
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+    renderTest<true>("canvas-blur6", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.setTransform(Matrix().rotate(15, 160, 106.5f));
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+    renderTest<true>("canvas-blur7", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix::translation(55, -15), SamplerMode::Wrap, 7.f);
+    });
 }
 
 TEST_CASE("CapStyle") {
@@ -1013,6 +1047,7 @@ TEST_CASE("Layers") {
         canvas.fillRect(bounds);
         canvas.setFillColor(Palette::blue);
         canvas.fillRect({ 50, 20, 500, 300 });
+        canvas.setFont(Font{ "Lato", 48.f });
         canvas.beginLayer(canvasSize);
         canvas.setFillColor(Palette::red);
         canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
@@ -1021,6 +1056,7 @@ TEST_CASE("Layers") {
         canvas.setFillColor(Palette::green);
         canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 1.0f, 0.5f }).withPadding(50));
         auto layer = canvas.finishLayer();
+        CHECK(canvas.getFont() == Font{ "Lato", 48.f });
         canvas.drawImage(bounds, layer, {}, SamplerMode::Clamp, 14.f);
         canvas.setFillColor(Palette::magenta);
         canvas.fillRect({ 300, 140, 640, 180 });

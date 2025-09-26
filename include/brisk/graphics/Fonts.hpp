@@ -62,6 +62,10 @@ struct OpenTypeFeatureFlag {
     auto operator<=>(const OpenTypeFeatureFlag& b) const noexcept = default;
 };
 
+inline std::string format_as(const OpenTypeFeatureFlag& val) {
+    return fmt::format("{}: {}", val.feature, val.enabled ? "on" : "off");
+}
+
 enum class FontStyle : uint8_t {
     Normal = 0,
     Italic = 1,
@@ -843,6 +847,24 @@ struct PreparedText {
  * @brief A collection of OpenType feature flags.
  */
 using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
+
+namespace Internal {
+
+inline std::string format_as(const inline_vector<OpenTypeFeatureFlag, 7>& features) {
+    std::string result;
+    for (const auto& f : features) {
+        if (!result.empty()) {
+            result += ',';
+        }
+        result += fmt::to_string(f.feature);
+        if (!f.enabled) {
+            result += "=0";
+        }
+    }
+    return result;
+}
+
+} // namespace Internal
 
 /**
  * @brief Represents font properties and settings for text rendering.

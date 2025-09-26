@@ -298,17 +298,18 @@ fn sqr4(x: vec4<f32>) -> vec4<f32> {
     return x * x;
 }
 
+fn sqr2(x: vec2<f32>) -> vec2<f32> {
+    return x * x;
+}
+
 fn conj(xy: vec2<f32>) -> vec2<f32> {
     return vec2<f32>(xy.x, -xy.y);
 }
 
-fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
+fn sampleBlur_2d(pos: vec2<f32>) -> vec4<f32> {
     let texSize: vec2<i32> = vec2<i32>(textureDimensions(boundTexture_t));
-
     let sigma: f32 = constants.blur_radius;
     let half_size: i32 = i32(ceil(sigma * 3.0));
-    let limit: vec2<i32> = texSize - 1;
-    let max_square: i32 = half_size * half_size;
     let g1: f32 = 1.0 / (2. * 3.141592 * sigma * sigma);
     let g2: f32 = -0.5 / (sigma * sigma);
     let w: vec2<f32> = 1.0 / vec2<f32>(texSize);
@@ -332,14 +333,62 @@ fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
 
             let xy = vec2<f32>(f32(i), f32(j)) + o;
 
-            let v1 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * xy, lo, hi));
-            let v2 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * conj(xy).yx, lo, hi));
-            let v3 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * -xy, lo, hi));
-            let v4 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * conj(xy.yx), lo, hi));
-            sum = sum + (v1 + v2 + v3 + v4) * abcd_sum;
+            if constants.samplerMode == 0 {
+                let v1 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * xy, lo, hi));
+                let v2 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * conj(xy).yx, lo, hi));
+                let v3 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * -xy, lo, hi));
+                let v4 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * conj(xy.yx), lo, hi));
+                sum = sum + (v1 + v2 + v3 + v4) * abcd_sum;
+            } else {
+                let v1 = textureSample(boundTexture_t, boundTexture_s, pos + w * xy);
+                let v2 = textureSample(boundTexture_t, boundTexture_s, pos + w * conj(xy).yx);
+                let v3 = textureSample(boundTexture_t, boundTexture_s, pos + w * -xy);
+                let v4 = textureSample(boundTexture_t, boundTexture_s, pos + w * conj(xy.yx));
+                sum = sum + (v1 + v2 + v3 + v4) * abcd_sum;
+            }
         }
     }
     return sum;
+}
+
+fn sampleBlur_1d(pos: vec2<f32>, direction: vec2<f32>) -> vec4<f32> {
+    let texSize: vec2<i32> = vec2<i32>(textureDimensions(boundTexture_t));
+    let sigma: f32 = constants.blur_radius;
+    let half_size: i32 = i32(ceil(sigma * 3.0));
+    let g1: f32 = 1.0 / (sqrt(2. * 3.141592) * sigma);
+    let g2: f32 = -0.5 / (sigma * sigma);
+    let w: vec2<f32> = 1.0 / vec2<f32>(texSize);
+    let lo = vec2<f32>(0.5) / vec2<f32>(texSize);
+    let hi = vec2<f32>(vec2<f32>(texSize) - 0.5) / vec2<f32>(texSize);
+    var sum: vec4<f32> = g1 * textureSample(boundTexture_t, boundTexture_s, pos);
+
+    for (var i: i32 = 1; i <= half_size; i = i + 2) {
+        let weights = g1 * exp(sqr2(vec2<f32>(f32(i), f32(i + 1))) * g2);
+        let weight_sum = weights[0] + weights[1];
+        let offset = weights[1] / weight_sum;
+        let sample_offset = (f32(i) + offset) * direction;
+        
+        if constants.samplerMode == 0 {
+            let v1 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * sample_offset, lo, hi));
+            let v2 = textureSample(boundTexture_t, boundTexture_s, clamp(pos - w * sample_offset, lo, hi));
+            sum = sum + (v1 + v2) * weight_sum;
+        } else {
+            let v1 = textureSample(boundTexture_t, boundTexture_s, pos + w * sample_offset);
+            let v2 = textureSample(boundTexture_t, boundTexture_s, pos - w * sample_offset);
+            sum = sum + (v1 + v2) * weight_sum;
+        }
+    }
+    return sum;
+}
+
+fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
+    if constants.blur_directions == 1u {
+        return sampleBlur_1d(pos, vec2<f32>(1.0, 0.0));
+    } else if constants.blur_directions == 2u {
+        return sampleBlur_1d(pos, vec2<f32>(0.0, 1.0));
+    } else {
+        return sampleBlur_2d(pos);
+    }
 }
 
 fn computeShadeColor(canvas_coord: vec2<f32>) -> vec4<f32> {
@@ -354,7 +403,7 @@ fn computeShadeColor(canvas_coord: vec2<f32>) -> vec4<f32> {
         return result;
     }
     let transformed_uv = transformedTexCoord(canvas_coord);
-    if constants.blur_radius > 0.0 {
+    if constants.blur_radius > 0.0 && constants.blur_directions != 0u {
         result = sampleBlur(transformed_uv);
     } else {
         result = textureSample(boundTexture_t, boundTexture_s, transformed_uv);

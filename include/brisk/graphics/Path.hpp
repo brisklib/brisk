@@ -140,6 +140,8 @@ struct SparseMask {
     RectangleF rectangle;
     Rectangle bounds{ INT32_MAX, INT32_MAX, INT32_MIN, INT32_MIN };
 
+    Rectangle pixelBounds() const;
+
     SparseMask();
 
     SparseMask(RectangleF rect);

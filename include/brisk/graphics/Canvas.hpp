@@ -156,6 +156,24 @@ GeometryGlyphs pathLayout(SpriteResources& sprites, const RasterizedPath& path);
 
 class Canvas;
 
+struct BlurRadius {
+    float horizontal = 0.f;
+    float vertical   = 0.f;
+
+    constexpr BlurRadius(float radius = 0.f) noexcept : horizontal(radius), vertical(radius) {}
+
+    constexpr BlurRadius(float horizontal, float vertical) noexcept
+        : horizontal(horizontal), vertical(vertical) {}
+
+    bool bidirectional() const noexcept {
+        return horizontal != 0 && vertical != 0;
+    }
+
+    float max() const noexcept {
+        return std::max(horizontal, vertical);
+    }
+};
+
 /**
  * @struct Texture
  * @brief Represents a textured fill pattern for drawing operations.
@@ -165,10 +183,10 @@ class Canvas;
  * applied to a surface.
  */
 struct Texture {
-    Rc<Image> image;                      ///< The image used as the texture.
-    Matrix matrix;                        ///< The transformation matrix applied to the texture.
-    SamplerMode mode = SamplerMode::Wrap; ///< The sampler mode (Clamp or Wrap).
-    float blurRadius = 0.f;               ///< The radius of the blur applied to the image.
+    Rc<Image> image;                           ///< The image used as the texture.
+    Matrix matrix;                             ///< The transformation matrix applied to the texture.
+    SamplerMode mode      = SamplerMode::Wrap; ///< The sampler mode (Clamp or Wrap).
+    BlurRadius blurRadius = 0.f;               ///< The radius of the blur applied to the image.
 };
 
 /**
@@ -653,7 +671,7 @@ public:
      * @param matrix The transformation matrix to apply to the image. Defaults to the identity matrix.
      */
     void drawImage(RectangleF rect, Rc<Image> image, Matrix matrix = {},
-                   SamplerMode samplerMode = SamplerMode::Clamp, float blurRadius = 0.f);
+                   SamplerMode samplerMode = SamplerMode::Clamp, BlurRadius blurRadius = 0.f);
 
     /**
      * @brief Retrieves the current transformation matrix.
@@ -953,6 +971,8 @@ private:
 
     void drawPreparedPath(const PreparedPath& path, const Internal::PaintAndTransform& paint,
                           Rectangle scissor);
+    void drawPreparedPathCmd(const PreparedPath& path, const Internal::PaintAndTransform& paint,
+                             Rectangle scissor);
 
     void drawTextSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                          RenderStateExArgs args);

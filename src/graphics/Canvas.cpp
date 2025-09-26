@@ -24,8 +24,10 @@
 #include <brisk/graphics/Color.hpp>
 #include "RenderStateArgs.hpp"
 #include <brisk/graphics/Renderer.hpp>
+#include <random>
 
 #include "Mask.hpp"
+#include "brisk/graphics/ImageFormats.hpp"
 
 namespace Brisk {
 
@@ -183,19 +185,76 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
         break;
     }
     case 2: { // Texture
-        const Texture& texture     = std::get<Texture>(paint.paint);
-        renderState->textureMatrix = texture.matrix.invert().value_or(Matrix{});
-        renderState->imageHandle   = texture.image;
-        renderState->samplerMode   = texture.mode;
-        renderState->opacity       = paint.opacity;
-        renderState->blurRadius    = texture.blurRadius;
+        const Texture& texture      = std::get<Texture>(paint.paint);
+        renderState->textureMatrix  = texture.matrix.invert().value_or(Matrix{});
+        renderState->imageHandle    = texture.image;
+        renderState->samplerMode    = texture.mode;
+        renderState->opacity        = paint.opacity;
+        renderState->blurDirections = 0;
+        if (texture.blurRadius.vertical > 0.f)
+            renderState->blurDirections |= 2;
+        if (texture.blurRadius.horizontal > 0.f)
+            renderState->blurDirections |= 1;
+        renderState->blurRadius =
+            texture.blurRadius.vertical > 0.f ? texture.blurRadius.vertical : texture.blurRadius.horizontal;
         break;
     }
     }
 }
 
-void Canvas::drawPreparedPath(const PreparedPath& path, const Internal::PaintAndTransform& paint,
-                              Rectangle scissor) {
+using Internal::PaintAndTransform;
+
+void Canvas::drawPreparedPath(const PreparedPath& path, const PaintAndTransform& paint, Rectangle scissor) {
+    if (path.empty() || scissor.empty())
+        return;
+#ifdef BRISK_1PASS_BLUR
+    return drawPreparedPathCmd(path, paint, scissor);
+#else
+    if (paint.paint.index() != 2) {
+        return drawPreparedPathCmd(path, paint, scissor);
+    }
+    const Texture& texture = std::get<Texture>(paint.paint);
+
+    if (!texture.blurRadius.bidirectional() || texture.blurRadius.max() < 3.f) {
+        return drawPreparedPathCmd(path, paint, scissor);
+    }
+
+    int blurPad            = static_cast<int>(std::ceil(texture.blurRadius.vertical * 3));
+    Rectangle bounds       = path.mask().pixelBounds();
+    Rectangle paddedBounds = bounds.withMargin(0, blurPad);
+
+    // First step, sample horizontally, draw rectangle covering the path bounds
+    // expanded by the blur radius.
+    beginLayer(paddedBounds.size());
+    drawPreparedPathCmd(RectangleF(paddedBounds).withOffset(-paddedBounds.p1),
+                        PaintAndTransform{ Texture{
+                                               texture.image,
+                                               texture.matrix.translate(-paddedBounds.p1),
+                                               texture.mode,
+                                               BlurRadius{ texture.blurRadius.horizontal, 0.f },
+                                           },
+                                           {},
+                                           1.f },
+                        scissor == noClipRect ? noClipRect
+                                              : scissor.withMargin(0, blurPad).withOffset(-paddedBounds.p1));
+
+    // Second step, draw the path, sampling from the horizontally blurred layer.
+    Rc<Image> layerImage = finishLayer();
+    drawPreparedPathCmd(path,
+                        PaintAndTransform{ Texture{
+                                               std::move(layerImage),
+                                               Matrix{}.translate(paddedBounds.p1),
+                                               texture.mode,
+                                               BlurRadius{ 0.f, texture.blurRadius.vertical },
+                                           },
+                                           {},
+                                           paint.opacity },
+                        scissor);
+#endif
+}
+
+void Canvas::drawPreparedPathCmd(const PreparedPath& path, const PaintAndTransform& paint,
+                                 Rectangle scissor) {
     if (path.isRectangle()) {
         RenderStateEx renderState(ShaderType::Rectangle, 1, nullptr);
         applier(&renderState, paint);
@@ -602,7 +661,7 @@ void Canvas::drawPath(const Path& path) {
 }
 
 void Canvas::drawImage(RectangleF rect, Rc<Image> image, Matrix matrix, SamplerMode samplerMode,
-                       float blurRadius) {
+                       BlurRadius blurRadius) {
     Path path;
     path.addRect(rect);
     Size size = image->size();
@@ -848,8 +907,8 @@ void Canvas::beginLayer(Size layerSize) {
     }
     m_context = layer.layerPipeline.get(); // Set the current context to the new layer's pipeline.
     m_layers.push_back(std::move(layer));  // Push the new layer onto the stack.
-    saveState(); // Save the current state of the Canvas before starting the new layer.
-    reset();     // Reset the Canvas state to default for the new layer.
+    save();  // Save the current state of the Canvas before starting the new layer.
+    reset(); // Reset the Canvas state to default for the new layer.
 }
 
 size_t Canvas::layers() const noexcept {
