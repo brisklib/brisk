@@ -369,6 +369,7 @@ jobs:
     env:
       VCPKG_DEFAULT_TRIPLET: x86-windows-static-md
       VCPKG_DEFAULT_HOST_TRIPLET: x86-windows-static-md
+      BRISK_SKIP_BLUR_TESTS: 1
     steps:
     - name: Checkout
       uses: actions/checkout@v4

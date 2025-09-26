@@ -25,6 +25,7 @@
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 #include "VisualTests.hpp"
+#include "brisk/core/Log.hpp"
 #include <brisk/graphics/Color.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/graphics/RenderState.hpp>
@@ -716,6 +717,12 @@ TEST_CASE("Semitransparent fill and stroke") {
 }
 
 TEST_CASE("Canvas blur") {
+#if defined BRISK_WINDOWS
+    if (std::getenv("BRISK_SKIP_BLUR_TESTS")) {
+        BRISK_LOG_WARN("Skip Canvas blur test due to Microsoft WARP bug.");
+        return;
+    }
+#endif
     renderTest<true>("canvas-blur0", Size{ 320, 213 }, [](RenderContext& context) {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
@@ -1065,6 +1072,12 @@ TEST_CASE("Layers") {
 }
 
 TEST_CASE("Backlayer") {
+#if defined BRISK_WINDOWS
+    if (std::getenv("BRISK_SKIP_BLUR_TESTS")) {
+        BRISK_LOG_WARN("Skip Backlayer test due to Microsoft WARP bug.");
+        return;
+    }
+#endif
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
     fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
