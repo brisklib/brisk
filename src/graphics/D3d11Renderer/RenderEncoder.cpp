@@ -87,8 +87,7 @@ void RenderEncoderD3d11::begin(Rc<RenderTarget> target, std::optional<ColorF> cl
     context->VSSetConstantBuffers(2, 1, cbuffers);
     context->PSSetConstantBuffers(2, 1, cbuffers);
 
-    ID3D11SamplerState* const samplers[2] = { m_device->m_boundSampler.Get(),
-                                              m_device->m_gradientSampler.Get() };
+    ID3D11SamplerState* const samplers[2] = { m_device->m_sampler.Get(), m_device->m_gradientSampler.Get() };
     context->VSSetSamplers(6, 1, samplers);
     context->PSSetSamplers(6, 2, samplers);
 }
@@ -112,11 +111,10 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
             m_frameTiming[m_frameTimingIndex].begin(m_device->m_device.Get(), m_device->m_context.Get());
         }
         const BackBufferD3d11& backBuf = getBackBuffer(m_currentTarget.get());
-        Size size = static_cast<ImageBackendD3d11*>(commands.front().imageBackend)->m_image->size();
+        Size size = static_cast<ImageBackendD3d11*>(commands.front().sourceImage)->m_image->size();
         context->OMSetRenderTargets(0, nullptr, nullptr);
-        context->CopyResource(
-            backBuf.colorBuffer.Get(),
-            static_cast<ImageBackendD3d11*>(commands.front().imageBackend)->m_texture.Get());
+        context->CopyResource(backBuf.colorBuffer.Get(),
+                              static_cast<ImageBackendD3d11*>(commands.front().sourceImage)->m_texture.Get());
         ID3D11RenderTargetView* rtvList[1] = { backBuf.rtv.Get() };
         context->OMSetRenderTargets(1, rtvList, nullptr);
         if (m_frameTimingIndex < m_frameTiming.size() && m_batchIndex < maxDurations) {
@@ -155,12 +153,13 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
     const size_t maxCommandsInBatch =
         uniformOffsetSupported ? maxD3d11ResourceBytes / sizeof(RenderState) : 1;
 
-    Internal::ImageBackend* savedTexture = nullptr;
+    Internal::ImageBackend* savedSourceTexture = nullptr;
+    Internal::ImageBackend* savedBackTexture   = nullptr;
 
-    constexpr size_t constantsPerCommand = sizeof(RenderState) / 16;
+    constexpr size_t constantsPerCommand       = sizeof(RenderState) / 16;
 
-    Rectangle frameRect                  = Rectangle({}, m_frameSize);
-    Rectangle currentClipRect            = noClipRect;
+    Rectangle frameRect                        = Rectangle({}, m_frameSize);
+    Rectangle currentClipRect                  = noClipRect;
 
     for (size_t i = 0; i < commands.size(); ++i) {
         auto& cmd             = commands[i];
@@ -174,14 +173,18 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
                 std::span{ commands.data() + i, std::min(maxCommandsInBatch, commands.size() - i) });
         }
 
-        if (cmd.imageBackend != savedTexture) {
-            savedTexture                               = cmd.imageBackend;
-            ID3D11ShaderResourceView* resourceViews[1] = { nullptr };
-            if (cmd.imageBackend) {
-                resourceViews[0] = static_cast<ImageBackendD3d11*>(cmd.imageBackend)->m_srv.Get();
+        if (cmd.sourceImage != savedSourceTexture || cmd.backImage != savedBackTexture) {
+            savedSourceTexture                         = cmd.sourceImage;
+            savedBackTexture                           = cmd.backImage;
+            ID3D11ShaderResourceView* resourceViews[2] = { nullptr };
+            if (cmd.sourceImage) {
+                resourceViews[0] = static_cast<ImageBackendD3d11*>(cmd.sourceImage)->m_srv.Get();
             }
-            context->VSSetShaderResources(10, 1, resourceViews);
-            context->PSSetShaderResources(10, 1, resourceViews);
+            if (cmd.backImage) {
+                resourceViews[1] = static_cast<ImageBackendD3d11*>(cmd.backImage)->m_srv.Get();
+            }
+            context->VSSetShaderResources(10, 2, resourceViews);
+            context->PSSetShaderResources(10, 2, resourceViews);
         }
 
         if (i == 0 || clampedRect != currentClipRect) {

@@ -222,7 +222,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
     wgpu::ShaderModuleDescriptor shaderModuleDescriptor{ .nextInChain = &wgslDesc };
     m_shader                                          = m_device.CreateShaderModule(&shaderModuleDescriptor);
 
-    std::array<wgpu::BindGroupLayoutEntry, 8> entries = {
+    std::array<wgpu::BindGroupLayoutEntry, 9> entries = {
         wgpu::BindGroupLayoutEntry{
             // constant
             .binding    = 1,
@@ -282,7 +282,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
                 },
         },
         wgpu::BindGroupLayoutEntry{
-            // boundTexture_s
+            // sourceTexture_s
             .binding    = 6,
             .visibility = wgpu::ShaderStage::Fragment,
             .sampler =
@@ -291,8 +291,17 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
                 },
         },
         wgpu::BindGroupLayoutEntry{
-            // boundTexture_t
+            // sourceTexture_t
             .binding    = 10,
+            .visibility = wgpu::ShaderStage::Fragment,
+            .texture =
+                wgpu::TextureBindingLayout{
+                    .sampleType = wgpu::TextureSampleType::Float,
+                },
+        },
+        wgpu::BindGroupLayoutEntry{
+            // backTexture_t
+            .binding    = 11,
             .visibility = wgpu::ShaderStage::Fragment,
             .texture =
                 wgpu::TextureBindingLayout{
@@ -386,14 +395,14 @@ void RenderDeviceWebGpu::createSamplers() {
     }
     {
         wgpu::SamplerDescriptor samplerDesc{
-            .label        = "BoundTextureSampler",
+            .label        = "sourceTextureSampler",
             .addressModeU = wgpu::AddressMode::Repeat,
             .addressModeV = wgpu::AddressMode::Repeat,
             .addressModeW = wgpu::AddressMode::Repeat,
             .magFilter    = wgpu::FilterMode::Linear,
             .minFilter    = wgpu::FilterMode::Linear,
         };
-        m_boundSampler = m_device.CreateSampler(&samplerDesc);
+        m_sampler = m_device.CreateSampler(&samplerDesc);
     }
 }
 
@@ -436,7 +445,7 @@ RenderDeviceWebGpu::~RenderDeviceWebGpu() {
     m_shader                 = nullptr;
     m_atlasSampler           = nullptr;
     m_gradientSampler        = nullptr;
-    m_boundSampler           = nullptr;
+    m_sampler                = nullptr;
     m_perFrameConstantBuffer = nullptr;
     m_bindGroupLayout        = nullptr;
     m_dummyTexture           = nullptr;

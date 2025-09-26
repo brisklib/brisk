@@ -1128,4 +1128,75 @@ TEST_CASE("Circles") {
     });
 }
 
+constexpr std::array blendModes = {
+    BlendingMode::Normal,    BlendingMode::Multiply,   BlendingMode::Screen,     BlendingMode::Overlay,
+    BlendingMode::Darken,    BlendingMode::Lighten,    BlendingMode::ColorDodge, BlendingMode::ColorBurn,
+    BlendingMode::HardLight, BlendingMode::SoftLight,  BlendingMode::Difference, BlendingMode::Exclusion,
+    BlendingMode::Hue,       BlendingMode::Saturation, BlendingMode::Color,      BlendingMode::Luminosity,
+};
+constexpr std::array compModes = {
+    CompositionMode::Clear,   CompositionMode::Copy,        CompositionMode::Dest,
+    CompositionMode::SrcOver, CompositionMode::DestOver,    CompositionMode::SrcIn,
+    CompositionMode::DestIn,  CompositionMode::SrcOut,      CompositionMode::DestOut,
+    CompositionMode::SrcAtop, CompositionMode::DestAtop,    CompositionMode::Xor,
+    CompositionMode::Plus,    CompositionMode::PlusLighter,
+};
+
+TEST_CASE("Composition") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    Size cellSize{ 100, 100 };
+    Size imageSize(25 + cellSize.width * blendModes.size(), 25 + cellSize.height * compModes.size());
+
+    renderTest<true>("composition", imageSize, [&](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setSubpixelTextRendering(false);
+
+        for (size_t y = 0; y < compModes.size(); ++y) {
+            for (size_t x = 0; x < blendModes.size(); ++x) {
+                Rectangle cell{ 25 + int(x * cellSize.width), 25 + int(y * cellSize.height),
+                                25 + int((x + 1) * cellSize.width), 25 + int((y + 1) * cellSize.height) };
+                canvas.setFillColor(Palette::Standard::green);
+                canvas.fillRect(cell.withPadding(5, 5, 35, 35));
+            }
+        }
+        auto backdrop = canvas.contentsAsImage();
+        REQUIRE(backdrop.get() != nullptr);
+
+        for (size_t y = 0; y < compModes.size(); ++y) {
+            for (size_t x = 0; x < blendModes.size(); ++x) {
+                Rectangle cell{ 25 + int(x * cellSize.width), 25 + int(y * cellSize.height),
+                                25 + int((x + 1) * cellSize.width), 25 + int((y + 1) * cellSize.height) };
+
+                Composition composition;
+                composition.compose  = compModes[y];
+                composition.blend    = blendModes[x];
+                composition.backdrop = backdrop;
+                canvas.setComposition(composition);
+                canvas.setFillColor(ColorW(1, 1, 1, 1));
+                canvas.fillRect(cell);
+                canvas.setFillColor(Palette::Standard::amber);
+                canvas.fillEllipse(cell.withPadding(35, 35, 5, 5));
+            }
+        }
+        canvas.resetComposition();
+
+        canvas.setFont(Font{ "Lato", 14.f });
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect(Rectangle{ 0, 0, imageSize.width, 25 });
+        canvas.fillRect(Rectangle{ 0, 0, 25, imageSize.height });
+        canvas.setFillColor(Palette::black);
+        for (size_t y = 0; y < compModes.size(); ++y) {
+            std::string text = fmt::to_string((int)compModes[y]);
+            canvas.fillText(text, PointF(2, 25 + (y + 0.5f) * cellSize.height), { 0.f, 0.5f });
+        }
+        for (size_t x = 0; x < blendModes.size(); ++x) {
+            std::string text = fmt::to_string((int)blendModes[x]);
+            canvas.fillText(text, PointF(25 + (x + 0.5f) * cellSize.width, 2), { 0.5f, 0.f });
+        }
+    });
+}
+
 } // namespace Brisk

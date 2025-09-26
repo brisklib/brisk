@@ -60,14 +60,6 @@ struct PaintOpacity {
     }
 };
 
-struct StrokeWidth {
-    using Type = float;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.strokeWidth = value;
-    }
-};
-
 struct Multigradient {
     using Type = Rc<GradientResource>;
 
@@ -141,7 +133,6 @@ inline namespace Arg {
 
 constexpr inline Argument<Tag::FillColor> fillColor{};
 constexpr inline Argument<Tag::FillColors> fillColors{};
-constexpr inline Argument<Tag::StrokeWidth> strokeWidth{};
 constexpr inline Argument<Tag::PaintOpacity> paintOpacity{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Linear>> linearGradient{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Radial>> radialGradient{};

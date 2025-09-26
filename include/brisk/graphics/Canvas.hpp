@@ -189,6 +189,17 @@ struct Texture {
     BlurRadius blurRadius = 0.f;               ///< The radius of the blur applied to the image.
 };
 
+struct Composition {
+    BlendingMode blend      = BlendingMode::Normal;
+    CompositionMode compose = CompositionMode::SrcOver;
+    Rc<Image> backdrop;
+    Matrix matrix;
+
+    operator bool() const noexcept {
+        return blend != BlendingMode::Normal || compose != CompositionMode::SrcOver || backdrop;
+    }
+};
+
 /**
  * @typedef Paint
  * @brief A type representing various fill and stroke styles.
@@ -573,7 +584,7 @@ public:
      *
      * @return The current Font.
      */
-    Font getFont() const;
+    [[nodiscard]] Font getFont() const;
 
     /**
      * @brief Sets the font used for text rendering.
@@ -582,7 +593,7 @@ public:
      */
     void setFont(const Font& font);
 
-    bool getSubpixelTextRendering() const;
+    [[nodiscard]] bool getSubpixelTextRendering() const;
     void setSubpixelTextRendering(bool value);
 
     /**
@@ -678,7 +689,7 @@ public:
      *
      * @return The current transformation Matrix struct.
      */
-    Matrix getTransform() const;
+    [[nodiscard]] Matrix getTransform() const;
 
     /**
      * @brief Sets the transformation matrix.
@@ -697,7 +708,7 @@ public:
     /**
      * @brief Retrieves the current clipping path.
      */
-    const Path& getClipPath() const;
+    [[nodiscard]] const Path& getClipPath() const;
 
     /**
      * @brief Sets the clipping rectangle.
@@ -720,6 +731,10 @@ public:
      * @brief Resets the clipping path to cover the entire canvas.
      */
     void resetClipPath();
+
+    void setComposition(Composition composition);
+
+    void resetComposition();
 
     /**
      * @brief Resets the Canvas state to its default values.
@@ -770,6 +785,7 @@ public:
         Font font;                 ///< The current font settings.
         bool subpixelText;         ///< Whether subpixel text rendering is enabled.
         Path clipPath;             ///< The current clipping path.
+        Composition composition;   ///< The current composition settings.
     };
 
     /**
@@ -785,7 +801,7 @@ public:
      *
      * @return A const reference to the current State object.
      */
-    const State& state() const noexcept;
+    [[nodiscard]] const State& state() const noexcept;
 
     /**
      * @brief Sets the Canvas state to the specified state.
@@ -846,7 +862,7 @@ public:
      *
      * @return A StateSaver object managing the saved state.
      */
-    StateSaver saveState() &;
+    [[nodiscard]] StateSaver saveState() &;
 
     /**
      * @brief RAII utility class for saving and restoring the Canvas clip rectangle.
@@ -897,7 +913,7 @@ public:
      *
      * @return A ScissorSaver object managing the saved scissor.
      */
-    ScissorSaver saveScissor() &;
+    [[nodiscard]] ScissorSaver saveScissor() &;
 
     /**
      * @brief Begins a new drawing layer with the specified size and pushes it onto the internal stack.
@@ -943,7 +959,7 @@ public:
      *
      * @return Rc<Image> A reference-counted pointer to the rendered Image.
      */
-    Rc<Image> contentsAsImage();
+    [[nodiscard]] Rc<Image> contentsAsImage();
 
 private:
     struct Layer {

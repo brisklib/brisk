@@ -118,12 +118,18 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data
     if (cmd.scissor.empty())
         return;
 
-    if (cmd.imageHandle) {
-        m_encoder->device()->createImageBackend(cmd.imageHandle);
-        cmd.imageBackend = Internal::getBackend(cmd.imageHandle);
-        BRISK_ASSERT(cmd.imageBackend);
-        cmd.textureId = 1; // Tell shader that texture is set (-1 if is not)
-        m_textures.push_back(cmd.imageHandle);
+    if (cmd.sourceImageHandle) {
+        m_encoder->device()->createImageBackend(cmd.sourceImageHandle);
+        cmd.sourceImage = Internal::getBackend(cmd.sourceImageHandle);
+        BRISK_ASSERT(cmd.sourceImage);
+        cmd.hasTexture = true; // Tell shader that texture is set (-1 if is not)
+        m_textures.push_back(cmd.sourceImageHandle);
+    }
+    if (cmd.backImageHandle) {
+        m_encoder->device()->createImageBackend(cmd.backImageHandle);
+        cmd.backImage = Internal::getBackend(cmd.backImageHandle);
+        BRISK_ASSERT(cmd.backImage);
+        m_textures.push_back(cmd.backImageHandle);
     }
 
     if (m_data.size() + data.size() > m_limits.maxDataSize) {
@@ -135,13 +141,13 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data
     }
 
     if (cmd.gradientHandle) {
-        cmd.multigradient = m_resources.gradientAtlas->addEntry(cmd.gradientHandle, m_resources.firstCommand,
+        cmd.gradientIndex = m_resources.gradientAtlas->addEntry(cmd.gradientHandle, m_resources.firstCommand,
                                                                 m_resources.currentCommand);
-        if (cmd.multigradient == gradientNull) {
+        if (cmd.gradientIndex == gradientNull) {
             flush();
-            cmd.multigradient = m_resources.gradientAtlas->addEntry(
+            cmd.gradientIndex = m_resources.gradientAtlas->addEntry(
                 cmd.gradientHandle, m_resources.firstCommand, m_resources.currentCommand);
-            BRISK_ASSERT_MSG("Resource is too large for atlas", cmd.multigradient != gradientNull);
+            BRISK_ASSERT_MSG("Resource is too large for atlas", cmd.gradientIndex != gradientNull);
         }
     }
     SmallVector<SpriteOffset, 1> spriteIndices(cmd.sprites.size());
@@ -202,7 +208,7 @@ void RenderPipeline::setGlobalScissor(Rectangle clipRect) {
 
 void RenderPipeline::blit(Rc<Image> image) {
     RenderStateEx style(ShaderType::Blit, nullptr);
-    style.imageHandle = std::move(image);
+    style.sourceImageHandle = std::move(image);
     command(std::move(style), {});
 }
 

@@ -106,7 +106,7 @@ private:
 
     wgpu::Sampler m_atlasSampler;
     wgpu::Sampler m_gradientSampler;
-    wgpu::Sampler m_boundSampler;
+    wgpu::Sampler m_sampler;
     wgpu::Buffer m_perFrameConstantBuffer;
     wgpu::BindGroupLayout m_bindGroupLayout;
     wgpu::Texture m_dummyTexture;

@@ -93,7 +93,7 @@ private:
     uint32_t m_timestampIndex = 0;
     std::shared_ptr<void> m_flag{ new std::byte{ 0 } };
 
-    wgpu::BindGroup createBindGroup(ImageBackendWebGpu* imageBackend);
+    wgpu::BindGroup createBindGroup(ImageBackendWebGpu* sourceImage, ImageBackendWebGpu* backImage = nullptr);
     void updatePerFrameConstantBuffer(const ConstantPerFrame& constants);
     void updateDataBuffer(std::span<const uint32_t> data);
     void updateConstantBuffer(std::span<const RenderState> data);

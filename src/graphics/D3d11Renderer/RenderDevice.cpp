@@ -215,7 +215,7 @@ void RenderDeviceD3d11::createSamplers() {
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    hr = m_device->CreateSamplerState(&samplerDesc, m_boundSampler.ReleaseAndGetAddressOf());
+    hr = m_device->CreateSamplerState(&samplerDesc, m_sampler.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return);
 }
 

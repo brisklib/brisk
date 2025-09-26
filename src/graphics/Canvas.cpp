@@ -41,7 +41,8 @@ const Canvas::State Canvas::defaultState{
     FillParams{},           /* fillRule */
     Font{},                 /* font*/
     true,                   /* subpixelText */
-    Path{}                  /* clipPath */
+    Path{},                 /* clipPath */
+    Composition{},          /* composition */
 };
 
 static int32_t findOrAdd(SpriteResources& container, Rc<SpriteResource> value) {
@@ -113,6 +114,20 @@ GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPa
     return result;
 }
 
+static void setRenderComposition(RenderStateEx& state, const Composition& composition) {
+    if (composition) {
+        state.mode = toBlendingCompositionMode(composition.blend, composition.compose);
+        if (composition.backdrop) {
+            state.backImageHandle = composition.backdrop;
+            state.hasBackTexture  = true;
+        }
+    } else {
+        state.mode = BlendingCompositionMode::Normal;
+        state.backImageHandle.reset();
+        state.hasBackTexture = false;
+    }
+}
+
 void Canvas::drawColorSprites(SpriteResources sprites, std::span<const GeometryGlyph> glyphs,
                               RenderStateExArgs args) {
     RenderStateEx style(ShaderType::ColorMask, glyphs.size(), args);
@@ -121,6 +136,7 @@ void Canvas::drawColorSprites(SpriteResources sprites, std::span<const GeometryG
     style.sprites            = std::move(sprites);
     style.scissor            = m_state.scissor;
     style.premultiply();
+    setRenderComposition(style, m_state.composition);
     m_context->command(std::move(style), glyphs);
 }
 
@@ -142,6 +158,7 @@ void Canvas::drawTextSprites(SpriteResources sprites, std::span<const GeometryGl
     style.sprites            = std::move(sprites);
     style.scissor            = m_state.scissor;
     style.premultiply();
+    setRenderComposition(style, m_state.composition);
     m_context->command(std::move(style), glyphs);
 }
 
@@ -185,12 +202,12 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
         break;
     }
     case 2: { // Texture
-        const Texture& texture      = std::get<Texture>(paint.paint);
-        renderState->textureMatrix  = texture.matrix.invert().value_or(Matrix{});
-        renderState->imageHandle    = texture.image;
-        renderState->samplerMode    = texture.mode;
-        renderState->opacity        = paint.opacity;
-        renderState->blurDirections = 0;
+        const Texture& texture         = std::get<Texture>(paint.paint);
+        renderState->textureMatrix     = texture.matrix.invert().value_or(Matrix{});
+        renderState->sourceImageHandle = texture.image;
+        renderState->samplerMode       = texture.mode;
+        renderState->opacity           = paint.opacity;
+        renderState->blurDirections    = 0;
         if (texture.blurRadius.vertical > 0.f)
             renderState->blurDirections |= 2;
         if (texture.blurRadius.horizontal > 0.f)
@@ -260,6 +277,7 @@ void Canvas::drawPreparedPathCmd(const PreparedPath& path, const PaintAndTransfo
         applier(&renderState, paint);
         renderState.scissor = scissor;
         renderState.premultiply();
+        setRenderComposition(renderState, m_state.composition);
         m_context->command(std::move(renderState), one(path.m_mask.rectangle));
     } else if (path.isSparse()) {
         RenderStateEx renderState(ShaderType::Mask, path.m_mask.patches.size(), nullptr);
@@ -277,6 +295,7 @@ void Canvas::drawPreparedPathCmd(const PreparedPath& path, const PaintAndTransfo
         memcpy(data.data() + alignUp(patchesSize, 4u), path.m_mask.patchData.data(),
                patchDataSize * sizeof(uint32_t));
 
+        setRenderComposition(renderState, m_state.composition);
         m_context->command(std::move(renderState), std::span{ data });
     }
 }
@@ -514,13 +533,13 @@ struct GeometryRectangle {
 };
 
 void Canvas::blurRect(RectangleF rect, float blurRadius, CornersF borderRadius, bool squircle) {
-    RenderStateEx style(
-        ShaderType::Shadow,
-        std::tuple{ Arg::blurRadius = blurRadius * 0.36f, strokeWidth = 0.f,
-                    Internal::PaintAndTransform{ m_state.fillPaint, Matrix{}, m_state.opacity },
-                    coordMatrix = m_state.transform });
+    RenderStateEx style(ShaderType::Shadow, std::tuple{ Arg::blurRadius = blurRadius * 0.36f,
+                                                        Internal::PaintAndTransform{
+                                                            m_state.fillPaint, Matrix{}, m_state.opacity },
+                                                        coordMatrix = m_state.transform });
     style.premultiply();
     style.scissor = m_state.scissor;
+    setRenderComposition(style, m_state.composition);
     m_context->command(std::move(style), one(GeometryRectangle{ rect, borderRadius }));
 }
 
@@ -935,5 +954,13 @@ void Canvas::intersectScissor(Rectangle scissor) {
 
 void Canvas::resetScissor() {
     m_state.scissor = noClipRect;
+}
+
+void Canvas::setComposition(Composition composition) {
+    m_state.composition = std::move(composition);
+}
+
+void Canvas::resetComposition() {
+    m_state.composition = {};
 }
 } // namespace Brisk

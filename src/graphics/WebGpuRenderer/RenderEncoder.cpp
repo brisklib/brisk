@@ -112,7 +112,8 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
     m_pass.SetPipeline(pipeline);
 
     // Actual rendering
-    Internal::ImageBackend* savedTexture = nullptr;
+    Internal::ImageBackend* savedSourceTexture = nullptr;
+    Internal::ImageBackend* savedBackTexture   = nullptr;
     // OPTIMIZATION: separate groups for constants and texture
     wgpu::BindGroup bindGroup;
 
@@ -128,9 +129,11 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
             uint32_t(i * sizeof(RenderState)),
         };
 
-        if (!bindGroup || cmd.imageBackend != savedTexture) {
-            savedTexture = cmd.imageBackend;
-            bindGroup    = createBindGroup(static_cast<ImageBackendWebGpu*>(cmd.imageBackend));
+        if (!bindGroup || cmd.sourceImage != savedSourceTexture || cmd.backImage != savedBackTexture) {
+            savedSourceTexture = cmd.sourceImage;
+            savedBackTexture   = cmd.backImage;
+            bindGroup          = createBindGroup(static_cast<ImageBackendWebGpu*>(cmd.sourceImage),
+                                                 static_cast<ImageBackendWebGpu*>(cmd.backImage));
         }
 
         if (clampedRect != currentClipRect) {
@@ -156,9 +159,10 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
     m_colorAttachment.loadOp = wgpu::LoadOp::Load;
 }
 
-wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* imageBackend) {
+wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* sourceImage,
+                                                     ImageBackendWebGpu* backImage) {
 
-    std::array<wgpu::BindGroupEntry, 8> entries = {
+    std::array<wgpu::BindGroupEntry, 9> entries = {
         wgpu::BindGroupEntry{
             .binding = 1,
             .buffer  = m_constantBuffer,
@@ -186,11 +190,15 @@ wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* imageBa
         },
         wgpu::BindGroupEntry{
             .binding = 6,
-            .sampler = m_device->m_boundSampler,
+            .sampler = m_device->m_sampler,
         },
         wgpu::BindGroupEntry{
             .binding     = 10,
-            .textureView = imageBackend ? imageBackend->m_textureView : m_device->m_dummyTextureView,
+            .textureView = sourceImage ? sourceImage->m_textureView : m_device->m_dummyTextureView,
+        },
+        wgpu::BindGroupEntry{
+            .binding     = 11,
+            .textureView = backImage ? backImage->m_textureView : m_device->m_dummyTextureView,
         },
     };
     wgpu::BindGroupDescriptor bingGroupDesc{
