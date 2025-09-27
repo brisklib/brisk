@@ -171,7 +171,7 @@ Rc<const Stylesheet> stylesheet() {
             Type{ Knob::widgetType },
             {
                 minDimensions                             = { 22_apx, 22_apx },
-                borderRadius                              = 50_apx,
+                borderRadius                              = 50_perc,
                 backgroundColor                           = styleVar(deepColor),
                 borderColor                               = styleVar(selectedColor),
                 borderColor | Hover                       = adjustColor(styleVar(selectedColor), +8),
