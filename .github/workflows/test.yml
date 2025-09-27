@@ -566,7 +566,7 @@ jobs:
         cmake -G"Unix Makefiles"
         -S repo/examples/showcase
         -B build
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
         -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
         -DVCPKG_INSTALLED_DIR=${{github.workspace}}/vcpkg_exported/installed
@@ -624,10 +624,10 @@ jobs:
         -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg_exported/scripts/buildsystems/vcpkg.cmake
     - name: Build
       run: |
-        cmake --build build --config Release
+        cmake --build build --config RelWithDebInfo
     - name: Zip bundles
       run: |
-        ditto -c -k --sequesterRsrc --keepParent "build/Release/showcase.app" "showcase.app.zip"
+        ditto -c -k --sequesterRsrc --keepParent "build/RelWithDebInfo/showcase.app" "showcase.app.zip"
     - name: Upload usage artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -680,14 +680,14 @@ jobs:
         "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>${{ endsWith(matrix.triplet, '-md') && 'DLL' || '' }}"
     - name: Build
       run: |
-        cmake --build build --config Release
+        cmake --build build --config RelWithDebInfo
     - name: Upload usage artifacts
       uses: actions/upload-artifact@v4
       with:
         name: showcase-${{matrix.triplet}}
         retention-days: 30
         path: |
-          build/Release/showcase.exe
+          build/RelWithDebInfo/showcase.exe
 
   upload-release:
     if: startsWith(github.ref, 'refs/tags/')
