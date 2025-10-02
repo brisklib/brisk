@@ -203,7 +203,7 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
     }
     case 2: { // Texture
         const Texture& texture         = std::get<Texture>(paint.paint);
-        renderState->textureMatrix     = texture.matrix.invert().value_or(Matrix{});
+        renderState->textureMatrix     = (texture.matrix * paint.transform).invert().value_or(Matrix{});
         renderState->sourceImageHandle = texture.image;
         renderState->samplerMode       = texture.mode;
         renderState->opacity           = paint.opacity;

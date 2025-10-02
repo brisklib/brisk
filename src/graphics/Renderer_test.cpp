@@ -1199,4 +1199,120 @@ TEST_CASE("Composition") {
     });
 }
 
+static void testInvariants(RenderContext& context, function_ref<void(Canvas&)> fn) {
+    Canvas canvas(context);
+    {
+        // Identity
+        auto&& st     = canvas.saveState();
+        st->transform = Matrix{};
+        fn(canvas);
+    }
+    {
+        // Translate to 128, 0
+        auto&& st     = canvas.saveState();
+        st->transform = Matrix{}.translate(128, 0);
+        fn(canvas);
+    }
+    {
+        // Scale by 0.5 and translate to 0, 128
+        auto&& st     = canvas.saveState();
+        st->transform = Matrix{}.scale(0.5f).translate(0, 128);
+        fn(canvas);
+    }
+    {
+        // Rotate by 45 degrees and translate to 128, 128
+        auto&& st     = canvas.saveState();
+        st->transform = Matrix{}.rotate(45.f, { 50.f, 50.f }).translate(128, 128);
+        fn(canvas);
+    }
+}
+
+TEST_CASE("Matrix invariants") {
+    renderTest("matrix-invariants-image", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   Canvas canvas(context);
+                   auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
+                   REQUIRE(bytes.has_value());
+                   auto image = pngDecode(*bytes, ImageFormat::RGBA);
+                   REQUIRE(image.has_value());
+
+                   testInvariants(context, [&](Canvas& canvas) {
+                       canvas.drawImage({ 0, 0, 100, 100 }, *image, Matrix{}, SamplerMode::Clamp, 0.f);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+    renderTest("matrix-invariants-textured-rect", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
+                   REQUIRE(bytes.has_value());
+                   auto image = pngDecode(*bytes, ImageFormat::RGBA);
+                   REQUIRE(image.has_value());
+
+                   testInvariants(context, [&](Canvas& canvas) {
+                       Texture texture(
+                           *image, Matrix::mapRect(Rectangle{ {}, (*image)->size() }, { 0, 0, 100.f, 100.f }),
+                           SamplerMode::Clamp);
+                       Path path;
+                       path.addRoundRect({ 0, 0, 100, 100 }, 20.f);
+                       canvas.setFillPaint(texture);
+                       canvas.fillPath(path);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+    renderTest("matrix-invariants-rect", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   testInvariants(context, [&](Canvas& canvas) {
+                       Path path;
+                       path.addRoundRect({ 0, 0, 100, 100 }, 20.f);
+                       canvas.setFillPaint(LinearGradient{
+                           { 0, 0 }, { 100, 100 }, Palette::Standard::red, Palette::Standard::indigo });
+                       canvas.fillPath(path);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+
+    renderTest("matrix-invariants-shadow", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   testInvariants(context, [&](Canvas& canvas) {
+                       canvas.setFillColor(Palette::black);
+                       canvas.blurRect({ 0, 0, 100, 100 }, 10.f, 20.f);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    renderTest("matrix-invariants-text", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   testInvariants(context, [&](Canvas& canvas) {
+                       canvas.setFont(Font{ "Lato", 24.f });
+                       canvas.setFillColor(Palette::black);
+                       canvas.setStrokeColor(Palette::white);
+                       canvas.setStrokeWidth(2.f);
+                       canvas.strokeRect({ 0, 0, 100, 100 });
+                       canvas.fillText("Brisk", { 0, 0, 100, 100 }, { 0.5f, 0.5f });
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+
+    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
+    REQUIRE(ttf2.has_value());
+    fonts->addFont("Noto Emoji", FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::EnableColor);
+
+    renderTest("matrix-invariants-emoji", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   testInvariants(context, [&](Canvas& canvas) {
+                       canvas.setFont(Font{ "Noto Emoji", 48.f });
+                       canvas.setFillColor(Palette::black);
+                       canvas.setStrokeColor(Palette::white);
+                       canvas.setStrokeWidth(2.f);
+                       canvas.strokeRect({ 0, 0, 100, 100 });
+                       canvas.fillText("✅", { 0, 0, 100, 100 }, { 0.5f, 0.5f });
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+}
+
 } // namespace Brisk
