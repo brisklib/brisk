@@ -43,15 +43,6 @@ struct FillColor {
     }
 };
 
-struct StrokeColor {
-    using Type = ColorF;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.strokeColor1 = value;
-        state.strokeColor2 = value;
-    }
-};
-
 struct FillColors {
     using Type = GradientColors;
 
@@ -61,28 +52,11 @@ struct FillColors {
     }
 };
 
-struct StrokeColors {
-    using Type = GradientColors;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.strokeColor1 = value.color1;
-        state.strokeColor2 = value.color2;
-    }
-};
-
 struct PaintOpacity {
     using Type = float;
 
     static void apply(const Type& value, RenderStateEx& state) {
         state.opacity = value;
-    }
-};
-
-struct StrokeWidth {
-    using Type = float;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.strokeWidth = value;
     }
 };
 
@@ -102,14 +76,6 @@ struct FillGradient {
         state.gradient       = grad_type;
         state.gradientPoint1 = value.point1;
         state.gradientPoint2 = value.point2;
-    }
-};
-
-struct Scissor {
-    using Type = Quad3;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.scissorQuad = value;
     }
 };
 
@@ -161,23 +127,12 @@ struct SamplerMode {
     }
 };
 
-struct Scissors {
-    using Type = Quad3;
-
-    static void apply(const Type& value, RenderStateEx& state) {
-        state.scissorQuad = value;
-    }
-};
-
 } // namespace Tag
 
 inline namespace Arg {
 
 constexpr inline Argument<Tag::FillColor> fillColor{};
-constexpr inline Argument<Tag::StrokeColor> strokeColor{};
 constexpr inline Argument<Tag::FillColors> fillColors{};
-constexpr inline Argument<Tag::StrokeColors> strokeColors{};
-constexpr inline Argument<Tag::StrokeWidth> strokeWidth{};
 constexpr inline Argument<Tag::PaintOpacity> paintOpacity{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Linear>> linearGradient{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Radial>> radialGradient{};
@@ -190,7 +145,6 @@ constexpr inline Argument<Tag::BlurDirections> blurDirections{};
 constexpr inline Argument<Tag::TextureChannel> textureChannel{};
 constexpr inline Argument<Tag::CoordMatrix> coordMatrix{};
 constexpr inline Argument<Tag::SamplerMode> samplerMode{};
-constexpr inline Argument<Tag::Scissors> scissors{};
 constexpr inline Argument<Tag::SubpixelMode> subpixelMode{};
 
 } // namespace Arg

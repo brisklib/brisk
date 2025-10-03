@@ -66,7 +66,7 @@ protected:
         path.lineTo(PointF(-dp(m_values.size() - 1), m_rect.height()));
         path.close();
         path.transform(Matrix::translation(m_rect.x2, m_rect.y1));
-        auto&& clipRect = canvas.saveClipRect();
+        auto&& clipRect = canvas.saveScissor();
         *clipRect       = clipRect->intersection(m_rect); // New clip rect
         canvas.setFillColor(m_lineColor.multiplyAlpha(0.3f));
         canvas.drawPath(std::move(path));

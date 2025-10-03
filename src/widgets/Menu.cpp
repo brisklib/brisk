@@ -32,7 +32,7 @@ void Menu::close(Widget* sender) {
 }
 
 void Menu::onEvent(Event& event) {
-    AutoScrollable::onEvent(event);
+    Base::onEvent(event);
     if (auto e = event.as<EventMouseButtonPressed>()) {
         if (!m_rect.contains(e->point)) {
             visible = false;
@@ -67,12 +67,15 @@ void Menu::append(Rc<Widget> widget) {
 }
 
 Menu::Menu(Construction construction, ArgumentsView<Menu> args)
-    : Base(construction, Orientation::Vertical,
-           std::tuple{ Arg::placement = Placement::Absolute, Arg::zorder = ZOrder::TopMost,
-                       /* Arg::mouseAnywhere = true, */ Arg::layout =
-                           Layout::Vertical, /*  Arg::focusCapture = true, */
-                       Arg::alignToViewport = AlignToViewport::XY, Arg::tabGroup = true, Arg::visible = false,
-                       /*   Arg::absolutePosition = { 0, 0 } */ }) {
+    : Base(construction, std::tuple{
+                             Arg::placement       = Placement::Absolute,
+                             Arg::zorder          = ZOrder::TopMost,
+                             Arg::layout          = Layout::Vertical,
+                             Arg::overflowScrollY = OverflowScroll::Auto,
+                             Arg::alignToViewport = AlignToViewport::XY,
+                             Arg::tabGroup        = true,
+                             Arg::visible         = false,
+                         }) {
     m_isPopup = true;
     args.apply(this);
 }

@@ -23,8 +23,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <fmt/base.h>
 #include <limits>
 #include <vector>
 
@@ -39,8 +41,23 @@ inline static void copy(const Rle::Span* span, size_t count, std::vector<Rle::Sp
     std::copy(span, span + count, back_inserter(v));
 }
 
-void Rle::addSpan(const Rle::Span* span, size_t count) {
+void Rle::addSpans(const Rle::Span* span, size_t count) {
     copy(span, count, mSpans);
+    mBboxDirty = true;
+}
+
+void Rle::addSpans(std::span<const Rle::Span> spans) {
+    addSpans(spans.data(), spans.size());
+}
+
+void Rle::addSpan(Rle::Span span) {
+    if (!mSpans.empty() && mSpans.back().y == span.y && mSpans.back().x + mSpans.back().len == span.x &&
+        mSpans.back().coverage == span.coverage) {
+        // merge with last span
+        mSpans.back().len += span.len;
+    } else {
+        mSpans.push_back(span);
+    }
     mBboxDirty = true;
 }
 
@@ -49,7 +66,7 @@ Rectangle Rle::boundingRect() const {
     return mBbox;
 }
 
-void Rle::setBoundingRect(const Rectangle& bbox) {
+void Rle::setBoundingRect(Rectangle bbox) {
     mBboxDirty = false;
     mBbox      = bbox;
 }
@@ -95,8 +112,27 @@ void Rle::updateBbox() const {
             if (span[i].x + span[i].len > r)
                 r = span[i].x + span[i].len;
         }
-        mBbox = Rectangle(l, t, r - l, b - t + 1);
+        mBbox = Rectangle(l, t, r, b + 1);
     }
+}
+
+void Rle::addRect(Rectangle rect) {
+    int x      = rect.x1;
+    int y      = rect.y1;
+    int width  = rect.width();
+    int height = rect.height();
+
+    mSpans.reserve(size_t(height));
+
+    Rle::Span span;
+    for (int i = 0; i < height; i++) {
+        span.x        = x;
+        span.y        = y + i;
+        span.len      = width;
+        span.coverage = 255;
+        mSpans.push_back(span);
+    }
+    mBbox = rect;
 }
 
 } // namespace Brisk

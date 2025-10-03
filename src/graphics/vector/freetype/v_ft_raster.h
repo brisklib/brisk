@@ -604,4 +604,237 @@ SW_FT_Outline_Get_CBox( const SW_FT_Outline*  outline,
 
 extern const SW_FT_Raster_Funcs   sw_ft_grays_raster;
 
+
+  
+  /**************************************************************************
+   *
+   * @functype:
+   *   FT_Outline_MoveToFunc
+   *
+   * @description:
+   *   A function pointer type used to describe the signature of a 'move to'
+   *   function during outline walking/decomposition.
+   *
+   *   A 'move to' is emitted to start a new contour in an outline.
+   *
+   * @input:
+   *   to ::
+   *     A pointer to the target point of the 'move to'.
+   *
+   *   user ::
+   *     A typeless pointer, which is passed from the caller of the
+   *     decomposition function.
+   *
+   * @return:
+   *   Error code.  0~means success.
+   */
+  typedef int
+  (*SW_FT_Outline_MoveToFunc)( const SW_FT_Vector*  to,
+                            void*             user );
+
+#define SW_FT_Outline_MoveTo_Func  SW_FT_Outline_MoveToFunc
+
+
+  /**************************************************************************
+   *
+   * @functype:
+   *   SW_FT_Outline_LineToFunc
+   *
+   * @description:
+   *   A function pointer type used to describe the signature of a 'line to'
+   *   function during outline walking/decomposition.
+   *
+   *   A 'line to' is emitted to indicate a segment in the outline.
+   *
+   * @input:
+   *   to ::
+   *     A pointer to the target point of the 'line to'.
+   *
+   *   user ::
+   *     A typeless pointer, which is passed from the caller of the
+   *     decomposition function.
+   *
+   * @return:
+   *   Error code.  0~means success.
+   */
+  typedef int
+  (*SW_FT_Outline_LineToFunc)( const SW_FT_Vector*  to,
+                            void*             user );
+
+#define SW_FT_Outline_LineTo_Func  SW_FT_Outline_LineToFunc
+
+
+  /**************************************************************************
+   *
+   * @functype:
+   *   SW_FT_Outline_ConicToFunc
+   *
+   * @description:
+   *   A function pointer type used to describe the signature of a 'conic to'
+   *   function during outline walking or decomposition.
+   *
+   *   A 'conic to' is emitted to indicate a second-order Bezier arc in the
+   *   outline.
+   *
+   * @input:
+   *   control ::
+   *     An intermediate control point between the last position and the new
+   *     target in `to`.
+   *
+   *   to ::
+   *     A pointer to the target end point of the conic arc.
+   *
+   *   user ::
+   *     A typeless pointer, which is passed from the caller of the
+   *     decomposition function.
+   *
+   * @return:
+   *   Error code.  0~means success.
+   */
+  typedef int
+  (*SW_FT_Outline_ConicToFunc)( const SW_FT_Vector*  control,
+                             const SW_FT_Vector*  to,
+                             void*             user );
+
+#define SW_FT_Outline_ConicTo_Func  SW_FT_Outline_ConicToFunc
+
+
+  /**************************************************************************
+   *
+   * @functype:
+   *   SW_FT_Outline_CubicToFunc
+   *
+   * @description:
+   *   A function pointer type used to describe the signature of a 'cubic to'
+   *   function during outline walking or decomposition.
+   *
+   *   A 'cubic to' is emitted to indicate a third-order Bezier arc.
+   *
+   * @input:
+   *   control1 ::
+   *     A pointer to the first Bezier control point.
+   *
+   *   control2 ::
+   *     A pointer to the second Bezier control point.
+   *
+   *   to ::
+   *     A pointer to the target end point.
+   *
+   *   user ::
+   *     A typeless pointer, which is passed from the caller of the
+   *     decomposition function.
+   *
+   * @return:
+   *   Error code.  0~means success.
+   */
+  typedef int
+  (*SW_FT_Outline_CubicToFunc)( const SW_FT_Vector*  control1,
+                             const SW_FT_Vector*  control2,
+                             const SW_FT_Vector*  to,
+                             void*             user );
+
+#define SW_FT_Outline_CubicTo_Func  SW_FT_Outline_CubicToFunc
+
+
+  /**************************************************************************
+   *
+   * @struct:
+   *   SW_FT_Outline_Funcs
+   *
+   * @description:
+   *   A structure to hold various function pointers used during outline
+   *   decomposition in order to emit segments, conic, and cubic Beziers.
+   *
+   * @fields:
+   *   move_to ::
+   *     The 'move to' emitter.
+   *
+   *   line_to ::
+   *     The segment emitter.
+   *
+   *   conic_to ::
+   *     The second-order Bezier arc emitter.
+   *
+   *   cubic_to ::
+   *     The third-order Bezier arc emitter.
+   *
+   *   shift ::
+   *     The shift that is applied to coordinates before they are sent to the
+   *     emitter.
+   *
+   *   delta ::
+   *     The delta that is applied to coordinates before they are sent to the
+   *     emitter, but after the shift.
+   *
+   * @note:
+   *   The point coordinates sent to the emitters are the transformed version
+   *   of the original coordinates (this is important for high accuracy
+   *   during scan-conversion).  The transformation is simple:
+   *
+   *   ```
+   *     x' = (x << shift) - delta
+   *     y' = (y << shift) - delta
+   *   ```
+   *
+   *   Set the values of `shift` and `delta` to~0 to get the original point
+   *   coordinates.
+   */
+  typedef struct  SW_FT_Outline_Funcs_
+  {
+    SW_FT_Outline_MoveToFunc   move_to;
+    SW_FT_Outline_LineToFunc   line_to;
+    SW_FT_Outline_ConicToFunc  conic_to;
+    SW_FT_Outline_CubicToFunc  cubic_to;
+
+    int                     shift;
+    SW_FT_Pos                  delta;
+
+  } SW_FT_Outline_Funcs;
+  
+  
+  /**************************************************************************
+   *
+   * @function:
+   *   FT_Outline_Decompose
+   *
+   * @description:
+   *   Walk over an outline's structure to decompose it into individual
+   *   segments and Bezier arcs.  This function also emits 'move to'
+   *   operations to indicate the start of new contours in the outline.
+   *
+   * @input:
+   *   outline ::
+   *     A pointer to the source target.
+   *
+   *   func_interface ::
+   *     A table of 'emitters', i.e., function pointers called during
+   *     decomposition to indicate path operations.
+   *
+   * @inout:
+   *   user ::
+   *     A typeless pointer that is passed to each emitter during the
+   *     decomposition.  It can be used to store the state during the
+   *     decomposition.
+   *
+   * @return:
+   *   FreeType error code.  0~means success.
+   *
+   * @note:
+   *   Degenerate contours, segments, and Bezier arcs may be reported.  In
+   *   most cases, it is best to filter these out before using the outline
+   *   for stroking or other path modification purposes (which may cause
+   *   degenerate segments to become non-degenerate and visible, like when
+   *   stroke caps are used or the path is otherwise outset).  Some glyph
+   *   outlines may contain deliberate degenerate single points for mark
+   *   attachement.
+   *
+   *   Similarly, the function returns success for an empty outline also
+   *   (doing nothing, that is, not calling any emitter); if necessary, you
+   *   should filter this out, too.
+   */
+  int SW_FT_Outline_Decompose( const SW_FT_Outline*              outline,
+                        const SW_FT_Outline_Funcs*  func_interface,
+                        void*                    user );
+
+
 #endif // V_FT_IMG_H

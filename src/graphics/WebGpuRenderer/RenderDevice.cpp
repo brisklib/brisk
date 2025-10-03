@@ -84,14 +84,19 @@ bool RenderDeviceWebGpu::createDevice() {
 
 #ifdef BRISK_WINDOWS
     opt.backendType = wgpu::BackendType::D3D12;
+    bool warp       = std::getenv("BRISK_USE_SOFTWARE_RENDERER") != nullptr;
 
     dawn::native::d3d::RequestAdapterOptionsLUID optLUID;
-    if (m_display) {
-        ComPtr<IDXGIFactory> factory;
+    if (m_display || warp) {
+        ComPtr<IDXGIFactory4> factory;
         HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()));
         if (SUCCEEDED(hr)) {
-            ComPtr<IDXGIAdapter> adapter = adapterForMonitor(m_display.hMonitor(), factory);
-
+            ComPtr<IDXGIAdapter> adapter;
+            if (warp) {
+                factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
+            } else {
+                adapter = adapterForMonitor(m_display.hMonitor(), factory);
+            }
             if (adapter) {
                 DXGI_ADAPTER_DESC adapterDesc;
                 adapter->GetDesc(&adapterDesc);
@@ -122,12 +127,12 @@ bool RenderDeviceWebGpu::createDevice() {
     for (size_t i = 0; i < adapters.size(); ++i) {
         wgpu::AdapterInfo info;
         wgpu::Adapter(adapters[i].Get()).GetInfo(&info);
-        LOG_INFO(wgpu, "GPU adapter [{}] {} {} {} {:08X}:{:08X}", i, std::string_view(info.vendor),
-                 std::string_view(info.device), std::string_view(info.description), info.vendorID,
-                 info.deviceID);
+        BRISK_LOG_INFO("GPU adapter [{}] {} {} {} {:08X}:{:08X}", i, std::string_view(info.vendor),
+                       std::string_view(info.device), std::string_view(info.description), info.vendorID,
+                       info.deviceID);
     }
     if (adapters.empty()) {
-        LOG_WARN(wgpu, "No GPU adapters found");
+        BRISK_LOG_WARN("No GPU adapters found");
     }
 #endif
 
@@ -173,7 +178,7 @@ bool RenderDeviceWebGpu::createDevice() {
     deviceCache.nextInChain              = &deviceToggleDesc;
     deviceDesc.SetUncapturedErrorCallback(
         [](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView message) {
-            LOG_ERROR(wgpu, "WGPU Error: {} {}", str(type), std::string_view(message));
+            BRISK_LOG_ERROR("WGPU Error: {} {}", str(type), std::string_view(message));
             BRISK_ASSERT(false);
         });
     m_device = m_adapter.CreateDevice(&deviceDesc);
@@ -182,7 +187,7 @@ bool RenderDeviceWebGpu::createDevice() {
 
     BRISK_ASSERT(m_device.HasFeature(wgpu::FeatureName::DawnNative));
     m_device.SetLoggingCallback([](wgpu::LoggingType type, wgpu::StringView message) {
-        LOG_INFO(wgpu, "WGPU Info: {} {}", str(type), std::string_view(message));
+        BRISK_LOG_INFO("WGPU Info: {} {}", str(type), std::string_view(message));
     });
 
     m_instance = wgpu::Instance::Acquire(m_nativeInstance->Get());
@@ -194,7 +199,7 @@ bool RenderDeviceWebGpu::createDevice() {
     features.resize(featureCount);
     m_device.EnumerateFeatures(features.data());
     for (wgpu::FeatureName f : features) {
-        LOG_INFO(wgpu, "feature {}", str(f));
+        BRISK_LOG_INFO("WebGPU feature {}", str(f));
     }
 #endif
 
@@ -217,7 +222,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
     wgpu::ShaderModuleDescriptor shaderModuleDescriptor{ .nextInChain = &wgslDesc };
     m_shader                                          = m_device.CreateShaderModule(&shaderModuleDescriptor);
 
-    std::array<wgpu::BindGroupLayoutEntry, 8> entries = {
+    std::array<wgpu::BindGroupLayoutEntry, 9> entries = {
         wgpu::BindGroupLayoutEntry{
             // constant
             .binding    = 1,
@@ -246,7 +251,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
             .buffer =
                 wgpu::BufferBindingLayout{
                     .type           = wgpu::BufferBindingType::ReadOnlyStorage,
-                    .minBindingSize = sizeof(Simd<float, 4>),
+                    .minBindingSize = sizeof(Simd<uint32_t, 4>),
                 },
         },
         wgpu::BindGroupLayoutEntry{
@@ -277,7 +282,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
                 },
         },
         wgpu::BindGroupLayoutEntry{
-            // boundTexture_s
+            // sourceTexture_s
             .binding    = 6,
             .visibility = wgpu::ShaderStage::Fragment,
             .sampler =
@@ -286,8 +291,17 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
                 },
         },
         wgpu::BindGroupLayoutEntry{
-            // boundTexture_t
+            // sourceTexture_t
             .binding    = 10,
+            .visibility = wgpu::ShaderStage::Fragment,
+            .texture =
+                wgpu::TextureBindingLayout{
+                    .sampleType = wgpu::TextureSampleType::Float,
+                },
+        },
+        wgpu::BindGroupLayoutEntry{
+            // backTexture_t
+            .binding    = 11,
             .visibility = wgpu::ShaderStage::Fragment,
             .texture =
                 wgpu::TextureBindingLayout{
@@ -315,7 +329,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
     m_limits.maxGradients = 1024;
     m_limits.maxAtlasSize =
         std::min(limits.maxTextureDimension2D * limits.maxTextureDimension2D, 128u * 1048576u);
-    m_limits.maxDataSize = limits.maxBufferSize / sizeof(float);
+    m_limits.maxDataSize = limits.maxStorageBufferBindingSize / sizeof(uint32_t);
 
     m_resources.spriteAtlas.reset(
         new SpriteAtlas(256 * 1024, m_limits.maxAtlasSize, 256 * 1024, &m_resources.mutex));
@@ -381,14 +395,14 @@ void RenderDeviceWebGpu::createSamplers() {
     }
     {
         wgpu::SamplerDescriptor samplerDesc{
-            .label        = "BoundTextureSampler",
+            .label        = "sourceTextureSampler",
             .addressModeU = wgpu::AddressMode::Repeat,
             .addressModeV = wgpu::AddressMode::Repeat,
             .addressModeW = wgpu::AddressMode::Repeat,
             .magFilter    = wgpu::FilterMode::Linear,
             .minFilter    = wgpu::FilterMode::Linear,
         };
-        m_boundSampler = m_device.CreateSampler(&samplerDesc);
+        m_sampler = m_device.CreateSampler(&samplerDesc);
     }
 }
 
@@ -414,6 +428,9 @@ Rc<WindowRenderTarget> RenderDeviceWebGpu::createWindowTarget(const NativeWindow
 
 Rc<ImageRenderTarget> RenderDeviceWebGpu::createImageTarget(Size frameSize, PixelType type,
                                                             DepthStencilType depthStencil, int samples) {
+    if (frameSize.longestSide() >= 16384) {
+        throwException(EImageError("Requested image render target size is too large: {}", frameSize));
+    }
     return rcnew ImageRenderTargetWebGpu(shared_from_this(), frameSize, type, depthStencil, samples);
 }
 
@@ -428,13 +445,14 @@ RenderDeviceWebGpu::~RenderDeviceWebGpu() {
     m_shader                 = nullptr;
     m_atlasSampler           = nullptr;
     m_gradientSampler        = nullptr;
-    m_boundSampler           = nullptr;
+    m_sampler                = nullptr;
     m_perFrameConstantBuffer = nullptr;
     m_bindGroupLayout        = nullptr;
     m_dummyTexture           = nullptr;
     m_dummyTextureView       = nullptr;
 
-    m_instance.ProcessEvents();
+    if (m_instance)
+        m_instance.ProcessEvents();
 
     std::ignore     = m_adapter.MoveToCHandle(); // Avoid reference decrement
     m_nativeAdapter = nullptr;

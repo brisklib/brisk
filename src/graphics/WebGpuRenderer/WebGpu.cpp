@@ -61,28 +61,28 @@ wgpu::Texture textureFromImage(Rc<Image> image) {
 bool webgpuFromContext(RenderContext& context, wgpu::Device& wgDevice, wgpu::TextureView& backBuffer) {
     RenderPipeline* pipeline = dynamicCast<RenderPipeline*>(&context);
     if (!pipeline) {
-        LOG_WARN(webgpu, "RenderContext doesn't implement RenderPipeline");
+        BRISK_LOG_WARN("RenderContext doesn't implement RenderPipeline");
         return false;
     }
     auto renderEncoder = pipeline->encoder();
     if (!renderEncoder) {
-        LOG_WARN(webgpu, "RenderEncoder is null");
+        BRISK_LOG_WARN("RenderEncoder is null");
         return false;
     }
     if (renderEncoder->device()->backend() != RendererBackend::WebGpu) {
-        LOG_WARN(webgpu, "RenderEncoder is not WebGPU encoder");
+        BRISK_LOG_WARN("RenderEncoder is not WebGPU encoder");
         return false;
     }
     RenderEncoderWebGpu* encoder = static_cast<RenderEncoderWebGpu*>(renderEncoder.get());
     wgDevice                     = encoder->m_device->m_device;
     if (!wgDevice) {
-        LOG_WARN(webgpu, "encoder->getDevice() is null");
+        BRISK_LOG_WARN("encoder->getDevice() is null");
         return false;
     }
 
     Rc<RenderTarget> currentTarget = renderEncoder->currentTarget();
     if (!currentTarget) {
-        LOG_WARN(webgpu, "encoder->currentTarget() is null");
+        BRISK_LOG_WARN("encoder->currentTarget() is null");
         return false;
     }
     backBuffer = getBackBuffer(currentTarget.get()).colorView;

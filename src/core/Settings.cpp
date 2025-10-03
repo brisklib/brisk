@@ -59,7 +59,7 @@ void Settings::internalSave() {
         return;
     const fs::path p = path();
     if (auto e = writeJson(p, m_data, 4); !e.has_value()) {
-        LOG_ERROR(core, "Can't write settings, code = {}", e.error());
+        BRISK_LOG_ERROR("Can't write settings, code = {}", e.error());
     }
 }
 
@@ -73,7 +73,7 @@ void Settings::load() {
     if (auto e = readJson(path())) {
         m_data = *e;
     } else {
-        LOG_ERROR(core, "Can't read settings, e = {}", e.error());
+        BRISK_LOG_ERROR("Can't read settings, e = {}", e.error());
     }
     if (m_data.type() != JsonType::Object)
         m_data = JsonObject();

@@ -35,7 +35,8 @@ public:
     Bezier onInterval(float t0, float t1) const;
     float length() const;
     static void coefficients(float t, float& a, float& b, float& c, float& d);
-    static Bezier fromPoints(const PointF& start, const PointF& cp1, const PointF& cp2, const PointF& end);
+    static Bezier fromPoints(PointF start, PointF cp1, PointF cp2, PointF end);
+    static Bezier fromPoints(PointF start, PointF cp, PointF end);
     inline void parameterSplitLeft(float t, Bezier* left);
     inline void split(Bezier* firstHalf, Bezier* secondHalf) const;
 

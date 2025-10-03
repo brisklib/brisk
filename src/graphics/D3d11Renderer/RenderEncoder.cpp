@@ -87,8 +87,7 @@ void RenderEncoderD3d11::begin(Rc<RenderTarget> target, std::optional<ColorF> cl
     context->VSSetConstantBuffers(2, 1, cbuffers);
     context->PSSetConstantBuffers(2, 1, cbuffers);
 
-    ID3D11SamplerState* const samplers[2] = { m_device->m_boundSampler.Get(),
-                                              m_device->m_gradientSampler.Get() };
+    ID3D11SamplerState* const samplers[2] = { m_device->m_sampler.Get(), m_device->m_gradientSampler.Get() };
     context->VSSetSamplers(6, 1, samplers);
     context->PSSetSamplers(6, 2, samplers);
 }
@@ -102,7 +101,7 @@ void RenderEncoderD3d11::end() {
     m_currentTarget = nullptr;
 }
 
-void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<const float> data) {
+void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<const uint32_t> data) {
     ComPtr<ID3D11DeviceContext> context = m_device->m_context;
 
 #if 1
@@ -112,11 +111,10 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
             m_frameTiming[m_frameTimingIndex].begin(m_device->m_device.Get(), m_device->m_context.Get());
         }
         const BackBufferD3d11& backBuf = getBackBuffer(m_currentTarget.get());
-        Size size = static_cast<ImageBackendD3d11*>(commands.front().imageBackend)->m_image->size();
+        Size size = static_cast<ImageBackendD3d11*>(commands.front().sourceImage)->m_image->size();
         context->OMSetRenderTargets(0, nullptr, nullptr);
-        context->CopyResource(
-            backBuf.colorBuffer.Get(),
-            static_cast<ImageBackendD3d11*>(commands.front().imageBackend)->m_texture.Get());
+        context->CopyResource(backBuf.colorBuffer.Get(),
+                              static_cast<ImageBackendD3d11*>(commands.front().sourceImage)->m_texture.Get());
         ID3D11RenderTargetView* rtvList[1] = { backBuf.rtv.Get() };
         context->OMSetRenderTargets(1, rtvList, nullptr);
         if (m_frameTimingIndex < m_frameTiming.size() && m_batchIndex < maxDurations) {
@@ -155,15 +153,19 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
     const size_t maxCommandsInBatch =
         uniformOffsetSupported ? maxD3d11ResourceBytes / sizeof(RenderState) : 1;
 
-    Internal::ImageBackend* savedTexture = nullptr;
+    Internal::ImageBackend* savedSourceTexture = nullptr;
+    Internal::ImageBackend* savedBackTexture   = nullptr;
 
-    constexpr size_t constantsPerCommand = sizeof(RenderState) / 16;
+    constexpr size_t constantsPerCommand       = sizeof(RenderState) / 16;
 
-    Rectangle frameRect                  = Rectangle({}, m_frameSize);
-    Rectangle currentClipRect            = noClipRect;
+    Rectangle frameRect                        = Rectangle({}, m_frameSize);
+    Rectangle currentClipRect                  = noClipRect;
 
     for (size_t i = 0; i < commands.size(); ++i) {
-        auto& cmd                             = commands[i];
+        auto& cmd             = commands[i];
+        Rectangle clampedRect = cmd.scissor.intersection(frameRect);
+        if (clampedRect.empty())
+            continue;
 
         [[maybe_unused]] size_t offsetInBatch = i % maxCommandsInBatch;
         if (i % maxCommandsInBatch == 0) {
@@ -171,17 +173,20 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
                 std::span{ commands.data() + i, std::min(maxCommandsInBatch, commands.size() - i) });
         }
 
-        if (cmd.imageBackend != savedTexture) {
-            savedTexture                               = cmd.imageBackend;
-            ID3D11ShaderResourceView* resourceViews[1] = { nullptr };
-            if (cmd.imageBackend) {
-                resourceViews[0] = static_cast<ImageBackendD3d11*>(cmd.imageBackend)->m_srv.Get();
+        if (cmd.sourceImage != savedSourceTexture || cmd.backImage != savedBackTexture) {
+            savedSourceTexture                         = cmd.sourceImage;
+            savedBackTexture                           = cmd.backImage;
+            ID3D11ShaderResourceView* resourceViews[2] = { nullptr };
+            if (cmd.sourceImage) {
+                resourceViews[0] = static_cast<ImageBackendD3d11*>(cmd.sourceImage)->m_srv.Get();
             }
-            context->VSSetShaderResources(10, 1, resourceViews);
-            context->PSSetShaderResources(10, 1, resourceViews);
+            if (cmd.backImage) {
+                resourceViews[1] = static_cast<ImageBackendD3d11*>(cmd.backImage)->m_srv.Get();
+            }
+            context->VSSetShaderResources(10, 2, resourceViews);
+            context->PSSetShaderResources(10, 2, resourceViews);
         }
 
-        Rectangle clampedRect = cmd.shaderClip.intersection(frameRect);
         if (i == 0 || clampedRect != currentClipRect) {
             CD3D11_RECT d3d11Rect(clampedRect.x1, clampedRect.y1, clampedRect.x2, clampedRect.y2);
             context->RSSetScissorRects(1, &d3d11Rect);
@@ -257,20 +262,20 @@ void RenderEncoderD3d11::updateConstantBuffer(std::span<const RenderState> data)
 }
 
 // Update the data buffer and possibly recreate it.
-void RenderEncoderD3d11::updateDataBuffer(std::span<const float> data) {
-    static const float dummy[4] = { 0.f };
+void RenderEncoderD3d11::updateDataBuffer(std::span<const uint32_t> data) {
+    static const uint32_t dummy[4] = { 0u, 0u, 0u, 0u };
     if (data.empty()) {
         // Ensure that buffer is not empty
         data = dummy;
     }
 
-    if (!m_dataBuffer || data.size_bytes() != m_dataBufferSize) {
+    if (!m_dataBuffer || data.size_bytes() > m_dataBufferSize) {
         m_dataSRV.Reset();
         D3D11_BUFFER_DESC bufDesc{}; // zero-initialize
         bufDesc.ByteWidth      = data.size_bytes();
-        bufDesc.Usage          = D3D11_USAGE_DYNAMIC;
+        bufDesc.Usage          = D3D11_USAGE_DEFAULT;
         bufDesc.BindFlags      = D3D11_BIND_SHADER_RESOURCE;
-        bufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        bufDesc.CPUAccessFlags = 0;
         bufDesc.MiscFlags      = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 
         D3D11_SUBRESOURCE_DATA subData{}; // zero-initialize
@@ -280,6 +285,7 @@ void RenderEncoderD3d11::updateDataBuffer(std::span<const float> data) {
             m_device->m_device->CreateBuffer(&bufDesc, &subData, m_dataBuffer.ReleaseAndGetAddressOf());
         CHECK_HRESULT(hr, return);
 
+        m_dataBufferSize = data.size_bytes();
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{}; // zero-initialize
         srvDesc.Format               = DXGI_FORMAT_R32_TYPELESS;
         srvDesc.ViewDimension        = D3D11_SRV_DIMENSION_BUFFEREX;
@@ -289,15 +295,15 @@ void RenderEncoderD3d11::updateDataBuffer(std::span<const float> data) {
         hr = m_device->m_device->CreateShaderResourceView(m_dataBuffer.Get(), &srvDesc,
                                                           m_dataSRV.ReleaseAndGetAddressOf());
         CHECK_HRESULT(hr, return);
-        m_dataBufferSize = data.size_bytes();
     } else if (data.size_bytes() > 0) {
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        HRESULT hr = m_device->m_context->Map(m_dataBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        CHECK_HRESULT(hr, return);
-        SCOPE_EXIT {
-            m_device->m_context->Unmap(m_dataBuffer.Get(), 0);
-        };
-        memcpy(mapped.pData, data.data(), data.size_bytes());
+        D3D11_BOX destRegion;
+        destRegion.left   = 0;
+        destRegion.right  = data.size_bytes();
+        destRegion.top    = 0;
+        destRegion.bottom = 1;
+        destRegion.front  = 0;
+        destRegion.back   = 1;
+        m_device->m_context->UpdateSubresource(m_dataBuffer.Get(), 0, &destRegion, data.data(), 0, 0);
     }
 }
 
@@ -329,7 +335,7 @@ void RenderEncoderD3d11::updateAtlasTexture() {
 void RenderEncoderD3d11::updateGradientTexture() {
     GradientAtlas* atlas = m_device->m_resources.gradientAtlas.get();
 
-    Size newSize(gradientResolution, atlas->size());
+    Size newSize(sizeof(GradientData) / sizeof(Simd<float, 4>), atlas->size());
     if (!m_gradientTexture || (m_gradient_generation <<= atlas->changed)) {
         m_gradientTexture.Reset();
         D3D11_TEXTURE2D_DESC tex = texDesc(dxFormat(PixelType::F32, PixelFormat::RGBA), newSize, 1);

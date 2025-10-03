@@ -124,9 +124,9 @@ static int mainFun(Args... args) {
         ret = briskMain();
 #ifdef BRISK_EXCEPTIONS
     } catch (std::exception& exc) {
-        LOG_DEBUG(application, "Exception occurred: {}", exc.what());
+        BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
     } catch (...) {
-        LOG_DEBUG(application, "Unknown exception occurred");
+        BRISK_LOG_DEBUG("Unknown exception occurred");
     }
 #endif
     shutdown();

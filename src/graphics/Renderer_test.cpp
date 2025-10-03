@@ -25,6 +25,10 @@
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 #include "VisualTests.hpp"
+#include "brisk/core/Log.hpp"
+#include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Geometry.hpp>
+#include <brisk/graphics/RenderState.hpp>
 #include <brisk/core/Time.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/graphics/Image.hpp>
@@ -90,7 +94,7 @@ TEST_CASE("Renderer - fonts") {
         renderTest(
             "rr-fonts{}"_fmt(subpixel ? "-subpixel" : ""), { 1200, 600 },
             [&](RenderContext& context) {
-                Canvas canvas(context, CanvasFlags::Sdf);
+                Canvas canvas(context);
                 canvas.setSubpixelTextRendering(subpixel);
 
                 Rectangle rect;
@@ -110,13 +114,19 @@ TEST_CASE("Renderer - fonts") {
                     canvas.setFillColor(Palette::black);
                     canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
                 }
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             ColorF{ 1.f, 1.f });
     }
 }
 
 TEST_CASE("Html text") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
+    REQUIRE(ttf2.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
+
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
         Canvas canvas(context);
         canvas.setFillColor(Palette::white);
@@ -136,21 +146,6 @@ TEST_CASE("Renderer", "[gpu]") {
     RectangleF rect             = frameBounds.withPadding(10);
     float radius                = frameBounds.shortestSide() * 0.2f;
     float strokeWidth           = frameBounds.shortestSide() * 0.05f;
-
-    SECTION("Canvas-SDF") {
-        renderTest(
-            "rr-ll", frameBounds.size(),
-            [&](RenderContext& context) {
-                Canvas canvas(context, CanvasFlags::Sdf);
-                canvas.setFillPaint(LinearGradient(frameBounds.at(0.1f, 0.1f), frameBounds.at(0.9f, 0.9f),
-                                                   Palette::Standard::green, Palette::Standard::red));
-                canvas.setStrokeColor(Palette::black);
-                canvas.setStrokeWidth(strokeWidth);
-                canvas.drawRect(rect, radius);
-                CHECK(canvas.rasterizedPaths() == 0);
-            },
-            ColorF{ 0.5f, 0.5f, 0.5f, 1.f });
-    }
 
     SECTION("Canvas") {
         renderTest(
@@ -185,7 +180,6 @@ TEST_CASE("Atlas overflow", "[gpu]") {
             path.addRect(RectangleF(2 * i, 0.f, 2 * i + 1, size.height));
             canvas.fillPath(path);
         }
-        CHECK(context.numBatches() > 1);
     });
 }
 
@@ -237,7 +231,6 @@ TEST_CASE("Blending", "[gpu]") {
         bands(9, 50, Palette::cyan, Palette::red);
         gradient(10, Palette::cyan, Palette::transparent, Palette::red);
         gradient(11, Palette::cyan, Palette::cyan, Palette::red);
-        CHECK(canvas.rasterizedPaths() == 0);
     });
 }
 
@@ -302,10 +295,6 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
     });
     renderTest("rotate-rect", Size{ 300, 300 }, [](RenderContext& context) {
         Canvas canvas(context);
-        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgba.png");
-        REQUIRE(bytes.has_value());
-        auto image = pngDecode(*bytes, ImageFormat::RGBA, true);
-        REQUIRE(image.has_value());
         canvas.setTransform(Matrix{}.rotate(15, 150.f, 150.f));
         canvas.setFillColor(Palette::Standard::green);
         canvas.fillRect({ 100, 100, 200, 200 });
@@ -341,18 +330,75 @@ TEST_CASE("Emoji") {
         ColorF(0.5f));
 }
 
-TEST_CASE("SetClipRect") {
-    renderTest("SetClipRect0", Size{ 256, 256 }, [&](RenderContext& context) {
+TEST_CASE("GlobalScissor") {
+    renderTest("setGlobalScissor0", Size{ 256, 256 }, [&](RenderContext& context) {
         Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
         canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
         canvas.fillRect(rect);
     });
-    renderTest("SetClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
+    renderTest("setGlobalScissor1", Size{ 256, 256 }, [&](RenderContext& context) {
         Canvas canvas(context);
         Rectangle rect({}, Size{ 256, 256 });
-        context.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        context.setGlobalScissor(Rectangle{ 10, 20, 100, 200 });
         canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+    renderTest("setGlobalScissor2", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.transform(Matrix().rotate(45, 128, 128));
+        context.setGlobalScissor(Rectangle{ 10, 20, 100, 200 });
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+}
+
+TEST_CASE("ClipRect") {
+    renderTest("setClipRect1", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+    renderTest("setClipRect2", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        canvas.transform(Matrix().rotate(45, 128, 128));
+        canvas.setClipRect(Rectangle{ 10, 20, 100, 200 });
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+}
+
+TEST_CASE("ClipPath") {
+    renderTest("setClipPath1", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Rectangle rect({}, Size{ 256, 256 });
+        Path clipPath;
+        clipPath.addPolygon(8, 100.f, 0.f, 0.f, 128.f, 128.f);
+        canvas.setClipPath(clipPath);
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        canvas.fillRect(rect);
+    });
+    renderTest("setClipPath2", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Path clipPath;
+        clipPath.addPolygon(8, 100.f, 0.f, 0.f, 128.f, 128.f);
+        canvas.setClipPath(clipPath);
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        Rectangle rect({ 64 - 24, 64 - 24 }, Size{ 128 + 48, 128 + 48 });
+        canvas.fillRect(rect);
+    });
+    renderTest("setClipPath3", Size{ 256, 256 }, [&](RenderContext& context) {
+        Canvas canvas(context);
+        Path clipPath;
+        canvas.transform(Matrix().rotate(30, 128, 128));
+        clipPath.addPolygon(8, 100.f, 0.f, 0.f, 128.f, 128.f);
+        canvas.setClipPath(clipPath);
+        canvas.setFillPaint(LinearGradient({ 0, 0 }, { 256, 256 }, Palette::cyan, Palette::magenta));
+        Rectangle rect({ 64 - 24, 64 - 24 }, Size{ 128 + 48, 128 + 48 });
         canvas.fillRect(rect);
     });
 }
@@ -385,7 +431,7 @@ TEST_CASE("Shadow") {
             Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
-                context.setClipRect(box);
+                context.setGlobalScissor(box);
                 float shadowSize = 2 << i;
                 canvas.setFillColor(Palette::black);
                 canvas.blurRect(box.withPadding(64.f), shadowSize);
@@ -399,7 +445,7 @@ TEST_CASE("Shadow") {
             Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
-                context.setClipRect(box);
+                context.setGlobalScissor(box);
                 float boxRadius = 2 << i;
                 canvas.setFillColor(Palette::black);
                 canvas.blurRect(box.withPadding(64.f), 16.f, boxRadius);
@@ -412,7 +458,7 @@ TEST_CASE("Shadow") {
             Canvas canvas(context);
             for (int i = 0; i < 6; ++i) {
                 RectangleF box{ 256.f * i, 0, 256.f * i + 256, 256 };
-                context.setClipRect(box);
+                context.setGlobalScissor(box);
                 float shadowSize = 1 << i;
                 canvas.setFillColor(Palette::black);
                 canvas.blurRect(box.withPadding(64.f), shadowSize, { 0.f, 32.f, 8.f, 0.f });
@@ -508,113 +554,103 @@ static void drawPath(Canvas& canvas, TestMode mode, const Path& p) {
 }
 
 TEST_CASE("Canvas optimization") {
-    constexpr CanvasFlags flags = CanvasFlags::Sdf;
     for (TestMode mode : { Fill, Stroke, Draw }) {
         renderTest(
-            "canvas-sdf1-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-1-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillColor(Palette::Standard::cyan);
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
         renderTest(
-            "canvas-sdf2-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-2-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillColor(Palette::Standard::cyan);
                 canvas.setTransform(Matrix::translation(+4.5f, -3.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
         renderTest(
-            "canvas-sdf3-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-3-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillPaint(
                     LinearGradient({ 20, 20 }, { 80, 80 }, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix().scale(0.75f, 0.75f, 50.f, 50.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
         renderTest(
-            "canvas-sdf4-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-4-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillPaint(
                     RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix().rotate(60.f, 50.f, 50.f));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
         renderTest(
-            "canvas-sdf5-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-5-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setStrokeWidth(0.15f);
                 canvas.setFillPaint(
                     RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix::scaling(100.f));
                 drawRect(canvas, mode, { 0.2f, 0.2f, 0.8f, 0.8f });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
         renderTest(
-            "canvas-sdf6-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-6-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillPaint(
                     RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 canvas.setTransform(Matrix::scaling(10.f));
                 drawRect(canvas, mode, { 2, 2, 8, 8 });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
         renderTest(
-            "canvas-sdf7-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-7-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Miter);
                 canvas.setStrokeWidth(15.f);
                 canvas.setFillPaint(
                     RadialGradient({ 20, 20 }, 84.85, Palette::Standard::cyan, Palette::Standard::pink));
                 drawRect(canvas, mode, { 20, 20, 80, 80 });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
         renderTest(
-            "canvas-sdf8-{}"_fmt(mode), Size{ 100, 100 },
+            "canvas-8-{}"_fmt(mode), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setJoinStyle(JoinStyle::Round);
                 canvas.setFillColor(Palette::Standard::orange);
                 Path path;
                 path.addRoundRect({ 20, 20, 80, 80 }, 10.f);
                 drawPath(canvas, mode, path);
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
     }
     for (CapStyle style : { CapStyle::Flat, CapStyle::Round, CapStyle::Square }) {
         renderTest(
-            "canvas-sdf8-{}"_fmt(style), Size{ 100, 100 },
+            "canvas-9-{}"_fmt(style), Size{ 100, 100 },
             [&](RenderContext& context) {
-                Canvas canvas(context, flags);
+                Canvas canvas(context);
                 canvas.setCapStyle(style);
                 canvas.setStrokeWidth(15.f);
                 canvas.setStrokeColor(Palette::Standard::amber);
                 canvas.strokeLine({ 20, 20 }, { 80, 80 });
-                CHECK(canvas.rasterizedPaths() == 0);
             },
             defaultBackColor, 0.075f);
     }
@@ -633,7 +669,7 @@ TEST_CASE("Canvas scissors") {
 
 TEST_CASE("Canvas transform") {
     renderTest("canvas-transform", Size{ 128, 64 }, [](RenderContext& context) {
-        Canvas canvas(context, CanvasFlags::Sdf);
+        Canvas canvas(context);
         canvas.setFillColor(Palette::Standard::green);
         canvas.setStrokeColor(Palette::Standard::pink);
         canvas.setStrokeWidth(4.f);
@@ -645,7 +681,7 @@ TEST_CASE("Canvas transform") {
         canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
     });
     renderTest("canvas-transform2", Size{ 10, 30 }, [](RenderContext& context) {
-        Canvas canvas(context, CanvasFlags::Sdf);
+        Canvas canvas(context);
         canvas.setStrokeColor(Palette::black);
         canvas.setStrokeWidth(1.f);
         canvas.strokeLine({ 1.f, 1.f }, { 9.f, 9.f });
@@ -657,32 +693,36 @@ TEST_CASE("Canvas transform") {
 }
 
 TEST_CASE("Semitransparent fill and stroke") {
-    for (CanvasFlags flags : { CanvasFlags::None, CanvasFlags::Sdf }) {
-        renderTest("canvas-semitransparent-fs", Size{ 64, 64 }, [flags](RenderContext& context) {
-            Canvas canvas(context, flags);
-            canvas.setFillColor(Palette::white.multiplyAlpha(0.5f));
-            canvas.setStrokeColor(Palette::black.multiplyAlpha(0.5f));
-            canvas.setStrokeWidth(8);
-            canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
-        });
-        renderTest("canvas-semitransparent2-s", Size{ 64, 64 }, [flags](RenderContext& context) {
-            Canvas canvas(context, flags);
-            canvas.setFillColor(Palette::white);
-            canvas.setStrokeColor(Palette::black.multiplyAlpha(0.5f));
-            canvas.setStrokeWidth(8);
-            canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
-        });
-        renderTest("canvas-semitransparent-f", Size{ 64, 64 }, [flags](RenderContext& context) {
-            Canvas canvas(context, flags);
-            canvas.setFillColor(Palette::white.multiplyAlpha(0.5f));
-            canvas.setStrokeColor(Palette::black);
-            canvas.setStrokeWidth(8);
-            canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
-        });
-    }
+    renderTest("canvas-semitransparent-fs", Size{ 64, 64 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white.multiplyAlpha(0.5f));
+        canvas.setStrokeColor(Palette::black.multiplyAlpha(0.5f));
+        canvas.setStrokeWidth(8);
+        canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+    });
+    renderTest("canvas-semitransparent2-s", Size{ 64, 64 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white);
+        canvas.setStrokeColor(Palette::black.multiplyAlpha(0.5f));
+        canvas.setStrokeWidth(8);
+        canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+    });
+    renderTest("canvas-semitransparent-f", Size{ 64, 64 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white.multiplyAlpha(0.5f));
+        canvas.setStrokeColor(Palette::black);
+        canvas.setStrokeWidth(8);
+        canvas.drawRect(Rectangle{ 10, 10, 54, 54 });
+    });
 }
 
 TEST_CASE("Canvas blur") {
+#if defined BRISK_WINDOWS
+    if (std::getenv("BRISK_SKIP_BLUR_TESTS")) {
+        BRISK_LOG_WARN("Skip Canvas blur test due to Microsoft WARP bug.");
+        return;
+    }
+#endif
     renderTest<true>("canvas-blur0", Size{ 320, 213 }, [](RenderContext& context) {
         Canvas canvas(context);
         auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
@@ -721,6 +761,40 @@ TEST_CASE("Canvas blur") {
         auto image = pngDecode(*bytes, ImageFormat::RGBA);
         REQUIRE(image.has_value());
         canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+    renderTest<true>("canvas-blur4", Size{ 420, 413 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.drawImage({ 100, 200, 420, 413 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+    renderTest<true>("canvas-blur5", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.setScissor({ 40, 60, 240, 160 });
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+    renderTest<true>("canvas-blur6", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.setTransform(Matrix().rotate(15, 160, 106.5f));
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix{}, SamplerMode::Clamp, 7.f);
+    });
+    renderTest<true>("canvas-blur7", Size{ 320, 213 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/16616460-rgb.png");
+        REQUIRE(bytes.has_value());
+        auto image = pngDecode(*bytes, ImageFormat::RGBA);
+        REQUIRE(image.has_value());
+        canvas.drawImage({ 0, 0, 320, 213 }, *image, Matrix::translation(55, -15), SamplerMode::Wrap, 7.f);
     });
 }
 
@@ -948,32 +1022,321 @@ TEST_CASE("WebGPU") {
 }
 #endif
 
-TEST_CASE("SDF-Border") {
-    for (int i = 128; i <= 4096; i *= 2) {
-        renderTest<true>("sdf-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
+TEST_CASE("Canvas-Performance") {
+    for (int i = 128; i <= 2048; i *= 2) {
+        renderTest<true>("canvas-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
             Canvas canvas(context);
             canvas.setFillColor(Palette::transparent);
             canvas.setStrokePaint(LinearGradient({ 0, 0 }, PointF(i, i), Palette::blue, Palette::green));
-            canvas.drawRect({ 0.5f, 0.5f, i - 0.5f, i - 0.5f });
-            REQUIRE(canvas.rasterizedPaths() == 0);
+            for (int r = 0; r < 100; ++r)
+                canvas.drawRect({ 0.5f, 0.5f, i - 0.5f, i - 0.5f });
         });
     }
-    for (int i = 128; i <= 4096; i *= 2) {
-        renderTest<true>("raster-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
-            auto dur1 = Internal::performancePathScanline;
-            auto dur2 = Internal::performancePathRasterization;
-            Canvas canvas(context, CanvasFlags::None);
-            canvas.setFillColor(Palette::transparent);
-            canvas.setStrokePaint(LinearGradient({ 0, 0 }, PointF(i, i), Palette::blue, Palette::green));
-            canvas.drawRect({ 0.5f, 0.5f, i - 0.5f, i - 0.5f });
-            fmt::println("{} CPU rasterization times: {} {}\n", "raster-border-" + std::to_string(i),
-                         std::chrono::duration_cast<std::chrono::microseconds>(
-                             Internal::performancePathScanline - dur1),
-                         std::chrono::duration_cast<std::chrono::microseconds>(
-                             Internal::performancePathRasterization - dur2));
-            REQUIRE(canvas.rasterizedPaths() > 0);
+    for (int i = 128; i <= 2048; i *= 2) {
+        renderTest<true>("canvas-filled-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
+            Canvas canvas(context);
+            canvas.setFillPaint(LinearGradient({ 0, 0 }, PointF(i, i), Palette::blue, Palette::green));
+            canvas.setStrokeColor(Palette::transparent);
+            for (int r = 0; r < 100; ++r)
+                canvas.drawRect({ 0, 0, float(i), float(i) });
         });
     }
+}
+
+TEST_CASE("Layers") {
+    bool linearColorSaved = linearColor;
+    linearColor           = true;
+    static Size canvasSize{ 640, 320 };
+    renderTest<true>("layers", canvasSize, [](RenderContext& context) {
+        Rectangle bounds{ {}, canvasSize };
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect(bounds);
+        canvas.setFillColor(Palette::blue);
+        canvas.fillRect({ 50, 20, 500, 300 });
+        canvas.setFont(Font{ "Lato", 48.f });
+        canvas.beginLayer(canvasSize);
+        canvas.setFillColor(Palette::red);
+        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
+        canvas.setFillColor(Palette::yellow);
+        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.5f, 0.5f }).withPadding(50));
+        canvas.setFillColor(Palette::green);
+        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 1.0f, 0.5f }).withPadding(50));
+        auto layer = canvas.finishLayer();
+        CHECK(canvas.getFont() == Font{ "Lato", 48.f });
+        canvas.drawImage(bounds, layer, {}, SamplerMode::Clamp, 14.f);
+        canvas.setFillColor(Palette::magenta);
+        canvas.fillRect({ 300, 140, 640, 180 });
+    });
+    linearColor = linearColorSaved;
+}
+
+TEST_CASE("Backlayer") {
+#if defined BRISK_WINDOWS
+    if (std::getenv("BRISK_SKIP_BLUR_TESTS")) {
+        BRISK_LOG_WARN("Skip Backlayer test due to Microsoft WARP bug.");
+        return;
+    }
+#endif
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    bool linearColorSaved = linearColor;
+    linearColor           = true;
+    static Size canvasSize{ 640, 320 };
+    renderTest<true>(
+        "backlayer", canvasSize,
+        [](RenderContext& context) {
+            Rectangle bounds{ {}, canvasSize };
+            Canvas canvas(context);
+            canvas.setFillColor(Palette::white);
+            canvas.fillRect(bounds);
+            canvas.setFillColor(Palette::yellow);
+            canvas.fillRect({ 50, 20, 500, 300 });
+            canvas.setFont(Font{ "Lato", 48.f });
+            canvas.setFillColor(Palette::black);
+            canvas.fillText("Backlayer test\nLorem ipsum dolor sit amet,\nconsectetur adipiscing elit",
+                            bounds, PointF(0.5f, 0.5f));
+            auto backlayer = canvas.contentsAsImage();
+            REQUIRE(backlayer.get() != nullptr);
+
+            canvas.drawImage(bounds, backlayer, {}, SamplerMode::Clamp, 4.f);
+            canvas.setFillColor(Palette::magenta.multiplyAlpha(0.5f));
+            canvas.fillRect({ 300, 140, 640, 180 });
+            canvas.setFillColor(Palette::black);
+            canvas.fillText("Test\nTest\nTest", bounds.withPadding(40), PointF(0.f, 0.f));
+        },
+        defaultBackColor, 0.055f);
+    linearColor = linearColorSaved;
+}
+
+TEST_CASE("Circles") {
+    Size size{ 2000, 2000 };
+    renderTest("circles", size, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::Standard::green);
+        Path path;
+        PerformanceDuration rasterTime = Internal::performancePathRasterization;
+        for (int r = 0; r < 120; r++)
+            path.addCircle(1000, 1000, 900 - r * 7, r & 1 ? Path::CW : Path::CCW);
+        canvas.setFillColor(0xbecede'ff_rgba);
+        canvas.fillPath(path);
+        rasterTime = Internal::performancePathRasterization - rasterTime;
+        fmt::println("Path rasterization time: {} us",
+                     std::chrono::duration_cast<std::chrono::microseconds>(rasterTime).count());
+    });
+}
+
+constexpr std::array blendModes = {
+    BlendingMode::Normal,    BlendingMode::Multiply,   BlendingMode::Screen,     BlendingMode::Overlay,
+    BlendingMode::Darken,    BlendingMode::Lighten,    BlendingMode::ColorDodge, BlendingMode::ColorBurn,
+    BlendingMode::HardLight, BlendingMode::SoftLight,  BlendingMode::Difference, BlendingMode::Exclusion,
+    BlendingMode::Hue,       BlendingMode::Saturation, BlendingMode::Color,      BlendingMode::Luminosity,
+};
+constexpr std::array compModes = {
+    CompositionMode::Clear,   CompositionMode::Copy,        CompositionMode::Dest,
+    CompositionMode::SrcOver, CompositionMode::DestOver,    CompositionMode::SrcIn,
+    CompositionMode::DestIn,  CompositionMode::SrcOut,      CompositionMode::DestOut,
+    CompositionMode::SrcAtop, CompositionMode::DestAtop,    CompositionMode::Xor,
+    CompositionMode::Plus,    CompositionMode::PlusLighter,
+};
+
+TEST_CASE("Composition") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    Size cellSize{ 100, 100 };
+    Size imageSize(25 + cellSize.width * blendModes.size(), 25 + cellSize.height * compModes.size());
+
+    renderTest<true>("composition", imageSize, [&](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setSubpixelTextRendering(false);
+
+        for (size_t y = 0; y < compModes.size(); ++y) {
+            for (size_t x = 0; x < blendModes.size(); ++x) {
+                Rectangle cell{ 25 + int(x * cellSize.width), 25 + int(y * cellSize.height),
+                                25 + int((x + 1) * cellSize.width), 25 + int((y + 1) * cellSize.height) };
+                canvas.setFillColor(Palette::Standard::green);
+                canvas.fillRect(cell.withPadding(5, 5, 35, 35));
+            }
+        }
+        auto backdrop = canvas.contentsAsImage();
+        REQUIRE(backdrop.get() != nullptr);
+
+        for (size_t y = 0; y < compModes.size(); ++y) {
+            for (size_t x = 0; x < blendModes.size(); ++x) {
+                Rectangle cell{ 25 + int(x * cellSize.width), 25 + int(y * cellSize.height),
+                                25 + int((x + 1) * cellSize.width), 25 + int((y + 1) * cellSize.height) };
+
+                Composition composition;
+                composition.compose  = compModes[y];
+                composition.blend    = blendModes[x];
+                composition.backdrop = backdrop;
+                canvas.setComposition(composition);
+                canvas.setFillColor(ColorW(1, 1, 1, 1));
+                canvas.fillRect(cell);
+                canvas.setFillColor(Palette::Standard::amber);
+                canvas.fillEllipse(cell.withPadding(35, 35, 5, 5));
+            }
+        }
+        canvas.resetComposition();
+
+        canvas.setFont(Font{ "Lato", 14.f });
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect(Rectangle{ 0, 0, imageSize.width, 25 });
+        canvas.fillRect(Rectangle{ 0, 0, 25, imageSize.height });
+        canvas.setFillColor(Palette::black);
+        for (size_t y = 0; y < compModes.size(); ++y) {
+            std::string text = fmt::to_string((int)compModes[y]);
+            canvas.fillText(text, PointF(2, 25 + (y + 0.5f) * cellSize.height), { 0.f, 0.5f });
+        }
+        for (size_t x = 0; x < blendModes.size(); ++x) {
+            std::string text = fmt::to_string((int)blendModes[x]);
+            canvas.fillText(text, PointF(25 + (x + 0.5f) * cellSize.width, 2), { 0.5f, 0.f });
+        }
+    });
+}
+
+template <bool complex = true>
+static void testInvariants(RenderContext& context, function_ref<void(Canvas&)> fn) {
+    Canvas canvas(context);
+    {
+        // Identity
+        auto&& st     = canvas.saveState();
+        st->transform = Matrix{};
+        fn(canvas);
+    }
+    {
+        // Translate to 128, 0
+        auto&& st     = canvas.saveState();
+        st->transform = Matrix{}.translate(128, 0);
+        fn(canvas);
+    }
+    if constexpr (complex) {
+        {
+            // Scale by 0.5 and translate to 0, 128
+            auto&& st     = canvas.saveState();
+            st->transform = Matrix{}.scale(0.5f).translate(0, 128);
+            fn(canvas);
+        }
+        {
+            // Rotate by 45 degrees and translate to 128, 128
+            auto&& st     = canvas.saveState();
+            st->transform = Matrix{}.rotate(45.f, { 50.f, 50.f }).translate(128, 128);
+            fn(canvas);
+        }
+    }
+}
+
+TEST_CASE("Matrix invariants") {
+    renderTest("matrix-invariants-image", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   Canvas canvas(context);
+                   auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
+                   REQUIRE(bytes.has_value());
+                   auto image = pngDecode(*bytes, ImageFormat::RGBA);
+                   REQUIRE(image.has_value());
+
+                   testInvariants(context, [&](Canvas& canvas) {
+                       canvas.drawImage({ 0, 0, 100, 100 }, *image, Matrix{}, SamplerMode::Clamp, 0.f);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+    renderTest("matrix-invariants-textured-rect", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   auto bytes = readBytes(fs::path(PROJECT_SOURCE_DIR) / "src/testdata/suprematism.png");
+                   REQUIRE(bytes.has_value());
+                   auto image = pngDecode(*bytes, ImageFormat::RGBA);
+                   REQUIRE(image.has_value());
+
+                   testInvariants(context, [&](Canvas& canvas) {
+                       Texture texture{
+                           *image, Matrix::mapRect(Rectangle{ {}, (*image)->size() }, { 0, 0, 100.f, 100.f }),
+                           SamplerMode::Clamp
+                       };
+                       Path path;
+                       path.addRoundRect({ 0, 0, 100, 100 }, 20.f);
+                       canvas.setFillPaint(texture);
+                       canvas.fillPath(path);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+    renderTest("matrix-invariants-rect", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   testInvariants(context, [&](Canvas& canvas) {
+                       Path path;
+                       path.addRoundRect({ 0, 0, 100, 100 }, 20.f);
+                       canvas.setFillPaint(LinearGradient{
+                           { 0, 0 }, { 100, 100 }, Palette::Standard::red, Palette::Standard::indigo });
+                       canvas.fillPath(path);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+
+    renderTest("matrix-invariants-shadow", Size{ 256, 256 },
+               [](RenderContext& context) {
+                   testInvariants(context, [&](Canvas& canvas) {
+                       canvas.setFillColor(Palette::black);
+                       canvas.blurRect({ 0, 0, 100, 100 }, 10.f, 20.f);
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    renderTest("matrix-invariants-text", Size{ 256, 128 },
+               [](RenderContext& context) {
+                   testInvariants<false>(context, [&](Canvas& canvas) {
+                       canvas.setFont(Font{ "Lato", 24.f });
+                       canvas.setFillColor(Palette::black);
+                       canvas.setStrokeColor(Palette::white);
+                       canvas.setStrokeWidth(2.f);
+                       canvas.strokeRect({ 0, 0, 100, 100 });
+                       canvas.fillText("Brisk", { 0, 0, 100, 100 }, { 0.5f, 0.5f });
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+
+    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
+    REQUIRE(ttf2.has_value());
+    fonts->addFont("Noto Emoji", FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::EnableColor);
+
+    renderTest("matrix-invariants-emoji", Size{ 256, 128 },
+               [](RenderContext& context) {
+                   testInvariants<false>(context, [&](Canvas& canvas) {
+                       canvas.setFont(Font{ "Noto Emoji", 48.f });
+                       canvas.setFillColor(Palette::black);
+                       canvas.setStrokeColor(Palette::white);
+                       canvas.setStrokeWidth(2.f);
+                       canvas.strokeRect({ 0, 0, 100, 100 });
+                       canvas.fillText("✅", { 0, 0, 100, 100 }, { 0.5f, 0.5f });
+                   });
+               },
+               { 0.5f, 0.5f, 0.5f, 1.0f });
+}
+
+TEST_CASE("Text subpixel alignment") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    renderTest("text-subpixel-alignment", Size{ 256, 440 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect({ 0, 0, 256, 440 });
+        canvas.setFont(Font{ "Lato", 20.f });
+        canvas.setFillColor(Palette::black);
+        for (int i = 0; i <= 20; ++i) {
+            canvas.setSubpixelTextRendering(true);
+            canvas.fillText(".+|abc", { i * 0.05f, i * 20.f }, { 0.f, 0.f });
+            canvas.setSubpixelTextRendering(false);
+            canvas.fillText(".+|abc", { i * 0.05f + 128.f, i * 20.f }, { 0.f, 0.f });
+        }
+    });
 }
 
 } // namespace Brisk

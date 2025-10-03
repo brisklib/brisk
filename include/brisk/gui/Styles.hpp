@@ -98,69 +98,86 @@ struct StyleProperty {
     }
 
     template <typename Tag>
+    static void applyImpl(RuleOp op, const StyleValuePtr& rule, Widget* widget, WidgetState state) {
+        using Type              = typename Tag::Type;
+        WidgetState widgetState = widget->state();
+        if (widgetState && WidgetState::ForcePressed) {
+            widgetState |= WidgetState::Pressed;
+        }
+        if ((widgetState & state) == state) {
+            if constexpr (PropertyTag<Tag>) {
+                if (op == RuleOp::Inherit) {
+                    if constexpr (Tag::template accepts<Inherit>()) {
+                        applier(widget, ArgVal<Tag, Inherit>{ inherit });
+                        return;
+                    } else {
+                        BRISK_LOG_ERROR("Property '{}' does not accept 'inherit' value", Tag::name());
+                        return;
+                    }
+                }
+                if (op == RuleOp::Initial) {
+                    if constexpr (Tag::template accepts<Initial>()) {
+                        applier(widget, ArgVal<Tag, Initial>{ initial });
+                        return;
+                    } else {
+                        BRISK_LOG_ERROR("Property '{}' does not accept 'initial' value", Tag::name());
+                        return;
+                    }
+                }
+            }
+            Type value;
+            get(value, op, rule, widget);
+            applier(widget, ArgVal<Tag>{ value });
+        }
+    }
+
+    template <typename Tag>
+    static std::string toStringImpl(RuleOp op, const StyleValuePtr& rule) {
+        using Type = typename Tag::Type;
+        if (op == RuleOp::Inherit) {
+            return "(inherit)";
+        } else if (op == RuleOp::Initial) {
+            return "(initial)";
+        } else if (op == RuleOp::Function) {
+            return "(dynamic)";
+        }
+        if constexpr (fmt::is_formattable<Type>::value) {
+            Type value;
+            get(value, op, rule, nullptr);
+            return fmt::to_string(value);
+        } else {
+            return "(unknown)";
+        }
+    }
+
+    template <typename Tag>
+    static bool equalsImpl(RuleOp op1, const StyleValuePtr& rule1, RuleOp op2, const StyleValuePtr& rule2) {
+        using Type = typename Tag::Type;
+        if (op1 == RuleOp::Inherit && op2 == RuleOp::Inherit)
+            return true;
+        if (op1 == RuleOp::Initial && op2 == RuleOp::Initial)
+            return true;
+        if (op1 == RuleOp::Inherit || op2 == RuleOp::Inherit)
+            return false;
+        if (op1 == RuleOp::Initial || op2 == RuleOp::Initial)
+            return false;
+        if (op1 == RuleOp::Function || op2 == RuleOp::Function)
+            return false;
+        Type value1;
+        Type value2;
+        get(value1, op1, rule1, nullptr);
+        get(value2, op2, rule2, nullptr);
+        return value1 == value2;
+    }
+
+    template <typename Tag>
     StyleProperty(std::type_identity<Tag>)
         requires PropertyTag<Tag> || StyleVarTag<Tag> || SynthPropertyTag<Tag>
     {
-        using Type = typename Tag::Type;
-        name       = Tag::name();
-        apply      = [](RuleOp op, const StyleValuePtr& rule, Widget* widget, WidgetState state) {
-            WidgetState widgetState = widget->state();
-            if (widgetState && WidgetState::ForcePressed) {
-                widgetState |= WidgetState::Pressed;
-            }
-            if ((widgetState & state) == state) {
-                if constexpr (PropertyTag<Tag>) {
-                    if constexpr (Tag::template accepts<Inherit>()) {
-                        if (op == RuleOp::Inherit) {
-                            applier(widget, ArgVal<Tag, Inherit>{ inherit });
-                            return;
-                        }
-                    }
-                    if constexpr (Tag::template accepts<Initial>()) {
-                        if (op == RuleOp::Initial) {
-                            applier(widget, ArgVal<Tag, Initial>{ initial });
-                            return;
-                        }
-                    }
-                }
-                Type value;
-                get(value, op, rule, widget);
-                applier(widget, ArgVal<Tag>{ value });
-            }
-        };
-        toString = [](RuleOp op, const StyleValuePtr& rule) -> std::string {
-            if (op == RuleOp::Inherit) {
-                return "(inherit)";
-            } else if (op == RuleOp::Initial) {
-                return "(initial)";
-            } else if (op == RuleOp::Function) {
-                return "(dynamic)";
-            }
-            if constexpr (fmt::is_formattable<Type>::value) {
-                Type value;
-                get(value, op, rule, nullptr);
-                return fmt::to_string(value);
-            } else {
-                return "(unknown)";
-            }
-        };
-        equals = [](RuleOp op1, const StyleValuePtr& rule1, RuleOp op2, const StyleValuePtr& rule2) -> bool {
-            if (op1 == RuleOp::Inherit && op2 == RuleOp::Inherit)
-                return true;
-            if (op1 == RuleOp::Initial && op2 == RuleOp::Initial)
-                return true;
-            if (op1 == RuleOp::Inherit || op2 == RuleOp::Inherit)
-                return false;
-            if (op1 == RuleOp::Initial || op2 == RuleOp::Initial)
-                return false;
-            if (op1 == RuleOp::Function || op2 == RuleOp::Function)
-                return false;
-            Type value1;
-            Type value2;
-            get(value1, op1, rule1, nullptr);
-            get(value2, op2, rule2, nullptr);
-            return value1 == value2;
-        };
+        name     = Tag::name();
+        apply    = &StyleProperty::applyImpl<Tag>;
+        toString = &StyleProperty::toStringImpl<Tag>;
+        equals   = &StyleProperty::equalsImpl<Tag>;
     }
 
     using fn_apply = void (*)(RuleOp, const StyleValuePtr&, Widget*, WidgetState);
@@ -282,12 +299,12 @@ enum class MatchFlags {
 template <>
 constexpr inline bool isBitFlags<MatchFlags> = true;
 
-template <Argument arg>
-constexpr inline Internal::Fn1Type<typename decltype(arg)::ValueType> styleVar = [](Widget* w) ->
-    typename decltype(arg)::ValueType {
-        return w->getStyleVar<typename decltype(arg)::ValueType>(decltype(arg)::id,
-                                                                 typename decltype(arg)::ValueType{});
+template <StyleVarTag Tag>
+constexpr inline auto styleVar(const Argument<Tag>& arg) {
+    return [](Widget* w) -> typename Tag::Type {
+        return w->getStyleVar<typename Tag::Type>(Tag::id, typename Tag::Type{});
     };
+}
 
 template <typename Fn>
 inline auto adjustColor(Fn&& fn, float lightnessOffset,

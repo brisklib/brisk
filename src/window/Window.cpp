@@ -247,9 +247,9 @@ void Window::recomputeScales() {
     mustBeMainThread();
     const float pixelRatio =
         m_contentScale.load(std::memory_order_relaxed) * m_canvasScale.load(std::memory_order_relaxed);
-    LOG_INFO(window, "Pixel Scales content ({}) * canvas ({}) = {}",
-             m_contentScale.load(std::memory_order_relaxed), m_canvasScale.load(std::memory_order_relaxed),
-             pixelRatio);
+    BRISK_LOG_INFO("Pixel Scales content ({}) * canvas ({}) = {}",
+                   m_contentScale.load(std::memory_order_relaxed),
+                   m_canvasScale.load(std::memory_order_relaxed), pixelRatio);
     uiScheduler->dispatch([this, pixelRatio] {
         if (pixelRatio != m_pixelRatio) {
             m_pixelRatio        = pixelRatio;
@@ -278,7 +278,7 @@ void Window::attachedToApplication() {
 Window::Window() {
     m_frameTimePredictor.reset(new Internal::FrameTimePredictor{});
 
-    LOG_INFO(window, "Done creating Window");
+    BRISK_LOG_INFO("Done creating Window");
 }
 
 Rc<RenderDevice> Window::renderDevice() {
@@ -383,9 +383,8 @@ void Window::paintDebug(RenderContext& context) {
     if (Internal::debugShowRenderTimeline) {
         Rectangle rect{ 0, m_framebufferSize.height - idp(debugPanelHeight), m_framebufferSize.width,
                         m_framebufferSize.height };
-        context.setClipRect(rect);
+        context.setGlobalScissor(rect);
         paintStat(canvas, rect);
-        BRISK_ASSERT(canvas.rasterizedPaths() == 0);
     }
 }
 

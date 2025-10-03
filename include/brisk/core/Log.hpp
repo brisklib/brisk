@@ -37,7 +37,7 @@ spdlog::logger& applog();
 } // namespace Internal
 
 /**
- * @def LOG_LOG(LEVEL, ...)
+ * @def BRISK_LOG_LOG(LEVEL, ...)
  * @brief Logs a message with the specified log level.
  *
  * This macro is used to log a message with a specified log level. It is a wrapper around
@@ -47,13 +47,13 @@ spdlog::logger& applog();
  * @param LEVEL The log level (e.g., `trace`, `debug`, `info`, etc.).
  * @param ... The format string followed by its arguments for logging.
  */
-#define LOG_LOG(LEVEL, ...)                                                                                  \
+#define BRISK_LOG_LOG(LEVEL, ...)                                                                            \
     do {                                                                                                     \
         ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                      \
     } while (0)
 
 /**
- * @def LOG_LOG_CHECK(LEVEL, COND, ...)
+ * @def BRISK_LOG_LOG_CHECK(LEVEL, COND, ...)
  * @brief Logs a message with the specified log level if the condition is false.
  *
  * This macro checks a condition, and if the condition evaluates to false, it logs the specified
@@ -63,7 +63,7 @@ spdlog::logger& applog();
  * @param COND The condition to check. The log message is printed if this evaluates to `false`.
  * @param ... The format string followed by its arguments for logging if the condition fails.
  */
-#define LOG_LOG_CHECK(LEVEL, COND, ...)                                                                      \
+#define BRISK_LOG_LOG_CHECK(LEVEL, COND, ...)                                                                \
     do {                                                                                                     \
         const bool cond = (COND);                                                                            \
         if (!cond) {                                                                                         \
@@ -72,7 +72,7 @@ spdlog::logger& applog();
     } while (0)
 
 /**
- * @def LOG_NOP(...)
+ * @def BRISK_LOG_NOP(...)
  * @brief A no-operation macro for disabling logging.
  *
  * This macro does nothing and is used to replace logging statements in builds where
@@ -80,179 +80,167 @@ spdlog::logger& applog();
  *
  * @param ... Ignored parameters.
  */
-#define LOG_NOP(...)                                                                                         \
+#define BRISK_LOG_NOP(...)                                                                                   \
     do {                                                                                                     \
     } while (0)
 
 #if !defined NDEBUG || defined BRISK_TRACING
 /**
- * @def LOG_TRACE(CHANNEL, fmtstr, ...)
- * @brief Logs a trace-level message with the specified channel tag.
+ * @def BRISK_LOG_TRACE(fmtstr, ...)
+ * @brief Logs a trace-level message.
  *
  * Logs a trace-level message if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
  * Trace messages are typically used for very fine-grained logging.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_TRACE(CHANNEL, fmtstr, ...) LOG_LOG(trace, "[" #CHANNEL "] " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_TRACE(fmtstr, ...) BRISK_LOG_LOG(trace, fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_DEBUG(CHANNEL, fmtstr, ...)
- * @brief Logs a debug-level message with the specified channel tag.
+ * @def BRISK_LOG_DEBUG(fmtstr, ...)
+ * @brief Logs a debug-level message.
  *
  * Logs a debug-level message if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
  * Debug messages are typically used for development and debugging.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_DEBUG(CHANNEL, fmtstr, ...) LOG_LOG(debug, "[" #CHANNEL "] " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_DEBUG(fmtstr, ...) BRISK_LOG_LOG(debug, fmtstr, ##__VA_ARGS__)
 #else
-#define LOG_TRACE(CHANNEL, fmtstr, ...) LOG_NOP()
-#define LOG_DEBUG(CHANNEL, fmtstr, ...) LOG_NOP()
+#define BRISK_LOG_TRACE(fmtstr, ...) BRISK_LOG_NOP()
+#define BRISK_LOG_DEBUG(fmtstr, ...) BRISK_LOG_NOP()
 #endif
 
 /**
- * @def LOG_INFO(CHANNEL, fmtstr, ...)
- * @brief Logs an info-level message with the specified channel tag.
+ * @def BRISK_LOG_INFO(fmtstr, ...)
+ * @brief Logs an info-level message.
  *
  * Logs an info-level message, providing general runtime information.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_INFO(CHANNEL, fmtstr, ...) LOG_LOG(info, "[" #CHANNEL "] " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_INFO(fmtstr, ...) BRISK_LOG_LOG(info, fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_WARN(CHANNEL, fmtstr, ...)
- * @brief Logs a warning-level message with the specified channel tag.
+ * @def BRISK_LOG_WARN(fmtstr, ...)
+ * @brief Logs a warning-level message.
  *
  * Logs a warning-level message, indicating a potential issue that should be reviewed.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_WARN(CHANNEL, fmtstr, ...) LOG_LOG(warn, "[" #CHANNEL "] " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_WARN(fmtstr, ...) BRISK_LOG_LOG(warn, fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_ERROR(CHANNEL, fmtstr, ...)
- * @brief Logs an error-level message with the specified channel tag.
+ * @def BRISK_LOG_ERROR(fmtstr, ...)
+ * @brief Logs an error-level message.
  *
  * Logs an error-level message, indicating an issue that caused or might cause failure.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_ERROR(CHANNEL, fmtstr, ...) LOG_LOG(error, "[" #CHANNEL "] " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_ERROR(fmtstr, ...) BRISK_LOG_LOG(error, fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_CRITICAL(CHANNEL, fmtstr, ...)
- * @brief Logs a critical-level message with the specified channel tag.
+ * @def BRISK_LOG_CRITICAL(fmtstr, ...)
+ * @brief Logs a critical-level message.
  *
  * Logs a critical-level message, indicating a severe issue that requires immediate attention.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_CRITICAL(CHANNEL, fmtstr, ...) LOG_LOG(critical, "[" #CHANNEL "] " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_CRITICAL(fmtstr, ...) BRISK_LOG_LOG(critical, fmtstr, ##__VA_ARGS__)
 
 #if !defined NDEBUG || defined BRISK_TRACING
 /**
- * @def LOG_TRACE_CHECK(CHANNEL, COND, fmtstr, ...)
+ * @def BRISK_LOG_TRACE_CHECK(COND, fmtstr, ...)
  * @brief Logs a trace-level message if the condition fails.
  *
  * Logs a trace-level message if the provided condition evaluates to `false`. Only active
  * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_TRACE_CHECK(CHANNEL, COND, fmtstr, ...)                                                          \
-    LOG_LOG_CHECK(trace, COND, "[" #CHANNEL "] FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_TRACE_CHECK(COND, fmtstr, ...)                                                             \
+    BRISK_LOG_LOG_CHECK(trace, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_DEBUG_CHECK(CHANNEL, COND, fmtstr, ...)
+ * @def BRISK_LOG_DEBUG_CHECK(COND, fmtstr, ...)
  * @brief Logs a debug-level message if the condition fails.
  *
  * Logs a debug-level message if the provided condition evaluates to `false`. Only active
  * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_DEBUG_CHECK(CHANNEL, COND, fmtstr, ...)                                                          \
-    LOG_LOG_CHECK(debug, COND, "[" #CHANNEL "] FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_DEBUG_CHECK(COND, fmtstr, ...)                                                             \
+    BRISK_LOG_LOG_CHECK(debug, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
 #else
-#define LOG_TRACE_CHECK(CHANNEL, COND, fmtstr, ...) LOG_NOP()
-#define LOG_DEBUG_CHECK(CHANNEL, COND, fmtstr, ...) LOG_NOP()
+#define BRISK_LOG_TRACE_CHECK(COND, fmtstr, ...) BRISK_LOG_NOP()
+#define BRISK_LOG_DEBUG_CHECK(COND, fmtstr, ...) BRISK_LOG_NOP()
 #endif
 
 /**
- * @def LOG_INFO_CHECK(CHANNEL, COND, fmtstr, ...)
+ * @def BRISK_LOG_INFO_CHECK(COND, fmtstr, ...)
  * @brief Logs an info-level message if the condition fails.
  *
  * Logs an info-level message if the provided condition evaluates to `false`.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_INFO_CHECK(CHANNEL, COND, fmtstr, ...)                                                           \
-    LOG_LOG_CHECK(info, COND, "[" #CHANNEL "] FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_INFO_CHECK(COND, fmtstr, ...)                                                              \
+    BRISK_LOG_LOG_CHECK(info, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_WARN_CHECK(CHANNEL, COND, fmtstr, ...)
+ * @def BRISK_LOG_WARN_CHECK(COND, fmtstr, ...)
  * @brief Logs a warning-level message if the condition fails.
  *
  * Logs a warning-level message if the provided condition evaluates to `false`.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_WARN_CHECK(CHANNEL, COND, fmtstr, ...)                                                           \
-    LOG_LOG_CHECK(warn, COND, "[" #CHANNEL "] FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_WARN_CHECK(COND, fmtstr, ...)                                                              \
+    BRISK_LOG_LOG_CHECK(warn, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_ERROR_CHECK(CHANNEL, COND, fmtstr, ...)
+ * @def BRISK_LOG_ERROR_CHECK(COND, fmtstr, ...)
  * @brief Logs an error-level message if the condition fails.
  *
  * Logs an error-level message if the provided condition evaluates to `false`.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_ERROR_CHECK(CHANNEL, COND, fmtstr, ...)                                                          \
-    LOG_LOG_CHECK(error, COND, "[" #CHANNEL "] FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_ERROR_CHECK(COND, fmtstr, ...)                                                             \
+    BRISK_LOG_LOG_CHECK(error, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
 
 /**
- * @def LOG_CRITICAL_CHECK(CHANNEL, COND, fmtstr, ...)
+ * @def BRISK_LOG_CRITICAL_CHECK(COND, fmtstr, ...)
  * @brief Logs a critical-level message if the condition fails.
  *
  * Logs a critical-level message if the provided condition evaluates to `false`.
  *
- * @param CHANNEL The logging channel or context (e.g., module name).
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define LOG_CRITICAL_CHECK(CHANNEL, COND, fmtstr, ...)                                                       \
-    LOG_LOG_CHECK(critical, COND, "[" #CHANNEL "] FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_CRITICAL_CHECK(COND, fmtstr, ...)                                                          \
+    BRISK_LOG_LOG_CHECK(critical, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
 
 /**
  * @brief Flushes the logger.

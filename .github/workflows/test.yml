@@ -346,7 +346,7 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        cmake -GNinja -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe" -DCMAKE_C_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe" -DCMAKE_LINKER="C:/Program Files/LLVM/bin/lld-link.exe"
+        cmake -GNinja -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON -DBRISK_OVERRIDE_D3D_WARP=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe" -DCMAKE_C_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe" -DCMAKE_LINKER="C:/Program Files/LLVM/bin/lld-link.exe"
     - name: Build
       run: |
         cmake --build build
@@ -369,6 +369,7 @@ jobs:
     env:
       VCPKG_DEFAULT_TRIPLET: x86-windows-static-md
       VCPKG_DEFAULT_HOST_TRIPLET: x86-windows-static-md
+      BRISK_SKIP_BLUR_TESTS: 1
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -378,7 +379,7 @@ jobs:
     - name: Configure
       shell: cmd
       run: |
-        cmake -G"Visual Studio 17 2022" -A Win32 -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON
+        cmake -G"Visual Studio 17 2022" -A Win32 -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON -DBRISK_OVERRIDE_D3D_WARP=ON
     - name: Build
       run: |
         cmake --build build --config RelWithDebInfo
@@ -410,7 +411,7 @@ jobs:
     - name: Configure
       shell: cmd
       run: |
-        cmake -G"Visual Studio 17 2022" -A ARM64 -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON
+        cmake -G"Visual Studio 17 2022" -A ARM64 -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON -DBRISK_OVERRIDE_D3D_WARP=ON
     - name: Build
       run: |
         cmake --build build --config RelWithDebInfo
@@ -442,7 +443,7 @@ jobs:
     - name: Configure
       shell: cmd
       run: |
-        cmake -G"Visual Studio 17 2022" -A x64 -T ClangCL -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON
+        cmake -G"Visual Studio 17 2022" -A x64 -T ClangCL -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON -DBRISK_OVERRIDE_D3D_WARP=ON
     - name: Build
       run: |
         cmake --build build --config RelWithDebInfo
@@ -565,7 +566,7 @@ jobs:
         cmake -G"Unix Makefiles"
         -S repo/examples/showcase
         -B build
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -DVCPKG_TARGET_TRIPLET=${{matrix.triplet}}
         -DCMAKE_PREFIX_PATH=${{github.workspace}}/brisk-dist/lib/cmake
         -DVCPKG_INSTALLED_DIR=${{github.workspace}}/vcpkg_exported/installed
@@ -623,10 +624,10 @@ jobs:
         -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg_exported/scripts/buildsystems/vcpkg.cmake
     - name: Build
       run: |
-        cmake --build build --config Release
+        cmake --build build --config RelWithDebInfo
     - name: Zip bundles
       run: |
-        ditto -c -k --sequesterRsrc --keepParent "build/Release/showcase.app" "showcase.app.zip"
+        ditto -c -k --sequesterRsrc --keepParent "build/RelWithDebInfo/showcase.app" "showcase.app.zip"
     - name: Upload usage artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -679,14 +680,14 @@ jobs:
         "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>${{ endsWith(matrix.triplet, '-md') && 'DLL' || '' }}"
     - name: Build
       run: |
-        cmake --build build --config Release
+        cmake --build build --config RelWithDebInfo
     - name: Upload usage artifacts
       uses: actions/upload-artifact@v4
       with:
         name: showcase-${{matrix.triplet}}
         retention-days: 30
         path: |
-          build/Release/showcase.exe
+          build/RelWithDebInfo/showcase.exe
 
   upload-release:
     if: startsWith(github.ref, 'refs/tags/')

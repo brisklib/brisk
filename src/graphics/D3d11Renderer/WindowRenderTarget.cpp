@@ -33,9 +33,12 @@ WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, c
 
     NativeWindowHandle handle = window->getHandle();
     Size framebufferSize      = window->framebufferSize();
+    if (framebufferSize.longestSide() >= 16384) {
+        throwException(EImageError("Requested window framebuffer size is too large: {}", framebufferSize));
+    }
 
     // D3D11 doesn't use sRGB format for buffer itself, so we should specify sRGB for view
-    DXGI_FORMAT colorFormat   = dxFormatNoSrgb(m_type, PixelFormat::BGRA);
+    DXGI_FORMAT colorFormat = dxFormatNoSrgb(m_type, PixelFormat::BGRA);
 
     HRESULT hr;
     if (m_device->m_factory2) {
@@ -99,6 +102,9 @@ void WindowRenderTargetD3d11::present() {
 }
 
 void WindowRenderTargetD3d11::createBackBuffer(Size size) {
+    if (size.longestSide() >= 16384) {
+        throwException(EImageError("Requested window framebuffer size is too large: {}", size));
+    }
     HRESULT hr;
 
     hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(m_backBuffer.colorBuffer.ReleaseAndGetAddressOf()));

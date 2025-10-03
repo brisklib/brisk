@@ -91,7 +91,7 @@ RenderPipeline::RenderPipeline(Rc<RenderEncoder> encoder, Rc<RenderTarget> targe
     : m_encoder(std::move(encoder)), m_resources(m_encoder->device()->resources()) {
     m_limits = m_encoder->device()->limits();
     m_encoder->begin(std::move(target), clear);
-    m_clipRect = clipRect;
+    m_globalScissor = clipRect;
 }
 
 bool RenderPipeline::flush() {
@@ -102,7 +102,7 @@ bool RenderPipeline::flush() {
         return false;
     }
     m_numBatches++;
-    if (!m_clipRect.empty()) {
+    if (!m_globalScissor.empty()) {
         m_encoder->batch(m_commands, m_data);
     }
 
@@ -113,13 +113,23 @@ bool RenderPipeline::flush() {
     return true;
 }
 
-void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
-    if (cmd.imageHandle) {
-        m_encoder->device()->createImageBackend(cmd.imageHandle);
-        cmd.imageBackend = Internal::getBackend(cmd.imageHandle);
-        BRISK_ASSERT(cmd.imageBackend);
-        cmd.textureId = 1; // Tell shader that texture is set (-1 if is not)
-        m_textures.push_back(cmd.imageHandle);
+void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data) {
+    cmd.scissor = cmd.scissor.intersection(m_globalScissor);
+    if (cmd.scissor.empty())
+        return;
+
+    if (cmd.sourceImageHandle) {
+        m_encoder->device()->createImageBackend(cmd.sourceImageHandle);
+        cmd.sourceImage = Internal::getBackend(cmd.sourceImageHandle);
+        BRISK_ASSERT(cmd.sourceImage);
+        cmd.hasTexture = true; // Tell shader that texture is set (-1 if is not)
+        m_textures.push_back(cmd.sourceImageHandle);
+    }
+    if (cmd.backImageHandle) {
+        m_encoder->device()->createImageBackend(cmd.backImageHandle);
+        cmd.backImage = Internal::getBackend(cmd.backImageHandle);
+        BRISK_ASSERT(cmd.backImage);
+        m_textures.push_back(cmd.backImageHandle);
     }
 
     if (m_data.size() + data.size() > m_limits.maxDataSize) {
@@ -131,13 +141,13 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
     }
 
     if (cmd.gradientHandle) {
-        cmd.multigradient = m_resources.gradientAtlas->addEntry(cmd.gradientHandle, m_resources.firstCommand,
+        cmd.gradientIndex = m_resources.gradientAtlas->addEntry(cmd.gradientHandle, m_resources.firstCommand,
                                                                 m_resources.currentCommand);
-        if (cmd.multigradient == gradientNull) {
+        if (cmd.gradientIndex == gradientNull) {
             flush();
-            cmd.multigradient = m_resources.gradientAtlas->addEntry(
+            cmd.gradientIndex = m_resources.gradientAtlas->addEntry(
                 cmd.gradientHandle, m_resources.firstCommand, m_resources.currentCommand);
-            BRISK_ASSERT_MSG("Resource is too large for atlas", cmd.multigradient != gradientNull);
+            BRISK_ASSERT_MSG("Resource is too large for atlas", cmd.gradientIndex != gradientNull);
         }
     }
     SmallVector<SpriteOffset, 1> spriteIndices(cmd.sprites.size());
@@ -160,16 +170,13 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const float> data) {
     cmd.dataOffset = offs / 4;
     cmd.dataSize   = data.size();
 
-    cmd.shaderClip = cmd.shaderClip.intersection(m_clipRect);
-
     m_commands.push_back(static_cast<const RenderState&>(cmd));
     m_data.insert(m_data.end(), data.begin(), data.end());
     // Add padding needed to align m_data to a multiple of 4.
     m_data.resize(alignUp(m_data.size(), 4), 0);
 
-    if (cmd.shader == ShaderType::Text || cmd.shader == ShaderType::Mask ||
-        cmd.shader == ShaderType::ColorMask) {
-        float* cmdData        = m_data.data() + offs;
+    if (cmd.shader == ShaderType::Text || cmd.shader == ShaderType::ColorMask) {
+        uint32_t* cmdData     = m_data.data() + offs;
         GeometryGlyph* glyphs = reinterpret_cast<GeometryGlyph*>(cmdData);
         for (size_t i = 0; i < data.size_bytes() / sizeof(GeometryGlyph); ++i) {
             int32_t idx = static_cast<int>(glyphs[i].sprite);
@@ -195,26 +202,18 @@ int RenderPipeline::numBatches() const {
     return m_numBatches;
 }
 
-void RenderPipeline::setClipRect(Rectangle clipRect) {
-    m_clipRect = clipRect;
+void RenderPipeline::setGlobalScissor(Rectangle clipRect) {
+    m_globalScissor = clipRect;
 }
 
 void RenderPipeline::blit(Rc<Image> image) {
-#if 1
     RenderStateEx style(ShaderType::Blit, nullptr);
-    style.imageHandle = std::move(image);
+    style.sourceImageHandle = std::move(image);
     command(std::move(style), {});
-#else
-    RenderStateEx style(ShaderType::Rectangles, nullptr);
-    RectangleF rect{ {}, image->size() };
-    style.textureMatrix = Matrix{};
-    style.imageHandle   = std::move(image);
-    command(std::move(style), one(GeometryRectangle{ rect, CornersF(0.f) }));
-#endif
 }
 
-Rectangle RenderPipeline::clipRect() const {
-    return m_clipRect;
+Rectangle RenderPipeline::globalScissor() const {
+    return m_globalScissor;
 }
 
 void RenderResources::reset() {

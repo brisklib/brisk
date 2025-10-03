@@ -1161,7 +1161,7 @@ void Widget::paintScrollBar(Canvas& canvas, Orientation orientation,
 }
 
 void Widget::paintScrollBars(Canvas& canvas) const {
-    canvas.setClipRect(m_clipRect);
+    canvas.setScissor(m_clipRect);
     for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
         if (hasScrollBar(orientation)) {
             paintScrollBar(canvas, orientation, scrollBarGeometry(orientation));
@@ -1177,7 +1177,7 @@ void Widget::doPaint(Canvas& canvas) const {
         return;
     }
 
-    canvas.setClipRect(m_clipRect);
+    canvas.setScissor(m_clipRect);
     bool needsPaint = !m_tree || m_tree->isDirty(adjustedRect()) ||
                       (!m_hintRect.empty() && m_tree->isDirty(adjustedHintRect()));
     if (needsPaint) {
@@ -1187,7 +1187,7 @@ void Widget::doPaint(Canvas& canvas) const {
             paint(canvas);
     }
     paintChildren(canvas);
-    canvas.setClipRect(m_clipRect);
+    canvas.setScissor(m_clipRect);
     if (needsPaint) {
         postPaint(canvas);
         paintScrollBars(canvas);
@@ -1360,6 +1360,7 @@ void Widget::onEvent(Event& event) {
             Point clickOffset = Point(event.as<EventMouseButtonReleased>()->point) - m_rect.p1;
             p->translate.set(PointL{ clickOffset.x * 1_dpx, clickOffset.y * 1_dpx });
             p->visible = true;
+            event.stopPropagation();
         }
     }
 
@@ -1448,15 +1449,11 @@ void Widget::processTreeVisibility(bool isVisible) {
 
 void Widget::updateGeometry(HitTestMap::State& state) {
     auto self                     = shared_from_this();
-    Rectangle mouse_rect          = m_rect;
 
     HitTestMap::State saved_state = state;
     if (m_zorder != ZOrder::Normal)
         state.zindex--;
-    if (m_zorder == ZOrder::Normal)
-        mouse_rect = m_rect.intersection(saved_state.scissors);
-    state.scissors = mouse_rect;
-    state.visible  = state.visible && m_visible && !m_hidden;
+    state.visible = state.visible && m_visible && !m_hidden;
     if (m_mouseInteraction == MouseInteraction::Enable)
         state.mouseTransparent = false;
     else if (m_mouseInteraction == MouseInteraction::Disable)
@@ -1479,7 +1476,8 @@ void Widget::updateGeometry(HitTestMap::State& state) {
             ++inputQueue->hitTest.tabGroupId;
         }
         if (state.visible && !state.mouseTransparent)
-            inputQueue->hitTest.add(self, mouse_rect, m_mouseAnywhere, state.zindex);
+            inputQueue->hitTest.add(self, InputShape{ m_rect, getBorderRadiusResolved(), m_clipRect },
+                                    m_mouseAnywhere, state.zindex);
     }
 
     for (const Ptr& w : *this) {
@@ -1489,6 +1487,17 @@ void Widget::updateGeometry(HitTestMap::State& state) {
     m_relayoutTime = frameStartTime;
 
     if (auto inputQueue = this->inputQueue()) {
+        if (state.visible && !state.mouseTransparent) {
+            for (Orientation orientation : { Orientation::Horizontal, Orientation::Vertical }) {
+                if (scrollSize(orientation) <= 0)
+                    continue;
+                ScrollBarGeometry geometry = scrollBarGeometry(orientation);
+                if (!geometry.track.empty()) {
+                    inputQueue->hitTest.add(self, geometry.track, false, state.zindex);
+                }
+            }
+        }
+
         if (m_focusCapture && state.visible) {
             inputQueue->leaveFocusCapture();
         }
@@ -2320,7 +2329,7 @@ void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect) {
     ColorW m_borderColor     = widget.borderColor.current().multiplyAlpha(widget.opacity.current());
 
     if (widget.shadowSize.current() > 0) {
-        auto&& clipRect = canvas.saveClipRect();
+        auto&& clipRect = canvas.saveScissor();
         if (widget.parent()) {
             if (widget.zorder != ZOrder::Normal || widget.clip == WidgetClip::None)
                 *clipRect = noClipRect;
@@ -2871,7 +2880,7 @@ Widget::properties() noexcept {
         Internal::GuiProp{ &Widget::m_stateTriggersRestyle, false, AffectStyle, "stateTriggersRestyle" },
         /* 52 */ Internal::GuiProp{ &Widget::m_id, {}, AffectStyle, "id" },
         /* 53 */ Internal::GuiProp{ &Widget::m_role, {}, AffectStyle, "role" },
-        /* 54 */ Internal::PropFieldNotify{ &Widget::m_classes, &Widget::requestRestyle },
+        /* 54 */ Internal::PropFieldNotify{ &Widget::m_classes, &Widget::requestRestyle, "classes" },
         /* 55 */
         Internal::GuiProp{ &Widget::m_mouseInteraction, MouseInteraction::Inherit, None, "mouseInteraction" },
         /* 56 */ Internal::GuiProp{ &Widget::m_mousePassThrough, false, None, "mousePassThrough" },
@@ -2887,8 +2896,8 @@ Widget::properties() noexcept {
         Internal::GuiProp{ &Widget::m_squircleCorners, false, AffectPaint, "squircleCorners" },
         /* 66 */ Internal::GuiProp{ &Widget::m_delegate, nullptr, None, "delegate" },
         /* 67 */ Internal::GuiProp{ &Widget::m_hint, {}, AffectLayout | AffectPaint | AffectHint, "hint" },
-        /* 68 */ Internal::PropFieldNotify{ &Widget::m_stylesheet, &Widget::requestRestyle },
-        /* 69 */ Internal::PropFieldNotify{ &Widget::m_painter, &Widget::invalidate },
+        /* 68 */ Internal::PropFieldNotify{ &Widget::m_stylesheet, &Widget::requestRestyle, "stylesheet" },
+        /* 69 */ Internal::PropFieldNotify{ &Widget::m_painter, &Widget::invalidate, "painter" },
         /* 70 */ Internal::GuiProp{ &Widget::m_isHintExclusive, false, None, "isHintExclusive" },
         /* 71 */
         Internal::GuiProp{

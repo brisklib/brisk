@@ -22,16 +22,18 @@
 #include "vector/Line.hpp"
 #include "vector/Bezier.hpp"
 #include "vector/Dasher.hpp"
-#include "vector/Rle.hpp"
-#include "vector/Raster.hpp"
+#include "vector/freetype/v_ft_stroker.h"
+
+#include "Mask.hpp"
 
 #include <brisk/graphics/Path.hpp>
 #include <brisk/graphics/Image.hpp>
 
 namespace Brisk {
 
-PerformanceDuration Internal::performancePathScanline{ 0 };
 PerformanceDuration Internal::performancePathRasterization{ 0 };
+PerformanceDuration Internal::performancePathDashing{ 0 };
+PerformanceDuration Internal::performancePathStroking{ 0 };
 
 void Path::checkNewSegment() {
     if (mNewSegment) {
@@ -70,11 +72,11 @@ void Path::cubicTo(PointF c1, PointF c2, PointF e) {
 }
 
 void Path::quadraticTo(PointF c, PointF e) {
-    PointF s                  = m_points.empty() ? PointF{ 0.f, 0.f } : m_points.back();
-    constexpr float twoThirds = 2.f / 3.f;
-    PointF c1                 = s + twoThirds * (c - s);
-    PointF c2                 = s + twoThirds * (c - e);
-    return cubicTo(c1, c2, e);
+    checkNewSegment();
+    m_elements.emplace_back(Element::QuadraticTo);
+    m_points.emplace_back(c.x, c.y);
+    m_points.emplace_back(e.x, e.y);
+    mLengthDirty = true;
 }
 
 static float tForArcAngle(float angle);
@@ -327,7 +329,7 @@ void Path::close() {
     if (empty())
         return;
 
-    const PointF& lastPt = m_points.back();
+    PointF lastPt = m_points.back();
     if (!fuzzyCompare(mStartPoint, lastPt)) {
         lineTo(mStartPoint.x, mStartPoint.y);
     }
@@ -603,9 +605,8 @@ void Path::addPolygon(float points, float radius, float roundness, float startAn
 
     roundness /= 100.0f;
 
-    currentAngle = (currentAngle - 90.0f) * K_PI / 180.0f;
-    x            = radius * cosf(currentAngle);
-    y            = radius * sinf(currentAngle);
+    x = radius * cosf(currentAngle);
+    y = radius * sinf(currentAngle);
     currentAngle += anglePerPoint * angleDir;
 
     if (vIsZero(roundness)) {
@@ -679,6 +680,7 @@ void Path::transform(const Matrix& m) {
     if (m.isIdentity())
         return;
     m.transform(std::span<PointF>{ m_points.data(), m_points.size() });
+    m.transform(one(mStartPoint));
 }
 
 Path Path::transformed(const Matrix& m) const& {
@@ -710,6 +712,11 @@ float Path::length() const {
             i++;
             break;
         }
+        case Element::QuadraticTo: {
+            mLength += Bezier::fromPoints(m_points[i - 1], m_points[i], m_points[i + 1]).length();
+            i += 2;
+            break;
+        }
         case Element::CubicTo: {
             mLength +=
                 Bezier::fromPoints(m_points[i - 1], m_points[i], m_points[i + 1], m_points[i + 2]).length();
@@ -735,59 +742,89 @@ RectangleF Path::boundingBoxApprox() const {
     return result;
 }
 
-static bool comparePoints(const std::vector<PointF>& a, const std::vector<PointF>& b, SizeF tolerance) {
-    if (a.size() != b.size())
-        return false;
-
-    for (size_t i = 0; i < a.size(); ++i) {
-        if (std::abs(a[i].x - b[i].x) > tolerance.x)
-            return false;
-        if (std::abs(a[i].y - b[i].y) > tolerance.y)
-            return false;
-    }
-    return true;
+Path Path::dashed(std::span<const float> pattern, float offset) const {
+    Dasher dasher(pattern.data(), pattern.size());
+    Path result;
+    result = dasher.dashed(*this);
+    return result;
 }
 
-std::optional<std::tuple<RectangleF, float, bool>> Path::asRoundRectangle() const {
-    if (auto rect = asRectangle()) {
-        return std::make_tuple(*rect, 0.f, false);
-    }
-    if (auto rect = asCircle()) {
-        return std::make_tuple(*rect, rect->size().longestSide() * 0.5f, false);
-    }
-    if (m_segments != 1 || m_points.size() != 17 || m_elements.size() != 10 ||
-        !fuzzyCompare(m_points[16], m_points[0]))
-        return std::nullopt;
-    if (m_elements[0] != Element::MoveTo     //
-        || m_elements[1] != Element::LineTo  //
-        || m_elements[2] != Element::CubicTo //
-        || m_elements[3] != Element::LineTo  //
-        || m_elements[4] != Element::CubicTo //
-        || m_elements[5] != Element::LineTo  //
-        || m_elements[6] != Element::CubicTo //
-        || m_elements[7] != Element::LineTo  //
-        || m_elements[8] != Element::CubicTo //
-        || m_elements[9] != Element::Close)
-        return std::nullopt;
-    RectangleF rect{
-        PointF(m_points[8].x, m_points[12].y),
-        PointF(m_points[0].x, m_points[4].y),
-    };
-    if (rect.width() < 0)
-        return std::nullopt;
-    float rx   = m_points[5].x - m_points[8].x;
-    float ry   = m_points[4].y - m_points[1].y;
-    float side = std::max(rect.width(), rect.height());
-    if (!vCompare(rx / side, ry / side))
-        return std::nullopt;
-    float kappa   = (m_points[14].x - m_points[13].x) / (m_points[15].x - m_points[13].x);
-    bool squircle = kappa > 0.6f;
-    Path path;
-    path.addRoundRect(rect, rx, squircle);
-    if (comparePoints(path.m_points, m_points, rect.size() * 0.001f))
-        return std::make_tuple(rect, rx, squircle);
+void Path::addPolyline(std::span<const PointF> points) {
+    if (points.empty())
+        return;
+    moveTo(points.front());
+    for (size_t i = 1; i < points.size(); ++i)
+        lineTo(points[i]);
+}
 
-    return std::nullopt;
+PreparedPath::PreparedPath()                               = default;
+PreparedPath::PreparedPath(const PreparedPath&)            = default;
+PreparedPath::PreparedPath(PreparedPath&&)                 = default;
+PreparedPath& PreparedPath::operator=(const PreparedPath&) = default;
+PreparedPath& PreparedPath::operator=(PreparedPath&&)      = default;
+
+PreparedPath::PreparedPath(const Path& path, const FillParams& params, Rectangle clipRect,
+                           bool optimizeRectangle) {
+    if (optimizeRectangle) {
+        if (std::optional<RectangleF> rect = path.asRectangle()) {
+            initRect(*rect);
+            return;
+        }
+    }
+
+    Internal::DenseMask mask;
+    {
+        Stopwatch perf(Internal::performancePathRasterization);
+        mask = Internal::rasterizePath(path, params.fillRule, clipRect);
+    }
+    init(std::move(mask));
+}
+
+PreparedPath::PreparedPath(const Path& path, const StrokeParams& params, Rectangle clipRect) {
+    Path stroke = path.stroke(params);
+    if (stroke.empty())
+        return;
+
+    Internal::DenseMask mask;
+    {
+        Stopwatch perf(Internal::performancePathRasterization);
+        mask = Internal::rasterizePath(stroke, FillRule::Winding, clipRect);
+    }
+    init(std::move(mask));
+}
+
+void PreparedPath::init(Internal::DenseMask&& bitmap) {
+    m_mask = Internal::sparseMaskFromDense(bitmap);
+}
+
+void PreparedPath::initRect(RectangleF rect) {
+    if (rect.empty()) {
+        return;
+    }
+    m_mask = rect;
+}
+
+PreparedPath::PreparedPath(RectangleF rectangle, bool optimizeRectangle) {
+    initRect(rectangle);
+    if (!optimizeRectangle) {
+        m_mask = m_mask.toSparse();
+    }
+}
+
+PreparedPath PreparedPath::union_(const PreparedPath& a, const PreparedPath& b) {
+    return pathOp(MaskOp::Union, a, b);
+}
+
+PreparedPath PreparedPath::intersection(const PreparedPath& a, const PreparedPath& b) {
+    return pathOp(MaskOp::Intersection, a, b);
+}
+
+PreparedPath PreparedPath::difference(const PreparedPath& a, const PreparedPath& b) {
+    return pathOp(MaskOp::Difference, a, b);
+}
+
+PreparedPath PreparedPath::symmetricDifference(const PreparedPath& a, const PreparedPath& b) {
+    return pathOp(MaskOp::SymmetricDifference, a, b);
 }
 
 std::optional<RectangleF> Path::asRectangle() const {
@@ -809,115 +846,348 @@ std::optional<RectangleF> Path::asRectangle() const {
     };
 }
 
-std::optional<RectangleF> Path::asCircle() const {
-    if (m_segments != 1 || m_elements.size() != 6 || m_points.size() != 13 ||
-        !fuzzyCompare(m_points[12], m_points[0]))
-        return std::nullopt;
-
-    RectangleF rect{
-        m_points[9].x,
-        m_points[0].y,
-        m_points[3].x,
-        m_points[6].y,
-    };
-    Path path;
-    path.addEllipse(rect);
-    if (comparePoints(path.m_points, m_points, rect.size() * 0.001f))
-        return rect;
-
-    return std::nullopt;
+inline static SW_FT_Pos ftCoord(float x) {
+    return SW_FT_Pos(x * 64.f);
 }
 
-std::optional<std::array<PointF, 2>> Path::asLine() const {
-    if (m_segments != 1 || m_elements.size() != 2 || m_points.size() != 2)
-        return std::nullopt;
-    return std::array<PointF, 2>{
-        m_points[0],
-        m_points[1],
-    };
+inline static SW_FT_Vector ftVector(PointF p) {
+    return SW_FT_Vector{ ftCoord(p.x), ftCoord(p.y) };
 }
 
-Path Path::dashed(std::span<const float> pattern, float offset) const {
-    Dasher dasher(pattern.data(), pattern.size());
-    Path result;
-    result = dasher.dashed(*this);
+inline static float fromFtCoord(SW_FT_Pos x) {
+    return float(x) * (1.f / 64.f);
+}
+
+inline static PointF fromFtVector(SW_FT_Vector v) {
+    return PointF{ fromFtCoord(v.x), fromFtCoord(v.y) };
+}
+
+template <typename T>
+class dyn_array {
+public:
+    explicit dyn_array(size_t size) : mCapacity(size), mData(std::make_unique<T[]>(mCapacity)) {}
+
+    dyn_array() : mCapacity(0), mData(nullptr) {}
+
+    void reserve(size_t size) {
+        if (mCapacity > size)
+            return;
+        mCapacity = size;
+        mData     = std::make_unique<T[]>(mCapacity);
+    }
+
+    T* data() const {
+        return mData.get();
+    }
+
+    dyn_array& operator=(dyn_array&&) noexcept = delete;
+
+private:
+    size_t mCapacity{ 0 };
+    std::unique_ptr<T[]> mData{ nullptr };
+};
+
+namespace {
+
+struct Stroker {
+    Stroker(const StrokeParams& params) {
+        ftWidth      = SW_FT_Fixed(params.strokeWidth * 0.5f * (1 << 6));
+        ftMiterLimit = SW_FT_Fixed(params.miterLimit * (1 << 16));
+        ftCap  = staticMap(params.capStyle, CapStyle::Square, SW_FT_STROKER_LINECAP_SQUARE, CapStyle::Round,
+                           SW_FT_STROKER_LINECAP_ROUND, SW_FT_STROKER_LINECAP_BUTT);
+        ftJoin = staticMap(params.joinStyle, JoinStyle::Bevel, SW_FT_STROKER_LINEJOIN_BEVEL, JoinStyle::Round,
+                           SW_FT_STROKER_LINEJOIN_ROUND, SW_FT_STROKER_LINEJOIN_MITER);
+
+        if (SW_FT_Stroker_New(&stroker)) {
+            return;
+        }
+
+        SW_FT_Stroker_Set(stroker, ftWidth, ftCap, ftJoin, ftMiterLimit);
+    }
+
+    void setPath(const Path& path) {
+        numPoints   = path.points().size();
+        numContours = path.segments();
+        grow(numPoints, numContours);
+        const auto& elements = path.elements();
+        const auto& points   = path.points();
+
+        size_t index         = 0;
+        for (Path::Element element : elements) {
+            switch (element) {
+            case Path::Element::MoveTo:
+                moveTo(points[index]);
+                index++;
+                break;
+            case Path::Element::LineTo:
+                lineTo(points[index]);
+                index++;
+                break;
+            case Path::Element::QuadraticTo:
+                quadraticTo(points[index], points[index + 1]);
+                index = index + 2;
+                break;
+            case Path::Element::CubicTo:
+                cubicTo(points[index], points[index + 1], points[index + 2]);
+                index = index + 3;
+                break;
+            case Path::Element::Close:
+                close();
+                break;
+            }
+        }
+        assert(ft.n_contours <= SHRT_MAX - 1);
+
+        if (ft.n_points) {
+            ft.contours[ft.n_contours] = ft.n_points - 1;
+            ft.n_contours++;
+        }
+    }
+
+    void stroke() {
+        SW_FT_Stroker_ParseOutline(stroker, &ft);
+        SW_FT_Stroker_GetCounts(stroker, &numPoints, &numContours);
+
+        grow(numPoints, numContours);
+
+        SW_FT_Stroker_Export(stroker, &ft);
+    }
+
+    Path getPath() {
+        Path result;
+
+        SW_FT_Outline_Funcs funcs;
+        funcs.move_to = [](const SW_FT_Vector* to, void* user) -> int {
+            Path* path = static_cast<Path*>(user);
+            if (!path->elements().empty() && path->elements().back() != Path::Element::Close)
+                path->close();
+            path->moveTo(fromFtVector(*to));
+            return 0;
+        };
+        funcs.line_to = [](const SW_FT_Vector* to, void* user) -> int {
+            Path* path = static_cast<Path*>(user);
+            path->lineTo(fromFtVector(*to));
+            return 0;
+        };
+        funcs.conic_to = [](const SW_FT_Vector* control, const SW_FT_Vector* to, void* user) -> int {
+            Path* path = static_cast<Path*>(user);
+            path->quadraticTo(fromFtVector(*control), fromFtVector(*to));
+            return 0;
+        };
+        funcs.cubic_to = [](const SW_FT_Vector* control1, const SW_FT_Vector* control2,
+                            const SW_FT_Vector* to, void* user) -> int {
+            Path* path = static_cast<Path*>(user);
+            path->cubicTo(fromFtVector(*control1), fromFtVector(*control2), fromFtVector(*to));
+            return 0;
+        };
+        funcs.shift = 0;
+        funcs.delta = 0;
+
+        SW_FT_Outline_Decompose(&ft, &funcs, &result);
+        result.close();
+
+        return result;
+    }
+
+    ~Stroker() {
+        SW_FT_Stroker_Done(stroker);
+    }
+
+    void grow(uint32_t newNumPoints, uint32_t newNumContours) {
+        ft.n_points = ft.n_contours = 0;
+        ft.flags                    = 0x0;
+        ftPoints.reserve(newNumPoints + newNumContours);
+        ft.points = ftPoints.data();
+        ftTags.reserve(newNumPoints + newNumContours);
+        ft.tags = ftTags.data();
+        ftContours.reserve(newNumContours);
+        ft.contours = ftContours.data();
+        ftContourFlagMemory.reserve(newNumContours);
+        ft.contours_flag = ftContourFlagMemory.data();
+    }
+
+    void moveTo(PointF pt) {
+        assert(ft.n_points <= SHRT_MAX - 1);
+
+        ft.points[ft.n_points] = ftVector(pt);
+        ft.tags[ft.n_points]   = SW_FT_CURVE_TAG_ON;
+        if (ft.n_points) {
+            ft.contours[ft.n_contours] = ft.n_points - 1;
+            ft.n_contours++;
+        }
+        // mark the current contour as open
+        // will be updated if ther is a close tag at the end.
+        ft.contours_flag[ft.n_contours] = 1;
+
+        ft.n_points++;
+    }
+
+    void lineTo(PointF pt) {
+        assert(ft.n_points <= SHRT_MAX - 1);
+
+        ft.points[ft.n_points] = ftVector(pt);
+        ft.tags[ft.n_points]   = SW_FT_CURVE_TAG_ON;
+        ft.n_points++;
+    }
+
+    void quadraticTo(PointF cp, PointF pt) {
+        assert(ft.n_points <= SHRT_MAX - 2);
+
+        ft.points[ft.n_points]     = ftVector(cp);
+        ft.tags[ft.n_points]       = SW_FT_CURVE_TAG_CONIC;
+        ft.points[ft.n_points + 1] = ftVector(pt);
+        ft.tags[ft.n_points + 1]   = SW_FT_CURVE_TAG_ON;
+        ft.n_points += 2;
+    }
+
+    void cubicTo(PointF cp1, PointF cp2, PointF pt) {
+        assert(ft.n_points <= SHRT_MAX - 3);
+
+        ft.points[ft.n_points]     = ftVector(cp1);
+        ft.tags[ft.n_points]       = SW_FT_CURVE_TAG_CUBIC;
+        ft.points[ft.n_points + 1] = ftVector(cp2);
+        ft.tags[ft.n_points + 1]   = SW_FT_CURVE_TAG_CUBIC;
+        ft.points[ft.n_points + 2] = ftVector(pt);
+        ft.tags[ft.n_points + 2]   = SW_FT_CURVE_TAG_ON;
+        ft.n_points += 3;
+    }
+
+    void close() {
+        assert(ft.n_points <= SHRT_MAX - 1);
+
+        // mark the contour as a close path.
+        ft.contours_flag[ft.n_contours] = 0;
+
+        int index;
+        if (ft.n_contours) {
+            index = ft.contours[ft.n_contours - 1] + 1;
+        } else {
+            index = 0;
+        }
+
+        // make sure atleast 1 point exists in the segment.
+        if (ft.n_points == index) {
+            closed = false;
+            return;
+        }
+
+        ft.points[ft.n_points].x = ft.points[index].x;
+        ft.points[ft.n_points].y = ft.points[index].y;
+        ft.tags[ft.n_points]     = SW_FT_CURVE_TAG_ON;
+        ft.n_points++;
+    }
+
+    SW_FT_Fixed ftWidth;
+    SW_FT_Fixed ftMiterLimit;
+    SW_FT_Stroker_LineCap ftCap;
+    SW_FT_Stroker_LineJoin ftJoin;
+    SW_FT_Outline ft{};
+    uint32_t numPoints   = 0;
+    uint32_t numContours = 0;
+    dyn_array<SW_FT_Vector> ftPoints;
+    dyn_array<char> ftTags;
+    dyn_array<SW_FT_Short> ftContours;
+    dyn_array<char> ftContourFlagMemory;
+    SW_FT_Stroker stroker;
+    bool closed{ false };
+    bool ok = false;
+};
+} // namespace
+
+Path Path::stroke(const StrokeParams& params) const {
+    if (!params.dashArray.empty()) {
+        StrokeParams newParams = params;
+        newParams.dashArray    = {};
+        Stopwatch perf(Internal::performancePathDashing);
+        return this->dashed(params.dashArray, params.dashOffset).stroke(newParams);
+    }
+    BRISK_ASSERT(params.dashArray.empty());
+    Stopwatch perf(Internal::performancePathStroking);
+    Stroker stroker(params);
+    stroker.setPath(*this);
+    stroker.stroke();
+    return stroker.getPath();
+}
+
+PreparedPath PreparedPath::pathOp(MaskOp op, const PreparedPath& a, const PreparedPath& b) {
+    return Internal::maskOp(op, a.m_mask, b.m_mask);
+}
+
+namespace Internal {
+
+SparseMask::SparseMask(RectangleF rect) : rectangle(rect) {}
+
+SparseMask::SparseMask() {}
+
+static PatchData generatePatch(RectangleF rectangle) {
+    // ranges are relative to patch origin (0,0).
+
+    PatchData result;
+
+    if (rectangle.x1 <= 0 && rectangle.x2 >= 4 && rectangle.y1 <= 0 && rectangle.y2 >= 4) {
+        result = PatchData::filled;
+        return result;
+    }
+
+    for (uint32_t y = 0; y < 4; y++) {
+        for (uint32_t x = 0; x < 4; x++) {
+            float xcoverage =
+                std::max(0.f, std::min(rectangle.x2 - x, 1.f) - std::max(rectangle.x1 - x, 0.f));
+            float ycoverage =
+                std::max(0.f, std::min(rectangle.y2 - y, 1.f) - std::max(rectangle.y1 - y, 0.f));
+            result.data_u8[y * 4 + x] = uint8_t(xcoverage * ycoverage * 255);
+        }
+    }
     return result;
 }
 
-BRISK_ALWAYS_INLINE uint32_t div255(uint32_t n) {
-    return (n + 1 + (n >> 8)) >> 8;
-}
-
-BRISK_ALWAYS_INLINE static void blendRow(PixelGreyscale8* dst, uint8_t src, uint32_t len) {
-    if (src == 0)
-        return;
-    if (src >= 255) {
-        memset(dst, 255, len);
-        return;
-    }
-    for (uint32_t j = 0; j < len; ++j) {
-        dst->grey = dst->grey + div255(src * (255 - dst->grey));
-        ++dst;
-    }
-}
-
-static Rc<Image> rleToMask(const Rle& rle, Size size) {
-    if (rle.empty())
-        return nullptr;
-    Rc<Image> bitmap = rcnew Image(size, ImageFormat::Greyscale_U8Gamma);
-    auto w           = bitmap->mapWrite<ImageFormat::Greyscale_U8Gamma>();
-    w.forPixels([](int32_t, int32_t, auto& pix) {
-        pix = { 0 };
-    });
-
-    const auto& spans     = rle.spans();
-
-    int16_t yy            = INT16_MIN;
-    PixelGreyscale8* line = nullptr;
-    for (size_t i = 0; i < spans.size(); ++i) {
-        if (spans[i].y != yy) [[unlikely]] {
-            line = w.line(spans[i].y);
+SparseMask SparseMask::toSparse() const {
+    SparseMask result;
+    PatchMerger merger(result.patches, result.patchData, result.bounds);
+    Rectangle roundedRect = rectangle.roundOutward();
+    for (uint32_t y = roundedRect.y1 / 4; y < (roundedRect.y2 + 3) / 4; y++) {
+        for (uint32_t x = roundedRect.x1 / 4; x < (roundedRect.x2 + 3) / 4; x++) {
+            RectangleF r = rectangle.withOffset(x * -4.f, y * -4.f);
+            auto patch   = generatePatch(r);
+            if (!patch.empty())
+                merger.add(x, y, 1, patch);
         }
-        PixelGreyscale8* row = line + spans[i].x;
-        if (row)
-            blendRow(row, spans[i].coverage, spans[i].len);
     }
-    return bitmap;
-}
-
-static std::tuple<Rc<Image>, Rectangle> rasterizeToImage(const Path& path, const FillOrStrokeParams& params,
-                                                         Rectangle clip) {
-    Rle rle;
-    Rectangle bounds;
-    {
-        Stopwatch sw(Internal::performancePathRasterization);
-
-        if (const FillParams* fill = get_if<FillParams>(&params)) {
-            rle = rasterize(path, fill->fillRule, clip == noClipRect ? Rectangle{} : clip);
-        } else if (const StrokeParams* stroke = get_if<StrokeParams>(&params)) {
-            rle = rasterize(path, stroke->capStyle, stroke->joinStyle, stroke->strokeWidth,
-                            stroke->miterLimit, clip == noClipRect ? Rectangle{} : clip);
-        }
-        bounds = rle.boundingRect();
-        rle.translate(Point{ -bounds.x1, -bounds.y1 });
-    }
-    Stopwatch sw(Internal::performancePathScanline);
-    return { rleToMask(rle, bounds.size()), bounds };
-}
-
-RasterizedPath Internal::rasterizePath(const Path& path, const FillOrStrokeParams& params,
-                                       Rectangle clipRect) {
-    std::tuple<Rc<Image>, Rectangle> imageAndRect = rasterizeToImage(path, params, clipRect);
-    if (!std::get<0>(imageAndRect)) {
-        return RasterizedPath{ nullptr, {} };
-    }
-    auto r = std::get<0>(imageAndRect)->mapRead();
-    RasterizedPath result;
-    result.sprite = makeSprite(r.size());
-    r.writeTo(result.sprite->bytes());
-    result.bounds = std::get<1>(imageAndRect);
-
     return result;
 }
 
+bool SparseMask::intersects(const SparseMask& other) const {
+    if (patches.empty() || other.patches.empty())
+        return false;
+    return bounds.intersects(other.bounds);
+}
+
+Rectangle SparseMask::pixelBounds() const {
+    if (isRectangle())
+        return rectangle.roundOutward();
+    if (isSparse())
+        return Rectangle(bounds.x1 * 4, bounds.y1 * 4, bounds.x2 * 4 + 3, bounds.y2 * 4 + 3);
+    return Rectangle{};
+}
+} // namespace Internal
+
+Rectangle PreparedPath::patchBounds() const {
+    if (m_mask.bounds.empty())
+        return Rectangle{};
+    return Rectangle(m_mask.bounds.v * 4);
+}
+
+PreparedPath::PreparedPath(Internal::SparseMask&& mask) : m_mask(std::move(mask)) {}
+
+PreparedPath PreparedPath::toSparse() const {
+    return PreparedPath{ m_mask.toSparse() };
+}
+
+Path::Path(RectangleF rectangle) {
+    addRect(rectangle);
+}
+
+Path::Path(Rectangle rectangle) {
+    addRect(RectangleF(rectangle));
+}
 } // namespace Brisk

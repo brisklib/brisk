@@ -90,7 +90,7 @@ void Knob::onEvent(Event& event) {
 
 void knobPainter(Canvas& canvas, const Widget& widget_) {
     if (!dynamicCast<const Knob*>(&widget_)) {
-        LOG_ERROR(widgets, "knobPainter called for a non-Knob widget");
+        BRISK_LOG_ERROR("knobPainter called for a non-Knob widget");
         return;
     }
     const Knob& widget               = static_cast<const Knob&>(widget_);

@@ -82,7 +82,7 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
     SCOPE_EXIT {
         curl_easy_cleanup(curl);
     };
-    LOG_TRACE(network, "libCURL {}", curl_version());
+    BRISK_LOG_TRACE("libCURL {}", curl_version());
     std::string headers{};
 
     curl_easy_setopt(curl, CURLOPT_URL, request.url.c_str());

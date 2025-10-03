@@ -74,7 +74,7 @@ WindowApplication::WindowApplication() : m_separateUiThread(separateUiThread) {
     m_doubleClickTime     = dblClickParams.time;
     m_doubleClickDistance = dblClickParams.distance;
 
-    LOG_INFO(window, "Double click time={}s distance={}px", m_doubleClickTime, m_doubleClickDistance);
+    BRISK_LOG_INFO("Double click time={}s distance={}px", m_doubleClickTime, m_doubleClickDistance);
 
     PlatformWindow::initialize();
 
@@ -170,7 +170,7 @@ void WindowApplication::uiThreadBody() {
 void WindowApplication::start() {
     mustBeMainThread();
     if (m_active) {
-        LOG_WARN(application, "WindowApplication::start called twice");
+        BRISK_LOG_WARN("WindowApplication::start called twice");
         return;
     }
     m_active = true;
@@ -223,7 +223,7 @@ void WindowApplication::cycle(bool wait) {
 void WindowApplication::stop() {
     mustBeMainThread();
     if (!m_active) {
-        LOG_WARN(application, "WindowApplication::stop called twice");
+        BRISK_LOG_WARN("WindowApplication::stop called twice");
         return;
     }
     closeWindows();

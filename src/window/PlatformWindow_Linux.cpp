@@ -48,19 +48,19 @@ struct PlatformWindowData {
 /*static*/ void PlatformWindow::initialize() {
     if (glfwPlatformSupported(GLFW_PLATFORM_WAYLAND)) {
         glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
-        LOG_INFO(window, "Wayland is supported, enabling it");
+        BRISK_LOG_INFO("Wayland is supported, enabling it");
     } else {
-        LOG_INFO(window, "Wayland is not supported, using x11");
+        BRISK_LOG_INFO("Wayland is not supported, using x11");
     }
 
     glfwInit();
 
     int platform = glfwGetPlatform();
     if (platform == GLFW_PLATFORM_WAYLAND) {
-        LOG_INFO(window, "Using: Wayland");
+        BRISK_LOG_INFO("Using: Wayland");
         currentHiDPIMode = HiDPIMode::FramebufferScaling;
     } else {
-        LOG_INFO(window, "Using: X11");
+        BRISK_LOG_INFO("Using: X11");
         currentHiDPIMode = HiDPIMode::ApplicationScaling;
     }
     Internal::updateDisplays();
@@ -89,7 +89,7 @@ void PlatformWindow::setOwner(Rc<Window> window) {}
 bool PlatformWindow::createWindow() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    LOG_INFO(window, "GLFW {}", glfwGetVersionString());
+    BRISK_LOG_INFO("GLFW {}", glfwGetVersionString());
 
     glfwWindowHintString(GLFW_WAYLAND_APP_ID, (appMetadata.name + "Brisk").c_str());
     glfwWindowHintString(GLFW_X11_CLASS_NAME, "Brisk");

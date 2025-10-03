@@ -71,14 +71,48 @@ inline bool fromJson(const Brisk::Json& j, ColorF& p) {
     return Brisk::unpackArray(j, p.r, p.g, p.b, p.a);
 }
 
-enum class ShaderType : int {
-    Rectangles, // Gradient or texture
-    Arcs,       // Gradient or texture
-    Text,       // Gradient or texture
-    Shadow,     // Custom paint or texture
-    Mask,       // Gradient or texture
-    ColorMask,  // Gradient or texture
-    Blit,       // Texture
+enum class ShaderType : uint8_t {
+    Rectangle = 0,
+    Text      = 1, // Gradient or texture
+    Shadow    = 2, // Custom paint or texture
+    ColorMask = 3, // Gradient or texture
+    Blit      = 4, // Texture
+    Mask      = 5, // Gradient or texture
+};
+
+enum class ShadingType : int {
+    Color                   = 0x00,
+    SimpleGradientLinear    = 0x01, // apply_simple_gradient(linear_argument())
+    SimpleGradientRadial    = 0x11, // apply_simple_gradient(radial_argument())
+    SimpleGradientAngle     = 0x21, // apply_simple_gradient(angle_argument())
+    SimpleGradientReflected = 0x31, // apply_simple_gradient(reflected_argument())
+
+    GradientLinear          = 0x02, // apply_gradient(linear_argument())
+    GradientRadial          = 0x12, // apply_gradient(radial_argument())
+    GradientAngle           = 0x22, // apply_gradient(angle_argument())
+    GradientReflected       = 0x32, // apply_gradient(reflected_argument())
+
+    Texture                 = 0x03, // texture.sample(uv)
+
+    TonedTextureC0          = 0x04, // apply_gradient(texture.sample(uv)[0])
+    TonedTextureC1          = 0x14, // apply_gradient(texture.sample(uv)[1])
+    TonedTextureC2          = 0x24, // apply_gradient(texture.sample(uv)[2])
+    TonedTextureC3          = 0x34, // apply_gradient(texture.sample(uv)[3])
+
+    MaskShading             = 0x0F,
+    MaskArgument            = 0xF0,
+
+};
+
+enum class SubpixelMode : uint8_t {
+    Off = 0,
+    RGB = 1,
+    BGR = 2,
+};
+
+enum class SamplerMode : uint8_t {
+    Clamp = 0,
+    Wrap  = 1,
 };
 
 struct GeometryGlyph {
@@ -86,11 +120,6 @@ struct GeometryGlyph {
     SizeF size;
     float sprite;
     float stride;
-};
-
-struct GeometryRectangle {
-    RectangleF rectangle;
-    CornersF borderRadii;
 };
 
 struct GeometryArc {
@@ -123,12 +152,6 @@ struct PatternCodes {
     uint32_t value;
 };
 
-enum class SubpixelMode : int32_t {
-    Off = 0,
-    RGB = 1,
-    BGR = 2,
-};
-
 struct ConstantPerFrame {
     Simd<float, 4> viewport;
     float blueLightFilter;
@@ -141,33 +164,55 @@ struct ConstantPerFrame {
 struct RenderState;
 struct RenderStateEx;
 
-enum class SamplerMode : int32_t {
-    Clamp = 0,
-    Wrap  = 1,
-};
-
-struct Quad3 {
-    std::array<PointF, 3> points;
-    constexpr Quad3()             = default;
-    constexpr Quad3(const Quad3&) = default;
-
-    constexpr Quad3(PointF p1, PointF p2, PointF p3) : points{ p1, p2, p3 } {}
-
-    template <typename T>
-    constexpr Quad3(RectangleOf<T> rect)
-        : points{
-              rect.p1,
-              PointF(rect.p2.x, rect.p1.y),
-              rect.p2,
-          } {}
-};
-
-constexpr int multigradientColorMix      = -10;
-
-using TextureId                          = uint32_t;
-constexpr inline TextureId textureIdNone = static_cast<TextureId>(-1);
-
 struct RenderBuffer;
+
+enum class BlendingMode : uint8_t {
+    Normal     = 0u,
+    Multiply   = 1u,
+    Screen     = 2u,
+    Overlay    = 3u,
+    Darken     = 4u,
+    Lighten    = 5u,
+    ColorDodge = 6u,
+    ColorBurn  = 7u,
+    HardLight  = 8u,
+    SoftLight  = 9u,
+    Difference = 10u,
+    Exclusion  = 11u,
+    Hue        = 12u,
+    Saturation = 13u,
+    Color      = 14u,
+    Luminosity = 15u,
+    Clip       = 128u,
+};
+
+enum class CompositionMode : uint8_t {
+    Clear       = 0u,
+    Copy        = 1u,
+    Dest        = 2u,
+    SrcOver     = 3u,
+    DestOver    = 4u,
+    SrcIn       = 5u,
+    DestIn      = 6u,
+    SrcOut      = 7u,
+    DestOut     = 8u,
+    SrcAtop     = 9u,
+    DestAtop    = 10u,
+    Xor         = 11u,
+    Plus        = 12u,
+    PlusLighter = 13u,
+};
+
+enum class BlendingCompositionMode : uint16_t {
+    Normal =
+        (static_cast<uint16_t>(BlendingMode::Normal) << 8) | static_cast<uint16_t>(CompositionMode::SrcOver),
+};
+
+constexpr BlendingCompositionMode toBlendingCompositionMode(BlendingMode blend,
+                                                            CompositionMode comp) noexcept {
+    return static_cast<BlendingCompositionMode>((static_cast<uint16_t>(blend) << 8) |
+                                                static_cast<uint16_t>(comp));
+}
 
 struct RenderState {
     bool operator==(const RenderState& state) const;
@@ -181,46 +226,56 @@ public:
 
 public:
     // ---------------- SHADER -----------------
-    ShaderType shader   = ShaderType::Rectangles; ///< Type of geometry to generate
-    TextureId textureId = textureIdNone;          ///<
+    // packed into two uint32_t values:
+    ShaderType shader            = ShaderType::Blit; ///< Type of geometry to generate
+    bool hasTexture              = false;            ///<
+    GradientType gradient        = GradientType::Linear;
+    SubpixelMode subpixelMode    = SubpixelMode::RGB;
 
-    Quad3 scissorQuad   = noClipRect;
+    uint8_t blurDirections       = 3;                  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
+    uint8_t textureChannel       = 0;                  ///<
+    SamplerMode samplerMode      = SamplerMode::Clamp; ///<
+    uint8_t spriteOversampling   = 1;
 
-    Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
-    int spriteOversampling    = 1;
-    SubpixelMode subpixelMode = SubpixelMode::RGB;
+    BlendingCompositionMode mode = BlendingCompositionMode::Normal;
+    bool hasBackTexture          = false;
+    uint8_t padding1             = 0;
+
+    uint32_t packed3             = 0;
+
+    int32_t gradientIndex        = -1;  ///< Gradient (-1 - disabled)
+    float blurRadius             = 0.f; ///<
+    uint32_t reserved1           = 0;
+    uint32_t reserved2           = 0;
+
+    Matrix coordMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f };       ///<
+    Matrix textureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f };     ///<
+    Matrix backTextureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
 
     PatternCodes pattern{};
-    int reserved1         = 0;
-    int reserved2         = 0;
     float opacity         = 1.f; ///< Opacity. Defaults to 1
 
-    int32_t multigradient = -1; ///< Gradient (-1 - disabled)
-    int blurDirections    = 3;  ///< 0 - disable, 1 - H, 2 - V, 3 - H&V
-    int textureChannel    = 0;  ///<
-    int reserved3         = 0;
+    ColorF fillColor1     = Palette::white; ///< Fill (brush) color for gradient at 0%
+    ColorF fillColor2     = Palette::white; ///< Fill (brush) color for gradient at 100%
 
-    Matrix textureMatrix{ 1.f, 0.f, 0.f, 1.f, 0.f, 0.f }; ///<
-    SamplerMode samplerMode = SamplerMode::Clamp;         ///<
-    float blurRadius        = 0.f;                        ///<
+    PointF gradientPoint1 = { 0.f, 0.f };     ///< 0% Gradient point
+    PointF gradientPoint2 = { 100.f, 100.f }; ///< 100% Gradient point
 
-    ColorF fillColor1       = Palette::white; ///< Fill (brush) color for gradient at 0%
-    ColorF fillColor2       = Palette::white; ///< Fill (brush) color for gradient at 100%
-    ColorF strokeColor1     = Palette::black; ///< Stroke (pen) color for gradient at 0%
-    ColorF strokeColor2     = Palette::black; ///< Stroke (pen) color for gradient at 100%
-
-    PointF gradientPoint1   = { 0.f, 0.f };     ///< 0% Gradient point
-    PointF gradientPoint2   = { 100.f, 100.f }; ///< 100% Gradient point
-
-    float strokeWidth       = 1.f; ///< Stroke or shadow width. Defaults to 1. Set to 0 to disable
-    GradientType gradient   = GradientType::Linear;
+    Rectangle scissor     = noClipRect;
 
     union {
-        Internal::ImageBackend* imageBackend = nullptr;
-        uint64_t dummy;
+        Internal::ImageBackend* sourceImage = nullptr;
+        uint64_t dummy1;
     };
 
-    Rectangle shaderClip = noClipRect;
+    union {
+        Internal::ImageBackend* backImage = nullptr;
+        uint64_t dummy2;
+    };
+
+    Simd<uint32_t, 4> reserved3;
+    Simd<uint32_t, 4> reserved4;
+    Simd<uint32_t, 4> reserved5;
 
 public:
     bool compare(const RenderState& second) const;
@@ -228,6 +283,8 @@ public:
 
     constexpr static size_t compare_offset = 12;
 };
+
+static_assert(sizeof(RenderState) % 256 == 0, "sizeof(RenderState) % 256 == 0");
 
 inline bool requiresAtlasOrGradient(std::span<const RenderState> commands) {
     for (const RenderState& cmd : commands) {
@@ -259,27 +316,26 @@ struct RenderStateEx : RenderState {
 
     explicit RenderStateEx(ShaderType shader, int instances, RenderStateExArgs args);
 
-    Rc<Image> imageHandle;
+    Rc<Image> sourceImageHandle;
+    Rc<Image> backImageHandle;
     Rc<GradientResource> gradientHandle;
     SpriteResources sprites;
 };
 
-static_assert(sizeof(RenderState) % 256 == 0, "sizeof(RenderState) % 256 == 0");
-
 class RenderContext {
     BRISK_DYNAMIC_CLASS_ROOT(RenderContext)
 public:
-    virtual void command(RenderStateEx&& cmd, std::span<const float> data = {}) = 0;
+    virtual void command(RenderStateEx&& cmd, std::span<const uint32_t> data = {}) = 0;
 
-    virtual void setClipRect(Rectangle clipRect)                                = 0;
+    virtual void setGlobalScissor(Rectangle rect)                                  = 0;
 
     template <typename T>
     void command(RenderStateEx&& cmd, std::span<T> value) {
         static_assert(std::is_trivially_copy_constructible_v<T>);
-        static_assert(sizeof(T) % sizeof(float) == 0);
+        static_assert(sizeof(T) % sizeof(uint32_t) == 0);
 
-        command(std::move(cmd), std::span<const float>{ reinterpret_cast<const float*>(value.data()),
-                                                        value.size() * sizeof(T) / sizeof(float) });
+        command(std::move(cmd), std::span<const uint32_t>{ reinterpret_cast<const uint32_t*>(value.data()),
+                                                           value.size() * sizeof(T) / sizeof(uint32_t) });
     }
 
     virtual int numBatches() const = 0;

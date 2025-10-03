@@ -81,7 +81,7 @@ void RenderEncoderWebGpu::end() {
     m_currentTarget = nullptr;
 }
 
-void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span<const float> data) {
+void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span<const uint32_t> data) {
     BRISK_ASSERT(m_currentTarget);
     BRISK_ASSERT(m_queue.Get());
 
@@ -112,7 +112,8 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
     m_pass.SetPipeline(pipeline);
 
     // Actual rendering
-    Internal::ImageBackend* savedTexture = nullptr;
+    Internal::ImageBackend* savedSourceTexture = nullptr;
+    Internal::ImageBackend* savedBackTexture   = nullptr;
     // OPTIMIZATION: separate groups for constants and texture
     wgpu::BindGroup bindGroup;
 
@@ -121,16 +122,20 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
 
     for (size_t i = 0; i < commands.size(); ++i) {
         const RenderState& cmd = commands[i];
-        const uint32_t offs[]  = {
+        Rectangle clampedRect  = cmd.scissor.intersection(frameRect);
+        if (clampedRect.empty())
+            continue;
+        const uint32_t offs[] = {
             uint32_t(i * sizeof(RenderState)),
         };
 
-        if (!bindGroup || cmd.imageBackend != savedTexture) {
-            savedTexture = cmd.imageBackend;
-            bindGroup    = createBindGroup(static_cast<ImageBackendWebGpu*>(cmd.imageBackend));
+        if (!bindGroup || cmd.sourceImage != savedSourceTexture || cmd.backImage != savedBackTexture) {
+            savedSourceTexture = cmd.sourceImage;
+            savedBackTexture   = cmd.backImage;
+            bindGroup          = createBindGroup(static_cast<ImageBackendWebGpu*>(cmd.sourceImage),
+                                                 static_cast<ImageBackendWebGpu*>(cmd.backImage));
         }
 
-        Rectangle clampedRect = cmd.shaderClip.intersection(frameRect);
         if (clampedRect != currentClipRect) {
             m_pass.SetScissorRect(clampedRect.x1, clampedRect.y1, clampedRect.width(), clampedRect.height());
             currentClipRect = clampedRect;
@@ -154,9 +159,10 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
     m_colorAttachment.loadOp = wgpu::LoadOp::Load;
 }
 
-wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* imageBackend) {
+wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* sourceImage,
+                                                     ImageBackendWebGpu* backImage) {
 
-    std::array<wgpu::BindGroupEntry, 8> entries = {
+    std::array<wgpu::BindGroupEntry, 9> entries = {
         wgpu::BindGroupEntry{
             .binding = 1,
             .buffer  = m_constantBuffer,
@@ -184,11 +190,15 @@ wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* imageBa
         },
         wgpu::BindGroupEntry{
             .binding = 6,
-            .sampler = m_device->m_boundSampler,
+            .sampler = m_device->m_sampler,
         },
         wgpu::BindGroupEntry{
             .binding     = 10,
-            .textureView = imageBackend ? imageBackend->m_textureView : m_device->m_dummyTextureView,
+            .textureView = sourceImage ? sourceImage->m_textureView : m_device->m_dummyTextureView,
+        },
+        wgpu::BindGroupEntry{
+            .binding     = 11,
+            .textureView = backImage ? backImage->m_textureView : m_device->m_dummyTextureView,
         },
     };
     wgpu::BindGroupDescriptor bingGroupDesc{
@@ -230,9 +240,9 @@ void RenderEncoderWebGpu::updateConstantBuffer(std::span<const RenderState> data
 }
 
 // Update the data buffer and possibly recreate it.
-void RenderEncoderWebGpu::updateDataBuffer(std::span<const float> data) {
+void RenderEncoderWebGpu::updateDataBuffer(std::span<const uint32_t> data) {
     size_t alignedDataSize = std::max(data.size_bytes(), size_t(16));
-    if (!m_dataBuffer || m_dataBuffer.GetSize() != alignedDataSize) {
+    if (!m_dataBuffer || alignedDataSize > m_dataBuffer.GetSize()) {
         wgpu::BufferDescriptor desc{
             .label = "DataBuffer",
             .usage = wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst,
@@ -275,9 +285,9 @@ void RenderEncoderWebGpu::updateAtlasTexture() {
 }
 
 void RenderEncoderWebGpu::updateGradientTexture() {
-    GradientAtlas* atlas = m_device->m_resources.gradientAtlas.get();
-    Size newSize(gradientResolution, atlas->data().size());
-    if (!m_gradientTexture || (m_gradient_generation <<= atlas->changed)) {
+    GradientAtlas* gradAtlas = m_device->m_resources.gradientAtlas.get();
+    Size newSize(sizeof(GradientData) / sizeof(Simd<float, 4>), gradAtlas->data().size());
+    if (!m_gradientTexture || (m_gradient_generation <<= gradAtlas->changed)) {
         if (!m_gradientTexture ||
             newSize != Size(m_gradientTexture.GetWidth(), m_gradientTexture.GetHeight())) {
             wgpu::TextureFormat fmt = wgFormat(PixelType::F32, PixelFormat::RGBA);
@@ -299,8 +309,8 @@ void RenderEncoderWebGpu::updateGradientTexture() {
         wgpu::TexelCopyBufferLayout source{};
         source.bytesPerRow = sizeof(GradientData);
         wgpu::Extent3D texSize{ uint32_t(newSize.width), uint32_t(newSize.height), 1u };
-        m_queue.WriteTexture(&destination, atlas->data().data(), atlas->data().size() * sizeof(GradientData),
-                             &source, &texSize);
+        m_queue.WriteTexture(&destination, gradAtlas->data().data(),
+                             gradAtlas->data().size() * sizeof(GradientData), &source, &texSize);
     }
 }
 
@@ -376,7 +386,7 @@ void RenderEncoderWebGpu::endFrame(DurationCallback callback) {
 
                     callbackData->frameTiming->resultBuffer.Unmap();
                 } else {
-                    LOG_WARN(gpu, "Frame {} failed to map: {}", callbackData->frameId, (uint32_t)status);
+                    BRISK_LOG_WARN("Frame {} failed to map: {}", callbackData->frameId, (uint32_t)status);
                 }
                 callbackData->frameTiming->pending = false; // Mark as complete
                 delete callbackData;

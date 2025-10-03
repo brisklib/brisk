@@ -93,7 +93,7 @@ void HitTestMap::clear() {
     tabGroupId = 0;
 }
 
-void HitTestMap::add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, int zindex) {
+void HitTestMap::add(std::shared_ptr<Widget> w, InputShape rect, bool anywhere, int zindex) {
     if (rect.empty())
         return;
     auto it = std::lower_bound(list.begin(), list.end(), zindex,
@@ -550,10 +550,7 @@ void InputQueue::processEvents() {
         }
     }
 
-    if (lastMouseEvent) {
-        Rc<Widget> target = std::get<0>(getAt(lastMouseEvent->point));
-        processMouseState(target);
-    }
+    processMouseState();
 
     if (!injectedEvents.empty()) {
         events.insert(events.end(), std::make_move_iterator(injectedEvents.begin()),
@@ -637,7 +634,7 @@ EventType Event::type() const {
     return static_cast<EventType>(index());
 }
 
-std::tuple<DragEvent, PointF, KeyModifiers> Event::dragged(Rectangle rect, bool& dragActive) const {
+std::tuple<DragEvent, PointF, KeyModifiers> Event::dragged(InputShape rect, bool& dragActive) const {
     auto mouseDown  = as<EventMouseButtonPressed>();
     auto mouseUp    = as<EventMouseButtonReleased>();
     auto mouseMoved = as<EventMouseMoved>();
@@ -704,7 +701,7 @@ float Event::wheelScrolled(KeyModifiers mods) const {
     return wheelScrolled(WheelOrientation::Y, anywhere, mods);
 }
 
-float Event::wheelScrolled(Rectangle rect, KeyModifiers mods) const {
+float Event::wheelScrolled(InputShape rect, KeyModifiers mods) const {
     return wheelScrolled(WheelOrientation::Y, rect, mods);
 }
 
@@ -712,7 +709,7 @@ float Event::wheelScrolled(WheelOrientation orientation, KeyModifiers mods) cons
     return wheelScrolled(orientation, anywhere, mods);
 }
 
-float Event::wheelScrolled(WheelOrientation orientation, Rectangle rect, KeyModifiers mods) const {
+float Event::wheelScrolled(WheelOrientation orientation, InputShape rect, KeyModifiers mods) const {
     if (orientation == WheelOrientation::X) {
         auto e = as<EventMouseXWheel>();
         if (e && rect.contains(e->point) && ((e->mods & mods) == mods)) {
@@ -735,12 +732,12 @@ bool Event::doubleClicked() const {
     return doubleClicked(anywhere);
 }
 
-bool Event::tripleClicked(Rectangle rect) const {
+bool Event::tripleClicked(InputShape rect) const {
     auto e = as<EventMouseTripleClicked>();
     return e && rect.contains(e->point);
 }
 
-bool Event::doubleClicked(Rectangle rect) const {
+bool Event::doubleClicked(InputShape rect) const {
     auto e = as<EventMouseDoubleClicked>();
     return e && rect.contains(e->point);
 }
@@ -749,7 +746,7 @@ bool Event::released(MouseButton btn, KeyModifiers mods) const {
     return released(anywhere, btn, mods);
 }
 
-bool Event::released(Rectangle rect, MouseButton btn, KeyModifiers mods) const {
+bool Event::released(InputShape rect, MouseButton btn, KeyModifiers mods) const {
     auto e = as<EventMouseButtonReleased>();
     return e && e->button == btn && rect.contains(e->point) && ((e->mods & mods) == mods);
 }
@@ -758,7 +755,7 @@ bool Event::pressed(MouseButton btn, KeyModifiers mods) const {
     return pressed(anywhere, btn, mods);
 }
 
-bool Event::pressed(Rectangle rect, MouseButton btn, KeyModifiers mods) const {
+bool Event::pressed(InputShape rect, MouseButton btn, KeyModifiers mods) const {
     auto e = as<EventMouseButtonPressed>();
     return e && e->button == btn && rect.contains(e->point) && ((e->mods & mods) == mods);
 }
@@ -823,4 +820,43 @@ void InputQueue::finishMenu() {
     menuRoot.reset();
 }
 
+void InputQueue::processMouseState() {
+    if (lastMouseEvent) {
+        Rc<Widget> target = std::get<0>(getAt(lastMouseEvent->point));
+        processMouseState(target);
+    }
+}
+
+InputShape::InputShape(Rectangle bounds, CornersF radii, Rectangle clipRect) noexcept
+    : bounds(bounds), radii(radii), clipRect(clipRect) {}
+
+Rectangle InputShape::clippedBounds() const noexcept {
+    return bounds.intersection(clipRect);
+}
+
+InputShape InputShape::intersection(Rectangle clipRect) const noexcept {
+    return InputShape{
+        bounds,
+        radii,
+        clipRect.intersection(this->clipRect),
+    };
+}
+
+bool InputShape::contains(PointF pt) const noexcept {
+    if (!bounds.contains(pt))
+        return false;
+    if (!clipRect.contains(pt))
+        return false;
+    if (radii == CornersF{}) {
+        return true; // No radii means the entire rectangle is valid
+    }
+    pt -= bounds.center();
+    Simd<float, 2> ext  = Simd<float, 2>(bounds.size().v) * 0.5f;
+    uint32_t quadrant   = uint32_t(pt.x >= 0.) + 2u * uint32_t(pt.y >= 0.);
+
+    float rad           = std::abs(radii[quadrant]);
+    Simd<float, 2> ext2 = ext - Simd<float, 2>(rad, rad);
+    Simd<float, 2> d    = abs(pt.v) - ext2;
+    return std::min(std::max(d[0], d[1]), 0.0f) + length(max(d, Simd<float, 2>(0.f))) - rad <= 0.f;
+}
 } // namespace Brisk

@@ -36,7 +36,7 @@ public:
     void setVisualSettings(const VisualSettings& visualSettings) final;
 
     void begin(Rc<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) final;
-    void batch(std::span<const RenderState> commands, std::span<const float> data) final;
+    void batch(std::span<const RenderState> commands, std::span<const uint32_t> data) final;
     void end() final;
     void wait() final;
 
@@ -80,6 +80,7 @@ private:
     ComPtr<ID3D11Buffer> m_constantBuffer;
     size_t m_constantBufferSize = 0;
     ComPtr<ID3D11Buffer> m_dataBuffer;
+    ComPtr<ID3D11Buffer> m_dataBufferStaging;
     size_t m_dataBufferSize = 0;
     ComPtr<ID3D11ShaderResourceView> m_dataSRV;
     ComPtr<ID3D11Texture2D> m_atlasTexture;
@@ -99,7 +100,7 @@ private:
     DurationCallback m_durationCallback;
 
     void updatePerFrameConstantBuffer(const ConstantPerFrame& constants);
-    void updateDataBuffer(std::span<const float> data);
+    void updateDataBuffer(std::span<const uint32_t> data);
     void updateConstantBuffer(std::span<const RenderState> data);
     void updateAtlasTexture();
     void updateGradientTexture();

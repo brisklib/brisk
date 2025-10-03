@@ -37,7 +37,7 @@ RectangleF Slider::thumbRect() const noexcept {
 
 void sliderPainter(Canvas& canvas, const Widget& widget_) {
     if (!dynamicCast<const Slider*>(&widget_)) {
-        LOG_ERROR(widgets, "sliderPainter called for a non-Slider widget");
+        BRISK_LOG_ERROR("sliderPainter called for a non-Slider widget");
         return;
     }
     const Slider& widget = static_cast<const Slider&>(widget_);
@@ -77,7 +77,7 @@ void Slider::onEvent(Event& event) {
         m_distance =
             horizontal ? trackRect.width() - thumbRadius * 2_dp : trackRect.height() - thumbRadius * 2_dp;
 
-        switch (const auto [flag, offset, mods] = event.dragged(thumbRect, m_drag); flag) {
+        switch (const auto [flag, offset, mods] = event.dragged(Rectangle(thumbRect), m_drag); flag) {
         case DragEvent::Started:
             m_savedValue = normalizedValue;
             startModifying();

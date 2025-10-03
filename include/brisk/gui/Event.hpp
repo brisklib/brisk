@@ -307,6 +307,25 @@ enum class WheelOrientation {
 
 struct InputQueue;
 
+struct InputShape {
+    Rectangle bounds;
+    CornersF radii;
+    Rectangle clipRect;
+
+    InputShape(Rectangle bounds = Rectangle{}, CornersF radii = CornersF{},
+               Rectangle clipRect = noClipRect) noexcept;
+
+    bool empty() const noexcept {
+        return bounds.empty();
+    }
+
+    Rectangle clippedBounds() const noexcept;
+
+    InputShape intersection(Rectangle clipRect) const noexcept;
+
+    bool contains(PointF pt) const noexcept;
+};
+
 /**
  * @brief Event class representing a generic event with type and utility methods.
  */
@@ -350,21 +369,21 @@ struct Event : public EventVariant {
 
     static inline const Rectangle anywhere{ -32768, -32768, 32768, 32768 };
 
-    bool pressed(Rectangle rect, MouseButton btn = MouseButton::Left,
+    bool pressed(InputShape rect, MouseButton btn = MouseButton::Left,
                  KeyModifiers mods = KeyModifiers::None) const;
     bool pressed(MouseButton btn = MouseButton::Left, KeyModifiers mods = KeyModifiers::None) const;
-    bool released(Rectangle rect, MouseButton btn = MouseButton::Left,
+    bool released(InputShape rect, MouseButton btn = MouseButton::Left,
                   KeyModifiers mods = KeyModifiers::None) const;
     bool released(MouseButton btn = MouseButton::Left, KeyModifiers mods = KeyModifiers::None) const;
 
-    bool doubleClicked(Rectangle rect) const;
-    bool tripleClicked(Rectangle rect) const;
+    bool doubleClicked(InputShape rect) const;
+    bool tripleClicked(InputShape rect) const;
     bool doubleClicked() const;
     bool tripleClicked() const;
 
-    float wheelScrolled(Rectangle rect, KeyModifiers mods = KeyModifiers::None) const;
+    float wheelScrolled(InputShape rect, KeyModifiers mods = KeyModifiers::None) const;
     float wheelScrolled(KeyModifiers mods = KeyModifiers::None) const;
-    float wheelScrolled(WheelOrientation orientation, Rectangle rect,
+    float wheelScrolled(WheelOrientation orientation, InputShape rect,
                         KeyModifiers mods = KeyModifiers::None) const;
     float wheelScrolled(WheelOrientation orientation, KeyModifiers mods = KeyModifiers::None) const;
 
@@ -379,19 +398,19 @@ struct Event : public EventVariant {
 
     std::tuple<DragEvent, PointF, KeyModifiers> dragged(bool& dragActive) const;
 
-    std::tuple<DragEvent, PointF, KeyModifiers> dragged(Rectangle rect, bool& dragActive) const;
+    std::tuple<DragEvent, PointF, KeyModifiers> dragged(InputShape rect, bool& dragActive) const;
 };
 
 /**
  * @brief Struct for managing hit test information for widgets.
  */
 struct HitTestMap {
-    void add(std::shared_ptr<Widget> w, Rectangle rect, bool anywhere, int zindex);
+    void add(std::shared_ptr<Widget> w, InputShape rect, bool anywhere, int zindex);
 
     struct HitTestEntry {
         std::weak_ptr<Widget> widget; ///< The widget involved in the hit test.
         int zindex;                   ///< Z-index for rendering order.
-        Rectangle rect;               ///< Rectangle area for the hit test.
+        InputShape rect;              ///< Rectangle area for the hit test.
         bool anywhere;                ///< Indicates if the widget is valid anywhere.
     };
 
@@ -420,7 +439,6 @@ struct HitTestMap {
         bool visible          = true;
         bool inTabGroup       = false;
         bool mouseTransparent = false;
-        Rectangle scissors    = Event::anywhere;
     };
 
     int tabGroupId = 0;
@@ -506,6 +524,8 @@ struct InputQueue {
      * @param target The target widget.
      */
     void processMouseState(const std::shared_ptr<Widget>& target);
+
+    void processMouseState();
 
     /**
      * Begins dragging an object from the given source widget.

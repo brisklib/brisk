@@ -43,7 +43,7 @@ struct ColorStop {
 /**
  * @brief Enumeration for different types of gradients.
  */
-enum class GradientType : int {
+enum class GradientType : uint8_t {
     Linear,    ///< A linear gradient.
     Radial,    ///< A radial gradient.
     Angle,     ///< An angular (conic) gradient.
@@ -53,14 +53,17 @@ enum class GradientType : int {
 /**
  * @brief A small vector type for storing an array of color stops.
  */
-using ColorStopArray                       = SmallVector<ColorStop, 2>;
+using ColorStopArray                     = SmallVector<ColorStop, 2>;
 
 /**
- * @brief The resolution for the gradient, used in shader calculations.
+ * @brief The maximum number of color stops allowed in a gradient.
  *
  * @note Must match the value in Shader
  */
-constexpr inline size_t gradientResolution = 1024;
+constexpr inline size_t gradientMaxStops = 24;
+
+static_assert(gradientMaxStops % 4 == 0, "gradientMaxStops must be multiple of 4");
+static_assert(gradientMaxStops >= 16, "gradientMaxStops must be at least 16");
 
 struct Gradient;
 
@@ -68,7 +71,8 @@ struct Gradient;
  * @brief Struct for storing gradient data.
  */
 struct GradientData {
-    std::array<ColorF, gradientResolution> data;
+    std::array<float, gradientMaxStops> positions;
+    std::array<ColorF, gradientMaxStops> colors;
 
     GradientData() noexcept                               = default; ///< Default constructor.
     GradientData(const GradientData&) noexcept            = default; ///< Copy constructor.
@@ -81,19 +85,6 @@ struct GradientData {
      * @param gradient The gradient from which to construct the data.
      */
     explicit GradientData(const Gradient& gradient);
-
-    /**
-     * @brief Constructs GradientData from a function mapping float to ColorW.
-     * @param func The function to map positions to colors.
-     */
-    explicit GradientData(function_ref<ColorW(float)> func);
-
-    /**
-     * @brief Constructs GradientData from a vector of colors and a gamma correction factor.
-     * @param list A vector of colors to use in the gradient.
-     * @param gamma The gamma correction factor to apply.
-     */
-    explicit GradientData(const std::vector<ColorW>& list, float gamma);
 
     /**
      * @brief Gets the color at a specified position.

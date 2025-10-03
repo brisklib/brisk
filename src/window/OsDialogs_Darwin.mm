@@ -42,24 +42,54 @@
 
 namespace Brisk {
 
-void Shell::openURLInBrowser(std::string_view url_str) {
+static void openURL(std::string_view url_str, bool isPath) {
     mustBeMainThread();
-    CFURLRef url = CFURLCreateWithBytes(NULL,                   // allocator
-                                        (UInt8*)url_str.data(), // URLBytes
-                                        url_str.size(),         // length
-                                        kCFStringEncodingUTF8,  // encoding
-                                        NULL                    // baseURL
-    );
-    LSOpenCFURLRef(url, 0);
-    CFRelease(url);
+    if (url_str.empty()) {
+        BRISK_LOG_ERROR("openURL: Empty URL provided");
+        return;
+    }
+
+    NSString* urlString = [[NSString alloc] initWithBytes:url_str.data()
+                                                   length:url_str.size()
+                                                 encoding:NSUTF8StringEncoding];
+    if (!urlString) {
+        BRISK_LOG_ERROR("openURL: Failed to create NSString from URL");
+        return;
+    }
+
+    NSURL* url;
+    if (isPath)
+        url = [NSURL fileURLWithPath:urlString];
+    else
+        url = [NSURL URLWithString:urlString];
+    if (!url) {
+        BRISK_LOG_ERROR("openURL: Invalid URL: {}", url_str);
+        return;
+    }
+
+    @autoreleasepool {
+        if (![[NSWorkspace sharedWorkspace] openURL:url]) {
+            BRISK_LOG_ERROR("openURL: Failed to open URL: {}", url_str);
+        }
+    }
+}
+
+void Shell::openURLInBrowser(std::string_view url_str) {
+    mainScheduler->dispatchAndWait([&]() {
+        Brisk::openURL(url_str, false);
+    });
 }
 
 void Shell::openFolder(const fs::path& path) {
-    return openURLInBrowser("file://" + path.string());
+    mainScheduler->dispatchAndWait([&]() {
+        Brisk::openURL(path.string(), true);
+    });
 }
 
 void Shell::openFileInDefaultApp(const fs::path& path) {
-    return openURLInBrowser("file://" + path.string());
+    mainScheduler->dispatchAndWait([&]() {
+        Brisk::openURL(path.string(), true);
+    });
 }
 
 static std::string buttonName(DialogButtons btn) {
@@ -205,8 +235,8 @@ static std::optional<fs::path> showChildOpenDialog(NativeWindow* window,
                 return path;
             }
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showOpenDialog: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showOpenDialog: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return {};
         }
     }
@@ -236,8 +266,8 @@ static std::optional<fs::path> showChildSaveDialog(NativeWindow* window,
         @try {
             dialog = [NSSavePanel savePanel];
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showSaveDialog: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showSaveDialog: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return {};
         }
         [dialog setExtensionHidden:NO];
@@ -279,8 +309,8 @@ static std::vector<fs::path> showChildOpenDialogMulti(NativeWindow* window,
         @try {
             dialog = [NSOpenPanel openPanel];
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showOpenDialogMulti: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showOpenDialogMulti: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return {};
         }
         [dialog setAllowsMultipleSelection:YES];
@@ -334,8 +364,8 @@ static std::optional<fs::path> showChildFolderDialog(NativeWindow* window, const
                 return path;
             }
         } @catch (NSException* exception) {
-            LOG_ERROR(window, "showFolderDialog: {} {}", fromNSString(exception.name),
-                      fromNSString(exception.reason));
+            BRISK_LOG_ERROR("showFolderDialog: {} {}", fromNSString(exception.name),
+                            fromNSString(exception.reason));
             return std::nullopt;
         }
     }

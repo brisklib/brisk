@@ -67,7 +67,7 @@ static std::string_view freeTypeError(FT_Error err) {
 }
 
 static void handleFTErrSoft(FT_Error err) {
-    LOG_ERROR(freetype, "FreeType Error: {}", freeTypeError(err));
+    BRISK_LOG_ERROR("FreeType Error: {}", freeTypeError(err));
 }
 
 #define HANDLE_FT_ERROR(expression)                                                                          \
@@ -327,7 +327,7 @@ struct FontFace {
 
         if (isSvg()) {
             if (face->glyph->format != FT_GLYPH_FORMAT_SVG) {
-                LOG_WARN(font, "Cannot load svg glyph #{} from a SVG font {}", glyphIndex, familyName());
+                BRISK_LOG_WARN("Cannot load svg glyph #{} from a SVG font {}", glyphIndex, familyName());
                 return std::nullopt;
             }
             FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
@@ -531,7 +531,7 @@ FontManager::FontManager(std::recursive_mutex* mutex, int hscale, uint32_t cache
 
     FT_Module mod = FT_Get_Module(reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg");
     if (!mod) {
-        LOG_ERROR(svg, "ot-svg module is not found");
+        BRISK_LOG_ERROR("ot-svg module is not found");
     }
 
     HANDLE_FT_ERROR(

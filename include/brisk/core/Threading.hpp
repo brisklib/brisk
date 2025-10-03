@@ -94,9 +94,9 @@ namespace Internal {
     try {                                                                                                    \
         __VA_ARGS__;                                                                                         \
     } catch (const std::exception& e) {                                                                      \
-        LOG_WARN(core, "Exception suppressed: {}", e.what());                                                \
+        BRISK_LOG_WARN("Exception suppressed: {}", e.what());                                                \
     } catch (...) {                                                                                          \
-        LOG_WARN(core, "Unknown exception suppressed");                                                      \
+        BRISK_LOG_WARN("Unknown exception suppressed");                                                      \
     }
 #else
 #define BRISK_SUPPRESS_EXCEPTIONS(...)                                                                       \
@@ -113,9 +113,9 @@ void suppressExceptions(Fn&& fn, Args&&... args) {
         std::forward<Fn>(fn)(std::forward<Args>(args)...);
 #ifdef BRISK_EXCEPTIONS
     } catch (const std::exception& e) {
-        LOG_WARN(core, "Exception suppressed: {}", e.what());
+        BRISK_LOG_WARN("Exception suppressed: {}", e.what());
     } catch (...) {
-        LOG_WARN(core, "Unknown exception suppressed");
+        BRISK_LOG_WARN("Unknown exception suppressed");
     }
 #endif
 }

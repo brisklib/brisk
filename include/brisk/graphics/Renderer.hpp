@@ -210,7 +210,7 @@ public:
      * @param commands The rendering commands.
      * @param data Associated data.
      */
-    virtual void batch(std::span<const RenderState> commands, std::span<const float> data)          = 0;
+    virtual void batch(std::span<const RenderState> commands, std::span<const uint32_t> data)       = 0;
 
     /**
      * @brief Ends the rendering operation.
@@ -270,13 +270,13 @@ public:
      * @brief Retrieves the current clipping rectangle.
      * @return The current clipping rectangle in screen coordinates.
      */
-    Rectangle clipRect() const;
+    Rectangle globalScissor() const;
 
     /**
      * @brief Sets the clipping rectangle for rendering operations.
-     * @param clipRect The new clipping rectangle in screen coordinates (origin at top-left).
+     * @param scissorRect The new clipping rectangle in screen coordinates (origin at top-left).
      */
-    void setClipRect(Rectangle clipRect) final;
+    void setGlobalScissor(Rectangle scissorRect) final;
 
     using RenderContext::command;
 
@@ -285,7 +285,7 @@ public:
      * @param cmd The render state command.
      * @param data Optional associated data.
      */
-    void command(RenderStateEx&& cmd, std::span<const float> data = {}) final;
+    void command(RenderStateEx&& cmd, std::span<const uint32_t> data = {}) final;
 
     /**
      * @brief Retrieves the number of batches processed.
@@ -312,10 +312,10 @@ private:
     RenderLimits m_limits;               ///< Resource limits for the pipeline.
     RenderResources& m_resources;        ///< Rendering resources.
     std::vector<RenderState> m_commands; ///< List of rendering commands queued for execution.
-    std::vector<float> m_data;           ///< Buffer for associated rendering data.
+    std::vector<uint32_t> m_data;        ///< Buffer for associated rendering data.
     std::vector<Rc<Image>> m_textures;   ///< List of textures used in rendering.
     int m_numBatches = 0;                ///< Number of rendering batches.
-    Rectangle m_clipRect;                ///< The current clipping rectangle.
+    Rectangle m_globalScissor;                ///< The current clipping rectangle.
 };
 
 /**
@@ -366,13 +366,14 @@ public:
      * @brief Sets the size of the render target.
      * @param newSize The new size.
      */
-    virtual void setSize(Size newSize) = 0;
+    virtual void setSize(Size newSize)                = 0;
 
     /**
      * @brief Returns the rendered image.
+     * @param reset If true, creates a new image for the target.
      * @return The rendered image.
      */
-    virtual Rc<Image> image() const    = 0;
+    virtual Rc<Image> image(bool reset = false) const = 0;
 };
 
 /**
@@ -383,56 +384,6 @@ enum class DepthStencilType {
     None,  ///< No depth-stencil buffer.
     D24S8, ///< 24-bit depth, 8-bit stencil buffer.
     D32,   ///< 32-bit depth buffer.
-};
-
-/**
- * @enum BlendMode
- * @brief Defines different blending modes for combining colors.
- *
- * Blending modes determine how two colors (source and destination) are combined
- * when rendering graphics. The result depends on the mathematical formula associated
- * with each mode.
- *
- * The formulas use the following notation:
- * - Csrc : Source color
- * - Cdst : Destination color
- * - Cout : Output color
- *
- * @note Color values are typically in the range [0,1].
- */
-enum class BlendMode {
-    /**
-     * @brief Normal blending mode.
-     *
-     * The source color simply replaces the destination color.
-     * Cout = Csrc
-     */
-    Normal,
-
-    /**
-     * @brief Multiply blending mode.
-     *
-     * The source and destination colors are multiplied together,
-     * resulting in a darker image.
-     * Cout = Csrc × Cdst
-     */
-    Multiply,
-
-    /**
-     * @brief Screen blending mode.
-     *
-     * The inverse of the multiplied inverse colors, resulting in a lighter image.
-     * Cout = 1 - (1 - Csrc) × (1 - Cdst)
-     */
-    Screen,
-
-    /**
-     * @brief Difference blending mode.
-     *
-     * The absolute difference between the source and destination colors.
-     * Cout = |Csrc - Cdst|
-     */
-    Difference,
 };
 
 /**

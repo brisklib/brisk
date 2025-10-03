@@ -36,7 +36,7 @@ public:
         bufferSize = bufferConsumed = 0;
         LZ4F_errorCode_t result     = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
         if (LZ4F_isError(result)) {
-            LOG_ERROR(lz4, "LZ4F_createDecompressionContext failed: {}", LZ4F_getErrorName(result));
+            BRISK_LOG_ERROR("LZ4F_createDecompressionContext failed: {}", LZ4F_getErrorName(result));
             dctx = nullptr;
         }
     }
@@ -67,7 +67,7 @@ public:
             size_t next_out_size = available_out;
             size_t result = LZ4F_decompress(dctx, next_out, &next_out_size, next_in, &in_size, nullptr);
             if (LZ4F_isError(result)) {
-                LOG_ERROR(lz4, "LZ4F_decompress failed: {}", LZ4F_getErrorName(result));
+                BRISK_LOG_ERROR("LZ4F_decompress failed: {}", LZ4F_getErrorName(result));
                 return Transferred::Error;
             }
 
@@ -125,7 +125,7 @@ public:
 
         LZ4F_errorCode_t result = LZ4F_createCompressionContext(&cctx, LZ4F_VERSION);
         if (LZ4F_isError(result)) {
-            LOG_ERROR(lz4, "LZ4F_createCompressionContext failed: {}", LZ4F_getErrorName(result));
+            BRISK_LOG_ERROR("LZ4F_createCompressionContext failed: {}", LZ4F_getErrorName(result));
             cctx = nullptr;
         }
         preferences.frameInfo.blockSizeID = LZ4F_max4MB;
@@ -140,7 +140,7 @@ public:
         size_t headerSize =
             LZ4F_compressBegin(cctx, (uint8_t*)headerData, std::size(headerData), &preferences);
         if (LZ4F_isError(headerSize)) {
-            LOG_ERROR(lz4, "LZ4F_compressBegin failed: {}", LZ4F_getErrorName(headerSize));
+            BRISK_LOG_ERROR("LZ4F_compressBegin failed: {}", LZ4F_getErrorName(headerSize));
             return false;
         }
         return this->writer->write(headerData, headerSize) == headerSize;
@@ -167,7 +167,7 @@ public:
             size_t result        = LZ4F_compressUpdate(cctx, next_out, available_out, next_in,
                                                        std::min(available_in, compressionBatchSize), nullptr);
             if (LZ4F_isError(result)) {
-                LOG_ERROR(lz4, "LZ4F_compressUpdate failed: {}", LZ4F_getErrorName(result));
+                BRISK_LOG_ERROR("LZ4F_compressUpdate failed: {}", LZ4F_getErrorName(result));
                 return Transferred::Error;
             }
 
@@ -198,7 +198,7 @@ public:
 
         size_t result        = LZ4F_compressEnd(cctx, next_out, available_out, nullptr);
         if (LZ4F_isError(result)) {
-            LOG_ERROR(lz4, "LZ4F_compressEnd failed: {}", LZ4F_getErrorName(result));
+            BRISK_LOG_ERROR("LZ4F_compressEnd failed: {}", LZ4F_getErrorName(result));
             return false;
         }
 
@@ -244,7 +244,7 @@ Bytes lz4Encode(BytesView data, CompressionLevel level) {
     size_t compressed_size =
         LZ4F_compressFrame(result.data(), max_compressed_size, data.data(), data.size(), nullptr);
     if (LZ4F_isError(compressed_size)) {
-        LOG_ERROR(lz4, "LZ4F_compressFrame failed: {}", LZ4F_getErrorName(compressed_size));
+        BRISK_LOG_ERROR("LZ4F_compressFrame failed: {}", LZ4F_getErrorName(compressed_size));
         return {};
     }
 
@@ -265,7 +265,7 @@ Bytes lz4Decode(BytesView data) {
     size_t result_size =
         LZ4F_decompress(dctx, result.data(), &decoded_size, data.data(), &consumed_size, nullptr);
     if (LZ4F_isError(result_size)) {
-        LOG_ERROR(lz4, "LZ4F_decompress failed: {}", LZ4F_getErrorName(result_size));
+        BRISK_LOG_ERROR("LZ4F_decompress failed: {}", LZ4F_getErrorName(result_size));
         LZ4F_freeDecompressionContext(dctx);
         return {};
     }

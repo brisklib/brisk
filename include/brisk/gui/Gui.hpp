@@ -291,10 +291,6 @@ constexpr inline size_t numProperties = 102;
 } // namespace Internal
 
 namespace Internal {
-template <typename Type>
-using Fn0Type = Type (*)();
-template <typename Type>
-using Fn1Type = Type (*)(Widget*);
 
 template <std::derived_from<Object> U>
 void fixClone(U* ptr) noexcept {
@@ -440,6 +436,16 @@ struct GuiProp {
         reset(self);
     }
 
+    template <invocable_r<ValueType, WidgetClass*> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn(self));
+    }
+
+    template <invocable_r<ValueType> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn());
+    }
+
     ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
         return (self->*field);
     }
@@ -518,6 +524,16 @@ struct GuiProp<WidgetClass, Animated<ValueType, AnimatedType>> {
         reset(self);
     }
 
+    template <invocable_r<ValueType, WidgetClass*> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn(self));
+    }
+
+    template <invocable_r<ValueType> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn());
+    }
+
     ValueOrConstRef<ValueType> get(const WidgetClass* self) const noexcept {
         return (self->*field).value;
     }
@@ -576,6 +592,16 @@ struct GuiPropCompound {
 
     void set(WidgetClass* self, Initial) const {
         reset(self);
+    }
+
+    template <invocable_r<ValueType, WidgetClass*> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn(self));
+    }
+
+    template <invocable_r<ValueType> Fn>
+    void set(WidgetClass* self, Fn&& fn) const {
+        set(self, fn());
     }
 
     CurrentValueType current(const WidgetClass* self) const noexcept {
@@ -1970,8 +1996,8 @@ void applier(Widget* target, ArgVal<Tag::WithRole<WidgetType, Name>> value) {
 
 namespace Internal {
 inline void invalidPropertyApplication(Widget* target, std::string_view name) {
-    LOG_WARN(gui, "Property {} is not applicable to widget type {}", name,
-             target->dynamicMetaClass()->className);
+    BRISK_LOG_WARN("Property {} is not applicable to widget type {}", name,
+                   target->dynamicMetaClass()->className);
 }
 } // namespace Internal
 

@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include "Common.hpp"
@@ -31,13 +32,15 @@ namespace Brisk {
 class Rle {
 public:
     struct Span {
-        short x{ 0 };
-        short y{ 0 };
+        int16_t x{ 0 };
+        int16_t y{ 0 };
         uint16_t len{ 0 };
         uint8_t coverage{ 0 };
+
+        bool operator==(const Span& other) const noexcept = default;
     };
 
-    using RleSpanCb = void (*)(size_t count, const Rle::Span* spans, void* userData);
+    using View = std::span<const Span>;
 
     bool empty() const {
         return mSpans.empty();
@@ -45,9 +48,11 @@ public:
 
     Rectangle boundingRect() const;
 
-    void setBoundingRect(const Rectangle& bbox);
+    void setBoundingRect(Rectangle bbox);
 
-    void addSpan(const Rle::Span* span, size_t count);
+    void addSpans(const Rle::Span* span, size_t count);
+    void addSpans(std::span<const Rle::Span> spans);
+    void addSpan(Rle::Span span);
 
     void reset();
 
@@ -56,6 +61,8 @@ public:
     const std::vector<Rle::Span>& spans() const {
         return mSpans;
     }
+
+    void addRect(Rectangle rect);
 
 private:
     void updateBbox() const;

@@ -127,6 +127,7 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
         REQUIRE(!info.api.empty());
         REQUIRE(!info.vendor.empty());
         REQUIRE(!info.device.empty());
+        INFO(info.vendor);
 
         Rc<ImageRenderTarget> target = device->createImageTarget(size, PixelType::U8Gamma);
 
@@ -155,15 +156,15 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
 
                 if constexpr (profile) {
                     encoder->endFrame(
-                        [referenceImageName](uint64_t frame,
-                                             std::span<const std::chrono::nanoseconds> durations) {
+                        [referenceImageName, bk, info](uint64_t frame,
+                                                       std::span<const std::chrono::nanoseconds> durations) {
                             using dur = std::chrono::duration<double, std::micro>;
                             SmallVector<dur, RenderEncoder::maxDurations> durations_us(durations.size());
                             for (size_t i = 0; i < durations_us.size(); ++i) {
                                 durations_us[i] = std::chrono::duration_cast<dur>(durations[i]);
                             }
-                            fmt::println("{} GPU execution times: {}\n", referenceImageName,
-                                         fmt::join(durations_us, ", "));
+                            fmt::println("{} GPU execution times: {} ({} {})\n", referenceImageName,
+                                         fmt::join(durations_us, ", "), bk, info.vendor);
                         });
                 }
 

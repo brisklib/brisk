@@ -46,7 +46,7 @@ void Switch::onEvent(Event& event) {
 
 void switchPainter(Canvas& canvas, const Widget& widget_) {
     if (!dynamicCast<const Switch*>(&widget_)) {
-        LOG_ERROR(widgets, "switchPainter called for a non-Switch widget");
+        BRISK_LOG_ERROR("switchPainter called for a non-Switch widget");
         return;
     }
     const Switch& widget    = static_cast<const Switch&>(widget_);

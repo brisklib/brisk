@@ -64,17 +64,16 @@ bool GuiWindow::handleEvent(function<void()> fn) {
     uiScheduler->dispatchAndWait([fn = std::move(fn), this, &result, &finished] {
         fn();
         uint32_t cookie = m_inputQueue.events.back().cookie();
-        LOG_DEBUG(gui, "wait cookie={:08X}", cookie);
+        BRISK_LOG_DEBUG("wait cookie={:08X}", cookie);
 
         windowApplication->afterRenderQueue->dispatch(
             [this, &result, cookie, &finished] {
-                LOG_DEBUG(gui, "m_unhandledEvents.size={}", m_unhandledEvents.size());
-                LOG_DEBUG(gui, "unhandled cookies = {}",
-                          join(map(m_unhandledEvents,
-                                   [](uint32_t c) {
-                                       return fmt::format("{:08}", c);
-                                   }),
-                               ","));
+                BRISK_LOG_DEBUG("m_unhandledEvents.size={}", m_unhandledEvents.size());
+                BRISK_LOG_DEBUG("unhandled cookies = {}", join(map(m_unhandledEvents,
+                                                                   [](uint32_t c) {
+                                                                       return fmt::format("{:08}", c);
+                                                                   }),
+                                                               ","));
 
                 auto it = std::find(m_unhandledEvents.begin(), m_unhandledEvents.end(), cookie);
                 // Event is considered handled if not found in m_unhandledEvents.
@@ -148,7 +147,7 @@ GuiWindow::GuiWindow(Rc<Component> component) : Window(), m_component(std::move(
         m_unhandledEvents.push_back(event.cookie());
     };
 
-    LOG_INFO(window, "Done creating GuiWindow");
+    BRISK_LOG_INFO("Done creating GuiWindow");
 }
 
 void GuiWindow::rebuild() {

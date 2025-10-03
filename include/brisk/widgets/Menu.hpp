@@ -20,14 +20,14 @@
  */
 #pragma once
 
-#include "AutoScrollable.hpp"
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 
-class WIDGET Menu : public AutoScrollable {
-    BRISK_DYNAMIC_CLASS(Menu, AutoScrollable)
+class WIDGET Menu : public Widget {
+    BRISK_DYNAMIC_CLASS(Menu, Widget)
 public:
-    using Base                                   = AutoScrollable;
+    using Base                                   = Widget;
     constexpr static std::string_view widgetType = "menu";
     using Widget::apply;
 

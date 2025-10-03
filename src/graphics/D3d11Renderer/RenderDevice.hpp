@@ -89,7 +89,7 @@ private:
     ComPtr<ID3D11RasterizerState> m_rasterizerState;
     ComPtr<ID3D11SamplerState> m_atlasSampler;
     ComPtr<ID3D11SamplerState> m_gradientSampler;
-    ComPtr<ID3D11SamplerState> m_boundSampler;
+    ComPtr<ID3D11SamplerState> m_sampler;
     ComPtr<ID3D11Buffer> m_perFrameConstantBuffer;
     int m_windowTargets = 0;
     RenderResources m_resources;

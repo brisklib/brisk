@@ -226,9 +226,9 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
         exitCode = Example::main();
 #ifdef BRISK_EXCEPTIONS
     } catch (std::exception& exc) {
-        LOG_DEBUG(application, "Exception occurred: {}", exc.what());
+        BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
     } catch (...) {
-        LOG_DEBUG(application, "Unknown exception occurred");
+        BRISK_LOG_DEBUG("Unknown exception occurred");
     }
 #endif
     // Clean up Brisk resources
@@ -249,9 +249,9 @@ int main(int argc, char** argv) {
         exitCode = Example::main();
 #ifdef BRISK_EXCEPTIONS
     } catch (std::exception& exc) {
-        LOG_DEBUG(application, "Exception occurred: {}", exc.what());
+        BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
     } catch (...) {
-        LOG_DEBUG(application, "Unknown exception occurred");
+        BRISK_LOG_DEBUG("Unknown exception occurred");
     }
 #endif
     // Clean up Brisk resources

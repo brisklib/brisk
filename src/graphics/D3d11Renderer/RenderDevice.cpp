@@ -31,12 +31,6 @@
 
 namespace Brisk {
 
-static D3D_DRIVER_TYPE driverTypes[] = {
-    D3D_DRIVER_TYPE_HARDWARE,
-    D3D_DRIVER_TYPE_WARP,
-    D3D_DRIVER_TYPE_SOFTWARE,
-};
-
 static D3D_FEATURE_LEVEL featureLevels[] = {
     D3D_FEATURE_LEVEL_11_1,
     D3D_FEATURE_LEVEL_11_0,
@@ -50,11 +44,14 @@ bool RenderDeviceD3d11::createDevice(UINT flags) {
     if (!SUCCEEDED(hr))
         return false;
 
+    bool warp                  = std::getenv("BRISK_USE_SOFTWARE_RENDERER") != nullptr;
+    D3D_DRIVER_TYPE driverType = warp ? D3D_DRIVER_TYPE_WARP : D3D_DRIVER_TYPE_UNKNOWN;
+
     if (m_display) {
         m_adapter = adapterForMonitor(m_display.hMonitor(), m_factory);
         if (m_adapter) {
-            hr = D3D11CreateDevice(m_adapter.Get(),                             //
-                                   D3D_DRIVER_TYPE_UNKNOWN,                     //
+            hr = D3D11CreateDevice(warp ? nullptr : m_adapter.Get(),            //
+                                   driverType,                                  //
                                    0,                                           //
                                    flags,                                       //
                                    std::data(featureLevels),                    //
@@ -84,7 +81,7 @@ bool RenderDeviceD3d11::createDevice(UINT flags) {
                      idx, pref, IID_PPV_ARGS(m_adapter.ReleaseAndGetAddressOf())));
                  idx++) {
                 hr = D3D11CreateDevice(m_adapter.Get(),                             //
-                                       D3D_DRIVER_TYPE_UNKNOWN,                     //
+                                       driverType,                                  //
                                        0,                                           //
                                        flags,                                       //
                                        std::data(featureLevels),                    //
@@ -101,9 +98,15 @@ bool RenderDeviceD3d11::createDevice(UINT flags) {
         m_adapter = nullptr;
     }
 
-    for (D3D_DRIVER_TYPE driverType : driverTypes) {
+    static const D3D_DRIVER_TYPE driverTypes[] = {
+        D3D_DRIVER_TYPE_HARDWARE,
+        D3D_DRIVER_TYPE_WARP,
+        D3D_DRIVER_TYPE_SOFTWARE,
+    };
+
+    for (size_t i = warp ? 1 : 0; i < std::size(driverTypes); ++i) {
         hr = D3D11CreateDevice(m_adapter.Get(),                             //
-                               driverType,                                  //
+                               driverTypes[i],                              //
                                0,                                           //
                                flags,                                       //
                                std::data(featureLevels),                    //
@@ -212,7 +215,7 @@ void RenderDeviceD3d11::createSamplers() {
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    hr = m_device->CreateSamplerState(&samplerDesc, m_boundSampler.ReleaseAndGetAddressOf());
+    hr = m_device->CreateSamplerState(&samplerDesc, m_sampler.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return);
 }
 
@@ -285,6 +288,9 @@ Rc<WindowRenderTarget> RenderDeviceD3d11::createWindowTarget(const NativeWindow*
 
 Rc<ImageRenderTarget> RenderDeviceD3d11::createImageTarget(Size frameSize, PixelType type,
                                                            DepthStencilType depthStencil, int samples) {
+    if (frameSize.longestSide() >= 16384) {
+        throwException(EImageError("Requested image render target size is too large: {}", frameSize));
+    }
     return rcnew ImageRenderTargetD3d11(shared_from_this(), frameSize, type, depthStencil, samples);
 }
 

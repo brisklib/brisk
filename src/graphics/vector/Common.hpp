@@ -43,7 +43,7 @@ static inline bool vIsZero(double f) {
     return (std::abs(f) <= EPSILON_DOUBLE);
 }
 
-inline bool fuzzyCompare(const PointF& p1, const PointF& p2) {
+inline bool fuzzyCompare(PointF p1, PointF p2) {
     return (vCompare(p1.x, p2.x) && vCompare(p1.y, p2.y));
 }
 } // namespace Brisk

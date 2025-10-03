@@ -133,19 +133,19 @@ struct JsonConverter {
  */
 using JsonVariant = std::variant<JsonNull, JsonArray, JsonObject, JsonString, JsonSignedInteger,
                                  JsonUnsignedInteger, JsonFloat, JsonBool>;
-using JsonTypes = TypeIDs<JsonNull, JsonArray, JsonObject, JsonString, JsonSignedInteger, JsonUnsignedInteger,
+using JsonTypes = TypeIds<JsonNull, JsonArray, JsonObject, JsonString, JsonSignedInteger, JsonUnsignedInteger,
                           JsonFloat, JsonBool>;
 
 template <typename T, typename... V>
-constexpr size_t findType(TypeIDs<>) {
+constexpr size_t findType(TypeIds<>) {
     return 0;
 }
 
 template <typename T, typename V0, typename... V>
-constexpr size_t findType(TypeIDs<V0, V...>) {
+constexpr size_t findType(TypeIds<V0, V...>) {
     if (std::is_same_v<T, V0>)
         return 0;
-    return 1 + findType<T>(TypeIDs<V...>{});
+    return 1 + findType<T>(TypeIds<V...>{});
 }
 
 template <typename T>

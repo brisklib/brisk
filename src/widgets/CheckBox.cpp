@@ -52,7 +52,7 @@ static void checkMark(Canvas& canvas, RectangleF markRect, ColorW color, float i
 
 void checkBoxPainter(Canvas& canvas, const Widget& widget_) {
     if (!dynamicCast<const CheckBox*>(&widget_)) {
-        LOG_ERROR(widgets, "checkBoxPainter called for a non-CheckBox widget");
+        BRISK_LOG_ERROR("checkBoxPainter called for a non-CheckBox widget");
         return;
     }
     const CheckBox& widget  = static_cast<const CheckBox&>(widget_);

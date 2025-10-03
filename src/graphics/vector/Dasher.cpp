@@ -49,7 +49,7 @@ Dasher::Dasher(const float* dashArray, size_t size) {
     }
 }
 
-void Dasher::moveTo(const PointF& p) {
+void Dasher::moveTo(PointF p) {
     mDiscard         = false;
     mStartNewSegment = true;
     mCurPt           = p;
@@ -89,7 +89,7 @@ void Dasher::moveTo(const PointF& p) {
         updateActiveSegment();
 }
 
-void Dasher::addLine(const PointF& p) {
+void Dasher::addLine(PointF p) {
     if (mDiscard)
         return;
 
@@ -115,7 +115,7 @@ void Dasher::updateActiveSegment() {
         updateActiveSegment();
 }
 
-void Dasher::lineTo(const PointF& p) {
+void Dasher::lineTo(PointF p) {
     VLine left, right;
     VLine line(mCurPt, p);
     float length = line.length();
@@ -147,7 +147,17 @@ void Dasher::lineTo(const PointF& p) {
     mCurPt = p;
 }
 
-void Dasher::addCubic(const PointF& cp1, const PointF& cp2, const PointF& e) {
+void Dasher::addQuadratic(PointF cp, PointF e) {
+    if (mDiscard)
+        return;
+    if (mStartNewSegment) {
+        mResult->moveTo(mCurPt);
+        mStartNewSegment = false;
+    }
+    mResult->quadraticTo(cp, e);
+}
+
+void Dasher::addCubic(PointF cp1, PointF cp2, PointF e) {
     if (mDiscard)
         return;
 
@@ -158,7 +168,39 @@ void Dasher::addCubic(const PointF& cp1, const PointF& cp2, const PointF& e) {
     mResult->cubicTo(cp1, cp2, e);
 }
 
-void Dasher::cubicTo(const PointF& cp1, const PointF& cp2, const PointF& e) {
+void Dasher::quadraticTo(PointF cp, PointF e) {
+    Bezier left, right;
+    Bezier b     = Bezier::fromPoints(mCurPt, cp, e);
+    float bezLen = b.length();
+
+    if (bezLen <= mCurrentLength) {
+        mCurrentLength -= bezLen;
+        addQuadratic(cp, e);
+    } else {
+        while (bezLen > mCurrentLength) {
+            bezLen -= mCurrentLength;
+            b.splitAtLength(mCurrentLength, &left, &right);
+
+            addCubic(left.pt2(), left.pt3(), left.pt4());
+            updateActiveSegment();
+
+            b      = right;
+            mCurPt = b.pt1();
+        }
+        // handle remainder
+        if (bezLen > tolerance) {
+            mCurrentLength -= bezLen;
+            addCubic(b.pt2(), b.pt3(), b.pt4());
+        }
+    }
+
+    if (mCurrentLength < tolerance)
+        updateActiveSegment();
+
+    mCurPt = e;
+}
+
+void Dasher::cubicTo(PointF cp1, PointF cp2, PointF e) {
     Bezier left, right;
     Bezier b     = Bezier::fromPoints(mCurPt, cp1, cp2, e);
     float bezLen = b.length();
@@ -206,6 +248,11 @@ void Dasher::dashHelper(const Path& path, Path& result) {
         }
         case Path::Element::LineTo: {
             lineTo(*ptPtr++);
+            break;
+        }
+        case Path::Element::QuadraticTo: {
+            quadraticTo(*ptPtr, *(ptPtr + 1));
+            ptPtr += 2;
             break;
         }
         case Path::Element::CubicTo: {

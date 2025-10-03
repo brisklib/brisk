@@ -88,6 +88,11 @@ struct Undefined {};
 
 constexpr inline Undefined undef{};
 
+struct SimpleResolveContext {
+    Rectangle bounds;        ///< The bounds of the rectangle for resolution.
+    Orientation orientation; ///< The orientation for resolution.
+};
+
 template <IsLengthUnit Unit>
 struct LengthOf {
     constexpr LengthOf() noexcept
@@ -124,7 +129,43 @@ struct LengthOf {
         return unpackValue(m_packed);
     }
 
-    constexpr float staticResolve() const noexcept {
+    constexpr float simpleResolve(const SimpleResolveContext& ctx) const noexcept
+        requires std::same_as<LengthUnit, Unit>
+    {
+        switch (unit()) {
+        case LengthUnit::Undefined:
+        case LengthUnit::Auto:
+            return std::numeric_limits<float>::quiet_NaN();
+        case LengthUnit::Em:
+        case LengthUnit::Vw:
+            return value() * 0.01f * ctx.bounds.width();
+        case LengthUnit::Vh:
+            return value() * 0.01f * ctx.bounds.height();
+        case LengthUnit::Vmin:
+            return value() * 0.01f * ctx.bounds.size().shortestSide();
+        case LengthUnit::Vmax:
+            return value() * 0.01f * ctx.bounds.size().longestSide();
+        case LengthUnit::Percent:
+            return value() * 0.01f * ctx.bounds.size()[+ctx.orientation] + ctx.bounds.p1[+ctx.orientation];
+        case LengthUnit::Pixels:
+            return value() * pixelRatio();
+        case LengthUnit::DevicePixels:
+            return value();
+        case LengthUnit::AlignedPixels:
+            return std::round(value() * pixelRatio());
+        }
+        BRISK_UNREACHABLE();
+    }
+
+    constexpr float operator()(const SimpleResolveContext& ctx) const noexcept
+        requires std::same_as<LengthUnit, Unit>
+    {
+        return simpleResolve(ctx);
+    }
+
+    constexpr float staticResolve() const noexcept
+        requires std::same_as<LengthUnit, Unit>
+    {
         switch (unit()) {
         case LengthUnit::Undefined:
         case LengthUnit::Auto:
@@ -237,6 +278,82 @@ using Length = LengthOf<LengthUnit>;
 
 static_assert(sizeof(Length) == 4);
 static_assert(Length::unitBits <= 4);
+
+enum class LengthUnOp : uint8_t {
+    Negate,
+};
+
+enum class LengthBinOp : uint8_t {
+    Add,
+    Subtract,
+    Min,
+    Max,
+};
+
+template <typename T>
+concept LengthFunction = std::invocable<SimpleResolveContext> &&
+                         std::convertible_to<std::invoke_result_t<SimpleResolveContext, T>, float>;
+
+template <LengthUnOp op, LengthFunction Lhs>
+struct LengthUnary {
+    Lhs m_lhs; ///< The left-hand side operand.
+
+    constexpr float operator()(const SimpleResolveContext& ctx) const noexcept {
+        switch (op) {
+        case LengthUnOp::Negate:
+            return -m_lhs(ctx);
+        default:
+            BRISK_UNREACHABLE();
+        }
+    }
+};
+
+template <LengthBinOp op, LengthFunction Lhs, LengthFunction Rhs>
+struct LengthBinary {
+    Lhs m_lhs; ///< The left-hand side operand.
+    Rhs m_rhs; ///< The right-hand side operand.
+
+    constexpr float operator()(const SimpleResolveContext& ctx) const noexcept {
+        switch (op) {
+        case LengthBinOp::Add:
+            return m_lhs(ctx) + m_rhs(ctx);
+        case LengthBinOp::Subtract:
+            return m_lhs(ctx) - m_rhs(ctx);
+        case LengthBinOp::Min:
+            return std::min(m_lhs(ctx), m_rhs(ctx));
+        case LengthBinOp::Max:
+            return std::max(m_lhs(ctx), m_rhs(ctx));
+        default:
+            BRISK_UNREACHABLE();
+        }
+    }
+};
+
+constexpr auto operator+(LengthFunction auto lhs, LengthFunction auto rhs) noexcept {
+    return LengthBinary<LengthBinOp::Add, decltype(lhs), decltype(rhs)>{ std::move(lhs), std::move(rhs) };
+}
+
+constexpr auto operator-(LengthFunction auto lhs, LengthFunction auto rhs) noexcept {
+    return LengthBinary<LengthBinOp::Subtract, decltype(lhs), decltype(rhs)>{ std::move(lhs),
+                                                                              std::move(rhs) };
+}
+
+constexpr auto min(LengthFunction auto lhs, LengthFunction auto rhs) noexcept {
+    return LengthBinary<LengthBinOp::Min, decltype(lhs), decltype(rhs)>{ std::move(lhs), std::move(rhs) };
+}
+
+constexpr auto max(LengthFunction auto lhs, LengthFunction auto rhs) noexcept {
+    return LengthBinary<LengthBinOp::Max, decltype(lhs), decltype(rhs)>{ std::move(lhs), std::move(rhs) };
+}
+
+constexpr auto clamp(LengthFunction auto value, LengthFunction auto minValue,
+                     LengthFunction auto maxValue) noexcept {
+    return max(min(value, maxValue), minValue);
+}
+
+constexpr auto operator-(LengthFunction auto lhs) noexcept {
+    return LengthUnary<LengthUnOp::Negate, decltype(lhs)>{ std::move(lhs) };
+}
 
 using SizeL    = SizeOf<Length>;
 using PointL   = PointOf<Length>;
