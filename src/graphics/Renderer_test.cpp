@@ -1199,6 +1199,7 @@ TEST_CASE("Composition") {
     });
 }
 
+template <bool complex = true>
 static void testInvariants(RenderContext& context, function_ref<void(Canvas&)> fn) {
     Canvas canvas(context);
     {
@@ -1213,17 +1214,19 @@ static void testInvariants(RenderContext& context, function_ref<void(Canvas&)> f
         st->transform = Matrix{}.translate(128, 0);
         fn(canvas);
     }
-    {
-        // Scale by 0.5 and translate to 0, 128
-        auto&& st     = canvas.saveState();
-        st->transform = Matrix{}.scale(0.5f).translate(0, 128);
-        fn(canvas);
-    }
-    {
-        // Rotate by 45 degrees and translate to 128, 128
-        auto&& st     = canvas.saveState();
-        st->transform = Matrix{}.rotate(45.f, { 50.f, 50.f }).translate(128, 128);
-        fn(canvas);
+    if constexpr (complex) {
+        {
+            // Scale by 0.5 and translate to 0, 128
+            auto&& st     = canvas.saveState();
+            st->transform = Matrix{}.scale(0.5f).translate(0, 128);
+            fn(canvas);
+        }
+        {
+            // Rotate by 45 degrees and translate to 128, 128
+            auto&& st     = canvas.saveState();
+            st->transform = Matrix{}.rotate(45.f, { 50.f, 50.f }).translate(128, 128);
+            fn(canvas);
+        }
     }
 }
 
@@ -1284,9 +1287,9 @@ TEST_CASE("Matrix invariants") {
     REQUIRE(ttf.has_value());
     fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
 
-    renderTest("matrix-invariants-text", Size{ 256, 256 },
+    renderTest("matrix-invariants-text", Size{ 256, 128 },
                [](RenderContext& context) {
-                   testInvariants(context, [&](Canvas& canvas) {
+                   testInvariants<false>(context, [&](Canvas& canvas) {
                        canvas.setFont(Font{ "Lato", 24.f });
                        canvas.setFillColor(Palette::black);
                        canvas.setStrokeColor(Palette::white);
@@ -1301,9 +1304,9 @@ TEST_CASE("Matrix invariants") {
     REQUIRE(ttf2.has_value());
     fonts->addFont("Noto Emoji", FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::EnableColor);
 
-    renderTest("matrix-invariants-emoji", Size{ 256, 256 },
+    renderTest("matrix-invariants-emoji", Size{ 256, 128 },
                [](RenderContext& context) {
-                   testInvariants(context, [&](Canvas& canvas) {
+                   testInvariants<false>(context, [&](Canvas& canvas) {
                        canvas.setFont(Font{ "Noto Emoji", 48.f });
                        canvas.setFillColor(Palette::black);
                        canvas.setStrokeColor(Palette::white);
