@@ -1252,9 +1252,10 @@ TEST_CASE("Matrix invariants") {
                    REQUIRE(image.has_value());
 
                    testInvariants(context, [&](Canvas& canvas) {
-                       Texture texture(
+                       Texture texture{
                            *image, Matrix::mapRect(Rectangle{ {}, (*image)->size() }, { 0, 0, 100.f, 100.f }),
-                           SamplerMode::Clamp);
+                           SamplerMode::Clamp
+                       };
                        Path path;
                        path.addRoundRect({ 0, 0, 100, 100 }, 20.f);
                        canvas.setFillPaint(texture);
