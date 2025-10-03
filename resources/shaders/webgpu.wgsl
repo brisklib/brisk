@@ -667,7 +667,7 @@ fn conj(xy: vec2<f32>) -> vec2<f32> {
     return vec2<f32>(xy.x, -xy.y);
 }
 
-fn sampleBlur_2d(pos: vec2<f32>) -> vec4<f32> {
+fn gaussianBlur_2d(pos: vec2<f32>) -> vec4<f32> {
     let texSize: vec2<i32> = vec2<i32>(textureDimensions(boundTexture_t));
     let sigma: f32 = constants.blur_radius;
     let half_size: i32 = i32(ceil(sigma * 3.0));
@@ -712,7 +712,7 @@ fn sampleBlur_2d(pos: vec2<f32>) -> vec4<f32> {
     return sum;
 }
 
-fn sampleBlur_1d(pos: vec2<f32>, direction: vec2<f32>) -> vec4<f32> {
+fn gaussianBlur_1d(pos: vec2<f32>, direction: vec2<f32>) -> vec4<f32> {
     let texSize: vec2<i32> = vec2<i32>(textureDimensions(boundTexture_t));
     let sigma: f32 = constants.blur_radius;
     let half_size: i32 = i32(ceil(sigma * 3.0));
@@ -742,13 +742,89 @@ fn sampleBlur_1d(pos: vec2<f32>, direction: vec2<f32>) -> vec4<f32> {
     return sum;
 }
 
+fn boxBlur_2d(pos: vec2<f32>) -> vec4<f32> {
+    let texSize: vec2<i32> = vec2<i32>(textureDimensions(boundTexture_t));
+    let radius: f32 = constants.blur_radius;
+    let w: vec2<f32> = 1.0 / vec2<f32>(texSize);
+    let lo = vec2<f32>(0.5) / vec2<f32>(texSize);
+    let hi = vec2<f32>(vec2<f32>(texSize) - 0.5) / vec2<f32>(texSize);
+
+    var sum: vec4<f32> = vec4<f32>(0.0);
+
+    let halfside = i32(ceil(radius));
+
+    for (var i: i32 = -halfside; i <= halfside; i = i + 1) {
+        for (var j: i32 = -halfside; j <= halfside; j = j + 1) {
+            let fx: f32 = 1.0 - max(0.0, abs(f32(i)) - radius);
+            let fy: f32 = 1.0 - max(0.0, abs(f32(j)) - radius);
+            let weight: f32 = fx * fy;
+
+            let offset: vec2<f32> = vec2<f32>(f32(i), f32(j));
+            var sample: vec4<f32>;
+            if constant_sampler_mode() == 0 {
+                sample = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * offset, lo, hi));
+            } else {
+                sample = textureSample(boundTexture_t, boundTexture_s, pos + w * offset);
+            }
+
+            sum = sum + sample * weight;
+        }
+    }
+
+    return sum / sqr(radius * 2.0 + 1.0);
+}
+
+
+fn boxBlur_1d(pos: vec2<f32>, direction: vec2<f32>) -> vec4<f32> {
+    let texSize: vec2<i32> = vec2<i32>(textureDimensions(boundTexture_t));
+    let radius = constants.blur_radius;
+    let w: vec2<f32> = 1.0 / vec2<f32>(texSize);
+    let lo = vec2<f32>(0.5) / vec2<f32>(texSize);
+    let hi = vec2<f32>(vec2<f32>(texSize) - 0.5) / vec2<f32>(texSize);
+
+    var sum: vec4<f32> = textureSample(boundTexture_t, boundTexture_s, pos);
+
+    let halfside = i32(ceil(radius));
+    // accumulate symmetric samples around the center
+    for (var i: i32 = 1; i <= halfside; i = i + 1) {
+        let weight: f32 = 1.0 - max(0.0, abs(f32(i)) - radius);
+        let sample_offset: vec2<f32> = f32(i) * direction;
+
+        if constant_sampler_mode() == 0 {
+            let v1 = textureSample(boundTexture_t, boundTexture_s, clamp(pos + w * sample_offset, lo, hi));
+            let v2 = textureSample(boundTexture_t, boundTexture_s, clamp(pos - w * sample_offset, lo, hi));
+            sum = sum + weight * (v1 + v2);
+        } else {
+            let v1 = textureSample(boundTexture_t, boundTexture_s, pos + w * sample_offset);
+            let v2 = textureSample(boundTexture_t, boundTexture_s, pos - w * sample_offset);
+            sum = sum + weight * (v1 + v2);
+        }
+    }
+
+    return sum / (radius * 2.0 + 1.0);
+}
+
 fn sampleBlur(pos: vec2<f32>) -> vec4<f32> {
-    if constant_blur_directions() == 1u {
-        return sampleBlur_1d(pos, vec2<f32>(1.0, 0.0));
-    } else if constant_blur_directions() == 2u {
-        return sampleBlur_1d(pos, vec2<f32>(0.0, 1.0));
+    let box = (constant_blur_directions() & 4u) != 0u;
+    let dir = constant_blur_directions() & 3u;
+    
+    if box {
+        if dir == 1u {
+            return boxBlur_1d(pos, vec2<f32>(1.0, 0.0));
+        } else if dir == 2u {
+            return boxBlur_1d(pos, vec2<f32>(0.0, 1.0));
+        } else {
+            // both directions
+            return boxBlur_2d(pos);
+        }
     } else {
-        return sampleBlur_2d(pos);
+        if dir == 1u {
+            return gaussianBlur_1d(pos, vec2<f32>(1.0, 0.0));
+        } else if dir == 2u {
+            return gaussianBlur_1d(pos, vec2<f32>(0.0, 1.0));
+        } else {
+            return gaussianBlur_2d(pos);
+        }
     }
 }
 

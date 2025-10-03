@@ -203,17 +203,24 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
     }
     case 2: { // Texture
         const Texture& texture         = std::get<Texture>(paint.paint);
-        renderState->textureMatrix     = (texture.matrix * paint.transform).invert().value_or(Matrix{});
+        Matrix mat                     = texture.matrix * paint.transform;
+        renderState->textureMatrix     = mat.invert().value_or(Matrix{});
         renderState->sourceImageHandle = texture.image;
         renderState->samplerMode       = texture.mode;
         renderState->opacity           = paint.opacity;
-        renderState->blurDirections    = 0;
+        renderState->blurDirections    = 0u;
         if (texture.blurRadius.vertical > 0.f)
-            renderState->blurDirections |= 2;
+            renderState->blurDirections |= 2u;
         if (texture.blurRadius.horizontal > 0.f)
-            renderState->blurDirections |= 1;
+            renderState->blurDirections |= 1u;
         renderState->blurRadius =
             texture.blurRadius.vertical > 0.f ? texture.blurRadius.vertical : texture.blurRadius.horizontal;
+
+        float aaRadius = 0.5f / mat.estimateScale() - 0.5f;
+        if (renderState->blurRadius == 0 && aaRadius > 0.f) {
+            renderState->blurDirections |= 4u;
+            renderState->blurRadius = aaRadius;
+        }
         break;
     }
     }
