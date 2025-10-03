@@ -1315,4 +1315,24 @@ TEST_CASE("Matrix invariants") {
                { 0.5f, 0.5f, 0.5f, 1.0f });
 }
 
+TEST_CASE("Text subpixel alignment") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+
+    renderTest("text-subpixel-alignment", Size{ 256, 440 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Palette::white);
+        canvas.fillRect({ 0, 0, 256, 440 });
+        canvas.setFont(Font{ "Lato", 20.f });
+        canvas.setFillColor(Palette::black);
+        for (int i = 0; i <= 20; ++i) {
+            canvas.setSubpixelTextRendering(true);
+            canvas.fillText(".+|abc", { i * 0.05f, i * 20.f }, { 0.f, 0.f });
+            canvas.setSubpixelTextRendering(false);
+            canvas.fillText(".+|abc", { i * 0.05f + 128.f, i * 20.f }, { 0.f, 0.f });
+        }
+    });
+}
+
 } // namespace Brisk
