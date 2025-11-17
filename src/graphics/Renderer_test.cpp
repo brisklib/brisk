@@ -520,7 +520,7 @@ template <>
 inline constexpr std::initializer_list<NameValuePair<GradientType>> defaultNames<GradientType>{
     { "linear", GradientType::Linear },
     { "radial", GradientType::Radial },
-    { "angle", GradientType::Angle },
+    { "angular", GradientType::Angular },
     { "reflected", GradientType::Reflected },
 };
 using enum TestMode;
@@ -854,7 +854,7 @@ TEST_CASE("JoinStyle") {
 
 TEST_CASE("GradientType") {
     for (GradientType gradientType :
-         { GradientType::Linear, GradientType::Radial, GradientType::Angle, GradientType::Reflected }) {
+         { GradientType::Linear, GradientType::Radial, GradientType::Angular, GradientType::Reflected }) {
 
         renderTest("canvas-gradientType-" + fmt::to_string(gradientType), Size{ 320, 320 },
                    [gradientType](RenderContext& context) {

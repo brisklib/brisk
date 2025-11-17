@@ -136,7 +136,7 @@ constexpr inline Argument<Tag::FillColors> fillColors{};
 constexpr inline Argument<Tag::PaintOpacity> paintOpacity{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Linear>> linearGradient{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Radial>> radialGradient{};
-constexpr inline Argument<Tag::FillGradient<GradientType::Angle>> angleGradient{};
+constexpr inline Argument<Tag::FillGradient<GradientType::Angular>> angularGradient{};
 constexpr inline Argument<Tag::FillGradient<GradientType::Reflected>> reflectedGradient{};
 constexpr inline Argument<Tag::Multigradient> multigradient{};
 constexpr inline Argument<Tag::Patterns> patterns{};
