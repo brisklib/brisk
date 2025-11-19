@@ -164,7 +164,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
             }
             m_data->highSurrogate = 0;
 
-            charEvent(static_cast<char32_t>(codepoint), uMsg == WM_SYSCHAR);
+            return charEvent(static_cast<char32_t>(codepoint), uMsg == WM_SYSCHAR) ? 0 : 1;
         }
 
         return 0;
@@ -178,8 +178,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
             return TRUE;
         }
 
-        charEvent(static_cast<char32_t>(wParam), false);
-        return 0;
+        return charEvent(static_cast<char32_t>(wParam), false) ? 0 : 1;
     }
 
     case WM_KEYDOWN:
@@ -247,17 +246,17 @@ long long PlatformWindow::windowProc(MsgParams params) {
             // HACK: Release both Shift keys on Shift up event, as when both
             //       are pressed the first release does not emit any event
             // NOTE: The other half of this is in pollEvents
-            keyEvent(KeyCode::LeftShift, scancode, action, mods);
-            keyEvent(KeyCode::RightShift, scancode, action, mods);
+            std::ignore = keyEvent(KeyCode::LeftShift, scancode, action, mods);
+            std::ignore = keyEvent(KeyCode::RightShift, scancode, action, mods);
+            return 0;
         } else if (wParam == VK_SNAPSHOT) {
             // HACK: Key down is not reported for the Print Screen key
-            keyEvent(key, scancode, KeyAction::Press, mods);
-            keyEvent(key, scancode, KeyAction::Release, mods);
+            std::ignore = keyEvent(key, scancode, KeyAction::Press, mods);
+            std::ignore = keyEvent(key, scancode, KeyAction::Release, mods);
+            return 0;
         } else {
-            keyEvent(key, scancode, action, mods);
+            return keyEvent(key, scancode, action, mods) ? 0 : 1;
         }
-
-        break;
     }
     case WM_LBUTTONDOWN:
     case WM_RBUTTONDOWN:
@@ -290,7 +289,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         if (!m_mouseState.any())
             SetCapture(m_data->hWnd);
 
-        mouseEvent(button, action, getKeyMods(), m_data->mousePos);
+        bool handled = mouseEvent(button, action, getKeyMods(), m_data->mousePos);
 
         if (!m_mouseState.any())
             ReleaseCapture();
@@ -298,7 +297,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         if (uMsg == WM_XBUTTONDOWN || uMsg == WM_XBUTTONUP)
             return TRUE;
 
-        return 0;
+        return handled ? 0 : 1;
     }
 
     case WM_MOUSEMOVE: {
@@ -317,9 +316,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
 
         m_data->mousePos = { x, y };
 
-        mouseMove(m_data->mousePos);
-
-        return 0;
+        return mouseMove(m_data->mousePos) ? 0 : 1;
     }
     case WM_MOUSELEAVE: {
         m_data->cursorTracked = false;
@@ -327,13 +324,11 @@ long long PlatformWindow::windowProc(MsgParams params) {
         return 0;
     }
     case WM_MOUSEWHEEL: {
-        wheelEvent(0.f, (SHORT)HIWORD(wParam) / (float)WHEEL_DELTA);
-        return 0;
+        return wheelEvent(0.f, (SHORT)HIWORD(wParam) / (float)WHEEL_DELTA) ? 0 : 1;
     }
     case WM_MOUSEHWHEEL: {
         // NOTE: The X-axis is inverted for consistency with macOS and X11
-        wheelEvent(-((SHORT)HIWORD(wParam) / (float)WHEEL_DELTA), 0.f);
-        return 0;
+        return wheelEvent(-((SHORT)HIWORD(wParam) / (float)WHEEL_DELTA), 0.f) ? 0 : 1;
     }
 
     case WM_SIZE: {
@@ -469,7 +464,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         DragQueryPoint(drop, &pt);
 
         m_data->mousePos = { pt.x, pt.y };
-        mouseMove(m_data->mousePos);
+        std::ignore      = mouseMove(m_data->mousePos);
 
         for (int i = 0; i < count; i++) {
             std::wstring ws;
@@ -479,10 +474,10 @@ long long PlatformWindow::windowProc(MsgParams params) {
             paths.push_back(wcsToUtf8(ws));
         }
 
-        filesDropped(std::move(paths));
+        bool handled = filesDropped(std::move(paths));
 
         DragFinish(drop);
-        return 0;
+        return handled ? 0 : 1;
     }
     }
     return DefWindowProcW(m_data->hWnd, uMsg, wParam, lParam);
@@ -1028,7 +1023,7 @@ void PlatformWindow::updateVisibility() {
                 if (!window->m_keyState[+key])
                     continue;
 
-                window->keyEvent(key, scancode, KeyAction::Release, getKeyMods());
+                std::ignore = window->keyEvent(key, scancode, KeyAction::Release, getKeyMods());
             }
         }
     }

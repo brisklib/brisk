@@ -295,7 +295,7 @@ struct Calculator {
     std::optional<std::tuple<Number, ExponentiationOperator>> exponentiationOperation;
     Number currentOperand;
 
-    BindingRegistration registration{ this, uiScheduler };
+    BindingRegistration registration{ this, mainScheduler };
 
     std::string output() const {
         if (editable)

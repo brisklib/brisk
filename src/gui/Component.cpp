@@ -65,9 +65,7 @@ void Component::beforeFrame() {}
 
 void Component::closeWindow() {
     if (auto win = m_window.lock()) {
-        uiScheduler->dispatch([win]() {
-            win->close();
-        });
+        win->close();
     }
 }
 

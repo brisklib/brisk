@@ -83,6 +83,10 @@ public:
     void disableTransitions();
     void disableRealtimeMode();
 
+    void applyStyleChanges();
+    void processAnimations();
+    void updateLayoutAndGeometry();
+
     Callbacks<Widget*> onAttached;
     Callbacks<Widget*> onDetached;
 
@@ -105,9 +109,7 @@ private:
     void groupsBeforePaint();
     void groupsAfterFrame();
     void groupsBeforeLayout();
-    void applyStyleChanges();
-    void processEventsAndAnimations();
-    void updateLayoutAndGeometry();
+    void updateVisibility();
     std::shared_ptr<Widget> m_root;
     std::vector<std::weak_ptr<Widget>> m_animationQueue;
     std::vector<std::weak_ptr<Widget>> m_rebuildQueue;
@@ -126,7 +128,6 @@ private:
     bool m_painting             = false;
     bool m_savedDebugBoundaries = false;
     bool m_realtime             = true;
-    bool m_layoutIsActual       = false;
     InputQueue* m_inputQueue    = nullptr;
 };
 } // namespace Brisk

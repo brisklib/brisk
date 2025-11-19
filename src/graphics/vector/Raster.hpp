@@ -27,6 +27,4 @@
 #include "../Mask.hpp"
 #include "Rle.hpp"
 
-namespace Brisk {
-
-} // namespace Brisk
+namespace Brisk {} // namespace Brisk

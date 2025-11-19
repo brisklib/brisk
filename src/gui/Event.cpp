@@ -23,8 +23,6 @@
 
 namespace Brisk {
 
-std::atomic_uint32_t eventCookie{ 0 };
-
 const char* const eventTypeNames[+EventType::Count] = {
     "Undefined",
     "MouseMoved",
@@ -171,17 +169,9 @@ void InputQueue::beginDrag(std::shared_ptr<Widget> dragSource, std::shared_ptr<O
     this->draggingOnSource = true;
 }
 
-void InputQueue::addEvent(Event event) {
-    events.push_back(std::move(event));
-}
-
-void InputQueue::injectEvent(Event event) {
-    injectedEvents.push_back(std::move(event));
-}
-
 void InputQueue::setFocus(std::shared_ptr<Widget> focus, bool keyboard) {
     if (auto previous = focused.lock()) {
-        addEvent(EventBlurred{ { {}, std::move(previous) } });
+        std::ignore = processEvent(EventBlurred{ { {}, std::move(previous) } });
     }
     if (focus && !focus->m_tabStop) {
         // If the widget doesn't accept focus, find the first descendant that does
@@ -194,7 +184,7 @@ void InputQueue::setFocus(std::shared_ptr<Widget> focus, bool keyboard) {
     focused = focus;
 
     if (focus) {
-        addEvent(EventFocused{ { {}, std::move(focus) }, keyboard });
+        std::ignore = processEvent(EventFocused{ { {}, std::move(focus) }, keyboard });
     }
 }
 
@@ -284,7 +274,7 @@ void InputQueue::handleFocusEvents(Event& e) {
     }
 }
 
-void InputQueue::processKeyEvent(Event e) {
+bool InputQueue::processKeyEvent(Event e) {
     if (isDragging() && e.keyPressed(KeyCode::Escape)) {
         cancelDragging();
     }
@@ -302,9 +292,7 @@ void InputQueue::processKeyEvent(Event e) {
 
     handleFocusEvents(e);
 
-    if (e && unhandledEvent) {
-        unhandledEvent(e);
-    }
+    return !e;
 }
 
 std::optional<std::string> InputQueue::getHintAtMouse() const {
@@ -375,21 +363,22 @@ void InputQueue::cancelDragging() {
     dropAllowed = false;
 }
 
-void InputQueue::processDragEvent(Event e) {
+bool InputQueue::handleDragAndDrop(Event e) {
     // Process mouse event and generate all needed drag&drop events
+    std::shared_ptr<Widget> source = dragSource.lock();
+    if (!source)
+        return false;
+
     std::optional<EventMouse> base         = e.as<EventMouse>();
 
     std::shared_ptr<Widget> previousTarget = dragTarget.lock();
 
-    std::shared_ptr<Widget> source         = dragSource.lock();
-    if (!source)
-        return;
-    auto lookupResult              = getAt(base->point, 0, false);
-    auto [target, index]           = lookupResult;
+    auto lookupResult                      = getAt(base->point, 0, false);
+    auto [target, index]                   = lookupResult;
 
-    std::shared_ptr<Object> object = dragObject;
+    std::shared_ptr<Object> object         = dragObject;
     if (!object)
-        return;
+        return false;
 
     EventDragNDrop dragBase{ *base, base->point, base->downPoint, object, source, target };
     if (e.type() == EventType::MouseMoved) {
@@ -429,14 +418,15 @@ void InputQueue::processDragEvent(Event e) {
     }
 
     draggingOnSource = source->rect().contains(base->point);
+    return true;
 }
 
-void InputQueue::processMouseEvent(Event e) {
+bool InputQueue::processMouseEvent(Event e) {
     std::optional<EventMouse> base = e.as<EventMouse>();
     BRISK_ASSERT(!!base);
 
     if (isDragging()) {
-        processDragEvent(e);
+        std::ignore = handleDragAndDrop(e);
     }
 
     auto [target, index] = getAt(base->point);
@@ -462,20 +452,17 @@ void InputQueue::processMouseEvent(Event e) {
         resetFocus();
         e.stopPropagation();
     }
-    if (e && unhandledEvent) {
-        unhandledEvent(e);
-    }
+    processMouseState();
+    return !e;
 }
 
-void InputQueue::processTargetedEvent(Event e) {
+bool InputQueue::processTargetedEvent(Event e) {
     std::optional<EventTargeted> targeted = e.as<EventTargeted>();
     BRISK_ASSERT(!!targeted);
     if (Rc<Widget> target = targeted->target.lock()) {
         target->processEvent(e);
     }
-    if (e && unhandledEvent) {
-        unhandledEvent(e);
-    }
+    return !e;
 }
 
 template <typename T>
@@ -485,7 +472,7 @@ static bool isVisible(const std::weak_ptr<T>& w) {
 }
 
 template <typename T>
-static void cleanup(std::vector<std::weak_ptr<T>>& vec) {
+static void cleanupVector(std::vector<std::weak_ptr<T>>& vec) {
     vec.erase(std::remove_if(vec.begin(), vec.end(),
                              [](const std::weak_ptr<T>& w) BRISK_INLINE_LAMBDA {
                                  return !isVisible(w);
@@ -493,69 +480,57 @@ static void cleanup(std::vector<std::weak_ptr<T>>& vec) {
               vec.end());
 }
 
-void InputQueue::processEvents() {
+bool InputQueue::processEvent(Event e) {
+    switch (e.type()) {
+    case EventType::CharacterTyped:
+    case EventType::KeyPressed:
+    case EventType::KeyReleased:
+        setLastInputEvent(*e.as<EventInput>());
+        return processKeyEvent(std::move(e));
+    case EventType::MouseButtonPressed:
+    case EventType::MouseButtonReleased:
+    case EventType::MouseMoved:
+    case EventType::MouseEntered:
+    case EventType::MouseExited:
+    case EventType::MouseYWheel:
+    case EventType::MouseDoubleClicked:
+    case EventType::MouseTripleClicked:
+        setLastMouseEvent(*e.as<EventMouse>());
+        setLastInputEvent(*e.as<EventInput>());
+        return processMouseEvent(std::move(e));
+    case EventType::SourceDragging:
+    case EventType::SourceDropped:
+    case EventType::TargetDragging:
+    case EventType::TargetDropped:
+        // Drag and Drop events are routed directly to the appropriate objects; they do not go through the
+        // event queue.
+        BRISK_ASSERT(false);
+        return false;
+    case EventType::Focused:
+    case EventType::Blurred:
+        return processTargetedEvent(std::move(e));
+    default:
+        return false;
+    }
+}
+
+void InputQueue::updateAutoFocus() {
     if (isVisible(autoFocus) && !isVisible(focused)) {
         auto w = autoFocus.lock();
         if (!w->m_autofocusReceived) {
             w->m_autofocusReceived = true;
             setFocus(w, false);
+            autoFocus.reset();
         }
     }
-    cleanup(tabList);
-    cleanup(capturingKeys);
-    cleanup(capturingMouse);
+}
+
+void InputQueue::cleanup() {
+    cleanupVector(tabList);
+    cleanupVector(capturingKeys);
+    cleanupVector(capturingMouse);
     if (!isVisible(focused)) {
         focused.reset();
-    }
-
-    if (events.empty() && injectedEvents.empty())
-        return;
-
-    while (!events.empty()) {
-        Event e = std::move(events.front());
-        events.pop_front();
-        switch (e.type()) {
-        case EventType::CharacterTyped:
-        case EventType::KeyPressed:
-        case EventType::KeyReleased:
-            setLastInputEvent(*e.as<EventInput>());
-            processKeyEvent(std::move(e));
-            break;
-        case EventType::MouseButtonPressed:
-        case EventType::MouseButtonReleased:
-        case EventType::MouseMoved:
-        case EventType::MouseEntered:
-        case EventType::MouseExited:
-        case EventType::MouseYWheel:
-        case EventType::MouseDoubleClicked:
-        case EventType::MouseTripleClicked:
-            setLastMouseEvent(*e.as<EventMouse>());
-            setLastInputEvent(*e.as<EventInput>());
-            processMouseEvent(std::move(e));
-            break;
-        case EventType::SourceDragging:
-        case EventType::SourceDropped:
-        case EventType::TargetDragging:
-        case EventType::TargetDropped:
-            // Drag and Drop events are routed directly to the appropriate objects; they do not go through the
-            // event queue.
-            BRISK_ASSERT(false);
-            break;
-        case EventType::Focused:
-        case EventType::Blurred:
-            processTargetedEvent(std::move(e));
-            break;
-        default:
-            break;
-        }
-    }
-
-    processMouseState();
-
-    if (!injectedEvents.empty()) {
-        events.insert(events.end(), std::make_move_iterator(injectedEvents.begin()),
-                      std::make_move_iterator(injectedEvents.end()));
-        injectedEvents.clear();
     }
 }
 
@@ -764,10 +739,6 @@ void Event::stopPropagation() {
     *this = std::monostate{};
 }
 
-uint32_t Event::cookie() const {
-    return as<EventBase>()->cookie;
-}
-
 bool Event::shouldBubble() const {
     return type() < EventType::Focused;
 }
@@ -796,13 +767,14 @@ bool InputQueue::isDragging() const {
 
 void InputQueue::setAutoFocus(std::weak_ptr<Widget> ptr) {
     autoFocus = std::move(ptr);
+    updateAutoFocus();
 }
 
 bool InputQueue::hasFocus() {
     return static_cast<bool>(focused.lock());
 }
 
-InputQueue::InputQueue() : registration{ this, uiScheduler } {}
+InputQueue::InputQueue() : registration{ this } {}
 
 void InputQueue::passThrough() {
     passThroughFlag = true;

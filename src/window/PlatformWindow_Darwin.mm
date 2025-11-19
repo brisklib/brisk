@@ -648,8 +648,8 @@ using namespace Brisk;
 }
 
 - (void)mouseDown:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Left, MouseAction::Press, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Left, MouseAction::Press, getKeyMods(event.modifierFlags),
+                                     [self eventToPos:event]);
 }
 
 - (void)mouseDragged:(NSEvent*)event {
@@ -657,17 +657,17 @@ using namespace Brisk;
 }
 
 - (void)mouseUp:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Left, MouseAction::Release, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Left, MouseAction::Release, getKeyMods(event.modifierFlags),
+                                     [self eventToPos:event]);
 }
 
 - (void)mouseMoved:(NSEvent*)event {
-    window->mouseMove([self eventToPos:event]);
+    std::ignore = window->mouseMove([self eventToPos:event]);
 }
 
 - (void)rightMouseDown:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Right, MouseAction::Press, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Right, MouseAction::Press, getKeyMods(event.modifierFlags),
+                                     [self eventToPos:event]);
 }
 
 - (void)rightMouseDragged:(NSEvent*)event {
@@ -675,13 +675,13 @@ using namespace Brisk;
 }
 
 - (void)rightMouseUp:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Right, MouseAction::Release, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Right, MouseAction::Release,
+                                     getKeyMods(event.modifierFlags), [self eventToPos:event]);
 }
 
 - (void)otherMouseDown:(NSEvent*)event {
-    window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Press,
-                       getKeyMods(event.modifierFlags), [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Press,
+                                     getKeyMods(event.modifierFlags), [self eventToPos:event]);
 }
 
 - (void)otherMouseDragged:(NSEvent*)event {
@@ -689,8 +689,8 @@ using namespace Brisk;
 }
 
 - (void)otherMouseUp:(NSEvent*)event {
-    window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Release,
-                       getKeyMods(event.modifierFlags), [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Release,
+                                     getKeyMods(event.modifierFlags), [self eventToPos:event]);
 }
 
 - (void)mouseExited:(NSEvent*)event {
@@ -747,7 +747,7 @@ using namespace Brisk;
 - (void)keyDown:(NSEvent*)event {
     const KeyCode key = scanCodeToKeyCode(event.keyCode);
 
-    window->keyEvent(key, [event keyCode], KeyAction::Press, getKeyMods(event.modifierFlags));
+    std::ignore = window->keyEvent(key, [event keyCode], KeyAction::Press, getKeyMods(event.modifierFlags));
 
     [self interpretKeyEvents:@[ event ]];
 }
@@ -790,12 +790,12 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
         action = KeyAction::Release;
     }
 
-    window->keyEvent(key, [event keyCode], action, getKeyMods(event.modifierFlags));
+    std::ignore = window->keyEvent(key, [event keyCode], action, getKeyMods(event.modifierFlags));
 }
 
 - (void)keyUp:(NSEvent*)event {
     const KeyCode key = scanCodeToKeyCode(event.keyCode);
-    window->keyEvent(key, [event keyCode], KeyAction::Release, getKeyMods(event.modifierFlags));
+    std::ignore = window->keyEvent(key, [event keyCode], KeyAction::Release, getKeyMods(event.modifierFlags));
 }
 
 - (void)scrollWheel:(NSEvent*)event {
@@ -808,7 +808,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
     }
 
     if (fabs(deltaX) > 0.0 || fabs(deltaY) > 0.0) {
-        window->wheelEvent(deltaX, deltaY);
+        std::ignore = window->wheelEvent(deltaX, deltaY);
     }
 }
 
@@ -822,7 +822,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
     const NSRect contentRect = [window->m_data->view frame];
     // NOTE: The returned location uses base 0,1 not 0,0
     const NSPoint pos        = [sender draggingLocation];
-    window->mouseMove(PointF(pos.x, contentRect.size.height - pos.y) * window->m_scale);
+    std::ignore = window->mouseMove(PointF(pos.x, contentRect.size.height - pos.y) * window->m_scale);
 
     NSPasteboard* pasteboard = [sender draggingPasteboard];
     NSDictionary* options    = @{ NSPasteboardURLReadingFileURLsOnlyKey : @YES };
@@ -833,7 +833,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
         for (NSUInteger i = 0; i < count; i++)
             paths.push_back([urls[i] fileSystemRepresentation]);
 
-        window->filesDropped(std::move(paths));
+        std::ignore = window->filesDropped(std::move(paths));
     }
 
     return YES;
@@ -911,7 +911,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
             if (codepoint >= 0xf700 && codepoint <= 0xf7ff)
                 continue;
 
-            window->charEvent(codepoint, false);
+            std::ignore = window->charEvent(codepoint, false);
         }
     }
 }

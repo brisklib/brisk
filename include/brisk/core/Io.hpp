@@ -496,9 +496,6 @@ fs::path uniqueFileName(std::string_view base, std::string_view numbered, int i 
  * character from the set of lowercase letters and digits, and `*`
  * with 16 random characters from the same set.
  *
- * The function is thread-safe, using a mutex to ensure that the random
- * number generator is accessed in a synchronized manner.
- *
  * @param pattern A string representing the desired pattern for the
  *                temporary file name. The pattern can include `?`
  *                and `*` as placeholders for random characters.

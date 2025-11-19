@@ -1,11 +1,9 @@
 
 #include "BumpAllocator.h"
 
-
 namespace Blaze {
 
 static constexpr int kMinimumMasterBlockSize = 1024 * 128;
-
 
 /**
  * Returns block allocation size aligned to 32 kilobyte boundary.
@@ -18,16 +16,14 @@ static int RoundUpBlockSize(const int size) {
     return m & ~32767;
 }
 
-
 BumpAllocator::~BumpAllocator() {
     FreeBlockChain(mMasterActiveList);
     FreeBlockChain(mMasterFreeList);
 }
 
-
-void BumpAllocator::FreeBlockChain(Block *block) {
+void BumpAllocator::FreeBlockChain(Block* block) {
     while (block != nullptr) {
-        Block *next = block->Next;
+        Block* next = block->Next;
 
         free(block->Bytes);
         free(block);
@@ -36,26 +32,25 @@ void BumpAllocator::FreeBlockChain(Block *block) {
     }
 }
 
-
-void *BumpAllocator::MallocFromNewBlock(const int size) {
+void* BumpAllocator::MallocFromNewBlock(const int size) {
     BLAZE_ASSERT(size > 0);
 
-    Block **ptr = &mMasterFreeList;
+    Block** ptr = &mMasterFreeList;
 
     while ((*ptr) != nullptr) {
-        Block *b = (*ptr);
+        Block* b = (*ptr);
 
         BLAZE_ASSERT(b->Position == 0);
 
         if (b->BlockSize >= size) {
-            (*ptr) = b->Next;
+            (*ptr)            = b->Next;
 
             // Block is large enough. Remove from free list and insert to
             // active block list.
-            void *p = b->Bytes;
+            void* p           = b->Bytes;
 
-            b->Position = RoundUpAllocationSizeForNextAllocation(size);
-            b->Next = mMasterActiveList;
+            b->Position       = RoundUpAllocationSizeForNextAllocation(size);
+            b->Next           = mMasterActiveList;
 
             mMasterActiveList = b;
 
@@ -66,40 +61,39 @@ void *BumpAllocator::MallocFromNewBlock(const int size) {
     }
 
     // A new block is needed.
-    Block *block = reinterpret_cast<Block *>(malloc(sizeof(Block)));
+    Block* block     = reinterpret_cast<Block*>(malloc(sizeof(Block)));
 
     block->BlockSize = Max(kMinimumMasterBlockSize, RoundUpBlockSize(size));
 
-    block->Bytes = reinterpret_cast<uint8_t *>(malloc(block->BlockSize));
+    block->Bytes     = reinterpret_cast<uint8_t*>(malloc(block->BlockSize));
 
     BLAZE_ASSERT(block->Bytes != nullptr);
 
     // Assign position to allocation size because we will return base pointer
     // later without adjusting current position.
 
-    block->Position = RoundUpAllocationSizeForNextAllocation(size);
+    block->Position   = RoundUpAllocationSizeForNextAllocation(size);
 
     // Insert to main list.
-    block->Next = mMasterActiveList;
+    block->Next       = mMasterActiveList;
 
     mMasterActiveList = block;
 
     return block->Bytes;
 }
 
-
 void BumpAllocator::Free() {
-    Block *b = mMasterActiveList;
+    Block* b = mMasterActiveList;
 
     while (b != nullptr) {
-        Block *next = b->Next;
+        Block* next     = b->Next;
 
-        b->Next = mMasterFreeList;
-        b->Position = 0;
+        b->Next         = mMasterFreeList;
+        b->Position     = 0;
 
         mMasterFreeList = b;
 
-        b = next;
+        b               = next;
     }
 
     mMasterActiveList = nullptr;

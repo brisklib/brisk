@@ -1,10 +1,9 @@
 
 #include "CurveUtils.h"
 
-
 namespace Blaze {
 
-static int AcceptRoot(Float *t, const Float root) {
+static int AcceptRoot(Float* t, const Float root) {
     if (root < -BLAZE_EPSILON) {
         return 0;
     } else if (root > (1.0 + BLAZE_EPSILON)) {
@@ -16,9 +15,7 @@ static int AcceptRoot(Float *t, const Float root) {
     return 1;
 }
 
-
-int FindQuadraticRoots(
-    const Float a, const Float b, const Float c, Float roots[2]) {
+int FindQuadraticRoots(const Float a, const Float b, const Float c, Float roots[2]) {
     BLAZE_ASSERT(roots != nullptr);
 
     const Float delta = b * b - 4.0 * a * c;
@@ -28,8 +25,8 @@ int FindQuadraticRoots(
     }
 
     if (delta > 0.0) {
-        const Float d = Sqrt(delta);
-        const Float q = -0.5 * (b + (b < 0.0 ? -d : d));
+        const Float d   = Sqrt(delta);
+        const Float q   = -0.5 * (b + (b < 0.0 ? -d : d));
         const Float rv0 = q / a;
         const Float rv1 = c / q;
 
@@ -59,8 +56,7 @@ int FindQuadraticRoots(
     return 0;
 }
 
-
-static int AcceptRootWithin(Float *t, const Float root) {
+static int AcceptRootWithin(Float* t, const Float root) {
     if (root <= BLAZE_EPSILON) {
         return 0;
     } else if (root >= (1.0 - BLAZE_EPSILON)) {
@@ -72,9 +68,7 @@ static int AcceptRootWithin(Float *t, const Float root) {
     return 1;
 }
 
-
-static int FindQuadraticRootsWithin(
-    const Float a, const Float b, const Float c, Float roots[2]) {
+static int FindQuadraticRootsWithin(const Float a, const Float b, const Float c, Float roots[2]) {
     BLAZE_ASSERT(roots != nullptr);
 
     const Float delta = b * b - 4.0 * a * c;
@@ -84,8 +78,8 @@ static int FindQuadraticRootsWithin(
     }
 
     if (delta > 0.0) {
-        const Float d = Sqrt(delta);
-        const Float q = -0.5 * (b + (b < 0.0 ? -d : d));
+        const Float d   = Sqrt(delta);
+        const Float q   = -0.5 * (b + (b < 0.0 ? -d : d));
         const Float rv0 = q / a;
         const Float rv1 = c / q;
 
@@ -115,11 +109,9 @@ static int FindQuadraticRootsWithin(
     return 0;
 }
 
-
-bool FindQuadraticExtrema(
-    const Float a, const Float b, const Float c, Float &t) {
+bool FindQuadraticExtrema(const Float a, const Float b, const Float c, Float& t) {
     const Float aMinusB = a - b;
-    const Float d = aMinusB - b + c;
+    const Float d       = aMinusB - b + c;
 
     if (aMinusB == 0 || d == 0) {
         return false;
@@ -138,16 +130,13 @@ bool FindQuadraticExtrema(
     return true;
 }
 
-
-int FindCubicExtrema(
-    const Float a, const Float b, const Float c, const Float d, Float t[2]) {
+int FindCubicExtrema(const Float a, const Float b, const Float c, const Float d, Float t[2]) {
     const Float A = d - a + 3.0 * (b - c);
     const Float B = 2.0 * (a - b - b + c);
     const Float C = b - a;
 
     return FindQuadraticRootsWithin(A, B, C, t);
 }
-
 
 int CutCubicAtYExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
     BLAZE_ASSERT(src != nullptr);
@@ -168,8 +157,8 @@ int CutCubicAtYExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
         // Make sure curve tangents at extrema are horizontal.
         const Float y = dst[3].Y;
 
-        dst[2].Y = y;
-        dst[4].Y = y;
+        dst[2].Y      = y;
+        dst[4].Y      = y;
 
         return 2;
     }
@@ -188,9 +177,9 @@ int CutCubicAtYExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
 
         CutCubicAt(src, tmp, t[0]);
 
-        dst[0] = tmp[0];
-        dst[1] = tmp[1];
-        dst[2] = tmp[2];
+        dst[0]        = tmp[0];
+        dst[1]        = tmp[1];
+        dst[2]        = tmp[2];
 
         const Float d = 1.0 - t[0];
 
@@ -206,10 +195,10 @@ int CutCubicAtYExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
         const Float y0 = dst[3].Y;
         const Float y1 = dst[6].Y;
 
-        dst[2].Y = y0;
-        dst[4].Y = y0;
-        dst[5].Y = y1;
-        dst[7].Y = y1;
+        dst[2].Y       = y0;
+        dst[4].Y       = y0;
+        dst[5].Y       = y1;
+        dst[7].Y       = y1;
 
         return 3;
     }
@@ -223,7 +212,6 @@ int CutCubicAtYExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
 
     return 1;
 }
-
 
 int CutCubicAtXExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
     BLAZE_ASSERT(src != nullptr);
@@ -244,8 +232,8 @@ int CutCubicAtXExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
         // Make sure curve tangents at extrema are horizontal.
         const Float x = dst[3].X;
 
-        dst[2].X = x;
-        dst[4].X = x;
+        dst[2].X      = x;
+        dst[4].X      = x;
 
         return 2;
     }
@@ -264,9 +252,9 @@ int CutCubicAtXExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
 
         CutCubicAt(src, tmp, t[0]);
 
-        dst[0] = tmp[0];
-        dst[1] = tmp[1];
-        dst[2] = tmp[2];
+        dst[0]        = tmp[0];
+        dst[1]        = tmp[1];
+        dst[2]        = tmp[2];
 
         const Float d = 1.0 - t[0];
 
@@ -282,10 +270,10 @@ int CutCubicAtXExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
         const Float x0 = dst[3].X;
         const Float x1 = dst[6].X;
 
-        dst[2].X = x0;
-        dst[4].X = x0;
-        dst[5].X = x1;
-        dst[7].X = x1;
+        dst[2].X       = x0;
+        dst[4].X       = x0;
+        dst[5].X       = x1;
+        dst[7].X       = x1;
 
         return 3;
     }
@@ -300,10 +288,9 @@ int CutCubicAtXExtrema(const FloatPoint src[4], FloatPoint dst[10]) {
     return 1;
 }
 
-
 static bool IsQuadraticMonotonic(const Float a, const Float b, const Float c) {
     const Float ab = a - b;
-    Float bc = b - c;
+    Float bc       = b - c;
 
     if (ab < 0) {
         bc = -bc;
@@ -311,7 +298,6 @@ static bool IsQuadraticMonotonic(const Float a, const Float b, const Float c) {
 
     return ab != 0 && bc >= 0;
 }
-
 
 int CutQuadraticAtYExtrema(const FloatPoint src[3], FloatPoint dst[5]) {
     const Float a = src[0].Y;
@@ -333,8 +319,8 @@ int CutQuadraticAtYExtrema(const FloatPoint src[3], FloatPoint dst[5]) {
 
         const Float y = dst[2].Y;
 
-        dst[1].Y = y;
-        dst[3].Y = y;
+        dst[1].Y      = y;
+        dst[3].Y      = y;
 
         return 2;
     }
@@ -347,7 +333,6 @@ int CutQuadraticAtYExtrema(const FloatPoint src[3], FloatPoint dst[5]) {
 
     return 1;
 }
-
 
 int CutQuadraticAtXExtrema(const FloatPoint src[3], FloatPoint dst[5]) {
     const Float a = src[0].X;
@@ -369,8 +354,8 @@ int CutQuadraticAtXExtrema(const FloatPoint src[3], FloatPoint dst[5]) {
 
         const Float x = dst[2].X;
 
-        dst[1].X = x;
-        dst[3].X = x;
+        dst[1].X      = x;
+        dst[3].X      = x;
 
         return 2;
     }

@@ -69,7 +69,7 @@ public:
         window->setRectangle(windowRect);                          // Applies the centered position and size.
     }
 
-    std::atomic_int m_progress{ 0 }; // Tracks loading progress (0-100), starting at 0.
+    int m_progress{ 0 }; // Tracks loading progress (0-100), starting at 0.
 };
 
 // Defines the main application component with a simple UI.

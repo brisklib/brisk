@@ -33,9 +33,7 @@ void PlatformWindow::updateSize() {
     if (m_iconified)
         return;
 
-    uiScheduler->dispatch([window = m_window, size = m_windowSize, framebufferSize = m_framebufferSize] {
-        window->windowResized(size, framebufferSize);
-    });
+    m_window->windowResized(m_windowSize, m_framebufferSize);
 }
 
 namespace Internal {
@@ -99,27 +97,26 @@ bool PlatformCursors::isSystem(Cursor cursor) {
 }
 } // namespace Internal
 
-void PlatformWindow::charEvent(char32_t codepoint, bool nonClient) {
+bool PlatformWindow::charEvent(char32_t codepoint, bool nonClient) {
     if (codepoint < 32 || (codepoint > 126 && codepoint < 160))
-        return;
+        return false;
     if (!nonClient) {
-        uiScheduler->dispatch([window = m_window, codepoint] {
-            window->charEvent(static_cast<char32_t>(codepoint));
-        });
+        return m_window->charEvent(static_cast<char32_t>(codepoint));
     }
+    return false;
 }
 
 void PlatformWindow::releaseButtonsAndKeys() {
     for (int kc = 0; kc <= +KeyCode::Last; ++kc) {
         if (m_keyState[kc]) {
-            keyEvent(static_cast<KeyCode>(kc), keyCodeToScanCode(KeyCode(kc)), KeyAction::Release,
-                     KeyModifiers::None);
+            std::ignore = keyEvent(static_cast<KeyCode>(kc), keyCodeToScanCode(KeyCode(kc)),
+                                   KeyAction::Release, KeyModifiers::None);
         }
     }
     for (int mb = 0; mb <= +MouseButton::Last; ++mb) {
         if (m_mouseState[mb]) {
-            mouseEvent(static_cast<MouseButton>(mb), MouseAction::Release, KeyModifiers::None,
-                       PointF(-1, -1));
+            std::ignore = mouseEvent(static_cast<MouseButton>(mb), MouseAction::Release, KeyModifiers::None,
+                                     PointF(-1, -1));
         }
     }
 }
@@ -129,29 +126,25 @@ void PlatformWindow::focusChange(bool gained) {
         releaseButtonsAndKeys();
     }
 
-    uiScheduler->dispatch([window = m_window, gained] {
-        window->focusChange(gained);
-    });
+    m_window->focusChange(gained);
 }
 
 void PlatformWindow::closeAttempt() {
     m_shouldClose = true;
-    uiScheduler->dispatch([window = m_window] {
-        window->closeAttempt();
-    });
+    m_window->closeAttempt();
 }
 
-void PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {
+bool PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {
     if (m_windowStyle && WindowStyle::Disabled)
-        return;
+        return false;
 
     if (key < KeyCode(0) || key > KeyCode::Last) // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
-        return;
+        return false;
 
     bool repeated = false;
 
     if (action == KeyAction::Release && !m_keyState[+key])
-        return;
+        return false;
 
     if (action == KeyAction::Press && m_keyState[+key])
         repeated = true;
@@ -160,51 +153,42 @@ void PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyMo
 
     if (repeated)
         action = KeyAction::Repeat;
-    uiScheduler->dispatch([window = m_window, key, scancode, action, mods] {
-        window->keyEvent(static_cast<KeyCode>(key), scancode, static_cast<KeyAction>(action),
-                         static_cast<KeyModifiers>(mods));
-    });
+    return m_window->keyEvent(static_cast<KeyCode>(key), scancode, static_cast<KeyAction>(action),
+                              static_cast<KeyModifiers>(mods));
 }
 
-void PlatformWindow::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos,
+bool PlatformWindow::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos,
                                 Window::Unit unit) {
     if (m_windowStyle && WindowStyle::Disabled)
-        return;
+        return false;
 
     if (button < MouseButton(0) || button > MouseButton::Last)
-        return;
+        return false;
 
     if (action == MouseAction::Release && !m_mouseState[+button])
-        return;
+        return false;
     if (action == MouseAction::Press && m_mouseState[+button])
-        return;
+        return false;
 
     m_mouseState[+button] = action == MouseAction::Press;
 
-    uiScheduler->dispatch([window = m_window, button, action, mods, pos, unit] {
-        window->mouseEvent(button, action, mods, window->convertUnit(Window::Unit::Framebuffer, pos, unit));
-    });
+    return m_window->mouseEvent(button, action, mods,
+                                m_window->convertUnit(Window::Unit::Framebuffer, pos, unit));
 }
 
 void PlatformWindow::mouseEnterOrLeave(bool enter) {
-    uiScheduler->dispatch([window = m_window, enter] {
-        if (enter)
-            window->mouseEnter();
-        else
-            window->mouseLeave();
-    });
+    if (enter)
+        m_window->mouseEnter();
+    else
+        m_window->mouseLeave();
 }
 
-void PlatformWindow::mouseMove(PointF pos, Window::Unit unit) {
-    uiScheduler->dispatch([window = m_window, pos, unit] {
-        window->mouseMove(window->convertUnit(Window::Unit::Framebuffer, pos, unit));
-    });
+bool PlatformWindow::mouseMove(PointF pos, Window::Unit unit) {
+    return m_window->mouseMove(m_window->convertUnit(Window::Unit::Framebuffer, pos, unit));
 }
 
-void PlatformWindow::wheelEvent(float x, float y) {
-    uiScheduler->dispatch([window = m_window, x, y] {
-        window->wheelEvent(x, y);
-    });
+bool PlatformWindow::wheelEvent(float x, float y) {
+    return m_window->wheelEvent(x, y);
 }
 
 void PlatformWindow::windowStateEvent(WindowState state) {}
@@ -219,9 +203,7 @@ void PlatformWindow::windowMoved(Point position) {
     if (!isVisible()) {
         return;
     }
-    uiScheduler->dispatch([window = m_window, position] {
-        window->windowMoved(position);
-    });
+    m_window->windowMoved(position);
 }
 
 void PlatformWindow::windowNonClientClicked() {
@@ -229,9 +211,7 @@ void PlatformWindow::windowNonClientClicked() {
     if (!isVisible()) {
         return;
     }
-    uiScheduler->dispatch([window = m_window] {
-        window->windowNonClientClicked();
-    });
+    m_window->windowNonClientClicked();
 }
 
 void PlatformWindow::contentScaleChanged(float xscale, float yscale) {
@@ -242,17 +222,13 @@ void PlatformWindow::contentScaleChanged(float xscale, float yscale) {
     m_window->recomputeScales();
 }
 
-void PlatformWindow::filesDropped(std::vector<std::string> files) {
+bool PlatformWindow::filesDropped(std::vector<std::string> files) {
     mustBeMainThread();
-    uiScheduler->dispatch([window = m_window, files = std::move(files)] {
-        window->filesDropped(std::move(files));
-    });
+    return m_window->filesDropped(std::move(files));
 }
 
 void PlatformWindow::windowStateChanged(bool isIconified, bool isMaximized) {
-    uiScheduler->dispatch([window = m_window, isIconified, isMaximized] {
-        window->windowStateChanged(isIconified, isMaximized);
-    });
+    m_window->windowStateChanged(isIconified, isMaximized);
 }
 
 } // namespace Brisk

@@ -158,6 +158,6 @@ void Scheduler::waitForCompletion() {
 }
 
 Rc<TaskQueue> mainScheduler;
-Rc<TaskQueue> uiScheduler;
+Rc<Scheduler> noScheduler; // always nullptr
 
 } // namespace Brisk

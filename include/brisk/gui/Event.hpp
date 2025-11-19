@@ -45,11 +45,6 @@ enum class MouseInteraction : uint8_t {
 class Widget;
 
 /**
- * @brief Global atomic event counter.
- */
-extern std::atomic_uint32_t eventCookie;
-
-/**
  * @brief Enum representing drag event subtypes.
  */
 enum class DragEventSubtype {
@@ -67,11 +62,9 @@ enum class DropEventSubtype {
 };
 
 /**
- * @brief Base struct for events, holding a unique event cookie.
+ * @brief Base struct for events
  */
-struct EventBase {
-    uint32_t cookie = ++eventCookie; ///< Unique identifier for the event.
-};
+struct EventBase {};
 
 /**
  * @brief Base struct for input events, derived from EventBase.
@@ -358,11 +351,6 @@ struct Event : public EventVariant {
     std::optional<T> as() const;
 
     /**
-     * @brief Returns the event's unique cookie.
-     */
-    uint32_t cookie() const;
-
-    /**
      * @brief Stops the event from propagating.
      */
     void stopPropagation();
@@ -465,10 +453,7 @@ struct InputQueue {
     int focusCaptureLevel    = 0;
     int maxFocusCaptureLevel = 0;
 
-    std::deque<Event> events;
-    std::vector<Event> injectedEvents;
-    function<void(Event&)> unhandledEvent;
-    bool passThroughFlag = false;
+    bool passThroughFlag     = false;
     std::weak_ptr<Widget> passedThroughBy;
     std::optional<EventMouse> lastMouseEvent;
     std::optional<EventInput> lastInputEvent;
@@ -494,6 +479,7 @@ struct InputQueue {
      * @param ptr The widget to auto-focus.
      */
     void setAutoFocus(std::weak_ptr<Widget> ptr);
+    void updateAutoFocus();
 
     /**
      * Increases the focus capture level.
@@ -509,7 +495,7 @@ struct InputQueue {
      * Checks if any widget currently has focus.
      * @return True if a widget has focus, false otherwise.
      */
-    bool hasFocus();
+    [[nodiscard]] bool hasFocus();
 
     /**
      * Handles mouse leave events.
@@ -539,7 +525,7 @@ struct InputQueue {
      * Checks if an object is currently being dragged.
      * @return True if dragging, false otherwise.
      */
-    bool isDragging() const;
+    [[nodiscard]] bool isDragging() const;
 
     /**
      * Allows the current drag to be dropped.
@@ -568,14 +554,14 @@ struct InputQueue {
      * @param widget The widget to check.
      * @return The mouse position relative to the widget, if applicable.
      */
-    std::optional<PointF> mousePosFor(Widget* widget) const;
+    [[nodiscard]] std::optional<PointF> mousePosFor(Widget* widget) const;
 
     /**
      * Returns the mouse position relative to the widget's client area, if within its bounds.
      * @param widget The widget to check.
      * @return The mouse position relative to the widget's client area, if applicable.
      */
-    std::optional<PointF> mousePosForClient(Widget* widget) const;
+    [[nodiscard]] std::optional<PointF> mousePosForClient(Widget* widget) const;
 
     /**
      * Gets the widget at the specified point, starting from a specified offset.
@@ -584,8 +570,8 @@ struct InputQueue {
      * @param respect_anywhere Whether to respect the "anywhere" flag.
      * @return A tuple containing the widget at the point and the corresponding index.
      */
-    std::tuple<std::shared_ptr<Widget>, int> getAt(Point pt, int offset = -1,
-                                                   bool respect_anywhere = true) const;
+    [[nodiscard]] std::tuple<std::shared_ptr<Widget>, int> getAt(Point pt, int offset = -1,
+                                                                 bool respect_anywhere = true) const;
 
     /**
      * Calls the provided function for each widget at the current mouse position, optionally bubbling.
@@ -594,11 +580,12 @@ struct InputQueue {
      * @param useMouseCapture Whether to use mouse capture information.
      * @return True if the function succeeds, false otherwise.
      */
-    bool mouseAtBubble(function_ref<bool(Widget*)> fn, bool bubble = true, bool useMouseCapture = true) const;
+    [[nodiscard]] bool mouseAtBubble(function_ref<bool(Widget*)> fn, bool bubble = true,
+                                     bool useMouseCapture = true) const;
 
     template <typename T>
-    std::optional<T> getAtMouse(function_ref<std::optional<T>(Widget*)> fn, bool bubble = true,
-                                bool useMouseCapture = true) const {
+    [[nodiscard]] std::optional<T> getAtMouse(function_ref<std::optional<T>(Widget*)> fn, bool bubble = true,
+                                              bool useMouseCapture = true) const {
         std::optional<T> value;
         if (mouseAtBubble(
                 [&](Widget* w) BRISK_INLINE_LAMBDA -> bool {
@@ -617,13 +604,13 @@ struct InputQueue {
      * Gets the hint of the widget under the mouse, if any.
      * @return The hint of the widget, if applicable.
      */
-    std::optional<std::string> getHintAtMouse() const;
+    [[nodiscard]] std::optional<std::string> getHintAtMouse() const;
 
     /**
      * Gets the cursor type for the widget under the mouse, if any.
      * @return The cursor type, if applicable.
      */
-    std::optional<Cursor> getCursorAtMouse() const;
+    [[nodiscard]] std::optional<Cursor> getCursorAtMouse() const;
 
     /**
      * Sets the focus to the specified widget.
@@ -673,45 +660,41 @@ struct InputQueue {
     void handleFocusEvents(Event& e);
 
     /**
-     * Injects an event into the queue to be processed at the next frame.
-     * @param event The event to inject.
+     * @brief Clean up the input queue state.
+     *
+     * Should be called after frame processing to remove invalid references.
      */
-    void injectEvent(Event event);
+    void cleanup();
 
-    /**
-     * Adds an event to the queue to be processed in the next call to processEvent.
-     * @param event The event to add.
-     */
-    void addEvent(Event event);
-
-    /**
-     * Processes all events in the queue.
-     */
-    void processEvents();
+    /// Returns true if the event was handled, false otherwise.
+    [[nodiscard]] bool processEvent(Event e);
 
     /**
      * Processes a key event.
      * @param e The key event to process.
+     * @return True if the event was handled, false otherwise.
      */
-    void processKeyEvent(Event e);
+    [[nodiscard]] bool processKeyEvent(Event e);
 
     /**
      * Processes a mouse event.
      * @param e The mouse event to process.
+     * @return True if the event was handled, false otherwise.
      */
-    void processMouseEvent(Event e);
+    [[nodiscard]] bool processMouseEvent(Event e);
 
     /**
-     * Processes a drag event.
-     * @param e The drag event to process.
+     * @brief Processes mouse event and generate all needed drag&drop events
+     * @return True if drag&drop events were generated, false otherwise.
      */
-    void processDragEvent(Event e);
+    [[nodiscard]] bool handleDragAndDrop(Event e);
 
     /**
      * Processes a targeted event.
      * @param e The targeted event to process.
+     * @return True if the event was handled, false otherwise.
      */
-    void processTargetedEvent(Event e);
+    [[nodiscard]] bool processTargetedEvent(Event e);
 
     /**
      * Constructor for the InputQueue class.
