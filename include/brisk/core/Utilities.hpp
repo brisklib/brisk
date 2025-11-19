@@ -722,7 +722,7 @@ inline void removeValueByKey(KeyValueOrderedList<K, V>& list, const K& key) {
  * @return std::optional<V> The found value, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
+inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::*field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return list[i];
@@ -744,7 +744,7 @@ inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::* field), co
  * @return std::optional<size_t> The index of the found key, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline std::optional<size_t> findKey(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
+inline std::optional<size_t> findKey(const std::vector<V>& list, K(V::*field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return i;
@@ -1010,8 +1010,8 @@ struct AutoSingleton {
 };
 
 template <typename T, typename Func>
-std::optional<std::invoke_result_t<Func, const T&>> transformOptional(const std::optional<T>& opt,
-                                                                      Func&& func) {
+constexpr std::optional<std::invoke_result_t<Func, const T&>> transformOptional(const std::optional<T>& opt,
+                                                                                Func&& func) {
     if (opt.has_value()) {
         return std::optional<std::invoke_result_t<Func, const T&>>{ std::forward<Func>(func)(*opt) };
     }
@@ -1019,7 +1019,8 @@ std::optional<std::invoke_result_t<Func, const T&>> transformOptional(const std:
 }
 
 template <typename T, typename Func>
-std::optional<std::invoke_result_t<Func, T&&>> transformOptional(std::optional<T>&& opt, Func&& func) {
+constexpr std::optional<std::invoke_result_t<Func, T&&>> transformOptional(std::optional<T>&& opt,
+                                                                           Func&& func) {
     if (opt.has_value()) {
         return std::optional<std::invoke_result_t<Func, T&&>>{ std::forward<Func>(func)(std::move(*opt)) };
     }
@@ -1027,7 +1028,7 @@ std::optional<std::invoke_result_t<Func, T&&>> transformOptional(std::optional<T
 }
 
 template <typename Enum>
-std::underlying_type_t<Enum> to_underlying(Enum e)
+constexpr std::underlying_type_t<Enum> to_underlying(Enum e)
     requires std::is_enum_v<Enum>
 {
     return static_cast<std::underlying_type_t<Enum>>(e);
@@ -1048,7 +1049,7 @@ struct optional_value_type<T> {
 };
 
 template <typename T>
-std::optional<T> wrapOptional(std::optional<T>&& value) {
+constexpr std::optional<T> wrapOptional(std::optional<T>&& value) {
     return std::move(value);
 }
 

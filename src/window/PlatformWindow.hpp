@@ -136,21 +136,21 @@ public:
     void updateCursorImage();
     bool isVisible() const;
 
-    void charEvent(char32_t codepoint, bool nonClient);
-    void mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos,
-                    Window::Unit unit = Window::Unit::Screen);
+    [[nodiscard]] bool charEvent(char32_t codepoint, bool nonClient);
+    [[nodiscard]] bool mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF pos,
+                                  Window::Unit unit = Window::Unit::Screen);
     void focusChange(bool gained);
     void closeAttempt();
-    void keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
+    [[nodiscard]] bool keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
     void mouseEnterOrLeave(bool enter);
-    void mouseMove(PointF pos, Window::Unit unit = Window::Unit::Screen);
-    void wheelEvent(float x, float y);
+    [[nodiscard]] bool mouseMove(PointF pos, Window::Unit unit = Window::Unit::Screen);
+    [[nodiscard]] bool wheelEvent(float x, float y);
     void windowStateEvent(WindowState state);
     void windowResized(Size windowSize, Size framebufferSize);
     void windowMoved(Point position);
     void windowNonClientClicked();
     void contentScaleChanged(float xscale, float yscale);
-    void filesDropped(std::vector<std::string> files);
+    [[nodiscard]] bool filesDropped(std::vector<std::string> files);
     void windowStateChanged(bool isIconified, bool isMaximized);
 
     long long windowProc(MsgParams params);

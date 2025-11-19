@@ -336,7 +336,7 @@ protected:
 /// @brief Represents the task queue and scheduler for the main thread.
 extern Rc<TaskQueue> mainScheduler;
 
-extern Rc<TaskQueue> uiScheduler;
+extern Rc<Scheduler> noScheduler;
 
 template <typename T>
 T waitFuture(VoidFunc waitFunc, std::future<T> future, int intervalMS) {

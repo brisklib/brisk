@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-class ShowcaseVisual : public BindableObject<ShowcaseVisual, &uiScheduler> {
+class ShowcaseVisual : public BindableObject<ShowcaseVisual> {
 public:
     ShowcaseVisual();
 

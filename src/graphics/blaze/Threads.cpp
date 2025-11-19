@@ -17,7 +17,7 @@ int Threads::GetHardwareThreadCount() {
 #endif
 }
 
-void Threads::Run(const int count, Function *loopBody) {
+void Threads::Run(const int count, Function* loopBody) {
 #ifdef MULTITHREAD
     BLAZE_ASSERT(loopBody != nullptr);
 
@@ -29,14 +29,14 @@ void Threads::Run(const int count, Function *loopBody) {
         return;
     }
 
-    mTaskData->Cursor = 0;
-    mTaskData->Count = count;
-    mTaskData->Fn = loopBody;
+    mTaskData->Cursor              = 0;
+    mTaskData->Count               = count;
+    mTaskData->Fn                  = loopBody;
 
-    const int threadCount = Min(mThreadCount, count);
+    const int threadCount          = Min(mThreadCount, count);
 
     mTaskData->RequiredWorkerCount = threadCount;
-    mTaskData->FinalizedWorkers = 0;
+    mTaskData->FinalizedWorkers    = 0;
 
     {
         std::unique_lock<std::mutex> lock(mTaskData->FinalizationMutex);
@@ -50,11 +50,11 @@ void Threads::Run(const int count, Function *loopBody) {
     }
 
     // Cleanup.
-    mTaskData->Cursor = 0;
-    mTaskData->Count = 0;
-    mTaskData->Fn = nullptr;
+    mTaskData->Cursor              = 0;
+    mTaskData->Count               = 0;
+    mTaskData->Fn                  = nullptr;
     mTaskData->RequiredWorkerCount = 0;
-    mTaskData->FinalizedWorkers = 0;
+    mTaskData->FinalizedWorkers    = 0;
 
 #endif
 }
@@ -72,7 +72,7 @@ void Threads::RunThreads() {
         return;
     }
 
-    mTaskData = new TaskList();
+    mTaskData    = new TaskList();
     mThreadCount = Min(GetHardwareThreadCount(), 128);
     mThreadData.resize(mThreadCount);
 
@@ -81,18 +81,18 @@ void Threads::RunThreads() {
     }
 
     for (int i = 0; i < mThreadCount; i++) {
-        ThreadData *d = mThreadData[i];
-        d->Thread = std::thread(&Threads::Worker, d);
+        ThreadData* d = mThreadData[i];
+        d->Thread     = std::thread(&Threads::Worker, d);
         d->Thread.detach(); // same as pthread_create + no join
     }
 #endif
 }
 
-void Threads::Worker(ThreadData *d) {
+void Threads::Worker(ThreadData* d) {
 #ifdef MULTITHREAD
     BLAZE_ASSERT(d != nullptr);
 
-    TaskList *items = d->Tasks;
+    TaskList* items = d->Tasks;
 
     for (;;) {
         {

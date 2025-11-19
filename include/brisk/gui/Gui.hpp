@@ -64,9 +64,9 @@ void boxPainter(Canvas& canvas, const Widget& widget, RectangleF rect);
 void boxPainter(Canvas& canvas, const Widget& widget);
 
 namespace Internal {
-extern std::atomic_bool debugRelayoutAndRegenerate;
-extern std::atomic_bool debugBoundaries;
-extern std::atomic_bool debugDirtyRect;
+extern bool debugRelayoutAndRegenerate;
+extern bool debugBoundaries;
+extern bool debugDirtyRect;
 } // namespace Internal
 
 class Stylesheet;
@@ -383,7 +383,7 @@ struct IsConstexprCompatible<std::basic_string<T, Tr, A>> {
 
 template <typename WidgetClass, typename ValueType>
 struct GuiProp {
-    ValueType(WidgetClass::* field);
+    ValueType(WidgetClass::*field);
     std::conditional_t<IsConstexprCompatible<ValueType>::value, ValueType, ValueType (*)()> initialValue;
     PropFlags flags;
     const char* name = nullptr;
@@ -460,12 +460,12 @@ struct GuiProp {
 };
 
 template <typename WidgetClass, typename ValueType>
-GuiProp(ValueType(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags, const char* = nullptr)
-    -> GuiProp<WidgetClass, ValueType>;
+GuiProp(ValueType(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags,
+        const char* = nullptr) -> GuiProp<WidgetClass, ValueType>;
 
 template <typename WidgetClass, typename ValueType, typename AnimatedType>
 struct GuiProp<WidgetClass, Animated<ValueType, AnimatedType>> {
-    Animated<ValueType, AnimatedType>(WidgetClass::* field);
+    Animated<ValueType, AnimatedType>(WidgetClass::*field);
     ValueType initialValue;
     PropFlags flags;
     const char* name = nullptr;
@@ -617,17 +617,13 @@ struct GuiPropCompound {
 };
 } // namespace Internal
 
-class WIDGET Widget : public BindableObject<Widget, &uiScheduler> {
+class WIDGET Widget : public BindableObject<Widget> {
     BRISK_DYNAMIC_CLASS_ROOT(Widget)
 public:
-    using Ptr                 = std::shared_ptr<Widget>;
-    using WidgetPtrs          = std::vector<Ptr>;
-    using WidgetIterator      = typename WidgetPtrs::iterator;
-    using WidgetConstIterator = typename WidgetPtrs::const_iterator;
-
-    static Rc<Scheduler> dispatcher() {
-        return uiScheduler;
-    }
+    using Ptr                        = std::shared_ptr<Widget>;
+    using WidgetPtrs                 = std::vector<Ptr>;
+    using WidgetIterator             = typename WidgetPtrs::iterator;
+    using WidgetConstIterator        = typename WidgetPtrs::const_iterator;
 
     Widget& operator=(const Widget&) = delete;
     Widget& operator=(Widget&&)      = delete;

@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-class ShowcaseMessenger : public BindableObject<ShowcaseMessenger, &uiScheduler> {
+class ShowcaseMessenger : public BindableObject<ShowcaseMessenger> {
 public:
     ShowcaseMessenger();
 

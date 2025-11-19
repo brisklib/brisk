@@ -32,23 +32,18 @@
 
 namespace Brisk {
 
-bool isStandaloneApp  = false;
-bool separateUiThread = true;
+bool isStandaloneApp = false;
 
 Nullable<WindowApplication> windowApplication;
 
 void WindowApplication::quit(int exitCode) {
+    mustBeMainThread();
     m_exitCode = exitCode;
-    if (Internal::wakeUpMainThread) {
-        Internal::wakeUpMainThread();
-    }
 }
 
-std::vector<Rc<Window>> WindowApplication::windows() const {
-    if (isMainThread())
-        return m_mainData.m_windows;
-    else
-        return m_uiData.m_windows;
+const std::vector<Rc<Window>>& WindowApplication::windows() const {
+    mustBeMainThread();
+    return m_windows;
 }
 
 void WindowApplication::serialize(const Serialization& serialization) {
@@ -60,7 +55,7 @@ void WindowApplication::serialize(const Serialization& serialization) {
     serialization(Value{ &subPixelText }, "subPixelText");
 }
 
-WindowApplication::WindowApplication() : m_separateUiThread(separateUiThread) {
+WindowApplication::WindowApplication() {
     BRISK_ASSERT(windowApplication.get() == nullptr);
     windowApplication = this;
     mustBeMainThread();
@@ -78,13 +73,7 @@ WindowApplication::WindowApplication() : m_separateUiThread(separateUiThread) {
 
     PlatformWindow::initialize();
 
-    if (m_separateUiThread) {
-        m_uiThread = std::thread(&WindowApplication::uiThreadBody, this);
-        m_uiThreadStarted.acquire();
-    } else {
-        uiScheduler      = rcnew TaskQueue();
-        afterRenderQueue = rcnew TaskQueue();
-    }
+    afterRenderQueue = rcnew TaskQueue();
 
     if (settings) {
         Json data = settings->data("/display");
@@ -102,23 +91,11 @@ WindowApplication::~WindowApplication() {
         settings->setData("/display", data);
     }
 
-    if (m_separateUiThread) {
-        m_uiThreadTerminate = true;
-        while (!m_uiThreadTerminated) {
-            mainScheduler->process();
-            std::this_thread::yield();
-        }
-        m_uiThread.join();
-        m_uiThread = {};
-    }
-
-    m_mainData.m_windows.clear();
+    m_windows.clear();
 
     PlatformWindow::finalize();
 
     onApplicationClose->process();
-    m_mainData        = {};
-    m_uiData          = {};
     windowApplication = nullptr;
 }
 
@@ -134,7 +111,7 @@ void WindowApplication::processEvents(bool wait) {
 constexpr static int maximumFPS = 120;
 
 void WindowApplication::renderWindows() {
-    uiScheduler->process();
+    mustBeMainThread();
     using std::chrono::steady_clock;
     steady_clock::time_point stopTime = steady_clock::now() + std::chrono::milliseconds(1000 / maximumFPS);
     std::vector<Rc<Window>> windows   = this->windows();
@@ -152,19 +129,6 @@ void WindowApplication::renderWindows() {
     afterRenderQueue->process();
     fonts->garbageCollectCache();
     std::this_thread::sleep_until(stopTime);
-}
-
-void WindowApplication::uiThreadBody() {
-    uiScheduler      = rcnew TaskQueue();
-    afterRenderQueue = rcnew TaskQueue();
-    setThreadName("UIThread");
-    m_uiThreadStarted.release();
-    while (!m_uiThreadTerminate) {
-        renderWindows();
-    }
-    m_uiThreadTerminated = true;
-    uiScheduler          = nullptr;
-    afterRenderQueue     = nullptr;
 }
 
 void WindowApplication::start() {
@@ -186,26 +150,23 @@ void WindowApplication::updateAndWait() {
 
 void WindowApplication::removeClosed() {
     mustBeMainThread();
-    bool changed       = false;
-    QuitCondition cond = m_quitCondition.load(std::memory_order::relaxed);
-    for (int i = m_mainData.m_windows.size() - 1; i >= 0; --i) {
-        if (m_mainData.m_windows[i]->m_closing) {
-            m_mainData.m_windows.erase(m_mainData.m_windows.begin() + i);
+    bool changed = false;
+    for (int i = m_windows.size() - 1; i >= 0; --i) {
+        if (m_windows[i]->m_closing) {
+            m_windows.erase(m_windows.begin() + i);
             changed = true;
-            if (i == 0 && cond == QuitCondition::FirstWindowClosed) {
+            if (i == 0 && m_quitCondition == QuitCondition::FirstWindowClosed) {
                 quit();
             }
         }
     }
-    if (m_mainData.m_windows.empty() && (cond == QuitCondition::AllWindowsClosed
+    if (m_windows.empty() && (m_quitCondition == QuitCondition::AllWindowsClosed
 #if !defined BRISK_MACOS
-                                         || cond == QuitCondition::PlatformDependant
+                              || m_quitCondition == QuitCondition::PlatformDependant
 #endif
-                                         )) {
+                              )) {
         quit();
     }
-    if (changed)
-        windowsChanged();
 }
 
 void WindowApplication::cycle(bool wait) {
@@ -215,8 +176,7 @@ void WindowApplication::cycle(bool wait) {
     {
         mainScheduler->process();
         processTimers();
-        if (!m_separateUiThread)
-            renderWindows();
+        renderWindows();
     }
 }
 
@@ -241,7 +201,7 @@ int WindowApplication::run() {
 
     stop();
 
-    return m_exitCode;
+    return m_exitCode.value_or(0);
 }
 
 int WindowApplication::run(Rc<Window> mainWindow) {
@@ -250,27 +210,12 @@ int WindowApplication::run(Rc<Window> mainWindow) {
 }
 
 bool WindowApplication::hasWindow(const Rc<Window>& window) {
-    return mainScheduler->dispatchAndWait([&]() {
-        return std::find(m_mainData.m_windows.begin(), m_mainData.m_windows.end(), window) !=
-               m_mainData.m_windows.end();
-    });
-}
-
-VoidFunc WindowApplication::idleFunc() {
-    VoidFunc func;
-    if (m_separateUiThread && uiScheduler->isOnThread())
-        func = [this]() {
-            renderWindows();
-        };
-    return func;
+    return std::find(m_windows.begin(), m_windows.end(), window) != m_windows.end();
 }
 
 void WindowApplication::systemModal(function<void(NativeWindow*)> body) {
     ModalMode modal;
-
-    waitFuture(idleFunc(), mainScheduler->dispatch([&]() {
-        body(modal.owner.get());
-    }));
+    body(modal.owner.get());
 }
 
 void WindowApplication::modalRun(Rc<Window> modalWindow) {
@@ -282,34 +227,23 @@ void WindowApplication::modalRun(Rc<Window> modalWindow) {
 
     BRISK_ASSERT(m_active);
 
-    waitFuture(idleFunc(), mainScheduler->dispatch([this, modalWindow]() {
-        modalWindow->openWindow();
-        while (!hasQuit() && hasWindow(modalWindow)) {
-            cycle(true);
-        }
-    }));
+    modalWindow->openWindow();
+    while (!hasQuit() && hasWindow(modalWindow)) {
+        cycle(true);
+    }
 }
 
 void WindowApplication::addWindow(Rc<Window> window, bool makeVisible) {
-    waitFuture(idleFunc(), mainScheduler->dispatch([this, window = std::move(window), makeVisible]() {
-        m_mainData.m_windows.push_back(window);
-        window->attachedToApplication();
-        windowsChanged();
+    m_windows.push_back(window);
+    window->attachedToApplication();
 
-        if (makeVisible && m_active) {
-            window->openWindow();
-        }
-    }));
-}
-
-void WindowApplication::mustBeUiThread() {
-    if (m_uiThread.get_id() != std::thread::id{}) {
-        BRISK_ASSERT(std::this_thread::get_id() == m_uiThread.get_id());
+    if (makeVisible && m_active) {
+        window->openWindow();
     }
 }
 
 bool WindowApplication::hasQuit() const {
-    return m_exitCode.load() != noExitCode;
+    return m_exitCode.has_value();
 }
 
 double WindowApplication::doubleClickDistance() const {
@@ -322,14 +256,14 @@ double WindowApplication::doubleClickTime() const {
 
 void WindowApplication::openWindows() {
     mustBeMainThread();
-    for (Rc<Window> w : m_mainData.m_windows) {
+    for (Rc<Window> w : m_windows) {
         w->openWindow();
     }
 }
 
 void WindowApplication::closeWindows() {
     mustBeMainThread();
-    for (Rc<Window> w : m_mainData.m_windows) {
+    for (Rc<Window> w : m_windows) {
         w->closeWindow();
     }
 }
@@ -344,12 +278,5 @@ void WindowApplication::setQuitCondition(QuitCondition value) {
 
 QuitCondition WindowApplication::quitCondition() const noexcept {
     return m_quitCondition;
-}
-
-void WindowApplication::windowsChanged() {
-    auto windows = m_mainData.m_windows;
-    uiScheduler->dispatch([this, windows = std::move(windows)]() {
-        m_uiData.m_windows = std::move(windows);
-    });
 }
 } // namespace Brisk

@@ -28,7 +28,7 @@ namespace App {
 
 using namespace Brisk;
 
-class DataSourceViewModel : public BindableObject<DataSourceViewModel, &uiScheduler> {
+class DataSourceViewModel : public BindableObject<DataSourceViewModel> {
 public:
     DataSourceViewModel(Rc<DataSourceModel> model, Value<int> updateTrigger);
 
