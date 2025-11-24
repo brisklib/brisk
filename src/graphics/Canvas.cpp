@@ -269,17 +269,6 @@ void Canvas::drawPreparedPathCmd(const PreparedPath& path, const PaintAndTransfo
     }
 }
 
-static float roundRadius(JoinStyle joinStyle, float radius) {
-    return std::max(radius, joinStyle == JoinStyle::Miter ? 0.f : 0.5f);
-}
-
-static Rectangle transformedClipRect(const Matrix& matrix, RectangleF clipRect) {
-    return horizontalMax(clipRect.p1.v) <= float(INT32_MIN) &&
-                   horizontalMin(clipRect.p2.v) >= float(INT32_MAX)
-               ? noClipRect
-               : Rectangle(matrix.transform(clipRect).roundOutward());
-}
-
 template <typename T>
 struct CopyOrRef {
     CopyOrRef(T&& copy) : copy(std::move(copy)) {}

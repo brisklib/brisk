@@ -44,6 +44,7 @@ extern Window* currentWindow;
 enum class QuitCondition {
     FirstWindowClosed,
     AllWindowsClosed,
+    Never,
     PlatformDependant, // Never on macOS, AllWindowsClosed on others
 };
 
@@ -127,10 +128,8 @@ public:
     ~WindowApplication();
     double doubleClickTime() const;
     double doubleClickDistance() const;
-    Rc<TaskQueue> afterRenderQueue;
     Rc<TaskQueue> onApplicationClose = rcnew TaskQueue();
     void systemModal(function<void(NativeWindow*)> body);
-    void updateAndWait();
 
     /**
      * @brief Start the main loop
@@ -144,12 +143,20 @@ public:
      */
     void stop();
 
+    // Enum with three options: check messages, check messages and wait for them, don't check messages
+    // Rephrase to get correct wording
+    enum class ProcessEventsMode {
+        CheckAndWait,
+        CheckOnly,
+        DontCheck,
+    };
+
     /**
      * @brief Run one cycle of the main loop
-     * @param wait Wait for OS events
+     * @param mode Mode of processing events
      * @remark This function is internal. Use only if you know what you do
      */
-    void cycle(bool wait);
+    void cycle(ProcessEventsMode mode);
 
     QuitCondition quitCondition() const noexcept;
     void setQuitCondition(QuitCondition value);

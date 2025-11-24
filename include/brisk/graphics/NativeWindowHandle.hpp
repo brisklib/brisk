@@ -41,7 +41,9 @@
 namespace Brisk {
 
 struct NativeWindowHandle {
-    void* ptr                     = nullptr;
+    void* ptr = nullptr;
+
+    explicit NativeWindowHandle(void* ptr) noexcept : ptr(ptr) {}
 
     NativeWindowHandle() noexcept = default;
 

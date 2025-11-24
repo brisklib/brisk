@@ -186,7 +186,7 @@ void GuiWindow::updateWindowLimits() {
         Size resolution    = display ? display->workarea().size() : Size{ 4096, 2048 };
         newWindowSize      = min(newWindowSize, resolution);
 
-        if (newWindowSize != windowSize) {
+        if (newWindowSize != windowSize && isTopLevel()) {
             if (m_windowFit == WindowFit::MinimumSize) {
                 setMinimumSize(newWindowSize);
             } else {

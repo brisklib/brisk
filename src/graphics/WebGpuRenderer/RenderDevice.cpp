@@ -65,6 +65,7 @@ static void storeCached(const void* key, size_t keySize, const void* value, size
 }
 
 bool RenderDeviceWebGpu::createDevice() {
+    ensureOnRenderThread();
 
     const char* instanceToggles[] = {
         "allow_unsafe_apis",
@@ -207,9 +208,12 @@ bool RenderDeviceWebGpu::createDevice() {
 }
 
 RenderDeviceWebGpu::RenderDeviceWebGpu(RendererDeviceSelection deviceSelection, NativeDisplayHandle display)
-    : m_deviceSelection(deviceSelection), m_display(display) {}
+    : m_deviceSelection(deviceSelection), m_display(display) {
+    ensureOnRenderThread();
+}
 
 status<RenderDeviceError> RenderDeviceWebGpu::init() {
+    ensureOnRenderThread();
     if (!createDevice()) {
         return unexpected(RenderDeviceError::Unsupported);
     }
@@ -341,6 +345,7 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
 
 wgpu::RenderPipeline RenderDeviceWebGpu::createPipeline(wgpu::TextureFormat renderFormat,
                                                         bool dualSourceBlending) {
+    ensureOnRenderThread();
     if (auto it = m_pipelineCache.find(std::make_tuple(renderFormat, dualSourceBlending));
         it != m_pipelineCache.end()) {
         return it->second;
@@ -376,6 +381,7 @@ wgpu::RenderPipeline RenderDeviceWebGpu::createPipeline(wgpu::TextureFormat rend
 }
 
 void RenderDeviceWebGpu::createSamplers() {
+    ensureOnRenderThread();
     {
         wgpu::TextureDescriptor desc{
             .label  = "DummyTexture",
@@ -411,6 +417,7 @@ static const std::string_view wgpuBackends[] = {
 };
 
 RenderDeviceInfo RenderDeviceWebGpu::info() const {
+    ensureOnRenderThread();
     wgpu::AdapterInfo props;
     m_adapter.GetInfo(&props);
     RenderDeviceInfo info;
@@ -423,11 +430,13 @@ RenderDeviceInfo RenderDeviceWebGpu::info() const {
 
 Rc<WindowRenderTarget> RenderDeviceWebGpu::createWindowTarget(const NativeWindow* window, PixelType type,
                                                               DepthStencilType depthStencil, int samples) {
+    ensureOnRenderThread();
     return rcnew WindowRenderTargetWebGpu(shared_from_this(), window, type, depthStencil, samples);
 }
 
 Rc<ImageRenderTarget> RenderDeviceWebGpu::createImageTarget(Size frameSize, PixelType type,
                                                             DepthStencilType depthStencil, int samples) {
+    ensureOnRenderThread();
     if (frameSize.longestSide() >= 16384) {
         throwException(EImageError("Requested image render target size is too large: {}", frameSize));
     }
@@ -435,10 +444,12 @@ Rc<ImageRenderTarget> RenderDeviceWebGpu::createImageTarget(Size frameSize, Pixe
 }
 
 Rc<RenderEncoder> RenderDeviceWebGpu::createEncoder() {
+    ensureOnRenderThread();
     return rcnew RenderEncoderWebGpu(shared_from_this());
 }
 
 RenderDeviceWebGpu::~RenderDeviceWebGpu() {
+    ensureOnRenderThread();
     m_resources.reset();
     m_pipelineCache          = {};
     m_device                 = nullptr;
@@ -463,11 +474,13 @@ RenderDeviceWebGpu::~RenderDeviceWebGpu() {
 
 bool RenderDeviceWebGpu::updateBackBuffer(BackBufferWebGpu& buffer, PixelType type,
                                           DepthStencilType depthType, int samples) {
+    ensureOnRenderThread();
     buffer.colorView = buffer.color.CreateView();
     return true;
 }
 
 void RenderDeviceWebGpu::wait() {
+    ensureOnRenderThread();
     wgpu::FutureWaitInfo future;
     future.future = m_device.GetQueue().OnSubmittedWorkDone(wgpu::CallbackMode::AllowProcessEvents,
                                                             [](wgpu::QueueWorkDoneStatus status) {});
@@ -477,6 +490,7 @@ void RenderDeviceWebGpu::wait() {
 }
 
 void RenderDeviceWebGpu::createImageBackend(Rc<Image> image) {
+    ensureOnRenderThread();
     BRISK_ASSERT(image);
     if (wgFormat(image->pixelType(), image->pixelFormat()) == wgpu::TextureFormat::Undefined) {
         throwException(EImageError("WebGPU backend does not support the image type or format: {}, {}. "

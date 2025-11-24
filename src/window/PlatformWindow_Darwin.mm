@@ -629,7 +629,7 @@ using namespace Brisk;
 }
 
 - (void)updateLayer {
-    // Repaint
+    window->requestRedraw();
 }
 
 - (void)cursorUpdate:(NSEvent*)event {

@@ -89,12 +89,14 @@ void freeRenderDevice() {
 RenderPipeline::RenderPipeline(Rc<RenderEncoder> encoder, Rc<RenderTarget> target,
                                std::optional<ColorF> clear, Rectangle clipRect)
     : m_encoder(std::move(encoder)), m_resources(m_encoder->device()->resources()) {
+    ensureOnRenderThread();
     m_limits = m_encoder->device()->limits();
     m_encoder->begin(std::move(target), clear);
     m_globalScissor = clipRect;
 }
 
 bool RenderPipeline::flush() {
+    ensureOnRenderThread();
     if (m_commands.empty())
         return false;
     BRISK_ASSERT(m_resources.currentCommand > m_resources.firstCommand);
@@ -114,6 +116,7 @@ bool RenderPipeline::flush() {
 }
 
 void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data) {
+    ensureOnRenderThread();
     cmd.scissor = cmd.scissor.intersection(m_globalScissor);
     if (cmd.scissor.empty())
         return;
@@ -189,6 +192,7 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data
 }
 
 RenderPipeline::~RenderPipeline() {
+    ensureOnRenderThread();
     if (std::uncaught_exceptions() == 0) {
         flush();
         m_encoder->end();
@@ -199,20 +203,24 @@ RenderPipeline::~RenderPipeline() {
 }
 
 int RenderPipeline::numBatches() const {
+    ensureOnRenderThread();
     return m_numBatches;
 }
 
 void RenderPipeline::setGlobalScissor(Rectangle clipRect) {
+    ensureOnRenderThread();
     m_globalScissor = clipRect;
 }
 
 void RenderPipeline::blit(Rc<Image> image) {
+    ensureOnRenderThread();
     RenderStateEx style(ShaderType::Blit, nullptr);
     style.sourceImageHandle = std::move(image);
     command(std::move(style), {});
 }
 
 Rectangle RenderPipeline::globalScissor() const {
+    ensureOnRenderThread();
     return m_globalScissor;
 }
 

@@ -48,10 +48,10 @@ protected:
 
 private:
     bool m_drag                         = false;
-    float m_savedValue                  = NAN;
+    double m_savedValue                 = 0;
     constexpr static int trackThickness = 4;
     constexpr static int thumbRadius    = 5;
-    float m_distance                    = NAN;
+    double m_distance                   = 0;
 };
 
 void sliderPainter(Canvas& canvas, const Widget& widget);

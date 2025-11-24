@@ -22,14 +22,22 @@
 
 #include "Matrix.hpp"
 #include "Gradients.hpp"
+#include <brisk/core/Binding.hpp>
 #include <brisk/core/MetaClass.hpp>
 #include <brisk/core/Json.hpp>
+#include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/internal/Sprites.hpp>
 #include <brisk/core/internal/Argument.hpp>
 
 namespace Brisk {
+
+extern Rc<TaskQueue> renderScheduler;
+
+extern bool separateRenderThread;
+
+void ensureOnRenderThread();
 
 namespace Internal {
 constexpr inline uint32_t max2DTextureSize = 8192;

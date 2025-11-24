@@ -25,6 +25,7 @@ namespace Brisk {
 
 ImageBackendD3d11* getOrCreateBackend(Rc<RenderDeviceD3d11> device, Rc<Image> image, bool uploadImage,
                                       bool renderTarget) {
+    ensureOnRenderThread();
     if (!image)
         return nullptr;
     Internal::ImageBackend* imageBackend = Internal::getBackend(image);
@@ -42,6 +43,7 @@ ImageBackendD3d11* getOrCreateBackend(Rc<RenderDeviceD3d11> device, Rc<Image> im
 ImageBackendD3d11::ImageBackendD3d11(Rc<RenderDeviceD3d11> device, Image* image, bool uploadImage,
                                      bool renderTarget)
     : m_device(std::move(device)), m_image(image) {
+    ensureOnRenderThread();
     D3D11_TEXTURE2D_DESC tex = texDesc(
         dxFormatTypeless(m_image->pixelType(), m_image->pixelFormat()), image->size(), 1, D3D11_USAGE_DEFAULT,
         renderTarget ? D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE : D3D11_BIND_SHADER_RESOURCE);
@@ -67,12 +69,14 @@ ImageBackendD3d11::ImageBackendD3d11(Rc<RenderDeviceD3d11> device, Image* image,
 }
 
 void ImageBackendD3d11::begin(AccessMode mode, Rectangle rect) {
+    ensureOnRenderThread();
     if (mode != AccessMode::W) {
         readFromGpu(m_image->data().subrect(rect), rect.p1);
     }
 }
 
 void ImageBackendD3d11::end(AccessMode mode, Rectangle rect) {
+    ensureOnRenderThread();
     if (mode != AccessMode::R) {
         writeToGpu(m_image->data().subrect(rect), rect.p1);
     }
@@ -83,6 +87,7 @@ void ImageBackendD3d11::invalidate() {
 }
 
 void ImageBackendD3d11::readFromGpu(const ImageData<UntypedPixel>& data, Point origin) {
+    ensureOnRenderThread();
     D3D11_TEXTURE2D_DESC texDesc;
     m_texture.Get()->GetDesc(&texDesc);
     texDesc.Width          = data.size.width;
@@ -116,6 +121,7 @@ void ImageBackendD3d11::readFromGpu(const ImageData<UntypedPixel>& data, Point o
 }
 
 void ImageBackendD3d11::writeToGpu(const ImageData<UntypedPixel>& data, Point origin) {
+    ensureOnRenderThread();
     D3D11_BOX box;
     box.left   = origin.x;
     box.top    = origin.y;

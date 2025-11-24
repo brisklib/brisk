@@ -105,7 +105,6 @@ void Bindings::unregisterRegion(const uint8_t* rangeBegin) {
         BRISK_ASSERT(false); // Assert if the region is not found
     }
     removeIndirectDependencies(it->second.get());
-    const BindingAddress range = it->second->region;
     m_regions.erase(it);
 }
 
