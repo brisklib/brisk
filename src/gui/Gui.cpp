@@ -1237,7 +1237,6 @@ void Widget::paintHint(Canvas& canvas) const {
     if ((m_isHintExclusive || isHintCurrent()) && !m_hintPrepared.lines.empty() && m_tree &&
         m_isHintVisible) {
         m_tree->requestLayer([this](Canvas& canvas) {
-            SizeF textSize     = m_hintPrepared.bounds().size();
             ColorW color       = getStyleVar<ColorW>(hintBackgroundColor.id).value_or(Palette::white);
             ColorW shadowColor = getStyleVar<ColorW>(hintShadowColor.id).value_or(Palette::black);
             canvas.setFillColor(shadowColor);

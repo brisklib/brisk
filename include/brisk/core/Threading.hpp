@@ -31,6 +31,24 @@
 
 namespace Brisk {
 
+class Thread {
+public:
+    Thread();
+
+    ~Thread();
+
+    std::thread::id get_id() const noexcept;
+
+protected:
+    bool isTerminated() const noexcept;
+
+    virtual void threadBody();
+
+private:
+    std::thread m_thread;
+    std::atomic<bool> m_terminate{ false };
+};
+
 /**
  * @enum ExecuteImmediately
  * @brief Defines when and how a scheduled function is dispatched in a task queue.
@@ -249,6 +267,13 @@ public:
     TaskQueue();
 
     ~TaskQueue();
+
+    /**
+     * @brief Set the Thread Id object
+     *
+     * @param threadId
+     */
+    void setThreadId(std::thread::id threadId) noexcept;
 
     /**
      * @brief Dispatches a function for execution.

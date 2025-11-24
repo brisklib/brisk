@@ -60,6 +60,8 @@ public:
      */
     Rc<GuiWindow> makeWindow();
 
+    Rc<GuiWindow> newWindow();
+
     /**
      * @brief Closes the associated window.
      *

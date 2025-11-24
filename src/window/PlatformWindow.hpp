@@ -117,6 +117,7 @@ public:
     void setSizeLimits(Size minSize, Size maxSize);
     void setStyle(WindowStyle style);
     void setOwner(Rc<Window> window);
+    void setParent(NativeWindowHandle parent);
     void releaseButtonsAndKeys();
 
     NativeWindowHandle getHandle() const;
@@ -130,6 +131,7 @@ public:
     bool isIconified() const;
     bool isMaximized() const;
     void updateVisibility();
+    void requestRedraw();
 
     void setWindowIcon();
     bool cursorInContentArea() const;

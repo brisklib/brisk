@@ -28,7 +28,7 @@ void Knob::onEvent(Event& event) {
     Widget::onEvent(event);
 
     if (float delta = event.wheelScrolled(m_wheelModifiers)) {
-        m_savedValue    = std::clamp(static_cast<float>(normalizedValue) + delta / 24.f, 0.f, 1.f);
+        m_savedValue    = std::clamp(static_cast<double>(normalizedValue) + delta / 24., 0., 1.);
         normalizedValue = m_savedValue;
         event.stopPropagation();
         return;
@@ -42,8 +42,8 @@ void Knob::onEvent(Event& event) {
         event.stopPropagation();
         return;
     case DragEvent::Dragging: {
-        const float unit_distance = mods && KeyModifiers::Shift ? 1500_dp : 150.0_dp;
-        normalizedValue = std::clamp((offset.x - offset.y) / unit_distance + m_savedValue, 0.f, 1.f);
+        const double unit_distance = mods && KeyModifiers::Shift ? 1500_dp : 150.0_dp;
+        normalizedValue            = std::clamp((offset.x - offset.y) / unit_distance + m_savedValue, 0., 1.);
         startModifying();
         event.stopPropagation();
         return;
@@ -59,27 +59,27 @@ void Knob::onEvent(Event& event) {
     if (auto e = event.as<EventKeyPressed>()) {
         switch (e->key) {
         case KeyCode::Up:
-            value = std::min(static_cast<float>(normalizedValue) + 0.01f, 1.f);
+            value = std::min(static_cast<double>(normalizedValue) + 0.01, 1.);
             event.stopPropagation();
             break;
         case KeyCode::Down:
-            value = std::min(static_cast<float>(normalizedValue) - 0.01f, 1.f);
+            value = std::min(static_cast<double>(normalizedValue) - 0.01, 1.);
             event.stopPropagation();
             break;
         case KeyCode::PageUp:
-            value = std::min(static_cast<float>(normalizedValue) + 0.1f, 1.f);
+            value = std::min(static_cast<double>(normalizedValue) + 0.1, 1.);
             event.stopPropagation();
             break;
         case KeyCode::PageDown:
-            value = std::max(static_cast<float>(normalizedValue) - 0.1f, 0.f);
+            value = std::max(static_cast<double>(normalizedValue) - 0.1, 0.);
             event.stopPropagation();
             break;
         case KeyCode::Home:
-            value = 0.f;
+            value = 0.;
             event.stopPropagation();
             break;
         case KeyCode::End:
-            value = 1.f;
+            value = 1.;
             event.stopPropagation();
             break;
         default:

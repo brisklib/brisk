@@ -134,6 +134,10 @@ void PlatformWindow::closeAttempt() {
     m_window->closeAttempt();
 }
 
+void PlatformWindow::requestRedraw() {
+    m_window->doPaint();
+}
+
 bool PlatformWindow::keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {
     if (m_windowStyle && WindowStyle::Disabled)
         return false;

@@ -45,6 +45,12 @@ Rc<GuiWindow> Component::makeWindow() {
     return window;
 }
 
+Rc<GuiWindow> Component::newWindow() {
+    Rc<GuiWindow> window = createWindow();
+    configureWindow(window);
+    return window;
+}
+
 Rc<GuiWindow> Component::createWindow() {
     return rcnew GuiWindow{ shared_from_this() };
 }
@@ -88,6 +94,8 @@ void Component::handleDebugKeystrokes(Event& event) {
         if (auto t = window() ? window()->target() : nullptr)
             t->setVSyncInterval(1 - t->vsyncInterval());
     } else if (event.keyPressed(KeyCode::F5)) {
+        if (!window() || !window()->tree().root())
+            return;
         tree().root()->dump();
     } else if (event.keyPressed(KeyCode::F6)) {
         Internal::debugDirtyRect = !Internal::debugDirtyRect;

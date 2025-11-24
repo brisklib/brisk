@@ -124,7 +124,9 @@ bool PlatformWindow::createWindow() {
     });
     glfwSetWindowIconifyCallback(m_data->win, nullptr);
     glfwSetWindowMaximizeCallback(m_data->win, nullptr);
-    glfwSetWindowRefreshCallback(m_data->win, nullptr);
+    glfwSetWindowRefreshCallback(m_data->win, [](GLFWwindow* gw) {
+        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->requestRedraw();
+    });
     glfwSetWindowContentScaleCallback(m_data->win, [](GLFWwindow* gw, float scalex, float scaley) {
         auto* window    = reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw));
         window->m_scale = std::max(scalex, scaley);

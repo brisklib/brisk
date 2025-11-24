@@ -160,4 +160,29 @@ void Scheduler::waitForCompletion() {
 Rc<TaskQueue> mainScheduler;
 Rc<Scheduler> noScheduler; // always nullptr
 
+void TaskQueue::setThreadId(std::thread::id threadId) noexcept {
+    m_threadId = threadId;
+}
+
+Thread::Thread() {
+    m_thread = std::thread(&Thread::threadBody, this);
+}
+
+Thread::~Thread() {
+    // stop thread and wait
+    m_terminate.store(true, std::memory_order_release);
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+}
+
+std::thread::id Thread::get_id() const noexcept {
+    return m_thread.get_id();
+}
+
+bool Thread::isTerminated() const noexcept {
+    return m_terminate.load(std::memory_order_acquire);
+}
+
+void Thread::threadBody() {}
 } // namespace Brisk

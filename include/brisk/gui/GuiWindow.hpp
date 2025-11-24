@@ -48,6 +48,7 @@ public:
 
     explicit GuiWindow(Rc<Component> component);
     ~GuiWindow();
+    bool processEvent(Event&&);
 
 protected:
     Rc<Component> m_component;
@@ -61,7 +62,6 @@ protected:
     virtual void unhandledEvent(Event& event);
     virtual void beforeDraw(Canvas& canvas);
     virtual void afterDraw(Canvas& canvas);
-    bool processEvent(Event&&);
     Rc<Widget> root() const;
     void clearRoot();
     void rebuildRoot();
@@ -84,7 +84,6 @@ protected:
 
 private:
     std::string m_id;
-    bool m_frameSkipTestState = false;
     Rectangle m_savedPaintRect{};
 
     void updateWindowLimits();

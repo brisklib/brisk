@@ -222,6 +222,7 @@ void Window::recomputeScales() {
 }
 
 void Window::visibilityChanged(bool newIsVisible) {
+    CurrentWindowScope scope(this);
     onVisibilityChanged(newIsVisible);
 }
 
@@ -232,7 +233,7 @@ void Window::attachedToApplication() {
     bindings->connect(Value{ &m_syncInterval,
                              [this]() {
                                  if (m_target)
-                                     m_target->setVSyncInterval(m_syncInterval);
+                                     m_target->setVSyncInterval(m_vSync ? m_syncInterval : 0);
                              } },
                       Value{ &windowApplication->syncInterval });
 }
@@ -351,8 +352,8 @@ void Window::paintDebug(RenderContext& context) {
 
 void Window::doPaint() {
     mustBeMainThread();
+    CurrentWindowScope scope(this);
     BRISK_ASSERT(m_encoder);
-    PerformanceDuration start_time = perfNow();
     ObjCPool pool;
     high_res_clock::time_point renderStart;
 
@@ -536,7 +537,7 @@ void Window::initializeRenderer() {
         return;
     m_encoder = renderDevice()->createEncoder();
     m_target  = renderDevice()->createWindowTarget(this);
-    m_target->setVSyncInterval(m_syncInterval);
+    m_target->setVSyncInterval(m_vSync ? m_syncInterval : 0);
 }
 
 void Window::finalizeRenderer() {
@@ -562,8 +563,8 @@ void Window::setWindowPlacement(BytesView data) {
     m_platformWindow->setPlacement(data);
 }
 
-void Window::disableKeyHandling() {
-    m_keyHandling = false;
+void Window::setKeyHandling(bool keyHandling) {
+    m_keyHandling = keyHandling;
 }
 
 void Window::captureFrame(function<void(Rc<Image>)> callback) {
@@ -583,6 +584,8 @@ void Window::openWindow() {
     if (m_platformWindow)
         return;
     m_platformWindow.reset(new PlatformWindow(this, m_windowSize, m_position, m_style));
+    if (m_parent)
+        m_platformWindow->setParent(m_parent);
     recomputeScales();
     initializeRenderer();
     m_rendering = true;
@@ -603,6 +606,7 @@ void Window::closeWindow() {
 }
 
 bool Window::keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {
+    CurrentWindowScope scope(this);
     if (!m_keyHandling)
         return false;
     m_mods = mods;
@@ -610,12 +614,14 @@ bool Window::keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers 
 }
 
 bool Window::charEvent(char32_t character) {
+    CurrentWindowScope scope(this);
     if (!m_keyHandling)
         return false;
     return onCharEvent(character);
 }
 
 bool Window::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point) {
+    CurrentWindowScope scope(this);
     m_mods        = mods;
     m_mousePoint  = point;
 
@@ -640,27 +646,33 @@ bool Window::mouseEvent(MouseButton button, MouseAction action, KeyModifiers mod
 }
 
 bool Window::mouseMove(PointF point) {
+    CurrentWindowScope scope(this);
     m_mousePoint = point;
     return onMouseMove(point);
 }
 
 bool Window::wheelEvent(float x, float y) {
+    CurrentWindowScope scope(this);
     return onWheelEvent(x, y);
 }
 
 void Window::mouseEnter() {
+    CurrentWindowScope scope(this);
     onMouseEnter();
 }
 
 void Window::mouseLeave() {
+    CurrentWindowScope scope(this);
     onMouseLeave();
 }
 
 bool Window::filesDropped(std::vector<std::string> files) {
+    CurrentWindowScope scope(this);
     return onFilesDropped(files);
 }
 
 void Window::focusChange(bool newIsFocused) {
+    CurrentWindowScope scope(this);
     onFocusChange(newIsFocused);
 }
 
@@ -714,6 +726,7 @@ void Window::paint(RenderContext& context, bool fullRepaint) {}
 void Window::beforeFrame() {}
 
 void Window::closeAttempt() {
+    CurrentWindowScope scope(this);
     switch (shouldClose()) {
     case CloseAction::Close:
         return close();
@@ -725,6 +738,7 @@ void Window::closeAttempt() {
 }
 
 void Window::windowResized(Size windowSize, Size framebufferSize) {
+    CurrentWindowScope scope(this);
     if (windowSize != m_windowSize || framebufferSize != m_framebufferSize) {
         m_windowSize      = windowSize;
         m_framebufferSize = framebufferSize;
@@ -733,6 +747,7 @@ void Window::windowResized(Size windowSize, Size framebufferSize) {
 }
 
 void Window::windowMoved(Point position) {
+    CurrentWindowScope scope(this);
     if (position != m_position) {
         m_position = position;
         onWindowMoved(m_position);
@@ -740,6 +755,7 @@ void Window::windowMoved(Point position) {
 }
 
 void Window::windowNonClientClicked() {
+    CurrentWindowScope scope(this);
     onNonClientClicked();
 }
 
@@ -781,6 +797,7 @@ PlatformWindow* Window::platformWindow() {
 }
 
 void Window::windowStateChanged(bool isIconified, bool isMaximized) {
+    CurrentWindowScope scope(this);
     onWindowStateChanged(isIconified, isMaximized);
 }
 
@@ -804,6 +821,17 @@ void Window::setForceRenderEveryFrame(bool forceRenderEveryFrame) {
 
 bool Window::forceRenderEveryFrame() const noexcept {
     return m_forceRenderEveryFrame;
+}
+
+void Window::setVSync(bool vSync) {
+    m_vSync = vSync;
+    if (m_target) {
+        m_target->setVSyncInterval(m_vSync ? m_syncInterval : 0);
+    }
+}
+
+bool Window::vSync() const noexcept {
+    return m_vSync;
 }
 
 Rc<Display> Window::display() const {
@@ -929,6 +957,21 @@ FrameStat& RenderStat::back() noexcept {
 const FrameStat& RenderStat::back() const noexcept {
     BRISK_ASSERT(m_lastFrame != UINT64_MAX);
     return m_frames[m_lastFrame % capacity];
+}
+
+NativeWindowHandle Window::parent() const {
+    return m_parent;
+}
+
+bool Window::isTopLevel() const noexcept {
+    return !m_parent;
+}
+
+void Window::setParent(NativeWindowHandle parent) {
+    m_parent = parent;
+    if (m_platformWindow) {
+        m_platformWindow->setParent(m_parent);
+    }
 }
 
 } // namespace Brisk

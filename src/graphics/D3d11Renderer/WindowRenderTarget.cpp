@@ -28,6 +28,7 @@ WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, c
                                                  PixelType type, DepthStencilType depthStencil, int samples)
     : m_device(std::move(device)), m_window(window), m_type(type), m_depthStencilFmt(depthStencil),
       m_samples(samples) {
+    ensureOnRenderThread();
 
     m_device->incrementWindowTargets();
 
@@ -88,20 +89,24 @@ WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, c
 }
 
 WindowRenderTargetD3d11::~WindowRenderTargetD3d11() {
+    ensureOnRenderThread();
     m_device->decrementWindowTargets();
 }
 
 void WindowRenderTargetD3d11::setVSyncInterval(int interval) {
+    ensureOnRenderThread();
     if (interval != m_vsyncInterval) {
         m_vsyncInterval = interval;
     }
 }
 
 void WindowRenderTargetD3d11::present() {
+    ensureOnRenderThread();
     m_swapChain->Present(m_vsyncInterval, 0);
 }
 
 void WindowRenderTargetD3d11::createBackBuffer(Size size) {
+    ensureOnRenderThread();
     if (size.longestSide() >= 16384) {
         throwException(EImageError("Requested window framebuffer size is too large: {}", size));
     }
@@ -114,6 +119,7 @@ void WindowRenderTargetD3d11::createBackBuffer(Size size) {
 }
 
 void WindowRenderTargetD3d11::resizeBackbuffer(Size size) {
+    ensureOnRenderThread();
     if (size != m_size) {
         m_device->m_context->OMSetRenderTargets(0, nullptr, nullptr);
 

@@ -1226,9 +1226,6 @@ void FontManager::testRender(Rc<Image> image, const PreparedText& prepared, Poin
     }
 }
 
-const size_t shapeCacheSizeLow  = 190;
-const size_t shapeCacheSizeHigh = 210;
-
 PreparedText FontManager::doShapeCached(const TextWithOptions& text, std::span<const FontAndColor> fonts,
                                         std::span<const uint32_t> offsets) const {
     BRISK_ASSERT_MSG("The number of fonts and offsets do not match", fonts.size() == offsets.size() + 1);
@@ -1236,6 +1233,8 @@ PreparedText FontManager::doShapeCached(const TextWithOptions& text, std::span<c
     // TODO: reenable cache
     return doShape(text, fonts, offsets);
 #else
+    const size_t shapeCacheSizeLow  = 190;
+    const size_t shapeCacheSizeHigh = 210;
     Internal::ShapingCacheKey key{ font, text };
     ++m_cacheCounter;
     if (auto it = m_shapeCache.find(key); it != m_shapeCache.end()) {
@@ -1383,7 +1382,7 @@ uint32_t PreparedText::graphemeToLine(uint32_t graphemeIndex) const {
     if (lines.empty() || !hasCaretData())
         return UINT32_MAX;
     auto it = std::lower_bound(lines.begin(), lines.end(), graphemeIndex,
-                               [this](const GlyphLine& line, uint32_t graphemeIndex) {
+                               [](const GlyphLine& line, uint32_t graphemeIndex) {
                                    if (line.runRange.max == 0)
                                        return true;
                                    uint32_t firstGrapheme = line.graphemeRange.min;
@@ -1786,7 +1785,8 @@ PreparedText PreparedText::wrap(float maxWidth, bool wrapAnywhere) && {
     PreparedText result;
     BRISK_ASSERT(visualOrder.size() == runs.size());
     result.graphemeBoundaries = std::move(graphemeBoundaries);
-    if (options && TextOptions::SingleLine || std::isinf(maxWidth) && !hasControlRuns(runs) || runs.empty()) {
+    if ((options && TextOptions::SingleLine) || (std::isinf(maxWidth) && !hasControlRuns(runs)) ||
+        runs.empty()) {
         result.runs = std::move(runs);
         result.visualOrder.resize(result.runs.size());
         std::iota(result.visualOrder.begin(), result.visualOrder.end(), 0u);

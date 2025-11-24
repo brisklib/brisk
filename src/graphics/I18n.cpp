@@ -194,10 +194,6 @@ LockedICUBreakIterator acquireICUBreakIterator(TextBreakMode mode) {
     return LockedICUBreakIterator(mode);
 }
 
-static TextDirection toDir(UBiDiDirection direction) {
-    return direction == UBIDI_LTR ? TextDirection::LTR : TextDirection::RTL;
-}
-
 static TextDirection toDir(UBiDiLevel level) {
     return (level & 1) ? TextDirection::RTL : TextDirection::LTR;
 }

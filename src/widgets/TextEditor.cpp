@@ -303,7 +303,6 @@ void TextEditor::onEvent(Event& event) {
 
     if (isDisabled())
         return;
-    const Rectangle textRect = m_clientRect;
     std::u32string text;
     if (event.doubleClicked()) {
         selectWordAtCursor();

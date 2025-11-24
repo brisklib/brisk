@@ -29,6 +29,7 @@ ImageRenderTargetWebGpu::ImageRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, 
                                                  PixelType type, DepthStencilType depthStencil, int samples)
     : m_device(std::move(device)), m_frameSize(frameSize), m_type(type), m_depthStencilType(depthStencil),
       m_samples(samples) {
+    ensureOnRenderThread();
 
     if (!updateImage()) {
         return;
@@ -38,6 +39,7 @@ ImageRenderTargetWebGpu::ImageRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, 
 ImageRenderTargetWebGpu::~ImageRenderTargetWebGpu() = default;
 
 bool ImageRenderTargetWebGpu::updateImage() {
+    ensureOnRenderThread();
     m_image                     = rcnew Image(m_frameSize, imageFormat(m_type, format));
     ImageBackendWebGpu* backend = getOrCreateBackend(m_device, m_image, false, true);
     m_backBuffer.color          = backend->m_texture;
@@ -48,10 +50,12 @@ bool ImageRenderTargetWebGpu::updateImage() {
 }
 
 Size ImageRenderTargetWebGpu::size() const {
+    ensureOnRenderThread();
     return m_frameSize;
 }
 
 void ImageRenderTargetWebGpu::setSize(Size newSize) {
+    ensureOnRenderThread();
     m_frameSize = newSize;
     if (!updateImage()) {
         return;
@@ -59,6 +63,7 @@ void ImageRenderTargetWebGpu::setSize(Size newSize) {
 }
 
 Rc<Image> ImageRenderTargetWebGpu::image(bool reset) const {
+    ensureOnRenderThread();
     Rc<Image> image = m_image;
     if (reset) {
         const_cast<ImageRenderTargetWebGpu*>(this)->updateImage();

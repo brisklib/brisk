@@ -46,13 +46,13 @@ void SingleTimerThread::run() {
     }
 }
 
-PeriodicTimer::PeriodicTimer(bool startNow) : time(NAN) {
+PeriodicTimer::PeriodicTimer(bool startNow) : time(-1e10) {
     if (startNow)
         start();
 }
 
 void PeriodicTimer::stop() {
-    time = NAN;
+    time = -1e10;
 }
 
 void PeriodicTimer::start() {
@@ -60,7 +60,7 @@ void PeriodicTimer::start() {
 }
 
 bool PeriodicTimer::active() const {
-    return !std::isnan(time);
+    return time > -1e10;
 }
 
 bool PeriodicTimer::elapsed(double period) {

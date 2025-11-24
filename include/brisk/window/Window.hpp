@@ -352,8 +352,19 @@ public:
 
     PlatformWindow* platformWindow();
 
-    void disableKeyHandling();
+    void setKeyHandling(bool keyHandling);
     NativeWindowHandle getHandle() const final;
+
+    void setParent(NativeWindowHandle parent);
+    NativeWindowHandle parent() const;
+
+    void setVSync(bool vSync);
+    bool vSync() const noexcept;
+
+    /**
+     * @brief Check if the window is a top-level (not child) window
+     */
+    bool isTopLevel() const noexcept;
 
     void setOwner(Rc<Window> window);
     void enterModal();
@@ -382,15 +393,15 @@ protected:
 
 protected:
     // Properties and dimensions
-    WindowStyle m_style = WindowStyle::Normal; /// UI-thread
-    std::string m_title;                       /// UI-thread
-    Size m_minimumSize{ -1, -1 };              /// UI-thread
-    Size m_maximumSize{ -1, -1 };              /// UI-thread
-    Size m_windowSize{ 640, 480 };             /// UI-thread
-    Size m_framebufferSize{ 0, 0 };            /// UI-thread
-    Point m_position{ -1, -1 };                /// UI-thread
+    WindowStyle m_style = WindowStyle::Normal;
+    std::string m_title;
+    Size m_minimumSize{ -1, -1 };
+    Size m_maximumSize{ -1, -1 };
+    Size m_windowSize{ 640, 480 };
+    Size m_framebufferSize{ 0, 0 };
+    Point m_position{ -1, -1 };
     Cursor m_cursor = Cursor::Arrow;
-    void* m_parent  = nullptr;
+    NativeWindowHandle m_parent;
     bool m_visible{ true };  /// Desired value. Will be applied to OS window when open
     bool m_closing{ false }; /// If true, application will remove this window from windows list
     // call to change visibility
@@ -453,6 +464,7 @@ protected:
     bool m_rendering{ false }; /// true if rendering is active
     bool m_bufferedRendering{ Internal::bufferedRendering };
     bool m_forceRenderEveryFrame{ Internal::forceRenderEveryFrame };
+    bool m_vSync{ true };
     RenderStat m_renderStat;
     Rc<RenderDevice> m_renderDevice;
     Rc<RenderDevice> renderDevice();
@@ -517,6 +529,19 @@ struct ModalMode {
     ~ModalMode();
 
     Rc<Window> owner;
+};
+
+struct CurrentWindowScope {
+    CurrentWindowScope(Window* window) {
+        previousWindow          = Internal::currentWindow;
+        Internal::currentWindow = window;
+    }
+
+    ~CurrentWindowScope() {
+        Internal::currentWindow = previousWindow;
+    }
+
+    Window* previousWindow = nullptr;
 };
 
 } // namespace Brisk

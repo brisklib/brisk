@@ -26,6 +26,7 @@ WindowRenderTargetWebGpu::WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device
                                                    PixelType type, DepthStencilType depthStencil, int samples)
     : m_device(std::move(device)), m_window(window), m_type(type), m_depthStencilFmt(depthStencil),
       m_samples(samples) {
+    ensureOnRenderThread();
 
     createSurface(window);
 
@@ -34,6 +35,7 @@ WindowRenderTargetWebGpu::WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device
 }
 
 void WindowRenderTargetWebGpu::setVSyncInterval(int interval) {
+    ensureOnRenderThread();
     if (interval != m_vsyncInterval) {
         m_vsyncInterval = interval;
         recreateSwapChain();
@@ -41,11 +43,13 @@ void WindowRenderTargetWebGpu::setVSyncInterval(int interval) {
 }
 
 void WindowRenderTargetWebGpu::present() {
+    ensureOnRenderThread();
     m_surface.Present();
     m_device->m_instance.ProcessEvents();
 }
 
 void WindowRenderTargetWebGpu::recreateSwapChain() {
+    ensureOnRenderThread();
     m_backBuffer = {};
     wgpu::SurfaceConfiguration swapChainDesc{
         .device      = m_device->m_device,
@@ -60,6 +64,7 @@ void WindowRenderTargetWebGpu::recreateSwapChain() {
 }
 
 void WindowRenderTargetWebGpu::resizeBackbuffer(Size size) {
+    ensureOnRenderThread();
     if (size.longestSide() >= 16384) {
         throwException(EImageError("Requested window framebuffer size is too large: {}", size));
     }
@@ -70,14 +75,17 @@ void WindowRenderTargetWebGpu::resizeBackbuffer(Size size) {
 }
 
 Size WindowRenderTargetWebGpu::size() const {
+    ensureOnRenderThread();
     return m_window->framebufferSize();
 }
 
 int WindowRenderTargetWebGpu::vsyncInterval() const {
+    ensureOnRenderThread();
     return m_vsyncInterval;
 }
 
 const BackBufferWebGpu& WindowRenderTargetWebGpu::getBackBuffer() const {
+    ensureOnRenderThread();
     wgpu::SurfaceTexture surfaceTexture;
     m_surface.GetCurrentTexture(&surfaceTexture);
     m_backBuffer.color = surfaceTexture.texture;

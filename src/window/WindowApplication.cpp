@@ -56,6 +56,7 @@ void WindowApplication::serialize(const Serialization& serialization) {
 }
 
 WindowApplication::WindowApplication() {
+    initializeCommon();
     BRISK_ASSERT(windowApplication.get() == nullptr);
     windowApplication = this;
     mustBeMainThread();
@@ -72,8 +73,6 @@ WindowApplication::WindowApplication() {
     BRISK_LOG_INFO("Double click time={}s distance={}px", m_doubleClickTime, m_doubleClickDistance);
 
     PlatformWindow::initialize();
-
-    afterRenderQueue = rcnew TaskQueue();
 
     if (settings) {
         Json data = settings->data("/display");
@@ -97,6 +96,7 @@ WindowApplication::~WindowApplication() {
 
     onApplicationClose->process();
     windowApplication = nullptr;
+    finalizeCommon();
 }
 
 void WindowApplication::processEvents(bool wait) {
@@ -108,25 +108,18 @@ void WindowApplication::processEvents(bool wait) {
         PlatformWindow::pollEvents();
 }
 
-constexpr static int maximumFPS = 120;
+constexpr static int maximumFPS = 180;
 
 void WindowApplication::renderWindows() {
     mustBeMainThread();
     using std::chrono::steady_clock;
     steady_clock::time_point stopTime = steady_clock::now() + std::chrono::milliseconds(1000 / maximumFPS);
-    std::vector<Rc<Window>> windows   = this->windows();
+    std::vector<Rc<Window>> windows   = m_windows;
     for (Rc<Window> w : windows) {
         if (w->m_rendering) {
-            Window* curWindow = w.get();
-            std::swap(Internal::currentWindow, curWindow);
-            Internal::currentWindow = w.get();
-            SCOPE_EXIT {
-                std::swap(Internal::currentWindow, curWindow);
-            };
             w->doPaint();
         }
     }
-    afterRenderQueue->process();
     fonts->garbageCollectCache();
     std::this_thread::sleep_until(stopTime);
 }
@@ -141,22 +134,16 @@ void WindowApplication::start() {
     openWindows();
 }
 
-void WindowApplication::updateAndWait() {
-    mustBeMainThread();
-    removeClosed();
-    if (!afterRenderQueue->isOnThread())
-        afterRenderQueue->waitForCompletion();
-}
-
 void WindowApplication::removeClosed() {
     mustBeMainThread();
-    bool changed = false;
     for (int i = m_windows.size() - 1; i >= 0; --i) {
         if (m_windows[i]->m_closing) {
+            auto w = m_windows[i];
             m_windows.erase(m_windows.begin() + i);
-            changed = true;
             if (i == 0 && m_quitCondition == QuitCondition::FirstWindowClosed) {
                 quit();
+            } else {
+                w->m_closing = false; // Reset flag in case window is reused
             }
         }
     }
@@ -169,10 +156,12 @@ void WindowApplication::removeClosed() {
     }
 }
 
-void WindowApplication::cycle(bool wait) {
+void WindowApplication::cycle(ProcessEventsMode mode) {
     mustBeMainThread();
     removeClosed();
-    processEvents(wait);
+    if (mode != ProcessEventsMode::DontCheck) {
+        processEvents(mode == ProcessEventsMode::CheckAndWait);
+    }
     {
         mainScheduler->process();
         processTimers();
@@ -196,7 +185,7 @@ int WindowApplication::run() {
     start();
 
     while (!hasQuit()) {
-        cycle(true);
+        cycle(separateRenderThread ? ProcessEventsMode::CheckAndWait : ProcessEventsMode::CheckOnly);
     }
 
     stop();
@@ -229,7 +218,7 @@ void WindowApplication::modalRun(Rc<Window> modalWindow) {
 
     modalWindow->openWindow();
     while (!hasQuit() && hasWindow(modalWindow)) {
-        cycle(true);
+        cycle(ProcessEventsMode::CheckAndWait);
     }
 }
 

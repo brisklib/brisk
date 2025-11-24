@@ -31,6 +31,7 @@
 #include <brisk/core/Exceptions.hpp>
 #include "internal/Optional.hpp"
 #include "internal/Typename.hpp"
+#include <mutex>
 #include <brisk/core/internal/Debug.hpp>
 
 namespace Brisk {
@@ -1093,6 +1094,163 @@ FakeOptional<const T&> wrapOptional(const T& value)
 
 template <typename... Types>
 struct TypeList {};
+
+/**
+ * @brief RAII wrapper that manages the lifetime of a shared singleton instance.
+ *
+ * SharedSingleton ensures that a single instance of type T exists as long as at least one
+ * SharedSingleton<T> object is alive. The singleton is created when the first SharedSingleton
+ * is constructed and destroyed when the last one is destroyed.
+ *
+ * This class is designed to be embedded as a member variable in other classes to automatically
+ * manage singleton dependencies based on the containing class's lifetime.
+ *
+ * Thread-safe: All operations are protected by an internal mutex.
+ *
+ * @tparam T The type of the singleton instance. Must be default constructible.
+ * @tparam Tag Optional tag type to create distinct singleton instances for the same T.
+ *
+ * @code
+ * class MyService {
+ *     SharedSingleton<DatabasePool> m_dbPool;  // DB exists while any MyService exists
+ * public:
+ *     void doWork() {
+ *         m_dbPool->execute("SELECT ...");
+ *     }
+ * };
+ * @endcode
+ */
+template <typename T, typename Tag = void>
+class SharedSingleton {
+    static_assert(std::is_default_constructible_v<T>, "T must be default constructible");
+
+private:
+    inline static std::mutex m_mutex;
+    inline static T* m_instance       = nullptr;
+    inline static uint32_t m_refCount = 0;
+
+    static T* acquire() noexcept(std::is_nothrow_default_constructible_v<T>) {
+        std::lock_guard lock(m_mutex);
+        if (m_refCount++ == 0) {
+            BRISK_ASSERT(!m_instance);
+            m_instance = new T();
+        }
+        return m_instance;
+    }
+
+    static void release() noexcept {
+        std::lock_guard lock(m_mutex);
+        BRISK_ASSERT(m_refCount > 0);
+        if (--m_refCount == 0) {
+            BRISK_ASSERT(m_instance);
+            delete m_instance;
+            m_instance = nullptr;
+        }
+    }
+
+public:
+    /**
+     * @brief Constructs a SharedSingleton and increments the reference count.
+     *
+     * If this is the first SharedSingleton for type T, creates the singleton instance.
+     *
+     * @throws Any exception thrown by T's default constructor (if not noexcept).
+     */
+    SharedSingleton() noexcept(std::is_nothrow_default_constructible_v<T>) {
+        acquire();
+    }
+
+    /**
+     * @brief Destroys the SharedSingleton and decrements the reference count.
+     *
+     * If this is the last SharedSingleton for type T, destroys the singleton instance.
+     */
+    ~SharedSingleton() {
+        release();
+    }
+
+    /**
+     * @brief Copy constructor. Increments the reference count.
+     *
+     * Creates a new SharedSingleton that shares ownership of the same singleton instance.
+     *
+     * @param other The SharedSingleton to copy from.
+     * @throws Any exception thrown by T's default constructor (if not noexcept and singleton
+     *         needs to be created).
+     */
+    SharedSingleton(const SharedSingleton&) noexcept(std::is_nothrow_default_constructible_v<T>) {
+        acquire();
+    }
+
+    /**
+     * @brief Copy assignment operator.
+     *
+     * No-op since all SharedSingleton instances for the same T already manage the same singleton.
+     *
+     * @param other The SharedSingleton to assign from.
+     * @return Reference to this object.
+     */
+    SharedSingleton& operator=(const SharedSingleton&) noexcept {
+        // No-op: both objects already manage the same singleton
+        return *this;
+    }
+
+    /**
+     * @brief Move constructor. Increments the reference count.
+     *
+     * Note: This does not transfer ownership but creates a new reference to the shared singleton,
+     * similar to the copy constructor.
+     *
+     * @param other The SharedSingleton to move from.
+     * @throws Any exception thrown by T's default constructor (if not noexcept and singleton
+     *         needs to be created).
+     */
+    SharedSingleton(SharedSingleton&&) noexcept(std::is_nothrow_default_constructible_v<T>) {
+        acquire();
+    }
+
+    /**
+     * @brief Move assignment operator.
+     *
+     * No-op since all SharedSingleton instances for the same T already manage the same singleton.
+     *
+     * @param other The SharedSingleton to assign from.
+     * @return Reference to this object.
+     */
+    SharedSingleton& operator=(SharedSingleton&&) noexcept {
+        // No-op: both objects already manage the same singleton
+        return *this;
+    }
+
+    /**
+     * @brief Arrow operator for accessing members of the singleton instance.
+     *
+     * @return Pointer to the singleton instance.
+     */
+    T* operator->() const noexcept {
+        BRISK_ASSERT(m_instance != nullptr);
+        return m_instance;
+    }
+
+    /**
+     * @brief Dereference operator for accessing the singleton instance.
+     *
+     * @return Reference to the singleton instance.
+     */
+    T& operator*() const noexcept {
+        BRISK_ASSERT(m_instance != nullptr);
+        return *m_instance;
+    }
+
+    /**
+     * @brief Gets a pointer to the singleton instance.
+     *
+     * @return Pointer to the singleton instance.
+     */
+    T* get() const noexcept {
+        return m_instance;
+    }
+};
 
 } // namespace Brisk
 

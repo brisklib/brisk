@@ -59,7 +59,7 @@ void Menu::append(Rc<Widget> widget) {
     if (Item* it = dynamicCast<Item*>(widget.get())) {
         it->focusOnHover = true;
         Base::append(std::move(widget));
-    } else if (Spacer* it = dynamicCast<Spacer*>(widget.get())) {
+    } else if (isOf<Spacer>(widget.get())) {
         Base::append(std::move(widget));
     } else {
         Base::append(rcnew Item{ std::move(widget), focusOnHover = true });
