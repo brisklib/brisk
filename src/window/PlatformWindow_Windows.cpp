@@ -646,8 +646,8 @@ bool PlatformWindow::createWindow() {
 
     RECT rect     = { 0, 0, size.width, size.height };
 
-    DWORD style   = getWindowStyle(m_windowStyle, m_data->hParent != 0);
-    DWORD exStyle = getWindowExStyle(m_windowStyle, m_data->hParent != 0);
+    DWORD style   = getWindowStyle(m_windowStyle, m_data->hParent != nullptr);
+    DWORD exStyle = getWindowExStyle(m_windowStyle, m_data->hParent != nullptr);
 
     if (m_data->hParent == nullptr) {
         if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
@@ -662,8 +662,8 @@ bool PlatformWindow::createWindow() {
                                    initialPos.x == dontCare ? CW_USEDEFAULT : initialPos.x,
                                    initialPos.y == dontCare ? CW_USEDEFAULT : initialPos.y,
                                    rect.right - rect.left, rect.bottom - rect.top,
-                                   nullptr, // No parent window
-                                   nullptr, // No window menu
+                                   m_data->hParent, // No parent window
+                                   nullptr,         // No window menu
                                    winInstance, (LPVOID)this);
 
     SetPropW(m_data->hWnd, propKey, this);
@@ -723,9 +723,11 @@ PlatformWindow::~PlatformWindow() {
     DestroyWindow(m_data->hWnd);
 }
 
-PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style)
+PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style,
+                               NativeWindowHandle parent)
     : m_data(new PlatformWindowData{}), m_window(window), m_windowStyle(style), m_windowSize(windowSize),
       m_position(position) {
+    m_data->hParent = parent.hWnd();
     mustBeMainThread();
     BRISK_ASSERT(m_window);
 
@@ -1023,31 +1025,6 @@ void PlatformWindow::updateVisibility() {
         focus();
     } else {
         ShowWindow(m_data->hWnd, SW_HIDE);
-    }
-}
-
-void PlatformWindow::setParent(NativeWindowHandle parent) {
-    if (m_data->hParent == parent.hWnd())
-        return;
-    if (m_data->hParent && parent) {
-        m_data->hParent = parent.hWnd();
-        SetParent(m_data->hWnd, m_data->hParent);
-        return;
-    }
-    if (parent) {
-        m_data->hParent = parent.hWnd();
-        SetParent(m_data->hWnd, m_data->hParent);
-        DWORD dwStyle = getWindowStyle(m_windowStyle, true);
-        SetWindowLongW(m_data->hWnd, GWL_STYLE, dwStyle);
-        SetWindowPos(m_data->hWnd, nullptr, 0, 0, 0, 0,
-                     SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE | SWP_FRAMECHANGED);
-    } else {
-        m_data->hParent = NULL;
-        SetParent(m_data->hWnd, NULL);
-        DWORD dwStyle = getWindowStyle(m_windowStyle, false);
-        SetWindowLongW(m_data->hWnd, GWL_STYLE, dwStyle);
-        SetWindowPos(m_data->hWnd, nullptr, 0, 0, 0, 0,
-                     SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
     }
 }
 

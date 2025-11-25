@@ -108,7 +108,7 @@ public:
 
     Bytes placement() const;
     void setPlacement(BytesView data);
-    explicit PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style);
+    explicit PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style, NativeWindowHandle parent);
     bool createWindow();
 
     void setTitle(std::string_view title);
@@ -117,7 +117,6 @@ public:
     void setSizeLimits(Size minSize, Size maxSize);
     void setStyle(WindowStyle style);
     void setOwner(Rc<Window> window);
-    void setParent(NativeWindowHandle parent);
     void releaseButtonsAndKeys();
 
     NativeWindowHandle getHandle() const;
