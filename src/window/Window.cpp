@@ -583,9 +583,7 @@ void Window::openWindow() {
     mustBeMainThread();
     if (m_platformWindow)
         return;
-    m_platformWindow.reset(new PlatformWindow(this, m_windowSize, m_position, m_style));
-    if (m_parent)
-        m_platformWindow->setParent(m_parent);
+    m_platformWindow.reset(new PlatformWindow(this, m_windowSize, m_position, m_style, m_parent));
     recomputeScales();
     initializeRenderer();
     m_rendering = true;
@@ -970,7 +968,8 @@ bool Window::isTopLevel() const noexcept {
 void Window::setParent(NativeWindowHandle parent) {
     m_parent = parent;
     if (m_platformWindow) {
-        m_platformWindow->setParent(m_parent);
+        BRISK_LOG_WARN("The window's parent has changed. The new parent will not be applied until the window "
+                       "is reopened");
     }
 }
 

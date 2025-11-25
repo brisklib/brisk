@@ -63,10 +63,30 @@ struct NativeWindowHandle {
 #ifdef BRISK_APPLE
 #if defined(__OBJC__)
     NSWindow* nsWindow() const noexcept {
-        return (__bridge NSWindow*)ptr;
+        if (ptr == nullptr)
+            return nullptr;
+        if (isNsWindow())            
+            return (__bridge NSWindow*)ptr;
+        return [(__bridge NSView*)ptr window];
+    }
+
+    NSView* nsView() const noexcept {
+        if (ptr == nullptr)
+            return nullptr;
+        return (__bridge NSView*)ptr;
+    }
+
+    bool isNsWindow() const noexcept {
+        return ptr != nullptr && [((__bridge id)ptr) isKindOfClass:[NSWindow class]];
+    }
+
+    bool isNsView() const noexcept {
+        return ptr != nullptr && [((__bridge id)ptr) isKindOfClass:[NSView class]];
     }
 
     explicit NativeWindowHandle(NSWindow* nsWindow) noexcept : ptr((__bridge void*)nsWindow) {}
+
+    explicit NativeWindowHandle(NSView* nsView) noexcept : ptr((__bridge void*)nsView) {}
 #endif
 #endif
 

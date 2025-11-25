@@ -195,9 +195,12 @@ PlatformWindow::~PlatformWindow() {
     m_data->win = nullptr;
 }
 
-PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style)
+PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style,
+                               NativeWindowHandle parent)
     : m_data(new PlatformWindowData{}), m_window(window), m_windowStyle(style), m_windowSize(windowSize),
       m_position(position) {
+
+    BRISK_ASSERT_MSG("Setting parent window is not supported on Linux due to limitations of GLFW", !parent);
     mustBeMainThread();
     BRISK_ASSERT(m_window);
 
