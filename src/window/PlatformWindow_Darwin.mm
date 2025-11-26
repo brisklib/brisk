@@ -379,7 +379,7 @@ void PlatformWindow::updateVisibility() {
     @autoreleasepool {
         if (m_data->window == nil) {
             // Child window
-            [m_data->view setHidden:(m_window->m_visible ? YES : NO)];
+            [m_data->view setHidden:(m_window->m_visible ? NO : YES)];
         } else {
             bool visible = m_window->m_visible;
             if (visible) {
@@ -571,23 +571,6 @@ using namespace Brisk;
         window->m_maximized = maximized;
         // TODO: notify that window became maximized
     }
-
-    const NSRect contentRect = [window->m_data->view frame];
-    const NSRect fbRect      = [window->m_data->view convertRectToBacking:contentRect];
-
-    bool sizeChanged         = false;
-    if (Brisk::Size(fromNSSize(fbRect.size)) != window->m_framebufferSize) {
-        window->m_framebufferSize = fromNSSize(fbRect.size);
-        sizeChanged               = true;
-    }
-
-    if (Brisk::Size(fromNSSize(contentRect.size)) != window->m_windowSize) {
-        window->m_windowSize = fromNSSize(contentRect.size);
-        sizeChanged          = true;
-    }
-    if (sizeChanged) {
-        window->windowResized(window->m_windowSize, window->m_framebufferSize);
-    }
 }
 
 - (void)windowDidMove:(NSNotification*)notification {
@@ -649,6 +632,27 @@ using namespace Brisk;
     }
 
     return self;
+}
+
+- (void)setFrameSize:(NSSize)newSize {
+    [super setFrameSize:newSize];
+
+    const NSRect contentRect = [window->m_data->view frame];
+    const NSRect fbRect      = [window->m_data->view convertRectToBacking:contentRect];
+
+    bool sizeChanged         = false;
+    if (Brisk::Size(fromNSSize(fbRect.size)) != window->m_framebufferSize) {
+        window->m_framebufferSize = fromNSSize(fbRect.size);
+        sizeChanged               = true;
+    }
+
+    if (Brisk::Size(fromNSSize(contentRect.size)) != window->m_windowSize) {
+        window->m_windowSize = fromNSSize(contentRect.size);
+        sizeChanged          = true;
+    }
+    if (sizeChanged) {
+        window->windowResized(window->m_windowSize, window->m_framebufferSize);
+    }
 }
 
 - (void)dealloc {
@@ -777,9 +781,10 @@ using namespace Brisk;
         trackingArea = nil;
     }
 
-    const NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow |
-                                          NSTrackingEnabledDuringMouseDrag | NSTrackingCursorUpdate |
-                                          NSTrackingInVisibleRect | NSTrackingAssumeInside;
+    const NSTrackingAreaOptions options = NSTrackingMouseMoved | NSTrackingMouseEnteredAndExited |
+                                          NSTrackingActiveInKeyWindow | NSTrackingEnabledDuringMouseDrag |
+                                          NSTrackingCursorUpdate | NSTrackingInVisibleRect |
+                                          NSTrackingAssumeInside;
 
     trackingArea = [[NSTrackingArea alloc] initWithRect:[self bounds]
                                                 options:options
@@ -1065,7 +1070,6 @@ bool PlatformWindow::createWindow() {
         [m_data->window makeFirstResponder:m_data->view];
         [m_data->window setTitle:toNSString(m_window->m_title)];
         [m_data->window setDelegate:m_data->delegate];
-        [m_data->window setAcceptsMouseMovedEvents:YES];
         [m_data->window setRestorable:NO];
 
         [m_data->window setTabbingMode:NSWindowTabbingModeDisallowed];
@@ -1076,7 +1080,6 @@ bool PlatformWindow::createWindow() {
             NSWindow* window = (NSWindow*)m_data->parent;
             [window setContentView:m_data->view];
             [window makeFirstResponder:m_data->view];
-            [window setAcceptsMouseMovedEvents:YES];
         } else { // NSView
             NSView* view = (NSView*)m_data->parent;
             [view addSubview:m_data->view];
