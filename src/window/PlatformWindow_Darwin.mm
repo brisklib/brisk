@@ -376,89 +376,104 @@ static struct {
 }
 
 void PlatformWindow::updateVisibility() {
-    if (m_data->window == nil)
-        return; // TODO:TODO
     @autoreleasepool {
-        bool visible = m_window->m_visible;
-        if (visible) {
-            [m_data->window orderFront:nil];
-            focus();
+        if (m_data->window == nil) {
+            // Child window
+            [m_data->view setHidden:(m_window->m_visible ? YES : NO)];
         } else {
-            [m_data->window orderOut:nil];
+            bool visible = m_window->m_visible;
+            if (visible) {
+                [m_data->window orderFront:nil];
+                focus();
+            } else {
+                [m_data->window orderOut:nil];
+            }
         }
     }
 }
 
 void PlatformWindow::iconify() {
-    if (m_data->window == nil)
-        return; // TODO:TODO
     @autoreleasepool {
-        [m_data->window miniaturize:nil];
+        if (m_data->window == nil) {
+            // do nothing for child windows
+        } else {
+            [m_data->window miniaturize:nil];
+        }
     } // autoreleasepool
 }
 
 void PlatformWindow::restore() {
-    if (m_data->window == nil)
-        return;
     @autoreleasepool {
-        if ([m_data->window isMiniaturized])
-            [m_data->window deminiaturize:nil];
-        else if ([m_data->window isZoomed])
-            [m_data->window zoom:nil];
+        if (m_data->window == nil) {
+            // do nothing for child windows
+        } else {
+            if ([m_data->window isMiniaturized])
+                [m_data->window deminiaturize:nil];
+            else if ([m_data->window isZoomed])
+                [m_data->window zoom:nil];
+        }
     } // autoreleasepool
 }
 
 void PlatformWindow::maximize() {
-    if (m_data->window == nil)
-        return;
     @autoreleasepool {
-        if (![m_data->window isZoomed])
-            [m_data->window zoom:nil];
+        if (m_data->window == nil) {
+            // do nothing for child windows
+        } else {
+            if (![m_data->window isZoomed])
+                [m_data->window zoom:nil];
+        }
     } // autoreleasepool
 }
 
 bool PlatformWindow::isFocused() const {
-    if (m_data->window == nil)
-        return false; // TODO:TODO
     @autoreleasepool {
-        return [m_data->window isKeyWindow];
+        if (m_data->window == nil)
+            return [[m_data->view window] isKeyWindow];
+        else
+            return [m_data->window isKeyWindow];
     } // autoreleasepool
 }
 
 bool PlatformWindow::isIconified() const {
-    if (m_data->window == nil)
-        return false; // TODO:TODO
     @autoreleasepool {
-        return [m_data->window isMiniaturized];
+        if (m_data->window == nil)
+            return false;
+        else
+            return [m_data->window isMiniaturized];
     } // autoreleasepool
 }
 
 bool PlatformWindow::isMaximized() const {
-    if (m_data->window == nil)
-        return false; // TODO:TODO
     @autoreleasepool {
-        return [m_data->window isZoomed];
+        if (m_data->window == nil)
+            return false;
+        else
+            return [m_data->window isZoomed];
     } // autoreleasepool
 }
 
 bool PlatformWindow::isVisible() const {
-    if (m_data->window == nil)
-        return false; // TODO:TODO
     @autoreleasepool {
-        return [m_data->window isVisible];
+        if (m_data->window == nil)
+            return [m_data->view isHidden] == NO;
+        else
+            return [m_data->window isVisible];
     } // autoreleasepool
 }
 
 void PlatformWindow::focus() {
-    if (m_data->window == nil)
-        return; // TODO:TODO
     @autoreleasepool {
         // Make us the active application
         // HACK: This is here to prevent applications using only hidden windows from
         //       being activated, but should probably not be done every time any
         //       window is shown
         [NSApp activateIgnoringOtherApps:YES];
-        [m_data->window makeKeyAndOrderFront:nil];
+        if (m_data->window == nil) {
+            [[m_data->view window] makeKeyAndOrderFront:nil];
+        } else {
+            [m_data->window makeKeyAndOrderFront:nil];
+        }
     } // autoreleasepool
 }
 
@@ -971,7 +986,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
 
 // Transforms a y-coordinate between the CG display and NS screen spaces
 //
-static float transformYCocoa(float y) {
+static CGFloat transformYCocoa(CGFloat y) {
     return CGDisplayBounds(CGMainDisplayID()).size.height - y - 1;
 }
 
@@ -1145,22 +1160,43 @@ void PlatformWindow::setSize(Size size) {
     @autoreleasepool {
         if (m_data->window != nil) {
             NSRect contentRect = [m_data->window contentRectForFrameRect:[m_data->window frame]];
+
             contentRect.origin.y += contentRect.size.height - size.height;
             contentRect.size = NSMakeSize(size.width, size.height);
+
             [m_data->window setFrame:[m_data->window frameRectForContentRect:contentRect] display:YES];
         } else {
-            // TODO:TODO
+            NSView* v               = m_data->view;
+            const BOOL needsFlip    = ![v isFlipped];
+
+            NSRect frame            = [v frame];
+            const CGFloat oldHeight = frame.size.height;
+
+            frame.size              = NSMakeSize(size.width, size.height);
+
+            if (needsFlip) {
+                NSView* parent             = [v superview];
+                const CGFloat parentHeight = parent ? parent.bounds.size.height : 0;
+
+                frame.origin.y += (oldHeight - size.height);
+                if (parent)
+                    frame.origin.y = MIN(frame.origin.y, parentHeight - size.height);
+            }
+
+            [v setFrame:frame];
         }
     }
 }
 
 bool PlatformWindow::cursorInContentArea() const {
-    if (m_data->window != nil) {
-        const NSPoint pos = [m_data->window mouseLocationOutsideOfEventStream];
-        return [m_data->view mouse:pos inRect:[m_data->view frame]];
-    } else {
-        // TODO:TODO
-        return false;
+    @autoreleasepool {
+        if (m_data->window != nil) {
+            const NSPoint pos = [m_data->window mouseLocationOutsideOfEventStream];
+            return [m_data->view mouse:pos inRect:[m_data->view frame]];
+        } else {
+            const NSPoint pos = [[m_data->view window] mouseLocationOutsideOfEventStream];
+            return [m_data->view mouse:pos inRect:[m_data->view frame]];
+        }
     }
 }
 
@@ -1185,14 +1221,31 @@ void PlatformWindow::setPosition(Point point) {
     @autoreleasepool {
         if (m_data->window != nil) {
             const NSRect contentRect = [m_data->view frame];
-            const NSRect dummyRect =
-                NSMakeRect(point.x, transformYCocoa(point.y + contentRect.size.height - 1), 0, 0);
-            const NSRect frameRect = [m_data->window frameRectForContentRect:dummyRect];
+            const CGFloat flippedY   = transformYCocoa(point.y + contentRect.size.height - 1);
+
+            const NSRect dummyRect   = NSMakeRect(point.x, flippedY, 0, 0);
+
+            const NSRect frameRect   = [m_data->window frameRectForContentRect:dummyRect];
+
             [m_data->window setFrameOrigin:frameRect.origin];
         } else {
-            // TODO:TODO
+            NSView* v            = m_data->view;
+            const BOOL needsFlip = ![v isFlipped];
+
+            NSRect frame         = [v frame];
+
+            if (needsFlip) {
+                NSView* parent             = [v superview];
+                const CGFloat parentHeight = parent ? parent.bounds.size.height : 0;
+
+                frame.origin               = NSMakePoint(point.x, parentHeight - point.y - frame.size.height);
+            } else {
+                frame.origin = NSMakePoint(point.x, point.y);
+            }
+
+            [v setFrame:frame];
         }
-    } // autoreleasepool
+    }
 }
 
 HiDPIMode hiDPIMode() {
