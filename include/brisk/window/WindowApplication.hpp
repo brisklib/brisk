@@ -128,7 +128,7 @@ public:
     ~WindowApplication();
     double doubleClickTime() const;
     double doubleClickDistance() const;
-    Rc<TaskQueue> onApplicationClose = rcnew TaskQueue();
+    Callbacks<> onApplicationClose;
     void systemModal(function<void(NativeWindow*)> body);
 
     /**

@@ -94,7 +94,7 @@ WindowApplication::~WindowApplication() {
 
     PlatformWindow::finalize();
 
-    onApplicationClose->process();
+    onApplicationClose();
     windowApplication = nullptr;
     finalizeCommon();
 }
