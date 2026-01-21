@@ -615,55 +615,27 @@ public:
     void fillText(TextWithOptions text, RectangleF position, PointF alignment = PointF{ 0.f, 0.f });
 
     /**
-     * @brief Fills pre-rendered text at the specified position.
+     * @brief Fills a laid-out document at the specified position.
      *
-     * This function renders the provided PreparedText at the given position using the canvas's
-     * current fill settings.
-     *
-     * @param position The PointF specifying the top-left position of the text.
-     * @param text The PreparedText struct containing the pre-rendered text to fill.
+     * The document layout is immutable and may be retained independently of the
+     * FontManager that created it. Glyph rasterization and renderer caching remain
+     * private to the graphics/text-layout integration.
      */
-    void fillText(PointF position, const PreparedText& text);
+    void fillText(PointF position, const DocumentLayout& text);
+
+    /** @brief Fills a laid-out document aligned relative to the specified position. */
+    void fillText(PointF position, PointF alignment, const DocumentLayout& text);
 
     /**
-     * @brief Fills pre-rendered text with specified alignment.
+     * @brief Fills the selection in a laid-out document.
      *
-     * This function renders the provided PreparedText at the given position, aligned according
-     * to the specified alignment point, using the canvas's current fill settings.
-     *
-     * @param position The PointF specifying the reference position for the text.
-     * @param alignment The PointF specifying the alignment offset relative to the position.
-     * @param text The PreparedText struct containing the pre-rendered text to fill.
+     * Selection offsets are document character/codepoint offsets, with an
+     * exclusive maximum, matching the legacy Canvas selection API.
      */
-    void fillText(PointF position, PointF alignment, const PreparedText& text);
+    void fillTextSelection(PointF position, const DocumentLayout& text, Range<uint32_t> selection);
 
-    /**
-     * @brief Fills the selection rectangle(s) for pre-rendered text.
-     *
-     * This function renders the selection rectangle(s) for the specified range within the
-     * PreparedText at the given position, using the canvas's current fill settings. It does
-     * not render the text itself, only the selection background.
-     *
-     * @param position The PointF specifying the top-left position of the text.
-     * @param text The PreparedText struct containing the pre-rendered text.
-     * @param selection The Range<uint32_t> specifying the start and end indices of the selection.
-     */
-    void fillTextSelection(PointF position, const PreparedText& text, Range<uint32_t> selection);
-
-    /**
-     * @brief Fills the selection rectangle(s) for pre-rendered text with specified alignment.
-     *
-     * This function renders the selection rectangle(s) for the specified range within the
-     * PreparedText at the given position, aligned according to the specified alignment point,
-     * using the canvas's current fill settings. It does not render the text itself, only the
-     * selection background.
-     *
-     * @param position The PointF specifying the reference position for the text.
-     * @param alignment The PointF specifying the alignment offset relative to the position.
-     * @param text The PreparedText struct containing the pre-rendered text.
-     * @param selection The Range<uint32_t> specifying the start and end indices of the selection.
-     */
-    void fillTextSelection(PointF position, PointF alignment, const PreparedText& text,
+    /** @brief Fills a document selection aligned relative to the specified position. */
+    void fillTextSelection(PointF position, PointF alignment, const DocumentLayout& text,
                            Range<uint32_t> selection);
 
     /**

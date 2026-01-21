@@ -20,14 +20,12 @@
  */
 #include <brisk/graphics/Canvas.hpp>
 #include <optional>
+#include <array>
 #include <brisk/core/Log.hpp>
 #include <brisk/graphics/Color.hpp>
 #include "RenderStateArgs.hpp"
 #include <brisk/graphics/Renderer.hpp>
-#include <random>
-
 #include "Mask.hpp"
-#include "brisk/graphics/ImageFormats.hpp"
 
 namespace Brisk {
 
@@ -62,43 +60,6 @@ static PointF quantize(PointF pt, unsigned value) {
         std::round(pt.x * value) / value,
         std::round(pt.y),
     };
-}
-
-static GeometryGlyphs glyphLayout(uint32_t& runIndex, bool& multicolor, std::optional<Color>& color,
-                                  SpriteResources& sprites, const PreparedText& prepared,
-                                  PointF offset = { 0, 0 }) {
-    GeometryGlyphs result;
-    bool first = true;
-    for (; runIndex < prepared.runs.size(); ++runIndex) {
-        const GlyphRun& run = prepared.runVisual(runIndex);
-        if (first) {
-            color      = run.color;
-            multicolor = run.hasColor();
-            first      = false;
-        } else {
-            if (run.color != color || run.hasColor() != multicolor)
-                return result;
-        }
-
-        for (const Internal::Glyph& g : run.glyphs) {
-            std::optional<Internal::GlyphData> data = g.load(run);
-            if (data && data->sprite) {
-                GeometryGlyph glyphDesc;
-                PointF pos        = g.pos + run.position + offset;
-                glyphDesc.rect.p1 = quantize(pos + PointF(data->offset_x, -data->offset_y), run.hscale());
-                glyphDesc.rect.p2 =
-                    glyphDesc.rect.p1 + PointF(float(data->size.width) / run.hscale(), data->size.height);
-                glyphDesc.sprite = static_cast<float>(findOrAdd(sprites, data->sprite));
-                glyphDesc.stride = data->size.width;
-                if (run.hasColor())
-                    glyphDesc.stride *= 4;
-                glyphDesc.size = data->size;
-
-                result.push_back(std::move(glyphDesc));
-            }
-        }
-    }
-    return result;
 }
 
 GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPath& path) {
@@ -697,83 +658,129 @@ void Canvas::drawImage(RectangleF rect, Rc<Image> image, Matrix matrix, SamplerM
              FillParams{}, m_state.transform, preparedClipPath(), m_state.scissor, m_state.opacity);
 }
 
-void Canvas::fillText(PointF position, const PreparedText& text) {
+void Canvas::fillText(PointF position, const DocumentLayout& text) {
     fillText(position, { 0, 0 }, text);
 }
 
-void Canvas::fillText(PointF position, PointF alignment, const PreparedText& text) {
+void Canvas::fillText(PointF position, PointF alignment, const DocumentLayout& text) {
     if (alignment != PointF{}) {
         position -= PointF(text.bounds().size()) * alignment;
     }
-    Paint textPaint = m_state.fillPaint;
 
+    const Paint textPaint = m_state.fillPaint;
     SpriteResources sprites;
-    uint32_t runIndex = 0;
-    while (runIndex < text.runs.size()) {
-        std::optional<Color> runColor;
-        uint32_t oldRunIndex = runIndex;
-        bool multicolor      = false;
-        GeometryGlyphs g     = glyphLayout(runIndex, multicolor, runColor, sprites, text, position);
-        if (multicolor)
-            drawColorSprites(
-                std::move(sprites), g,
-                std::tuple{
-                    Arg::coordMatrix  = m_state.transform,
-                    Arg::subpixelMode = m_state.subpixelText ? SubpixelMode::RGB : SubpixelMode::Off,
-                    Internal::PaintAndTransform{ Palette::white, m_state.transform, m_state.opacity },
-                });
-        else
-            drawTextSprites(
-                std::move(sprites), g,
-                std::tuple{
-                    Arg::coordMatrix  = m_state.transform,
-                    Arg::subpixelMode = m_state.subpixelText ? SubpixelMode::RGB : SubpixelMode::Off,
-                    Internal::PaintAndTransform{ runColor ? *runColor : textPaint, m_state.transform,
-                                                 m_state.opacity },
-                });
-        for (uint32_t ri = oldRunIndex; ri < runIndex; ++ri) {
-            const GlyphRun& run = text.runVisual(ri);
-            if (run.decoration != TextDecoration::None) {
-                run.updateRanges();
-                PointF p1{ run.textHRange.min + run.position.x, run.position.y };
-                PointF p2{ run.textHRange.max + run.position.x, run.position.y };
-                p1 += position;
-                p2 += position;
+    GeometryGlyphs glyphs;
+    std::optional<Color> runColor;
+    bool multicolor = false;
 
-                Path path;
-
-                if (run.decoration && TextDecoration::Underline)
-                    path.addPolyline(
-                        std::initializer_list<PointF>{ p1 + PointF{ 0.f, run.metrics.underlineOffset() },
-                                                       p2 + PointF{ 0.f, run.metrics.underlineOffset() } });
-                if (run.decoration && TextDecoration::Overline)
-                    path.addPolyline(
-                        std::initializer_list<PointF>{ p1 + PointF{ 0.f, run.metrics.overlineOffset() },
-                                                       p2 + PointF{ 0.f, run.metrics.overlineOffset() } });
-                if (run.decoration && TextDecoration::LineThrough)
-                    path.addPolyline(
-                        std::initializer_list<PointF>{ p1 + PointF{ 0.f, run.metrics.lineThroughOffset() },
-                                                       p2 + PointF{ 0.f, run.metrics.lineThroughOffset() } });
-
-                strokePath(
-                    path, runColor ? *runColor : textPaint,
-                    StrokeParams{ .capStyle = CapStyle::Flat, .strokeWidth = run.metrics.lineThickness },
-                    m_state.transform, preparedClipPath(), m_state.scissor, m_state.opacity);
-            }
+    auto flush      = [&] {
+        if (glyphs.empty()) {
+            sprites.clear();
+            return;
         }
-    }
+        if (multicolor) {
+            drawColorSprites(std::move(sprites), glyphs,
+                             std::tuple{ Arg::coordMatrix  = m_state.transform,
+                                         Arg::subpixelMode = SubpixelMode::Off,
+                                         Internal::PaintAndTransform{ Palette::white, m_state.transform,
+                                                                      m_state.opacity } });
+        } else {
+            Paint paint = textPaint;
+            if (runColor) {
+                paint = ColorW(*runColor);
+            }
+            drawTextSprites(
+                std::move(sprites), glyphs,
+                std::tuple{ Arg::coordMatrix  = m_state.transform,
+                            Arg::subpixelMode = m_state.subpixelText ? SubpixelMode::RGB : SubpixelMode::Off,
+                            Internal::PaintAndTransform{ paint, m_state.transform, m_state.opacity } });
+        }
+        glyphs.clear();
+        sprites.clear();
+    };
+
+    Internal::forEachTextLayoutGlyph(text, position, [&](const Internal::TextLayoutGlyph& glyph) {
+        const bool glyphMulticolor = glyph.bitmap.color;
+        if (!glyphs.empty() && (glyphMulticolor != multicolor || glyph.color != runColor)) {
+            flush();
+        }
+        if (glyphs.empty()) {
+            multicolor = glyphMulticolor;
+            runColor   = glyph.color;
+        }
+        if (!glyph.bitmap.sprite) {
+            return;
+        }
+        GeometryGlyph desc;
+        desc.rect.p1 = quantize(glyph.position + PointF{ glyph.bitmap.offsetX, -float(glyph.bitmap.offsetY) },
+                                glyph.bitmap.horizontalScale);
+        desc.rect.p2 = desc.rect.p1 + PointF{ float(glyph.bitmap.logicalSize.width),
+                                              float(glyph.bitmap.logicalSize.height) };
+        desc.sprite  = static_cast<float>(findOrAdd(sprites, glyph.bitmap.sprite));
+        desc.stride  = glyph.bitmap.size.width;
+        desc.size    = glyph.bitmap.size;
+        glyphs.push_back(std::move(desc));
+    });
+    flush();
+
+    Internal::forEachTextLayoutDecoration(
+        text, position, [&](const Internal::TextLayoutDecoration& decoration) {
+            Path path;
+            const Paint paint = decoration.color ? Paint{ ColorW(*decoration.color) } : textPaint;
+            const StrokeParams params{ .capStyle = CapStyle::Flat, .strokeWidth = decoration.thickness };
+            if (decoration.decoration && TextDecoration::Underline) {
+                const std::array<PointF, 2> points{
+                    decoration.start + PointF{ 0.f, decoration.underlineOffset },
+                    decoration.end + PointF{ 0.f, decoration.underlineOffset }
+                };
+                path.addPolyline(points);
+            }
+            if (decoration.decoration && TextDecoration::Overline) {
+                const std::array<PointF, 2> points{
+                    decoration.start + PointF{ 0.f, decoration.overlineOffset },
+                    decoration.end + PointF{ 0.f, decoration.overlineOffset }
+                };
+                path.addPolyline(points);
+            }
+            if (decoration.decoration && TextDecoration::LineThrough) {
+                const std::array<PointF, 2> points{
+                    decoration.start + PointF{ 0.f, decoration.lineThroughOffset },
+                    decoration.end + PointF{ 0.f, decoration.lineThroughOffset }
+                };
+                path.addPolyline(points);
+            }
+            if (!path.empty()) {
+                strokePath(path, paint, params, m_state.transform, preparedClipPath(), m_state.scissor,
+                           m_state.opacity);
+            }
+        });
 }
 
 void Canvas::fillText(TextWithOptions text, PointF position, PointF alignment) {
-    PreparedText prepared = fonts->prepare(m_state.font, text);
-    PointF offset         = prepared.alignLines(alignment.x, alignment.y);
-    return fillText(position + offset, prepared);
+    PreparedDocument prepared = fonts->prepareDocument(m_state.font, text);
+    TextLayoutOptions options;
+    options.maxLineWidth        = 0.f;
+    options.alignment           = alignment.x <= 0.f   ? TextLayoutAlignment::Left
+                                  : alignment.x >= 1.f ? TextLayoutAlignment::Right
+                                                       : TextLayoutAlignment::Center;
+    const DocumentLayout layout = prepared.layout(options);
+    const RectangleF bounds     = layout.bounds();
+    const PointF origin{ position.x, position.y - bounds.p1.y - bounds.height() * alignment.y };
+    return fillText(origin, layout);
 }
 
 void Canvas::fillText(TextWithOptions text, RectangleF position, PointF alignment) {
-    PreparedText prepared = fonts->prepare(m_state.font, text);
-    PointF offset         = prepared.alignLines(alignment.x, alignment.y);
-    return fillText(position.at(alignment) + offset, prepared);
+    PreparedDocument prepared = fonts->prepareDocument(m_state.font, text);
+    TextLayoutOptions options;
+    options.maxLineWidth        = std::max(0.f, position.width());
+    options.alignment           = alignment.x <= 0.f   ? TextLayoutAlignment::Left
+                                  : alignment.x >= 1.f ? TextLayoutAlignment::Right
+                                                       : TextLayoutAlignment::Center;
+    const DocumentLayout layout = prepared.layout(options);
+    const RectangleF bounds     = layout.bounds();
+    const PointF anchor         = position.at(alignment);
+    const PointF origin{ position.p1.x, anchor.y - bounds.p1.y - bounds.height() * alignment.y };
+    return fillText(origin, layout);
 }
 
 Canvas::StateSaver Canvas::saveState() & {
@@ -826,23 +833,24 @@ Canvas::ScissorSaver Canvas::saveScissor() & {
     return { *this };
 }
 
-void Canvas::fillTextSelection(PointF position, const PreparedText& text, Range<uint32_t> selection) {
-    if (selection.distance() != 0) {
-        selection.min = text.characterToGrapheme(selection.min);
-        selection.max = text.characterToGrapheme(selection.max);
-        for (uint32_t gr : selection) {
-            uint32_t lineIndex = text.graphemeToLine(gr);
-            if (lineIndex == UINT32_MAX)
-                continue;
-            auto range       = text.ranges[gr];
-            const auto& line = text.lines[lineIndex];
-            fillRect(Rectangle(position + PointF(range.min, line.baseline - line.ascDesc.ascender),
-                               position + PointF(range.max, line.baseline + line.ascDesc.descender)));
+void Canvas::fillTextSelection(PointF position, const DocumentLayout& text, Range<uint32_t> selection) {
+    Internal::textLayoutSelectionRects(text, selection, [&](const TextSelectionRect& rect) {
+        if (rect.line >= text.lineCount()) {
+            return;
         }
-    }
+        const DocumentLine line = text.line(rect.line);
+        const float x0          = std::round(position.x + rect.x0);
+        const float x1          = std::round(position.x + rect.x1);
+        // Distribute leading equally around the line's ink metrics so that
+        // adjacent selection rectangles remain contiguous.
+        const float halfLeading = line.leading * 0.5f;
+        const float y0          = std::round(position.y + line.baseline - line.ascender - halfLeading);
+        const float y1          = std::round(position.y + line.baseline + line.descender + halfLeading);
+        fillRect(RectangleF{ PointF{ x0, y0 }, PointF{ x1, y1 } });
+    });
 }
 
-void Canvas::fillTextSelection(PointF position, PointF alignment, const PreparedText& text,
+void Canvas::fillTextSelection(PointF position, PointF alignment, const DocumentLayout& text,
                                Range<uint32_t> selection) {
     if (alignment != PointF{}) {
         position -= PointF(text.bounds().size()) * alignment;

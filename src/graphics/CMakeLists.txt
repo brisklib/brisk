@@ -66,7 +66,14 @@ target_sources(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/blaze/B
 set_property(TARGET brisk-graphics PROPERTY EXPORT_NAME Graphics)
 add_library(Brisk::Graphics ALIAS brisk-graphics)
 
+# Keep the replacement text engine isolated until the Brisk adapter is ready.
+# In particular, brisk-graphics must not link this target during the bootstrap
+# phase, so the existing Fonts.cpp remains the only active implementation.
+add_subdirectory(TextEngine)
+
 target_link_libraries(brisk-graphics PUBLIC brisk-core)
+target_link_libraries(brisk-graphics PRIVATE brisk-text-engine)
+target_include_directories(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/TextEngine/include)
 
 target_include_directories(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/vector)
 target_include_directories(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/vector/freetype)

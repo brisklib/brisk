@@ -31,8 +31,61 @@
 #include <brisk/core/Io.hpp>
 #include "internal/Sprites.hpp"
 #include "I18n.hpp"
+#include <memory>
+#include <optional>
+#include <span>
+#include <brisk/core/internal/FunctionRef.hpp>
 
 namespace Brisk {
+
+/// Identifies the pixel format produced for a cached glyph.
+enum class GlyphRenderMode : uint8_t {
+    Mask,
+    Color,
+};
+
+/// Identifies one renderer-ready glyph bitmap in a glyph cache.
+struct GlyphCacheKey {
+    uint64_t fontInstanceId{};
+    uint32_t glyphId{};
+    uint16_t horizontalScale{};
+    GlyphRenderMode renderMode                           = GlyphRenderMode::Mask;
+
+    bool operator==(const GlyphCacheKey&) const noexcept = default;
+};
+
+/// Renderer-ready glyph bitmap and its placement metadata.
+struct CachedGlyph {
+    Size size;
+    Size logicalSize;
+    Rc<SpriteResource> sprite;
+    float offsetX{};
+    int offsetY{};
+    GlyphRenderMode renderMode = GlyphRenderMode::Mask;
+    int horizontalScale        = 1;
+};
+
+/// Cumulative lookup counters reported by a glyph cache.
+struct GlyphCacheStats {
+    uint64_t hits{};
+    uint64_t misses{};
+};
+
+/** @brief Abstract cache for renderer-ready text glyph bitmaps. */
+class GlyphCache {
+public:
+    virtual ~GlyphCache() = default;
+
+    /// Finds a glyph or creates and stores it using @p factory on a miss.
+    virtual std::optional<CachedGlyph> getOrCreate(const GlyphCacheKey& key,
+                                                   function_ref<std::optional<CachedGlyph>()> factory) = 0;
+    /// Returns cumulative cache hit and miss counters.
+    virtual GlyphCacheStats getCacheStats() const noexcept                                             = 0;
+    /// Sets the maximum retained cache memory in bytes.
+    virtual void setMemoryBudget(size_t bytes)                                                         = 0;
+    /// Removes all retained glyphs without resetting statistics.
+    virtual void clear()                                                                               = 0;
+};
 
 class EUnicode : public ELogic {
 public:
@@ -43,8 +96,6 @@ class EFreeType : public ELogic {
 public:
     using ELogic::ELogic;
 };
-
-using GlyphId = uint32_t;
 
 enum class TextOptions : uint32_t {
     Default      = 0,
@@ -130,6 +181,66 @@ template <>
 constexpr inline bool isBitFlags<TextDecoration> = true;
 
 class FontManager;
+class PreparedDocument;
+class DocumentLayout;
+struct TextSelectionRect;
+
+namespace TextLayout {
+class FontDatabase;
+}
+
+namespace Internal {
+struct TextLayoutState;
+void registerTextLayoutFont(FontManager& manager, BytesView data, std::string_view alias = {});
+
+/**
+ * @brief Private bridge data for rasterizing a new-engine glyph into Brisk sprites.
+ *
+ * This type is intentionally confined to the Internal namespace. FreeType,
+ * HarfBuzz, and text-engine glyph types do not cross the public API boundary.
+ */
+struct TextLayoutGlyphBitmap {
+    Size size;
+    Size logicalSize;
+    Rc<SpriteResource> sprite;
+    uint32_t glyphIndex = 0;
+    float offsetX       = 0.f;
+    int offsetY         = 0;
+    bool color          = false;
+    int horizontalScale = 1;
+};
+
+/** @brief Renderer-neutral glyph data emitted by the private document renderer. */
+struct TextLayoutGlyph {
+    PointF position;
+    TextLayoutGlyphBitmap bitmap;
+    std::optional<Color> color;
+};
+
+/** @brief Renderer-neutral text decoration data emitted by the private document renderer. */
+struct TextLayoutDecoration {
+    PointF start;
+    PointF end;
+    float underlineOffset     = 0.f;
+    float overlineOffset      = 0.f;
+    float lineThroughOffset   = 0.f;
+    float thickness           = 0.f;
+    TextDecoration decoration = TextDecoration::None;
+    std::optional<Color> color;
+};
+
+void loadTextLayoutGlyphRun(const PreparedDocument& document, uint32_t preparedRunIndex,
+                            GlyphCache* glyphCache,
+                            function_ref<void(uint32_t, const Internal::TextLayoutGlyphBitmap&)> onGlyph);
+void forEachTextLayoutGlyph(const DocumentLayout& layout, PointF origin,
+                            function_ref<void(const Internal::TextLayoutGlyph&)> onGlyph);
+void forEachTextLayoutDecoration(const DocumentLayout& layout, PointF origin,
+                                 function_ref<void(const Internal::TextLayoutDecoration&)> onDecoration);
+void textLayoutSelectionRects(const DocumentLayout& layout, Range<uint32_t> characterSelection,
+                              function_ref<void(const ::Brisk::TextSelectionRect&)> onRect);
+void renderPreparedDocument(Rc<Image> image, Point origin, const PreparedDocument& document,
+                            const DocumentLayout& layout);
+} // namespace Internal
 
 /**
  * @struct FontMetrics
@@ -194,654 +305,208 @@ struct FontMetrics {
     };
 };
 
-struct GlyphRun;
-
-namespace Internal {
-
-struct FontFace;
-struct GlyphData;
-struct TextRun;
-
 /**
- * @brief Represents a segment of text with uniform properties such as direction and font face.
- */
-struct TextRun {
-    /**
-     * @brief The direction of the text in this run (e.g., left-to-right or right-to-left).
-     */
-    TextDirection direction;
-
-    /**
-     * @brief The position of the first character of the text run.
-     */
-    uint32_t begin;
-
-    /**
-     * @brief The position just beyond the last character of the text run.
-     */
-    uint32_t end;
-
-    /**
-     * @brief The visual order of the text run.
-     *
-     * This indicates the position of the run when rendered visually.
-     */
-    uint32_t visualOrder;
-
-    uint32_t fontIndex;
-
-    /**
-     * @brief Pointer to the font face associated with the text run.
-     */
-    FontFace* face;
-
-    /**
-     * @brief Equality comparison operator for `TextRun`.
-     */
-    bool operator==(const TextRun&) const noexcept = default;
-
-    inline static const std::tuple reflection      = {
-        ReflectionField{ "direction", &TextRun::direction },
-        ReflectionField{ "begin", &TextRun::begin },
-        ReflectionField{ "end", &TextRun::end },
-        ReflectionField{ "visualOrder", &TextRun::visualOrder },
-    };
-};
-
-/**
- * @enum GlyphFlags
- * @brief Flags used to define various properties of glyphs.
+ * @brief Logical alignment used by the document text layout interface.
  *
- * This enum class defines a set of flags used to represent
- * different characteristics of glyphs, which are typically
- * used in text rendering or processing.
+ * Unlike the legacy scalar alignment API, Start and End are resolved relative
+ * to the paragraph direction. Left and Right are physical alignments.
  */
-enum class GlyphFlags : uint8_t {
-    /**
-     * @brief No special properties.
-     *
-     * The glyph has no special attributes or flags.
-     */
-    None                  = 0,
-
-    /**
-     * @brief Glyph can be safely broken across lines.
-     *
-     * Indicates that this glyph can be safely broken
-     * when wrapping text across multiple lines.
-     */
-    SafeToBreak           = 1,
-
-    /**
-     * @brief Glyph is at a line break position.
-     *
-     * Marks this glyph as occurring at a line break
-     * (e.g., the glyph is at the end of a line or paragraph).
-     */
-    AtLineBreak           = 2,
-
-    /**
-     * @brief Glyph represents a control character.
-     *
-     * This flag indicates that the glyph is a control character,
-     * such as a non-printing character used for text formatting or control.
-     */
-    IsControl             = 4,
-
-    /**
-     * @brief Glyph is printable.
-     *
-     * Indicates that this glyph is part of the visible text
-     * and can be printed or displayed on screen.
-     */
-    IsPrintable           = 8,
-
-    /**
-     * @brief Glyph is compacted whitespace.
-     *
-     * Denotes that the glyph represents whitespace at a line break
-     * which doesn't extend the visual line bounds. This is commonly
-     * used to indicate collapsed or compacted whitespace characters.
-     */
-    IsCompactedWhitespace = 16,
-};
-
-using FTFixed = int32_t;
-
-/**
- * @brief Represents an individual glyph with its properties and positioning information.
- */
-struct Glyph {
-    /**
-     * @brief The glyph ID, identifying the specific glyph in the font.
-     */
-    uint32_t glyph      = UINT32_MAX;
-
-    /**
-     * @brief The Unicode codepoint represented by this glyph.
-     */
-    char32_t codepoint  = UINT32_MAX;
-
-    /**
-     * @brief Position of the glyph relative to its parent context.
-     */
-    PointF pos          = { -1.f, -1.f };
-
-    /**
-     * @brief The position of the left caret for the glyph.
-     */
-    float left_caret    = -1.f;
-
-    /**
-     * @brief The position of the right caret for the glyph.
-     */
-    float right_caret   = -1.f;
-
-    /**
-     * @brief The index of the first character in the cluster associated with the glyph.
-     */
-    uint32_t begin_char = UINT32_MAX;
-
-    /**
-     * @brief The index of the first character after the cluster associated with the glyph.
-     * This marks the position immediately following the last character in the cluster.
-     */
-    uint32_t end_char   = UINT32_MAX;
-
-    Range<uint32_t> charRange() const {
-        return { begin_char, end_char };
-    }
-
-    InclusiveRange<float> caretRange() const {
-        return { left_caret, right_caret };
-    }
-
-    /**
-     * @brief The text direction for this glyph (e.g., left-to-right or right-to-left).
-     */
-    TextDirection dir = TextDirection::LTR;
-
-    /**
-     * @brief Flags providing additional properties or states of the glyph.
-     */
-    GlyphFlags flags  = GlyphFlags::None;
-
-    /**
-     * @brief Computes the caret position for the glyph based on the text direction.
-     *
-     * @param inverse If true, calculates the caret in the opposite direction.
-     * @return float The computed caret position.
-     *
-     * @note This is an internal method and should not be used directly.
-     */
-    float caretForDirection(bool inverse) const;
-
-    /**
-     * @brief Loads and renders the glyph into `SpriteResource`.
-     *
-     * @param run The glyph run containing this glyph.
-     * @return std::optional<GlyphData> The loaded glyph data if available, or an empty value otherwise.
-     *
-     * @note This is an internal method and should not be used directly.
-     */
-    std::optional<GlyphData> load(const GlyphRun& run) const;
+enum class TextLayoutAlignment : uint8_t {
+    Start,
+    End,
+    Left,
+    Right,
+    Center,
 };
 
 /**
- * @brief Contains detailed data about a single glyph, including its metrics and rendered sprite.
+ * @brief Options for producing a width-dependent document layout.
  */
-struct GlyphData {
-    /**
-     * @brief The size of the glyph in its rendered form.
-     */
-    Size size;
-
-    /**
-     * @brief A reference-counted resource pointing to the sprite used to render the glyph.
-     */
-    Rc<SpriteResource> sprite;
-
-    /**
-     * @brief The horizontal offset from the glyph's origin to the start of its shape.
-     *
-     * Known as the "left bearing," this value determines the space between the glyph's origin and
-     * the leftmost edge of its bounding box.
-     */
-    float offset_x;
-
-    /**
-     * @brief The vertical offset from the glyph's origin to the top of its shape.
-     *
-     * Known as the "top bearing," this value is positive for upwards Y-coordinates and determines
-     * the space between the glyph's baseline and the topmost edge of its bounding box.
-     */
-    int offset_y;
-
-    /**
-     * @brief The horizontal distance to advance to the next glyph's origin.
-     *
-     * This is the space the glyph occupies horizontally, including the glyph itself and any trailing
-     * whitespace.
-     */
-    float advance_x;
-};
-
-using GlyphList = SmallVector<Glyph, 1>;
-
-} // namespace Internal
-
-template <>
-constexpr inline bool isBitFlags<Internal::GlyphFlags> = true;
-
-/**
- * @brief Specifies the types of bounds that can be calculated for a glyph run.
- */
-enum class GlyphRunBounds {
-    /**
-     * @brief Bounds that consider all glyphs in the run, including whitespace.
-     */
-    Text,
-
-    /**
-     * @brief Bounds that exclude whitespace at line breaks.
-     */
-    Alignment,
-
-    /**
-     * @brief Bounds that consider only printable glyphs in the run.
-     */
-    Printable,
-};
-
-struct AscenderDescender {
-    float ascender;  // always positive
-    float descender; // always positive
-
-    float height() const noexcept {
-        return ascender + descender;
-    }
-
-    friend AscenderDescender max(AscenderDescender a, AscenderDescender b) noexcept {
-        return { std::max(a.ascender, b.ascender), std::max(a.descender, b.descender) };
-    }
-
-    bool operator==(const AscenderDescender&) const noexcept = default;
+struct TextLayoutOptions {
+    /// Maximum line width in pixels. Zero is a special no-wrap alignment container: lines are
+    /// positioned around x = 0 (left-aligned starts there, centered text straddles it, and
+    /// right-aligned text ends there).
+    float maxLineWidth            = HUGE_VALF;
+    float firstLineIndent         = 0.f;
+    /// Absolute tab interval in pixels. Zero uses the interval derived from the prepared font.
+    float tabWidth                = 0.f;
+    TextLayoutAlignment alignment = TextLayoutAlignment::Start;
+    bool allowBreakAnywhere       = false;
 };
 
 /**
- * @brief Represents a sequence of glyphs along with their associated properties.
+ * @brief Identifies which side of a logical grapheme boundary owns a caret.
  *
- * The `GlyphRun` struct encapsulates the properties and operations of a run of glyphs,
- * including positioning, font information, and range calculations.
+ * Affinity is required at bidirectional run boundaries and soft-wrap
+ * boundaries, where one grapheme boundary can have two visual positions.
  */
-struct GlyphRun {
-    /**
-     * @brief List of glyphs contained in this run in visual order (left-to-right).
-     */
-    Internal::GlyphList glyphs;
-
-    /**
-     * @brief Pointer to the font face associated with the glyph run.
-     */
-    Internal::FontFace* face;
-
-    /**
-     * @brief Font size of the glyph run.
-     */
-    float fontSize   = 0;
-
-    float tabWidth   = 0;
-    float lineHeight = 0;
-
-    /**
-     * @brief Metrics of the font used in the glyph run.
-     */
-    FontMetrics metrics;
-
-    /**
-     * @brief Text decoration applied to the glyph run (e.g., underline, strikethrough).
-     */
-    TextDecoration decoration = TextDecoration::None;
-
-    /**
-     * @brief Text direction of the glyph run (left-to-right or right-to-left).
-     */
-    TextDirection direction;
-
-    /**
-     * @brief Indicates whether the horizontal ranges are valid and up-to-date.
-     */
-    mutable bool rangesValid = false;
-
-    /**
-     * @brief Horizontal range of all glyphs in the run.
-     */
-    mutable InclusiveRange<float> textHRange;
-
-    /**
-     * @brief Horizontal range of glyphs, excluding whitespace at line breaks.
-     */
-    mutable InclusiveRange<float> alignmentHRange;
-
-    /**
-     * @brief Horizontal range of printable glyphs in the run.
-     */
-    mutable InclusiveRange<float> printableHRange;
-
-    /**
-     * @brief Visual order of the glyph run within the text.
-     */
-    int32_t visualOrder;
-
-    /**
-     * @brief Vertical offset of the glyph run relative to the text baseline.
-     */
-    float verticalAlign;
-
-    /**
-     * @brief Position of the left-most point of the glyph run at the text baseline.
-     */
-    PointF position;
-
-    std::optional<Color> color;
-
-    InclusiveRange<float> textVRange() const;
-
-    AscenderDescender ascDesc() const;
-
-    float firstCaret() const noexcept;
-
-    float lastCaret() const noexcept;
-
-    int hscale() const noexcept;
-    bool hasColor() const noexcept;
-
-    /**
-     * @brief Returns the bounds of the glyph run.
-     *
-     * @param boundsType Specifies the type of bounds to compute.
-     * @return RectangleF The computed bounds of the glyph run.
-     */
-    RectangleF bounds(GlyphRunBounds boundsType) const;
-
-    /**
-     * @brief Returns the size of the glyph run.
-     *
-     * @param boundsType Specifies the type of bounds to consider for size calculation.
-     * @return SizeF The size of the glyph run.
-     */
-    SizeF size(GlyphRunBounds boundsType) const;
-
-    /**
-     * @brief Marks the horizontal ranges of the glyph run as invalid.
-     *
-     * Call this function whenever glyph modifications require recalculating ranges.
-     */
-    void invalidateRanges();
-
-    /**
-     * @brief Updates the horizontal ranges of the glyph run.
-     *
-     * Ensures the ranges (e.g., `textHRange`, `alignmentHRange`, `printableHRange`)
-     * are valid and accurate.
-     */
-    void updateRanges() const;
-
-    /**
-     * @brief Returns the widest glyph run that fits within the specified width and removes those glyphs.
-     *
-     * @param width The maximum width available for the glyph run.
-     * @param allowEmpty A boolean flag that determines whether an empty glyph run is allowed as a result.
-     * @return GlyphRun The widest glyph run that fits within the specified width.
-     */
-    GlyphRun breakAt(float width, bool allowEmpty, bool wrapAnywhere) &;
-
-    /**
-     * @brief Retrieves the glyph flags associated with the glyph run.
-     *
-     * @return Internal::GlyphFlags The flags indicating properties or states of the glyphs.
-     */
-    Internal::GlyphFlags flags() const;
-
-    /**
-     * @brief Retrieves the character range covered by the glyph run.
-     *
-     * @return Range<uint32_t> The range of characters covered by this glyph run.
-     */
-    Range<uint32_t> charRange() const;
+enum class CaretAffinity : uint8_t {
+    Upstream,
+    Downstream,
 };
 
-using GlyphRuns = SmallVector<GlyphRun, 1>;
+struct CaretIndex {
+    uint32_t grapheme      = 0;
+    CaretAffinity affinity = CaretAffinity::Downstream;
+};
+
+struct CaretPosition {
+    float x           = 0.f;
+    uint32_t line     = 0;
+    uint8_t bidiLevel = 0;
+};
+
+struct TextSelectionRect {
+    uint32_t line = 0;
+    float x0      = 0.f;
+    float x1      = 0.f;
+};
+
+/**
+ * @brief Width-independent paragraph information exposed by PreparedDocument.
+ *
+ * This is semantic layout information; glyph runs, glyph IDs, clusters, and
+ * font-face pointers deliberately remain private to the text engine.
+ */
+struct PreparedParagraph {
+    Range<uint32_t> characterRange{ 0, 0 };
+    Range<uint32_t> graphemeRange{ 0, 0 };
+    TextDirection direction = TextDirection::LTR;
+};
+
+enum class TextLayoutLineEnd : uint8_t {
+    SoftWrap,
+    MandatoryBreak,
+    ParagraphEnd,
+};
+
+/**
+ * @brief Width-dependent line information exposed by DocumentLayout.
+ */
+struct DocumentLine {
+    Range<uint32_t> characterRange{ 0, 0 };
+    Range<uint32_t> graphemeRange{ 0, 0 };
+    TextDirection direction = TextDirection::LTR;
+    TextLayoutLineEnd end   = TextLayoutLineEnd::ParagraphEnd;
+    float baseline          = 0.f;
+    float ascender          = 0.f;
+    float descender         = 0.f;
+    float leading           = 0.f;
+    float width             = 0.f;
+    float trimmedWidth      = 0.f;
+};
+
+class DocumentLayout;
+
+struct PimplAccessor;
+
+/**
+ * @brief Immutable, width-independent result of text analysis and shaping.
+ *
+ * The implementation is hidden behind a shared pimpl. This type is the public
+ * Brisk boundary for prepared text; implementation-dependent glyph and font
+ * records are not part of the API.
+ */
+class PreparedDocument {
+public:
+    /// Opaque implementation type owned by the prepared-document handle.
+    struct Impl;
+
+    PreparedDocument();
+    ~PreparedDocument();
+
+    PreparedDocument(const PreparedDocument&);
+    PreparedDocument& operator=(const PreparedDocument&);
+    PreparedDocument(PreparedDocument&&) noexcept;
+    PreparedDocument& operator=(PreparedDocument&&) noexcept;
+
+    [[nodiscard]] bool empty() const noexcept;
+    [[nodiscard]] uint32_t characterCount() const noexcept;
+    [[nodiscard]] uint32_t graphemeCount() const noexcept;
+    [[nodiscard]] std::span<const uint32_t> graphemeBoundaries() const noexcept;
+    [[nodiscard]] size_t paragraphCount() const noexcept;
+    [[nodiscard]] PreparedParagraph paragraph(size_t index) const noexcept;
+
+    [[nodiscard]] uint32_t characterToGrapheme(uint32_t character) const noexcept;
+    [[nodiscard]] uint32_t graphemeToCharacter(uint32_t grapheme) const noexcept;
+    [[nodiscard]] Range<uint32_t> graphemeToCharacters(uint32_t grapheme) const noexcept;
+    /// Returns whether a grapheme is a paragraph separator excluded from paragraph content.
+    [[nodiscard]] bool isParagraphSeparator(uint32_t grapheme) const noexcept;
+    /// Converts a character/codepoint boundary to an affinity-aware caret index.
+    [[nodiscard]] CaretIndex caretFromCharacter(
+        uint32_t character, CaretAffinity affinity = CaretAffinity::Downstream) const noexcept;
+    /// Converts an affinity-aware caret index to its character/codepoint boundary.
+    [[nodiscard]] uint32_t characterFromCaret(CaretIndex caret) const noexcept;
+
+    [[nodiscard]] DocumentLayout layout(const TextLayoutOptions& options = {}) const;
+
+private:
+    explicit PreparedDocument(std::shared_ptr<const Impl> impl);
+    friend struct PimplAccessor;
+
+    std::shared_ptr<const Impl> m_impl;
+
+    friend class FontManager;
+};
+
+/**
+ * @brief Immutable width-dependent layout and text interaction result.
+ *
+ * Caret, hit-testing, selection, line metrics, and bounds are exposed here.
+ * Glyph rasterization and renderer-specific caching remain private to the
+ * graphics/text-engine integration.
+ */
+class DocumentLayout {
+public:
+    struct Impl;
+    DocumentLayout();
+    ~DocumentLayout();
+
+    DocumentLayout(const DocumentLayout&);
+    DocumentLayout& operator=(const DocumentLayout&);
+    DocumentLayout(DocumentLayout&&) noexcept;
+    DocumentLayout& operator=(DocumentLayout&&) noexcept;
+
+    [[nodiscard]] bool empty() const noexcept;
+    [[nodiscard]] size_t lineCount() const noexcept;
+    [[nodiscard]] DocumentLine line(size_t index) const noexcept;
+    [[nodiscard]] RectangleF bounds() const noexcept;
+    [[nodiscard]] RectangleF trimmedBounds() const noexcept;
+
+    [[nodiscard]] CaretPosition caretPosition(CaretIndex index) const noexcept;
+    /// Returns the line containing the caret, preserving affinity at shared boundaries.
+    [[nodiscard]] size_t lineForCaret(CaretIndex index) const noexcept;
+    /// Returns the line containing a character/codepoint boundary.
+    [[nodiscard]] size_t lineForCharacter(uint32_t character,
+                                          CaretAffinity affinity = CaretAffinity::Downstream) const noexcept;
+    /// Returns the beginning caret of a line. Line beginnings use downstream affinity.
+    [[nodiscard]] CaretIndex lineBeginning(size_t line) const noexcept;
+    /// Returns the ending caret of a line. Line ends use upstream affinity.
+    [[nodiscard]] CaretIndex lineEnd(size_t line) const noexcept;
+    /// Returns a one-pixel-wide caret rectangle using the line's ascent and descent.
+    [[nodiscard]] RectangleF caretRect(CaretIndex index, float width = 1.f) const noexcept;
+    [[nodiscard]] CaretIndex hitTest(PointF point) const noexcept;
+    /// Hit-tests a specific line while preserving the requested horizontal coordinate.
+    [[nodiscard]] CaretIndex hitTestLine(size_t line, float x) const noexcept;
+    /// Moves a caret to an adjacent line while preserving the caller's preferred X coordinate.
+    [[nodiscard]] CaretIndex moveCaretVertically(CaretIndex current, float preferredX,
+                                                 int direction) const noexcept;
+    void selectionRects(Range<uint32_t> selection, function_ref<void(const TextSelectionRect&)> onRect) const;
+    /// Enumerates selection rectangles for a character/codepoint range.
+    void selectionRectsByCharacter(Range<uint32_t> selection,
+                                   function_ref<void(const TextSelectionRect&)> onRect) const;
+
+private:
+    friend struct PimplAccessor;
+    explicit DocumentLayout(std::shared_ptr<const Impl> impl);
+
+    std::shared_ptr<const Impl> m_impl;
+
+    friend class PreparedDocument;
+    friend class FontManager;
+};
 
 struct Font;
-
-/**
- * @brief Represents text that has been processed and prepared for rendering or layout.
- *
- * The `PreparedText` struct manages glyph runs, logical and visual orders, grapheme boundaries,
- * caret positions, and alignment for efficient text layout and rendering.
- */
-struct PreparedText {
-    /**
-     * @brief The glyph runs associated with the text, stored in logical order.
-     */
-    GlyphRuns runs;
-
-    /**
-     * @brief The visual order of the glyph runs.
-     *
-     * Each entry corresponds to an index in `runs`, and `visualOrder.size()` must equal `runs.size()`.
-     */
-    std::vector<uint32_t> visualOrder;
-
-    /**
-     * @brief Layout options applied during text preparation.
-     */
-    TextOptions options = TextOptions::Default;
-
-    /**
-     * @brief Caret offsets (grapheme boundaries) within the text.
-     *
-     * Each entry indicates the a grapheme boundary, providing a mapping between graphemes and characters.
-     */
-    std::vector<uint32_t> graphemeBoundaries;
-
-    /**
-     * @brief The caret positions for each grapheme boundary.
-     *
-     * This vector is populated by `updateCaretData` and contains one entry per grapheme boundary.
-     */
-    std::vector<float> caretPositions;
-
-    /**
-     * @brief The ranges of horizontal positions for each grapheme.
-     *
-     * This vector is populated by `updateCaretData` and contains one entry per grapheme.
-     */
-    std::vector<InclusiveRange<float>> ranges;
-
-    bool hasCaretData() const noexcept;
-
-    /**
-     * @brief Represents a line of glyphs, including its range and metrics.
-     */
-    struct GlyphLine {
-        /**
-         * @brief Range of runs (sequence of glyphs sharing the same style) in the line.
-         *
-         * This range is empty if the line contains no runs.
-         */
-        Range<uint32_t> runRange{ UINT32_MAX, 0 };
-
-        /**
-         * @brief Range of grapheme boundaries (caret positions) in the line.
-         *
-         * This range is always non-empty, even if the line contains no visible content.
-         */
-        Range<uint32_t> graphemeRange{ UINT32_MAX, 0 };
-
-        /**
-         * @brief The ascender and descender metrics for the line.
-         *
-         * Contains the maximum ascender and descender values for the glyphs in the line.
-         */
-        AscenderDescender ascDesc{ 0, 0 };
-
-        /**
-         * @brief The baseline position for the line.
-         *
-         * Represents the vertical offset between this line's baseline and the baseline of the first line.
-         */
-        float baseline = 0.f;
-
-        /**
-         * @brief Checks if the line is empty.
-         *
-         * A line is considered empty if it contains no runs.
-         *
-         * @return `true` if the line is empty, `false` otherwise.
-         */
-        bool empty() const noexcept {
-            return runRange.empty();
-        }
-    };
-
-    /**
-     * @brief A collection of GlyphLine objects, representing multiple lines of text.
-     */
-    std::vector<GlyphLine> lines;
-
-    /**
-     * @brief Updates the caret positions and horizontal ranges for graphemes.
-     *
-     * This function calculates and fills the `caretPositions` and `ranges` fields based on the current text
-     * properties.
-     */
-    void updateCaretData();
-
-    /**
-     * @brief Maps a point to the nearest grapheme boundary.
-     *
-     * Determines the grapheme boundary index corresponding to the provided point in text layout space.
-     *
-     * @param pt The point in text layout space.
-     * @return uint32_t The index of the nearest grapheme boundary.
-     */
-    uint32_t caretToGrapheme(PointF pt) const;
-
-    uint32_t caretToGrapheme(uint32_t line, float x) const;
-
-    /**
-     * @brief Maps a grapheme boundary index to its caret position.
-     *
-     * Calculates the position of the caret corresponding to the given grapheme boundary in text layout space.
-     *
-     * @param graphemeIndex The index of the grapheme boundary.
-     * @return PointF The caret position for the specified grapheme.
-     */
-    PointF graphemeToCaret(uint32_t graphemeIndex) const;
-
-    uint32_t graphemeToLine(uint32_t graphemeIndex) const;
-
-    /**
-     * @brief Maps a vertical position to the nearest text line.
-     *
-     * Determines the line index corresponding to the given vertical position in text layout space.
-     *
-     * @param y The vertical position in text layout space.
-     * @return int32_t The index of the nearest line, or -1 if the position is outside the layout.
-     */
-    int32_t yToLine(float y) const;
-
-    /**
-     * @brief Retrieves a glyph run in visual order.
-     *
-     * @param index The index in visual order to retrieve.
-     * @return const GlyphRun& The glyph run at the specified visual order index.
-     */
-    const GlyphRun& runVisual(uint32_t index) const;
-
-    /**
-     * @brief Retrieves a modifiable glyph run in visual order.
-     *
-     * @param index The index in visual order to retrieve.
-     * @return GlyphRun& The modifiable glyph run at the specified visual order index.
-     */
-    GlyphRun& runVisual(uint32_t index);
-
-    /**
-     * @brief Calculates the bounds of the text based on the specified bounds type.
-     *
-     * @param boundsType The type of bounds to calculate (e.g., text, alignment, printable).
-     * @return RectangleF The calculated bounds of the text.
-     */
-    RectangleF bounds(GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
-
-    /**
-     * @brief Wraps text to fit within the given width, modifying the current object.
-     *
-     * Wraps lines of text to fit within the specified `maxWidth`. If `wrapAnywhere` is true,
-     * the text can break between any graphemes. Otherwise, breaks occur at word boundaries.
-     *
-     * @param maxWidth Maximum allowed width for the text.
-     * @param wrapAnywhere If true, allows breaking between any graphemes; otherwise, breaks at word
-     * boundaries.
-     * @return PreparedText The modified object with wrapped lines.
-     */
-    PreparedText wrap(float maxWidth, bool wrapAnywhere = false) &&;
-
-    /**
-     * @brief Wraps text to fit within the given width, returning a copy.
-     *
-     * Wraps lines of text so that they fit within the specified `maxWidth`. If `wrapAnywhere` is true,
-     * the text can break between any graphemes. Otherwise, breaks occur at word boundaries.
-     *
-     * @param maxWidth Maximum allowed width for the text.
-     * @param wrapAnywhere If true, allows breaking between any graphemes; otherwise, breaks at word
-     * boundaries.
-     * @return PreparedText A copy with wrapped lines.
-     */
-    PreparedText wrap(float maxWidth, bool wrapAnywhere = false) const&;
-
-    /**
-     * @brief Aligns text lines horizontally and vertically.
-     *
-     * Adjusts the horizontal offsets of each line based on `alignment_x` and returns a PointF with overall
-     * horizontal and vertical offsets. Apply the returned offset when painting PreparedText for proper
-     * vertical alignment.
-     *
-     * @param alignment_x Horizontal alignment factor (0: left, 0.5: center, 1: right).
-     * @param alignment_y Vertical alignment factor (0: top, 0.5: center, 1: bottom).
-     * @return PointF Offsets for alignment.
-     */
-    [[nodiscard]] PointF alignLines(float alignment_x, float alignment_y = 0.f);
-
-    [[nodiscard]] PointF alignLines(PointF alignment);
-
-    /**
-     * @brief Converts a character index to its corresponding grapheme index.
-     *
-     * @param charIndex The character index to convert.
-     * @return uint32_t The corresponding grapheme index.
-     */
-    uint32_t characterToGrapheme(uint32_t charIndex) const;
-
-    /**
-     * @brief Converts a grapheme index to its corresponding character index.
-     *
-     * @param graphemeIndex The grapheme index to convert.
-     * @return uint32_t The corresponding character index.
-     */
-    uint32_t graphemeToCharacter(uint32_t graphemeIndex) const;
-
-    /**
-     * @brief Retrieves the range of characters corresponding to a grapheme index.
-     *
-     * @param graphemeIndex The grapheme index to query.
-     * @return Range<uint32_t> The range of character indices covered by the grapheme.
-     */
-    Range<uint32_t> graphemeToCharacters(uint32_t graphemeIndex) const;
-};
 
 /**
  * @brief A collection of OpenType feature flags.
@@ -1032,27 +697,6 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-enum class TestRenderFlags {
-    None        = 0,
-    TextBounds  = 1,
-    GlyphBounds = 2,
-    Fade        = 4,
-};
-
-template <>
-constexpr inline bool isBitFlags<TestRenderFlags> = true;
-
-enum class FontFlags {
-    Default          = 0,
-    DisableKerning   = 1,
-    DisableHinting   = 2,
-    DisableLigatures = 4,
-    EnableColor      = 8,
-};
-
-template <>
-constexpr inline bool isBitFlags<FontFlags> = true;
-
 struct OsFont {
     std::string family;
     FontStyle style;
@@ -1060,13 +704,6 @@ struct OsFont {
     std::string styleName;
     fs::path path;
 };
-
-namespace Internal {
-using ShapingCacheKey = std::tuple<Font, TextWithOptions>;
-}
-} // namespace Brisk
-
-namespace Brisk {
 
 class FontManager final {
 public:
@@ -1076,7 +713,7 @@ public:
      * @param hscale Horizontal scaling factor (default: 3).
      * @param cacheTimeMs Cache duration in milliseconds (default: 5000).
      */
-    explicit FontManager(std::recursive_mutex* mutex, int hscale = 3, uint32_t cacheTimeMs = 5000);
+    explicit FontManager(std::recursive_mutex* mutex, int hscale = 3);
 
     /**
      * @brief Destructor for FontManager.
@@ -1090,17 +727,22 @@ public:
      */
     void addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily);
 
+    /** Registers every face in a font file held in memory. */
+    void addFont(BytesView data, std::string alias = {});
+
     /**
-     * @brief Adds a font to the manager with specified properties.
-     * @param fontFamily The font family name.
-     * @param style The font style (e.g., italic, normal).
-     * @param weight The font weight (e.g., bold, regular).
-     * @param data Binary font data.
-     * @param makeCopy Whether to create a copy of the data (default: true).
-     * @param flags Font flags (default: FontFlags::Default).
+     * @brief Registers every face in a cached embedded resource.
+     *
+     * The cached resource has process lifetime, so its bytes are borrowed
+     * without making another copy.
+     *
+     * @param resourceName Embedded resource name.
+     * @param alias Optional family alias for all registered faces.
+     * @param emptyOk Allow a missing resource to be ignored.
+     * @return True if a non-empty resource was registered.
      */
-    void addFont(std::string fontFamily, FontStyle style, FontWeight weight, BytesView data,
-                 bool makeCopy = true, FontFlags flags = FontFlags::Default);
+    [[nodiscard]] bool addFontFromResource(std::string resourceName, std::string alias = {},
+                                           bool emptyOk = false);
 
     /**
      * @brief Adds a font installed on the system.
@@ -1108,14 +750,14 @@ public:
      * @param fontName The specific font name to add.
      * @return True if the font was successfully added, false otherwise.
      */
-    [[nodiscard]] bool addFontByName(std::string fontFamily, std::string_view fontName);
+    [[nodiscard]] bool addFontByName(std::string_view fontName, std::string alias = {});
 
     /**
      * @brief Adds a system font to the manager.
      * @param fontFamily The font family name to register.
      * @return True if the system font was successfully added, false otherwise.
      */
-    [[nodiscard]] bool addSystemFont(std::string fontFamily);
+    [[nodiscard]] bool addSystemFont(std::string alias = {});
 
     /**
      * @brief Adds a font from a file.
@@ -1125,8 +767,7 @@ public:
      * @param path Filesystem path to the font file.
      * @return Status indicating success or an IoError on failure.
      */
-    [[nodiscard]] status<IoError> addFontFromFile(std::string fontFamily, FontStyle style, FontWeight weight,
-                                                  const fs::path& path);
+    [[nodiscard]] status<IoError> addFontFromFile(const fs::path& path, std::string alias = {});
 
     /**
      * @brief Retrieves a list of installed system fonts.
@@ -1157,104 +798,38 @@ public:
      */
     [[nodiscard]] bool hasCodepoint(const Font& font, char32_t codepoint) const;
 
-    /**
-     * @brief Prepares text for rendering with a single font.
-     * @param font The font to use.
-     * @param text Text with rendering options.
-     * @param width Maximum width for text layout (default: unlimited).
-     * @return PreparedText object ready for rendering.
-     */
-    [[nodiscard]] PreparedText prepare(const Font& font, const TextWithOptions& text,
-                                       float width = HUGE_VALF) const;
+    /** @brief Prepares text with the document text-layout engine. */
+    [[nodiscard]] PreparedDocument prepareDocument(const Font& font, const TextWithOptions& text) const;
 
-    /**
-     * @brief Calculates the bounding rectangle for text with a single font.
-     * @param font The font to use.
-     * @param text Text with rendering options.
-     * @param boundsType Type of bounds to calculate (default: GlyphRunBounds::Alignment).
-     * @return RectangleF representing the text bounds.
-     */
-    [[nodiscard]] RectangleF bounds(const Font& font, const TextWithOptions& text,
-                                    GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
-
-    /**
-     * @brief Prepares text for rendering with multiple fonts.
-     * @param text Text with rendering options.
-     * @param fonts Span of fonts and their colors.
-     * @param offsets Span of text offsets for font changes.
-     * @param width Maximum width for text layout (default: unlimited).
-     * @return PreparedText object ready for rendering.
-     */
-    [[nodiscard]] PreparedText prepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                                       std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
-
-    /**
-     * @brief Calculates the bounding rectangle for text with multiple fonts.
-     * @param text Text with rendering options.
-     * @param fonts Span of fonts and their colors.
-     * @param offsets Span of text offsets for font changes.
-     * @param boundsType Type of bounds to calculate (default: GlyphRunBounds::Alignment).
-     * @return RectangleF representing the text bounds.
-     */
-    [[nodiscard]] RectangleF bounds(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                                    std::span<const uint32_t> offsets,
-                                    GlyphRunBounds boundsType = GlyphRunBounds::Alignment) const;
+    [[nodiscard]] PreparedDocument prepareDocument(const TextWithOptions& text,
+                                                   std::span<const FontAndColor> fonts,
+                                                   std::span<const uint32_t> offsets = {}) const;
 
     using FontKey = std::tuple<std::string, FontStyle, FontWeight>;
 
     // Internal use only
-    FontKey faceToKey(Internal::FontFace* face) const;
-    // Internal use only
-    void testRender(Rc<Image> image, const PreparedText& run, Point origin,
-                    TestRenderFlags flags = TestRenderFlags::None, std::initializer_list<int> xlines = {},
-                    std::initializer_list<int> ylines = {}) const;
-
-    // Internal use only
-    int hscale() const {
+    int hscale() const noexcept {
         return m_hscale;
     }
 
-    // Internal use only
-    void garbageCollectCache();
+    /// Sets the maximum memory retained by the new text-layout glyph cache.
+    void setGlyphCacheMemoryBudget(size_t bytes);
+    /// Removes all entries from the new text-layout glyph cache.
+    void clearGlyphCache();
 
 private:
-    friend struct Internal::FontFace;
+    friend void Internal::registerTextLayoutFont(FontManager& manager, BytesView data,
+                                                 std::string_view alias);
     friend struct Font;
-    std::map<FontKey, std::shared_ptr<Internal::FontFace>> m_fonts;
-    void* m_ft_library;
     mutable std::recursive_mutex* m_lock;
+    void* m_ft_library{};
+    std::shared_ptr<Internal::TextLayoutState> m_textLayout;
 
-    struct ShapeCacheEntry {
-        PreparedText runs;
-        uint64_t counter;
-    };
-
-    mutable std::unordered_map<Internal::ShapingCacheKey, ShapeCacheEntry, FastHash> m_shapeCache;
-    mutable uint64_t m_cacheCounter = 0;
     int m_hscale;
-    uint32_t m_cacheTimeMs;
     std::vector<std::string_view> fontList(std::string_view ff) const;
     mutable std::vector<OsFont> m_osFonts;
-    Internal::FontFace* lookup(const Font& font) const;
-    Internal::FontFace* findFontByKey(FontKey fontKey) const;
-    std::pair<Internal::FontFace*, GlyphId> lookupCodepoint(const Font& font, char32_t codepoint,
-                                                            bool fallbackToUndef) const;
+    void addFontImpl(BytesView data, std::string alias, bool makeCopy);
     FontMetrics getMetrics(const Font& font) const;
-    static RectangleF glyphBounds(const Internal::Glyph& g, const Internal::GlyphData& d);
-    PreparedText shapeRuns(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                           std::span<const uint32_t> offsets,
-                           const std::vector<Internal::TextRun>& textRuns) const;
-    std::vector<Internal::TextRun> assignFontsToTextRuns(
-        std::u32string_view text, std::span<const FontAndColor> fonts, std::span<const uint32_t> offsets,
-        const std::vector<Internal::TextRun>& textRuns) const;
-    std::vector<Internal::TextRun> splitControls(std::u32string_view text,
-                                                 const std::vector<Internal::TextRun>& textRuns) const;
-    PreparedText doPrepare(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                           std::span<const uint32_t> offsets, float width = HUGE_VALF) const;
-    PreparedText doShapeCached(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                               std::span<const uint32_t> offsets) const;
-    PreparedText doShape(const TextWithOptions& text, std::span<const FontAndColor> fonts,
-                         std::span<const uint32_t> offsets) const;
 };
 
 extern std::optional<FontManager> fonts;
@@ -1268,35 +843,11 @@ inline std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBr
     return result;
 }
 
-namespace Internal {
-/**
- * @brief Splits a string of text into multiple `TextRun` objects based on directionality.
- *
- * This function analyzes the given text and segments it into runs of uniform properties. It takes into
- * account the specified default text direction and optionally applies visual order for bidirectional text.
- *
- * @param text The text to be split into text runs.
- * @param defaultDirection The default text direction to use if no explicit directionality is detected.
- * @param visualOrder If `true`, the resulting text runs will be reordered to match the visual order of the
- * text.
- * @return std::vector<TextRun> A vector of `TextRun` objects representing the segmented text.
- */
-std::vector<TextRun> splitTextRuns(std::u32string_view text, TextDirection defaultDirection);
-
-inline std::vector<TextRun> toVisualOrder(std::vector<TextRun> textRuns) {
-    std::stable_sort(textRuns.begin(), textRuns.end(), [](const TextRun& a, const TextRun& b) {
-        return a.visualOrder < b.visualOrder;
-    });
-    return textRuns;
-}
-
-} // namespace Internal
-
 /**
  * @brief Indicates whether the ICU library is available for full Unicode support.
  *
  * When `icuAvailable` is `true`, the font functions will have full Unicode support
- * for Bidirectional (BiDi) text processing (using splitTextRuns) and grapheme/line
+ * for Bidirectional (BiDi) text processing and grapheme/line
  * breaking functionality (textBreakPositions).
  *
  */

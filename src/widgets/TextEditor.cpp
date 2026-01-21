@@ -35,6 +35,38 @@ static std::u32string normalizeCompose(std::u32string str) {
     return str;
 }
 
+// Determines the caret affinity a cursor position should have, based purely on the
+// (already edited) text buffer. This mirrors the rule used for horizontal caret
+// movement in moveCursor(): a caret that sits immediately before a paragraph
+// separator stays attached to the end of the line that precedes it (Upstream),
+// while a caret that sits immediately after one belongs to the beginning of the
+// following line (Downstream). Every code path that moves the cursor by directly
+// editing the text (typing, backspace, delete, paste, deleting a selection) must
+// recompute affinity this way instead of assuming Downstream, otherwise the caret
+// can end up rendered on the wrong visual line at a hard paragraph break.
+static CaretAffinity caretAffinityForPosition(const std::u32string& text, uint32_t cursor) {
+    const auto isParagraphSeparator = [](char32_t character) {
+        switch (character) {
+        case U'\n':
+        case U'\r':
+        case U'\u001C':
+        case U'\u001D':
+        case U'\u001E':
+        case U'\u0085':
+        case U'\u2029':
+            return true;
+        default:
+            return false;
+        }
+    };
+
+    if (cursor > 0 && isParagraphSeparator(text[cursor - 1]))
+        return CaretAffinity::Downstream;
+    if (cursor < text.size() && isParagraphSeparator(text[cursor]))
+        return CaretAffinity::Upstream;
+    return CaretAffinity::Downstream;
+}
+
 TextEditor::TextEditor(Construction construction, ArgumentsView<TextEditor> args)
     : Base(construction, nullptr) {
     m_tabStop       = true;
@@ -113,7 +145,32 @@ void TextEditor::createContextMenu() {
 }
 
 Range<uint32_t> TextEditor::selection() const {
-    return { std::min(cursor, cursor + selectedLength), std::max(cursor, cursor + selectedLength) };
+    const int32_t cursorPosition = static_cast<int32_t>(cursor);
+    const int32_t selectionEnd   = cursorPosition + selectedLength;
+    return { static_cast<uint32_t>(std::min(cursorPosition, selectionEnd)),
+             static_cast<uint32_t>(std::max(cursorPosition, selectionEnd)) };
+}
+
+CaretIndex TextEditor::caretIndex() const {
+    return m_preparedDocument.caretFromCharacter(std::min(cursor, m_preparedDocument.characterCount()),
+                                                 m_caretAffinity);
+}
+
+void TextEditor::setCaretIndex(CaretIndex caret) {
+    m_caretAffinity = caret.affinity;
+    cursor          = m_preparedDocument.characterFromCaret(caret);
+}
+
+CaretIndex TextEditor::caretAtPoint(PointF pt) const {
+    if (m_documentLayout.lineCount() == 0) {
+        return {};
+    }
+    return m_documentLayout.hitTest(PointF(pt) - textOrigin());
+}
+
+PointF TextEditor::textOrigin() const {
+    PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
+    return PointF(m_clientRect.at(alignment)) - PointF(m_visibleOffset);
 }
 
 void TextEditor::moveCursor(MoveCursor move, bool select) {
@@ -122,51 +179,69 @@ void TextEditor::moveCursor(MoveCursor move, bool select) {
     switch (move) {
     case Up:
     case Down: {
-        uint32_t grapheme = m_preparedText.characterToGrapheme(cursor);
-        uint32_t line     = m_preparedText.graphemeToLine(grapheme);
-        float offsetx     = m_preparedText.caretPositions[grapheme];
-        if (line == UINT32_MAX || (line == 0 && move == Up) ||
-            (line == m_preparedText.lines.size() - 1 && move == Down))
+        CaretIndex current     = caretIndex();
+        CaretPosition position = m_documentLayout.caretPosition(current);
+        const int direction    = move == Up ? -1 : 1;
+        const size_t line      = m_documentLayout.lineForCaret(current);
+        if (m_documentLayout.lineCount() == 0 || (direction < 0 && line == 0) ||
+            (direction > 0 && line + 1 >= m_documentLayout.lineCount()))
             break;
-        line += move == Down ? +1 : -1;
-        grapheme = m_preparedText.caretToGrapheme(line, offsetx);
-        cursor   = m_preparedText.graphemeToCharacter(grapheme);
+        if (!m_preferredCaretX)
+            m_preferredCaretX = position.x;
+        setCaretIndex(m_documentLayout.moveCaretVertically(current, *m_preferredCaretX, direction));
         break;
     }
 
     case Right:
     case Left: {
-        uint32_t grapheme = m_preparedText.characterToGrapheme(cursor);
+        if (!select && selectedLength != 0) {
+            const Range<uint32_t> currentSelection = selection();
+            cursor          = move == Left ? currentSelection.min : currentSelection.max;
+            selectedLength  = 0;
+            m_caretAffinity = caretAffinityForPosition(m_cachedText, cursor);
+            m_preferredCaretX.reset();
+            break;
+        }
+        uint32_t grapheme = m_preparedDocument.characterToGrapheme(cursor);
         if ((grapheme == 0 && move == Left) ||
-            (grapheme == m_preparedText.graphemeBoundaries.size() - 1 && move == Right))
+            (grapheme == m_preparedDocument.graphemeCount() && move == Right))
             break;
         grapheme += move == Right ? +1 : -1;
-        cursor = m_preparedText.graphemeToCharacter(grapheme);
+        CaretAffinity affinity = move == Left ? CaretAffinity::Upstream : CaretAffinity::Downstream;
+        if (m_preparedDocument.isParagraphSeparator(grapheme))
+            affinity = CaretAffinity::Upstream;
+        else if (grapheme > 0 && m_preparedDocument.isParagraphSeparator(grapheme - 1))
+            affinity = CaretAffinity::Downstream;
+        setCaretIndex({ grapheme, affinity });
+        m_preferredCaretX.reset();
         break;
     }
 
     case LineBeginning:
     case LineEnd: {
-        uint32_t grapheme = m_preparedText.characterToGrapheme(cursor);
-        uint32_t line     = m_preparedText.graphemeToLine(grapheme);
-        if (line == UINT32_MAX)
+        const size_t line = m_documentLayout.lineForCaret(caretIndex());
+        if (line >= m_documentLayout.lineCount())
             break;
-        cursor = m_preparedText.graphemeToCharacter(move == LineBeginning
-                                                        ? m_preparedText.lines[line].graphemeRange.min
-                                                        : m_preparedText.lines[line].graphemeRange.max - 1);
+        setCaretIndex(move == LineBeginning ? m_documentLayout.lineBeginning(line)
+                                            : m_documentLayout.lineEnd(line));
+        m_preferredCaretX.reset();
         break;
     }
 
     case TextBeginning:
-        cursor = 0;
+        cursor          = 0;
+        m_caretAffinity = CaretAffinity::Downstream;
+        m_preferredCaretX.reset();
         break;
     case TextEnd:
-        cursor = m_cachedText.size();
+        cursor          = m_cachedText.size();
+        m_caretAffinity = CaretAffinity::Upstream;
+        m_preferredCaretX.reset();
         break;
     }
 
     if (select) {
-        selectedLength += oldCursor - cursor;
+        selectedLength += static_cast<int32_t>(oldCursor) - static_cast<int32_t>(cursor);
     } else {
         selectedLength = 0;
     }
@@ -186,89 +261,92 @@ void TextEditor::paint(Canvas& canvas) const {
 
     PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
 
-    ColorW textColor  = m_color.current;
-    m_alignmentOffset = m_preparedText.alignLines(alignment);
+    ColorW textColor = m_color.current;
     if (isPlaceholder)
         textColor = textColor.multiplyAlpha(0.5f);
 
     canvas.setFillColor(ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
-    Point pos = m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset);
-    canvas.fillTextSelection(pos, m_preparedText, selection);
+    Point pos = Point(textOrigin());
+    canvas.fillTextSelection(pos, alignment, m_documentLayout, selection);
     canvas.setFillColor(textColor);
-    canvas.fillText(pos, m_preparedText);
+    canvas.fillText(pos, alignment, m_documentLayout);
 
     if (isFocused() && m_blinkState && !isDisabled()) {
-        uint32_t caretGrapheme =
-            m_preparedText.characterToGrapheme(std::clamp(cursor, 0u, uint32_t(m_cachedText.size())));
-
-        uint32_t lineIndex = m_preparedText.graphemeToLine(caretGrapheme);
-        if (lineIndex != UINT32_MAX) {
-            const auto& line = m_preparedText.lines[lineIndex];
-            Rectangle caretRect(m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset) +
-                                    Point(m_preparedText.caretPositions[caretGrapheme], line.baseline) +
-                                    Point(0, -line.ascDesc.ascender),
-                                Size(1_idp, line.ascDesc.height()));
+        const RectangleF caret = m_documentLayout.caretRect(caretIndex(), 1_dp);
+        if (!caret.empty()) {
+            const RectangleF bounds = m_documentLayout.bounds();
+            const PointF offset     = PointF(pos) - PointF(bounds.size()) * alignment;
+            const RectangleF translated{ caret.x1 + offset.x, caret.y1 + offset.y, caret.x2 + offset.x,
+                                         caret.y2 + offset.y };
             canvas.setFillColor(textColor);
-            canvas.fillRect(caretRect, 0.f);
+            canvas.fillRect(translated, 0.f);
         }
     }
 }
 
 void TextEditor::normalizeCursor(uint32_t textLen) {
-    uint32_t newCursor         = std::clamp(cursor, 0u, textLen);
-    uint32_t newSelectedLength = std::clamp(cursor + selectedLength, 0u, textLen) - cursor;
-    if (newCursor != cursor || newSelectedLength != selectedLength) {
-        cursor         = newCursor;
+    const int32_t length            = static_cast<int32_t>(textLen);
+    const int32_t cursorPosition    = static_cast<int32_t>(cursor);
+    const int32_t selectionEnd      = cursorPosition + selectedLength;
+    const int32_t newCursor         = std::clamp(cursorPosition, 0, length);
+    const int32_t newSelectionEnd   = std::clamp(selectionEnd, 0, length);
+    const int32_t newSelectedLength = newSelectionEnd - newCursor;
+    if (newCursor != static_cast<int32_t>(cursor) || newSelectedLength != selectedLength) {
+        cursor         = static_cast<uint32_t>(newCursor);
         selectedLength = newSelectedLength;
         selectionChanged();
     }
 }
 
-void TextEditor::makeCursorVisible(uint32_t textLen) {
-    if (!m_preparedText.hasCaretData() || m_preparedText.caretPositions.size() <= 1) {
+void TextEditor::makeCursorVisible() {
+    if (m_documentLayout.lineCount() == 0) {
         m_visibleOffset = { 0, 0 };
         invalidate();
         return;
     }
-    SizeF bounds = m_preparedText.bounds().size();
+    SizeF bounds = m_documentLayout.bounds().size();
     if (std::ceil(bounds.width) < m_clientRect.width() && std::ceil(bounds.height) < m_clientRect.height()) {
         m_visibleOffset = { 0, 0 };
         invalidate();
         return;
     }
 
-    uint32_t grapheme  = m_preparedText.characterToGrapheme(cursor);
-    uint32_t lineIndex = m_preparedText.graphemeToLine(grapheme);
-    if (lineIndex == UINT32_MAX)
+    const CaretPosition caret = m_documentLayout.caretPosition(caretIndex());
+    const uint32_t lineIndex  = caret.line;
+    if (lineIndex >= m_documentLayout.lineCount())
         return;
-    const auto& line = m_preparedText.lines[lineIndex];
-    float caretx     = m_preparedText.caretPositions[grapheme];
-    float carety     = line.baseline;
+    const Rectangle caretRect = m_documentLayout.caretRect(caretIndex(), 1_dp).roundOutward();
+    const PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
+    const PointF layoutOffset =
+        PointF(m_clientRect.at(alignment)) - PointF(m_visibleOffset) - PointF(bounds) * alignment;
+    const RectangleF visibleCaret{ caretRect.x1 + layoutOffset.x, caretRect.y1 + layoutOffset.y,
+                                   caretRect.x2 + layoutOffset.x, caretRect.y2 + layoutOffset.y };
 
-    m_visibleOffset -= m_alignmentOffset;
+    const auto keepVisible = [](float caretStart, float caretEnd, float clientStart, float clientEnd,
+                                int32_t& offset) {
+        if (caretStart < clientStart && caretEnd > clientEnd) {
+            // An oversized caret cannot fit; show its center in the client rectangle.
+            offset += static_cast<int32_t>(
+                std::lround((caretStart + caretEnd) * 0.5f - (clientStart + clientEnd) * 0.5f));
+        } else if (caretStart < clientStart) {
+            offset += static_cast<int32_t>(std::lround(caretStart - clientStart));
+        } else if (caretEnd > clientEnd) {
+            offset += static_cast<int32_t>(std::lround(caretEnd - clientEnd));
+        }
+        offset = std::max(0, offset);
+    };
 
-    if (caretx < m_visibleOffset.x)
-        m_visibleOffset.x = std::floor(caretx) - 2_idp;
-    else if (caretx > m_visibleOffset.x + m_clientRect.width())
-        m_visibleOffset.x = std::ceil(caretx) - m_clientRect.width() + 2_idp;
-    if (carety - line.ascDesc.ascender < m_visibleOffset.y)
-        m_visibleOffset.y = std::floor(carety - line.ascDesc.ascender) - 2_idp;
-    else if (carety + line.ascDesc.descender > m_visibleOffset.y + m_clientRect.height())
-        m_visibleOffset.y = std::ceil(carety + line.ascDesc.descender) - m_clientRect.height() + 2_idp;
+    keepVisible(visibleCaret.x1, visibleCaret.x2, m_clientRect.x1, m_clientRect.x2, m_visibleOffset.x);
+    keepVisible(visibleCaret.y1, visibleCaret.y2, m_clientRect.y1, m_clientRect.y2, m_visibleOffset.y);
 
-    m_visibleOffset += m_alignmentOffset;
-    m_visibleOffset.x = std::max(0, m_visibleOffset.x);
-    m_visibleOffset.y = std::max(0, m_visibleOffset.y);
     invalidate();
 }
 
 uint32_t TextEditor::caretToOffset(PointF pt) const {
-    if (!m_preparedText.hasCaretData() || m_preparedText.caretPositions.size() == 1) {
+    if (m_documentLayout.lineCount() == 0) {
         return 0;
     }
-    PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
-    return m_preparedText.graphemeToCharacter(m_preparedText.caretToGrapheme(
-        Point(pt) - (m_clientRect.at(alignment) + Point(m_alignmentOffset - m_visibleOffset))));
+    return m_preparedDocument.characterFromCaret(caretAtPoint(pt));
 }
 
 static bool char_is_alphanum(char32_t ch) {
@@ -279,21 +357,23 @@ static bool char_is_alphanum(char32_t ch) {
 void TextEditor::selectWordAtCursor() {
     std::u32string text = utf8ToUtf32(m_text);
     normalizeCursor(text.size());
-    const int cursorPos = cursor;
-    for (int i = cursorPos;; i--) {
-        if (i < 0 || !char_is_alphanum(text[i])) {
-            cursor = i + 1;
+    const int32_t textLength = static_cast<int32_t>(text.size());
+    const int32_t cursorPos  = static_cast<int32_t>(cursor);
+    for (int32_t i = cursorPos - 1;; i--) {
+        if (i < 0 || !char_is_alphanum(text[static_cast<size_t>(i)])) {
+            cursor = static_cast<uint32_t>(i + 1);
             break;
         }
     }
-    for (int i = cursorPos;; i++) {
-        if (i >= text.size() || !char_is_alphanum(text[i])) {
-            selectedLength = i - cursor;
+    for (int32_t i = cursorPos;; i++) {
+        if (i >= textLength || !char_is_alphanum(text[static_cast<size_t>(i)])) {
+            selectedLength = i - static_cast<int32_t>(cursor);
             break;
         }
     }
-    selectedLength = -selectedLength;
-    cursor         = cursor - selectedLength;
+    selectedLength  = -selectedLength;
+    cursor          = static_cast<uint32_t>(static_cast<int32_t>(cursor) - selectedLength);
+    m_caretAffinity = caretAffinityForPosition(text, cursor);
     selectionChanged();
     normalizeCursor(text.size());
 }
@@ -322,19 +402,23 @@ void TextEditor::onEvent(Event& event) {
         text = utf8ToUtf32(m_text);
         resetBlinking();
         focus();
-        cursor         = caretToOffset(Point(*event.as<EventMouse>()->downPoint));
+        m_preferredCaretX.reset();
+        setCaretIndex(caretAtPoint(Point(*event.as<EventMouse>()->downPoint)));
+        cursor         = std::min(cursor, static_cast<uint32_t>(text.size()));
         selectedLength = 0;
         selectionChanged();
         normalizeCursor(text.size());
-        m_startCursorDragging = caretToOffset(Point(*event.as<EventMouse>()->downPoint));
+        m_startCursorDragging = static_cast<int32_t>(cursor);
         event.stopPropagation();
     } break;
     case DragEvent::Dragging: {
         text = utf8ToUtf32(m_text);
         resetBlinking();
-        const int endCursor = caretToOffset(Point(event.as<EventMouse>()->point));
-        selectedLength      = m_startCursorDragging - endCursor;
-        cursor              = endCursor;
+        const CaretIndex endCaret = caretAtPoint(Point(event.as<EventMouse>()->point));
+        const int endCursor       = static_cast<int>(m_preparedDocument.characterFromCaret(endCaret));
+        m_caretAffinity           = endCaret.affinity;
+        selectedLength            = m_startCursorDragging - endCursor;
+        cursor                    = endCursor;
         selectionChanged();
         normalizeCursor(text.size());
         invalidate();
@@ -360,7 +444,7 @@ void TextEditor::onEvent(Event& event) {
             case KeyCode::A:
                 if ((e->mods & KeyModifiers::Regular) == KeyModifiers::ControlOrCommand) {
                     selectAll(text);
-                    makeCursorVisible(m_cachedText.size());
+                    makeCursorVisible();
                     event.stopPropagation();
                 }
                 break;
@@ -387,25 +471,25 @@ void TextEditor::onEvent(Event& event) {
             case KeyCode::Up:
                 if (m_multiline) {
                     moveCursor(MoveCursor::Up, (e->mods & KeyModifiers::Regular) == KeyModifiers::Shift);
-                    makeCursorVisible(m_cachedText.size());
+                    makeCursorVisible();
                     event.stopPropagation();
                 }
                 break;
             case KeyCode::Down:
                 if (m_multiline) {
                     moveCursor(MoveCursor::Down, (e->mods & KeyModifiers::Regular) == KeyModifiers::Shift);
-                    makeCursorVisible(m_cachedText.size());
+                    makeCursorVisible();
                     event.stopPropagation();
                 }
                 break;
             case KeyCode::Left:
                 moveCursor(MoveCursor::Left, (e->mods & KeyModifiers::Regular) == KeyModifiers::Shift);
-                makeCursorVisible(m_cachedText.size());
+                makeCursorVisible();
                 event.stopPropagation();
                 break;
             case KeyCode::Right:
                 moveCursor(MoveCursor::Right, (e->mods & KeyModifiers::Regular) == KeyModifiers::Shift);
-                makeCursorVisible(m_cachedText.size());
+                makeCursorVisible();
                 event.stopPropagation();
                 break;
             case KeyCode::Home:
@@ -413,24 +497,30 @@ void TextEditor::onEvent(Event& event) {
                                ? MoveCursor::TextBeginning
                                : MoveCursor::LineBeginning,
                            (e->mods & KeyModifiers::Regular) == KeyModifiers::Shift);
-                makeCursorVisible(m_cachedText.size());
+                makeCursorVisible();
                 event.stopPropagation();
                 break;
             case KeyCode::End:
                 moveCursor((e->mods & KeyModifiers::Regular) == KeyModifiers::Control ? MoveCursor::TextEnd
                                                                                       : MoveCursor::LineEnd,
                            (e->mods & KeyModifiers::Regular) == KeyModifiers::Shift);
-                makeCursorVisible(m_cachedText.size());
+                makeCursorVisible();
                 event.stopPropagation();
                 break;
             case KeyCode::Backspace:
                 if (selectedLength) {
                     deleteSelection(text);
                 } else {
-                    // delete one codepoint
+                    // Delete one codepoint, except that CRLF is one logical paragraph
+                    // separator and must be deleted atomically.
                     if (cursor > 0) {
-                        text.erase(cursor - 1, 1);
-                        cursor = cursor - 1; // no need to align
+                        const uint32_t eraseBegin =
+                            cursor >= 2 && text[cursor - 2] == U'\r' && text[cursor - 1] == U'\n'
+                                ? cursor - 2
+                                : cursor - 1;
+                        text.erase(eraseBegin, cursor - eraseBegin);
+                        cursor          = eraseBegin;
+                        m_caretAffinity = caretAffinityForPosition(text, cursor);
                         selectionChanged();
                     }
                 }
@@ -443,11 +533,13 @@ void TextEditor::onEvent(Event& event) {
                 } else {
                     // delete whole grapheme
                     if (cursor < text.size()) {
+                        const auto graphemeBoundaries = m_preparedDocument.graphemeBoundaries();
                         auto endOfGrapheme =
-                            std::upper_bound(m_preparedText.graphemeBoundaries.begin(),
-                                             m_preparedText.graphemeBoundaries.end(), cursor);
-                        if (endOfGrapheme != m_preparedText.graphemeBoundaries.end())
+                            std::upper_bound(graphemeBoundaries.begin(), graphemeBoundaries.end(), cursor);
+                        if (endOfGrapheme != graphemeBoundaries.end()) {
                             text.erase(cursor, *endOfGrapheme - cursor);
+                            m_caretAffinity = caretAffinityForPosition(text, cursor);
+                        }
                         selectionChanged();
                     }
                 }
@@ -491,7 +583,17 @@ constexpr std::u32string_view newLine = U"\n";
 #endif
 
 static std::u32string newLinesConvert(std::u32string text, std::u32string_view nl) {
-    return replaceAll(replaceAll(std::move(text), U"\r\n", nl), U"\n", nl);
+    std::u32string result;
+    result.reserve(text.size());
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == U'\r' && i + 1 < text.size() && text[i + 1] == U'\n')
+            ++i;
+        if (text[i] == U'\r' || text[i] == U'\n')
+            result += nl;
+        else
+            result += text[i];
+    }
+    return result;
 }
 
 static std::u32string newLinesToNative(std::u32string text) {
@@ -520,8 +622,8 @@ void TextEditor::cutToClipboard() {
 }
 
 void TextEditor::selectAll(const std::u32string& text) {
-    cursor         = text.size();
-    selectedLength = -text.size();
+    cursor         = static_cast<uint32_t>(text.size());
+    selectedLength = -static_cast<int32_t>(text.size());
     selectionChanged();
 }
 
@@ -536,8 +638,9 @@ void TextEditor::deleteSelection(std::u32string& text) {
     if (selectedLength) {
         const Range<int32_t> selection = this->selection();
         text.erase(selection.min, selection.distance());
-        cursor         = selection.min;
-        selectedLength = 0;
+        cursor          = selection.min;
+        selectedLength  = 0;
+        m_caretAffinity = caretAffinityForPosition(text, cursor);
         selectionChanged();
     }
 }
@@ -548,8 +651,9 @@ void TextEditor::pasteFromClipboard(std::u32string& text) {
         std::u32string t32 = utf8ToUtf32(*t);
         t32                = newLinesToInternal(std::move(t32));
         text.insert(cursor, t32);
-        cursor         = cursor + t32.size();
-        selectedLength = 0;
+        cursor          = cursor + t32.size();
+        selectedLength  = 0;
+        m_caretAffinity = caretAffinityForPosition(text, cursor);
         selectionChanged();
     }
 }
@@ -574,16 +678,20 @@ void TextEditor::cutToClipboard(std::u32string& text) {
 }
 
 void TextEditor::updateGraphemes() {
-    m_preparedText = fonts->prepare(
-        m_cachedFont, TextWithOptions{ m_text.empty() ? utf8ToUtf32(m_placeholder) : m_cachedText,
-                                       m_multiline ? TextOptions::Default : TextOptions::SingleLine });
-
-    m_preparedText.updateCaretData();
+    const TextOptions options = m_multiline ? TextOptions::Default : TextOptions::SingleLine;
+    m_preparedDocument        = fonts->prepareDocument(
+        m_cachedFont, TextWithOptions{ m_text.empty() ? utf8ToUtf32(m_placeholder) : m_cachedText, options });
+    TextLayoutOptions layoutOptions;
+    layoutOptions.maxLineWidth = std::max(0.f, static_cast<float>(m_clientRect.width()));
+    layoutOptions.alignment    = TextLayoutAlignment::Start;
+    m_documentLayout           = m_preparedDocument.layout(layoutOptions);
+    m_cachedLayoutWidth        = layoutOptions.maxLineWidth;
 }
 
 void TextEditor::updateState() {
     invalidate();
-    std::u32string text32 = utf8ToUtf32(m_text);
+    std::u32string text32     = utf8ToUtf32(m_text);
+    const uint32_t textLength = static_cast<uint32_t>(text32.size());
 
     if (m_passwordChar) {
         std::fill(text32.begin(), text32.end(), m_passwordChar);
@@ -592,8 +700,12 @@ void TextEditor::updateState() {
         m_cachedText = std::move(text32);
         m_cachedFont = font();
         updateGraphemes();
+    } else if (m_documentLayout.lineCount() == 0 ||
+               m_cachedLayoutWidth != static_cast<float>(m_clientRect.width())) {
+        updateGraphemes();
     }
-    makeCursorVisible(m_cachedText.size());
+    normalizeCursor(textLength);
+    makeCursorVisible();
 }
 
 void TextEditor::setTextInternal(std::string text) {
@@ -611,7 +723,8 @@ void TextEditor::onLayoutUpdated() {
 void TextEditor::typeCharacter(std::u32string& text, char32_t character) {
     deleteSelection(text);
     text.insert(text.begin() + cursor, character);
-    cursor = cursor + 1; // no need to align
+    cursor          = cursor + 1; // no need to align
+    m_caretAffinity = caretAffinityForPosition(text, cursor);
     selectionChanged();
     setTextInternal(utf32ToUtf8(normalizeCompose(text)));
 }

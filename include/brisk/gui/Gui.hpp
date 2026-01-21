@@ -47,6 +47,7 @@ BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/Typename.hpp>
 #include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Fonts.hpp>
 #include <brisk/graphics/Color.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
 #include "internal/Animation.hpp"
@@ -1134,7 +1135,8 @@ protected:
     EdgesF m_computedBorderWidth{ 0, 0, 0, 0 };
     Size m_contentSize{ 0, 0 };
     Point m_hintTextOffset{ 0, 0 };
-    PreparedText m_hintPrepared;
+    PreparedDocument m_hintPrepared;
+    DocumentLayout m_hintLayout;
 
     Animated<ColorW> m_backgroundColor;
     Animated<ColorW> m_borderColor;

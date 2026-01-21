@@ -72,4 +72,9 @@ brisk_target_link_resource(
     INPUT "${PROJECT_SOURCE_DIR}/resources/countries.json"
     BROTLI)
 
+brisk_target_link_resource(
+    showcase PRIVATE GoNotoKurrent-Regular.ttf
+    INPUT "${CMAKE_SOURCE_DIR}/resources/fonts/GoNotoKurrent-Regular.ttf"
+    BROTLI)
+
 brisk_setup_executable(showcase)

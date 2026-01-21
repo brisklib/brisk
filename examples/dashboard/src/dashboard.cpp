@@ -25,10 +25,8 @@
 int briskMain() {
     using namespace Brisk;
 
-    fonts->addFont("Titillium", FontStyle::Normal, FontWeight::Regular,
-                   Resources::loadCached("TitilliumWeb-Regular.ttf"), false);
-    fonts->addFont("Titillium", FontStyle::Normal, FontWeight::Bold,
-                   Resources::loadCached("TitilliumWeb-Bold.ttf"), false);
+    std::ignore = fonts->addFontFromResource("TitilliumWeb-Regular.ttf", "Titillium");
+    std::ignore = fonts->addFontFromResource("TitilliumWeb-Bold.ttf", "Titillium");
 
     GuiApplication application;
     return application.run(createComponent<App::MainComponent>());

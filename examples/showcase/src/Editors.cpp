@@ -162,6 +162,7 @@ Rc<Widget> ShowcaseEditors::build(Rc<Notifications> notifications, Value<bool> g
             textVerticalAlign = TextAlign::Start,
             width             = auto_,
             enabled           = globalEnabled,
+            fontFamily        = "GoNoto",
         },
 
         rcnew Text{ "PasswordEditor (widgets/TextEditor.hpp)", classes = { "section-header" } },

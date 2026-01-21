@@ -73,17 +73,18 @@ protected:
     };
 
     struct Cached {
-        PreparedText shaped;
+        PreparedDocument document;
     };
 
     struct CacheKey2 {
         int width;
+        TextLayoutAlignment alignment;
         bool operator==(const CacheKey2&) const noexcept = default;
     };
 
     struct Cached2 {
         SizeF textSize;
-        PreparedText prepared;
+        DocumentLayout layout;
     };
 
     Cached updateCache(const CacheKey&);
