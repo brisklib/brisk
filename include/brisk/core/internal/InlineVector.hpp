@@ -76,6 +76,10 @@ struct inline_vector {
     static_assert(std::is_trivially_move_constructible_v<T>);
     static_assert(std::is_trivially_destructible_v<T>);
 
+    constexpr static size_t capacity() noexcept {
+        return N;
+    }
+
     using size_type        = size_t;
     using stored_size_type = std::conditional_t<(N >= UINT16_MAX), uint32_t,
                                                 std::conditional_t<(N >= UINT8_MAX), uint16_t, uint8_t>>;
