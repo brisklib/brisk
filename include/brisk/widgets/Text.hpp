@@ -123,7 +123,7 @@ public:
     Property<Text, bool, 1> wordWrap;
     Property<Text, Rotation, 2> rotation;
     Property<Text, TextAutoSize, 3> textAutoSize;
-    Property<Text, Range<float>, 4> textAutoSizeRange;
+    Property<Text, InclusiveRange<float>, 4> textAutoSizeRange;
     Property<Text, TextOptions, 5> textOptions;
     BRISK_PROPERTIES_END
 };
