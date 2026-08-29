@@ -216,6 +216,13 @@ struct inline_vector {
         m_values[m_size++] = value;
     }
 
+    constexpr void pop_back() noexcept {
+        if (m_size == 0) {
+            throw_range_error("inline_vector: vector is empty");
+        }
+        --m_size;
+    }
+
     constexpr bool operator==(const inline_vector& other) const
         noexcept(noexcept(std::declval<T>() == std::declval<T>())) {
         return std::equal(begin(), end(), other.begin(), other.end());
