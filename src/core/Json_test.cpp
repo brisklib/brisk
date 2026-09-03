@@ -248,9 +248,9 @@ TEST_CASE("toMsgPack") {
           toBytesView("\x82\xA7"
                       "compact\xC3\xA6schema\x00"));
 
-    CHECK(Json::fromMsgPack(toBytesView("\x82\xA7"
-                                        "compact\xC3\xA6schema\x00")) ==
-          Json(JsonObject{ { "compact", true }, { "schema", 0 } }));
+    CHECK((Json::fromMsgPack(toBytesView("\x82\xA7"
+                                         "compact\xC3\xA6schema\x00")) ==
+           Json(JsonObject{ { "compact", true }, { "schema", 0 } })));
 }
 
 } // namespace Brisk
