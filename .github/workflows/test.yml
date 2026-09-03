@@ -59,7 +59,7 @@ jobs:
         - x64-windows-static
         - x86-windows-static
         - arm64-windows-static
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
       VCPKG_DEFAULT_HOST_TRIPLET: ${{startsWith(matrix.triplet, 'arm64-') && 'x64-windows-static-md' || matrix.triplet}}
@@ -221,7 +221,7 @@ jobs:
         - x64-windows-static
         - x86-windows-static
         - arm64-windows-static
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: deps-windows
     env:
       VCPKG_DEFAULT_TRIPLET: ${{matrix.triplet}}
@@ -326,7 +326,7 @@ jobs:
           build/*.log
 
   windows-ninja-clang-x86-64:
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: deps-windows
     env:
       VCPKG_DEFAULT_TRIPLET: x64-windows-static-md
@@ -364,7 +364,7 @@ jobs:
           build/*.log
 
   windows-vs-x86:
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: deps-windows
     env:
       VCPKG_DEFAULT_TRIPLET: x86-windows-static-md
@@ -429,7 +429,7 @@ jobs:
           build/*.log
 
   windows-vs-clangcl-x86_64:
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: deps-windows
     env:
       VCPKG_DEFAULT_TRIPLET: x64-windows-static
@@ -647,7 +647,7 @@ jobs:
         - x64-windows-static
         - x86-windows-static
         - arm64-windows-static
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: build-windows
     steps:
     - name: Download artifacts
