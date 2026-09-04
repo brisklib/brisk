@@ -300,7 +300,7 @@ TEST_CASE("Widget Shadow") {
 using namespace std::literals::chrono_literals;
 
 struct WidgetAnimation {
-    WebpAnimationEncoder anim;
+    WebpAnimationEncoder anim{ std::nullopt, true };
     InputQueue input;
     WidgetTree tree{ &input };
     OffscreenCanvas offscreen;
