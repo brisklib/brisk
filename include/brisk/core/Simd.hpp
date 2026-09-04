@@ -27,6 +27,8 @@
 #include <type_traits>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <limits>
 #include "Math.hpp"
 #include "BasicTypes.hpp"
 
@@ -279,7 +281,7 @@ constexpr auto maskToBits(SimdMask<N> mask) {
     ReturnType result = 0;
     for (size_t bit = 0; bit < N; ++bit) {
         if (mask[bit])
-            result |= 1 << bit;
+            result |= ReturnType(1) << bit; // avoid signed-shift UB for bit == 31
     }
     return result;
 }
@@ -980,6 +982,8 @@ template <typename T>
 constexpr T constexprAbs(T x) {
     if (std::is_constant_evaluated())
         return x < T(0) ? -x : x;
+    else if constexpr (std::is_unsigned_v<T>)
+        return x; // std::abs has no overload for unsigned types
     else
         return std::abs(x);
 }
@@ -994,10 +998,43 @@ constexpr T constexprAbs(T x) {
  */
 template <typename T>
 constexpr T constexprCopysign(T x, T s) {
-    if (std::is_constant_evaluated())
-        return s < 0 ? -constexprAbs(x) : constexprAbs(x);
-    else
+    if (std::is_constant_evaluated()) {
+        // Sign-bit based implementation: handles -0.0 and NaN signs correctly.
+        static_assert(sizeof(T) == 4 || sizeof(T) == 8);
+        using Bits             = std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>;
+        constexpr Bits signBit = Bits(1) << (sizeof(T) * 8 - 1);
+        Bits xb                = std::bit_cast<Bits>(x);
+        const Bits sb          = std::bit_cast<Bits>(s);
+        xb                     = (xb & ~signBit) | (sb & signBit);
+        return std::bit_cast<T>(xb);
+    } else
         return std::copysign(x, s);
+}
+
+/**
+ * @brief Truncates a floating-point value toward zero, optimized for constant evaluation.
+ */
+template <typename T>
+constexpr T constexprTrunc(T x) {
+    if (!std::is_constant_evaluated())
+        return std::trunc(x);
+    if (x >= T(0)) {
+        if (x < T(9223372036854775807.0))
+            return T(static_cast<uint64_t>(x));
+    } else {
+        if (x > T(-9223372036854775808.0))
+            return -T(static_cast<uint64_t>(-x));
+    }
+    return x; // magnitude too large to be fractional
+}
+
+/**
+ * @brief Rounds a floating-point value to the nearest integer (half away from zero),
+ * optimized for constant evaluation.
+ */
+template <typename T>
+constexpr T constexprRound(T x) {
+    return constexprTrunc(x + constexprCopysign(T(0.5), x));
 }
 } // namespace Internal
 
@@ -1366,7 +1403,11 @@ constexpr Simd<Tout, N> rescale(Simd<Tin, N> value)
     using Tcommon      = std::common_type_t<Tin, Tout>;
     Simd<Tcommon, N> x = static_cast<Simd<Tcommon, N>>(value) * Tcommon(Mout) / Tcommon(Min);
     if constexpr (!std::is_floating_point_v<Tout>) {
-        x += Tcommon(0.5);
+        // Round to nearest (half away from zero) instead of trunc(x + 0.5),
+        // which rounded half toward +infinity and was wrong for negative values.
+        for (size_t i = 0; i < N; i++) {
+            x.m_data[i] = Internal::constexprRound(x.m_data[i]);
+        }
         x = clamp(x, Simd<Tcommon, N>(std::numeric_limits<Tout>::min()),
                   Simd<Tcommon, N>(std::numeric_limits<Tout>::max()));
     }
@@ -1391,7 +1432,8 @@ constexpr Simd<Tout, N> rescale(Simd<Tin, N> value)
     requires(Mout != Min && !(std::is_floating_point<Tin>::value || std::is_floating_point<Tout>::value))
 {
     using Tcommon =
-        findIntegralType<std::numeric_limits<Tin>::min() * Mout, std::numeric_limits<Tin>::max() * Mout>;
+        findIntegralType<int64_t(std::numeric_limits<Tin>::min()) * int64_t(Mout),
+                         int64_t(std::numeric_limits<Tin>::max()) * int64_t(Mout)>;
     Simd<Tcommon, N> x = static_cast<Simd<Tcommon, N>>(value);
     if constexpr (Tcommon(std::max(Mout, Min)) % Tcommon(std::min(Mout, Min)) == 0) {
         constexpr Tcommon scale = std::max(Mout, Min) / std::min(Mout, Min);
@@ -1401,7 +1443,10 @@ constexpr Simd<Tout, N> rescale(Simd<Tin, N> value)
             x = (x + scale / 2) / scale;
         }
     } else {
-        x = (x * Tcommon(Mout) + Tcommon(Min) / 2) / Tcommon(Min);
+        // Round-to-nearest: add half a step in the direction of the divisor's sign
+        // (Tcommon(Min) / 2 truncates toward zero, so it cannot be used directly for negative Min).
+        constexpr Tcommon halfStep = Tcommon(Min) > 0 ? Tcommon(Min) / 2 : -Tcommon(Min) / 2;
+        x                          = (x * Tcommon(Mout) + halfStep) / Tcommon(Min);
     }
     if constexpr (Internal::fitsIntType<Tcommon>(std::numeric_limits<Tout>::max())) {
         x = min(x, Simd<Tcommon, N>(std::numeric_limits<Tout>::max()));
@@ -1463,6 +1508,8 @@ constexpr uint16_t byteswap(uint16_t x) {
     return __builtin_bswap16(x); ///< Optimized GCC/Clang intrinsic for byte-swapping.
 #elif defined _MSC_VER
     return std::rotr(x, 8); ///< MSVC implementation using rotate-right by 8 bits.
+#else
+    return uint16_t((x << 8) | (x >> 8)); ///< Portable fallback.
 #endif
 }
 
@@ -1492,6 +1539,8 @@ constexpr uint32_t byteswap(uint32_t x) {
         // Optimized runtime byte-swap using MSVC intrinsic.
         return _byteswap_ulong(x);
     }
+#else
+    return (x << 24) | ((x & 0x0000FF00u) << 8) | ((x & 0x00FF0000u) >> 8) | (x >> 24);
 #endif
 }
 
@@ -1521,6 +1570,8 @@ constexpr uint64_t byteswap(uint64_t x) {
         // Optimized runtime byte-swap using MSVC intrinsic.
         return _byteswap_uint64(x);
     }
+#else
+    return (uint64_t(byteswap(uint32_t(x))) << 32) | uint64_t(byteswap(uint32_t(x >> 32)));
 #endif
 }
 

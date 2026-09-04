@@ -906,11 +906,18 @@ struct Stroker {
     }
 
     void setPath(const Path& path) {
-        numPoints   = path.points().size();
-        numContours = path.segments();
-        grow(numPoints, numContours);
         const auto& elements = path.elements();
         const auto& points   = path.points();
+
+        // SW_FT_Stroker_ParseOutline expects closed contours to contain an
+        // explicit copy of their first point.  Path::close() does not always
+        // add a point to Path (when the path is already at its start point),
+        // and repeated Close elements are valid as well.  Reserve one extra
+        // point for every Close element rather than only one per segment.
+        const size_t closePoints = std::count(elements.begin(), elements.end(), Path::Element::Close);
+        numPoints                = points.size() + closePoints;
+        numContours              = path.segments();
+        grow(numPoints, numContours);
 
         size_t index         = 0;
         for (Path::Element element : elements) {
@@ -1000,9 +1007,15 @@ struct Stroker {
         ft.points = ftPoints.data();
         ftTags.reserve(newNumPoints + newNumContours);
         ft.tags = ftTags.data();
-        ftContours.reserve(newNumContours);
+        // The input outline uses one additional contour slot while a contour
+        // is being built: moveTo() increments n_contours before initializing
+        // contours_flag[n_contours], and setPath() writes the final contour
+        // endpoint after the last contour.  The exported outline does not
+        // need the sentinel, but retaining the extra slot also makes grow()
+        // safe for both phases.
+        ftContours.reserve(newNumContours + 1);
         ft.contours = ftContours.data();
-        ftContourFlagMemory.reserve(newNumContours);
+        ftContourFlagMemory.reserve(newNumContours + 1);
         ft.contours_flag = ftContourFlagMemory.data();
     }
 

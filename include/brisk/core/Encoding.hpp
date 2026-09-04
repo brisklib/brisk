@@ -48,9 +48,9 @@ enum class UtfPolicy {
 constexpr inline char32_t replacementChar = U'\U0000FFFD';
 
 /**
- * @brief The replacement character in char form.
+ * @brief The replacement character in char32_t form.
  */
-#define REPLACEMENT_CHAR '\U0000FFFD'
+#define REPLACEMENT_CHAR U'\U0000FFFD'
 
 /**
  * @brief The replacement character in string literal form.
@@ -481,7 +481,10 @@ inline std::u32string utf32Transform(U32StringView text, function_ref<char32_t(c
 }
 
 /**
- * @brief Reads a UTF codepoint from a text range.
+ * @brief Reads a UTF codepoint from a UTF-8 text range.
+ *
+ * Documented precondition (not validated, for performance): the caller must
+ * guarantee `text < end`; reading from an empty range is undefined behavior.
  *
  * @param text Pointer to the current position in the text.
  * @param end Pointer to the end of the text.
@@ -492,6 +495,9 @@ char32_t utfRead(const char*& text, const char* end);
 /**
  * @brief Reads a UTF codepoint from a UTF-16 text range.
  *
+ * Documented precondition (not validated, for performance): the caller must
+ * guarantee `text < end`; reading from an empty range is undefined behavior.
+ *
  * @param text Pointer to the current position in the text.
  * @param end Pointer to the end of the text.
  * @return The UTF codepoint read from the text.
@@ -499,16 +505,10 @@ char32_t utfRead(const char*& text, const char* end);
 char32_t utfRead(const char16_t*& text, const char16_t* end);
 
 /**
- * @brief Reads a UTF codepoint from a UTF-32 text range.
- *
- * @param text Pointer to the current position in the text.
- * @param end Pointer to the end of the text.
- * @return The UTF codepoint read from the text.
- */
-char32_t utfRead(const char32_t*& text, const char32_t* end);
-
-/**
  * @brief Reads a UTF codepoint from a wide character text range.
+ *
+ * Documented precondition (not validated, for performance): the caller must
+ * guarantee `text < end`; reading from an empty range is undefined behavior.
  *
  * @param text Pointer to the current position in the text.
  * @param end Pointer to the end of the text.
@@ -517,7 +517,25 @@ char32_t utfRead(const char32_t*& text, const char32_t* end);
 char32_t utfRead(const wchar_t*& text, const wchar_t* end);
 
 /**
+ * @brief Reads a UTF codepoint from a UTF-32 text range.
+ *
+ * Documented precondition (not validated, for performance): the caller must
+ * guarantee `text < end`; reading from an empty range is undefined behavior.
+ *
+ * @param text Pointer to the current position in the text.
+ * @param end Pointer to the end of the text.
+ * @return The UTF codepoint read from the text.
+ */
+char32_t utfRead(const char32_t*& text, const char32_t* end);
+
+/**
  * @brief Writes a UTF codepoint to a text range.
+ *
+ * Documented precondition (not validated, for performance): the caller must
+ * guarantee enough room for the encoded form (up to 4 bytes for UTF-8); the
+ * `end` parameter only prevents buffer overrun, it does not guarantee a
+ * complete write when the remaining space is too small. Invalid codepoints
+ * (error sentinels and values >= 0x80000000) write nothing.
  *
  * @param text Pointer to the current position in the text.
  * @param end Pointer to the end of the text.
@@ -530,12 +548,20 @@ void utfWrite(char*& text, char* end, char32_t ch);
  *
  * @param text Pointer to the current position in the text.
  * @param end Pointer to the end of the text.
- * @param ch The UTF codepoint to write.
+ * @param ch The UTF codepoint to write. For surrogate values no
+ *            check is performed (documented precondition): a value in
+ *            0xD800..0xDFFF is written verbatim as a single unit, so callers
+ *            must only pass valid scalar values. Out-of-range values
+ *            (> U+10FFFF) and error sentinels are silently skipped.
  */
 void utfWrite(char16_t*& text, char16_t* end, char32_t ch);
 
 /**
  * @brief Writes a UTF codepoint to a UTF-32 text range.
+ *
+ * Documented preconditions (not validated, for performance):
+ *  - the caller must guarantee `text < end` (exactly one unit is written);
+ *  - `ch` is written verbatim, no range/surrogate checking is performed.
  *
  * @param text Pointer to the current position in the text.
  * @param end Pointer to the end of the text.
@@ -557,9 +583,9 @@ void utfWrite(wchar_t*& text, wchar_t* end, char32_t ch);
  */
 struct Utf8Character {
     /**
-     * @brief Buffer to store the UTF-8 encoded character.
+     * @brief Buffer to store the UTF-8 encoded character (null-terminated).
      */
-    char buf[4];
+    char buf[5]{};
 
     /**
      * @brief The length of the UTF-8 encoded character in bytes (1-4).
@@ -572,8 +598,9 @@ struct Utf8Character {
      */
     explicit Utf8Character(char32_t codepoint) {
         char* data = buf;
-        utfWrite(data, buf + std::size(buf), codepoint);
-        len = static_cast<uint32_t>(data - buf);
+        utfWrite(data, buf + 4, codepoint);
+        len  = static_cast<uint32_t>(data - buf);
+        *data = '\0';
     }
 
     /**
@@ -587,6 +614,10 @@ struct Utf8Character {
 
 /**
  * @brief Struct representing a UTF iterator for iterating over UTF text.
+ *
+ * @note On invalid UTF sequences, the iterator advances byte-by-byte (or code-unit by code-unit)
+ *       yielding error sentinels (such as `UtfInvalid`). For truncated sequences at the end of input,
+ *       `utfRead` consumes up to `end`, ending iteration on the subsequent increment.
  *
  * @tparam InChar The character type of the input text.
  */
@@ -618,7 +649,8 @@ struct UtfIterator {
 
         iterator& operator++() noexcept {
             it = next;
-            ch = utfRead(next, end);
+            if (it != end)
+                ch = utfRead(next, end);
             return *this;
         }
 
@@ -723,10 +755,15 @@ constexpr inline bool isBitFlags<UtfNormalization> = true;
 /**
  * @brief Normalizes UTF text according to the specified normalization type.
  *
+ * @note The @p policy parameter is currently ignored; the input is always
+ *       pre-cleaned with the default policy (invalid sequences are replaced
+ *       with U+FFFD) before normalization.
+ *
  * @param text A string view of the input text.
  * @param normalization The normalization type to apply.
- * @param policy The policy to handle invalid characters.
- * @return A normalized string.
+ * @param policy The policy to handle invalid characters (currently ignored).
+ * @return A normalized string, or an empty string if normalization failed
+ *         (e.g. when normalization contains both Compose and Decompose).
  */
 template <typename Char>
 std::basic_string<Char> utfNormalize(std::basic_string_view<Char> text, UtfNormalization normalization,
@@ -771,9 +808,9 @@ inline U32String utf32Normalize(U32StringView text, UtfNormalization normalizati
     return utfNormalize(text, normalization, policy);
 }
 
-} // namespace Brisk
-
-namespace std {
+// NOTE: defined in namespace Brisk (adding declarations to namespace std is
+// undefined behavior per [namespace.std]); they are still found via ADL
+// because Json is a Brisk type.
 
 /**
  * @brief Serializes a UTF-32 string to JSON.
@@ -782,7 +819,7 @@ namespace std {
  * @param s The UTF-32 string to serialize.
  * @return True if serialization was successful, otherwise false.
  */
-bool toJson(Brisk::Json& j, const std::u32string& s);
+bool toJson(Json& j, const std::u32string& s);
 
 /**
  * @brief Serializes a UTF-16 string to JSON.
@@ -791,7 +828,7 @@ bool toJson(Brisk::Json& j, const std::u32string& s);
  * @param s The UTF-16 string to serialize.
  * @return True if serialization was successful, otherwise false.
  */
-bool toJson(Brisk::Json& j, const std::u16string& s);
+bool toJson(Json& j, const std::u16string& s);
 
 /**
  * @brief Serializes a wide string to JSON.
@@ -800,7 +837,7 @@ bool toJson(Brisk::Json& j, const std::u16string& s);
  * @param s The wide string to serialize.
  * @return True if serialization was successful, otherwise false.
  */
-bool toJson(Brisk::Json& j, const std::wstring& s);
+bool toJson(Json& j, const std::wstring& s);
 
 /**
  * @brief Deserializes a UTF-32 string from JSON.
@@ -809,7 +846,7 @@ bool toJson(Brisk::Json& j, const std::wstring& s);
  * @param s The UTF-32 string to deserialize into.
  * @return True if deserialization was successful, otherwise false.
  */
-bool fromJson(const Brisk::Json& j, std::u32string& s);
+bool fromJson(const Json& j, std::u32string& s);
 
 /**
  * @brief Deserializes a UTF-16 string from JSON.
@@ -818,7 +855,7 @@ bool fromJson(const Brisk::Json& j, std::u32string& s);
  * @param s The UTF-16 string to deserialize into.
  * @return True if deserialization was successful, otherwise false.
  */
-bool fromJson(const Brisk::Json& j, std::u16string& s);
+bool fromJson(const Json& j, std::u16string& s);
 
 /**
  * @brief Deserializes a wide string from JSON.
@@ -827,6 +864,6 @@ bool fromJson(const Brisk::Json& j, std::u16string& s);
  * @param s The wide string to deserialize into.
  * @return True if deserialization was successful, otherwise false.
  */
-bool fromJson(const Brisk::Json& j, std::wstring& s);
+bool fromJson(const Json& j, std::wstring& s);
 
-} // namespace std
+} // namespace Brisk

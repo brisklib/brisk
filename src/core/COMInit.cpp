@@ -24,7 +24,7 @@
 namespace Brisk {
 
 COMInitializer::COMInitializer() {
-    HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | ::COINIT_DISABLE_OLE1DDE);
+    HRESULT result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | ::COINIT_DISABLE_OLE1DDE);
     static_assert(sizeof(HRESULT) == sizeof(uint32_t));
     this->result = static_cast<uint32_t>(result);
 }

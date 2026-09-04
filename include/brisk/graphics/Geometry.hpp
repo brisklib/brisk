@@ -406,7 +406,7 @@ struct PointOf<T> {
      *
      * @return A PolarOf<T> instance representing the polar coordinates.
      */
-    constexpr operator PolarOf<T>() noexcept {
+    constexpr operator PolarOf<T>() const noexcept {
         static_assert(std::is_floating_point_v<T>);
         return {
             std::sqrt(x * x + y * y),
@@ -670,7 +670,7 @@ struct PointOf<T> {
      * @return The Manhattan distance to the other point.
      */
     T distanceManhattan(const PointOf& pt) const noexcept {
-        return horizontalMax(abs(pt.v - v));
+        return horizontalSum(abs(pt.v - v));
     }
 
     /**
@@ -804,7 +804,7 @@ struct PointOf<T> {
  * @param b The second PointOf instance.
  * @return A new PointOf instance representing the minimum point.
  */
-template <typename T>
+template <SimdCompatible T>
 BRISK_INLINE PointOf<T> min(const PointOf<T>& a, const PointOf<T>& b) noexcept {
     return PointOf<T>(min(a.v, b.v));
 }
@@ -817,7 +817,7 @@ BRISK_INLINE PointOf<T> min(const PointOf<T>& a, const PointOf<T>& b) noexcept {
  * @param b The second PointOf instance.
  * @return A new PointOf instance representing the maximum point.
  */
-template <typename T>
+template <SimdCompatible T>
 BRISK_INLINE PointOf<T> max(const PointOf<T>& a, const PointOf<T>& b) noexcept {
     return PointOf<T>(max(a.v, b.v));
 }
@@ -942,7 +942,7 @@ struct SizeOf<T> {
 
     /// @brief Constructor that initializes width and height to the same value.
     /// @param xy The value for both width and height.
-    constexpr explicit SizeOf(T xy) noexcept : x(xy), y(xy) {}
+    constexpr SizeOf(T xy) noexcept : x(xy), y(xy) {}
 
     /// @brief Constructor that initializes from a SIMD vector.
     /// @param v The SIMD vector to initialize from.
@@ -1161,7 +1161,7 @@ struct SizeOf<T> {
  * @param b The second SizeOf instance.
  * @return A SizeOf instance representing the minimum size.
  */
-template <typename T>
+template <SimdCompatible T>
 BRISK_INLINE SizeOf<T> min(const SizeOf<T>& a, const SizeOf<T>& b) noexcept {
     return SizeOf<T>(min(a.v, b.v));
 }
@@ -1174,7 +1174,7 @@ BRISK_INLINE SizeOf<T> min(const SizeOf<T>& a, const SizeOf<T>& b) noexcept {
  * @param b The second SizeOf instance.
  * @return A SizeOf instance representing the maximum size.
  */
-template <typename T>
+template <SimdCompatible T>
 BRISK_INLINE SizeOf<T> max(const SizeOf<T>& a, const SizeOf<T>& b) noexcept {
     return SizeOf<T>(max(a.v, b.v));
 }
@@ -1283,7 +1283,7 @@ struct EdgesOf<T> {
 
     /// @brief Constructor that initializes all edges to a specific value.
     /// @param value The value to initialize all edge coordinates.
-    constexpr explicit EdgesOf(T value) noexcept : v(value) {}
+    constexpr EdgesOf(T value) noexcept : v(value) {}
 
     /// @brief Constructor that initializes edges with specified horizontal and vertical values.
     /// @param h The horizontal value for x1 and x2.
@@ -1480,7 +1480,7 @@ struct EdgesOf<T> {
  * @param b The second EdgesOf instance.
  * @return A new EdgesOf instance representing the minimum edges.
  */
-template <typename T>
+template <SimdCompatible T>
 BRISK_INLINE EdgesOf<T> min(const EdgesOf<T>& a, const EdgesOf<T>& b) noexcept {
     return EdgesOf<T>(min(a.v, b.v));
 }
@@ -1493,7 +1493,7 @@ BRISK_INLINE EdgesOf<T> min(const EdgesOf<T>& a, const EdgesOf<T>& b) noexcept {
  * @param b The second EdgesOf instance.
  * @return A new EdgesOf instance representing the maximum edges.
  */
-template <typename T>
+template <SimdCompatible T>
 BRISK_INLINE EdgesOf<T> max(const EdgesOf<T>& a, const EdgesOf<T>& b) noexcept {
     return EdgesOf<T>(max(a.v, b.v));
 }
@@ -1842,7 +1842,7 @@ struct RectangleOf {
      * @return The length of the longest side.
      */
     constexpr T longestSide() const noexcept {
-        return size().longestSize();
+        return size().longestSide();
     }
 
     /**
@@ -1885,7 +1885,10 @@ struct RectangleOf {
      * @return The normalized coordinates as a PointOf<Tfloat>.
      */
     PointOf<Tfloat> toNormCoord(const PointOf<T>& pt) const noexcept {
-        return PointOf<T>((pt.v - p1.v) / (p1.v - p1.v));
+        const Simd<Tfloat, 2> a{ pt.v };
+        const Simd<Tfloat, 2> b{ p1.v };
+        const Simd<Tfloat, 2> c{ p2.v };
+        return PointOf<Tfloat>((a - b) / (c - b));
     }
 
     /**
@@ -1898,7 +1901,7 @@ struct RectangleOf {
     PointOf<Tfloat> toNormCoord(const PointOf<T>& pt, const PointOf<T>& ifoutside) const noexcept {
         if (!contains(pt))
             return ifoutside;
-        return PointOf<T>((pt.v - p1.v) / (p2.v - p1.v));
+        return toNormCoord(pt);
     }
 
     /**
@@ -1910,8 +1913,9 @@ struct RectangleOf {
      */
     RectangleOf split(const PointOf<Tfloat>& point1, const SizeOf<Tfloat>& size) const noexcept {
         const Simd<Tfloat, 2> point2 = point1.v + size.v;
-        return RectangleOf(
-            concat(Simd<T, 2>(p1.v + this->size().v * point1.v), Simd<T, 2>(p1.v + this->size().v * point2)));
+        const Simd<Tfloat, 2> base{ p1.v };
+        const Simd<Tfloat, 2> sz{ this->size().v };
+        return RectangleOf(concat(Simd<T, 2>(base + sz * point1.v), Simd<T, 2>(base + sz * point2)));
     }
 
     /**
@@ -1954,7 +1958,7 @@ struct RectangleOf {
      * @param p The new starting point.
      */
     void applyStart(const PointOf<T>& p) noexcept {
-        v = concat(p.v, p.v + size());
+        v = concat(p.v, p.v + size().v);
     }
 
     /**
@@ -1983,7 +1987,7 @@ struct RectangleOf {
      * @param h The new height.
      */
     void applySize(T w, T h) noexcept {
-        v = concat(v.low(), v.low() + pack(w, h));
+        v = concat(v.low(), v.low() + Simd{ w, h });
     }
 
     /**
@@ -2037,20 +2041,20 @@ struct RectangleOf {
      * @brief Applies a margin to the rectangle.
      *
      * @param h The horizontal margin.
-     * @param v The vertical margin.
+     * @param vertical The vertical margin.
      */
-    void applyMargin(T h, T v) noexcept {
-        v += Simd<T, 4>(-h, -v, +h, +v);
+    void applyMargin(T h, T vertical) noexcept {
+        v += Simd<T, 4>(-h, -vertical, +h, +vertical);
     }
 
     /**
      * @brief Applies padding to the rectangle.
      *
      * @param h The horizontal padding.
-     * @param v The vertical padding.
+     * @param vertical The vertical padding.
      */
-    void applyPadding(T h, T v) noexcept {
-        v += Simd<T, 4>(+h, +v, -h, -v);
+    void applyPadding(T h, T vertical) noexcept {
+        v += Simd<T, 4>(+h, +vertical, -h, -vertical);
     }
 
     /**
@@ -2135,7 +2139,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the specified starting point.
      */
     constexpr RectangleOf withStart(const PointOf<T>& p) const noexcept {
-        return RectangleOf(concat(p.v, p.v + size()));
+        return RectangleOf(concat(p.v, p.v + size().v));
     }
 
     /**
@@ -2146,7 +2150,7 @@ struct RectangleOf {
      * @return A new RectangleOf with the specified starting point.
      */
     constexpr RectangleOf withStart(T x, T y) const noexcept {
-        return RectangleOf(concat(Simd{ x, y }, Simd{ x, y } + size()));
+        return RectangleOf(concat(Simd{ x, y }, Simd{ x, y } + size().v));
     }
 
     /**

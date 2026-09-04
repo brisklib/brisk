@@ -2526,7 +2526,7 @@ void Widget::setSelected(bool value) {
 }
 
 bool Widget::setScrollOffset(Point newOffset) {
-    newOffset = max(newOffset, Point(0));
+    newOffset = max(newOffset, Point(0, 0));
     newOffset = min(newOffset, Point(scrollSize()));
     return setChildrenOffset(-newOffset);
 }
