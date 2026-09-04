@@ -25,6 +25,7 @@
 #include "VisualTests.hpp"
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Palette.hpp>
+#include "FontInternals.hpp"
 
 namespace Brisk {
 
@@ -35,9 +36,11 @@ static void registerTextLayoutTestFont() {
     }
 
     REQUIRE(fonts.has_value());
-    auto fontData = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(fontData.has_value());
-    Internal::registerTextLayoutFont(*fonts, *fontData, "TextLayoutTest");
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "TextLayoutTest")
+                .has_value());
+
     registered = true;
 }
 
@@ -46,57 +49,63 @@ static void registerTextLayoutVisualFonts() {
     if (registered) {
         return;
     }
-
     REQUIRE(fonts.has_value());
-    const auto registerFont = [](std::string_view fileName, std::string_view alias) {
-        auto fontData = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / fileName);
-        REQUIRE(fontData.has_value());
-        Internal::registerTextLayoutFont(*fonts, *fontData, alias);
-    };
-    registerFont("GoNotoKurrent-Regular.ttf", "TextLayoutNoto");
-    registerFont("SourceCodePro-Medium.ttf", "TextLayoutMono");
-    registerFont("Lato-Medium.ttf", "TextLayoutTest");
+
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" /
+                                      "GoNotoKurrent-Regular.ttf",
+                                  "TextLayoutNoto")
+                .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" /
+                                      "SourceCodePro-Medium.ttf",
+                                  "TextLayoutMono")
+                .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "TextLayoutTest")
+                .has_value());
     registered = true;
 }
 
-TEST_CASE("TextLayout prepared document exposes document data", "[text-layout]") {
+TEST_CASE("TextEngine prepared document exposes document data", "[text-layout]") {
     registerTextLayoutTestFont();
 
     const Font font{ "TextLayoutTest", 24.f };
     const TextWithOptions text{ U"Hello world" };
-    const PreparedDocument prepared = fonts->prepareDocument(font, text);
+    const ShapedText shapedText = fonts->shapeText(font, text);
 
-    CHECK_FALSE(prepared.empty());
-    CHECK(prepared.characterCount() == 11);
-    CHECK(prepared.graphemeCount() == 11);
-    REQUIRE(prepared.graphemeBoundaries().size() == 12);
-    CHECK(prepared.graphemeBoundaries().front() == 0);
-    CHECK(prepared.graphemeBoundaries().back() == prepared.characterCount());
+    CHECK_FALSE(shapedText.empty());
+    CHECK(shapedText.characterCount() == 11);
+    CHECK(shapedText.graphemeCount() == 11);
+    REQUIRE(shapedText.graphemeBoundaries().size() == 12);
+    CHECK(shapedText.graphemeBoundaries().front() == 0);
+    CHECK(shapedText.graphemeBoundaries().back() == shapedText.characterCount());
 
-    for (uint32_t character = 0; character <= prepared.characterCount(); ++character) {
-        const uint32_t grapheme = prepared.characterToGrapheme(character);
-        REQUIRE(grapheme <= prepared.graphemeCount());
-        CHECK(prepared.graphemeToCharacter(grapheme) <= character);
+    for (uint32_t character = 0; character <= shapedText.characterCount(); ++character) {
+        const uint32_t grapheme = shapedText.characterToGrapheme(character);
+        REQUIRE(grapheme <= shapedText.graphemeCount());
+        CHECK(shapedText.graphemeToCharacter(grapheme) <= character);
     }
 
-    REQUIRE(prepared.paragraphCount() == 1);
-    const PreparedParagraph paragraph = prepared.paragraph(0);
+    REQUIRE(shapedText.paragraphCount() == 1);
+    const ShapedParagraph paragraph = shapedText.paragraph(0);
     CHECK(paragraph.characterRange == Range<uint32_t>{ 0, 11 });
     CHECK(paragraph.graphemeRange == Range<uint32_t>{ 0, 11 });
     CHECK(paragraph.direction == TextDirection::LTR);
 }
 
-TEST_CASE("TextLayout wraps and exposes line data", "[text-layout]") {
+TEST_CASE("TextEngine wraps and exposes line data", "[text-layout]") {
     registerTextLayoutTestFont();
 
     const Font font{ "TextLayoutTest", 24.f };
     const TextWithOptions text{ U"One two three four five" };
-    const PreparedDocument prepared = fonts->prepareDocument(font, text);
+    const ShapedText shapedText = fonts->shapeText(font, text);
 
     TextLayoutOptions options;
-    options.maxLineWidth        = 50.f;
-    options.alignment           = TextLayoutAlignment::Left;
-    const DocumentLayout layout = prepared.layout(options);
+    options.maxLineWidth    = 50.f;
+    options.alignment       = TextLayoutAlignment::Left;
+    const TextLayout layout = shapedText.layout(options);
 
     CHECK_FALSE(layout.empty());
     CHECK(layout.lineCount() > 1);
@@ -104,27 +113,27 @@ TEST_CASE("TextLayout wraps and exposes line data", "[text-layout]") {
     CHECK(layout.trimmedBounds().width() > 0.f);
 
     for (size_t index = 0; index < layout.lineCount(); ++index) {
-        const DocumentLine line = layout.line(index);
+        const TextLine line = layout.line(index);
         CHECK(line.characterRange.min <= line.characterRange.max);
         CHECK(line.graphemeRange.min <= line.graphemeRange.max);
         CHECK(line.width >= 0.f);
         CHECK(line.trimmedWidth >= 0.f);
         CHECK(line.trimmedWidth <= line.width);
         CHECK(line.ascender >= 0.f);
-        CHECK(line.descender >= 0.f);
+        CHECK(line.descender <= 0.f);
     }
 
     const CaretPosition first = layout.caretPosition({ 0, CaretAffinity::Downstream });
-    const CaretPosition last  = layout.caretPosition({ prepared.graphemeCount(), CaretAffinity::Upstream });
+    const CaretPosition last  = layout.caretPosition({ shapedText.graphemeCount(), CaretAffinity::Upstream });
     CHECK(first.line < layout.lineCount());
     CHECK(last.line < layout.lineCount());
     CHECK((last.x >= first.x || last.line > first.line));
 
     const CaretIndex hit = layout.hitTest({ first.x, first.x });
-    CHECK(hit.grapheme <= prepared.graphemeCount());
+    CHECK(hit.grapheme <= shapedText.graphemeCount());
 
     size_t selectionCount = 0;
-    layout.selectionRects({ 0, prepared.graphemeCount() }, [&](const TextSelectionRect& rect) {
+    layout.selectionRects({ 0, shapedText.graphemeCount() }, [&](const TextSelectionRect& rect) {
         ++selectionCount;
         CHECK(rect.line < layout.lineCount());
         CHECK(rect.x0 <= rect.x1);
@@ -132,11 +141,11 @@ TEST_CASE("TextLayout wraps and exposes line data", "[text-layout]") {
     CHECK(selectionCount > 0);
 }
 
-TEST_CASE("TextLayout identifies paragraph separator graphemes", "[text-layout]") {
+TEST_CASE("TextEngine identifies paragraph separator graphemes", "[text-layout]") {
     registerTextLayoutTestFont();
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"abc\ndef" });
+    const ShapedText prepared =
+        fonts->shapeText(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"abc\ndef" });
 
     CHECK(prepared.graphemeCount() == 7);
     for (uint32_t grapheme = 0; grapheme < prepared.graphemeCount(); ++grapheme) {
@@ -145,41 +154,39 @@ TEST_CASE("TextLayout identifies paragraph separator graphemes", "[text-layout]"
     CHECK_FALSE(prepared.isParagraphSeparator(prepared.graphemeCount()));
 }
 
-TEST_CASE("TextLayout gives a trailing empty line visible caret metrics", "[text-layout]") {
+TEST_CASE("TextEngine gives a trailing empty line visible caret metrics", "[text-layout]") {
     registerTextLayoutTestFont();
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"abc\n" });
-    const DocumentLayout layout = prepared.layout();
+    const ShapedText prepared = fonts->shapeText(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"abc\n" });
+    const TextLayout layout   = prepared.layout();
 
     REQUIRE(layout.lineCount() == 2);
-    const DocumentLine emptyLine = layout.line(1);
+    const TextLine emptyLine = layout.line(1);
     CHECK(emptyLine.characterRange.empty());
     CHECK(emptyLine.ascender > 0.f);
-    CHECK(emptyLine.descender > 0.f);
+    CHECK(emptyLine.descender < 0.f);
     CHECK_FALSE(layout.caretRect(layout.lineBeginning(1)).empty());
 }
 
-TEST_CASE("TextLayout indexed access handles invalid indices", "[text-layout]") {
+TEST_CASE("TextEngine indexed access handles invalid indices", "[text-layout]") {
     registerTextLayoutTestFont();
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"x" });
-    const DocumentLayout layout = prepared.layout();
+    const ShapedText prepared = fonts->shapeText(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"x" });
+    const TextLayout layout   = prepared.layout();
 
     CHECK(prepared.paragraph(100).characterRange.empty());
     CHECK(layout.line(100).characterRange.empty());
     CHECK(prepared.graphemeToCharacter(100) == prepared.characterCount());
 }
 
-TEST_CASE("TextLayout interaction APIs expose character and line queries", "[text-layout][interaction]") {
+TEST_CASE("TextEngine interaction APIs expose character and line queries", "[text-layout][interaction]") {
     registerTextLayoutTestFont();
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"first second third" });
+    const ShapedText prepared =
+        fonts->shapeText(Font{ "TextLayoutTest", 20.f }, TextWithOptions{ U"first second third" });
     TextLayoutOptions options;
     options.maxLineWidth            = 55.f;
-    const DocumentLayout layout     = prepared.layout(options);
+    const TextLayout layout         = prepared.layout(options);
 
     const CaretIndex characterCaret = prepared.caretFromCharacter(6, CaretAffinity::Downstream);
     CHECK(prepared.characterFromCaret(characterCaret) == 6);
@@ -194,10 +201,10 @@ TEST_CASE("TextLayout interaction APIs expose character and line queries", "[tex
         CHECK(layout.lineForCaret(ending) == index);
 
         const RectangleF caret  = layout.caretRect(beginning);
-        const DocumentLine line = layout.line(index);
+        const TextLine line     = layout.line(index);
         const float halfLeading = line.leading * 0.5f;
         CHECK(caret.y1 == line.baseline - line.ascender - halfLeading);
-        CHECK(caret.y2 == line.baseline + line.descender + halfLeading);
+        CHECK(caret.y2 == line.baseline - line.descender + halfLeading);
     }
 
     const CaretPosition current = layout.caretPosition(layout.lineBeginning(0));
@@ -213,51 +220,48 @@ TEST_CASE("TextLayout interaction APIs expose character and line queries", "[tex
     CHECK(characterRectangles > 0);
 }
 
-TEST_CASE("TextLayout preparation validates font input", "[text-layout]") {
+TEST_CASE("TextEngine preparation validates font input", "[text-layout]") {
     registerTextLayoutTestFont();
 
-    REQUIRE_THROWS_AS(fonts->prepareDocument(TextWithOptions{ U"text" }, {}, {}), EArgument);
+    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, {}, {}), EArgument);
 
     const FontAndColor styles[2]{ { Font{ "TextLayoutTest", 20.f } }, { Font{ "TextLayoutTest", 20.f } } };
     const uint32_t invalidOffsets[1]{ 0 };
-    REQUIRE_THROWS_AS(fonts->prepareDocument(TextWithOptions{ U"text" }, styles, invalidOffsets), EArgument);
+    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, styles, invalidOffsets), EArgument);
 
     const uint32_t outOfRangeOffsets[1]{ 4 };
-    REQUIRE_THROWS_AS(fonts->prepareDocument(TextWithOptions{ U"text" }, styles, outOfRangeOffsets),
-                      EArgument);
+    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, styles, outOfRangeOffsets), EArgument);
 
     const uint32_t duplicateOffsets[2]{ 1, 1 };
     const FontAndColor threeStyles[3]{ { Font{ "TextLayoutTest", 20.f } },
                                        { Font{ "TextLayoutTest", 20.f } },
                                        { Font{ "TextLayoutTest", 20.f } } };
-    REQUIRE_THROWS_AS(fonts->prepareDocument(TextWithOptions{ U"text" }, threeStyles, duplicateOffsets),
-                      EArgument);
+    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, threeStyles, duplicateOffsets), EArgument);
 }
 
-TEST_CASE("TextLayout honors text layout options", "[text-layout]") {
+TEST_CASE("TextEngine honors text layout options", "[text-layout]") {
     registerTextLayoutTestFont();
 
     const Font font{ "TextLayoutTest", 20.f };
-    const PreparedDocument wrapped = fonts->prepareDocument(font, TextWithOptions{ U"one two three" });
+    const ShapedText wrapped = fonts->shapeText(font, TextWithOptions{ U"one two three" });
     TextLayoutOptions options;
     options.maxLineWidth = 30.f;
     CHECK(wrapped.layout(options).lineCount() > 1);
 
-    const PreparedDocument singleLine =
-        fonts->prepareDocument(font, TextWithOptions{ U"one two three", TextOptions::SingleLine });
+    const ShapedText singleLine =
+        fonts->shapeText(font, TextWithOptions{ U"one two three", TextOptions::SingleLine });
     CHECK(singleLine.layout(options).lineCount() == 1);
 
-    const PreparedDocument wrapAnywhere =
-        fonts->prepareDocument(font, TextWithOptions{ U"onetwothree", TextOptions::WrapAnywhere });
+    const ShapedText wrapAnywhere =
+        fonts->shapeText(font, TextWithOptions{ U"onetwothree", TextOptions::WrapAnywhere });
     CHECK(wrapAnywhere.layout(options).lineCount() > 1);
 }
 
-TEST_CASE("TextLayout CPU rasterization supports oversampling", "[text-layout]") {
+TEST_CASE("TextEngine CPU rasterization supports oversampling", "[text-layout]") {
     registerTextLayoutTestFont();
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutTest", 24.f }, TextWithOptions{ U"A" });
-    const DocumentLayout layout = prepared.layout();
+    const ShapedText prepared = fonts->shapeText(Font{ "TextLayoutTest", 24.f }, TextWithOptions{ U"A" });
+    const TextLayout layout   = prepared.layout();
     CHECK(layout.lineCount() == 1);
 
     std::optional<Internal::TextLayoutGlyphBitmap> firstGlyph;
@@ -275,15 +279,14 @@ TEST_CASE("TextLayout CPU rasterization supports oversampling", "[text-layout]")
     CHECK(firstGlyph->sprite->size.height > 0);
 }
 
-TEST_CASE("TextLayout CPU rasterization supports SVG glyphs", "[text-layout]") {
+TEST_CASE("TextEngine CPU rasterization supports SVG glyphs", "[text-layout]") {
     REQUIRE(fonts.has_value());
     const auto registered = fonts->addFontFromFile(
         fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf", "TextLayoutEmoji");
     REQUIRE(registered);
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutEmoji", 48.f }, TextWithOptions{ U"😀" });
-    const DocumentLayout layout = prepared.layout();
+    const ShapedText prepared = fonts->shapeText(Font{ "TextLayoutEmoji", 48.f }, TextWithOptions{ U"😀" });
+    const TextLayout layout   = prepared.layout();
     CHECK(layout.lineCount() == 1);
 
     std::optional<Internal::TextLayoutGlyphBitmap> glyph;
@@ -306,13 +309,12 @@ TEST_CASE("TextLayout CPU rasterization supports SVG glyphs", "[text-layout]") {
     CHECK(hasPixels);
 }
 
-TEST_CASE("TextLayout CPU renderer handles positioned glyphs", "[text-layout]") {
+TEST_CASE("TextEngine CPU renderer handles positioned glyphs", "[text-layout]") {
     registerTextLayoutTestFont();
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutTest", 24.f }, TextWithOptions{ U"A" });
-    const DocumentLayout layout = prepared.layout();
-    Rc<Image> image             = rcnew Image(Size{ 128, 64 }, ImageFormat::Greyscale_U8Gamma);
+    const ShapedText prepared = fonts->shapeText(Font{ "TextLayoutTest", 24.f }, TextWithOptions{ U"A" });
+    const TextLayout layout   = prepared.layout();
+    Rc<Image> image           = rcnew Image(Size{ 128, 64 }, ImageFormat::Greyscale_U8Gamma);
     {
         auto pixels = image->mapWrite<ImageFormat::Greyscale_U8Gamma>();
         pixels.clear(Color(30, 34, 38));
@@ -328,37 +330,32 @@ TEST_CASE("TextLayout CPU renderer handles positioned glyphs", "[text-layout]") 
         }
     }
     CHECK(nonzero > 0);
-
-    auto png = pngEncode(image);
-    CHECK(writeBytes(PROJECT_BINARY_DIR "/visualTest/text-layout-cpu.png", png));
 }
 
-TEST_CASE("TextLayout CPU renderer saves emoji", "[text-layout]") {
+TEST_CASE("TextEngine CPU renderer saves emoji", "[text-layout]") {
     REQUIRE(fonts.has_value());
     const auto registered = fonts->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" /
                                                        "NotoColorEmoji-SVG.otf",
                                                    "TextLayoutEmojiPng");
     REQUIRE(registered);
 
-    const PreparedDocument prepared =
-        fonts->prepareDocument(Font{ "TextLayoutEmojiPng", 48.f }, TextWithOptions{ U"😀 👑 🌟" });
-    const DocumentLayout layout = prepared.layout();
+    const ShapedText prepared =
+        fonts->shapeText(Font{ "TextLayoutEmojiPng", 48.f }, TextWithOptions{ U"😀 👑 🌟" });
+    const TextLayout layout = prepared.layout();
     Rc<Image> image = rcnew Image(Size{ 320, 100 }, ImageFormat::RGBA_U8Gamma, ColorW(Palette::white));
     Internal::renderPreparedDocument(image, Point{ 8, 32 }, prepared, layout);
-
-    CHECK(writeBytes(PROJECT_BINARY_DIR "/visualTest/text-layout-emoji.png", pngEncode(image)));
 }
 
-TEST_CASE("TextLayout Canvas renderer", "[text-layout][visual]") {
+TEST_CASE("TextEngine Canvas renderer", "[text-layout][visual]") {
     registerTextLayoutTestFont();
 
     const Font font{ "TextLayoutTest", 24.f };
-    const PreparedDocument prepared = fonts->prepareDocument(
-        font, TextWithOptions{ U"New document layout\nwraps and renders through Canvas" });
+    const ShapedText prepared =
+        fonts->shapeText(font, TextWithOptions{ U"New document layout\nwraps and renders through Canvas" });
 
     TextLayoutOptions options;
-    options.maxLineWidth        = 270.f;
-    const DocumentLayout layout = prepared.layout(options);
+    options.maxLineWidth    = 270.f;
+    const TextLayout layout = prepared.layout(options);
 
     renderTest(
         "text-layout-canvas", Size{ 360, 180 },
@@ -372,7 +369,51 @@ TEST_CASE("TextLayout Canvas renderer", "[text-layout][visual]") {
         ColorF{ 1.f, 1.f });
 }
 
-TEST_CASE("TextLayout Canvas renderer styles and selection", "[text-layout][visual]") {
+TEST_CASE("TextEngine Canvas renderer line-height bounding rectangles", "[text-layout][visual]") {
+    registerTextLayoutTestFont();
+
+    constexpr float lineHeights[] = { 0.f, 1.f, 1.25f, 1.5f };
+    std::vector<TextLayout> layouts;
+    layouts.reserve(std::size(lineHeights));
+
+    for (const float lineHeight : lineHeights) {
+        Font font{ "TextLayoutTest", 24.f };
+        font.lineHeight           = lineHeight;
+
+        const ShapedText prepared = fonts->shapeText(
+            font, TextWithOptions{ U"Line one with a descender\nLine two with a descender" });
+        TextLayoutOptions options;
+        options.maxLineWidth = 280.f;
+        layouts.push_back(prepared.layout(options));
+    }
+
+    renderTest(
+        "text-layout-line-height-bounds", Size{ 360, 340 },
+        [&](RenderContext& context) {
+            Canvas canvas(context);
+            canvas.setFillColor(Color(248, 249, 252));
+            canvas.fillRect({ 0, 0, 360, 340 });
+
+            for (size_t index = 0; index < layouts.size(); ++index) {
+                const PointF origin{ 32.f, 24.f + static_cast<float>(index) * 78.f };
+                const RectangleF bounds = layouts[index].bounds();
+                const RectangleF box{ origin.x + bounds.x1, origin.y + bounds.y1, origin.x + bounds.x2,
+                                      origin.y + bounds.y2 };
+
+                canvas.setFillColor(Color(190, 215, 245, 110));
+                canvas.fillRect(box);
+                canvas.setStrokeColor(Color(70, 125, 190));
+                canvas.setStrokeWidth(1.f);
+                canvas.strokeRect(box);
+
+                canvas.setFillColor(Palette::black);
+                canvas.fillText(origin, layouts[index]);
+            }
+        },
+        ColorF{ 1.f, 1.f });
+}
+
+TEST_CASE("TextEngine Canvas renderer styles and selection", "[text-layout][visual]") {
     registerTextLayoutTestFont();
 
     Font decorated           = Font{ "TextLayoutTest", 24.f };
@@ -383,10 +424,10 @@ TEST_CASE("TextLayout Canvas renderer styles and selection", "[text-layout][visu
     };
     const TextWithOptions source{ U"Blue text, decorated red text" };
     const uint32_t styleOffset[]{ 15 };
-    const PreparedDocument prepared = fonts->prepareDocument(source, styles, styleOffset);
+    const ShapedText prepared = fonts->shapeText(source, styles, styleOffset);
     TextLayoutOptions options;
-    options.maxLineWidth        = 320.f;
-    const DocumentLayout layout = prepared.layout(options);
+    options.maxLineWidth    = 320.f;
+    const TextLayout layout = prepared.layout(options);
 
     renderTest(
         "text-layout-canvas-styles", Size{ 400, 140 },
@@ -401,15 +442,15 @@ TEST_CASE("TextLayout Canvas renderer styles and selection", "[text-layout][visu
         ColorF{ 1.f, 1.f });
 }
 
-TEST_CASE("TextLayout Canvas renderer bidirectional text", "[text-layout][visual][bidi]") {
+TEST_CASE("TextEngine Canvas renderer bidirectional text", "[text-layout][visual][bidi]") {
     registerTextLayoutVisualFonts();
 
     const Font font{ "TextLayoutNoto", 26.f };
-    const PreparedDocument prepared = fonts->prepareDocument(
+    const ShapedText prepared = fonts->shapeText(
         font, TextWithOptions{ U"English שלום עולם — العربية مرحبًا بالعالم\nLTR 123 אבג 456 RTL" });
     TextLayoutOptions options;
-    options.maxLineWidth        = 520.f;
-    const DocumentLayout layout = prepared.layout(options);
+    options.maxLineWidth    = 520.f;
+    const TextLayout layout = prepared.layout(options);
 
     renderTest(
         "text-layout-bidi", Size{ 600, 150 },
@@ -423,15 +464,15 @@ TEST_CASE("TextLayout Canvas renderer bidirectional text", "[text-layout][visual
         ColorF{ 1.f, 1.f });
 }
 
-TEST_CASE("TextLayout Canvas renderer wraps bidirectional text", "[text-layout][visual][bidi]") {
+TEST_CASE("TextEngine Canvas renderer wraps bidirectional text", "[text-layout][visual][bidi]") {
     registerTextLayoutVisualFonts();
 
     const Font font{ "TextLayoutNoto", 24.f };
-    const PreparedDocument prepared = fonts->prepareDocument(
+    const ShapedText prepared = fonts->shapeText(
         font, TextWithOptions{ U"هذه جملة عربية طويلة للاختبار مع English words بين النصوص العربية" });
     TextLayoutOptions options;
-    options.maxLineWidth        = 270.f;
-    const DocumentLayout layout = prepared.layout(options);
+    options.maxLineWidth    = 270.f;
+    const TextLayout layout = prepared.layout(options);
 
     renderTest(
         "text-layout-bidi-wrap", Size{ 340, 260 },
@@ -445,7 +486,7 @@ TEST_CASE("TextLayout Canvas renderer wraps bidirectional text", "[text-layout][
         ColorF{ 1.f, 1.f });
 }
 
-TEST_CASE("TextLayout Canvas renderer supports monospace", "[text-layout][visual][fonts]") {
+TEST_CASE("TextEngine Canvas renderer supports monospace", "[text-layout][visual][fonts]") {
     registerTextLayoutVisualFonts();
     const FontAndColor styles[]{
         { Font{ "TextLayoutMono", 23.f }, Palette::black },
@@ -453,9 +494,9 @@ TEST_CASE("TextLayout Canvas renderer supports monospace", "[text-layout][visual
     const TextWithOptions source{
         U" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     };
-    const PreparedDocument prepared = fonts->prepareDocument(source, std::span{ styles }, {});
+    const ShapedText prepared = fonts->shapeText(source, std::span{ styles }, {});
     const TextLayoutOptions options{ .maxLineWidth = 600.f - 48.f, .allowBreakAnywhere = true };
-    const DocumentLayout layout = prepared.layout(options);
+    const TextLayout layout = prepared.layout(options);
     REQUIRE(layout.lineCount() == 3);
     REQUIRE(layout.bounds().area() > 500.f);
 
@@ -470,7 +511,7 @@ TEST_CASE("TextLayout Canvas renderer supports monospace", "[text-layout][visual
         ColorF{ 1.f, 1.f });
 }
 
-TEST_CASE("TextLayout Canvas renderer supports multiple fonts", "[text-layout][visual][fonts]") {
+TEST_CASE("TextEngine Canvas renderer supports multiple fonts", "[text-layout][visual][fonts]") {
     registerTextLayoutVisualFonts();
     const auto registered = fonts->addFontFromFile(
         fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf", "TextLayoutEmoji");
@@ -484,8 +525,8 @@ TEST_CASE("TextLayout Canvas renderer supports multiple fonts", "[text-layout][v
     };
     const TextWithOptions source{ U"Lato text | monospaced text | שלום עולם | 😀 👑 🌟" };
     const uint32_t offsets[]{ 11, 30, 42 };
-    const PreparedDocument prepared = fonts->prepareDocument(source, std::span{ styles }, offsets);
-    const DocumentLayout layout     = prepared.layout();
+    const ShapedText prepared = fonts->shapeText(source, std::span{ styles }, offsets);
+    const TextLayout layout   = prepared.layout();
 
     renderTest(
         "text-layout-multiple-fonts", Size{ 720, 120 },
@@ -498,15 +539,15 @@ TEST_CASE("TextLayout Canvas renderer supports multiple fonts", "[text-layout][v
         ColorF{ 1.f, 1.f });
 }
 
-TEST_CASE("TextLayout Canvas renderer draws multiline selection", "[text-layout][visual][selection]") {
+TEST_CASE("TextEngine Canvas renderer draws multiline selection", "[text-layout][visual][selection]") {
     registerTextLayoutTestFont();
 
     const Font font{ "TextLayoutTest", 24.f };
     const TextWithOptions source{ U"First line of selectable text\nSecond line is selected\nThird line" };
-    const PreparedDocument prepared = fonts->prepareDocument(font, source);
+    const ShapedText prepared = fonts->shapeText(font, source);
     TextLayoutOptions options;
-    options.maxLineWidth        = 300.f;
-    const DocumentLayout layout = prepared.layout(options);
+    options.maxLineWidth    = 300.f;
+    const TextLayout layout = prepared.layout(options);
 
     renderTest(
         "text-layout-selection-multiline", Size{ 380, 180 },
@@ -522,14 +563,14 @@ TEST_CASE("TextLayout Canvas renderer draws multiline selection", "[text-layout]
         ColorF{ 1.f, 1.f });
 }
 
-TEST_CASE("TextLayout Canvas renderer draws ligatures", "[text-layout][visual][ligatures]") {
+TEST_CASE("TextEngine Canvas renderer draws ligatures", "[text-layout][visual][ligatures]") {
     registerTextLayoutVisualFonts();
 
     Font font{ "TextLayoutTest", 30.f };
     font.features = { OpenTypeFeatureFlag{ OpenTypeFeature::liga, true } };
-    const PreparedDocument prepared =
-        fonts->prepareDocument(font, TextWithOptions{ U"fi  fl  ffi  ffl  office  affine  official" });
-    const DocumentLayout layout = prepared.layout();
+    const ShapedText prepared =
+        fonts->shapeText(font, TextWithOptions{ U"fi  fl  ffi  ffl  office  affine  official" });
+    const TextLayout layout = prepared.layout();
 
     renderTest(
         "text-layout-ligatures", Size{ 620, 100 },
@@ -539,6 +580,29 @@ TEST_CASE("TextLayout Canvas renderer draws ligatures", "[text-layout][visual][l
             canvas.fillRect({ 0, 0, 620, 100 });
             canvas.setFillColor(Palette::black);
             canvas.fillText({ 20, 28 }, layout);
+        },
+        ColorF{ 1.f, 1.f });
+}
+
+TEST_CASE("TextEngine Canvas centered text", "[text-layout][visual]") {
+    registerTextLayoutVisualFonts();
+
+    Font font{ "TextLayoutTest", 18.f };
+    const ShapedText prepared =
+        fonts->shapeText(font, TextWithOptions{ U"Centered text layout with no wrapping" });
+    TextLayoutOptions options;
+    options.maxLineWidth    = HUGE_VALF; // No wrapping, single line
+    options.alignment       = TextLayoutAlignment::Center;
+    const TextLayout layout = prepared.layout(options);
+
+    renderTest(
+        "text-layout-centered", Size{ 620, 100 },
+        [&](RenderContext& context) {
+            Canvas canvas(context);
+            canvas.setFillColor(Color(245, 247, 250));
+            canvas.fillRect({ 0, 0, 620, 100 });
+            canvas.setFillColor(Palette::black);
+            canvas.fillText({ 310, 50 }, { 0.5f, 0.5f }, layout);
         },
         ColorF{ 1.f, 1.f });
 }

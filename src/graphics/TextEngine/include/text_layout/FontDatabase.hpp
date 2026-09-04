@@ -12,7 +12,9 @@
 #include "Types.hpp"
 #include <brisk/core/internal/FunctionRef.hpp>
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
+
+constexpr inline unsigned kHorizontalOversampling = 16;
 
 struct FontDef;
 
@@ -152,4 +154,4 @@ public:
     /// @param directory The directory to scan; a non-directory path is ignored.
     virtual void scanDirectory(const std::filesystem::path& directory)                           = 0;
 };
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine

@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Canvas.hpp>
+#include "FontInternals.hpp"
 #include <optional>
 #include <array>
 #include <brisk/core/Log.hpp>
@@ -658,15 +659,7 @@ void Canvas::drawImage(RectangleF rect, Rc<Image> image, Matrix matrix, SamplerM
              FillParams{}, m_state.transform, preparedClipPath(), m_state.scissor, m_state.opacity);
 }
 
-void Canvas::fillText(PointF position, const DocumentLayout& text) {
-    fillText(position, { 0, 0 }, text);
-}
-
-void Canvas::fillText(PointF position, PointF alignment, const DocumentLayout& text) {
-    if (alignment != PointF{}) {
-        position -= PointF(text.bounds().size()) * alignment;
-    }
-
+void Canvas::fillText(PointF position, const TextLayout& text) {
     const Paint textPaint = m_state.fillPaint;
     SpriteResources sprites;
     GeometryGlyphs glyphs;
@@ -699,6 +692,7 @@ void Canvas::fillText(PointF position, PointF alignment, const DocumentLayout& t
         sprites.clear();
     };
 
+    std::lock_guard<FontManager> lock(*fonts);
     Internal::forEachTextLayoutGlyph(text, position, [&](const Internal::TextLayoutGlyph& glyph) {
         const bool glyphMulticolor = glyph.bitmap.color;
         if (!glyphs.empty() && (glyphMulticolor != multicolor || glyph.color != runColor)) {
@@ -712,10 +706,12 @@ void Canvas::fillText(PointF position, PointF alignment, const DocumentLayout& t
             return;
         }
         GeometryGlyph desc;
-        desc.rect.p1 = quantize(glyph.position + PointF{ glyph.bitmap.offsetX, -float(glyph.bitmap.offsetY) },
-                                glyph.bitmap.horizontalScale);
-        desc.rect.p2 = desc.rect.p1 + PointF{ float(glyph.bitmap.logicalSize.width),
-                                              float(glyph.bitmap.logicalSize.height) };
+        desc.rect.p1 =
+            quantize(glyph.position + PointF{ float(glyph.bitmap.offsetX) / glyph.bitmap.horizontalScale,
+                                              -float(glyph.bitmap.offsetY) },
+                     glyph.bitmap.horizontalScale);
+        desc.rect.p2 = desc.rect.p1 + PointF(float(glyph.bitmap.size.width) / glyph.bitmap.horizontalScale,
+                                             glyph.bitmap.size.height);
         desc.sprite  = static_cast<float>(findOrAdd(sprites, glyph.bitmap.sprite));
         desc.stride  = glyph.bitmap.size.width;
         desc.size    = glyph.bitmap.size;
@@ -756,30 +752,36 @@ void Canvas::fillText(PointF position, PointF alignment, const DocumentLayout& t
         });
 }
 
+void Canvas::fillText(PointF position, PointF alignment, const TextLayout& text) {
+    const RectangleF bounds = text.bounds();
+    position -= PointF{ bounds.x1, bounds.y1 } + PointF(bounds.size()) * alignment;
+    fillText(position, text);
+}
+
 void Canvas::fillText(TextWithOptions text, PointF position, PointF alignment) {
-    PreparedDocument prepared = fonts->prepareDocument(m_state.font, text);
+    ShapedText shapedText = fonts->shapeText(m_state.font, text);
     TextLayoutOptions options;
-    options.maxLineWidth        = 0.f;
-    options.alignment           = alignment.x <= 0.f   ? TextLayoutAlignment::Left
-                                  : alignment.x >= 1.f ? TextLayoutAlignment::Right
-                                                       : TextLayoutAlignment::Center;
-    const DocumentLayout layout = prepared.layout(options);
-    const RectangleF bounds     = layout.bounds();
-    const PointF origin{ position.x, position.y - bounds.p1.y - bounds.height() * alignment.y };
+    options.maxLineWidth    = 0.f;
+    options.alignment       = alignment.x <= 0.f   ? TextLayoutAlignment::Left
+                              : alignment.x >= 1.f ? TextLayoutAlignment::Right
+                                                   : TextLayoutAlignment::Center;
+    const TextLayout layout = shapedText.layout(options);
+    const RectangleF bounds = layout.bounds();
+    const PointF origin     = position - PointF{ bounds.x1, bounds.y1 } - PointF(bounds.size()) * alignment;
     return fillText(origin, layout);
 }
 
 void Canvas::fillText(TextWithOptions text, RectangleF position, PointF alignment) {
-    PreparedDocument prepared = fonts->prepareDocument(m_state.font, text);
+    ShapedText shapedText = fonts->shapeText(m_state.font, text);
     TextLayoutOptions options;
-    options.maxLineWidth        = std::max(0.f, position.width());
-    options.alignment           = alignment.x <= 0.f   ? TextLayoutAlignment::Left
-                                  : alignment.x >= 1.f ? TextLayoutAlignment::Right
-                                                       : TextLayoutAlignment::Center;
-    const DocumentLayout layout = prepared.layout(options);
-    const RectangleF bounds     = layout.bounds();
-    const PointF anchor         = position.at(alignment);
-    const PointF origin{ position.p1.x, anchor.y - bounds.p1.y - bounds.height() * alignment.y };
+    options.maxLineWidth    = std::max(0.f, position.width());
+    options.alignment       = alignment.x <= 0.f   ? TextLayoutAlignment::Left
+                              : alignment.x >= 1.f ? TextLayoutAlignment::Right
+                                                   : TextLayoutAlignment::Center;
+    const TextLayout layout = shapedText.layout(options);
+    const RectangleF bounds = layout.bounds();
+    const PointF anchor     = position.at(alignment);
+    const PointF origin     = anchor - PointF{ bounds.x1, bounds.y1 } - PointF(bounds.size()) * alignment;
     return fillText(origin, layout);
 }
 
@@ -833,28 +835,28 @@ Canvas::ScissorSaver Canvas::saveScissor() & {
     return { *this };
 }
 
-void Canvas::fillTextSelection(PointF position, const DocumentLayout& text, Range<uint32_t> selection) {
+void Canvas::fillTextSelection(PointF position, const TextLayout& text, Range<uint32_t> selection) {
+    std::lock_guard<FontManager> lock(*fonts);
     Internal::textLayoutSelectionRects(text, selection, [&](const TextSelectionRect& rect) {
         if (rect.line >= text.lineCount()) {
             return;
         }
-        const DocumentLine line = text.line(rect.line);
+        const TextLine line     = text.line(rect.line);
         const float x0          = std::round(position.x + rect.x0);
         const float x1          = std::round(position.x + rect.x1);
         // Distribute leading equally around the line's ink metrics so that
         // adjacent selection rectangles remain contiguous.
         const float halfLeading = line.leading * 0.5f;
         const float y0          = std::round(position.y + line.baseline - line.ascender - halfLeading);
-        const float y1          = std::round(position.y + line.baseline + line.descender + halfLeading);
+        const float y1          = std::round(position.y + line.baseline - line.descender + halfLeading);
         fillRect(RectangleF{ PointF{ x0, y0 }, PointF{ x1, y1 } });
     });
 }
 
-void Canvas::fillTextSelection(PointF position, PointF alignment, const DocumentLayout& text,
+void Canvas::fillTextSelection(PointF position, PointF alignment, const TextLayout& text,
                                Range<uint32_t> selection) {
-    if (alignment != PointF{}) {
-        position -= PointF(text.bounds().size()) * alignment;
-    }
+    const RectangleF bounds = text.bounds();
+    position -= PointF{ bounds.x1, bounds.y1 } + PointF(bounds.size()) * alignment;
     fillTextSelection(position, text, selection);
 }
 

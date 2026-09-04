@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
 
 namespace {
 
@@ -639,6 +639,8 @@ public:
         if (openError != 0) {
             return {};
         }
+        FT_Matrix matrix{ static_cast<FT_Fixed>(0x10000 / kHorizontalOversampling), 0, 0, 0x10000 };
+        FT_Set_Transform(entry->ftFace, &matrix, nullptr);
         if (!key.variations.empty()) {
             FT_MM_Var* mm = nullptr;
             if (FT_Get_MM_Var(entry->ftFace, &mm) != 0 || mm == nullptr) {
@@ -683,7 +685,9 @@ public:
             return {};
         }
         instance->face->activeSize = instance->ftSize;
-        FT_Size_RequestRec request{ FT_SIZE_REQUEST_TYPE_NOMINAL, 0, key.pixels, 0, 0 };
+        FT_Size_RequestRec request{ FT_SIZE_REQUEST_TYPE_NOMINAL,
+                                    static_cast<FT_Long>(key.pixels * kHorizontalOversampling), key.pixels, 0,
+                                    0 };
         const FT_Error requestError = FT_Request_Size(instance->face->ftFace, &request);
         if (requestError != 0) {
             instance->face->activeSize = nullptr;
@@ -811,4 +815,4 @@ std::shared_ptr<FontDatabase> createFontDatabase(std::shared_ptr<void> owner, vo
     return std::make_shared<DefaultFontDatabase>(std::move(owner), library);
 }
 
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine

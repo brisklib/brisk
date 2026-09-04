@@ -4,6 +4,7 @@
 
 #include <hb.h>
 #include <hb-ft.h>
+#include <hb-ot.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_ADVANCES_H
@@ -22,7 +23,7 @@
 #include <limits>
 #include <vector>
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
 
 namespace {
 // Monotonic 64-bit cookie identifying each PreparedDocument, copied into DocumentLayout.
@@ -430,16 +431,17 @@ VerticalMetrics getVerticalMetrics(const FontDatabase* fontDatabase, const FontH
     }
 
     const ActiveFont font = fontDatabase->activate(fontHandle);
-    const FT_Face face    = static_cast<FT_Face>(font.ftFace);
-    if (face == nullptr || face->size == nullptr) {
-        return {};
-    }
+    hb_font_t* hbFont     = static_cast<hb_font_t*>(font.hbFont);
 
-    const FT_Size_Metrics& metrics = face->size->metrics;
+    hb_position_t ascender, descender, line_gap;
+    hb_ot_metrics_get_position_with_fallback(hbFont, HB_OT_METRICS_TAG_HORIZONTAL_ASCENDER, &ascender);
+    hb_ot_metrics_get_position_with_fallback(hbFont, HB_OT_METRICS_TAG_HORIZONTAL_DESCENDER, &descender);
+    hb_ot_metrics_get_position_with_fallback(hbFont, HB_OT_METRICS_TAG_HORIZONTAL_LINE_GAP, &line_gap);
+
     return VerticalMetrics{
-        .ascent  = from26Dot6(metrics.ascender),
-        .descent = from26Dot6(-metrics.descender),
-        .lineGap = from26Dot6(metrics.height - (metrics.ascender - metrics.descender)),
+        .ascent  = from26Dot6(ascender),
+        .descent = from26Dot6(descender),
+        .lineGap = from26Dot6(line_gap),
     };
 }
 
@@ -702,16 +704,11 @@ void shapeRun(const DocumentSource& document, CodepointRange textContextRange, C
 
     const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer.get(), nullptr);
 
-    FT_Matrix matrix;
-    FT_Get_Transform(ftFace, &matrix, nullptr);
-
     for (unsigned int i = 0; i < glyphCount; ++i) {
-        int32_t xAdvance = positions[i].x_advance;
+        int32_t xAdvance = positions[i].x_advance / kHorizontalOversampling;
         assert(positions[i].y_advance == 0);
-        int32_t xOffset = positions[i].x_offset;
+        int32_t xOffset = positions[i].x_offset / kHorizontalOversampling;
         int32_t yOffset = positions[i].y_offset;
-
-        transformFreetypeVector(&xOffset, &yOffset, matrix);
 
         const GraphemeIndex graphemeIndex =
             document.graphemes.toGrapheme(infos[i].cluster) - runGraphemeRange.min;
@@ -890,9 +887,11 @@ void appendPreparedParagraph(const DocumentSource& document, CodepointRange para
         GlyphRun& run          = documentResult.glyphRuns[runIndex];
         const FontDef& fontDef = *fonts[run.fontRunIndex];
         if (fontDef.lineHeight > kZero) {
-            const LayoutUnit contentHeight = run.metrics.ascent + run.metrics.descent;
-            run.metrics.lineGap =
-                fontDef.lineHeight > contentHeight ? fontDef.lineHeight - contentHeight : kZero;
+            const LayoutUnit contentHeight = run.metrics.ascent - run.metrics.descent;
+            // An explicit CSS line-height is the complete line-box height.  Keep
+            // negative leading when it is smaller than the font metrics; it is
+            // distributed equally around the content box below.
+            run.metrics.lineGap            = fontDef.lineHeight - contentHeight;
         }
     }
 
@@ -951,10 +950,8 @@ PreparedDocument prepareDocument(const DocumentSource& document,
             emptyLineMetrics = getVerticalMetrics(result.fontDatabase.get(),
                                                   result.fontDatabase->resolveFont(*fonts[fontIndex]));
             if (fonts[fontIndex]->lineHeight > kZero) {
-                const LayoutUnit contentHeight = emptyLineMetrics.ascent + emptyLineMetrics.descent;
-                emptyLineMetrics.lineGap       = fonts[fontIndex]->lineHeight > contentHeight
-                                                     ? fonts[fontIndex]->lineHeight - contentHeight
-                                                     : kZero;
+                const LayoutUnit contentHeight = emptyLineMetrics.ascent - emptyLineMetrics.descent;
+                emptyLineMetrics.lineGap       = fonts[fontIndex]->lineHeight - contentHeight;
             }
         }
         result.paragraphs.push_back(PreparedDocument::Paragraph{
@@ -1083,8 +1080,9 @@ DocumentGreedyLineBreaker::DocumentGreedyLineBreaker(const PreparedDocument& doc
                                                      LayoutUnit maxLineWidth, TabStops tabStops,
                                                      std::span<const LayoutUnit> textIndents,
                                                      bool allowBreakAnywhere)
-    : m_preparedDocument(document), m_alignments(alignments), m_maxLineWidth(maxLineWidth),
-      m_textIndents(textIndents), m_tabStops(tabStops), m_allowBreakAnywhere(allowBreakAnywhere),
+    : m_preparedDocument(document), m_alignments(alignments),
+      m_maxLineWidth(std::clamp<LayoutUnit>(maxLineWidth, kZero, kLarge)), m_textIndents(textIndents),
+      m_tabStops(tabStops), m_allowBreakAnywhere(allowBreakAnywhere),
       m_resolvedAdvances(document.graphemes.size(), kZero) {
     assert(document.breakOpportunities.size() == document.graphemeMap.codepointCount());
     assert(document.graphemes.size() == document.graphemeMap.graphemeCount());
@@ -1197,7 +1195,7 @@ void DocumentGreedyLineBreaker::appendGrapheme(RunIndex runIndex, GraphemeIndex 
     // A zero width is an explicit alignment-only container. It must not cause wrapping:
     // lines are laid out as if unconstrained, then positioned around x = 0 according to
     // the requested alignment. This is useful for point-anchored text.
-    const bool noWrap = m_maxLineWidth == kInfinity || m_maxLineWidth == kZero;
+    const bool noWrap = m_maxLineWidth >= kLarge || m_maxLineWidth == kZero;
 
     // Step 1: is the boundary immediately before this grapheme cluster a break opportunity?
     // (There is no boundary to consider before the very first grapheme of the paragraph.)
@@ -1452,9 +1450,10 @@ void DocumentGreedyLineBreaker::commitLine(GraphemeIndex cutGrapheme, LineEndKin
     const RunRange glyphRunRange{ glyphRunStart, glyphRunEnd };
 
     // 5. Compute line vertical metrics.
-    LayoutUnit maxAscent  = kZero;
-    LayoutUnit maxDescent = kZero;
-    LayoutUnit maxLeading = kZero;
+    LayoutUnit maxAscent     = kZero;
+    LayoutUnit maxDescent    = kZero;
+    LayoutUnit maxLeading    = kZero;
+    bool haveVerticalMetrics = false;
 
     for (const auto& slice : m_outputSlices) {
         if (slice.runIndex < m_runInfos.size()) {
@@ -1463,15 +1462,22 @@ void DocumentGreedyLineBreaker::commitLine(GraphemeIndex cutGrapheme, LineEndKin
             LayoutUnit runDescent       = vm.descent;
             const LayoutUnit runLeading = vm.lineGap;
 
+            // Empty/control runs can carry zero metrics. They must not turn
+            // negative explicit leading into zero while aggregating a line.
+            if (runAscent == kZero && runDescent == kZero && runLeading == kZero) {
+                continue;
+            }
+
             if (runAscent > maxAscent) {
                 maxAscent = runAscent;
             }
-            if (runDescent > maxDescent) {
+            if (runDescent < maxDescent) {
                 maxDescent = runDescent;
             }
-            if (runLeading > maxLeading) {
+            if (!haveVerticalMetrics || runLeading > maxLeading) {
                 maxLeading = runLeading;
             }
+            haveVerticalMetrics = true;
         }
     }
     if (m_outputSlices.empty()) {
@@ -1481,9 +1487,12 @@ void DocumentGreedyLineBreaker::commitLine(GraphemeIndex cutGrapheme, LineEndKin
         maxLeading                     = metrics.lineGap;
     }
 
-    // 6. Distribute baselines.
-    const LayoutUnit baselineY = m_cursor + maxAscent;
-    m_cursor += maxAscent + maxDescent + maxLeading;
+    // 6. Distribute baselines. Leading is half-leading on either side of the content box,
+    // as in a CSS line box. Keep m_cursor at the top of the line box so adjacent line boxes
+    // remain contiguous.
+    const LayoutUnit halfLeading = half(maxLeading);
+    const LayoutUnit baselineY   = m_cursor + maxAscent + halfLeading;
+    m_cursor += maxAscent - maxDescent + maxLeading;
 
     for (RunIndex run = glyphRunRange.min; run < glyphRunRange.max; ++run) {
         const RunIndex preparedRunIndex = m_output.glyphRuns[run].preparedRunIndex;
@@ -1525,7 +1534,8 @@ void DocumentGreedyLineBreaker::commitLine(GraphemeIndex cutGrapheme, LineEndKin
         .trimmedWidth   = trimmedAdvance,
     };
 
-    const LayoutRange lineVerticalBounds{ baselineY - maxAscent, baselineY + maxDescent };
+    const LayoutRange lineVerticalBounds{ baselineY - maxAscent - halfLeading,
+                                          baselineY - maxDescent + halfLeading };
     const LayoutRange lineHorizontalBounds{ originX, originX + contentAdvance };
     const LayoutRange lineHorizontalTrimmedBounds{ originX, originX + trimmedAdvance };
 
@@ -1681,12 +1691,13 @@ LineIndex lineForPoint(const DocumentLayout& layout, LayoutUnit y) {
     LineIndex bestLine  = 0;
     double bestDistance = std::numeric_limits<double>::infinity();
     for (LineIndex index = 0; index < layout.lines.size(); ++index) {
-        const LayoutLine& line  = layout.lines[index];
-        const LayoutUnit top    = line.baselineY - line.ascent;
-        const LayoutUnit bottom = line.baselineY + line.descent;
-        const double distance   = y < top      ? static_cast<double>(top - y)
-                                  : y > bottom ? static_cast<double>(y - bottom)
-                                               : 0.0;
+        const LayoutLine& line       = layout.lines[index];
+        const LayoutUnit halfLeading = half(line.leading);
+        const LayoutUnit top         = line.baselineY - line.ascent - halfLeading;
+        const LayoutUnit bottom      = line.baselineY - line.descent + halfLeading;
+        const double distance        = y < top      ? static_cast<double>(top - y)
+                                       : y > bottom ? static_cast<double>(y - bottom)
+                                                    : 0.0;
         if (distance < bestDistance) {
             bestDistance = distance;
             bestLine     = index;
@@ -1851,14 +1862,13 @@ bool rasterize(const ActiveFont& activeFont, const FontHandle& handle, uint32_t 
         return false;
     }
     FT_Face ftFace = static_cast<FT_Face>(activeFont.ftFace);
-    FT_Set_Transform(ftFace, nullptr, nullptr);
 
     if (FT_Load_Glyph(ftFace, glyphId, activeFont.loadFlags | FT_LOAD_COLOR) != 0)
         return false;
+    bool outline = ftFace->glyph->format == FT_GLYPH_FORMAT_OUTLINE;
     if (ftFace->glyph->format == FT_GLYPH_FORMAT_OUTLINE) {
         FT_Matrix matrix{ static_cast<FT_Fixed>(0x10000 * options.horizontalScale), 0, 0, 0x10000 };
         FT_Outline_Transform(&ftFace->glyph->outline, &matrix);
-        FT_Vector_Transform(&ftFace->glyph->advance, &matrix);
     } else if (ftFace->glyph->format == FT_GLYPH_FORMAT_SVG) {
         //
     } else {
@@ -1872,19 +1882,20 @@ bool rasterize(const ActiveFont& activeFont, const FontHandle& handle, uint32_t 
     if (!((bitmap.pixel_mode == FT_PIXEL_MODE_GRAY || bitmap.pixel_mode == FT_PIXEL_MODE_BGRA) &&
           (bitmap.buffer || bitmap.width == 0 || bitmap.rows == 0)))
         return false;
+    int horizontalScale = outline ? options.horizontalScale : 1;
     callback(
         RasterizedGlyph{
-            ftFace->glyph->bitmap_left,
-            ftFace->glyph->bitmap_top,
-            bitmap.width,
-            bitmap.rows,
-            bitmap.pitch,
-            format,
-            format == RasterizedGlyph::Format::BGRA8 ? 4u : 1u,
-            bitmap.pixel_mode == FT_PIXEL_MODE_BGRA ? 1 : options.horizontalScale,
+            .left            = ftFace->glyph->bitmap_left,
+            .top             = ftFace->glyph->bitmap_top,
+            .width           = bitmap.width,
+            .height          = bitmap.rows,
+            .pitch           = bitmap.pitch,
+            .format          = format,
+            .bytesPerPixel   = format == RasterizedGlyph::Format::BGRA8 ? 4u : 1u,
+            .horizontalScale = horizontalScale,
         },
         bitmap.buffer);
     return true;
 }
 
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine

@@ -49,42 +49,42 @@ namespace Brisk {
 
 namespace {
 
-TextLayout::Direction toTextLayoutDirection(TextDirection direction) {
-    return direction == TextDirection::RTL ? TextLayout::Direction::RightToLeft
-                                           : TextLayout::Direction::LeftToRight;
+TextEngine::Direction toTextLayoutDirection(TextDirection direction) {
+    return direction == TextDirection::RTL ? TextEngine::Direction::RightToLeft
+                                           : TextEngine::Direction::LeftToRight;
 }
 
-TextLayout::TextAlignment toTextLayoutAlignment(TextLayoutAlignment alignment) {
+TextEngine::TextAlignment toTextLayoutAlignment(TextLayoutAlignment alignment) {
     switch (alignment) {
     case TextLayoutAlignment::Start:
-        return TextLayout::TextAlignment::Start;
+        return TextEngine::TextAlignment::Start;
     case TextLayoutAlignment::End:
-        return TextLayout::TextAlignment::End;
+        return TextEngine::TextAlignment::End;
     case TextLayoutAlignment::Left:
-        return TextLayout::TextAlignment::Left;
+        return TextEngine::TextAlignment::Left;
     case TextLayoutAlignment::Right:
-        return TextLayout::TextAlignment::Right;
+        return TextEngine::TextAlignment::Right;
     case TextLayoutAlignment::Center:
-        return TextLayout::TextAlignment::Center;
+        return TextEngine::TextAlignment::Center;
     }
-    return TextLayout::TextAlignment::Start;
+    return TextEngine::TextAlignment::Start;
 }
 
-TextLayout::FontStyle toTextLayoutStyle(FontStyle style) {
-    return style == FontStyle::Italic ? TextLayout::FontStyle::Italic : TextLayout::FontStyle::Normal;
+TextEngine::FontStyle toTextLayoutStyle(FontStyle style) {
+    return style == FontStyle::Italic ? TextEngine::FontStyle::Italic : TextEngine::FontStyle::Normal;
 }
 
-TextLayout::FontWeight toTextLayoutWeight(FontWeight weight) {
-    return static_cast<TextLayout::FontWeight>(static_cast<uint16_t>(weight));
+TextEngine::FontWeight toTextLayoutWeight(FontWeight weight) {
+    return static_cast<TextEngine::FontWeight>(static_cast<uint16_t>(weight));
 }
 
 struct ConvertedFont {
     std::vector<std::string_view> familyNames;
-    std::vector<TextLayout::OpenTypeFeatureFlag> features;
-    TextLayout::FontDef definition{};
+    std::vector<TextEngine::OpenTypeFeatureFlag> features;
+    TextEngine::FontDef definition{};
 };
 
-ConvertedFont convertFont(const Font& source, const std::shared_ptr<TextLayout::FontDatabase>& database) {
+ConvertedFont convertFont(const Font& source, const std::shared_ptr<TextEngine::FontDatabase>& database) {
     ConvertedFont converted;
     for (std::string_view family : split(source.fontFamily, ',')) {
         family = trim(family);
@@ -95,37 +95,31 @@ ConvertedFont convertFont(const Font& source, const std::shared_ptr<TextLayout::
     converted.features.reserve(source.features.size());
     for (const OpenTypeFeatureFlag& feature : source.features) {
         converted.features.push_back(
-            TextLayout::OpenTypeFeatureFlag{ static_cast<uint32_t>(feature.feature), feature.enabled });
+            TextEngine::OpenTypeFeatureFlag{ static_cast<uint32_t>(feature.feature), feature.enabled });
     }
 
-    converted.definition = TextLayout::FontDef{
+    converted.definition = TextEngine::FontDef{
         .familyNames   = converted.familyNames,
-        .fontSize      = TextLayout::fromFloat(source.fontSize),
+        .fontSize      = TextEngine::fromFloat(source.fontSize),
         .style         = toTextLayoutStyle(source.style),
         .weight        = toTextLayoutWeight(source.weight),
-        .lineHeight    = TextLayout::kZero,
-        .letterSpacing = TextLayout::fromFloat(source.letterSpacing),
-        .wordSpacing   = TextLayout::fromFloat(source.wordSpacing),
-        .verticalAlign = TextLayout::fromFloat(source.verticalAlign),
+        .lineHeight    = TextEngine::kZero,
+        .letterSpacing = TextEngine::fromFloat(source.letterSpacing),
+        .wordSpacing   = TextEngine::fromFloat(source.wordSpacing),
+        .verticalAlign = TextEngine::fromFloat(source.verticalAlign),
         .features      = converted.features,
         .variations    = {},
-        .hinting       = TextLayout::Hinting::Auto,
+        .hinting       = TextEngine::Hinting::Auto,
     };
 
     if (source.lineHeight > 0.f) {
-        if (TextLayout::FontHandle handle = database->resolveFont(converted.definition)) {
-            const TextLayout::VerticalMetrics metrics =
-                TextLayout::getVerticalMetrics(database.get(), handle);
-            const float naturalHeight =
-                TextLayout::toFloat(metrics.ascent + metrics.descent + metrics.lineGap);
-            converted.definition.lineHeight = TextLayout::fromFloat(naturalHeight * source.lineHeight);
-        }
+        converted.definition.lineHeight = TextEngine::fromFloat(source.fontSize * source.lineHeight);
     }
     return converted;
 }
 
 void convertFonts(std::span<const FontAndColor> source, std::span<ConvertedFont> result,
-                  const std::shared_ptr<TextLayout::FontDatabase>& database) {
+                  const std::shared_ptr<TextEngine::FontDatabase>& database) {
     BRISK_ASSERT(source.size() == result.size());
 
     for (size_t i = 0; i < source.size(); ++i) {
@@ -144,16 +138,13 @@ class BudgetedGlyphCache final : public GlyphCache {
     struct Entry {
         CachedGlyph glyph;
         size_t bytes{};
-        std::list<::Brisk::GlyphCacheKey>::iterator lru;
+        std::list<GlyphCacheKey>::iterator lru;
     };
 
     struct KeyHash {
-        size_t operator()(const ::Brisk::GlyphCacheKey& key) const noexcept {
+        size_t operator()(const GlyphCacheKey& key) const noexcept {
             uint64_t hash = key.fontInstanceId;
             hash ^= static_cast<uint64_t>(key.glyphId) + 0x9E3779B97F4A7C15ull + (hash << 6) + (hash >> 2);
-            hash ^= static_cast<uint64_t>(key.horizontalScale) + 0x9E3779B97F4A7C15ull + (hash << 6) +
-                    (hash >> 2);
-            hash ^= static_cast<uint64_t>(key.renderMode) + 0x9E3779B97F4A7C15ull + (hash << 6) + (hash >> 2);
             return static_cast<size_t>(hash);
         }
     };
@@ -162,7 +153,7 @@ public:
     /// Creates a cache with the specified sprite-memory budget.
     explicit BudgetedGlyphCache(size_t budget = 64u * 1024u * 1024u) : m_budget(budget) {}
 
-    std::optional<CachedGlyph> getOrCreate(const ::Brisk::GlyphCacheKey& key,
+    std::optional<CachedGlyph> getOrCreate(const GlyphCacheKey& key,
                                            function_ref<std::optional<CachedGlyph>()> factory) override {
         if (auto found = m_entries.find(key); found != m_entries.end()) {
             ++m_hits;
@@ -183,8 +174,8 @@ public:
         }
 
         while (!m_lru.empty() && m_usedBytes + bytes > m_budget) {
-            const ::Brisk::GlyphCacheKey& oldest = m_lru.front();
-            auto found                           = m_entries.find(oldest);
+            const GlyphCacheKey& oldest = m_lru.front();
+            auto found                  = m_entries.find(oldest);
             if (found != m_entries.end()) {
                 m_usedBytes -= found->second.bytes;
                 m_entries.erase(found);
@@ -206,8 +197,8 @@ public:
     void setMemoryBudget(size_t bytes) override {
         m_budget = bytes;
         while (!m_lru.empty() && m_usedBytes > m_budget) {
-            const ::Brisk::GlyphCacheKey& oldest = m_lru.front();
-            auto found                           = m_entries.find(oldest);
+            const GlyphCacheKey& oldest = m_lru.front();
+            auto found                  = m_entries.find(oldest);
             if (found != m_entries.end()) {
                 m_usedBytes -= found->second.bytes;
                 m_entries.erase(found);
@@ -227,8 +218,8 @@ private:
     size_t m_usedBytes{};
     uint64_t m_hits{};
     uint64_t m_misses{};
-    std::list<::Brisk::GlyphCacheKey> m_lru;
-    std::unordered_map<::Brisk::GlyphCacheKey, Entry, KeyHash> m_entries;
+    std::list<GlyphCacheKey> m_lru;
+    std::unordered_map<GlyphCacheKey, Entry, KeyHash> m_entries;
 };
 
 } // namespace
@@ -245,16 +236,16 @@ struct SharedLibraryOwner {
     }
 };
 
-struct TextLayoutState {
+struct TextEngineState {
     std::vector<std::shared_ptr<const Bytes>> fontBlobs;
     std::shared_ptr<SharedLibraryOwner> libraryOwner;
-    std::shared_ptr<TextLayout::FontDatabase> database;
+    std::shared_ptr<TextEngine::FontDatabase> database;
     std::shared_ptr<GlyphCache> glyphCache;
     int hscale = 1;
 
-    explicit TextLayoutState(std::shared_ptr<SharedLibraryOwner> owner, int hscale)
+    explicit TextEngineState(std::shared_ptr<SharedLibraryOwner> owner, int hscale)
         : libraryOwner(std::move(owner)), hscale(hscale) {
-        database   = TextLayout::createFontDatabase(libraryOwner, libraryOwner->library);
+        database   = TextEngine::createFontDatabase(libraryOwner, libraryOwner->library);
         glyphCache = std::make_shared<BudgetedGlyphCache>();
     }
 };
@@ -267,53 +258,53 @@ struct PreparedRenderStyle {
 
 } // namespace Internal
 
-struct PreparedDocument::Impl {
-    std::shared_ptr<const Internal::TextLayoutState> state;
-    TextLayout::PreparedDocument prepared;
+struct ShapedText::Impl {
+    std::shared_ptr<const Internal::TextEngineState> state;
+    TextEngine::PreparedDocument prepared;
     std::vector<Internal::PreparedRenderStyle> renderStyles;
     TextOptions options                       = TextOptions::Default;
-    TextLayout::LayoutUnit defaultTabInterval = TextLayout::kZero;
+    TextEngine::LayoutUnit defaultTabInterval = TextEngine::kZero;
 };
 
 namespace {
 
-PreparedParagraph convertParagraph(const TextLayout::PreparedDocument::Paragraph& paragraph) {
+ShapedParagraph convertParagraph(const TextEngine::PreparedDocument::Paragraph& paragraph) {
     return {
         .characterRange = paragraph.paragraphRange,
         .graphemeRange  = paragraph.graphemeRange,
-        .direction      = paragraph.baseDirection == TextLayout::Direction::RightToLeft ? TextDirection::RTL
+        .direction      = paragraph.baseDirection == TextEngine::Direction::RightToLeft ? TextDirection::RTL
                                                                                         : TextDirection::LTR,
     };
 }
 
-DocumentLine convertLine(const TextLayout::LayoutLine& line) {
-    DocumentLine result{
+TextLine convertLine(const TextEngine::LayoutLine& line) {
+    TextLine result{
         .characterRange = line.codepointRange,
         .graphemeRange  = line.graphemeRange,
-        .direction      = line.baseDirection == TextLayout::Direction::RightToLeft ? TextDirection::RTL
+        .direction      = line.baseDirection == TextEngine::Direction::RightToLeft ? TextDirection::RTL
                                                                                    : TextDirection::LTR,
         .end            = static_cast<TextLayoutLineEnd>(line.endKind),
-        .baseline       = TextLayout::toFloat(line.baselineY),
-        .ascender       = TextLayout::toFloat(line.ascent),
-        .descender      = TextLayout::toFloat(line.descent),
-        .leading        = TextLayout::toFloat(line.leading),
-        .width          = TextLayout::toFloat(line.width),
-        .trimmedWidth   = TextLayout::toFloat(line.trimmedWidth),
+        .baseline       = TextEngine::toFloat(line.baselineY),
+        .ascender       = TextEngine::toFloat(line.ascent),
+        .descender      = TextEngine::toFloat(line.descent),
+        .leading        = TextEngine::toFloat(line.leading),
+        .width          = TextEngine::toFloat(line.width),
+        .trimmedWidth   = TextEngine::toFloat(line.trimmedWidth),
     };
     return result;
 }
 
-RectangleF convertBounds(const TextLayout::DocumentLayout& layout) {
-    return RectangleF{ TextLayout::toFloat(layout.horizontalTextBounds.min),
-                       TextLayout::toFloat(layout.verticalTextBounds.min),
-                       TextLayout::toFloat(layout.horizontalTextBounds.max),
-                       TextLayout::toFloat(layout.verticalTextBounds.max) };
+RectangleF convertBounds(const TextEngine::DocumentLayout& layout) {
+    return RectangleF{ TextEngine::toFloat(layout.horizontalTextBounds.min),
+                       TextEngine::toFloat(layout.verticalTextBounds.min),
+                       TextEngine::toFloat(layout.horizontalTextBounds.max),
+                       TextEngine::toFloat(layout.verticalTextBounds.max) };
 }
 
 } // namespace
 
-static std::shared_ptr<const PreparedDocument::Impl> createPreparedDocument(
-    const std::shared_ptr<Internal::TextLayoutState>& state, const TextWithOptions& text,
+static std::shared_ptr<const ShapedText::Impl> createPreparedDocument(
+    const std::shared_ptr<Internal::TextEngineState>& state, const TextWithOptions& text,
     const std::vector<FontAndColor>& sourceFonts, std::span<const uint32_t> sourceOffsets) {
     if (sourceFonts.empty()) {
         throwException(EArgument("At least one font is required to prepare a document"));
@@ -334,10 +325,10 @@ static std::shared_ptr<const PreparedDocument::Impl> createPreparedDocument(
         throwException(EArgument("Font offsets must be sorted and unique"));
     }
 
-    auto document                = std::make_shared<PreparedDocument::Impl>();
+    auto document                = std::make_shared<ShapedText::Impl>();
     document->state              = state;
     document->options            = text.options;
-    document->defaultTabInterval = TextLayout::kZero;
+    document->defaultTabInterval = TextEngine::kZero;
     document->renderStyles.reserve(sourceFonts.size());
     for (const FontAndColor& sourceFont : sourceFonts) {
         document->renderStyles.push_back({ sourceFont.color.value_or(Color{}),
@@ -347,7 +338,7 @@ static std::shared_ptr<const PreparedDocument::Impl> createPreparedDocument(
 
     std::vector<ConvertedFont> converted(sourceFonts.size());
     convertFonts(sourceFonts, converted, state->database);
-    std::vector<const TextLayout::FontDef*> definitions;
+    std::vector<const TextEngine::FontDef*> definitions;
     definitions.reserve(converted.size());
     for (const ConvertedFont& font : converted) {
         definitions.push_back(&font.definition);
@@ -362,73 +353,66 @@ static std::shared_ptr<const PreparedDocument::Impl> createPreparedDocument(
     boundaries.push_back(static_cast<uint32_t>(text.text.size()));
 
     const std::u32string sourceText = text.text;
-    const TextLayout::DocumentSource source(sourceText);
-    const TextLayout::BaseDirection baseDirection = text.defaultDirection == TextDirection::RTL
-                                                        ? TextLayout::BaseDirection::DefaultRTL
-                                                        : TextLayout::BaseDirection::DefaultLTR;
-    document->prepared                            = TextLayout::prepareDocument(
-        source, state->database, definitions, TextLayout::BoundaryTable(boundaries),
-        std::span<const TextLayout::BaseDirection>(&baseDirection, 1));
-    if (!sourceFonts.empty()) {
-        if (TextLayout::FontHandle handle = state->database->resolveFont(converted.front().definition)) {
-            const TextLayout::ExtendedMetrics metrics =
-                TextLayout::getExtendedMetrics(state->database.get(), handle);
-            document->defaultTabInterval = TextLayout::fromFloat(TextLayout::toFloat(metrics.spaceAdvanceX) *
-                                                                 sourceFonts.front().font.tabWidth);
-        }
-    }
+    const TextEngine::DocumentSource source(sourceText);
+    const TextEngine::BaseDirection baseDirection = text.defaultDirection == TextDirection::RTL
+                                                        ? TextEngine::BaseDirection::DefaultRTL
+                                                        : TextEngine::BaseDirection::DefaultLTR;
+    document->prepared                            = TextEngine::prepareDocument(
+        source, state->database, definitions, TextEngine::BoundaryTable(boundaries),
+        std::span<const TextEngine::BaseDirection>(&baseDirection, 1));
+    document->defaultTabInterval = TextEngine::fromFloat(sourceFonts.front().font.tabWidth);
     return document;
 }
 
-struct DocumentLayout::Impl {
+struct TextLayout::Impl {
     RectangleF bounds{};
     RectangleF trimmedBounds{};
-    std::shared_ptr<const PreparedDocument::Impl> document;
-    TextLayout::DocumentLayout layout;
+    std::shared_ptr<const ShapedText::Impl> document;
+    TextEngine::DocumentLayout layout;
 };
 
-PreparedDocument::PreparedDocument() : m_impl(std::make_shared<Impl>()) {}
+ShapedText::ShapedText() : m_impl(std::make_shared<Impl>()) {}
 
-PreparedDocument::~PreparedDocument()                                      = default;
+ShapedText::~ShapedText()                                = default;
 
-PreparedDocument::PreparedDocument(const PreparedDocument&)                = default;
+ShapedText::ShapedText(const ShapedText&)                = default;
 
-PreparedDocument& PreparedDocument::operator=(const PreparedDocument&)     = default;
+ShapedText& ShapedText::operator=(const ShapedText&)     = default;
 
-PreparedDocument::PreparedDocument(PreparedDocument&&) noexcept            = default;
+ShapedText::ShapedText(ShapedText&&) noexcept            = default;
 
-PreparedDocument& PreparedDocument::operator=(PreparedDocument&&) noexcept = default;
+ShapedText& ShapedText::operator=(ShapedText&&) noexcept = default;
 
-PreparedDocument::PreparedDocument(std::shared_ptr<const Impl> impl) : m_impl(std::move(impl)) {}
+ShapedText::ShapedText(std::shared_ptr<const Impl> impl) : m_impl(std::move(impl)) {}
 
-bool PreparedDocument::empty() const noexcept {
+bool ShapedText::empty() const noexcept {
     return !m_impl || m_impl->prepared.paragraphs.empty();
 }
 
-uint32_t PreparedDocument::characterCount() const noexcept {
+uint32_t ShapedText::characterCount() const noexcept {
     return m_impl ? m_impl->prepared.graphemeMap.codepointCount() : 0;
 }
 
-uint32_t PreparedDocument::graphemeCount() const noexcept {
+uint32_t ShapedText::graphemeCount() const noexcept {
     return m_impl ? m_impl->prepared.graphemeMap.graphemeCount() : 0;
 }
 
-std::span<const uint32_t> PreparedDocument::graphemeBoundaries() const noexcept {
+std::span<const uint32_t> ShapedText::graphemeBoundaries() const noexcept {
     return m_impl ? m_impl->prepared.graphemeMap.graphemeBoundaries() : std::span<const uint32_t>{};
 }
 
-size_t PreparedDocument::paragraphCount() const noexcept {
+size_t ShapedText::paragraphCount() const noexcept {
     return m_impl ? m_impl->prepared.paragraphs.size() : 0;
 }
 
-PreparedParagraph PreparedDocument::paragraph(size_t index) const noexcept {
+ShapedParagraph ShapedText::paragraph(size_t index) const noexcept {
     if (!m_impl || index >= paragraphCount()) {
         return {};
     }
     return convertParagraph(m_impl->prepared.paragraphs[index]);
 }
 
-uint32_t PreparedDocument::characterToGrapheme(uint32_t character) const noexcept {
+uint32_t ShapedText::characterToGrapheme(uint32_t character) const noexcept {
     if (!m_impl) {
         return 0;
     }
@@ -436,7 +420,7 @@ uint32_t PreparedDocument::characterToGrapheme(uint32_t character) const noexcep
     return m_impl->prepared.graphemeMap.toGrapheme(character);
 }
 
-uint32_t PreparedDocument::graphemeToCharacter(uint32_t grapheme) const noexcept {
+uint32_t ShapedText::graphemeToCharacter(uint32_t grapheme) const noexcept {
     if (!m_impl) {
         return 0;
     }
@@ -444,7 +428,7 @@ uint32_t PreparedDocument::graphemeToCharacter(uint32_t grapheme) const noexcept
     return m_impl->prepared.graphemeMap.toCodepoint(grapheme);
 }
 
-Range<uint32_t> PreparedDocument::graphemeToCharacters(uint32_t grapheme) const noexcept {
+Range<uint32_t> ShapedText::graphemeToCharacters(uint32_t grapheme) const noexcept {
     if (!m_impl || graphemeCount() == 0) {
         return { 0, 0 };
     }
@@ -452,114 +436,113 @@ Range<uint32_t> PreparedDocument::graphemeToCharacters(uint32_t grapheme) const 
     return m_impl->prepared.graphemeMap.codepointRangeForGrapheme(grapheme);
 }
 
-bool PreparedDocument::isParagraphSeparator(uint32_t grapheme) const noexcept {
-    return m_impl && grapheme < graphemeCount() &&
-           m_impl->prepared.graphemes[grapheme].isParagraphSeparator;
+bool ShapedText::isParagraphSeparator(uint32_t grapheme) const noexcept {
+    return m_impl && grapheme < graphemeCount() && m_impl->prepared.graphemes[grapheme].isParagraphSeparator;
 }
 
-CaretIndex PreparedDocument::caretFromCharacter(uint32_t character, CaretAffinity affinity) const noexcept {
+CaretIndex ShapedText::caretFromCharacter(uint32_t character, CaretAffinity affinity) const noexcept {
     return { characterToGrapheme(character), affinity };
 }
 
-uint32_t PreparedDocument::characterFromCaret(CaretIndex caret) const noexcept {
+uint32_t ShapedText::characterFromCaret(CaretIndex caret) const noexcept {
     return graphemeToCharacter(caret.grapheme);
 }
 
-DocumentLayout PreparedDocument::layout(const TextLayoutOptions& options) const {
+TextLayout ShapedText::layout(const TextLayoutOptions& options) const {
     if (!m_impl) {
-        return DocumentLayout{};
+        return TextLayout{};
     }
 
     const auto& document                      = *m_impl;
-    const TextLayout::TextAlignment alignment = toTextLayoutAlignment(options.alignment);
-    const TextLayout::LayoutUnit maxWidth =
+    const TextEngine::TextAlignment alignment = toTextLayoutAlignment(options.alignment);
+    const TextEngine::LayoutUnit maxWidth =
         m_impl->options && TextOptions::SingleLine
-            ? TextLayout::kInfinity
-            : (std::isfinite(options.maxLineWidth) ? TextLayout::fromFloat(options.maxLineWidth)
-                                                   : TextLayout::kInfinity);
-    const TextLayout::LayoutUnit indent = TextLayout::fromFloat(options.firstLineIndent);
-    const TextLayout::LayoutUnit tabInterval =
-        options.tabWidth > 0.f ? TextLayout::fromFloat(options.tabWidth) : document.defaultTabInterval;
-    const TextLayout::TabStops tabStops{ TextLayout::kZero, tabInterval };
-    const TextLayout::DocumentLayout engineLayout = TextLayout::layoutPreparedDocument(
-        document.prepared, std::span<const TextLayout::TextAlignment>(&alignment, 1), maxWidth, tabStops,
-        std::span<const TextLayout::LayoutUnit>(&indent, 1),
+            ? TextEngine::kInfinity
+            : (std::isfinite(options.maxLineWidth) ? TextEngine::fromFloat(options.maxLineWidth)
+                                                   : TextEngine::kInfinity);
+    const TextEngine::LayoutUnit indent = TextEngine::fromFloat(options.firstLineIndent);
+    const TextEngine::LayoutUnit tabInterval =
+        options.tabWidth > 0.f ? TextEngine::fromFloat(options.tabWidth) : document.defaultTabInterval;
+    const TextEngine::TabStops tabStops{ TextEngine::kZero, tabInterval };
+    const TextEngine::DocumentLayout engineLayout = TextEngine::layoutPreparedDocument(
+        document.prepared, std::span<const TextEngine::TextAlignment>(&alignment, 1), maxWidth, tabStops,
+        std::span<const TextEngine::LayoutUnit>(&indent, 1),
         options.allowBreakAnywhere || (m_impl->options && TextOptions::WrapAnywhere));
 
-    auto result           = std::make_shared<DocumentLayout::Impl>();
+    auto result           = std::make_shared<TextLayout::Impl>();
     result->document      = m_impl;
     result->layout        = engineLayout;
     result->bounds        = convertBounds(engineLayout);
-    result->trimmedBounds = RectangleF{ TextLayout::toFloat(engineLayout.horizontalTrimmedTextBounds.min),
-                                        TextLayout::toFloat(engineLayout.verticalTextBounds.min),
-                                        TextLayout::toFloat(engineLayout.horizontalTrimmedTextBounds.max),
-                                        TextLayout::toFloat(engineLayout.verticalTextBounds.max) };
-    return DocumentLayout(std::move(result));
+    result->trimmedBounds = RectangleF{ TextEngine::toFloat(engineLayout.horizontalTrimmedTextBounds.min),
+                                        TextEngine::toFloat(engineLayout.verticalTextBounds.min),
+                                        TextEngine::toFloat(engineLayout.horizontalTrimmedTextBounds.max),
+                                        TextEngine::toFloat(engineLayout.verticalTextBounds.max) };
+    return TextLayout(std::move(result));
 }
 
-DocumentLayout::DocumentLayout() : m_impl(std::make_shared<Impl>()) {}
+TextLayout::TextLayout() : m_impl(std::make_shared<Impl>()) {}
 
-DocumentLayout::~DocumentLayout()                                    = default;
+TextLayout::~TextLayout()                                = default;
 
-DocumentLayout::DocumentLayout(const DocumentLayout&)                = default;
+TextLayout::TextLayout(const TextLayout&)                = default;
 
-DocumentLayout& DocumentLayout::operator=(const DocumentLayout&)     = default;
+TextLayout& TextLayout::operator=(const TextLayout&)     = default;
 
-DocumentLayout::DocumentLayout(DocumentLayout&&) noexcept            = default;
+TextLayout::TextLayout(TextLayout&&) noexcept            = default;
 
-DocumentLayout& DocumentLayout::operator=(DocumentLayout&&) noexcept = default;
+TextLayout& TextLayout::operator=(TextLayout&&) noexcept = default;
 
-DocumentLayout::DocumentLayout(std::shared_ptr<const Impl> impl) : m_impl(std::move(impl)) {}
+TextLayout::TextLayout(std::shared_ptr<const Impl> impl) : m_impl(std::move(impl)) {}
 
-bool DocumentLayout::empty() const noexcept {
+bool TextLayout::empty() const noexcept {
     return !m_impl || m_impl->layout.lines.empty();
 }
 
-size_t DocumentLayout::lineCount() const noexcept {
+size_t TextLayout::lineCount() const noexcept {
     return m_impl ? m_impl->layout.lines.size() : 0;
 }
 
-DocumentLine DocumentLayout::line(size_t index) const noexcept {
+TextLine TextLayout::line(size_t index) const noexcept {
     if (!m_impl || index >= m_impl->layout.lines.size()) {
         return {};
     }
     return convertLine(m_impl->layout.lines[index]);
 }
 
-RectangleF DocumentLayout::bounds() const noexcept {
+RectangleF TextLayout::bounds() const noexcept {
     return m_impl ? m_impl->bounds : RectangleF{};
 }
 
-RectangleF DocumentLayout::trimmedBounds() const noexcept {
+RectangleF TextLayout::trimmedBounds() const noexcept {
     return m_impl ? m_impl->trimmedBounds : RectangleF{};
 }
 
-CaretPosition DocumentLayout::caretPosition(CaretIndex index) const noexcept {
+CaretPosition TextLayout::caretPosition(CaretIndex index) const noexcept {
     if (!m_impl || !m_impl->document) {
         return {};
     }
-    const TextLayout::CaretPosition result =
-        TextLayout::caretPosition(m_impl->document->prepared, m_impl->layout,
+    const TextEngine::CaretPosition result =
+        TextEngine::caretPosition(m_impl->document->prepared, m_impl->layout,
                                   { index.grapheme, index.affinity == CaretAffinity::Upstream
-                                                        ? TextLayout::CaretAffinity::Upstream
-                                                        : TextLayout::CaretAffinity::Downstream });
-    return { TextLayout::toFloat(result.x), result.line, result.level };
+                                                        ? TextEngine::CaretAffinity::Upstream
+                                                        : TextEngine::CaretAffinity::Downstream });
+    return { TextEngine::toFloat(result.x), result.line, result.level };
 }
 
-size_t DocumentLayout::lineForCaret(CaretIndex index) const noexcept {
+size_t TextLayout::lineForCaret(CaretIndex index) const noexcept {
     if (!m_impl || m_impl->layout.lines.empty() || !m_impl->document) {
         return 0;
     }
     index.grapheme = std::min(index.grapheme, m_impl->document->prepared.graphemeMap.graphemeCount());
-    const TextLayout::CaretPosition position =
-        TextLayout::caretPosition(m_impl->document->prepared, m_impl->layout,
+    const TextEngine::CaretPosition position =
+        TextEngine::caretPosition(m_impl->document->prepared, m_impl->layout,
                                   { index.grapheme, index.affinity == CaretAffinity::Upstream
-                                                        ? TextLayout::CaretAffinity::Upstream
-                                                        : TextLayout::CaretAffinity::Downstream });
+                                                        ? TextEngine::CaretAffinity::Upstream
+                                                        : TextEngine::CaretAffinity::Downstream });
     return position.line;
 }
 
-size_t DocumentLayout::lineForCharacter(uint32_t character, CaretAffinity affinity) const noexcept {
+size_t TextLayout::lineForCharacter(uint32_t character, CaretAffinity affinity) const noexcept {
     if (!m_impl || !m_impl->document) {
         return 0;
     }
@@ -567,7 +550,7 @@ size_t DocumentLayout::lineForCharacter(uint32_t character, CaretAffinity affini
     return lineForCaret({ m_impl->document->prepared.graphemeMap.toGrapheme(character), affinity });
 }
 
-CaretIndex DocumentLayout::lineBeginning(size_t line) const noexcept {
+CaretIndex TextLayout::lineBeginning(size_t line) const noexcept {
     if (!m_impl || line >= m_impl->layout.lines.size()) {
         return {};
     }
@@ -575,7 +558,7 @@ CaretIndex DocumentLayout::lineBeginning(size_t line) const noexcept {
     return { value.graphemeRange.min, CaretAffinity::Downstream };
 }
 
-CaretIndex DocumentLayout::lineEnd(size_t line) const noexcept {
+CaretIndex TextLayout::lineEnd(size_t line) const noexcept {
     if (!m_impl || line >= m_impl->layout.lines.size()) {
         return {};
     }
@@ -583,7 +566,7 @@ CaretIndex DocumentLayout::lineEnd(size_t line) const noexcept {
     return { value.graphemeRange.max, CaretAffinity::Upstream };
 }
 
-RectangleF DocumentLayout::caretRect(CaretIndex index, float width) const noexcept {
+RectangleF TextLayout::caretRect(CaretIndex index, float width) const noexcept {
     if (!m_impl || m_impl->layout.lines.empty()) {
         return {};
     }
@@ -591,38 +574,38 @@ RectangleF DocumentLayout::caretRect(CaretIndex index, float width) const noexce
     if (position.line >= m_impl->layout.lines.size()) {
         return {};
     }
-    const DocumentLine value = line(position.line);
+    const TextLine value    = line(position.line);
     const float halfLeading = value.leading * 0.5f;
     return RectangleF{ position.x, value.baseline - value.ascender - halfLeading, position.x + width,
-                       value.baseline + value.descender + halfLeading };
+                       value.baseline - value.descender + halfLeading };
 }
 
-CaretIndex DocumentLayout::hitTest(PointF point) const noexcept {
+CaretIndex TextLayout::hitTest(PointF point) const noexcept {
     if (!m_impl || !m_impl->document) {
         return {};
     }
-    const TextLayout::CaretIndex result =
-        TextLayout::hitTestPoint(m_impl->document->prepared, m_impl->layout, TextLayout::fromFloat(point.x),
-                                 TextLayout::fromFloat(point.y));
-    return { result.grapheme, result.affinity == TextLayout::CaretAffinity::Upstream
+    const TextEngine::CaretIndex result =
+        TextEngine::hitTestPoint(m_impl->document->prepared, m_impl->layout, TextEngine::fromFloat(point.x),
+                                 TextEngine::fromFloat(point.y));
+    return { result.grapheme, result.affinity == TextEngine::CaretAffinity::Upstream
                                   ? CaretAffinity::Upstream
                                   : CaretAffinity::Downstream };
 }
 
-CaretIndex DocumentLayout::hitTestLine(size_t line, float x) const noexcept {
+CaretIndex TextLayout::hitTestLine(size_t line, float x) const noexcept {
     if (!m_impl || line >= m_impl->layout.lines.size()) {
         return {};
     }
     const auto& value                   = m_impl->layout.lines[line];
-    const TextLayout::CaretIndex result = TextLayout::hitTestPoint(m_impl->document->prepared, m_impl->layout,
-                                                                   TextLayout::fromFloat(x), value.baselineY);
-    return { result.grapheme, result.affinity == TextLayout::CaretAffinity::Upstream
+    const TextEngine::CaretIndex result = TextEngine::hitTestPoint(m_impl->document->prepared, m_impl->layout,
+                                                                   TextEngine::fromFloat(x), value.baselineY);
+    return { result.grapheme, result.affinity == TextEngine::CaretAffinity::Upstream
                                   ? CaretAffinity::Upstream
                                   : CaretAffinity::Downstream };
 }
 
-CaretIndex DocumentLayout::moveCaretVertically(CaretIndex current, float preferredX,
-                                               int direction) const noexcept {
+CaretIndex TextLayout::moveCaretVertically(CaretIndex current, float preferredX,
+                                           int direction) const noexcept {
     if (!m_impl || m_impl->layout.lines.empty() || direction == 0) {
         return current;
     }
@@ -632,21 +615,21 @@ CaretIndex DocumentLayout::moveCaretVertically(CaretIndex current, float preferr
     return hitTestLine(targetLine, preferredX);
 }
 
-void DocumentLayout::selectionRects(Range<uint32_t> selection,
-                                    function_ref<void(const TextSelectionRect&)> onRect) const {
+void TextLayout::selectionRects(Range<uint32_t> selection,
+                                function_ref<void(const TextSelectionRect&)> onRect) const {
     if (!m_impl || !m_impl->document) {
         return;
     }
-    TextLayout::selectionRects(m_impl->document->prepared, m_impl->layout,
-                               TextLayout::GraphemeRange{ selection.min, selection.max },
-                               [&](const TextLayout::SelectionRect& rect) {
-                                   onRect(TextSelectionRect{ rect.line, TextLayout::toFloat(rect.x0),
-                                                             TextLayout::toFloat(rect.x1) });
+    TextEngine::selectionRects(m_impl->document->prepared, m_impl->layout,
+                               TextEngine::GraphemeRange{ selection.min, selection.max },
+                               [&](const TextEngine::SelectionRect& rect) {
+                                   onRect(TextSelectionRect{ rect.line, TextEngine::toFloat(rect.x0),
+                                                             TextEngine::toFloat(rect.x1) });
                                });
 }
 
-void DocumentLayout::selectionRectsByCharacter(Range<uint32_t> selection,
-                                               function_ref<void(const TextSelectionRect&)> onRect) const {
+void TextLayout::selectionRectsByCharacter(Range<uint32_t> selection,
+                                           function_ref<void(const TextSelectionRect&)> onRect) const {
     if (!m_impl || !m_impl->document) {
         return;
     }
@@ -845,7 +828,7 @@ static void* createFreeTypeLibrary() {
 
 FontManager::FontManager(std::recursive_mutex* mutex, int hscale)
     : m_lock(mutex), m_ft_library(createFreeTypeLibrary()),
-      m_textLayout(std::make_shared<Internal::TextLayoutState>(
+      m_textEngine(std::make_shared<Internal::TextEngineState>(
           std::make_shared<Internal::SharedLibraryOwner>(m_ft_library), hscale)),
       m_hscale(hscale) {
 
@@ -859,41 +842,37 @@ FontManager::FontManager(std::recursive_mutex* mutex, int hscale)
 }
 
 FontManager::~FontManager() {
-    m_textLayout.reset();
+    m_textEngine.reset();
 }
 
 static void loadTextLayoutGlyphRun(
-    const PreparedDocument::Impl& pdocument, uint32_t preparedRunIndex, GlyphCache* glyphCache,
+    const ShapedText::Impl& pdocument, uint32_t preparedRunIndex, GlyphCache* glyphCache,
     function_ref<void(uint32_t, const Internal::TextLayoutGlyphBitmap&)> onGlyph) {
     if (preparedRunIndex >= pdocument.prepared.glyphRuns.size()) {
         return;
     }
 
-    const TextLayout::GlyphRun& run = pdocument.prepared.glyphRuns[preparedRunIndex];
+    const TextEngine::GlyphRun& run = pdocument.prepared.glyphRuns[preparedRunIndex];
     if (!run.fontHandle || !pdocument.state || !pdocument.state->database) {
         return;
     }
-    const TextLayout::RasterizationOptions options{
+    const TextEngine::RasterizationOptions options{
         .horizontalScale = pdocument.state->hscale,
         .enableColor     = true,
     };
-    TextLayout::ActiveFont activeFont = pdocument.state->database->activate(run.fontHandle);
+    TextEngine::ActiveFont activeFont = pdocument.state->database->activate(run.fontHandle);
     if (activeFont.ftFace == nullptr) {
         return;
     }
-    FT_Face face                     = static_cast<FT_Face>(activeFont.ftFace);
-    const bool colorFont             = options.enableColor && (FT_HAS_SVG(face) || FT_HAS_COLOR(face));
-    const GlyphRenderMode renderMode = colorFont ? GlyphRenderMode::Color : GlyphRenderMode::Mask;
-    const int effectiveScale         = colorFont ? 1 : options.horizontalScale;
     for (uint32_t preparedGlyphIndex = run.glyphRange.min; preparedGlyphIndex < run.glyphRange.max;
          ++preparedGlyphIndex) {
         const uint32_t glyphId = pdocument.prepared.glyphs[preparedGlyphIndex].glyphId;
 
         auto createGlyph       = [&]() -> std::optional<CachedGlyph> {
             std::optional<CachedGlyph> result;
-            std::ignore = TextLayout::rasterize(
+            std::ignore = TextEngine::rasterize(
                 activeFont, run.fontHandle, glyphId, options,
-                [&](const TextLayout::RasterizedGlyph& glyph, const uint8_t* pixels) {
+                [&](const TextEngine::RasterizedGlyph& glyph, const uint8_t* pixels) {
                     const uint32_t components = glyph.bytesPerPixel;
                     const Size spriteSize{ static_cast<int32_t>(glyph.width * components),
                                            static_cast<int32_t>(glyph.height) };
@@ -910,12 +889,11 @@ static void loadTextLayoutGlyphRun(
                     }
                     result = CachedGlyph{
                         .size            = spriteSize,
-                        .logicalSize     = { static_cast<int32_t>(glyph.width / glyph.horizontalScale),
-                                             static_cast<int32_t>(glyph.height) },
+                        .height          = glyph.height,
                         .sprite          = std::move(sprite),
-                        .offsetX         = static_cast<float>(glyph.left) / glyph.horizontalScale,
+                        .offsetX         = glyph.left,
                         .offsetY         = glyph.top,
-                        .renderMode      = glyph.format == TextLayout::RasterizedGlyph::Format::BGRA8
+                        .renderMode      = glyph.format == TextEngine::RasterizedGlyph::Format::BGRA8
                                                ? GlyphRenderMode::Color
                                                : GlyphRenderMode::Mask,
                         .horizontalScale = glyph.horizontalScale,
@@ -924,14 +902,13 @@ static void loadTextLayoutGlyphRun(
             return result;
         };
 
-        const ::Brisk::GlyphCacheKey key{ activeFont.instanceId, glyphId,
-                                          static_cast<uint16_t>(effectiveScale), renderMode };
+        const GlyphCacheKey key{ activeFont.instanceId, glyphId };
         std::optional<CachedGlyph> cached =
             glyphCache ? glyphCache->getOrCreate(key, createGlyph) : createGlyph();
         if (cached) {
             onGlyph(preparedGlyphIndex, Internal::TextLayoutGlyphBitmap{
                                             .size            = cached->size,
-                                            .logicalSize     = cached->logicalSize,
+                                            .height          = cached->height,
                                             .sprite          = cached->sprite,
                                             .offsetX         = cached->offsetX,
                                             .offsetY         = cached->offsetY,
@@ -943,29 +920,29 @@ static void loadTextLayoutGlyphRun(
 }
 
 void Internal::loadTextLayoutGlyphRun(
-    const PreparedDocument& document, uint32_t preparedRunIndex, GlyphCache* glyphCache,
+    const ShapedText& shapedText, uint32_t preparedRunIndex, GlyphCache* glyphCache,
     function_ref<void(uint32_t, const Internal::TextLayoutGlyphBitmap&)> onGlyph) {
-    const PreparedDocument::Impl* pdocument = PimplAccessor::getImpl(document);
+    const ShapedText::Impl* pdocument = PimplAccessor::getImpl(shapedText);
     if (!pdocument) {
         return;
     }
     loadTextLayoutGlyphRun(*pdocument, preparedRunIndex, glyphCache, onGlyph);
 }
 
-void Internal::forEachTextLayoutGlyph(const DocumentLayout& layout, PointF origin,
+void Internal::forEachTextLayoutGlyph(const TextLayout& layout, PointF origin,
                                       function_ref<void(const Internal::TextLayoutGlyph&)> onGlyph) {
-    const DocumentLayout::Impl* playout = PimplAccessor::getImpl(layout);
+    const TextLayout::Impl* playout = PimplAccessor::getImpl(layout);
     if (!playout || !playout->document || !playout->document->state) {
         return;
     }
 
-    const PreparedDocument::Impl& document = *playout->document;
-    for (const TextLayout::LayoutGlyphRun& layoutRun : playout->layout.glyphRuns) {
+    const ShapedText::Impl& document = *playout->document;
+    for (const TextEngine::LayoutGlyphRun& layoutRun : playout->layout.glyphRuns) {
         if (layoutRun.glyphRange.empty() ||
             layoutRun.preparedRunIndex >= document.prepared.glyphRuns.size()) {
             continue;
         }
-        const TextLayout::GlyphRun& preparedRun    = document.prepared.glyphRuns[layoutRun.preparedRunIndex];
+        const TextEngine::GlyphRun& preparedRun    = document.prepared.glyphRuns[layoutRun.preparedRunIndex];
         const Internal::PreparedRenderStyle* style = preparedRun.fontRunIndex < document.renderStyles.size()
                                                          ? &document.renderStyles[preparedRun.fontRunIndex]
                                                          : nullptr;
@@ -976,10 +953,10 @@ void Internal::forEachTextLayoutGlyph(const DocumentLayout& layout, PointF origi
                     glyphIndex >= document.prepared.glyphs.size()) {
                     return;
                 }
-                const TextLayout::Glyph& glyph = document.prepared.glyphs[glyphIndex];
+                const TextEngine::Glyph& glyph = document.prepared.glyphs[glyphIndex];
                 onGlyph(Internal::TextLayoutGlyph{
-                    .position = origin + PointF{ TextLayout::toFloat(layoutRun.xOffset + glyph.xOffset),
-                                                 TextLayout::toFloat(layoutRun.yOffset + glyph.yOffset) },
+                    .position = origin + PointF{ TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset),
+                                                 TextEngine::toFloat(layoutRun.yOffset + glyph.yOffset) },
                     .bitmap   = bitmap,
                     .color = style && style->hasColor ? std::optional<Color>{ style->color } : std::nullopt,
                 });
@@ -988,20 +965,20 @@ void Internal::forEachTextLayoutGlyph(const DocumentLayout& layout, PointF origi
 }
 
 void Internal::forEachTextLayoutDecoration(
-    const DocumentLayout& layout, PointF origin,
+    const TextLayout& layout, PointF origin,
     function_ref<void(const Internal::TextLayoutDecoration&)> onDecoration) {
-    const DocumentLayout::Impl* playout = PimplAccessor::getImpl(layout);
+    const TextLayout::Impl* playout = PimplAccessor::getImpl(layout);
     if (!playout || !playout->document || !playout->document->state) {
         return;
     }
 
-    const PreparedDocument::Impl& document = *playout->document;
-    for (const TextLayout::LayoutGlyphRun& layoutRun : playout->layout.glyphRuns) {
+    const ShapedText::Impl& document = *playout->document;
+    for (const TextEngine::LayoutGlyphRun& layoutRun : playout->layout.glyphRuns) {
         if (layoutRun.glyphRange.empty() ||
             layoutRun.preparedRunIndex >= document.prepared.glyphRuns.size()) {
             continue;
         }
-        const TextLayout::GlyphRun& preparedRun = document.prepared.glyphRuns[layoutRun.preparedRunIndex];
+        const TextEngine::GlyphRun& preparedRun = document.prepared.glyphRuns[layoutRun.preparedRunIndex];
         if (preparedRun.fontRunIndex >= document.renderStyles.size()) {
             continue;
         }
@@ -1017,9 +994,9 @@ void Internal::forEachTextLayoutDecoration(
             if (glyphIndex >= document.prepared.glyphs.size()) {
                 break;
             }
-            const TextLayout::Glyph& glyph = document.prepared.glyphs[glyphIndex];
-            const float glyphLeft          = TextLayout::toFloat(layoutRun.xOffset + glyph.xOffset);
-            const float glyphRight = TextLayout::toFloat(layoutRun.xOffset + glyph.xOffset + glyph.xAdvance);
+            const TextEngine::Glyph& glyph = document.prepared.glyphs[glyphIndex];
+            const float glyphLeft          = TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset);
+            const float glyphRight = TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset + glyph.xAdvance);
             left                   = std::min(left, std::min(glyphLeft, glyphRight));
             right                  = std::max(right, std::max(glyphLeft, glyphRight));
         }
@@ -1027,21 +1004,21 @@ void Internal::forEachTextLayoutDecoration(
             continue;
         }
 
-        const TextLayout::ExtendedMetrics metrics =
-            TextLayout::getExtendedMetrics(document.state->database.get(), preparedRun.fontHandle);
-        const float ascent            = TextLayout::toFloat(preparedRun.metrics.ascent);
-        const float descent           = TextLayout::toFloat(preparedRun.metrics.descent);
-        const float underlineOffset   = metrics.underlinePosition != TextLayout::kZero
-                                            ? TextLayout::toFloat(metrics.underlinePosition)
-                                            : descent * 0.5f;
+        const TextEngine::ExtendedMetrics metrics =
+            TextEngine::getExtendedMetrics(document.state->database.get(), preparedRun.fontHandle);
+        const float ascent            = TextEngine::toFloat(preparedRun.metrics.ascent);
+        const float descent           = TextEngine::toFloat(preparedRun.metrics.descent);
+        const float underlineOffset   = metrics.underlinePosition != TextEngine::kZero
+                                            ? TextEngine::toFloat(metrics.underlinePosition)
+                                            : -descent * 0.5f;
         const float overlineOffset    = -ascent * 0.84375f;
         const float lineThroughOffset = (underlineOffset + overlineOffset) * 0.5f;
-        const float thickness         = metrics.lineThickness != TextLayout::kZero
-                                            ? TextLayout::toFloat(metrics.lineThickness)
-                                            : std::max(1.f, descent * 0.125f);
+        const float thickness         = metrics.lineThickness != TextEngine::kZero
+                                            ? TextEngine::toFloat(metrics.lineThickness)
+                                            : std::max(1.f, -descent * 0.125f);
         onDecoration(Internal::TextLayoutDecoration{
-            .start             = origin + PointF{ left, TextLayout::toFloat(layoutRun.yOffset) },
-            .end               = origin + PointF{ right, TextLayout::toFloat(layoutRun.yOffset) },
+            .start             = origin + PointF{ left, TextEngine::toFloat(layoutRun.yOffset) },
+            .end               = origin + PointF{ right, TextEngine::toFloat(layoutRun.yOffset) },
             .underlineOffset   = underlineOffset,
             .overlineOffset    = overlineOffset,
             .lineThroughOffset = lineThroughOffset,
@@ -1052,37 +1029,37 @@ void Internal::forEachTextLayoutDecoration(
     }
 }
 
-void Internal::textLayoutSelectionRects(const DocumentLayout& layout, Range<uint32_t> characterSelection,
+void Internal::textLayoutSelectionRects(const TextLayout& layout, Range<uint32_t> characterSelection,
                                         function_ref<void(const ::Brisk::TextSelectionRect&)> onRect) {
-    const DocumentLayout::Impl* playout = PimplAccessor::getImpl(layout);
+    const TextLayout::Impl* playout = PimplAccessor::getImpl(layout);
     if (!playout || !playout->document) {
         return;
     }
-    const PreparedDocument::Impl& document = *playout->document;
-    const uint32_t characterCount          = document.prepared.graphemeMap.codepointCount();
-    characterSelection.min                 = std::min(characterSelection.min, characterCount);
-    characterSelection.max                 = std::min(characterSelection.max, characterCount);
+    const ShapedText::Impl& document = *playout->document;
+    const uint32_t characterCount    = document.prepared.graphemeMap.codepointCount();
+    characterSelection.min           = std::min(characterSelection.min, characterCount);
+    characterSelection.max           = std::min(characterSelection.max, characterCount);
     if (characterSelection.min >= characterSelection.max) {
         return;
     }
-    const TextLayout::GraphemeRange selection{
+    const TextEngine::GraphemeRange selection{
         document.prepared.graphemeMap.toGrapheme(characterSelection.min),
         document.prepared.graphemeMap.toGrapheme(characterSelection.max),
     };
-    TextLayout::selectionRects(document.prepared, playout->layout, selection,
-                               [&](const TextLayout::SelectionRect& rect) {
-                                   onRect(::Brisk::TextSelectionRect{ rect.line, TextLayout::toFloat(rect.x0),
-                                                                      TextLayout::toFloat(rect.x1) });
+    TextEngine::selectionRects(document.prepared, playout->layout, selection,
+                               [&](const TextEngine::SelectionRect& rect) {
+                                   onRect(::Brisk::TextSelectionRect{ rect.line, TextEngine::toFloat(rect.x0),
+                                                                      TextEngine::toFloat(rect.x1) });
                                });
 }
 
 template <typename Pixels>
-static void renderGlyphs(Pixels& pixels, Rc<Image> image, Point origin, const PreparedDocument& document,
-                         const DocumentLayout& layout, bool rgba) {
-    const PreparedDocument::Impl* pdocument = PimplAccessor::getImpl(document);
-    const DocumentLayout::Impl* playout     = PimplAccessor::getImpl(layout);
-    using PixelType                         = std::remove_cvref_t<decltype(pixels(0, 0))>;
-    for (const TextLayout::LayoutGlyphRun& layoutRun : playout->layout.glyphRuns) {
+static void renderGlyphs(Pixels& pixels, Rc<Image> image, Point origin, const ShapedText& shapedText,
+                         const TextLayout& layout, bool rgba) {
+    const ShapedText::Impl* pdocument = PimplAccessor::getImpl(shapedText);
+    const TextLayout::Impl* playout   = PimplAccessor::getImpl(layout);
+    using PixelType                   = std::remove_cvref_t<decltype(pixels(0, 0))>;
+    for (const TextEngine::LayoutGlyphRun& layoutRun : playout->layout.glyphRuns) {
         if (layoutRun.glyphRange.empty() ||
             layoutRun.preparedRunIndex >= pdocument->prepared.glyphRuns.size()) {
             continue;
@@ -1091,22 +1068,23 @@ static void renderGlyphs(Pixels& pixels, Rc<Image> image, Point origin, const Pr
         // Rasterize and blit the whole glyph run at once; the font is activated
         // a single time per run inside loadTextLayoutGlyphRun.
         Internal::loadTextLayoutGlyphRun(
-            document, layoutRun.preparedRunIndex, pdocument->state->glyphCache.get(),
+            shapedText, layoutRun.preparedRunIndex, pdocument->state->glyphCache.get(),
             [&](uint32_t glyphIndex, const Internal::TextLayoutGlyphBitmap& bitmap) {
                 if (glyphIndex < layoutRun.glyphRange.min || glyphIndex >= layoutRun.glyphRange.max ||
                     !bitmap.sprite || bitmap.color != rgba) {
                     return;
                 }
-                const TextLayout::Glyph& glyph = pdocument->prepared.glyphs[glyphIndex];
-                const PointF glyphOrigin{ TextLayout::toFloat(layoutRun.xOffset + glyph.xOffset) + origin.x,
-                                          TextLayout::toFloat(layoutRun.yOffset + glyph.yOffset) + origin.y };
-                const PointF topLeft      = glyphOrigin + PointF{ bitmap.offsetX, -float(bitmap.offsetY) };
-                const int x0              = static_cast<int>(std::floor(topLeft.x));
-                const int y0              = static_cast<int>(std::floor(topLeft.y));
-                const auto source         = bitmap.sprite->bytes();
-                const int sourceWidth     = bitmap.sprite->size.width / (bitmap.color ? 4 : 1);
+                const TextEngine::Glyph& glyph = pdocument->prepared.glyphs[glyphIndex];
+                const PointF glyphOrigin{ TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset) + origin.x,
+                                          TextEngine::toFloat(layoutRun.yOffset + glyph.yOffset) + origin.y };
+                const PointF topLeft  = glyphOrigin + PointF{ float(bitmap.offsetX) / bitmap.horizontalScale,
+                                                              -float(bitmap.offsetY) };
+                const int x0          = static_cast<int>(std::floor(topLeft.x));
+                const int y0          = static_cast<int>(std::floor(topLeft.y));
+                const auto source     = bitmap.sprite->bytes();
+                const int sourceWidth = bitmap.sprite->size.width / (bitmap.color ? 4 : 1);
                 const size_t sourceStride = static_cast<size_t>(bitmap.sprite->size.width);
-                for (int y = 0; y < bitmap.logicalSize.height; ++y) {
+                for (int y = 0; y < bitmap.height; ++y) {
                     const int dstY = y0 + y;
                     if (dstY < 0 || dstY >= image->height()) {
                         continue;
@@ -1141,54 +1119,35 @@ static void renderGlyphs(Pixels& pixels, Rc<Image> image, Point origin, const Pr
     }
 }
 
-void Internal::renderPreparedDocument(Rc<Image> image, Point origin, const PreparedDocument& document,
-                                      const DocumentLayout& layout) {
-    const PreparedDocument::Impl* pdocument = PimplAccessor::getImpl(document);
-    const DocumentLayout::Impl* playout     = PimplAccessor::getImpl(layout);
+void Internal::renderPreparedDocument(Rc<Image> image, Point origin, const ShapedText& shapedText,
+                                      const TextLayout& layout) {
+    const ShapedText::Impl* pdocument = PimplAccessor::getImpl(shapedText);
+    const TextLayout::Impl* playout   = PimplAccessor::getImpl(layout);
     if (!image || !pdocument || !playout || playout->document.get() != pdocument) {
         return;
     }
     const bool rgba = image->format() == ImageFormat::RGBA_U8Gamma;
     if (rgba) {
         auto pixels = image->mapWrite<ImageFormat::RGBA_U8Gamma>();
-        renderGlyphs(pixels, image, origin, document, layout, rgba);
+        renderGlyphs(pixels, image, origin, shapedText, layout, rgba);
     } else {
         auto pixels = image->mapWrite<ImageFormat::Greyscale_U8Gamma>();
-        renderGlyphs(pixels, image, origin, document, layout, rgba);
+        renderGlyphs(pixels, image, origin, shapedText, layout, rgba);
     }
 }
 
-void Internal::registerTextLayoutFont(FontManager& manager, BytesView data, std::string_view alias) {
-    lock_quard_cond lk(manager.m_lock);
-    if (!manager.m_textLayout || data.empty()) {
-        return;
-    }
-
-    auto bytes = std::make_shared<const Bytes>(data.begin(), data.end());
-    manager.m_textLayout->fontBlobs.push_back(bytes);
-    const std::vector<std::string> families = manager.m_textLayout->database->registerFont(*bytes);
-    if (!alias.empty()) {
-        for (const std::string& family : families) {
-            if (alias != family) {
-                std::ignore = manager.m_textLayout->database->addAlias(family, alias);
-            }
-        }
-    }
-}
-
-PreparedDocument FontManager::prepareDocument(const Font& font, const TextWithOptions& text) const {
+ShapedText FontManager::shapeText(const Font& font, const TextWithOptions& text) const {
     const FontAndColor fontAndColor{ font, std::nullopt };
     if (!text.richText.empty()) {
         RichText richText = text.richText;
         richText.setBaseFont(font);
-        return prepareDocument(text, richText.fonts, richText.offsets);
+        return shapeText(text, richText.fonts, richText.offsets);
     }
-    return prepareDocument(text, std::span<const FontAndColor>(&fontAndColor, 1), {});
+    return shapeText(text, std::span<const FontAndColor>(&fontAndColor, 1), {});
 }
 
-PreparedDocument FontManager::prepareDocument(const TextWithOptions& text,
-                                              std::span<const FontAndColor> sourceFonts,
-                                              std::span<const uint32_t> offsets) const {
+ShapedText FontManager::shapeText(const TextWithOptions& text, std::span<const FontAndColor> sourceFonts,
+                                  std::span<const uint32_t> offsets) const {
     if (sourceFonts.empty()) {
         throwException(EArgument("At least one font is required to prepare a document"));
     }
@@ -1196,8 +1155,8 @@ PreparedDocument FontManager::prepareDocument(const TextWithOptions& text,
     lock_quard_cond lk(m_lock);
     std::vector<FontAndColor> fontsCopy(sourceFonts.begin(), sourceFonts.end());
     std::vector<uint32_t> offsetsCopy(offsets.begin(), offsets.end());
-    auto result = createPreparedDocument(m_textLayout, text, fontsCopy, offsetsCopy);
-    return PreparedDocument(std::move(result));
+    auto result = createPreparedDocument(m_textEngine, text, fontsCopy, offsetsCopy);
+    return ShapedText(std::move(result));
 }
 
 std::vector<std::string_view> FontManager::fontList(std::string_view ff) const {
@@ -1228,14 +1187,14 @@ void FontManager::addFontImpl(BytesView data, std::string alias, bool makeCopy) 
     }
 
     if (makeCopy) {
-        m_textLayout->fontBlobs.push_back(std::make_shared<const Bytes>(data.begin(), data.end()));
-        data = *m_textLayout->fontBlobs.back();
+        m_textEngine->fontBlobs.push_back(std::make_shared<const Bytes>(data.begin(), data.end()));
+        data = *m_textEngine->fontBlobs.back();
     }
 
-    const std::vector<std::string> registeredFamilies = m_textLayout->database->registerFont(data);
+    const std::vector<std::string> registeredFamilies = m_textEngine->database->registerFont(data);
     for (const std::string& family : registeredFamilies) {
         if (!alias.empty() && alias != family) {
-            std::ignore = m_textLayout->database->addAlias(family, alias);
+            std::ignore = m_textEngine->database->addAlias(family, alias);
         }
     }
 }
@@ -1363,22 +1322,51 @@ FontMetrics FontManager::metrics(const Font& font) const {
 }
 
 FontMetrics FontManager::getMetrics(const Font& font) const {
-    ConvertedFont cvtFont = convertFont(font, m_textLayout->database);
-    auto fontHandle       = m_textLayout->database->resolveFont(cvtFont.definition);
-    TextLayout::VerticalMetrics metrics =
-        TextLayout::getVerticalMetrics(m_textLayout->database.get(), fontHandle);
-    TextLayout::ExtendedMetrics extendedMetrics =
-        TextLayout::getExtendedMetrics(m_textLayout->database.get(), fontHandle);
+    ConvertedFont cvtFont = convertFont(font, m_textEngine->database);
+    auto fontHandle       = m_textEngine->database->resolveFont(cvtFont.definition);
+    TextEngine::VerticalMetrics metrics =
+        TextEngine::getVerticalMetrics(m_textEngine->database.get(), fontHandle);
+    TextEngine::ExtendedMetrics extendedMetrics =
+        TextEngine::getExtendedMetrics(m_textEngine->database.get(), fontHandle);
     return FontMetrics{
         .size          = font.fontSize,
-        .ascender      = TextLayout::toFloat(metrics.ascent),
-        .descender     = -TextLayout::toFloat(metrics.descent),
-        .height        = TextLayout::toFloat(metrics.height()),
-        .spaceAdvanceX = TextLayout::toFloat(extendedMetrics.spaceAdvanceX),
-        .lineThickness = TextLayout::toFloat(extendedMetrics.lineThickness),
-        .xHeight       = TextLayout::toFloat(extendedMetrics.xHeight),
-        .capitalHeight = TextLayout::toFloat(extendedMetrics.capitalHeight),
+        .ascender      = TextEngine::toFloat(metrics.ascent),
+        .descender     = TextEngine::toFloat(metrics.descent),
+        .height        = TextEngine::toFloat(metrics.height()),
+        .spaceAdvanceX = TextEngine::toFloat(extendedMetrics.spaceAdvanceX),
+        .lineThickness = TextEngine::toFloat(extendedMetrics.lineThickness),
+        .xHeight       = TextEngine::toFloat(extendedMetrics.xHeight),
+        .capitalHeight = TextEngine::toFloat(extendedMetrics.capitalHeight),
     };
+}
+
+void FontManager::setGlyphCacheMemoryBudget(size_t bytes) {
+    lock_quard_cond lk(m_lock);
+    m_textEngine->glyphCache->setMemoryBudget(bytes);
+}
+
+void FontManager::clearGlyphCache() {
+    lock_quard_cond lk(m_lock);
+    m_textEngine->glyphCache->clear();
+}
+
+void FontManager::lock() const noexcept {
+    if (m_lock) {
+        m_lock->lock();
+    }
+}
+
+bool FontManager::try_lock() const noexcept {
+    if (m_lock) {
+        return m_lock->try_lock();
+    }
+    return true;
+}
+
+void FontManager::unlock() const noexcept {
+    if (m_lock) {
+        m_lock->unlock();
+    }
 }
 
 float FontMetrics::linegap() const noexcept {
@@ -1600,7 +1588,6 @@ std::optional<std::pair<std::u32string, RichText>> RichText::fromHtml(std::strin
 }
 
 } // namespace Internal
-
 
 Font Font::operator()(FontWeight weight) const {
     Font result   = *this;

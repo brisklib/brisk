@@ -243,7 +243,7 @@ bool PlatformWindow::cursorInContentArea() const {
     glfwGetCursorPos(m_data->win, &cur.x, &cur.y);
     glfwGetWindowSize(m_data->win, &size.x, &size.y);
     glfwGetWindowPos(m_data->win, &pos.x, &pos.y);
-    return RectangleF(pos, size).contains(PointF(cur.x));
+    return RectangleF(pos, size).contains(PointF(cur));
 }
 
 namespace Internal {

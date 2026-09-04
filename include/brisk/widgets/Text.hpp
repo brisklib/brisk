@@ -73,7 +73,7 @@ protected:
     };
 
     struct Cached {
-        PreparedDocument document;
+        ShapedText shapedText;
     };
 
     struct CacheKey2 {
@@ -84,7 +84,7 @@ protected:
 
     struct Cached2 {
         SizeF textSize;
-        DocumentLayout layout;
+        TextLayout layout;
     };
 
     Cached updateCache(const CacheKey&);

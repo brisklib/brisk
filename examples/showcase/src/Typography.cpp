@@ -129,7 +129,7 @@ Rc<Widget> emojiWidget(std::u32string str) {
         textAlign         = TextAlign::Center,
         textVerticalAlign = TextAlign::Center,
         onClick           = staticLifetime |
-                  [str] {
+                            [str] {
                       std::string text;
                       for (char32_t ch : str) {
                           if (ch > U'\uFFFF')
@@ -180,7 +180,7 @@ static Builder iconsBuilder() {
                     fontSize          = iconFontSize,
                     dimensions        = { 36, 36 },
                     onClick           = staticLifetime |
-                              [ch] {
+                                        [ch] {
                                   Clipboard::setText(fmt::format("\\u{:04X}", uint32_t(ch)));
                               },
                 });
@@ -237,9 +237,12 @@ Rc<Widget> ShowcaseTypography::build(Rc<Notifications> notifications, Value<bool
         rcnew VLayout{
             rcnew Text{
                 "gΥφ fi fl3.14 1/3 LT",
-                fontSize       = 40,
-                fontFamily     = "Lato",
-                fontFeatures   = Value{ &m_fontFeatures },
+                fontSize     = 40,
+                fontFamily   = "Lato",
+                fontFeatures = Value{ &m_fontFeatures }.transform(
+                    [](const std::array<OpenTypeFeatureFlag, 4>& features) -> OpenTypeFeatureFlags {
+                        return { features[0], features[1], features[2], features[3] };
+                    }),
                 letterSpacing  = Value{ &m_letterSpacing },
                 wordSpacing    = Value{ &m_wordSpacing },
                 textDecoration = Value{ &m_textDecoration },

@@ -24,28 +24,9 @@
 #include <stdexcept>
 #include <algorithm>
 #include "Throw.hpp"
+#include "lexicographical_compare_three_way.hpp"
 
 namespace Brisk {
-
-namespace Internal {
-
-#if defined _LIBCPP_VERSION && _LIBCPP_VERSION < 170000
-template <typename It1, typename It2, typename Cmp>
-constexpr auto lexicographical_compare_three_way(It1 f1, It1 l1, It2 f2, It2 l2, Cmp cmp)
-    -> decltype(cmp(*f1, *f2)) {
-
-    bool empty1 = (f1 == l1);
-    bool empty2 = (f2 == l2);
-    for (; !empty1 && !empty2; empty1 = (++f1 == l1), empty2 = (++f2 == l2))
-        if (auto c = cmp(*f1, *f2); c != 0)
-            return c;
-
-    return !empty1   ? std::strong_ordering::greater
-           : !empty2 ? std::strong_ordering::less
-                     : std::strong_ordering::equal;
-}
-#endif
-} // namespace Internal
 
 /**
  * @brief A resizeable vector-like container with fixed capacity.
@@ -230,13 +211,8 @@ struct inline_vector {
 
     constexpr std::strong_ordering operator<=>(const inline_vector& other) const
         noexcept(noexcept(std::declval<T>() <=> std::declval<T>())) {
-#if defined _LIBCPP_VERSION && _LIBCPP_VERSION < 170000
-        return Internal::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end(),
-                                                           std::compare_three_way{});
-#else
-        return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end(),
-                                                      std::compare_three_way{});
-#endif
+        return BRISK_LEXICOGRAPHICAL_COMPARE_THREE_WAY(begin(), end(), other.begin(), other.end(),
+                                                       std::compare_three_way{});
     }
 
     T m_values[N]{};

@@ -7,7 +7,7 @@
 
 #include <brisk/core/BasicTypes.hpp>
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
 
 /**
  * @brief Abstract base class for Unicode text boundary iterators.
@@ -300,4 +300,4 @@ private:
     size_t m_currentRunIndex{ 0 };
 };
 
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine

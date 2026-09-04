@@ -108,11 +108,11 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications, Value<bool> g
                     rcnew Viewport{
                         [](Canvas& canvas, Rectangle rect) {
                             canvas.setFillColor(Palette::Standard::amber);
-                            const PreparedDocument text = fonts->prepareDocument(
-                                Font{ Font::DefaultPlusIconsEmoji, dp(18) },
-                                TextWithOptions{ "This text is rendered dynamically." });
-                            const DocumentLayout layout = text.layout();
-                            float x = fract(currentTime() * 0.1) * layout.bounds().width();
+                            const ShapedText text =
+                                fonts->shapeText(Font{ Font::DefaultPlusIconsEmoji, dp(18) },
+                                                 TextWithOptions{ "This text is rendered dynamically." });
+                            const TextLayout layout = text.layout();
+                            float x                 = fract(currentTime() * 0.1) * layout.bounds().width();
                             const PointF position{ -x, float(rect.center().y) };
                             canvas.fillText(position, { 0.f, 0.5f }, layout);
                             canvas.fillText(position + PointF{ layout.bounds().width(), 0.f }, { 0.f, 0.5f },
@@ -157,7 +157,7 @@ Rc<Widget> ShowcaseButtons::build(Rc<Notifications> notifications, Value<bool> g
                     repeatDelay    = 0.2,
                     repeatInterval = 0.2,
                     onClick        = lifetime() |
-                              [this] {
+                                     [this] {
                                   m_clicked++;
                                   bindings->notify(&m_clicked);
                               },

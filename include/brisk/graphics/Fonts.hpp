@@ -35,57 +35,9 @@
 #include <optional>
 #include <span>
 #include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/Lock.hpp>
 
 namespace Brisk {
-
-/// Identifies the pixel format produced for a cached glyph.
-enum class GlyphRenderMode : uint8_t {
-    Mask,
-    Color,
-};
-
-/// Identifies one renderer-ready glyph bitmap in a glyph cache.
-struct GlyphCacheKey {
-    uint64_t fontInstanceId{};
-    uint32_t glyphId{};
-    uint16_t horizontalScale{};
-    GlyphRenderMode renderMode                           = GlyphRenderMode::Mask;
-
-    bool operator==(const GlyphCacheKey&) const noexcept = default;
-};
-
-/// Renderer-ready glyph bitmap and its placement metadata.
-struct CachedGlyph {
-    Size size;
-    Size logicalSize;
-    Rc<SpriteResource> sprite;
-    float offsetX{};
-    int offsetY{};
-    GlyphRenderMode renderMode = GlyphRenderMode::Mask;
-    int horizontalScale        = 1;
-};
-
-/// Cumulative lookup counters reported by a glyph cache.
-struct GlyphCacheStats {
-    uint64_t hits{};
-    uint64_t misses{};
-};
-
-/** @brief Abstract cache for renderer-ready text glyph bitmaps. */
-class GlyphCache {
-public:
-    virtual ~GlyphCache() = default;
-
-    /// Finds a glyph or creates and stores it using @p factory on a miss.
-    virtual std::optional<CachedGlyph> getOrCreate(const GlyphCacheKey& key,
-                                                   function_ref<std::optional<CachedGlyph>()> factory) = 0;
-    /// Returns cumulative cache hit and miss counters.
-    virtual GlyphCacheStats getCacheStats() const noexcept                                             = 0;
-    /// Sets the maximum retained cache memory in bytes.
-    virtual void setMemoryBudget(size_t bytes)                                                         = 0;
-    /// Removes all retained glyphs without resetting statistics.
-    virtual void clear()                                                                               = 0;
-};
 
 class EUnicode : public ELogic {
 public:
@@ -181,65 +133,12 @@ template <>
 constexpr inline bool isBitFlags<TextDecoration> = true;
 
 class FontManager;
-class PreparedDocument;
-class DocumentLayout;
+class ShapedText;
+class TextLayout;
 struct TextSelectionRect;
 
-namespace TextLayout {
-class FontDatabase;
-}
-
 namespace Internal {
-struct TextLayoutState;
-void registerTextLayoutFont(FontManager& manager, BytesView data, std::string_view alias = {});
-
-/**
- * @brief Private bridge data for rasterizing a new-engine glyph into Brisk sprites.
- *
- * This type is intentionally confined to the Internal namespace. FreeType,
- * HarfBuzz, and text-engine glyph types do not cross the public API boundary.
- */
-struct TextLayoutGlyphBitmap {
-    Size size;
-    Size logicalSize;
-    Rc<SpriteResource> sprite;
-    uint32_t glyphIndex = 0;
-    float offsetX       = 0.f;
-    int offsetY         = 0;
-    bool color          = false;
-    int horizontalScale = 1;
-};
-
-/** @brief Renderer-neutral glyph data emitted by the private document renderer. */
-struct TextLayoutGlyph {
-    PointF position;
-    TextLayoutGlyphBitmap bitmap;
-    std::optional<Color> color;
-};
-
-/** @brief Renderer-neutral text decoration data emitted by the private document renderer. */
-struct TextLayoutDecoration {
-    PointF start;
-    PointF end;
-    float underlineOffset     = 0.f;
-    float overlineOffset      = 0.f;
-    float lineThroughOffset   = 0.f;
-    float thickness           = 0.f;
-    TextDecoration decoration = TextDecoration::None;
-    std::optional<Color> color;
-};
-
-void loadTextLayoutGlyphRun(const PreparedDocument& document, uint32_t preparedRunIndex,
-                            GlyphCache* glyphCache,
-                            function_ref<void(uint32_t, const Internal::TextLayoutGlyphBitmap&)> onGlyph);
-void forEachTextLayoutGlyph(const DocumentLayout& layout, PointF origin,
-                            function_ref<void(const Internal::TextLayoutGlyph&)> onGlyph);
-void forEachTextLayoutDecoration(const DocumentLayout& layout, PointF origin,
-                                 function_ref<void(const Internal::TextLayoutDecoration&)> onDecoration);
-void textLayoutSelectionRects(const DocumentLayout& layout, Range<uint32_t> characterSelection,
-                              function_ref<void(const ::Brisk::TextSelectionRect&)> onRect);
-void renderPreparedDocument(Rc<Image> image, Point origin, const PreparedDocument& document,
-                            const DocumentLayout& layout);
+struct TextEngineState;
 } // namespace Internal
 
 /**
@@ -305,143 +204,158 @@ struct FontMetrics {
     };
 };
 
-/**
- * @brief Logical alignment used by the document text layout interface.
- *
- * Unlike the legacy scalar alignment API, Start and End are resolved relative
- * to the paragraph direction. Left and Right are physical alignments.
- */
+/** @brief Horizontal alignment used when producing a `TextLayout`. */
 enum class TextLayoutAlignment : uint8_t {
-    Start,
-    End,
-    Left,
-    Right,
-    Center,
+    Start,  ///< Align to the start edge of each paragraph, respecting its direction.
+    End,    ///< Align to the end edge of each paragraph, respecting its direction.
+    Left,   ///< Align to the physical left edge.
+    Right,  ///< Align to the physical right edge.
+    Center, ///< Center each line in the available layout width.
 };
 
 /**
- * @brief Options for producing a width-dependent document layout.
+ * @brief Options controlling conversion of shaped text into a `TextLayout`.
  */
 struct TextLayoutOptions {
-    /// Maximum line width in pixels. Zero is a special no-wrap alignment container: lines are
-    /// positioned around x = 0 (left-aligned starts there, centered text straddles it, and
-    /// right-aligned text ends there).
+    /// Maximum line width in pixels. Finite positive values enable wrapping; zero does not impose a
+    /// width limit. The resulting coordinates are intrinsic and can be translated by the caller.
     float maxLineWidth            = HUGE_VALF;
+    /// Additional indentation applied to the first line of each paragraph, in pixels.
     float firstLineIndent         = 0.f;
-    /// Absolute tab interval in pixels. Zero uses the interval derived from the prepared font.
+    /// Absolute tab-stop interval in pixels. Zero uses the interval configured by the shaped text.
     float tabWidth                = 0.f;
+    /// Horizontal alignment of each laid-out line.
     TextLayoutAlignment alignment = TextLayoutAlignment::Start;
+    /// If true, permits line breaks at grapheme boundaries where ordinary word wrapping would not.
     bool allowBreakAnywhere       = false;
 };
 
-/**
- * @brief Identifies which side of a logical grapheme boundary owns a caret.
- *
- * Affinity is required at bidirectional run boundaries and soft-wrap
- * boundaries, where one grapheme boundary can have two visual positions.
- */
+/** @brief Selects which visual side owns a caret at an ambiguous boundary. */
 enum class CaretAffinity : uint8_t {
-    Upstream,
-    Downstream,
+    Upstream,   ///< Associate the caret with the preceding visual position.
+    Downstream, ///< Associate the caret with the following visual position.
 };
 
+/** @brief A caret location expressed as a grapheme boundary and visual affinity. */
 struct CaretIndex {
-    uint32_t grapheme      = 0;
-    CaretAffinity affinity = CaretAffinity::Downstream;
+    uint32_t grapheme      = 0;                         ///< Grapheme boundary index.
+    CaretAffinity affinity = CaretAffinity::Downstream; ///< Visual side at the boundary.
 };
 
+/** @brief A caret location expressed in layout coordinates. */
 struct CaretPosition {
-    float x           = 0.f;
-    uint32_t line     = 0;
-    uint8_t bidiLevel = 0;
+    float x           = 0.f; ///< Horizontal caret position in layout coordinates.
+    uint32_t line     = 0;   ///< Zero-based line index.
+    uint8_t bidiLevel = 0;   ///< Bidirectional embedding level at the caret.
 };
 
+/** @brief One rectangle segment belonging to a text selection. */
 struct TextSelectionRect {
-    uint32_t line = 0;
-    float x0      = 0.f;
-    float x1      = 0.f;
+    uint32_t line = 0;   ///< Zero-based line index.
+    float x0      = 0.f; ///< Start of the selected segment in layout coordinates.
+    float x1      = 0.f; ///< End of the selected segment in layout coordinates.
 };
 
 /**
- * @brief Width-independent paragraph information exposed by PreparedDocument.
- *
- * This is semantic layout information; glyph runs, glyph IDs, clusters, and
- * font-face pointers deliberately remain private to the text engine.
+ * @brief Character and grapheme range for one paragraph in `ShapedText`.
  */
-struct PreparedParagraph {
-    Range<uint32_t> characterRange{ 0, 0 };
-    Range<uint32_t> graphemeRange{ 0, 0 };
-    TextDirection direction = TextDirection::LTR;
+struct ShapedParagraph {
+    Range<uint32_t> characterRange{ 0, 0 };       ///< Half-open character/codepoint range.
+    Range<uint32_t> graphemeRange{ 0, 0 };        ///< Half-open grapheme range.
+    TextDirection direction = TextDirection::LTR; ///< Base direction of the paragraph.
 };
 
+/** @brief Describes why a line ends. */
 enum class TextLayoutLineEnd : uint8_t {
-    SoftWrap,
-    MandatoryBreak,
-    ParagraphEnd,
+    SoftWrap,       ///< The line ended because of the available width.
+    MandatoryBreak, ///< The line ended at an explicit line-break character.
+    ParagraphEnd,   ///< The line ended at the end of a paragraph.
 };
 
-/**
- * @brief Width-dependent line information exposed by DocumentLayout.
- */
-struct DocumentLine {
-    Range<uint32_t> characterRange{ 0, 0 };
-    Range<uint32_t> graphemeRange{ 0, 0 };
-    TextDirection direction = TextDirection::LTR;
-    TextLayoutLineEnd end   = TextLayoutLineEnd::ParagraphEnd;
-    float baseline          = 0.f;
-    float ascender          = 0.f;
-    float descender         = 0.f;
-    float leading           = 0.f;
-    float width             = 0.f;
-    float trimmedWidth      = 0.f;
+/** @brief Metrics and source ranges for one line in a `TextLayout`. */
+struct TextLine {
+    Range<uint32_t> characterRange{ 0, 0 };                    ///< Half-open character/codepoint range.
+    Range<uint32_t> graphemeRange{ 0, 0 };                     ///< Half-open grapheme range.
+    TextDirection direction = TextDirection::LTR;              ///< Base direction of the line.
+    TextLayoutLineEnd end   = TextLayoutLineEnd::ParagraphEnd; ///< Reason the line ends.
+    float baseline          = 0.f;                             ///< Baseline y-coordinate.
+    float ascender          = 0.f;                             ///< Distance above the baseline.
+    float descender         = 0.f; ///< Distance below the baseline; normally negative.
+    float leading           = 0.f; ///< Extra line spacing distributed around the line.
+    float width             = 0.f; ///< Width including trailing whitespace.
+    float trimmedWidth      = 0.f; ///< Width excluding trailing whitespace.
 };
 
-class DocumentLayout;
+class TextLayout;
 
 struct PimplAccessor;
 
 /**
- * @brief Immutable, width-independent result of text analysis and shaping.
+ * @brief Immutable, width-independent representation of shaped text.
  *
- * The implementation is hidden behind a shared pimpl. This type is the public
- * Brisk boundary for prepared text; implementation-dependent glyph and font
- * records are not part of the API.
+ * ShapedText stores the source-to-grapheme mappings and paragraph information
+ * needed for text editing, cursor movement, selection, and layout creation.
+ * It has value semantics: copies share the immutable shaped data through a
+ * `std::shared_ptr`-backed store, while each value can be used independently.
+ * Use layout() to produce a width-dependent TextLayout for measurement or drawing.
  */
-class PreparedDocument {
+class ShapedText {
 public:
-    /// Opaque implementation type owned by the prepared-document handle.
     struct Impl;
 
-    PreparedDocument();
-    ~PreparedDocument();
+    /// Constructs an empty shaped-text value.
+    ShapedText();
+    ~ShapedText();
 
-    PreparedDocument(const PreparedDocument&);
-    PreparedDocument& operator=(const PreparedDocument&);
-    PreparedDocument(PreparedDocument&&) noexcept;
-    PreparedDocument& operator=(PreparedDocument&&) noexcept;
+    /// Copies a shaped-text value and its source mappings.
+    ShapedText(const ShapedText&);
+    ShapedText& operator=(const ShapedText&);
+    /// Transfers a shaped-text value into a new object.
+    ShapedText(ShapedText&&) noexcept;
+    ShapedText& operator=(ShapedText&&) noexcept;
 
+    /// @return `true` if no text was shaped, otherwise `false`.
     [[nodiscard]] bool empty() const noexcept;
+    /// @return Number of source Unicode codepoints represented by the text.
     [[nodiscard]] uint32_t characterCount() const noexcept;
+    /// @return Number of graphemes represented by the source text.
     [[nodiscard]] uint32_t graphemeCount() const noexcept;
+    /// @return Source character boundaries for graphemes, including the initial and final boundary.
     [[nodiscard]] std::span<const uint32_t> graphemeBoundaries() const noexcept;
+    /// @return Number of paragraphs in the shaped text.
     [[nodiscard]] size_t paragraphCount() const noexcept;
-    [[nodiscard]] PreparedParagraph paragraph(size_t index) const noexcept;
+    /// @param index Zero-based paragraph index.
+    /// @return Paragraph ranges, or an empty value if `index` is out of range.
+    [[nodiscard]] ShapedParagraph paragraph(size_t index) const noexcept;
 
+    /// @param character Source character/codepoint boundary, clamped to `characterCount()`.
+    /// @return Grapheme boundary containing the specified character boundary.
     [[nodiscard]] uint32_t characterToGrapheme(uint32_t character) const noexcept;
+    /// @param grapheme Grapheme boundary, clamped to `graphemeCount()`.
+    /// @return Source character/codepoint boundary corresponding to the grapheme boundary.
     [[nodiscard]] uint32_t graphemeToCharacter(uint32_t grapheme) const noexcept;
+    /// @param grapheme Grapheme index, clamped to the last grapheme.
+    /// @return Half-open source character range covered by the grapheme.
     [[nodiscard]] Range<uint32_t> graphemeToCharacters(uint32_t grapheme) const noexcept;
-    /// Returns whether a grapheme is a paragraph separator excluded from paragraph content.
+    /// @param grapheme Grapheme index to inspect.
+    /// @return `true` if the grapheme is a paragraph separator rather than paragraph content.
     [[nodiscard]] bool isParagraphSeparator(uint32_t grapheme) const noexcept;
-    /// Converts a character/codepoint boundary to an affinity-aware caret index.
+    /// @param character Source character/codepoint boundary.
+    /// @param affinity Visual side to associate with the resulting caret.
+    /// @return Affinity-aware caret index for the boundary.
     [[nodiscard]] CaretIndex caretFromCharacter(
         uint32_t character, CaretAffinity affinity = CaretAffinity::Downstream) const noexcept;
-    /// Converts an affinity-aware caret index to its character/codepoint boundary.
+    /// @param caret Grapheme boundary and visual affinity.
+    /// @return Source character/codepoint boundary represented by the caret.
     [[nodiscard]] uint32_t characterFromCaret(CaretIndex caret) const noexcept;
 
-    [[nodiscard]] DocumentLayout layout(const TextLayoutOptions& options = {}) const;
+    /// Creates a width-dependent layout using the supplied wrapping and alignment options.
+    /// @param options Wrapping, indentation, tab-stop, and alignment settings.
+    /// @return Immutable layout suitable for measurement, interaction, and rendering.
+    [[nodiscard]] TextLayout layout(const TextLayoutOptions& options = {}) const;
 
 private:
-    explicit PreparedDocument(std::shared_ptr<const Impl> impl);
+    explicit ShapedText(std::shared_ptr<const Impl> impl);
     friend struct PimplAccessor;
 
     std::shared_ptr<const Impl> m_impl;
@@ -450,72 +364,103 @@ private:
 };
 
 /**
- * @brief Immutable width-dependent layout and text interaction result.
+ * @brief Immutable width-dependent layout with measurement and interaction operations.
  *
- * Caret, hit-testing, selection, line metrics, and bounds are exposed here.
- * Glyph rasterization and renderer-specific caching remain private to the
- * graphics/text-engine integration.
+ * TextLayout contains the lines, metrics, bounds, and source mappings resulting
+ * from laying out a ShapedText with specific width and alignment options.
+ * It supports caret positioning, hit-testing, vertical caret movement, and
+ * selection-rectangle generation in layout coordinates.
+ * It has value semantics: copies share the immutable layout data through a
+ * `std::shared_ptr`-backed store and remain safe to retain independently.
  */
-class DocumentLayout {
+class TextLayout {
 public:
     struct Impl;
-    DocumentLayout();
-    ~DocumentLayout();
+    /// Constructs an empty text layout.
+    TextLayout();
+    ~TextLayout();
 
-    DocumentLayout(const DocumentLayout&);
-    DocumentLayout& operator=(const DocumentLayout&);
-    DocumentLayout(DocumentLayout&&) noexcept;
-    DocumentLayout& operator=(DocumentLayout&&) noexcept;
+    /// Copies a text layout and its interaction data.
+    TextLayout(const TextLayout&);
+    TextLayout& operator=(const TextLayout&);
+    /// Transfers a text layout into a new object.
+    TextLayout(TextLayout&&) noexcept;
+    TextLayout& operator=(TextLayout&&) noexcept;
 
+    /// @return `true` if the layout contains no lines, otherwise `false`.
     [[nodiscard]] bool empty() const noexcept;
+    /// @return Number of laid-out lines, including empty trailing lines.
     [[nodiscard]] size_t lineCount() const noexcept;
-    [[nodiscard]] DocumentLine line(size_t index) const noexcept;
+    /// @param index Zero-based line index.
+    /// @return Line metrics and source ranges, or an empty value if `index` is out of range.
+    [[nodiscard]] TextLine line(size_t index) const noexcept;
+    /// @return Bounds including trailing whitespace and the full line extents.
     [[nodiscard]] RectangleF bounds() const noexcept;
+    /// @return Bounds excluding trailing whitespace while retaining line extents.
     [[nodiscard]] RectangleF trimmedBounds() const noexcept;
 
+    /// @param index Grapheme boundary and affinity to locate.
+    /// @return Caret position in layout coordinates.
     [[nodiscard]] CaretPosition caretPosition(CaretIndex index) const noexcept;
-    /// Returns the line containing the caret, preserving affinity at shared boundaries.
+    /// @param index Grapheme boundary and affinity to locate.
+    /// @return Zero-based line containing the caret; returns zero for an empty layout.
     [[nodiscard]] size_t lineForCaret(CaretIndex index) const noexcept;
-    /// Returns the line containing a character/codepoint boundary.
+    /// @param character Source character/codepoint boundary.
+    /// @param affinity Visual side to associate with the boundary.
+    /// @return Zero-based line containing the boundary.
     [[nodiscard]] size_t lineForCharacter(uint32_t character,
                                           CaretAffinity affinity = CaretAffinity::Downstream) const noexcept;
-    /// Returns the beginning caret of a line. Line beginnings use downstream affinity.
+    /// @param line Zero-based line index.
+    /// @return Downstream-affinity caret at the beginning of the line.
     [[nodiscard]] CaretIndex lineBeginning(size_t line) const noexcept;
-    /// Returns the ending caret of a line. Line ends use upstream affinity.
+    /// @param line Zero-based line index.
+    /// @return Upstream-affinity caret at the end of the line.
     [[nodiscard]] CaretIndex lineEnd(size_t line) const noexcept;
-    /// Returns a one-pixel-wide caret rectangle using the line's ascent and descent.
+    /// @param index Caret to measure.
+    /// @param width Width of the caret rectangle in pixels.
+    /// @return Rectangle spanning the line's ascent, descent, and leading.
     [[nodiscard]] RectangleF caretRect(CaretIndex index, float width = 1.f) const noexcept;
+    /// @param point Layout-coordinate point to inspect.
+    /// @return Nearest caret, including affinity at bidirectional and wrapped boundaries.
     [[nodiscard]] CaretIndex hitTest(PointF point) const noexcept;
-    /// Hit-tests a specific line while preserving the requested horizontal coordinate.
+    /// @param line Zero-based line index.
+    /// @param x Horizontal layout-coordinate position.
+    /// @return Nearest caret on the requested line.
     [[nodiscard]] CaretIndex hitTestLine(size_t line, float x) const noexcept;
-    /// Moves a caret to an adjacent line while preserving the caller's preferred X coordinate.
+    /// @param current Current caret.
+    /// @param preferredX Horizontal position to preserve while moving.
+    /// @param direction Negative moves upward; positive moves downward; zero leaves the caret unchanged.
+    /// @return Caret on the adjacent line nearest to `preferredX`.
     [[nodiscard]] CaretIndex moveCaretVertically(CaretIndex current, float preferredX,
                                                  int direction) const noexcept;
+    /// Enumerates selection rectangles for a grapheme range.
+    /// @param selection Half-open grapheme range.
+    /// @param onRect Callback invoked once for each line segment.
     void selectionRects(Range<uint32_t> selection, function_ref<void(const TextSelectionRect&)> onRect) const;
-    /// Enumerates selection rectangles for a character/codepoint range.
+    /// Enumerates selection rectangles for a source character/codepoint range.
+    /// @param selection Half-open character/codepoint range.
+    /// @param onRect Callback invoked once for each line segment.
     void selectionRectsByCharacter(Range<uint32_t> selection,
                                    function_ref<void(const TextSelectionRect&)> onRect) const;
 
 private:
     friend struct PimplAccessor;
-    explicit DocumentLayout(std::shared_ptr<const Impl> impl);
+    explicit TextLayout(std::shared_ptr<const Impl> impl);
 
     std::shared_ptr<const Impl> m_impl;
 
-    friend class PreparedDocument;
+    friend class ShapedText;
     friend class FontManager;
 };
-
-struct Font;
 
 /**
  * @brief A collection of OpenType feature flags.
  */
-using OpenTypeFeatureFlags = inline_vector<OpenTypeFeatureFlag, 7>;
+using OpenTypeFeatureFlags = SmallVector<OpenTypeFeatureFlag, 1>;
 
 namespace Internal {
 
-inline std::string format_as(const inline_vector<OpenTypeFeatureFlag, 7>& features) {
+inline std::string format_as(const OpenTypeFeatureFlags& features) {
     std::string result;
     for (const auto& f : features) {
         if (!result.empty()) {
@@ -547,12 +492,12 @@ struct Font {
     FontStyle style               = FontStyle::Normal;    ///< The style of the font (e.g., normal, italic).
     FontWeight weight             = FontWeight::Regular;  ///< The weight of the font (e.g., regular, bold).
     TextDecoration textDecoration = TextDecoration::None; ///< Text decoration (e.g., underline, none).
-    float lineHeight              = 1.2f;                 ///< Line height as a multiplier.
-    float tabWidth                = 8.f;                  ///< Tab width in space units.
-    float letterSpacing           = 0.f;                  ///< Additional space between letters.
-    float wordSpacing             = 0.f;                  ///< Additional space between words.
-    float verticalAlign           = 0.f;                  ///< Vertical alignment offset.
-    OpenTypeFeatureFlags features{};                      ///< OpenType features for advanced text styling.
+    float lineHeight              = 0.f;   ///< Line height as a multiplier, 0 means natural line height.
+    float tabWidth                = 100.f; ///< Absolute tab interval.
+    float letterSpacing           = 0.f;   ///< Additional space between letters.
+    float wordSpacing             = 0.f;   ///< Additional space between words.
+    float verticalAlign           = 0.f;   ///< Vertical alignment offset.
+    OpenTypeFeatureFlags features{};       ///< OpenType features for advanced text styling.
 
     inline static const std::tuple reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
@@ -602,16 +547,6 @@ struct Font {
 /**
  * @brief Combines font style and weight for simplified handling.
  */
-struct FontStyleAndWeight {
-    FontStyle style   = FontStyle::Normal;   ///< The font style (e.g., normal, italic).
-    FontWeight weight = FontWeight::Regular; ///< The font weight (e.g., regular, bold).
-
-    /**
-     * @brief Compares two FontStyleAndWeight objects for equality.
-     */
-    bool operator==(const FontStyleAndWeight& b) const noexcept = default;
-};
-
 struct FontAndColor {
     Font font;
     std::optional<Color> color;
@@ -690,11 +625,6 @@ struct TextWithOptions {
         : TextWithOptions(std::u32string_view(text), options, defaultDirection) {}
 
     bool operator==(const TextWithOptions& other) const noexcept = default;
-};
-
-class FontError : public std::runtime_error {
-public:
-    using std::runtime_error::runtime_error;
 };
 
 struct OsFont {
@@ -777,13 +707,6 @@ public:
     [[nodiscard]] std::vector<OsFont> installedFonts(bool rescan = false) const;
 
     /**
-     * @brief Gets available styles and weights for a font family.
-     * @param fontFamily The font family to query.
-     * @return Vector of FontStyleAndWeight pairs.
-     */
-    std::vector<FontStyleAndWeight> fontFamilyStyles(std::string_view fontFamily) const;
-
-    /**
      * @brief Retrieves metrics for a given font.
      * @param font The font to measure.
      * @return FontMetrics containing size and spacing information.
@@ -798,12 +721,11 @@ public:
      */
     [[nodiscard]] bool hasCodepoint(const Font& font, char32_t codepoint) const;
 
-    /** @brief Prepares text with the document text-layout engine. */
-    [[nodiscard]] PreparedDocument prepareDocument(const Font& font, const TextWithOptions& text) const;
+    /** @brief Shapes text with the text-layout engine. */
+    [[nodiscard]] ShapedText shapeText(const Font& font, const TextWithOptions& text) const;
 
-    [[nodiscard]] PreparedDocument prepareDocument(const TextWithOptions& text,
-                                                   std::span<const FontAndColor> fonts,
-                                                   std::span<const uint32_t> offsets = {}) const;
+    [[nodiscard]] ShapedText shapeText(const TextWithOptions& text, std::span<const FontAndColor> fonts,
+                                       std::span<const uint32_t> offsets = {}) const;
 
     using FontKey = std::tuple<std::string, FontStyle, FontWeight>;
 
@@ -817,15 +739,17 @@ public:
     /// Removes all entries from the new text-layout glyph cache.
     void clearGlyphCache();
 
+    void lock() const noexcept;
+    bool try_lock() const noexcept;
+    void unlock() const noexcept;
+
 private:
-    friend void Internal::registerTextLayoutFont(FontManager& manager, BytesView data,
-                                                 std::string_view alias);
     friend struct Font;
     mutable std::recursive_mutex* m_lock;
     void* m_ft_library{};
-    std::shared_ptr<Internal::TextLayoutState> m_textLayout;
+    std::shared_ptr<Internal::TextEngineState> m_textEngine;
 
-    int m_hscale;
+    const int m_hscale;
     std::vector<std::string_view> fontList(std::string_view ff) const;
     mutable std::vector<OsFont> m_osFonts;
     void addFontImpl(BytesView data, std::string alias, bool makeCopy);

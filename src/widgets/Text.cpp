@@ -68,12 +68,11 @@ void Text::onChanged() {
 }
 
 float Text::calcFontSizeFor(const Font& font, const std::string& m_text) const {
-    float fontSize          = m_fontSize.current;
-    const float refFontSize = 32.f;
-    Font refFont            = font;
-    refFont.fontSize        = refFontSize;
-    const PreparedDocument document =
-        fonts->prepareDocument(refFont, TextWithOptions{ m_text, m_textOptions });
+    float fontSize            = m_fontSize.current;
+    const float refFontSize   = 32.f;
+    Font refFont              = font;
+    refFont.fontSize          = refFontSize;
+    const ShapedText document = fonts->shapeText(refFont, TextWithOptions{ m_text, m_textOptions });
     SizeF sz =
         document.layout().bounds().size().flippedIf(toOrientation(m_rotation) == Orientation::Vertical);
     if (sz.width != 0 && sz.height != 0) {
@@ -120,8 +119,8 @@ SizeF Text::measure(AvailableSize size) const {
         const int width = std::max(0, static_cast<int>(size.x.valueOr(16777216.f)));
         TextLayoutOptions options;
         options.maxLineWidth = static_cast<float>(width);
-        options.alignment   = toTextLayoutAlignment(m_textAlign);
-        return alignInflate(m_cache->document.layout(options).bounds()).size();
+        options.alignment    = toTextLayoutAlignment(m_textAlign);
+        return alignInflate(m_cache->shapedText.layout(options).bounds()).size();
     }
 }
 
@@ -129,9 +128,9 @@ void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
     if (m_opacity.current > 0.f) {
         m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) });
-        RectangleF inner            = m_clientRect;
-        ColorW color                = m_color.current.multiplyAlpha(m_opacity.current);
-        const DocumentLayout layout = m_cache2->layout;
+        RectangleF inner        = m_clientRect;
+        ColorW color            = m_color.current.multiplyAlpha(m_opacity.current);
+        const TextLayout layout = m_cache2->layout;
         const PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
         const RectangleF bounds = layout.bounds();
         const auto originFor    = [&](RectangleF container) {
@@ -165,19 +164,19 @@ void Text::onFontChanged() {
 }
 
 Text::Cached Text::updateCache(const CacheKey& key) {
-    PreparedDocument document = fonts->prepareDocument(key.font, TextWithOptions(key.text, m_textOptions));
-    return { std::move(document) };
+    ShapedText shapedText = fonts->shapeText(key.font, TextWithOptions(key.text, m_textOptions));
+    return { std::move(shapedText) };
 }
 
 Text::Cached2 Text::updateCache2(const CacheKey2& key) {
     m_cache.update();
     TextLayoutOptions options;
-    options.maxLineWidth        = m_wordWrap ? static_cast<float>(key.width) : HUGE_VALF;
-    options.alignment            = key.alignment;
-    const DocumentLayout layout = m_cache->document.layout(options);
-    SizeF textSize              = layout.bounds().size();
-    const DocumentLine line = layout.line(0);
-    textSize                = max(textSize, SizeF{ 0, line.ascender + line.descender });
+    options.maxLineWidth    = m_wordWrap ? static_cast<float>(key.width) : HUGE_VALF;
+    options.alignment       = key.alignment;
+    const TextLayout layout = m_cache->shapedText.layout(options);
+    SizeF textSize          = layout.bounds().size();
+    const TextLine line     = layout.line(0);
+    textSize                = max(textSize, SizeF{ 0, line.ascender - line.descender });
     return { textSize, layout };
 }
 

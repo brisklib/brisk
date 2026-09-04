@@ -11,7 +11,7 @@ extern "C" {
 #include <utility>
 #include <vector>
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
 
 void BreakIterator::setText(std::u32string_view text) {
     const size_t clampedSize = std::min<size_t>(text.size(), maxTextLength);
@@ -339,4 +339,4 @@ uint32_t BiDiIterator::doNextBreak() {
     return UINT32_MAX;
 }
 
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine

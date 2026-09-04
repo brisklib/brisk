@@ -12,7 +12,7 @@
 #include "FontDatabase.hpp"
 #include <brisk/core/internal/FunctionRef.hpp>
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
 
 // Non-owning view over a boundary table of the form:
 //   [0, b_1, b_2, ..., b_{n-1}, total]
@@ -628,13 +628,14 @@ struct LayoutLine {
     RunRange glyphRunRange;
     /// How the line ended (soft wrap, mandatory break, or paragraph end).
     LineEndKind endKind;
-    /// Alignment-adjusted inline origin in layout coordinates.
+    /// Intrinsic inline origin in layout coordinates. The selected alignment edge is at x = 0;
+    /// maxLineWidth is used only for wrapping.
     LayoutUnit originX;
     /// Baseline in layout coordinates.
     LayoutUnit baselineY;
     /// Distance above the baseline.
     LayoutUnit ascent;
-    /// Distance below the baseline.
+    /// Signed distance to the descender below the baseline; negative values point downward.
     LayoutUnit descent;
     /// Additional inter-line spacing.
     LayoutUnit leading;
@@ -767,12 +768,12 @@ struct DocumentLayout {
  *
  * @param document Complete prepared document.
  * @param alignments Empty, one-element, or one-per-paragraph alignment values.
- * @param maxLineWidth Maximum width used for every paragraph; use `kInfinity` to disable wrapping
- * while continuing to honor mandatory line breaks. A value of `kZero` also disables wrapping,
- * but makes the alignment container zero-width: left/start-LTR and right/end-RTL lines start at
- * x = 0, centered lines straddle x = 0, and right-aligned lines end at x = 0. If
- * @p allowBreakAnywhere is true, wrapping is also allowed between adjacent grapheme clusters
- * where HarfBuzz does not report an unsafe break.
+ * @param maxLineWidth Maximum width used for every paragraph; use `kInfinity` or `kZero` to
+ * disable wrapping while continuing to honor mandatory line breaks. Horizontal coordinates are
+ * intrinsic and independent of this value: left/start-LTR/end-RTL lines start at x = 0, centered
+ * lines straddle x = 0, and right/end-LTR/start-RTL lines end at x = 0. If @p allowBreakAnywhere
+ * is true, wrapping is also allowed between adjacent grapheme clusters where HarfBuzz does not
+ * report an unsafe break.
  * @param tabStops Repeating tab-stop configuration used for every paragraph.
  * @param textIndents Empty, one-element, or one-per-paragraph first-line indents.
  * @param allowBreakAnywhere Permit wrapping at any HarfBuzz-safe grapheme boundary.
@@ -934,4 +935,4 @@ inline bool rasterize(const ActiveFont& activeFont, const FontHandle& fontHandle
                      std::move(callback));
 }
 
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine

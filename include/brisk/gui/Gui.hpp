@@ -382,6 +382,11 @@ struct IsConstexprCompatible<std::basic_string<T, Tr, A>> {
     constexpr static bool value = false;
 };
 
+template <typename T, unsigned S>
+struct IsConstexprCompatible<SmallVector<T, S>> {
+    constexpr static bool value = false;
+};
+
 template <typename WidgetClass, typename ValueType>
 struct GuiProp {
     ValueType(WidgetClass::* field);
@@ -1135,8 +1140,8 @@ protected:
     EdgesF m_computedBorderWidth{ 0, 0, 0, 0 };
     Size m_contentSize{ 0, 0 };
     Point m_hintTextOffset{ 0, 0 };
-    PreparedDocument m_hintPrepared;
-    DocumentLayout m_hintLayout;
+    ShapedText m_hintShapedText;
+    TextLayout m_hintTextLayout;
 
     Animated<ColorW> m_backgroundColor;
     Animated<ColorW> m_borderColor;

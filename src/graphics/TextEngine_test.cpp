@@ -29,9 +29,9 @@
 #include <utility>
 #include <vector>
 
-namespace TL = Brisk::TextLayout;
+namespace TL = Brisk::TextEngine;
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
 
 constexpr TL::LayoutUnit k12 = TL::fromFloat(12.0f);
 constexpr TL::LayoutUnit k16 = TL::fromFloat(16.0f);
@@ -45,7 +45,7 @@ inline std::vector<ScriptTag> detectScripts(std::u32string_view paragraphText) {
     return result;
 }
 
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine
 
 namespace {
 
@@ -1271,7 +1271,7 @@ TEST_CASE("getVerticalMetrics returns correct metrics using FreeType", "[layout2
 
         const TL::VerticalMetrics metrics = TL::getVerticalMetrics(raw(database), fontHandle);
         REQUIRE(metrics.ascent > TL::kZero);
-        REQUIRE(metrics.descent > TL::kZero);
+        REQUIRE(metrics.descent < TL::kZero);
     }
 }
 
@@ -2160,7 +2160,7 @@ TEST_CASE("hitTestPoint chooses and clamps vertical lines including leading gaps
     std::vector<TL::GlyphRun> runs{
         TL::GlyphRun{ .codepointRange = { 0, 4 },
                       .graphemeRange  = { 0, 4 },
-                      .metrics        = { TL::fromFloat(5.0f), TL::fromFloat(3.0f), TL::fromFloat(4.0f) } },
+                      .metrics        = { TL::fromFloat(5.0f), TL::fromFloat(-3.0f), TL::fromFloat(4.0f) } },
     };
     const auto prepared = preparedDocument(U"abcd", std::move(opportunities),
                                            { advance(TL::fromFloat(10.0f)), advance(TL::fromFloat(10.0f)),
@@ -2394,6 +2394,35 @@ TEST_CASE("layout applies the requested font line height between lines", "[layou
 
     REQUIRE(output.lines.size() == 2);
     REQUIRE(output.lines[1].baselineY - output.lines[0].baselineY == TL::fromFloat(40.0f));
+}
+
+TEST_CASE("explicit line height remains the complete line box even below font metrics",
+          "[layout2][line-height]") {
+    const auto database = TL::getDefaultFontDatabase();
+    REQUIRE(database != nullptr);
+
+    static constexpr std::array<std::string_view, 1> families{ "Lato" };
+    TL::FontDef font = makeFont();
+    font.familyNames = families;
+    font.fontSize    = TL::fromFloat(24.0f);
+    font.lineHeight  = TL::fromFloat(12.0f);
+    const std::array fonts{ &font };
+    const std::u32string text = U"ab\ncd";
+    const std::array<uint32_t, 2> boundaries{ 0, static_cast<uint32_t>(text.size()) };
+
+    const TL::PreparedDocument prepared =
+        TL::prepareDocument(TL::DocumentSource(text), database, fonts, TL::BoundaryTable{ boundaries });
+    REQUIRE_FALSE(prepared.glyphRuns.empty());
+
+    const TL::VerticalMetrics metrics  = prepared.glyphRuns.front().metrics;
+    const TL::LayoutUnit contentHeight = metrics.ascent - metrics.descent;
+    REQUIRE(metrics.lineGap == TL::fromFloat(12.0f) - contentHeight);
+
+    const TL::DocumentLayout output = TL::layoutPreparedDocument(prepared, {}, TL::fromFloat(200.0f));
+    REQUIRE(output.lines.size() == 2);
+    REQUIRE(output.lines[1].baselineY - output.lines[0].baselineY == TL::fromFloat(12.0f));
+    REQUIRE(TL::toFloat(output.verticalTextBounds.max - output.verticalTextBounds.min) ==
+            Catch::Approx(24.0f).margin(2.0f / 64.0f));
 }
 
 TEST_CASE("GreedyLineBreaker single run that fits emits one TextEnd line", "[layout2][greedyLineBreaker]") {

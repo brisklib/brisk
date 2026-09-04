@@ -50,8 +50,8 @@ protected:
 
     std::u32string m_cachedText;
 
-    mutable PreparedDocument m_preparedDocument;
-    mutable DocumentLayout m_documentLayout;
+    mutable ShapedText m_shapedText;
+    mutable TextLayout m_textLayout;
     CaretAffinity m_caretAffinity = CaretAffinity::Downstream;
     std::optional<float> m_preferredCaretX;
     float m_cachedLayoutWidth = -1.f;

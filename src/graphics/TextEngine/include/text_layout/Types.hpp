@@ -8,13 +8,14 @@
 
 #include <brisk/core/BasicTypes.hpp>
 
-namespace Brisk::TextLayout {
+namespace Brisk::TextEngine {
 
 #ifdef LAYOUT_FLOAT
 using LayoutUnit                      = float;
 
 constexpr inline LayoutUnit kZero     = 0.0f;
 constexpr inline LayoutUnit kInfinity = std::numeric_limits<LayoutUnit>::max();
+constexpr inline LayoutUnit kLarge    = 65536.f;
 
 constexpr LayoutUnit fromFloat(float value) {
     return value;
@@ -40,6 +41,7 @@ using LayoutUnit                      = int32_t;
 
 constexpr inline LayoutUnit kZero     = 0;
 constexpr inline LayoutUnit kInfinity = std::numeric_limits<LayoutUnit>::max();
+constexpr inline LayoutUnit kLarge    = 4194304;
 
 constexpr LayoutUnit fromFloat(float value) {
     return static_cast<int32_t>(value >= 0.0f ? value * 64.0f + 0.5f : value * 64.0f - 0.5f);
@@ -159,11 +161,11 @@ struct FontDef {
 
 struct VerticalMetrics {
     LayoutUnit ascent;
-    LayoutUnit descent;
+    LayoutUnit descent; ///< Signed descender; negative values point below the baseline.
     LayoutUnit lineGap;
 
-    LayoutUnit height() const {
-        return ascent + descent + lineGap;
+    LayoutUnit height() const noexcept {
+        return ascent - descent + lineGap;
     }
 };
 
@@ -174,10 +176,10 @@ struct VerticalMetrics {
  * for the fields explicitly represented as floats.
  */
 struct ExtendedMetrics {
-    LayoutUnit spaceAdvanceX{ kZero }; ///< The horizontal advance width for a space character.
+    LayoutUnit spaceAdvanceX{ kZero };     ///< The horizontal advance width for a space character.
     LayoutUnit underlinePosition{ kZero }; ///< The underline offset below the baseline.
     LayoutUnit lineThickness{ kZero }; ///< The thickness of lines, such as for underline or strikethrough.
     LayoutUnit xHeight{ kZero };       ///< The height of the lowercase 'x' character.
     LayoutUnit capitalHeight{ kZero }; ///< The height of uppercase characters.
 };
-} // namespace Brisk::TextLayout
+} // namespace Brisk::TextEngine

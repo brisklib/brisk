@@ -615,27 +615,27 @@ public:
     void fillText(TextWithOptions text, RectangleF position, PointF alignment = PointF{ 0.f, 0.f });
 
     /**
-     * @brief Fills a laid-out document at the specified position.
+     * @brief Fills a text layout at the specified position.
      *
-     * The document layout is immutable and may be retained independently of the
+     * The text layout is immutable and may be retained independently of the
      * FontManager that created it. Glyph rasterization and renderer caching remain
      * private to the graphics/text-layout integration.
      */
-    void fillText(PointF position, const DocumentLayout& text);
+    void fillText(PointF position, const TextLayout& text);
 
-    /** @brief Fills a laid-out document aligned relative to the specified position. */
-    void fillText(PointF position, PointF alignment, const DocumentLayout& text);
+    /** @brief Fills a text layout aligned relative to the specified position. */
+    void fillText(PointF position, PointF alignment, const TextLayout& text);
 
     /**
-     * @brief Fills the selection in a laid-out document.
+     * @brief Fills the selection in a text layout.
      *
-     * Selection offsets are document character/codepoint offsets, with an
+     * Selection offsets are text character/codepoint offsets, with an
      * exclusive maximum, matching the legacy Canvas selection API.
      */
-    void fillTextSelection(PointF position, const DocumentLayout& text, Range<uint32_t> selection);
+    void fillTextSelection(PointF position, const TextLayout& text, Range<uint32_t> selection);
 
-    /** @brief Fills a document selection aligned relative to the specified position. */
-    void fillTextSelection(PointF position, PointF alignment, const DocumentLayout& text,
+    /** @brief Fills a text selection aligned relative to the specified position. */
+    void fillTextSelection(PointF position, PointF alignment, const TextLayout& text,
                            Range<uint32_t> selection);
 
     /**
