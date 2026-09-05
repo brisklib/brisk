@@ -66,6 +66,20 @@ find_package(freetype CONFIG REQUIRED)
 target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} freetype)
 # /freetype
 
+# >libunibreak
+if (NOT TARGET unibreak AND NOT TARGET libunibreak::libunibreak)
+    find_package(libunibreak CONFIG REQUIRED)
+endif ()
+target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} libunibreak::libunibreak)
+# /libunibreak
+
+# >sheenbidi
+if (NOT TARGET SheenBidi::SheenBidi)
+    find_package(SheenBidi CONFIG REQUIRED)
+endif ()
+target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} SheenBidi::SheenBidi)
+# /sheenbidi
+
 # >icu
 find_package(
     ICU

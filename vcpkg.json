@@ -43,6 +43,9 @@
             "name": "harfbuzz"
         },
         {
+            "name": "libunibreak"
+        },
+        {
             "name": "libjpeg-turbo"
         },
         {
@@ -60,6 +63,9 @@
         },
         {
             "name": "spdlog"
+        },
+        {
+            "name": "sheenbidi"
         },
         {
             "name": "stb"
