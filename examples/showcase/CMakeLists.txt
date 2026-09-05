@@ -74,7 +74,7 @@ brisk_target_link_resource(
 
 brisk_target_link_resource(
     showcase PRIVATE GoNotoKurrent-Regular.ttf
-    INPUT "${CMAKE_SOURCE_DIR}/resources/fonts/GoNotoKurrent-Regular.ttf"
+    INPUT "${BRISK_RESOURCES_DIR}/fonts/GoNotoKurrent-Regular.ttf"
     BROTLI)
 
 brisk_setup_executable(showcase)
