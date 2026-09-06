@@ -644,8 +644,6 @@ void TextLayout::selectionRectsByCharacter(Range<uint32_t> selection,
                    onRect);
 }
 
-void uncompressICUData();
-
 static std::string_view freeTypeError(FT_Error err) {
 #undef FTERRORS_H_
 #define FT_ERRORDEF(e, v, s)                                                                                 \

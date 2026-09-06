@@ -96,12 +96,6 @@
             ]
         },
         {
-            "name": "icu",
-            "features": [
-                "tools"
-            ]
-        },
-        {
             "name": "pegtl"
         },
         {
