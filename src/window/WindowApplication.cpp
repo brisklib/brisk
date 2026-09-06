@@ -150,7 +150,6 @@ void WindowApplication::renderWindows() {
         }
     }
     afterRenderQueue->process();
-    fonts->garbageCollectCache();
     std::this_thread::sleep_until(stopTime);
 }
 

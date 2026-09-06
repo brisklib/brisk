@@ -120,9 +120,12 @@ public:
      */
     static const Bytes& loadCached(std::string name, bool emptyOk = false) {
         static std::map<std::string, Bytes> cache;
-        auto data = load(name, emptyOk);
-        auto it   = cache.insert_or_assign(std::move(name), std::move(data));
-        return it.first->second;
+        if (auto it = cache.find(name); it != cache.end()) {
+            return it->second;
+        }
+        auto data             = load(name, emptyOk);
+        auto [it, inserted]   = cache.emplace(std::move(name), std::move(data));
+        return it->second;
     }
 
     /**

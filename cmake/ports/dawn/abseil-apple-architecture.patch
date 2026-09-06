@@ -1,0 +1,29 @@
+diff --git a/third_party/abseil-cpp/absl/copts/AbseilConfigureCopts.cmake b/third_party/abseil-cpp/absl/copts/AbseilConfigureCopts.cmake
+index 9a88c9e9f..000000000 100644
+--- a/third_party/abseil-cpp/absl/copts/AbseilConfigureCopts.cmake
++++ b/third_party/abseil-cpp/absl/copts/AbseilConfigureCopts.cmake
+@@ -40,10 +40,16 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES [[Clang]])
+   set(ABSL_RANDOM_RANDEN_COPTS "")
+-  foreach(_arch IN ITEMS "x86_64" "arm64")
+-    string(TOUPPER "${_arch}" _arch_uppercase)
+-    string(REPLACE "X86_64" "X64" _arch_uppercase ${_arch_uppercase})
+-    foreach(_flag IN LISTS ABSL_RANDOM_HWAES_${_arch_uppercase}_FLAGS)
+-      list(APPEND ABSL_RANDOM_RANDEN_COPTS "-Xarch_${_arch}" "${_flag}")
+-    endforeach()
+-  endforeach()
++  if(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
++    set(ABSL_RANDOM_RANDEN_COPTS "${ABSL_RANDOM_HWAES_X64_FLAGS}")
++  elseif(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
++    set(ABSL_RANDOM_RANDEN_COPTS "${ABSL_RANDOM_HWAES_ARM64_FLAGS}")
++  else()
++    foreach(_arch IN ITEMS "x86_64" "arm64")
++      string(TOUPPER "${_arch}" _arch_uppercase)
++      string(REPLACE "X86_64" "X64" _arch_uppercase ${_arch_uppercase})
++      foreach(_flag IN LISTS ABSL_RANDOM_HWAES_${_arch_uppercase}_FLAGS)
++        list(APPEND ABSL_RANDOM_RANDEN_COPTS "-Xarch_${_arch}" "${_flag}")
++      endforeach()
++    endforeach()
++  endif()
+   # If a compiler happens to deal with an argument for a currently unused
+   # architecture, it will warn about an unused command line argument.
+   option(ABSL_RANDOM_RANDEN_COPTS_WARNING OFF

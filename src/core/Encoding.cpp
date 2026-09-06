@@ -20,6 +20,8 @@
  */
 #include <brisk/core/Encoding.hpp>
 #include <bit>
+#include <cstdlib>
+#include <functional>
 #include <string_view>
 #include "utf8proc.h"
 
@@ -130,7 +132,7 @@ inline char32_t consumeUtf8<4>(const char*& text, const char* end) {
     }
     if (static_cast<uint8_t>(*text) > 0b11110111) {
         ++text;
-        // longer than 4 bytes
+        // invalid lead byte (0xF8..0xFF): not part of any UTF-8 sequence
         return UtfInvalid;
     }
     if (!isUtf8Continuation(text[1]) || !isUtf8Continuation(text[2]) || !isUtf8Continuation(text[3])) {
@@ -141,6 +143,12 @@ inline char32_t consumeUtf8<4>(const char*& text, const char* end) {
                       (text[2] & 0b00111111) << 6 | (text[3] & 0b00111111);
     text += 4;
     if (!isValidCodepoint(result)) {
+        return UtfInvalid;
+    }
+    // 0xF4 with continuation >= 0x90 and lead bytes 0xF5..0xF7 encode
+    // codepoints above U+10FFFF; the whole maximal subpart is consumed
+    // so that it yields a single invalid codepoint.
+    if (result > 0x10FFFFu) {
         return UtfInvalid;
     }
     return result > 0xFFFFu ? result : UtfOverlong;
@@ -241,6 +249,7 @@ static fn_produce utf8WriteTable[] = {
     /*29*/ &produceUtf8<0>,
     /*30*/ &produceUtf8<0>,
     /*31*/ &produceUtf8<0>,
+    /*32*/ &produceUtf8<0>, // codes >= 0x80000000 (incl. UtfInvalid/UtfOverlong/UtfTruncated)
 };
 
 char32_t utfRead(const char*& text, const char* end) {
@@ -251,15 +260,22 @@ char32_t utfRead(const char16_t*& text, const char16_t* end) {
     uint16_t ch = static_cast<uint16_t>(*text);
     if ((ch & 0b11111000'00000000) != 0b11011000'00000000)
         return *text++;
+    // surrogate: 0xD800..0xDBFF = high, 0xDC00..0xDFFF = low (trailing)
     if (ch & 0b00000100'00000000) {
-        ++text; // high surrogate
+        ++text; // trailing surrogate in leading position
         return UtfInvalid;
     }
     if (text + 2 > end) {
         text = end;
         return UtfTruncated;
     }
-    char32_t result = 0x10000u + ((text[0] & 0x3FF) << 10) | (text[1] & 0x3FF);
+    uint16_t ch2 = static_cast<uint16_t>(text[1]);
+    if ((ch2 & 0b11111100'00000000) != 0b11011100'00000000) {
+        // next unit is not a trailing surrogate; consume only the leading unit
+        ++text;
+        return UtfInvalid;
+    }
+    char32_t result = 0x10000u + ((ch & 0x3FF) << 10 | (ch2 & 0x3FF));
     text += 2;
     return result;
 }
@@ -278,9 +294,15 @@ char32_t utfRead(const char32_t*& text, const char32_t* end) {
 
 char32_t utfRead(const wchar_t*& text, const wchar_t* end) {
     if constexpr (sizeof(wchar_t) == sizeof(char16_t)) {
-        return utfRead(reinterpret_cast<const char16_t*&>(text), reinterpret_cast<const char16_t*>(end));
-    } else if constexpr (sizeof(wchar_t) == sizeof(char32_t)) {
-        return utfRead(reinterpret_cast<const char32_t*&>(text), reinterpret_cast<const char32_t*>(end));
+        const char16_t* p = reinterpret_cast<const char16_t*>(text);
+        char32_t result   = utfRead(p, reinterpret_cast<const char16_t*>(end));
+        text += p - reinterpret_cast<const char16_t*>(text);
+        return result;
+    } else {
+        const char32_t* p = reinterpret_cast<const char32_t*>(text);
+        char32_t result   = utfRead(p, reinterpret_cast<const char32_t*>(end));
+        text += p - reinterpret_cast<const char32_t*>(text);
+        return result;
     }
 }
 
@@ -290,7 +312,7 @@ BRISK_INLINE static uint32_t leadingZeros(uint32_t value) {
 
 void utfWrite(char*& text, char* end, char32_t ch) {
     uint32_t code = static_cast<uint32_t>(ch);
-    uint32_t bits = 32 - leadingZeros(code | 0x7F) & 0x1F; // ensure that code != 0
+    uint32_t bits = 32 - leadingZeros(code | 0x7F); // ensures code != 0; bits in [7, 32]
     return utf8WriteTable[bits](text, end, ch);
 }
 
@@ -301,7 +323,7 @@ void utfWrite(char16_t*& text, char16_t* end, char32_t ch) {
         return;
     }
     if (code <= 0xFFFF) {
-        *text++ = ch;
+        *text++ = static_cast<char16_t>(ch);
         return;
     }
     if (text + 2 > end) {
@@ -309,8 +331,8 @@ void utfWrite(char16_t*& text, char16_t* end, char32_t ch) {
         return;
     }
     code -= 0x10000u;
-    *text++ = 0xD800 | ((code >> 10) & 0x3FF);
-    *text++ = 0xDC00 | (code & 0x3FF);
+    *text++ = static_cast<char16_t>(0xD800 | ((code >> 10) & 0x3FF));
+    *text++ = static_cast<char16_t>(0xDC00 | (code & 0x3FF));
 }
 
 void utfWrite(char32_t*& text, char32_t* end, char32_t ch) {
@@ -319,9 +341,13 @@ void utfWrite(char32_t*& text, char32_t* end, char32_t ch) {
 
 void utfWrite(wchar_t*& text, wchar_t* end, char32_t ch) {
     if constexpr (sizeof(wchar_t) == sizeof(char16_t)) {
-        return utfWrite(reinterpret_cast<char16_t*&>(text), reinterpret_cast<char16_t*>(end), ch);
-    } else if constexpr (sizeof(wchar_t) == sizeof(char32_t)) {
-        return utfWrite(reinterpret_cast<char32_t*&>(text), reinterpret_cast<char32_t*>(end), ch);
+        char16_t* p = reinterpret_cast<char16_t*>(text);
+        utfWrite(p, reinterpret_cast<char16_t*>(end), ch);
+        text += p - reinterpret_cast<char16_t*>(text);
+    } else {
+        char32_t* p = reinterpret_cast<char32_t*>(text);
+        utfWrite(p, reinterpret_cast<char32_t*>(end), ch);
+        text += p - reinterpret_cast<char32_t*>(text);
     }
 }
 
@@ -340,7 +366,7 @@ constexpr static size_t utfMaxElements(char32_t ch) {
 [[maybe_unused]] constexpr static size_t utfMaxElements(wchar_t ch) {
     if constexpr (sizeof(wchar_t) == sizeof(char16_t)) {
         return utfMaxElements(char16_t{});
-    } else if constexpr (sizeof(wchar_t) == sizeof(char32_t)) {
+    } else {
         return utfMaxElements(char32_t{});
     }
 }
@@ -537,18 +563,22 @@ template <typename Char>
 std::basic_string<Char> utfNormalize(std::basic_string_view<Char> text, UtfNormalization normalization,
                                      UtfPolicy policy) {
 
+    // NOTE: the policy parameter is currently ignored (documented): utf8proc_map
+    // fails outright on invalid input instead of replacing/skipping it, so honoring
+    // the policy would require an extra cleanup pass. The input is cleaned up
+    // implicitly by the toUtf8 conversion (ReplaceInvalid policy).
     int opt = 0;
     if (normalization && UtfNormalization::Compose)
-        opt |= utf8proc_option_t::UTF8PROC_COMPOSE;
+        opt |= UTF8PROC_COMPOSE;
     if (normalization && UtfNormalization::Decompose)
-        opt |= utf8proc_option_t::UTF8PROC_DECOMPOSE;
+        opt |= UTF8PROC_DECOMPOSE;
     if (normalization && UtfNormalization::Compat)
-        opt |= utf8proc_option_t::UTF8PROC_COMPAT;
+        opt |= UTF8PROC_COMPAT;
     std::string u8        = toUtf8(text);
     utf8proc_uint8_t* dst = nullptr;
     if (utf8proc_ssize_t sz =
             utf8proc_map(reinterpret_cast<utf8proc_uint8_t*>(u8.data()), u8.size(), &dst,
-                         utf8proc_option_t(opt)); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                         static_cast<utf8proc_option_t>(opt));
         sz >= 0) {
         std::string result(dst, dst + sz);
         std::free(dst);
@@ -582,38 +612,42 @@ bool isAscii(std::string_view text) {
 
 } // namespace Brisk
 
-namespace std {
+namespace Brisk {
 
-bool toJson(Brisk::Json& j, const std::u32string& s) {
-    return j.from(Brisk::utf32ToUtf8(s));
+// NOTE: defined in namespace Brisk, not namespace std (adding declarations to
+// namespace std is undefined behavior per [namespace.std]). They are still found
+// via ADL because Json is a Brisk type.
+
+bool toJson(Json& j, const std::u32string& s) {
+    return j.from(utf32ToUtf8(s));
 }
 
-bool toJson(Brisk::Json& j, const std::u16string& s) {
-    return j.from(Brisk::utf16ToUtf8(s));
+bool toJson(Json& j, const std::u16string& s) {
+    return j.from(utf16ToUtf8(s));
 }
 
-bool toJson(Brisk::Json& j, const std::wstring& s) {
-    return j.from(Brisk::wcsToUtf8(s));
+bool toJson(Json& j, const std::wstring& s) {
+    return j.from(wcsToUtf8(s));
 }
 
-bool fromJson(const Brisk::Json& j, std::u32string& s) {
-    return j.to<std::string>(Brisk::RefAdapter{ [](const std::string& s) {
-                                                   return Brisk::utf8ToUtf32(s);
-                                               },
-                                                s });
+bool fromJson(const Json& j, std::u32string& s) {
+    return j.to<std::string>(RefAdapter{ [](const std::string& s) {
+                                              return utf8ToUtf32(s);
+                                          },
+                                           s });
 }
 
-bool fromJson(const Brisk::Json& j, std::u16string& s) {
-    return j.to<std::string>(Brisk::RefAdapter{ [](const std::string& s) {
-                                                   return Brisk::utf8ToUtf16(s);
-                                               },
-                                                s });
+bool fromJson(const Json& j, std::u16string& s) {
+    return j.to<std::string>(RefAdapter{ [](const std::string& s) {
+                                              return utf8ToUtf16(s);
+                                          },
+                                           s });
 }
 
-bool fromJson(const Brisk::Json& j, std::wstring& s) {
-    return j.to<std::string>(Brisk::RefAdapter{ [](const std::string& s) {
-                                                   return Brisk::utf8ToWcs(s);
-                                               },
-                                                s });
+bool fromJson(const Json& j, std::wstring& s) {
+    return j.to<std::string>(RefAdapter{ [](const std::string& s) {
+                                              return utf8ToWcs(s);
+                                          },
+                                           s });
 }
-} // namespace std
+} // namespace Brisk

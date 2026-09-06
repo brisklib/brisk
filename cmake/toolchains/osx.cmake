@@ -1,11 +1,23 @@
 if (NOT _VCPKG_OSX_TOOLCHAIN_OVERRIDE)
     set(_VCPKG_OSX_TOOLCHAIN_OVERRIDE 1)
-    
-    if (Z_VCPKG_ROOT_DIR)
-        include(${Z_VCPKG_ROOT_DIR}/scripts/toolchains/osx.cmake)
-    else()
-        include(${_VCPKG_ROOT_DIR}/scripts/toolchains/osx.cmake)
-    endif()
+
+    # Prefer the root discovered by the vcpkg toolchain.  Keep the environment
+    # and cache-variable fallbacks for older vcpkg versions and standalone use.
+    if (DEFINED Z_VCPKG_ROOT_DIR AND NOT "${Z_VCPKG_ROOT_DIR}" STREQUAL "")
+        set(_BRISK_VCPKG_ROOT_DIR "${Z_VCPKG_ROOT_DIR}")
+    elseif (DEFINED ENV{VCPKG_ROOT} AND NOT "$ENV{VCPKG_ROOT}" STREQUAL "")
+        file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}" _BRISK_VCPKG_ROOT_DIR)
+    elseif (DEFINED VCPKG_ROOT AND NOT "${VCPKG_ROOT}" STREQUAL "")
+        set(_BRISK_VCPKG_ROOT_DIR "${VCPKG_ROOT}")
+    elseif (DEFINED _VCPKG_ROOT_DIR AND NOT "${_VCPKG_ROOT_DIR}" STREQUAL "")
+        set(_BRISK_VCPKG_ROOT_DIR "${_VCPKG_ROOT_DIR}")
+    endif ()
+
+    if (NOT EXISTS "${_BRISK_VCPKG_ROOT_DIR}/scripts/toolchains/osx.cmake")
+        message(FATAL_ERROR "Could not locate the vcpkg macOS toolchain. Set VCPKG_ROOT or use a vcpkg toolchain that defines Z_VCPKG_ROOT_DIR.")
+    endif ()
+
+    include("${_BRISK_VCPKG_ROOT_DIR}/scripts/toolchains/osx.cmake")
 
     string(APPEND CMAKE_C_FLAGS_RELEASE_INIT " -g0 -DNDEBUG -O3 ")
     string(APPEND CMAKE_CXX_FLAGS_RELEASE_INIT " -g0 -DNDEBUG -O3 ")
@@ -32,4 +44,5 @@ if (NOT _VCPKG_OSX_TOOLCHAIN_OVERRIDE)
         "${CMAKE_CXX_FLAGS_DEBUG_INIT}"
         CACHE STRING "" FORCE)
 
+    unset(_BRISK_VCPKG_ROOT_DIR)
 endif ()

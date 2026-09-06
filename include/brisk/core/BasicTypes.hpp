@@ -698,7 +698,7 @@ template <typename T>
 Range(T, T) -> Range<T, false>;
 
 template <typename T>
-using InclusiveRange = Range<T>;
+using InclusiveRange = Range<T, true>;
 
 template <typename T>
 constexpr inline bool isBitFlags = false;

@@ -1,7 +1,24 @@
 if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
     set(_VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE 1)
 
-    include($ENV{VCPKG_ROOT}/scripts/toolchains/windows.cmake)
+    # Recent vcpkg versions derive the root from .vcpkg-root and expose it as
+    # Z_VCPKG_ROOT_DIR.  VCPKG_ROOT is not guaranteed to remain in the
+    # environment while a chainload toolchain is being evaluated.
+    if (DEFINED Z_VCPKG_ROOT_DIR AND NOT "${Z_VCPKG_ROOT_DIR}" STREQUAL "")
+        set(_BRISK_VCPKG_ROOT_DIR "${Z_VCPKG_ROOT_DIR}")
+    elseif (DEFINED ENV{VCPKG_ROOT} AND NOT "$ENV{VCPKG_ROOT}" STREQUAL "")
+        file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}" _BRISK_VCPKG_ROOT_DIR)
+    elseif (DEFINED VCPKG_ROOT AND NOT "${VCPKG_ROOT}" STREQUAL "")
+        set(_BRISK_VCPKG_ROOT_DIR "${VCPKG_ROOT}")
+    elseif (DEFINED _VCPKG_ROOT_DIR AND NOT "${_VCPKG_ROOT_DIR}" STREQUAL "")
+        set(_BRISK_VCPKG_ROOT_DIR "${_VCPKG_ROOT_DIR}")
+    endif ()
+
+    if (NOT EXISTS "${_BRISK_VCPKG_ROOT_DIR}/scripts/toolchains/windows.cmake")
+        message(FATAL_ERROR "Could not locate the vcpkg Windows toolchain. Set VCPKG_ROOT or use a vcpkg toolchain that defines Z_VCPKG_ROOT_DIR.")
+    endif ()
+
+    include("${_BRISK_VCPKG_ROOT_DIR}/scripts/toolchains/windows.cmake")
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Zc:inline")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Zc:inline")
@@ -45,6 +62,16 @@ if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
             CACHE PATH "" FORCE)
     endif ()
 
+    # vcpkg's Windows toolchain adds /c65001 to CMAKE_RC_FLAGS.  That option
+    # is accepted by Microsoft's resource compiler, but CMake's resource
+    # dependency scanner invokes clang-cl with the same flags and clang-cl
+    # treats /c65001 as an input file.  Keep the charset option for MSVC and
+    # omit it for clang-cl builds.
+    if (DEFINED ENV{LLVM_DIR} OR CMAKE_C_COMPILER MATCHES "clang-cl" OR CMAKE_CXX_COMPILER MATCHES "clang-cl")
+        set(CMAKE_RC_FLAGS "/DWIN32"
+            CACHE STRING "Flags used by the Windows resource compiler" FORCE)
+    endif ()
+
     set(CMAKE_C_FLAGS
         "${CMAKE_C_FLAGS}"
         CACHE STRING "" FORCE)
@@ -65,4 +92,5 @@ if (NOT _VCPKG_WINDOWS_TOOLCHAIN_OVERRIDE)
         "${CMAKE_CXX_FLAGS_DEBUG}"
         CACHE STRING "" FORCE)
 
+    unset(_BRISK_VCPKG_ROOT_DIR)
 endif ()

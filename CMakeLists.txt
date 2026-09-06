@@ -272,6 +272,7 @@ endif ()
 install(
     TARGETS
         brisk-core
+        brisk-text-engine
         brisk-graphics
         brisk-network
         brisk-window

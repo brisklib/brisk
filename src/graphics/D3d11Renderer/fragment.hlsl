@@ -677,7 +677,7 @@ float sdfInfLine(float2 p, float2 p1, float2 p2) {
   return dot((p - p1), normal);
 }
 
-float angleGradient(float2 p, float2 p1, float2 p2) {
+float angularGradient(float2 p, float2 p1, float2 p2) {
   float sd = sdfInfLine(p, p1, p2);
   float2 n = map(normalize((p - p1)), normalize((p2 - p1)));
   float first = ((atan2(n.x, n.y) * 0.15915493667125701904f) + 0.75f);
@@ -696,7 +696,7 @@ float gradientPositionForPoint(float2 tint_symbol_1) {
     } else {
       uint tint_symbol_68 = constant_gradient_type();
       if ((tint_symbol_68 == 2u)) {
-        return angleGradient(tint_symbol_1, asfloat(constants[10].xy), asfloat(constants[10].zw));
+        return angularGradient(tint_symbol_1, asfloat(constants[10].xy), asfloat(constants[10].zw));
       } else {
         uint tint_symbol_69 = constant_gradient_type();
         if ((tint_symbol_69 == 3u)) {

@@ -22,8 +22,10 @@
 #include <fmt/ranges.h>
 #include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
+#include <array>
 #include <ostream>
 #include <string_view>
+#include <vector>
 #include <brisk/core/Encoding.hpp>
 
 using namespace Brisk;
@@ -137,7 +139,11 @@ TEST_CASE("Encoding") {
           UtfValidation::Invalid);
 
     CHECK(utf8Cleanup("\xF0\x80\x80\x80", UtfPolicy::SkipInvalid) == "");
-    CHECK(utf8Cleanup("_\xF0\x80\x80\x80\x00", UtfPolicy::SkipInvalid) == "_\x00");
+    // NOTE: a string_view built from a literal stops at the first NUL (strlen
+    // semantics), so pass an explicit length to include the trailing NUL in the
+    // input, and compare against explicitly sized std::string objects.
+    CHECK(utf8Cleanup(std::string_view("_\xF0\x80\x80\x80\x00", 6), UtfPolicy::SkipInvalid) ==
+          std::string("_\x00", 2));
     CHECK(utf8Cleanup("_\xC0", UtfPolicy::SkipInvalid) == "_");
 
     CHECK(utf16Cleanup(std::u16string_view(std::array<char16_t, 1>{ 0xD800 }.data(), 1),
@@ -148,7 +154,8 @@ TEST_CASE("Encoding") {
     CHECK(utf8Cleanup("\x80", UtfPolicy::ReplaceInvalid) == "" REPLACEMENT_CHAR_S);
     CHECK(utf8Cleanup("_\xC0", UtfPolicy::ReplaceInvalid) == "_" REPLACEMENT_CHAR_S);
     CHECK(utf8Cleanup("\xF0\x80\x80\x80", UtfPolicy::ReplaceInvalid) == "" REPLACEMENT_CHAR_S);
-    CHECK(utf8Cleanup("_\xF0\x80\x80\x80\x00", UtfPolicy::ReplaceInvalid) == "_" REPLACEMENT_CHAR_S "\x00");
+    CHECK(utf8Cleanup(std::string_view("_\xF0\x80\x80\x80\x00", 6), UtfPolicy::ReplaceInvalid) ==
+          std::string("_" REPLACEMENT_CHAR_S "\x00", 5));
 
     CHECK(utf8Cleanup("", UtfPolicy::SkipInvalid) == "");
 
@@ -360,4 +367,129 @@ TEST_CASE("utf_normalize") {
     CHECK(utf32Normalize(U"\u1E9B\u0323", UtfNormalization::NFD) == U"\u017F\u0323\u0307"sv);
     CHECK(utf32Normalize(U"\u1E9B\u0323", UtfNormalization::NFKC) == U"\u1E69"sv);
     CHECK(utf32Normalize(U"\u1E9B\u0323", UtfNormalization::NFKD) == U"\u0073\u0323\u0307"sv);
+}
+
+TEST_CASE("Encoding_utf8_out_of_range") {
+    // Codepoints above U+10FFFF must be rejected.
+    // Lead bytes 0xF5..0xF7 encode U+140000..U+1FFFFF; 0xF4 with continuation >= 0x90
+    // encodes >= U+110000.
+    CHECK(utf8Validate("\xF4\x90\x80\x80") == UtfValidation::Invalid); // exactly U+110000
+    CHECK(utf8Validate("\xF4\x9F\xBF\xBF") == UtfValidation::Invalid); // U+13FFFF
+    CHECK(utf8Validate("\xF5\x80\x80\x80") == UtfValidation::Invalid); // U+140000
+    CHECK(utf8Validate("\xF7\xBF\xBF\xBF") == UtfValidation::Invalid); // U+1FFFFF
+    CHECK(utf8Validate("\xF8\x88\x80\x80\x80") == UtfValidation::Invalid); // invalid lead byte
+
+    // Conversions and cleanup must treat out-of-range sequences as invalid.
+    CHECK(utf8Codepoints("\xF5\x80\x80\x80", UtfPolicy::ReplaceInvalid) == 1);
+    CHECK(utf8Codepoints("\xF5\x80\x80\x80", UtfPolicy::SkipInvalid) == 0);
+    CHECK(utf8ToUtf32("\xF4\x90\x80\x80"sv) == std::u32string(1, replacementChar));
+    CHECK(utf8Cleanup("\xF5\x80\x80\x80", UtfPolicy::SkipInvalid) == "");
+    CHECK(utf8Cleanup("\xF5\x80\x80\x80", UtfPolicy::ReplaceInvalid) == std::string(REPLACEMENT_CHAR_S));
+    CHECK(utf8ToUtf16("\xF5\x80\x80\x80"sv) == std::u16string(1, char16_t(0xFFFD)));
+}
+
+TEST_CASE("Encoding_utf16_surrogate_pairs") {
+    auto u16 = [](std::initializer_list<char16_t> il) {
+        return std::u16string_view(il.begin(), il.size());
+    };
+
+    // A valid pair must still decode correctly.
+    CHECK(utf16Validate(u"\U0001F603") == UtfValidation::Valid);
+    CHECK(utf16ToUtf32(u16({0xD800, 0xDC00})) == U"\U00010000");
+    CHECK(utf16ToUtf32(u16({0xDBFF, 0xDFFF})) == U"\U0010FFFF");
+
+    // A high surrogate followed by a non-low-surrogate must be invalid, not silently
+    // combined into a bogus codepoint.
+    CHECK(utf16Validate(u16({0xD800, 0x0041})) == UtfValidation::Invalid); // would decode as U+10041
+    CHECK(utf16Validate(u16({0xD800, 0xD800})) == UtfValidation::Invalid); // would decode as U+10000
+    CHECK(utf16Validate(u16({0xDBFF, 0x0041})) == UtfValidation::Invalid); // would decode as U+10FC41
+    CHECK(utf16Validate(u16({0xD800, 0xE000})) == UtfValidation::Invalid);
+
+    // Conversions must reject unpaired leading surrogates according to the policy.
+    CHECK(utf16ToUtf32(u16({0xD800, 0x0041})) == std::u32string(1, replacementChar) + U"A");
+    CHECK(utf16ToUtf32(u16({0xDBFF, 0x0041})) == std::u32string(1, replacementChar) + U"A");
+    CHECK(utf16ToUtf8(u16({0xD800, 0x0041})) == std::string(REPLACEMENT_CHAR_S) + "A");
+    CHECK(utf16Codepoints(u16({0xD800, 0x0041}), UtfPolicy::ReplaceInvalid) == 2);
+    CHECK(utf16Codepoints(u16({0xD800, 0x0041}), UtfPolicy::SkipInvalid) == 1);
+
+    // Lone trailing surrogate stays invalid (covered before, repeated for completeness).
+    CHECK(utf16Validate(u16({0xDC00, 0x0041})) == UtfValidation::Invalid);
+}
+
+TEST_CASE("Encoding_utf_iterator") {
+    // Iteration over heap-allocated (non-literal) strings must not read past the end
+    // and must yield exactly the contained codepoints.
+    auto collect = [](auto iterator) {
+        std::vector<char32_t> result;
+        for (char32_t ch : iterator)
+            result.push_back(ch);
+        return result;
+    };
+
+    std::string u8("a\u732B\U0001F603");
+    CHECK(utf8Validate(u8) == UtfValidation::Valid);
+    CHECK(collect(utf8Iterate(u8)) == std::vector<char32_t>{ U'a', 0x732B, 0x1F603 });
+
+    std::u16string u16(u"a\u732B\U0001F603");
+    CHECK(utf16Validate(u16) == UtfValidation::Valid);
+    CHECK(collect(utf16Iterate(u16)) == std::vector<char32_t>{ U'a', 0x732B, 0x1F603 });
+
+    std::u32string u32(U"a\u732B\U0001F603");
+    CHECK(utf32Validate(u32) == UtfValidation::Valid);
+    CHECK(collect(utf32Iterate(u32)) == std::vector<char32_t>{ U'a', 0x732B, 0x1F603 });
+
+    // Iterating an empty view yields nothing (no out-of-bounds read on ++).
+    CHECK(collect(utf8Iterate(""sv)).empty());
+    CHECK(collect(utf16Iterate(u""sv)).empty());
+    CHECK(collect(utf32Iterate(U""sv)).empty());
+}
+
+TEST_CASE("Encoding_utf_write_bounds") {
+    // utfWrite(char*) must not emit anything for out-of-range codepoints
+    // (previously it wrote a garbage 0xFF byte for values >= 0x80000000,
+    // including the UtfInvalid/UtfOverlong/UtfTruncated sentinels).
+    {
+        char buf[4] = {};
+        char* p     = buf;
+        utfWrite(p, buf + 4, char32_t(0xFFFFFFFFu)); // e.g. UtfInvalid == char32_t(-1)
+        CHECK(p == buf);
+    }
+    {
+        char buf[4] = {};
+        char* p     = buf;
+        utfWrite(p, buf + 4, UtfInvalid);
+        CHECK(p == buf);
+        utfWrite(p, buf + 4, UtfOverlong);
+        CHECK(p == buf);
+        utfWrite(p, buf + 4, UtfTruncated);
+        CHECK(p == buf);
+    }
+    {
+        // Utf8Character of an invalid codepoint must encode to an empty view.
+        Utf8Character invalid(UtfInvalid);
+        CHECK(std::string_view(invalid).empty());
+        Utf8Character valid(U'\u732B');
+        CHECK(std::string_view(valid) == "\u732B"sv);
+    }
+
+    // PRECONDITION (documented, not validated for performance): utfWrite(char16_t*)
+    // passes lone surrogate codepoints through verbatim; callers must supply valid
+    // codepoints. Verify only that valid surrogate pairs are written correctly.
+    {
+        char16_t buf[2] = {};
+        char16_t* p     = buf;
+        utfWrite(p, buf + 2, U'\U0001F603');
+        CHECK(p == buf + 2);
+        CHECK(std::u16string_view(buf, 2) == u"\U0001F603");
+    }
+
+    // PRECONDITION (documented, not validated for performance): utfWrite(char32_t*)
+    // writes exactly one unit and requires the caller to guarantee dest < dest_end.
+    {
+        char32_t buf[1] = {};
+        char32_t* p     = buf;
+        utfWrite(p, buf + 1, U'A');
+        CHECK(p == buf + 1);
+        CHECK(buf[0] == U'A');
+    }
 }

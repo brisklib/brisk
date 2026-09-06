@@ -29,12 +29,12 @@ public:
     Rc<Widget> build(Rc<Notifications> notifications, Value<bool> globalEnabled);
 
 private:
-    OpenTypeFeatureFlags m_fontFeatures{
+    std::array<OpenTypeFeatureFlag, 4> m_fontFeatures{ {
         { OpenTypeFeature::salt, false },
         { OpenTypeFeature::liga, true },
         { OpenTypeFeature::onum, false },
         { OpenTypeFeature::kern, true },
-    };
+    } };
     float m_letterSpacing           = 0.f;
     float m_wordSpacing             = 0.f;
     TextDecoration m_textDecoration = TextDecoration::None;

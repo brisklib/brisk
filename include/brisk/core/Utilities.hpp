@@ -247,7 +247,7 @@ struct CacheWithInvalidation {
     /// Pointer to the instance of the class that holds the member function.
     Class* self{};
     /// The key associated with the cached value.
-    Key m_key{};
+    mutable Key m_key{};
 
     /// Optionally holds the cached value.
     mutable std::optional<CachedValue> m_value;
@@ -296,7 +296,7 @@ struct CacheWithInvalidation {
      * @param key The new key to check.
      * @return True if the cache was invalidated, otherwise false.
      */
-    bool invalidate(const Key& key, bool force = false) {
+    bool invalidate(const Key& key, bool force = false) const {
         if (force || m_key != key) {
             m_key   = key;
             m_value = std::nullopt;

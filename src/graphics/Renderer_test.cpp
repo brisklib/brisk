@@ -85,10 +85,10 @@ TEST_CASE("Renderer devices", "[gpu]") {
 TEST_CASE("Renderer - fonts") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    fonts->addFont(*ttf, "Lato");
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
     REQUIRE(ttf2.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
+    fonts->addFont(*ttf2, "Lato");
 
     for (bool subpixel : { false, true }) {
         renderTest(
@@ -122,10 +122,10 @@ TEST_CASE("Renderer - fonts") {
 TEST_CASE("Html text") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    fonts->addFont(*ttf, "Lato");
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
     REQUIRE(ttf2.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Bold, *ttf2, true, FontFlags::Default);
+    fonts->addFont(*ttf2, "Lato");
 
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -304,10 +304,10 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
 TEST_CASE("Emoji") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
     REQUIRE(ttf.has_value());
-    fonts->addFont("Noto Emoji", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::EnableColor);
+    fonts->addFont(*ttf, "Noto Emoji");
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf2.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::Default);
+    fonts->addFont(*ttf2, "Lato");
 
     const Size size{ 1200, 200 };
     renderTest("emoji-only", size, [&](RenderContext& context) {
@@ -520,7 +520,7 @@ template <>
 inline constexpr std::initializer_list<NameValuePair<GradientType>> defaultNames<GradientType>{
     { "linear", GradientType::Linear },
     { "radial", GradientType::Radial },
-    { "angle", GradientType::Angle },
+    { "angular", GradientType::Angular },
     { "reflected", GradientType::Reflected },
 };
 using enum TestMode;
@@ -854,7 +854,7 @@ TEST_CASE("JoinStyle") {
 
 TEST_CASE("GradientType") {
     for (GradientType gradientType :
-         { GradientType::Linear, GradientType::Radial, GradientType::Angle, GradientType::Reflected }) {
+         { GradientType::Linear, GradientType::Radial, GradientType::Angular, GradientType::Reflected }) {
 
         renderTest("canvas-gradientType-" + fmt::to_string(gradientType), Size{ 320, 320 },
                    [gradientType](RenderContext& context) {
@@ -1022,7 +1022,7 @@ TEST_CASE("WebGPU") {
 }
 #endif
 
-TEST_CASE("Canvas-Performance") {
+TEST_CASE("Canvas-Performance", "[.performance]") {
     for (int i = 128; i <= 2048; i *= 2) {
         renderTest<true>("canvas-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
             Canvas canvas(context);
@@ -1043,7 +1043,7 @@ TEST_CASE("Canvas-Performance") {
     }
 }
 
-TEST_CASE("Layers") {
+TEST_CASE("Layers", "[.performance]") {
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
@@ -1080,7 +1080,7 @@ TEST_CASE("Backlayer") {
 #endif
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    fonts->addFont(*ttf, "Lato");
 
     bool linearColorSaved = linearColor;
     linearColor           = true;
@@ -1142,10 +1142,10 @@ constexpr std::array compModes = {
     CompositionMode::Plus,    CompositionMode::PlusLighter,
 };
 
-TEST_CASE("Composition") {
+TEST_CASE("Composition", "[.performance]") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    fonts->addFont(*ttf, "Lato");
 
     Size cellSize{ 100, 100 };
     Size imageSize(25 + cellSize.width * blendModes.size(), 25 + cellSize.height * compModes.size());
@@ -1286,7 +1286,7 @@ TEST_CASE("Matrix invariants") {
 
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    fonts->addFont(*ttf, "Lato");
 
     renderTest("matrix-invariants-text", Size{ 256, 128 },
                [](RenderContext& context) {
@@ -1303,7 +1303,7 @@ TEST_CASE("Matrix invariants") {
 
     auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
     REQUIRE(ttf2.has_value());
-    fonts->addFont("Noto Emoji", FontStyle::Normal, FontWeight::Regular, *ttf2, true, FontFlags::EnableColor);
+    fonts->addFont(*ttf2, "Noto Emoji");
 
     renderTest("matrix-invariants-emoji", Size{ 256, 128 },
                [](RenderContext& context) {
@@ -1322,7 +1322,7 @@ TEST_CASE("Matrix invariants") {
 TEST_CASE("Text subpixel alignment") {
     auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf");
     REQUIRE(ttf.has_value());
-    fonts->addFont("Lato", FontStyle::Normal, FontWeight::Regular, *ttf, true, FontFlags::Default);
+    fonts->addFont(*ttf, "Lato");
 
     renderTest("text-subpixel-alignment", Size{ 256, 440 }, [](RenderContext& context) {
         Canvas canvas(context);

@@ -90,8 +90,10 @@ void FTOutline::grow(size_t points, size_t segments) {
     reset();
     mPointMemory.reserve(points + segments);
     mTagMemory.reserve(points + segments);
-    mContourMemory.reserve(segments);
-    mContourFlagMemory.reserve(segments);
+    // The outline builder initializes contours_flag[n_contours] after
+    // incrementing n_contours and appends the final contour endpoint.
+    mContourMemory.reserve(segments + 1);
+    mContourFlagMemory.reserve(segments + 1);
 
     ft.points        = mPointMemory.data();
     ft.tags          = mTagMemory.data();

@@ -73,17 +73,18 @@ protected:
     };
 
     struct Cached {
-        PreparedText shaped;
+        ShapedText shapedText;
     };
 
     struct CacheKey2 {
         int width;
+        TextLayoutAlignment alignment;
         bool operator==(const CacheKey2&) const noexcept = default;
     };
 
     struct Cached2 {
         SizeF textSize;
-        PreparedText prepared;
+        TextLayout layout;
     };
 
     Cached updateCache(const CacheKey&);
@@ -123,7 +124,7 @@ public:
     Property<Text, bool, 1> wordWrap;
     Property<Text, Rotation, 2> rotation;
     Property<Text, TextAutoSize, 3> textAutoSize;
-    Property<Text, Range<float>, 4> textAutoSizeRange;
+    Property<Text, InclusiveRange<float>, 4> textAutoSizeRange;
     Property<Text, TextOptions, 5> textOptions;
     BRISK_PROPERTIES_END
 };

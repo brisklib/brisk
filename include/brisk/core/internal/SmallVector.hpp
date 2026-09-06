@@ -20,6 +20,20 @@
  */
 #pragma once
 #include "llvm/SmallVector.h"
+#include "lexicographical_compare_three_way.hpp"
+
+namespace llvm {
+
+template <typename T, unsigned N>
+    requires std::three_way_comparable<T>
+constexpr auto operator<=>(const SmallVector<T, N>& lhs, const SmallVector<T, N>& rhs) noexcept(
+    noexcept(std::compare_three_way{}(std::declval<const T&>(), std::declval<const T&>())))
+    -> std::compare_three_way_result_t<const T&, const T&> {
+    return BRISK_LEXICOGRAPHICAL_COMPARE_THREE_WAY(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+                                                   std::compare_three_way{});
+}
+
+} // namespace llvm
 
 namespace Brisk {
 

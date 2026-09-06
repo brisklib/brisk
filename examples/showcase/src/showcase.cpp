@@ -24,6 +24,9 @@
 int briskMain() {
     using namespace Brisk;
 
+    if (!fonts->addFontFromResource("GoNotoKurrent-Regular.ttf", "GoNoto"))
+        return 1;
+
     GuiApplication application;
     return application.run(createComponent<ShowcaseComponent>());
 }

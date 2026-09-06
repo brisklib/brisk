@@ -22,6 +22,18 @@
 
 namespace Brisk {
 
+static TextLayoutAlignment toTextLayoutAlignment(TextAlign align) {
+    switch (align) {
+    case TextAlign::Start:
+        return TextLayoutAlignment::Start;
+    case TextAlign::Center:
+        return TextLayoutAlignment::Center;
+    case TextAlign::End:
+        return TextLayoutAlignment::End;
+    }
+    return TextLayoutAlignment::Start;
+}
+
 Text::Text(Construction construction, std::string text, ArgumentsView<Text> args)
     : Widget{ construction, nullptr }, m_text(std::move(text)) {
     args.apply(this);
@@ -43,26 +55,26 @@ void Text::onChanged() {
     invalidate();
     Font font = this->font();
     if (!m_wordWrap && m_textAutoSize != TextAutoSize::None && !m_text.empty()) {
-        font.fontSize = font.fontSize = calcFontSizeFor(font, m_text);
+        font.fontSize = calcFontSizeFor(font, m_text);
     }
     if (m_cache.invalidate(CacheKey{ font, m_text })) {
         if (m_wordWrap || m_textAutoSize == TextAutoSize::None) {
             requestUpdateLayout();
         }
-        m_cache2.invalidate({ m_clientRect.width() }, true);
+        m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) }, true);
     } else if (m_wordWrap) {
-        m_cache2.invalidate({ m_clientRect.width() });
+        m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) });
     }
 }
 
 float Text::calcFontSizeFor(const Font& font, const std::string& m_text) const {
-    float fontSize          = m_fontSize.current;
-    const float refFontSize = 32.f;
-    Font refFont            = font;
-    refFont.fontSize        = refFontSize;
-    SizeF sz                = fonts->bounds(refFont, utf8ToUtf32(m_text))
-                   .size()
-                   .flippedIf(toOrientation(m_rotation) == Orientation::Vertical);
+    float fontSize            = m_fontSize.current;
+    const float refFontSize   = 32.f;
+    Font refFont              = font;
+    refFont.fontSize          = refFontSize;
+    const ShapedText document = fonts->shapeText(refFont, TextWithOptions{ m_text, m_textOptions });
+    SizeF sz =
+        document.layout().bounds().size().flippedIf(toOrientation(m_rotation) == Orientation::Vertical);
     if (sz.width != 0 && sz.height != 0) {
         switch (m_textAutoSize) {
         case TextAutoSize::FitWidth:
@@ -104,37 +116,41 @@ SizeF Text::measure(AvailableSize size) const {
         }
         return result;
     } else {
-        uint32_t width        = size.x.valueOr(16777216.f);
-        PreparedText prepared = m_cache->shaped.wrap(width);
-        return alignInflate(prepared.bounds()).size();
+        const int width = std::max(0, static_cast<int>(size.x.valueOr(16777216.f)));
+        TextLayoutOptions options;
+        options.maxLineWidth = static_cast<float>(width);
+        options.alignment    = toTextLayoutAlignment(m_textAlign);
+        return alignInflate(m_cache->shapedText.layout(options).bounds()).size();
     }
 }
 
 void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
     if (m_opacity.current > 0.f) {
-        RectangleF inner = m_clientRect;
-        ColorW color     = m_color.current.multiplyAlpha(m_opacity.current);
-        auto prepared    = m_cache2->prepared;
+        m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) });
+        RectangleF inner        = m_clientRect;
+        ColorW color            = m_color.current.multiplyAlpha(m_opacity.current);
+        const TextLayout layout = m_cache2->layout;
+        const PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
+        const RectangleF bounds = layout.bounds();
+        const auto originFor    = [&](RectangleF container) {
+            const PointF anchor = container.at(alignment.x, alignment.y);
+            return anchor - PointF{ bounds.x1, bounds.y1 } - PointF(bounds.size()) * alignment;
+        };
 
         canvas.setFillColor(color);
         if (m_rotation != Rotation::NoRotation) {
             RectangleF rotated = RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
                 toOrientation(m_rotation) == Orientation::Vertical);
-            Matrix m = Matrix()
-                           .translate(-rotated.center().x, -rotated.center().y)
-                           .rotate90(static_cast<int>(m_rotation))
-                           .translate(inner.center().x, inner.center().y);
-            PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            auto&& state  = canvas.saveState();
+            Matrix m         = Matrix()
+                                   .translate(-rotated.center().x, -rotated.center().y)
+                                   .rotate90(static_cast<int>(m_rotation))
+                                   .translate(inner.center().x, inner.center().y);
+            auto&& state     = canvas.saveState();
             state->transform = m;
-            canvas.fillText(rotated.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)) + offset,
-                            prepared);
+            canvas.fillText(originFor(rotated), layout);
         } else {
-            PointF offset = prepared.alignLines(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            prepared.updateCaretData();
-            offset += inner.at(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign));
-            canvas.fillText(offset, prepared);
+            canvas.fillText(originFor(inner), layout);
         }
     }
 }
@@ -148,19 +164,24 @@ void Text::onFontChanged() {
 }
 
 Text::Cached Text::updateCache(const CacheKey& key) {
-    PreparedText shaped = fonts->prepare(key.font, TextWithOptions(key.text, m_textOptions));
-    return { std::move(shaped) };
+    ShapedText shapedText = fonts->shapeText(key.font, TextWithOptions(key.text, m_textOptions));
+    return { std::move(shapedText) };
 }
 
 Text::Cached2 Text::updateCache2(const CacheKey2& key) {
     m_cache.update();
-    auto prepared  = m_cache->shaped.wrap(m_wordWrap ? key.width : 16777216.f);
-    SizeF textSize = prepared.bounds().size();
-    textSize       = max(textSize, SizeF{ 0, fonts->metrics(m_cache.key().font).vertBounds() });
-    return { textSize, std::move(prepared) };
+    TextLayoutOptions options;
+    options.maxLineWidth    = m_wordWrap ? static_cast<float>(key.width) : HUGE_VALF;
+    options.alignment       = key.alignment;
+    const TextLayout layout = m_cache->shapedText.layout(options);
+    SizeF textSize          = layout.bounds().size();
+    const TextLine line     = layout.line(0);
+    textSize                = max(textSize, SizeF{ 0, line.ascender - line.descender });
+    return { textSize, layout };
 }
 
 void BackStrikedText::paint(Canvas& canvas) const {
+    Widget::paint(canvas);
     ColorW color = m_color.current.multiplyAlpha(m_opacity.current);
     canvas.setFillColor(color);
     canvas.setFont(font());
@@ -176,7 +197,6 @@ void BackStrikedText::paint(Canvas& canvas) const {
         canvas.fillRect(r1);
     if (r2.width() > 0)
         canvas.fillRect(r2);
-    Widget::paint(canvas);
 }
 
 Rc<Widget> BackStrikedText::cloneThis() const {
@@ -192,7 +212,7 @@ void HoveredDescription::paint(Canvas& canvas) const {
     }
     if (m_lastChange && frameStartTime - *m_lastChange > hoverDelay) {
         canvas.setFont(font());
-        canvas.setFillColor(m_color.current);
+        canvas.setFillColor(m_color.current.multiplyAlpha(m_opacity.current));
         canvas.fillText(*m_cachedText, m_clientRect,
                         PointF(toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign)));
     }

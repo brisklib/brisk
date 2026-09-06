@@ -48,6 +48,11 @@ struct COMInitializer {
      */
     ~COMInitializer();
 
+    COMInitializer(const COMInitializer&)            = delete;
+    COMInitializer& operator=(const COMInitializer&) = delete;
+    COMInitializer(COMInitializer&&)                 = delete;
+    COMInitializer& operator=(COMInitializer&&)      = delete;
+
     /// The result of the COM initialization.
     uint32_t result;
 

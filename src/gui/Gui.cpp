@@ -554,35 +554,16 @@ void registerBuiltinFonts() {
     if (fontsRegistered)
         return;
 
-    if (auto& ttf = Resources::loadCached("fonts/default/regular.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Regular, ttf, false);
-    }
-    if (auto& ttf = Resources::loadCached("fonts/default/light.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Light, ttf, false);
-    }
-    if (auto& ttf = Resources::loadCached("fonts/default/bold.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Default, FontStyle::Normal, FontWeight::Bold, ttf, false);
-    }
-    if (auto& ttf = Resources::loadCached("fonts/default/regular-italic.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Regular, ttf, false);
-    }
-    if (auto& ttf = Resources::loadCached("fonts/default/light-italic.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Light, ttf, false);
-    }
-    if (auto& ttf = Resources::loadCached("fonts/default/bold-italic.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Default, FontStyle::Italic, FontWeight::Bold, ttf, false);
-    }
+    std::ignore     = fonts->addFontFromResource("fonts/default/regular.ttf", Font::Default, true);
+    std::ignore     = fonts->addFontFromResource("fonts/default/light.ttf", Font::Default, true);
+    std::ignore     = fonts->addFontFromResource("fonts/default/bold.ttf", Font::Default, true);
+    std::ignore     = fonts->addFontFromResource("fonts/default/regular-italic.ttf", Font::Default, true);
+    std::ignore     = fonts->addFontFromResource("fonts/default/light-italic.ttf", Font::Default, true);
+    std::ignore     = fonts->addFontFromResource("fonts/default/bold-italic.ttf", Font::Default, true);
 
-    if (auto& ttf = Resources::loadCached("fonts/icons.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Icons, FontStyle::Normal, FontWeight::Regular, ttf, false);
-    }
-    if (auto& ttf = Resources::loadCached("fonts/emoji.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Emoji, FontStyle::Normal, FontWeight::Regular, ttf, false,
-                       FontFlags::EnableColor);
-    }
-    if (auto& ttf = Resources::loadCached("fonts/mono/regular.ttf", true); !ttf.empty()) {
-        fonts->addFont(Font::Monospace, FontStyle::Normal, FontWeight::Regular, ttf, false);
-    }
+    std::ignore     = fonts->addFontFromResource("fonts/icons.ttf", Font::Icons, true);
+    std::ignore     = fonts->addFontFromResource("fonts/emoji.ttf", Font::Emoji, true);
+    std::ignore     = fonts->addFontFromResource("fonts/mono/regular.ttf", Font::Monospace, true);
 
     fontsRegistered = true;
 }
@@ -736,23 +717,25 @@ void Widget::computeClipRect() {
 
 void Widget::prepareHint() {
     if (m_hint.empty()) {
-        m_hintPrepared = {};
+        m_hintShapedText = {};
+        m_hintTextLayout = {};
         return;
     }
-    Font font      = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
-    m_hintPrepared = fonts->prepare(font, m_hint);
+    Font font        = Font{ Font::DefaultPlusIconsEmoji, dp(FontSize::Normal - 1) };
+    m_hintShapedText = fonts->shapeText(font, TextWithOptions{ m_hint });
+    m_hintTextLayout = m_hintShapedText.layout();
 }
 
 void Widget::computeHintRect() {
-    if (m_hintPrepared.lines.empty()) {
+    if (m_hintTextLayout.empty()) {
         m_hintRect = {};
         return;
     }
-    Size textSize = m_hintPrepared.bounds().size();
+    Size textSize = m_hintTextLayout.bounds().size();
     Point p       = m_rect.at(0.5f, 1.f);
     m_hintRect    = p.alignedRect(textSize + Size{ 12_idp, 6_idp }, { 0.5f, 0.f });
     if (m_tree && !m_tree->viewportRectangle().empty() && !m_hint.empty()) {
-        Size textSize          = m_hintPrepared.bounds().size();
+        Size textSize          = m_hintTextLayout.bounds().size();
         Rectangle boundingRect = m_tree->viewportRectangle();
 
         Point p                = m_rect.at(0.5f, 1.f);
@@ -773,7 +756,7 @@ void Widget::computeHintRect() {
             m_hintRect.applyOffset(0, boundingRect.y1 - m_hintRect.y1);
         m_hintRect.y2 = std::min(m_hintRect.y2, boundingRect.y2);
     }
-    m_hintTextOffset = m_hintPrepared.alignLines(0.5f, 0.5f);
+    m_hintTextOffset = {};
 }
 
 /// Returns the number of changes
@@ -1234,10 +1217,8 @@ void Widget::paintFocusFrame(Canvas& canvas) const {
 }
 
 void Widget::paintHint(Canvas& canvas) const {
-    if ((m_isHintExclusive || isHintCurrent()) && !m_hintPrepared.lines.empty() && m_tree &&
-        m_isHintVisible) {
+    if ((m_isHintExclusive || isHintCurrent()) && !m_hintTextLayout.empty() && m_tree && m_isHintVisible) {
         m_tree->requestLayer([this](Canvas& canvas) {
-            SizeF textSize     = m_hintPrepared.bounds().size();
             ColorW color       = getStyleVar<ColorW>(hintBackgroundColor.id).value_or(Palette::white);
             ColorW shadowColor = getStyleVar<ColorW>(hintShadowColor.id).value_or(Palette::black);
             canvas.setFillColor(shadowColor);
@@ -1245,7 +1226,7 @@ void Widget::paintHint(Canvas& canvas) const {
             canvas.setFillColor(color);
             canvas.fillRect(m_hintRect, 5._dp, m_squircleCorners);
             canvas.setFillColor(getStyleVar<ColorW>(hintTextColor.id).value_or(Palette::black));
-            canvas.fillText(m_hintRect.center() + m_hintTextOffset, m_hintPrepared);
+            canvas.fillText(m_hintRect.center() + m_hintTextOffset, { 0.5f, 0.5f }, m_hintTextLayout);
         });
     }
 }
@@ -2544,7 +2525,7 @@ void Widget::setSelected(bool value) {
 }
 
 bool Widget::setScrollOffset(Point newOffset) {
-    newOffset = max(newOffset, Point(0));
+    newOffset = max(newOffset, Point(0, 0));
     newOffset = min(newOffset, Point(scrollSize()));
     return setChildrenOffset(-newOffset);
 }

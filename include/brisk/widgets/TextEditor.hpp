@@ -22,6 +22,8 @@
 
 #include "Widgets.hpp"
 #include <brisk/core/Binding.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <optional>
 
 namespace Brisk {
 
@@ -48,7 +50,11 @@ protected:
 
     std::u32string m_cachedText;
 
-    mutable PreparedText m_preparedText;
+    mutable ShapedText m_shapedText;
+    mutable TextLayout m_textLayout;
+    CaretAffinity m_caretAffinity = CaretAffinity::Downstream;
+    std::optional<float> m_preferredCaretX;
+    float m_cachedLayoutWidth = -1.f;
     Font m_cachedFont{};
 
     double m_blinkTime            = 0.0;
@@ -57,7 +63,7 @@ protected:
     bool m_multiline              = false;
     void resetBlinking();
     void updateGraphemes();
-    void makeCursorVisible(uint32_t textLen);
+    void makeCursorVisible();
     void selectAll(const std::u32string& text);
     void deleteSelection(std::u32string& text);
     void pasteFromClipboard(std::u32string& text);
@@ -72,6 +78,10 @@ private:
     void normalizeCursor(uint32_t textLen);
     void createContextMenu();
     void selectionChanged();
+    CaretIndex caretIndex() const;
+    void setCaretIndex(CaretIndex caret);
+    CaretIndex caretAtPoint(PointF pt) const;
+    PointF textOrigin() const;
 
 public:
     static const auto& properties() noexcept {

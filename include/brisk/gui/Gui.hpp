@@ -47,6 +47,7 @@ BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/internal/Typename.hpp>
 #include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Fonts.hpp>
 #include <brisk/graphics/Color.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
 #include "internal/Animation.hpp"
@@ -378,6 +379,11 @@ struct IsConstexprCompatible {
 
 template <typename T, typename Tr, typename A>
 struct IsConstexprCompatible<std::basic_string<T, Tr, A>> {
+    constexpr static bool value = false;
+};
+
+template <typename T, unsigned S>
+struct IsConstexprCompatible<SmallVector<T, S>> {
     constexpr static bool value = false;
 };
 
@@ -1134,7 +1140,8 @@ protected:
     EdgesF m_computedBorderWidth{ 0, 0, 0, 0 };
     Size m_contentSize{ 0, 0 };
     Point m_hintTextOffset{ 0, 0 };
-    PreparedText m_hintPrepared;
+    ShapedText m_hintShapedText;
+    TextLayout m_hintTextLayout;
 
     Animated<ColorW> m_backgroundColor;
     Animated<ColorW> m_borderColor;

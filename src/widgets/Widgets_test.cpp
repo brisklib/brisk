@@ -22,7 +22,6 @@
 #include <catch2/catch_all.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/gui/Icons.hpp>
-#include "Catch2Utils.hpp"
 #include "../graphics/VisualTests.hpp"
 #include <brisk/graphics/Offscreen.hpp>
 #include <random>
@@ -111,6 +110,36 @@ static Event mouseRelease(PointF pt) {
 
 TEST_CASE("Widget Text") {
     widgetTest("widget-text", rcnew Text{ "Text" });
+}
+
+TEST_CASE("Widget Text wrapped") {
+    widgetTest("widget-text-wrapped",
+               rcnew Text{
+                   "A long piece of text that must wrap across several lines",
+                   wordWrap        = true,
+                   maxWidth        = 220_dpx,
+                   backgroundColor = Palette::Standard::indigo.multiplyAlpha(0.1f),
+               },
+               {}, { 240, 200 });
+}
+
+TEST_CASE("Widget Text aligned and rotated") {
+    widgetTest("widget-text-rotated",
+               rcnew Text{ "Rotated", rotation = Rotation::Rotate90, textAlign = TextAlign::Center,
+                           textVerticalAlign = TextAlign::Center },
+               {}, { 160, 240 });
+}
+
+TEST_CASE("Widget Text autosize and empty") {
+    widgetTest("widget-text-autosize",
+               rcnew Text{
+                   "Autosized",
+                   textAutoSize  = TextAutoSize::FitSize,
+                   minDimensions = { 240_dpx, 80_dpx },
+                   maxDimensions = { 240_dpx, 80_dpx },
+               },
+               {}, { 240, 80 });
+    widgetTest("widget-text-empty", rcnew Text{ "", wordWrap = true });
 }
 
 TEST_CASE("Widget Button") {
@@ -271,7 +300,7 @@ TEST_CASE("Widget Shadow") {
 using namespace std::literals::chrono_literals;
 
 struct WidgetAnimation {
-    WebpAnimationEncoder anim;
+    WebpAnimationEncoder anim{ std::nullopt, true };
     InputQueue input;
     WidgetTree tree{ &input };
     OffscreenCanvas offscreen;
@@ -444,8 +473,8 @@ TEST_CASE("Button states animation") {
 TEST_CASE("Text wordWrap animation") {
     WidgetAnimation animation({ 288, 192 }, true);
 
-    std::ignore = fonts->addFontFromFile("Noto", FontStyle::Normal, FontWeight::Regular,
-                                         PROJECT_SOURCE_DIR "/resources/fonts/GoNotoCurrent-Regular.ttf");
+    std::ignore =
+        fonts->addFontFromFile(PROJECT_SOURCE_DIR "/resources/fonts/GoNotoKurrent-Regular.ttf", "Noto");
 
     float val;
     BindingRegistration val_r(&val, nullptr);
