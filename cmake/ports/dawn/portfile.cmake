@@ -18,6 +18,11 @@ vcpkg_add_to_path("${GIT_EXE_PATH}")
 execute_process(COMMAND ${PYTHON3} tools/fetch_dawn_dependencies.py
     WORKING_DIRECTORY ${SOURCE_PATH})
 
+vcpkg_apply_patches(
+    SOURCE_PATH "${SOURCE_PATH}"
+    PATCHES abseil-apple-architecture.patch
+)
+
 set(DESKTOP_GL OFF)
 set(USE_WAYLAND OFF)
 if (VCPKG_TARGET_IS_LINUX)
