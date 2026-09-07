@@ -88,7 +88,7 @@ enum class OpenFileMode {
      * If the file exists, data is appended at the end. If it does
      * not exist, a new file is created.
      */
-    AppendOrCreate      = 3,
+    AppendOrCreate      = 4,
 
     /**
      * @brief Alias for ReadExisting.
@@ -121,11 +121,9 @@ inline constexpr std::initializer_list<NameValuePair<OpenFileMode>> defaultNames
     { "ReadExisting", OpenFileMode::ReadExisting },
     { "ReadWriteExisting", OpenFileMode::ReadWriteExisting },
     { "RewriteOrCreate", OpenFileMode::RewriteOrCreate },
+    { "ReadRewriteOrCreate", OpenFileMode::ReadRewriteOrCreate },
     { "AppendOrCreate", OpenFileMode::AppendOrCreate },
 };
-
-template <>
-constexpr inline bool isBitFlags<OpenFileMode> = true;
 
 /**
  * @brief Opens a file with the specified path and mode.
@@ -387,6 +385,9 @@ constexpr inline bool isBitFlags<OpenFileMode> = true;
  *                `65536` bytes).
  * @return An optional indicating the number of bytes written, or
  *         an empty optional if an error occurs.
+ *
+ * @throws EArgument if either stream is null, `bufSize` is zero, or either
+ *         stream does not provide the required capabilities.
  */
 [[nodiscard]] std::optional<uint64_t> writeFromReader(Rc<Stream> dest, Rc<Stream> src,
                                                       size_t bufSize = 65536);
@@ -491,10 +492,15 @@ fs::path uniqueFileName(std::string_view base, std::string_view numbered, int i 
 /**
  * @brief Generates a temporary file path based on a specified pattern.
  *
- * This function creates a path for a temporary file by replacing
+ * This function generates a candidate path for a temporary file by replacing
  * placeholders in the given pattern. It replaces `?` with a random
  * character from the set of lowercase letters and digits, and `*`
  * with 16 random characters from the same set.
+ *
+ * This is a path generator only: it does not create or reserve the file,
+ * and the returned path may already exist. It must not be used as a secure
+ * temporary-file creation mechanism when an attacker can observe the target
+ * directory.
  *
  * @param pattern A string representing the desired pattern for the
  *                temporary file name. The pattern can include `?`

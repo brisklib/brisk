@@ -20,177 +20,15 @@
  */
 #include <brisk/core/Io.hpp>
 
-#ifdef BRISK_WINDOWS
-#include <share.h>
-#include <shlobj.h>
-#include <io.h>
-#endif
-
-#ifdef BRISK_APPLE
-#include <mach-o/dyld.h>
-#endif
-#ifdef BRISK_POSIX
-#include <pwd.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#endif
 #include <brisk/core/Text.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/App.hpp>
 #include <fmt/format.h>
 #include <mutex>
 
-#include <array>
 #include <random>
 
 namespace Brisk {
-
-size_t maxBytes = SIZE_MAX;
-
-static IoError posixToResult(int code) {
-    switch (code) {
-    case ENODEV:
-    case ENOENT:
-    case ENXIO:
-        return IoError::NotFound;
-    case EPERM:
-    case EACCES:
-        return IoError::AccessDenied;
-    case ENOSPC:
-        return IoError::NoSpace;
-    default:
-        return IoError::UnknownError;
-    }
-}
-
-using StrmCap = StreamCapabilities;
-
-[[maybe_unused]] static std::array<StreamCapabilities, 5> file_caps{
-    StrmCap::CanRead | StrmCap::CanSeek | StrmCap::HasSize,
-    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::HasSize,
-    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::HasSize,
-    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::HasSize,
-    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::HasSize,
-};
-
-[[maybe_unused]] static std::array<const char*, 5> file_modes{
-    "rb", "r+b", "wb", "w+b", "ab",
-};
-
-#ifdef BRISK_WINDOWS
-[[maybe_unused]] static std::array<const wchar_t*, 5> file_modes_w{
-    L"rb", L"r+b", L"wb", L"w+b", L"ab",
-};
-#endif
-
-expected<std::FILE*, IoError> fopen_native(const fs::path& file_name, OpenFileMode mode) {
-    std::FILE* f = nullptr;
-#ifdef BRISK_WINDOWS
-    errno_t e = _wfopen_s(&f, file_name.wstring().c_str(), file_modes_w[+mode]);
-#else
-    f     = fopen(file_name.string().c_str(), file_modes[+mode]);
-    int e = errno;
-#endif
-    if (f)
-        return f;
-    return unexpected(posixToResult(e));
-}
-
-#if defined _MSC_VER // MSVC
-#define IO_SEEK_64 _fseeki64
-#define IO_TELL_64 _ftelli64
-#elif defined BRISK_WINDOWS // MinGW
-#define IO_SEEK_64 fseeko64
-#define IO_TELL_64 ftello64
-#else // macOS, Linux
-#define IO_SEEK_64 fseeko
-#define IO_TELL_64 ftello
-#endif
-
-class FileStream final : public Stream {
-public:
-    StreamCapabilities caps() const noexcept final {
-        return m_caps;
-    }
-
-    uint64_t size() const {
-        uint64_t saved = IO_TELL_64(m_file);
-        IO_SEEK_64(m_file, 0, SEEK_END);
-        uint64_t size = IO_TELL_64(m_file);
-        IO_SEEK_64(m_file, saved, SEEK_SET);
-        return size;
-    }
-
-    bool truncate() {
-        return false;
-    }
-
-    ~FileStream() {
-        if (m_owns) {
-            std::fclose(m_file);
-        }
-    }
-
-    explicit FileStream(std::FILE* file, bool owns, StreamCapabilities caps)
-        : m_file(std::move(file)), m_owns(owns), m_caps(caps) {}
-
-    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
-        return IO_SEEK_64(m_file, position,
-                          staticMap(origin, SeekOrigin::Beginning, SEEK_SET, SeekOrigin::Current, SEEK_CUR,
-                                    SeekOrigin::End, SEEK_END, SEEK_SET)) == 0;
-    }
-
-    [[nodiscard]] uint64_t tell() const final {
-        return IO_TELL_64(m_file);
-    }
-
-    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
-        if (!m_file || ferror(m_file))
-            return Transferred::Error;
-        if (feof(m_file))
-            return Transferred::Eof;
-        return fread(data, 1, size, m_file);
-    }
-
-    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
-        if (!m_file || ferror(m_file))
-            return Transferred::Error;
-        return fwrite(data, 1, size, m_file);
-    }
-
-    [[nodiscard]] bool flush() final {
-        fflush(m_file);
-        return true;
-    }
-
-private:
-    std::FILE* m_file;
-    bool m_owns;
-    StreamCapabilities m_caps;
-};
-
-Rc<Stream> openFile(std::FILE* file, bool owns) {
-    return rcnew FileStream(file, owns, StreamCapabilities::All);
-}
-
-Rc<Stream> stdoutStream() {
-    return rcnew FileStream(stdout, false, StreamCapabilities::CanWrite | StreamCapabilities::CanFlush);
-}
-
-Rc<Stream> stderrStream() {
-    return rcnew FileStream(stderr, false, StreamCapabilities::CanWrite | StreamCapabilities::CanFlush);
-}
-
-Rc<Stream> stdinStream() {
-    return rcnew FileStream(stdin, false, StreamCapabilities::CanRead);
-}
-
-expected<Rc<Stream>, IoError> openFile(const fs::path& filePath, OpenFileMode mode) {
-    return fopen_native(filePath, mode).map([mode](std::FILE* f) {
-        return rcnew FileStream(f, true, file_caps[+mode]);
-    });
-}
 
 expected<Rc<Stream>, IoError> openFileForReading(const fs::path& filePath) {
     return openFile(filePath, OpenFileMode::ReadExisting);
@@ -201,13 +39,25 @@ expected<Rc<Stream>, IoError> openFileForWriting(const fs::path& filePath, bool 
 }
 
 std::optional<uint64_t> writeFromReader(Rc<Stream> dest, Rc<Stream> src, size_t bufSize) {
+    if (!dest || !src)
+        throwException(EArgument("writeFromReader requires non-null streams"));
+    if (bufSize == 0)
+        throwException(EArgument("writeFromReader requires a non-zero buffer size"));
+    if (!src->canRead() || !dest->canWrite() || !dest->canFlush())
+        throwException(EArgument("writeFromReader streams lack required capabilities"));
+
     uint64_t transferred = 0;
     auto buf             = std::unique_ptr<std::byte[]>(new std::byte[bufSize]);
     Transferred rd;
     while ((rd = src->read(buf.get(), bufSize))) {
-        if (dest->write(buf.get(), rd.bytes()) != rd.bytes())
-            return transferred;
-        transferred += rd.bytes();
+        size_t written = 0;
+        while (written < rd.bytes()) {
+            const Transferred wr = dest->write(buf.get() + written, rd.bytes() - written);
+            if (wr.isError() || wr.bytes() == 0 || wr.bytes() > rd.bytes() - written)
+                return std::nullopt;
+            written += wr.bytes();
+        }
+        transferred += written;
     }
     if (!dest->flush())
         return std::nullopt;

@@ -119,11 +119,8 @@ public:
             return Transferred::Error;
         }
         size_t flushSize = strm.next_out - (Bytef*)buffer.get();
-        if (flushSize) {
-            Transferred wr = writer->write(buffer.get(), flushSize);
-            if (wr.bytes() != flushSize) {
+        if (flushSize && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize))) {
                 return Transferred::Error;
-            }
         }
 
         if (e == Z_STREAM_END) {

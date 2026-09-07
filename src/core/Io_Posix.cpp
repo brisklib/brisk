@@ -18,36 +18,19 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <share.h>
-#include <shlobj.h>
-#define NOMINMAX 1
-#define WIN32_LEAN_AND_MEAN 1
-#include <windows.h>
-
 #include <brisk/core/Io.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Text.hpp>
+
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
+#include <brisk/core/Utilities.hpp>
 
 #include <array>
 
 namespace Brisk {
 
 namespace {
-
-using StrmCap = StreamCapabilities;
-
-constexpr std::array<StreamCapabilities, 5> file_caps{
-    StrmCap::CanRead | StrmCap::CanSeek | StrmCap::HasSize,
-    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate |
-        StrmCap::HasSize,
-    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate | StrmCap::HasSize,
-    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate |
-        StrmCap::HasSize,
-    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate | StrmCap::HasSize,
-};
-
-constexpr std::array<const wchar_t*, 5> file_modes{ L"rb", L"r+b", L"wb", L"w+b", L"ab" };
 
 IoError nativeToResult(int code) {
     switch (code) {
@@ -65,20 +48,39 @@ IoError nativeToResult(int code) {
     }
 }
 
+using StrmCap = StreamCapabilities;
+
+constexpr std::array<StreamCapabilities, 5> file_caps{
+    StrmCap::CanRead | StrmCap::CanSeek | StrmCap::HasSize,
+    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate |
+        StrmCap::HasSize,
+    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate | StrmCap::HasSize,
+    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate |
+        StrmCap::HasSize,
+    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate | StrmCap::HasSize,
+};
+
+constexpr std::array<const char*, 5> file_modes{ "rb", "r+b", "wb", "w+b", "ab" };
+
+#define IO_SEEK_64 fseeko
+#define IO_TELL_64 ftello
+
 class FileStream final : public Stream {
 public:
-    StreamCapabilities caps() const noexcept final { return m_caps; }
+    StreamCapabilities caps() const noexcept final {
+        return m_caps;
+    }
 
     uint64_t size() const final {
         if (!m_file)
             return invalidSize;
-        const auto saved = _ftelli64(m_file);
-        if (saved < 0 || _fseeki64(m_file, 0, SEEK_END) != 0) {
+        const auto saved = IO_TELL_64(m_file);
+        if (saved < 0 || IO_SEEK_64(m_file, 0, SEEK_END) != 0) {
             clearerr(m_file);
             return invalidSize;
         }
-        const auto result   = _ftelli64(m_file);
-        const bool restored = _fseeki64(m_file, saved, SEEK_SET) == 0;
+        const auto result   = IO_TELL_64(m_file);
+        const bool restored = IO_SEEK_64(m_file, saved, SEEK_SET) == 0;
         if (result < 0 || !restored) {
             clearerr(m_file);
             return invalidSize;
@@ -89,8 +91,8 @@ public:
     bool truncate() final {
         if (!m_file)
             return false;
-        const auto position = _ftelli64(m_file);
-        return position >= 0 && _chsize_s(_fileno(m_file), static_cast<__int64>(position)) == 0;
+        const auto position = IO_TELL_64(m_file);
+        return position >= 0 && ftruncate(fileno(m_file), position) == 0;
     }
 
     ~FileStream() {
@@ -104,15 +106,15 @@ public:
     bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
         if (!m_file)
             return false;
-        return _fseeki64(m_file, position,
-                         staticMap(origin, SeekOrigin::Beginning, SEEK_SET, SeekOrigin::Current, SEEK_CUR,
-                                   SeekOrigin::End, SEEK_END, SEEK_SET)) == 0;
+        return IO_SEEK_64(m_file, position,
+                          staticMap(origin, SeekOrigin::Beginning, SEEK_SET, SeekOrigin::Current, SEEK_CUR,
+                                    SeekOrigin::End, SEEK_END, SEEK_SET)) == 0;
     }
 
     uint64_t tell() const final {
         if (!m_file)
             return invalidPosition;
-        const auto position = _ftelli64(m_file);
+        const auto position = IO_TELL_64(m_file);
         return position < 0 ? invalidPosition : static_cast<uint64_t>(position);
     }
 
@@ -134,7 +136,9 @@ public:
         return fwrite(data, 1, size, m_file);
     }
 
-    bool flush() final { return m_file && fflush(m_file) == 0; }
+    bool flush() final {
+        return m_file && fflush(m_file) == 0;
+    }
 
 private:
     std::FILE* m_file;
@@ -143,23 +147,23 @@ private:
 };
 
 StreamCapabilities fileCapabilities(std::FILE* file) {
-    const int descriptor = _fileno(file);
+    const int descriptor = fileno(file);
     if (descriptor < 0)
         throwException(EArgument("openFile requires a valid FILE*"));
 
-    struct _stat64 info;
-    const bool regular = _fstat64(descriptor, &info) == 0 && (info.st_mode & _S_IFREG) != 0;
-    const intptr_t native = _get_osfhandle(descriptor);
-    if (native == -1)
-        throwException(EArgument("openFile cannot inspect the FILE* handle"));
+    const int flags = fcntl(descriptor, F_GETFL);
+    if (flags < 0)
+        throwException(EArgument("openFile cannot inspect the FILE* access mode"));
 
     StreamCapabilities caps = StreamCapabilities{};
-    HANDLE handle           = reinterpret_cast<HANDLE>(native);
-    DWORD bytes             = 0;
-    if (ReadFile(handle, nullptr, 0, &bytes, nullptr))
+    const int access         = flags & O_ACCMODE;
+    if (access == O_RDONLY || access == O_RDWR)
         caps |= StreamCapabilities::CanRead;
-    if (WriteFile(handle, nullptr, 0, &bytes, nullptr))
+    if (access == O_WRONLY || access == O_RDWR)
         caps |= StreamCapabilities::CanWrite | StreamCapabilities::CanFlush;
+
+    struct stat info;
+    const bool regular = fstat(descriptor, &info) == 0 && S_ISREG(info.st_mode);
     if (regular)
         caps |= StreamCapabilities::CanSeek | StreamCapabilities::HasSize;
     if (regular && (caps && StreamCapabilities::CanWrite))
@@ -173,11 +177,10 @@ expected<std::FILE*, IoError> fopen_native(const fs::path& file_name, OpenFileMo
     const size_t index = static_cast<size_t>(mode);
     if (index >= file_modes.size())
         throwException(EArgument("invalid OpenFileMode"));
-    std::FILE* f = nullptr;
-    const errno_t error = _wfopen_s(&f, file_name.wstring().c_str(), file_modes[index]);
+    std::FILE* f = fopen(file_name.string().c_str(), file_modes[index]);
     if (f)
         return f;
-    return unexpected(nativeToResult(error));
+    return unexpected(nativeToResult(errno));
 }
 
 Rc<Stream> openFile(std::FILE* file, bool owns) {
@@ -205,48 +208,6 @@ expected<Rc<Stream>, IoError> openFile(const fs::path& filePath, OpenFileMode mo
     return fopen_native(filePath, mode).map([index](std::FILE* f) {
         return rcnew FileStream(f, true, file_caps[index]);
     });
-}
-
-static REFKNOWNFOLDERID folderId(DefaultFolder folder) {
-    switch (folder) {
-    case DefaultFolder::Home:
-        return FOLDERID_Profile;
-    case DefaultFolder::Documents:
-        return FOLDERID_Documents;
-    case DefaultFolder::Music:
-        return FOLDERID_Music;
-    case DefaultFolder::Pictures:
-        return FOLDERID_Pictures;
-    case DefaultFolder::UserData:
-        return FOLDERID_RoamingAppData;
-    case DefaultFolder::SystemData:
-        return FOLDERID_ProgramData;
-    default:
-        return FOLDERID_Documents;
-    }
-}
-
-static fs::path platformDefaultFolder(REFKNOWNFOLDERID folder) {
-    PWSTR pstr = nullptr;
-    SHGetKnownFolderPath(folder, 0, NULL, &pstr);
-    std::wstring str(pstr);
-    CoTaskMemFree(pstr);
-    return wcsToUtf8(str);
-}
-
-fs::path platformDefaultFolder(DefaultFolder folder) {
-    return platformDefaultFolder(folderId(folder));
-}
-
-std::vector<fs::path> fontFolders() {
-    return { platformDefaultFolder(FOLDERID_Fonts), // System font folder must be first
-             platformDefaultFolder(FOLDERID_LocalAppData) / "Microsoft" / "Windows" / "Fonts" };
-}
-
-fs::path executablePath() {
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(GetModuleHandleW(0), path, MAX_PATH);
-    return wcsToUtf8(path);
 }
 
 } // namespace Brisk

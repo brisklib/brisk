@@ -143,7 +143,7 @@ public:
             BRISK_LOG_ERROR("LZ4F_compressBegin failed: {}", LZ4F_getErrorName(headerSize));
             return false;
         }
-        return this->writer->write(headerData, headerSize) == headerSize;
+        return this->writer->writeAll(std::span<const std::byte>(headerData, headerSize));
     }
 
     [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
@@ -172,12 +172,8 @@ public:
             }
 
             size_t flushSize = result;
-            if (flushSize > 0) {
-                Transferred wr = writer->write(buffer.get(), flushSize);
-                if (wr.bytes() != flushSize) {
-                    return wr;
-                }
-            }
+            if (flushSize > 0 && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize)))
+                return Transferred::Error;
             available_in -= std::min(available_in, compressionBatchSize);
         }
         return size;
@@ -203,12 +199,8 @@ public:
         }
 
         size_t flushSize = result;
-        if (flushSize > 0) {
-            Transferred wr = writer->write(buffer.get(), flushSize);
-            if (wr.bytes() != flushSize) {
-                return false;
-            }
-        }
+        if (flushSize > 0 && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize)))
+            return false;
 
         return writer->flush();
     }

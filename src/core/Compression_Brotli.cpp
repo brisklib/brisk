@@ -135,12 +135,8 @@ public:
                 return Transferred::Error;
             }
             size_t flushSize = compressionBatchSize - available_out;
-            if (flushSize) {
-                Transferred wr = writer->write(buffer.get(), flushSize);
-                if (wr.bytes() != flushSize) {
-                    return wr;
-                }
-            }
+            if (flushSize && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize)))
+                return Transferred::Error;
         }
         return size;
     }
@@ -156,12 +152,8 @@ public:
                 return false;
             }
             size_t flushSize = compressionBatchSize - avail_out;
-            if (flushSize) {
-                Transferred wr = writer->write(buffer.get(), flushSize);
-                if (wr.bytes() != flushSize) {
-                    return false;
-                }
-            }
+            if (flushSize && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize)))
+                return false;
         }
         return writer->flush();
     }

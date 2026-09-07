@@ -94,7 +94,7 @@ extern "C" {
                 *out++          = digits[b >> 4];
                 *out++          = digits[b & 0x0f];
             }
-            if (this->dataWriter->write((const std::byte*)buf, out - buf).isError())
+            if (!this->dataWriter->writeAll(std::span<const std::byte>((const std::byte*)buf, out - buf)))
                 return Transferred::Error;
             numWritten += chunk;
             data += chunk;
