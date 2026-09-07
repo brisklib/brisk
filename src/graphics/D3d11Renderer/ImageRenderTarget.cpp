@@ -27,6 +27,7 @@ ImageRenderTargetD3d11::ImageRenderTargetD3d11(Rc<RenderDeviceD3d11> device, Siz
                                                DepthStencilType depthStencil, int samples)
     : m_device(std::move(device)), m_frameSize(frameSize), m_type(type), m_depthStencilType(depthStencil),
       m_samples(samples) {
+    ensureOnRenderThread();
 
     if (!updateImage()) {
         return;
@@ -36,6 +37,7 @@ ImageRenderTargetD3d11::ImageRenderTargetD3d11(Rc<RenderDeviceD3d11> device, Siz
 ImageRenderTargetD3d11::~ImageRenderTargetD3d11() = default;
 
 bool ImageRenderTargetD3d11::updateImage() {
+    ensureOnRenderThread();
     m_image                    = rcnew Image(m_frameSize, imageFormat(m_type, backBufferFormat));
     ImageBackendD3d11* backend = getOrCreateBackend(m_device, m_image, false, true);
     m_backBuffer.colorBuffer   = backend->m_texture;
@@ -50,6 +52,7 @@ Size ImageRenderTargetD3d11::size() const {
 }
 
 void ImageRenderTargetD3d11::setSize(Size newSize) {
+    ensureOnRenderThread();
     if (newSize != m_frameSize) {
         m_frameSize = newSize;
         if (!updateImage()) {

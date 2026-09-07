@@ -39,7 +39,7 @@ private:
     std::vector<Person> m_list{ { "Hans", "Emil" }, { "Max", "Mustermann" }, { "Roman", "Tisch" } };
 };
 
-class ViewModel : public BindableObject<ViewModel, &uiScheduler> {
+class ViewModel : public BindableObject<ViewModel> {
 public:
     ViewModel() {
         filter(m_prefix);
@@ -215,7 +215,5 @@ using namespace Brisk;
 
 int briskMain() {
     GuiApplication application;
-    return application.run([]() {
-        return rcnew View(rcnew ViewModel());
-    });
+    return application.run(rcnew View(rcnew ViewModel()));
 }

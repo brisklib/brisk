@@ -101,24 +101,6 @@ endif ()
 
 target_compile_definitions(brisk-graphics PRIVATE V_NAMESPACE=Brisk)
 
-add_library(brisk-i18n STATIC ${PROJECT_SOURCE_DIR}/src/graphics/I18n_fallback.cpp)
-target_link_libraries(brisk-i18n PUBLIC brisk-core)
-add_library(Brisk::I18n ALIAS brisk-i18n)
-set_property(TARGET brisk-i18n PROPERTY EXPORT_NAME I18n)
-
-set(ICU_DT icudt74l.dat)
-
-add_library(brisk-i18n-icu STATIC ${PROJECT_SOURCE_DIR}/src/graphics/I18n.cpp)
-add_library(Brisk::I18n-Icu ALIAS brisk-i18n-icu)
-set_property(TARGET brisk-i18n-icu PROPERTY EXPORT_NAME I18n-Icu)
-target_link_libraries(brisk-i18n-icu PUBLIC brisk-core)
-
-if (BRISK_ICU)
-    target_link_libraries(brisk-graphics INTERFACE $<BUILD_INTERFACE:brisk-i18n-icu>)
-else ()
-    target_link_libraries(brisk-graphics INTERFACE $<BUILD_INTERFACE:brisk-i18n>)
-endif ()
-
 if (BRISK_WEBGPU)
     add_subdirectory(WebGpuRenderer)
 endif ()

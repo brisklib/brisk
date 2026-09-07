@@ -26,6 +26,7 @@ namespace Brisk {
 
 ImageBackendWebGpu* getOrCreateBackend(Rc<RenderDeviceWebGpu> device, Rc<Image> image, bool uploadImage,
                                        bool renderTarget) {
+    ensureOnRenderThread();
     if (!image)
         return nullptr;
     Internal::ImageBackend* imageBackend = Internal::getBackend(image);
@@ -41,6 +42,7 @@ ImageBackendWebGpu* getOrCreateBackend(Rc<RenderDeviceWebGpu> device, Rc<Image> 
 ImageBackendWebGpu::ImageBackendWebGpu(Rc<RenderDeviceWebGpu> device, Image* image, bool uploadImage,
                                        bool renderTarget)
     : m_device(std::move(device)), m_image(image) {
+    ensureOnRenderThread();
     Size size                = image->size();
 
     wgpu::TextureUsage usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
@@ -62,22 +64,26 @@ ImageBackendWebGpu::ImageBackendWebGpu(Rc<RenderDeviceWebGpu> device, Image* ima
 }
 
 void ImageBackendWebGpu::begin(AccessMode mode, Rectangle rect) {
+    ensureOnRenderThread();
     if (mode != AccessMode::W) {
         readFromGpu(m_image->data().subrect(rect), rect.p1);
     }
 }
 
 void ImageBackendWebGpu::end(AccessMode mode, Rectangle rect) {
+    ensureOnRenderThread();
     if (mode != AccessMode::R) {
         writeToGpu(m_image->data().subrect(rect), rect.p1);
     }
 }
 
 void ImageBackendWebGpu::invalidate() {
+    ensureOnRenderThread();
     m_invalidated = true;
 }
 
 void ImageBackendWebGpu::readFromGpu(const ImageData<UntypedPixel>& data, Point origin) {
+    ensureOnRenderThread();
     constexpr int wgpuBufferAlignment = 256;
     wgpu::BufferDescriptor bufDesc{};
     bufDesc.usage         = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
@@ -135,6 +141,7 @@ void ImageBackendWebGpu::readFromGpu(const ImageData<UntypedPixel>& data, Point 
 }
 
 void ImageBackendWebGpu::writeToGpu(const ImageData<UntypedPixel>& data, Point origin) {
+    ensureOnRenderThread();
     wgpu::TexelCopyTextureInfo destination;
     destination.texture  = m_texture;
     destination.origin.x = origin.x;

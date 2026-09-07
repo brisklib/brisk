@@ -46,7 +46,7 @@ struct ColorStop {
 enum class GradientType : uint8_t {
     Linear,    ///< A linear gradient.
     Radial,    ///< A radial gradient.
-    Angular,     ///< An angular (conic) gradient.
+    Angular,   ///< An angular (conic) gradient.
     Reflected, ///< A reflected gradient.
 };
 

@@ -23,6 +23,10 @@
 
 namespace Brisk {
 
+Rc<TaskQueue> renderScheduler;
+
+bool separateRenderThread = false;
+
 bool RenderState::operator==(const RenderState& state) const {
     return memcmp(this, &state, sizeof(RenderState)) == 0;
 }
@@ -34,8 +38,8 @@ bool RenderState::compare(const RenderState& second) const {
 }
 
 void RenderState::premultiply() {
-    fillColor1   = fillColor1.premultiply();
-    fillColor2   = fillColor2.premultiply();
+    fillColor1 = fillColor1.premultiply();
+    fillColor2 = fillColor2.premultiply();
 }
 
 RenderStateEx::RenderStateEx(ShaderType shader, RenderStateExArgs args) {
@@ -47,5 +51,11 @@ RenderStateEx::RenderStateEx(ShaderType shader, int instances, RenderStateExArgs
     this->instances = instances;
     this->shader    = shader;
     args.apply(this);
+}
+
+void ensureOnRenderThread() {
+    if (renderScheduler != nullptr) {
+        BRISK_ASSERT(std::this_thread::get_id() == renderScheduler->getThreadId());
+    }
 }
 } // namespace Brisk

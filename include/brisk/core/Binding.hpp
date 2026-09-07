@@ -1057,6 +1057,10 @@ public:
      */
     void registerRegion(BindingAddress region, Rc<Scheduler> queue);
 
+    void registerRegion(BindingAddress region) {
+        registerRegion(region, mainScheduler);
+    }
+
     /**
      * @brief Unregisters a previously registered region.
      *
@@ -1463,6 +1467,9 @@ struct BindingRegistration {
     BindingRegistration(const T* thiz, Rc<Scheduler> queue) : m_address(toBindingAddress(thiz).min()) {
         bindings->registerRegion(toBindingAddress(thiz), std::move(queue));
     }
+
+    template <typename T>
+    BindingRegistration(const T* thiz) : BindingRegistration(thiz, mainScheduler) {}
 
     /**
      * @brief Destructor that unregisters the binding region.
@@ -2070,7 +2077,7 @@ concept PointerToScheduler = requires(T p) {
     { *p } -> std::convertible_to<Rc<Scheduler>>;
 };
 
-template <typename Derived, PointerToScheduler auto scheduler = static_cast<Rc<Scheduler>*>(nullptr)>
+template <typename Derived, PointerToScheduler auto scheduler = &mainScheduler>
 class BindableObject : public Object,
                        public std::enable_shared_from_this<BindableObject<Derived, scheduler>> {
 private:

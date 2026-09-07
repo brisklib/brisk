@@ -65,7 +65,7 @@ void Slider::onEvent(Event& event) {
     Base::onEvent(event);
 
     if (float delta = event.wheelScrolled(m_rect, m_wheelModifiers)) {
-        float val       = std::clamp(static_cast<float>(normalizedValue) + delta / 24.f, 0.f, 1.f);
+        double val      = std::clamp(static_cast<double>(normalizedValue) + delta / 24., 0., 1.);
         normalizedValue = val;
         event.stopPropagation();
     } else {
@@ -84,12 +84,12 @@ void Slider::onEvent(Event& event) {
             event.stopPropagation();
             break;
         case DragEvent::Dragging:
-            float newValue;
+            double newValue;
             if (horizontal)
                 newValue = (offset.x) / m_distance + m_savedValue;
             else
                 newValue = (-offset.y) / m_distance + m_savedValue;
-            normalizedValue = std::clamp(newValue, 0.f, 1.f);
+            normalizedValue = std::clamp(newValue, 0., 1.);
             startModifying();
             if (m_hintFormatter)
                 m_hint = m_hintFormatter(m_value);

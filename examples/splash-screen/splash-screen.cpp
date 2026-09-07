@@ -69,7 +69,7 @@ public:
         window->setRectangle(windowRect);                          // Applies the centered position and size.
     }
 
-    std::atomic_int m_progress{ 0 }; // Tracks loading progress (0-100), starting at 0.
+    int m_progress{ 0 }; // Tracks loading progress (0-100), starting at 0.
 };
 
 // Defines the main application component with a simple UI.
@@ -131,7 +131,9 @@ int briskMain() {
     // Simulates a 2-second app loading process, updating the progress bar dynamically.
     auto splashTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(2000);
     while (std::chrono::steady_clock::now() < splashTime) {
-        application.cycle(false); // Processes events without blocking during the loading simulation.
+        application.cycle(
+            WindowApplication::ProcessEventsMode::CheckOnly); // Processes events without blocking during the
+                                                              // loading simulation.
         // Updates the progress bar based on remaining time, increasing from 0 to 100.
         splash->m_progress = 100 - std::chrono::duration_cast<std::chrono::milliseconds>(
                                        splashTime - std::chrono::steady_clock::now())

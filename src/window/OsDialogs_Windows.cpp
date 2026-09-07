@@ -267,7 +267,7 @@ static DialogResult showChildDialog(NativeWindow* window, DialogButtons buttons,
     if (buttons && DialogButtons::Retry)
         btns |= TDCBF_RETRY_BUTTON;
     int btn = 0;
-    if (!SUCCEEDED(TaskDialog(handleFromWindow(window), GetModuleHandleW(nullptr), utf8ToWcs(title).c_str(),
+    if (!SUCCEEDED(TaskDialog(handleFromWindow(window), NULL, utf8ToWcs(title).c_str(),
                               utf8ToWcs(message).c_str(), nullptr, btns, icon, &btn))) {
         BRISK_LOG_ERROR("TaskDialog() failed");
         return DialogResult::Cancel;

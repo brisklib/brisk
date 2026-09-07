@@ -34,10 +34,12 @@ VisualSettings RenderEncoderWebGpu::visualSettings() const {
 }
 
 void RenderEncoderWebGpu::setVisualSettings(const VisualSettings& visualSettings) {
+    ensureOnRenderThread();
     m_visualSettings = visualSettings;
 }
 
 void RenderEncoderWebGpu::begin(Rc<RenderTarget> target, std::optional<ColorF> clear) {
+    ensureOnRenderThread();
     BRISK_ASSERT(static_cast<bool>(m_currentTarget == nullptr));
     BRISK_ASSERT(static_cast<bool>(!m_queue.Get()));
     m_currentTarget = std::move(target);
@@ -75,6 +77,7 @@ void RenderEncoderWebGpu::begin(Rc<RenderTarget> target, std::optional<ColorF> c
 }
 
 void RenderEncoderWebGpu::end() {
+    ensureOnRenderThread();
     BRISK_ASSERT(m_currentTarget);
     BRISK_ASSERT(m_queue.Get());
     m_queue         = nullptr;
@@ -82,6 +85,7 @@ void RenderEncoderWebGpu::end() {
 }
 
 void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span<const uint32_t> data) {
+    ensureOnRenderThread();
     BRISK_ASSERT(m_currentTarget);
     BRISK_ASSERT(m_queue.Get());
 
@@ -161,6 +165,7 @@ void RenderEncoderWebGpu::batch(std::span<const RenderState> commands, std::span
 
 wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* sourceImage,
                                                      ImageBackendWebGpu* backImage) {
+    ensureOnRenderThread();
 
     std::array<wgpu::BindGroupEntry, 9> entries = {
         wgpu::BindGroupEntry{
@@ -210,10 +215,12 @@ wgpu::BindGroup RenderEncoderWebGpu::createBindGroup(ImageBackendWebGpu* sourceI
 }
 
 void RenderEncoderWebGpu::wait() {
+    ensureOnRenderThread();
     m_device->wait();
 }
 
 void RenderEncoderWebGpu::updatePerFrameConstantBuffer(const ConstantPerFrame& constants) {
+    ensureOnRenderThread();
     if (!m_perFrameConstantBuffer) {
         wgpu::BufferDescriptor desc{
             .label = "PerFrameConstantBuffer",
@@ -227,6 +234,7 @@ void RenderEncoderWebGpu::updatePerFrameConstantBuffer(const ConstantPerFrame& c
 }
 
 void RenderEncoderWebGpu::updateConstantBuffer(std::span<const RenderState> data) {
+    ensureOnRenderThread();
     if (!m_constantBuffer || m_constantBuffer.GetSize() != data.size_bytes()) {
         wgpu::BufferDescriptor desc{
             .label = "ConstantBuffer",
@@ -241,6 +249,7 @@ void RenderEncoderWebGpu::updateConstantBuffer(std::span<const RenderState> data
 
 // Update the data buffer and possibly recreate it.
 void RenderEncoderWebGpu::updateDataBuffer(std::span<const uint32_t> data) {
+    ensureOnRenderThread();
     size_t alignedDataSize = std::max(data.size_bytes(), size_t(16));
     if (!m_dataBuffer || alignedDataSize > m_dataBuffer.GetSize()) {
         wgpu::BufferDescriptor desc{
@@ -256,6 +265,7 @@ void RenderEncoderWebGpu::updateDataBuffer(std::span<const uint32_t> data) {
 }
 
 void RenderEncoderWebGpu::updateAtlasTexture() {
+    ensureOnRenderThread();
     SpriteAtlas* atlas = m_device->m_resources.spriteAtlas.get();
     Size newSize(Internal::max2DTextureSize, atlas->data().size() / Internal::max2DTextureSize);
 
@@ -285,6 +295,7 @@ void RenderEncoderWebGpu::updateAtlasTexture() {
 }
 
 void RenderEncoderWebGpu::updateGradientTexture() {
+    ensureOnRenderThread();
     GradientAtlas* gradAtlas = m_device->m_resources.gradientAtlas.get();
     Size newSize(sizeof(GradientData) / sizeof(Simd<float, 4>), gradAtlas->data().size());
     if (!m_gradientTexture || (m_gradient_generation <<= gradAtlas->changed)) {
@@ -314,13 +325,17 @@ void RenderEncoderWebGpu::updateGradientTexture() {
     }
 }
 
-RenderEncoderWebGpu::RenderEncoderWebGpu(Rc<RenderDeviceWebGpu> device) : m_device(std::move(device)) {}
+RenderEncoderWebGpu::RenderEncoderWebGpu(Rc<RenderDeviceWebGpu> device) : m_device(std::move(device)) {
+    ensureOnRenderThread();
+}
 
 RenderEncoderWebGpu::~RenderEncoderWebGpu() {
+    ensureOnRenderThread();
     m_device->m_instance.ProcessEvents();
 }
 
 size_t RenderEncoderWebGpu::findFrameTimingSlot() {
+    ensureOnRenderThread();
     for (size_t i = 0; i < m_frameTiming.size(); ++i) {
         if (!m_frameTiming[i].pending) {
             m_frameTiming[i].pending = true;
@@ -334,6 +349,7 @@ size_t RenderEncoderWebGpu::findFrameTimingSlot() {
 }
 
 void RenderEncoderWebGpu::beginFrame(uint64_t frameId) {
+    ensureOnRenderThread();
     if (m_device->m_timestampQuerySupported) {
         m_frameId          = frameId;
         m_timestampIndex   = 0;
@@ -342,6 +358,7 @@ void RenderEncoderWebGpu::beginFrame(uint64_t frameId) {
 }
 
 void RenderEncoderWebGpu::endFrame(DurationCallback callback) {
+    ensureOnRenderThread();
     if (m_device->m_timestampQuerySupported && m_timestampIndex > 0) {
         BRISK_ASSERT(m_frameTimingIndex < m_frameTiming.size());
         FrameTiming& timing = m_frameTiming[m_frameTimingIndex];
@@ -396,10 +413,12 @@ void RenderEncoderWebGpu::endFrame(DurationCallback callback) {
 }
 
 Rc<RenderTarget> RenderEncoderWebGpu::currentTarget() const {
+    ensureOnRenderThread();
     return m_currentTarget;
 }
 
 RenderEncoderWebGpu::FrameTiming::FrameTiming(wgpu::Device& device) {
+    ensureOnRenderThread();
     wgpu::QuerySetDescriptor querySetDesc{};
     querySetDesc.type  = wgpu::QueryType::Timestamp;
     querySetDesc.count = RenderEncoderWebGpu::maxTimestamps;
@@ -421,6 +440,7 @@ RenderEncoderWebGpu::FrameTiming::FrameTiming(wgpu::Device& device) {
 }
 
 const BackBufferWebGpu& getBackBuffer(RenderTarget* target) {
+    ensureOnRenderThread();
     switch (target->type()) {
     case RenderTargetType::Window:
         return static_cast<WindowRenderTargetWebGpu*>(target)->getBackBuffer();

@@ -53,8 +53,8 @@ if (NOT EXISTS ${DEST_FILE})
             message(FATAL_ERROR "vcpkg not found. Please ensure vcpkg is installed and accessible in your PATH.")
         endif ()
 
-        execute_process(COMMAND ${VCPKG_EXECUTABLE} install --x-install-root ${ROOT}/vcpkg_installed --x-feature=icu
-                                ${EXTRA_VCPKG_ARGS} WORKING_DIRECTORY ${ROOT} COMMAND_ERROR_IS_FATAL ANY)
+        execute_process(COMMAND ${VCPKG_EXECUTABLE} install --x-install-root ${ROOT}/vcpkg_installed
+                    ${EXTRA_VCPKG_ARGS} WORKING_DIRECTORY ${ROOT} COMMAND_ERROR_IS_FATAL ANY)
     endif ()
 
     file(REMOVE_RECURSE ${ROOT}/vcpkg_exported)

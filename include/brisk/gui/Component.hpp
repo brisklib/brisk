@@ -33,7 +33,7 @@ namespace Brisk {
  * in the application. It manages the lifecycle of the component, its event
  * handling, and its associated window.
  */
-class Component : public BindableObject<Component, &uiScheduler> {
+class Component : public BindableObject<Component> {
 public:
     ~Component() override {}
 
@@ -60,6 +60,8 @@ public:
      */
     Rc<GuiWindow> makeWindow();
 
+    Rc<GuiWindow> newWindow();
+
     /**
      * @brief Closes the associated window.
      *
@@ -81,7 +83,7 @@ protected:
     virtual Rc<Widget> build();
 
     /**
-     * @brief This method is called on the main thread and is expected to return
+     * @brief This method is expected to return
      * the window object that the component will use.
      *
      * @return Rc<GuiWindow> A reference-counted pointer to the GuiWindow.
@@ -89,7 +91,7 @@ protected:
     virtual Rc<GuiWindow> createWindow();
 
     /**
-     * @brief Handles any unhandled events.
+     * @brief Handles event not handled by widget tree.
      *
      * If an event is not handled by the widget tree, this function will be called.
      * It can be overridden to provide custom handling for specific events.
@@ -130,19 +132,17 @@ private:
 };
 
 /**
- * @brief Creates a component on the UI thread and assigns it to the provided reference.
+ * @brief Creates a component and assigns it to the provided reference.
  * @tparam ComponentClass The type of the component, must derive from Component.
  * @param component Reference to an Rc<ComponentClass> where the created component will be stored.
  */
 template <std::derived_from<Component> ComponentClass>
 void createComponent(Rc<ComponentClass>& component) {
-    uiScheduler->dispatchAndWait([&]() {
-        component = rcnew ComponentClass();
-    });
+    component = rcnew ComponentClass();
 }
 
 /**
- * @brief Creates a component on the UI thread and returns it.
+ * @brief Creates a component and returns it.
  * @tparam ComponentClass The type of the component, must derive from Component.
  * @return An Rc<ComponentClass> containing the created component.
  */

@@ -43,8 +43,8 @@ protected:
     explicit Knob(Construction construction, ArgumentsView<Knob> args);
 
 private:
-    mutable bool m_dragActive  = false;
-    mutable float m_savedValue = NAN;
+    mutable bool m_dragActive   = false;
+    mutable double m_savedValue = 0;
 };
 
 void knobPainter(Canvas& canvas, const Widget& widget);

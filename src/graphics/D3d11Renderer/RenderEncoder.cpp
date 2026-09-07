@@ -111,7 +111,6 @@ void RenderEncoderD3d11::batch(std::span<const RenderState> commands, std::span<
             m_frameTiming[m_frameTimingIndex].begin(m_device->m_device.Get(), m_device->m_context.Get());
         }
         const BackBufferD3d11& backBuf = getBackBuffer(m_currentTarget.get());
-        Size size = static_cast<ImageBackendD3d11*>(commands.front().sourceImage)->m_image->size();
         context->OMSetRenderTargets(0, nullptr, nullptr);
         context->CopyResource(backBuf.colorBuffer.Get(),
                               static_cast<ImageBackendD3d11*>(commands.front().sourceImage)->m_texture.Get());

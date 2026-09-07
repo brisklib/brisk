@@ -124,7 +124,9 @@ bool PlatformWindow::createWindow() {
     });
     glfwSetWindowIconifyCallback(m_data->win, nullptr);
     glfwSetWindowMaximizeCallback(m_data->win, nullptr);
-    glfwSetWindowRefreshCallback(m_data->win, nullptr);
+    glfwSetWindowRefreshCallback(m_data->win, [](GLFWwindow* gw) {
+        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->requestRedraw();
+    });
     glfwSetWindowContentScaleCallback(m_data->win, [](GLFWwindow* gw, float scalex, float scaley) {
         auto* window    = reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw));
         window->m_scale = std::max(scalex, scaley);
@@ -146,33 +148,37 @@ bool PlatformWindow::createWindow() {
         window->windowResized(window->m_windowSize, window->m_framebufferSize);
     });
     glfwSetKeyCallback(m_data->win, [](GLFWwindow* gw, int key, int scancode, int action, int mods) {
-        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))
-            ->keyEvent(static_cast<KeyCode>(key), scancode, static_cast<KeyAction>(action),
-                       static_cast<KeyModifiers>(mods));
+        std::ignore = reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))
+                          ->keyEvent(static_cast<KeyCode>(key), scancode, static_cast<KeyAction>(action),
+                                     static_cast<KeyModifiers>(mods));
     });
     glfwSetCharCallback(m_data->win, [](GLFWwindow* gw, unsigned int codepoint) {
-        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->charEvent(codepoint, false);
+        std::ignore =
+            reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->charEvent(codepoint, false);
     });
     glfwSetCursorPosCallback(m_data->win, [](GLFWwindow* gw, double xpos, double ypos) {
         PointOf<double> cur{ xpos, ypos };
-        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->mouseMove(cur, Window::Unit::Screen);
+        std::ignore = reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))
+                          ->mouseMove(cur, Window::Unit::Screen);
     });
     glfwSetMouseButtonCallback(m_data->win, [](GLFWwindow* gw, int button, int action, int mods) {
         PointOf<double> cur;
         glfwGetCursorPos(gw, &cur.x, &cur.y);
-        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))
-            ->mouseEvent(static_cast<MouseButton>(button), static_cast<MouseAction>(action),
-                         static_cast<KeyModifiers>(mods), cur, Window::Unit::Screen);
+        std::ignore = reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))
+                          ->mouseEvent(static_cast<MouseButton>(button), static_cast<MouseAction>(action),
+                                       static_cast<KeyModifiers>(mods), cur, Window::Unit::Screen);
     });
     glfwSetCursorEnterCallback(m_data->win, [](GLFWwindow* gw, int entered) {
         reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->mouseEnterOrLeave(entered);
     });
     glfwSetScrollCallback(m_data->win, [](GLFWwindow* gw, double xoffset, double yoffset) {
-        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->wheelEvent(xoffset, yoffset);
+        std::ignore =
+            reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->wheelEvent(xoffset, yoffset);
     });
     glfwSetDropCallback(m_data->win, [](GLFWwindow* gw, int path_count, const char* paths[]) {
         std::vector<std::string> files(paths, paths + path_count);
-        reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->filesDropped(std::move(files));
+        std::ignore =
+            reinterpret_cast<PlatformWindow*>(glfwGetWindowUserPointer(gw))->filesDropped(std::move(files));
     });
 
     glfwGetWindowPos(m_data->win, &m_position.x, &m_position.y);
@@ -189,9 +195,12 @@ PlatformWindow::~PlatformWindow() {
     m_data->win = nullptr;
 }
 
-PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style)
+PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style,
+                               NativeWindowHandle parent)
     : m_data(new PlatformWindowData{}), m_window(window), m_windowStyle(style), m_windowSize(windowSize),
       m_position(position) {
+
+    BRISK_ASSERT_MSG("Setting parent window is not supported on Linux due to limitations of GLFW", !parent);
     mustBeMainThread();
     BRISK_ASSERT(m_window);
 

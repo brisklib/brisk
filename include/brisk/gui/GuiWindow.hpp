@@ -44,11 +44,11 @@ public:
     void setId(std::string id);
     bool handleKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
     bool handleCharEvent(char32_t character);
-    bool handleEvent(function<void()> fn);
     WidgetTree& tree();
 
     explicit GuiWindow(Rc<Component> component);
     ~GuiWindow();
+    bool processEvent(Event&&);
 
 protected:
     Rc<Component> m_component;
@@ -68,12 +68,12 @@ protected:
     void beforeFrame() override;
     void beforeOpeningWindow() override;
 
-    void onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) override;
-    void onCharEvent(char32_t character) override;
-    void onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
+    bool onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) override;
+    bool onCharEvent(char32_t character) override;
+    bool onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
                       int conseqClicks) override;
-    void onMouseMove(PointF point) override;
-    void onWheelEvent(float x, float y) override;
+    bool onMouseMove(PointF point) override;
+    bool onWheelEvent(float x, float y) override;
     void onMouseEnter() override;
     void onMouseLeave() override;
     void onNonClientClicked() override;
@@ -84,8 +84,6 @@ protected:
 
 private:
     std::string m_id;
-    bool m_frameSkipTestState = false;
-    std::vector<uint32_t> m_unhandledEvents;
     Rectangle m_savedPaintRect{};
 
     void updateWindowLimits();
@@ -103,7 +101,5 @@ public:
     Property<GuiWindow, WindowFit, 0> windowFit;
     BRISK_PROPERTIES_END
 };
-
-;
 
 } // namespace Brisk

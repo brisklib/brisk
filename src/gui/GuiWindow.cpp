@@ -27,15 +27,26 @@
 
 namespace Brisk {
 
-void GuiWindow::onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {
-    if (action != KeyAction::Release)
-        m_inputQueue.addEvent(EventKeyPressed{ { { {}, mods }, key }, action == KeyAction::Repeat });
-    else
-        m_inputQueue.addEvent(EventKeyReleased{ { { {}, mods }, key } });
+bool GuiWindow::processEvent(Event&& e) {
+    if (m_inputQueue.processEvent(e))
+        return true;
+
+    if (m_component)
+        m_component->unhandledEvent(e);
+    if (e)
+        this->unhandledEvent(e);
+    return !e;
 }
 
-void GuiWindow::onCharEvent(char32_t character) {
-    m_inputQueue.addEvent(EventCharacterTyped{ { {}, m_mods }, character });
+bool GuiWindow::onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {
+    if (action != KeyAction::Release)
+        return processEvent(EventKeyPressed{ { { {}, mods }, key }, action == KeyAction::Repeat });
+    else
+        return processEvent(EventKeyReleased{ { { {}, mods }, key } });
+}
+
+bool GuiWindow::onCharEvent(char32_t character) {
+    return processEvent(EventCharacterTyped{ { {}, m_mods }, character });
 }
 
 void GuiWindow::onMouseEnter() {
@@ -54,75 +65,39 @@ void GuiWindow::onFocusChange(bool gained) {
     m_inputQueue.finishMenu();
 }
 
-bool GuiWindow::handleEvent(function<void()> fn) {
-    // The function fn creates an Event and pushes it to the m_inputQueue.
-    // This method ensures that the event is processed by the event handlers
-    // and doesn't end up in m_unhandledEvents.
-    bool result = false;
-    std::atomic_bool finished{ false };
-
-    uiScheduler->dispatchAndWait([fn = std::move(fn), this, &result, &finished] {
-        fn();
-        uint32_t cookie = m_inputQueue.events.back().cookie();
-        BRISK_LOG_DEBUG("wait cookie={:08X}", cookie);
-
-        windowApplication->afterRenderQueue->dispatch(
-            [this, &result, cookie, &finished] {
-                BRISK_LOG_DEBUG("m_unhandledEvents.size={}", m_unhandledEvents.size());
-                BRISK_LOG_DEBUG("unhandled cookies = {}", join(map(m_unhandledEvents,
-                                                                   [](uint32_t c) {
-                                                                       return fmt::format("{:08}", c);
-                                                                   }),
-                                                               ","));
-
-                auto it = std::find(m_unhandledEvents.begin(), m_unhandledEvents.end(), cookie);
-                // Event is considered handled if not found in m_unhandledEvents.
-                result  = it == m_unhandledEvents.end();
-                finished.store(true, std::memory_order::release);
-            },
-            ExecuteImmediately::Never); // Ensure the lambda is executed at the right time.
-    });
-
-    // waitUsingFunc(nullptr, finished, nullptr, 0.2);
-
-    return result;
-}
-
 bool GuiWindow::handleKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods) {
-    return handleEvent([=, this] {
-        m_mods = mods;
-        keyEvent(key, scancode, action, mods);
-    });
+    return keyEvent(key, scancode, action, mods);
 }
 
 bool GuiWindow::handleCharEvent(char32_t character) {
-    return handleEvent([=, this] {
-        charEvent(character);
-    });
+    return charEvent(character);
 }
 
-void GuiWindow::onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
+bool GuiWindow::onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
                              int conseqClicks) {
     if (action == MouseAction::Press) {
-        m_inputQueue.addEvent(EventMouseButtonPressed{ { { { {}, mods }, point, m_downPoint }, button } });
+        bool handled =
+            processEvent(EventMouseButtonPressed{ { { { {}, mods }, point, m_downPoint }, button } });
         if (conseqClicks == 3)
-            m_inputQueue.addEvent(EventMouseTripleClicked{ { { {}, mods }, point, m_downPoint } });
+            processEvent(EventMouseTripleClicked{ { { {}, mods }, point, m_downPoint } });
         else if (conseqClicks == 2)
-            m_inputQueue.addEvent(EventMouseDoubleClicked{ { { {}, mods }, point, m_downPoint } });
+            processEvent(EventMouseDoubleClicked{ { { {}, mods }, point, m_downPoint } });
+        return handled;
     } else {
-        m_inputQueue.addEvent(EventMouseButtonReleased{ { { { {}, mods }, point, m_downPoint }, button } });
+        return processEvent(EventMouseButtonReleased{ { { { {}, mods }, point, m_downPoint }, button } });
     }
 }
 
-void GuiWindow::onMouseMove(PointF point) {
-    m_inputQueue.addEvent(EventMouseMoved{ { { {}, m_mods }, point, m_downPoint } });
+bool GuiWindow::onMouseMove(PointF point) {
+    return processEvent(EventMouseMoved{ { { {}, m_mods }, point, m_downPoint } });
 }
 
-void GuiWindow::onWheelEvent(float x, float y) {
+bool GuiWindow::onWheelEvent(float x, float y) {
     if (y)
-        m_inputQueue.addEvent(EventMouseYWheel{ { { {}, m_mods }, m_mousePoint, m_downPoint }, y });
+        return processEvent(EventMouseYWheel{ { { {}, m_mods }, m_mousePoint, m_downPoint }, y });
     if (x)
-        m_inputQueue.addEvent(EventMouseXWheel{ { { {}, m_mods }, m_mousePoint, m_downPoint }, x });
+        return processEvent(EventMouseXWheel{ { { {}, m_mods }, m_mousePoint, m_downPoint }, x });
+    return false;
 }
 
 void GuiWindow::attachedToApplication() {
@@ -136,16 +111,6 @@ void GuiWindow::attachedToApplication() {
 
 GuiWindow::GuiWindow(Rc<Component> component) : Window(), m_component(std::move(component)) {
     registerBuiltinFonts();
-    m_inputQueue.unhandledEvent = [this](Event& event) BRISK_INLINE_LAMBDA {
-        if (m_component)
-            m_component->unhandledEvent(event);
-        if (!event)
-            return;
-        this->unhandledEvent(event);
-        if (!event)
-            return;
-        m_unhandledEvents.push_back(event.cookie());
-    };
 
     BRISK_LOG_INFO("Done creating GuiWindow");
 }
@@ -179,7 +144,6 @@ void GuiWindow::paintImmediate(RenderContext& context) {
 }
 
 bool GuiWindow::update() {
-    m_unhandledEvents.clear();
     m_tree.setViewportRectangle(getFramebufferBounds());
     if (!m_tree.root()) {
         rebuild();
@@ -222,7 +186,7 @@ void GuiWindow::updateWindowLimits() {
         Size resolution    = display ? display->workarea().size() : Size{ 4096, 2048 };
         newWindowSize      = min(newWindowSize, resolution);
 
-        if (newWindowSize != windowSize) {
+        if (newWindowSize != windowSize && isTopLevel()) {
             if (m_windowFit == WindowFit::MinimumSize) {
                 setMinimumSize(newWindowSize);
             } else {
@@ -270,9 +234,7 @@ void GuiWindow::afterDraw(Canvas& canvas) {}
 void GuiWindow::beforeDraw(Canvas& canvas) {}
 
 void GuiWindow::beforeOpeningWindow() {
-    uiScheduler->dispatchAndWait([this]() {
-        updateWindowLimits();
-    });
+    updateWindowLimits();
 }
 
 WidgetTree& GuiWindow::tree() {

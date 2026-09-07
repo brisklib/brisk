@@ -65,7 +65,6 @@ option(BRISK_LTO ON "Use Link Time Optimization in Release builds")
 option(BRISK_BROTLI "Enable Brotli compression" ON)
 cmake_dependent_option(BRISK_WEBGPU "Enable WebGPU" OFF "WIN32" ON)
 cmake_dependent_option(BRISK_D3D11 "Enable D3D11 backend (Windows only)" ON "WIN32" OFF)
-option(BRISK_ICU "Link to ICU by default for full Unicode support" ON)
 option(BRISK_LOG_TO_STDERR "Write log output to stderr (Windows-specific)" OFF)
 option(BRISK_INTERACTIVE_TESTS "Enable interactive tests" OFF)
 option(BRISK_RTTI "Enable RTTI for Brisk builds" ON)
@@ -219,13 +218,12 @@ if (BRISK_TESTS)
         ${TESTS_GRAPHICS}
         LIBRARIES
         brisk-graphics
-        brisk-i18n-icu
         ${TESTS_GRAPHICS_LIBS}
         DEFINITIONS
         ${TESTS_GRAPHICS_DEFS})
-    add_autotests(window SOURCES ${TESTS_WINDOW} LIBRARIES brisk-window brisk-i18n-icu)
-    add_autotests(gui SOURCES ${TESTS_GUI} LIBRARIES brisk-gui brisk-i18n-icu)
-    add_autotests(widgets SOURCES ${TESTS_WIDGETS} LIBRARIES brisk-widgets brisk-i18n-icu)
+    add_autotests(window SOURCES ${TESTS_WINDOW} LIBRARIES brisk-window)
+    add_autotests(gui SOURCES ${TESTS_GUI} LIBRARIES brisk-gui)
+    add_autotests(widgets SOURCES ${TESTS_WIDGETS} LIBRARIES brisk-widgets)
 
     if (BRISK_OVERRIDE_D3D_WARP)
         place_warp_dll(graphics_tests)
@@ -279,8 +277,6 @@ install(
         brisk-gui
         brisk-widgets
         brisk-executable
-        brisk-i18n
-        brisk-i18n-icu
         ${EXTRA_INSTALL_TARGETS}
     EXPORT BriskTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}$<$<CONFIG:Debug>:${BRISK_DBG_SUFFIX}>

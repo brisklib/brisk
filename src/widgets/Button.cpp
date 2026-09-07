@@ -56,13 +56,13 @@ void Button::onEvent(Event& event) {
         }
         m_repeatState = std::nullopt;
         event.stopPropagation();
-    } else if ((m_keyEvents && ButtonKeyEvents::AcceptsEnter) && event.keyPressed(KeyCode::Enter) ||
-               (m_keyEvents && ButtonKeyEvents::AcceptsSpace) && event.keyPressed(KeyCode::Space)) {
+    } else if (((m_keyEvents && ButtonKeyEvents::AcceptsEnter) && event.keyPressed(KeyCode::Enter)) ||
+               ((m_keyEvents && ButtonKeyEvents::AcceptsSpace) && event.keyPressed(KeyCode::Space))) {
         toggleState(WidgetState::Pressed, true);
         doClick();
         event.stopPropagation();
-    } else if ((m_keyEvents && ButtonKeyEvents::AcceptsEnter) && event.keyReleased(KeyCode::Enter) ||
-               (m_keyEvents && ButtonKeyEvents::AcceptsSpace) && event.keyReleased(KeyCode::Space)) {
+    } else if (((m_keyEvents && ButtonKeyEvents::AcceptsEnter) && event.keyReleased(KeyCode::Enter)) ||
+               ((m_keyEvents && ButtonKeyEvents::AcceptsSpace) && event.keyReleased(KeyCode::Space))) {
         toggleState(WidgetState::Pressed, false);
         event.stopPropagation();
     }

@@ -84,11 +84,11 @@ struct DisplaySyncPoint {
     Clock::duration frameDuration{ 0 };
 };
 
-extern std::atomic_bool debugShowRenderTimeline;
+extern bool debugShowRenderTimeline;
 
 struct FrameTimePredictor;
 
-/// Current window instance. Available in UI thread. Set in uiThreadBody
+/// Current window instance. Set in uiThreadBody
 extern Window* currentWindow;
 Rc<Window> currentWindowPtr();
 
@@ -352,8 +352,19 @@ public:
 
     PlatformWindow* platformWindow();
 
-    void disableKeyHandling();
+    void setKeyHandling(bool keyHandling);
     NativeWindowHandle getHandle() const final;
+
+    void setParent(NativeWindowHandle parent);
+    NativeWindowHandle parent() const;
+
+    void setVSync(bool vSync);
+    bool vSync() const noexcept;
+
+    /**
+     * @brief Check if the window is a top-level (not child) window
+     */
+    bool isTopLevel() const noexcept;
 
     void setOwner(Rc<Window> window);
     void enterModal();
@@ -380,22 +391,19 @@ protected:
     virtual void attachedToApplication();
     bool m_attached = false;
 
-private:
-    void mustBeUiThread() const;
-
 protected:
     // Properties and dimensions
-    WindowStyle m_style = WindowStyle::Normal; /// UI-thread
-    std::string m_title;                       /// UI-thread
-    Size m_minimumSize{ -1, -1 };              /// UI-thread
-    Size m_maximumSize{ -1, -1 };              /// UI-thread
-    Size m_windowSize{ 640, 480 };             /// UI-thread
-    Size m_framebufferSize{ 0, 0 };            /// UI-thread
-    Point m_position{ -1, -1 };                /// UI-thread
+    WindowStyle m_style = WindowStyle::Normal;
+    std::string m_title;
+    Size m_minimumSize{ -1, -1 };
+    Size m_maximumSize{ -1, -1 };
+    Size m_windowSize{ 640, 480 };
+    Size m_framebufferSize{ 0, 0 };
+    Point m_position{ -1, -1 };
     Cursor m_cursor = Cursor::Arrow;
-    void* m_parent  = nullptr;
-    bool m_visible{ true };              /// Desired value. Will be applied to OS window when open
-    std::atomic_bool m_closing{ false }; /// If true, application will remove this window from windows list
+    NativeWindowHandle m_parent;
+    bool m_visible{ true };  /// Desired value. Will be applied to OS window when open
+    bool m_closing{ false }; /// If true, application will remove this window from windows list
     // call to change visibility
     void setVisible(bool newVisible);
 
@@ -409,14 +417,14 @@ protected:
     bool m_doubleClicked = false;
     bool m_keyHandling   = true;
 
-    void keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
-    void charEvent(char32_t character);
-    void mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point);
-    void mouseMove(PointF point);
-    void wheelEvent(float x, float y);
+    [[nodiscard]] bool keyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
+    [[nodiscard]] bool charEvent(char32_t character);
+    [[nodiscard]] bool mouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point);
+    [[nodiscard]] bool mouseMove(PointF point);
+    [[nodiscard]] bool wheelEvent(float x, float y);
+    [[nodiscard]] bool filesDropped(std::vector<std::string> files);
     void mouseEnter();
     void mouseLeave();
-    void filesDropped(std::vector<std::string> files);
     void windowStateChanged(bool isIconified, bool isMaximized);
     void focusChange(bool gained);
     void visibilityChanged(bool newVisible);
@@ -424,15 +432,15 @@ protected:
     void windowResized(Size windowSize, Size framebufferSize);
     void windowMoved(Point position);
     void windowNonClientClicked();
-    virtual void onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
-    virtual void onCharEvent(char32_t character);
-    virtual void onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods, PointF point,
-                              int conseqClicks);
-    virtual void onMouseMove(PointF point);
-    virtual void onWheelEvent(float x, float y);
+    [[nodiscard]] virtual bool onKeyEvent(KeyCode key, int scancode, KeyAction action, KeyModifiers mods);
+    [[nodiscard]] virtual bool onCharEvent(char32_t character);
+    [[nodiscard]] virtual bool onMouseEvent(MouseButton button, MouseAction action, KeyModifiers mods,
+                                            PointF point, int conseqClicks);
+    [[nodiscard]] virtual bool onMouseMove(PointF point);
+    [[nodiscard]] virtual bool onWheelEvent(float x, float y);
+    [[nodiscard]] virtual bool onFilesDropped(std::vector<std::string> files);
     virtual void onMouseEnter();
     virtual void onMouseLeave();
-    virtual void onFilesDropped(std::vector<std::string> files);
     virtual void onWindowStateChanged(bool isIconified, bool isMaximized);
     virtual void onFocusChange(bool gained);
     virtual void onVisibilityChanged(bool newVisible);
@@ -449,14 +457,14 @@ protected:
     Rc<ImageRenderTarget> m_bufferedFrameTarget;
     std::chrono::microseconds m_lastFrameRenderTime{ 0 };
     Internal::DisplaySyncPoint m_syncPoint;
-    std::atomic_llong m_frameNumber{ 0 };
+    int64_t m_frameNumber{ 0 };
     std::optional<double> m_nextFrameTime;
     std::unique_ptr<Internal::FrameTimePredictor> m_frameTimePredictor;
-    std::mutex m_mutex;
     VisualSettings m_renderSettings{};
-    std::atomic_bool m_rendering{ false }; /// true if rendering is active
-    std::atomic_bool m_bufferedRendering{ Internal::bufferedRendering };
-    std::atomic_bool m_forceRenderEveryFrame{ Internal::forceRenderEveryFrame };
+    bool m_rendering{ false }; /// true if rendering is active
+    bool m_bufferedRendering{ Internal::bufferedRendering };
+    bool m_forceRenderEveryFrame{ Internal::forceRenderEveryFrame };
+    bool m_vSync{ true };
     RenderStat m_renderStat;
     Rc<RenderDevice> m_renderDevice;
     Rc<RenderDevice> renderDevice();
@@ -486,7 +494,7 @@ protected:
      * physical pixels.
      *
      */
-    std::atomic<float> m_contentScale{ 1.f };
+    float m_contentScale{ 1.f };
 
     /**
      * @brief Additional scaling factor applied to the UI and canvas.
@@ -495,9 +503,9 @@ protected:
      *
      * Default value is 1.0 (no additional scaling).
      */
-    std::atomic<float> m_canvasScale{ 1.f };
+    float m_canvasScale{ 1.f };
 
-    // m_pixelRatio = m_contentScale * m_canvasScale, UI thread
+    // m_pixelRatio = m_contentScale * m_canvasScale
     float m_pixelRatio = 1.f;
 
     int m_syncInterval{ 1 };
@@ -521,6 +529,19 @@ struct ModalMode {
     ~ModalMode();
 
     Rc<Window> owner;
+};
+
+struct CurrentWindowScope {
+    CurrentWindowScope(Window* window) {
+        previousWindow          = Internal::currentWindow;
+        Internal::currentWindow = window;
+    }
+
+    ~CurrentWindowScope() {
+        Internal::currentWindow = previousWindow;
+    }
+
+    Window* previousWindow = nullptr;
 };
 
 } // namespace Brisk

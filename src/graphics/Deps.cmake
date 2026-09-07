@@ -6,14 +6,6 @@ if ("${_BRISK_GRAPHICS}" STREQUAL "")
     set(_BRISK_GRAPHICS brisk-graphics)
 endif ()
 
-get_property(
-    _BRISK_I18N_ICU
-    TARGET brisk-i18n-icu
-    PROPERTY ALIASED_TARGET)
-if ("${_BRISK_I18N_ICU}" STREQUAL "")
-    set(_BRISK_I18N_ICU brisk-i18n-icu)
-endif ()
-
 if (BRISK_WEBGPU)
     get_property(
         _BRISK_RENDERER_WEBGPU
@@ -80,14 +72,6 @@ endif ()
 target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} SheenBidi::SheenBidi)
 # /sheenbidi
 
-# >icu
-find_package(
-    ICU
-    COMPONENTS uc
-    REQUIRED)
-target_link_libraries(${_BRISK_I18N_ICU} ${_DEP_PRIVATE} ICU::uc)
-# /icu
-
 if (BRISK_WEBGPU)
     find_package(Dawn CONFIG REQUIRED)
     target_link_libraries(${_BRISK_RENDERER_WEBGPU} ${_DEP_PRIVATE} dawn::webgpu_dawn)
@@ -103,11 +87,6 @@ if (BRISK_WEBGPU)
     endif ()
 
 endif ()
-
-brisk_target_link_resource(
-    ${_BRISK_I18N_ICU} PRIVATE "internal/icudt.dat"
-    INPUT ${BRISK_RESOURCES_DIR}/icu/${ICU_DT}
-    BROTLI)
 
 if (BRISK_D3D11)
     if (_EXPORT_MODE)

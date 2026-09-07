@@ -38,13 +38,17 @@ void WidgetTree::setRoot(std::shared_ptr<Widget> root) {
         if (m_root) {
             m_root->setTree(this);
         }
-        m_layoutIsActual = false;
+        if (m_inputQueue) {
+            m_inputQueue->reset();
+        }
+        updateLayoutAndGeometry();
     }
 }
 
 void WidgetTree::rescale() {
     if (m_root) {
         m_root->resolveAndInherit();
+        updateLayoutAndGeometry();
     }
 }
 
@@ -141,26 +145,25 @@ void WidgetTree::update() {
 
     groupsBeforeFrame();
 
-    if (!m_layoutIsActual) {
-        processEventsAndAnimations();
-        applyStyleChanges();
-        updateLayoutAndGeometry();
-        m_layoutIsActual = true;
-    }
-
-    processEventsAndAnimations();
-
+    processAnimations();
     applyStyleChanges();
     updateLayoutAndGeometry();
-    m_layoutIsActual = true;
+
+    if (m_inputQueue)
+        m_inputQueue->cleanup();
 }
 
-void WidgetTree::processEventsAndAnimations() {
-    if (m_layoutIsActual) {
-        if (m_inputQueue)
-            m_inputQueue->processEvents();
+void WidgetTree::updateVisibility() {
+    if (m_updateVisibilityRequested) {
+        m_root->processTreeVisibility(true);
+        m_updateVisibilityRequested = false;
+        if (m_inputQueue) {
+            m_inputQueue->updateAutoFocus();
+        }
     }
+}
 
+void WidgetTree::processAnimations() {
     processAnimation();
     processRebuild();
 
@@ -171,11 +174,7 @@ void WidgetTree::processEventsAndAnimations() {
         m_root->refreshTree();
         m_refreshTime = frameStartTime;
     }
-
-    if (m_updateVisibilityRequested) {
-        m_root->processTreeVisibility(true);
-        m_updateVisibilityRequested = false;
-    }
+    updateVisibility();
 }
 
 void WidgetTree::applyStyleChanges() {
@@ -193,7 +192,8 @@ void WidgetTree::updateLayoutAndGeometry() {
             m_inputQueue->reset();
         HitTestMap::State state;
         m_root->updateGeometry(state);
-        m_updateGeometryRequested = false;
+        m_updateGeometryRequested   = false;
+        m_updateVisibilityRequested = false;
         if (m_inputQueue) {
             m_inputQueue->processMouseState();
         }

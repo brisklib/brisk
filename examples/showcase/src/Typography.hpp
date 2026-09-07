@@ -24,7 +24,7 @@
 
 namespace Brisk {
 
-class ShowcaseTypography : public BindableObject<ShowcaseTypography, &uiScheduler> {
+class ShowcaseTypography : public BindableObject<ShowcaseTypography> {
 public:
     Rc<Widget> build(Rc<Notifications> notifications, Value<bool> globalEnabled);
 

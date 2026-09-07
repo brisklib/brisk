@@ -95,7 +95,7 @@ int main() {
             // Convert mouse coordinates to framebuffer pixels
             event.point =
                 PointF(xpos, ypos) * PointF(SizeF(win->framebufferSize)) / PointF(SizeF(win->windowSize));
-            win->input.addEvent(std::move(event));
+            std::ignore = win->input.processEvent(std::move(event));
         });
 
         // Set callback for mouse button presses and releases
@@ -122,9 +122,9 @@ int main() {
             event.downPoint = std::nullopt;       // Not implemented in this example
             event.mods      = KeyModifiers::None; // Not implemented in this example
             if (action == GLFW_PRESS) {
-                win->input.addEvent(EventMouseButtonPressed{ event });
+                std::ignore = win->input.processEvent(EventMouseButtonPressed{ event });
             } else {
-                win->input.addEvent(EventMouseButtonReleased{ event });
+                std::ignore = win->input.processEvent(EventMouseButtonReleased{ event });
             }
         });
 
@@ -174,7 +174,6 @@ int main() {
 
         // Process Brisk events
         mainScheduler->process();
-        uiScheduler->process();
 
         for (int i = 0; i < numWindows; ++i) {
             // Update pixel ratio for rendering (ratio between framebuffer pixels and GUI pixels)

@@ -31,6 +31,24 @@
 
 namespace Brisk {
 
+class Thread {
+public:
+    Thread();
+
+    ~Thread();
+
+    std::thread::id get_id() const noexcept;
+
+protected:
+    bool isTerminated() const noexcept;
+
+    virtual void threadBody();
+
+private:
+    std::thread m_thread;
+    std::atomic<bool> m_terminate{ false };
+};
+
 /**
  * @enum ExecuteImmediately
  * @brief Defines when and how a scheduled function is dispatched in a task queue.
@@ -251,6 +269,13 @@ public:
     ~TaskQueue();
 
     /**
+     * @brief Set the Thread Id object
+     *
+     * @param threadId
+     */
+    void setThreadId(std::thread::id threadId) noexcept;
+
+    /**
      * @brief Dispatches a function for execution.
      *
      * This method schedules the specified function for execution. If the current thread
@@ -336,7 +361,7 @@ protected:
 /// @brief Represents the task queue and scheduler for the main thread.
 extern Rc<TaskQueue> mainScheduler;
 
-extern Rc<TaskQueue> uiScheduler;
+extern Rc<Scheduler> noScheduler;
 
 template <typename T>
 T waitFuture(VoidFunc waitFunc, std::future<T> future, int intervalMS) {

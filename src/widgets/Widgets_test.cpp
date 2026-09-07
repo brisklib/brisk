@@ -69,9 +69,6 @@ static void widgetTest(const std::string& name, Rc<Widget> widget, std::initiali
                        Size size = defaultSize, float pixelRatio = defaultPixelRatio,
                        ColorW winColor = 0x131419_rgb) {
     InputQueue input;
-    for (const Event& e : events) {
-        input.addEvent(e);
-    }
     WidgetTree tree(&input);
     tree.disableTransitions();
     Brisk::pixelRatio() = pixelRatio;
@@ -81,9 +78,15 @@ static void widgetTest(const std::string& name, Rc<Widget> widget, std::initiali
         std::move(widget),
     });
     tree.rescale();
+    for (const Event& e : events) {
+        bool handled = input.processEvent(e);
+        if (e.type() != EventType::MouseMoved) {
+            REQUIRE(handled); // Ensure non-move events are handled
+        }
+    }
+    tree.update();
     renderTest(name, tree.viewportRectangle().size(), [&](RenderContext& context) {
         Canvas canvas(context);
-        tree.update();
         tree.paint(canvas, Palette::black, true);
     });
 }
@@ -447,22 +450,22 @@ TEST_CASE("Button states animation") {
         rcnew Row{ rcnew Button{ storeWidget(&btn), "Button"_Text } },
     });
 
-    animation.input.addEvent(mouseMove(btn->rect().center()));
+    std::ignore = animation.input.processEvent(mouseMove(btn->rect().center()));
     dynamicPointerCast<Text>(btn->widgets().front())->text = "Hover";
 
     animation.frames(1250ms);
 
-    animation.input.addEvent(mousePress(btn->rect().center()));
+    REQUIRE(animation.input.processEvent(mousePress(btn->rect().center())));
     dynamicPointerCast<Text>(btn->widgets().front())->text = "Pressed";
 
     animation.frames(1250ms);
 
-    animation.input.addEvent(mouseRelease(btn->rect().center()));
+    REQUIRE(animation.input.processEvent(mouseRelease(btn->rect().center())));
     dynamicPointerCast<Text>(btn->widgets().front())->text = "Hover";
 
     animation.frames(1250ms);
 
-    animation.input.addEvent(mouseMove({}));
+    std::ignore                                            = animation.input.processEvent(mouseMove({}));
     dynamicPointerCast<Text>(btn->widgets().front())->text = "Normal";
 
     animation.frames(1250ms);
@@ -551,21 +554,21 @@ TEST_CASE("TextEditor animation") {
     std::mt19937 rnd(123);
     std::uniform_int_distribution<> uniform(75, 150);
     for (char32_t ch : text) {
-        animation.input.addEvent(EventCharacterTyped{ .character = ch });
+        REQUIRE(animation.input.processEvent(EventCharacterTyped{ .character = ch }));
         int32_t delay = uniform(rnd);
         animation.frames(delay * 1ms);
     }
     animation.frames(800ms);
     for (char32_t ch : text) {
-        animation.input.addEvent(EventKeyPressed{ EventKey{ {}, KeyCode::Left } });
+        REQUIRE(animation.input.processEvent(EventKeyPressed{ EventKey{ {}, KeyCode::Left } }));
         animation.frames(40ms);
     }
     animation.frames(600ms);
-    animation.input.addEvent(
-        EventKeyPressed{ EventKey{ EventInput{ {}, KeyModifiers::ControlOrCommand }, KeyCode::A } });
+    REQUIRE(animation.input.processEvent(
+        EventKeyPressed{ EventKey{ EventInput{ {}, KeyModifiers::ControlOrCommand }, KeyCode::A } }));
 
     animation.frames(600ms);
-    animation.input.addEvent(EventKeyPressed{ EventKey{ {}, KeyCode::Del } });
+    REQUIRE(animation.input.processEvent(EventKeyPressed{ EventKey{ {}, KeyCode::Del } }));
     animation.frames(600ms);
 
     animation.save("animation/texteditor.webp");

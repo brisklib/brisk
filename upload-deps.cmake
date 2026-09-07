@@ -65,8 +65,7 @@ else ()
             libpng16-debug.cmake
             libpng16-release.cmake
             zstdTargets-debug.cmake
-            zstdTargets-release.cmake
-            icu-config)
+            zstdTargets-release.cmake)
 
         execute_process(
             COMMAND

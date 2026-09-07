@@ -50,7 +50,7 @@ public:
 private:
     friend class ImageRenderTargetD3d11;
     friend class RenderEncoderD3d11;
-    Rc<RenderDeviceD3d11> m_device;
+    const Rc<RenderDeviceD3d11> m_device;
     ComPtr<ID3D11Texture2D> m_texture;
     ComPtr<ID3D11ShaderResourceView> m_srv;
 

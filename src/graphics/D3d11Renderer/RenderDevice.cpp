@@ -39,6 +39,7 @@ static D3D_FEATURE_LEVEL featureLevels[] = {
 };
 
 bool RenderDeviceD3d11::createDevice(UINT flags) {
+    ensureOnRenderThread();
 
     HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(m_factory.ReleaseAndGetAddressOf()));
     if (!SUCCEEDED(hr))
@@ -123,9 +124,12 @@ bool RenderDeviceD3d11::createDevice(UINT flags) {
 }
 
 RenderDeviceD3d11::RenderDeviceD3d11(RendererDeviceSelection deviceSelection, NativeDisplayHandle display)
-    : m_deviceSelection(deviceSelection), m_display(display) {}
+    : m_deviceSelection(deviceSelection), m_display(display) {
+    ensureOnRenderThread();
+}
 
 status<RenderDeviceError> RenderDeviceD3d11::init() {
+    ensureOnRenderThread();
 #ifndef NDEBUG
     if (!createDevice(D3D11_CREATE_DEVICE_DEBUG)) {
         if (!createDevice(0)) {
@@ -199,6 +203,7 @@ status<RenderDeviceError> RenderDeviceD3d11::init() {
 }
 
 void RenderDeviceD3d11::createSamplers() {
+    ensureOnRenderThread();
     D3D11_SAMPLER_DESC samplerDesc{}; // zero-initialize
     samplerDesc.Filter         = D3D11_FILTER_MIN_MAG_MIP_POINT;
     samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -215,11 +220,12 @@ void RenderDeviceD3d11::createSamplers() {
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    hr = m_device->CreateSamplerState(&samplerDesc, m_sampler.ReleaseAndGetAddressOf());
+    hr                   = m_device->CreateSamplerState(&samplerDesc, m_sampler.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return);
 }
 
 void RenderDeviceD3d11::createBlendState() {
+    ensureOnRenderThread();
     D3D11_BLEND_DESC blendDesc{}; // zero-initialize
     blendDesc.RenderTarget[0].BlendEnable           = TRUE;
     blendDesc.RenderTarget[0].SrcBlend              = D3D11_BLEND_ONE;
@@ -234,6 +240,7 @@ void RenderDeviceD3d11::createBlendState() {
 }
 
 void RenderDeviceD3d11::createRasterizerState() {
+    ensureOnRenderThread();
     D3D11_RASTERIZER_DESC rasterDesc{}; // zero-initialize
     rasterDesc.FillMode        = D3D11_FILL_SOLID;
     rasterDesc.CullMode        = D3D11_CULL_NONE;
@@ -244,6 +251,7 @@ void RenderDeviceD3d11::createRasterizerState() {
 }
 
 void RenderDeviceD3d11::createPerFrameConstantBuffer() {
+    ensureOnRenderThread();
     D3D11_BUFFER_DESC bufDesc{}; // zero-initialize
     bufDesc.ByteWidth      = sizeof(ConstantPerFrame);
     bufDesc.Usage          = D3D11_USAGE_DYNAMIC;
@@ -266,6 +274,7 @@ static std::string_view findVendor(uint16_t vendor) {
 }
 
 RenderDeviceInfo RenderDeviceD3d11::info() const {
+    ensureOnRenderThread();
     DXGI_ADAPTER_DESC desc;
     m_adapter->GetDesc(&desc);
     RenderDeviceInfo info;
@@ -283,11 +292,13 @@ RenderDeviceInfo RenderDeviceD3d11::info() const {
 
 Rc<WindowRenderTarget> RenderDeviceD3d11::createWindowTarget(const NativeWindow* window, PixelType type,
                                                              DepthStencilType depthStencil, int samples) {
+    ensureOnRenderThread();
     return rcnew WindowRenderTargetD3d11(shared_from_this(), window, type, depthStencil, samples);
 }
 
 Rc<ImageRenderTarget> RenderDeviceD3d11::createImageTarget(Size frameSize, PixelType type,
                                                            DepthStencilType depthStencil, int samples) {
+    ensureOnRenderThread();
     if (frameSize.longestSide() >= 16384) {
         throwException(EImageError("Requested image render target size is too large: {}", frameSize));
     }
@@ -295,6 +306,7 @@ Rc<ImageRenderTarget> RenderDeviceD3d11::createImageTarget(Size frameSize, Pixel
 }
 
 Rc<RenderEncoder> RenderDeviceD3d11::createEncoder() {
+    ensureOnRenderThread();
     return rcnew RenderEncoderD3d11(shared_from_this());
 }
 
@@ -302,6 +314,7 @@ RenderDeviceD3d11::~RenderDeviceD3d11() = default;
 
 bool RenderDeviceD3d11::updateBackBuffer(BackBufferD3d11& buffer, PixelType type, DepthStencilType depthType,
                                          int samples) {
+    ensureOnRenderThread();
     D3D11_RENDER_TARGET_VIEW_DESC rtvDesc{}; // zero-initialize
     rtvDesc.ViewDimension = samples > 1 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
     rtvDesc.Format = linearColor ? dxFormat(type, backBufferFormat) : dxFormatNoSrgb(type, backBufferFormat);
@@ -347,6 +360,7 @@ void RenderDeviceD3d11::decrementWindowTargets() {
 }
 
 void RenderDeviceD3d11::createImageBackend(Rc<Image> image) {
+    ensureOnRenderThread();
     BRISK_ASSERT(image);
     if (dxFormat(image->pixelType(), image->pixelFormat()) == DXGI_FORMAT_UNKNOWN) {
         throwException(EImageError("Direct3D11 backend does not support the image type or format: {}, {}. "

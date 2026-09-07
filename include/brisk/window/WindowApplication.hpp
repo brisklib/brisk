@@ -41,14 +41,10 @@ namespace Internal {
 extern Window* currentWindow;
 } // namespace Internal
 
-/**
- * @brief Controls whether the application should process UI and render in a separate threads. Default true
- */
-extern bool separateUiThread;
-
 enum class QuitCondition {
     FirstWindowClosed,
     AllWindowsClosed,
+    Never,
     PlatformDependant, // Never on macOS, AllWindowsClosed on others
 };
 
@@ -106,7 +102,6 @@ public:
 
     /**
      * @brief Checks if the specific window is registered to the WindowApplication
-     * @remark Safe to call from main or UI thread
      * @param window
      */
     bool hasWindow(const Rc<Window>& window);
@@ -119,10 +114,9 @@ public:
     bool isActive() const;
 
     /**
-     * @brief Returns a copy of the windows list.
-     * @remark Safe to call from main or UI thread
+     * @brief Returns the windows list.
      */
-    std::vector<Rc<Window>> windows() const;
+    const std::vector<Rc<Window>>& windows() const;
 
     /**
      * @brief Returns true if @c quit has called
@@ -132,14 +126,10 @@ public:
     // Internal methods
     WindowApplication();
     ~WindowApplication();
-    void mustBeUiThread();
     double doubleClickTime() const;
     double doubleClickDistance() const;
-    Rc<TaskQueue> afterRenderQueue;
-    Rc<TaskQueue> onApplicationClose = rcnew TaskQueue();
-    VoidFunc idleFunc();
+    Callbacks<> onApplicationClose;
     void systemModal(function<void(NativeWindow*)> body);
-    void updateAndWait();
 
     /**
      * @brief Start the main loop
@@ -153,12 +143,20 @@ public:
      */
     void stop();
 
+    // Enum with three options: check messages, check messages and wait for them, don't check messages
+    // Rephrase to get correct wording
+    enum class ProcessEventsMode {
+        CheckAndWait,
+        CheckOnly,
+        DontCheck,
+    };
+
     /**
      * @brief Run one cycle of the main loop
-     * @param wait Wait for OS events
+     * @param mode Mode of processing events
      * @remark This function is internal. Use only if you know what you do
      */
-    void cycle(bool wait);
+    void cycle(ProcessEventsMode mode);
 
     QuitCondition quitCondition() const noexcept;
     void setQuitCondition(QuitCondition value);
@@ -173,38 +171,24 @@ private:
     void closeWindows();
     void removeClosed();
 
-    struct {
-        std::vector<Rc<Window>> m_windows;
-    } m_mainData;
+    std::vector<Rc<Window>> m_windows;
 
-    struct {
-        std::vector<Rc<Window>> m_windows;
-    } m_uiData;
-
-    std::atomic_bool m_active{ false };
-    void windowsChanged();
-    double m_doubleClickTime            = 0.5;
-    double m_doubleClickDistance        = 3.0;
-    constexpr static int32_t noExitCode = INT32_MIN;
-    std::atomic_int32_t m_exitCode{ noExitCode };
-    const bool m_separateUiThread;
-    std::thread m_uiThread;
-    std::atomic_bool m_uiThreadTerminate{ false };
-    std::atomic_bool m_uiThreadTerminated{ false };
-    std::atomic<QuitCondition> m_quitCondition{ QuitCondition::AllWindowsClosed };
-    std::binary_semaphore m_uiThreadStarted{ 0 };
+    bool m_active                = false;
+    double m_doubleClickTime     = 0.5;
+    double m_doubleClickDistance = 3.0;
+    std::optional<int32_t> m_exitCode;
+    QuitCondition m_quitCondition = QuitCondition::AllWindowsClosed;
     void renderWindows();
-    void uiThreadBody();
 
 private:
-    std::atomic<bool> m_discreteGpu      = false;
-    std::atomic<int> m_syncInterval      = 1;
-    std::atomic<float> m_uiScale         = 1;
-    std::atomic<float> m_blueLightFilter = 0;
-    std::atomic<float> m_globalGamma     = 1;
-    std::atomic<bool> m_subPixelText     = true;
+    bool m_discreteGpu      = false;
+    int m_syncInterval      = 1;
+    float m_uiScale         = 1;
+    float m_blueLightFilter = 0;
+    float m_globalGamma     = 1;
+    bool m_subPixelText     = true;
 
-    BindingRegistration m_registration{ this, nullptr };
+    BindingRegistration m_registration{ this };
 
 public:
     static const auto& properties() noexcept {

@@ -488,9 +488,9 @@ int shufflePalette(int x) {
 }
 
 namespace Internal {
-std::atomic_bool debugRelayoutAndRegenerate{ false };
-std::atomic_bool debugBoundaries{ false };
-std::atomic_bool debugDirtyRect{ false };
+bool debugRelayoutAndRegenerate{ false };
+bool debugBoundaries{ false };
+bool debugDirtyRect{ false };
 } // namespace Internal
 
 void Widget::requestUpdateLayout() {
@@ -1421,7 +1421,7 @@ void Widget::bubbleEvent(Event& event, WidgetState enable, WidgetState disable, 
 }
 
 void Widget::processTreeVisibility(bool isVisible) {
-    isVisible = isVisible && m_visible;
+    isVisible = isVisible && m_visible && !m_hidden;
     processVisibility(isVisible);
     for (const Rc<Widget>& w : *this) {
         w->processTreeVisibility(isVisible);
@@ -1439,6 +1439,8 @@ void Widget::updateGeometry(HitTestMap::State& state) {
         state.mouseTransparent = false;
     else if (m_mouseInteraction == MouseInteraction::Disable)
         state.mouseTransparent = true;
+
+    processVisibility(state.visible);
 
     if (auto inputQueue = this->inputQueue()) {
         if (m_focusCapture && state.visible) {
@@ -1483,8 +1485,10 @@ void Widget::updateGeometry(HitTestMap::State& state) {
             inputQueue->leaveFocusCapture();
         }
 
-        if (m_autofocus && m_isVisible) {
-            inputQueue->setAutoFocus(self);
+        if (m_autofocus) {
+            if (m_isVisible) {
+                inputQueue->setAutoFocus(self);
+            }
         }
     }
     state = std::move(saved_state);

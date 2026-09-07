@@ -127,9 +127,10 @@ static void createMenuBar(void) {
 namespace Brisk {
 
 struct PlatformWindowData {
-    NSWindow* window = nil;
-    NSView* view     = nil;
-    id delegate      = nil;
+    __strong id parent   = nil;
+    NSWindow* window     = nil;
+    NSView* view         = nil;
+    __strong id delegate = nil;
     float scale{ -1 };
     bool occluded = false;
     NSPoint cascadePoint{ 0, 0 };
@@ -273,9 +274,9 @@ static KeyModifiers getKeyMods(NSUInteger flags) {
 static const NSRange kEmptyRange = { NSNotFound, 0 };
 
 static struct {
-    id helper;
-    id delegate;
-    id keyUpMonitor;
+    __strong id helper;
+    __strong id delegate;
+    __strong id keyUpMonitor;
 } staticData;
 
 /*static*/ void PlatformWindow::initialize() {
@@ -376,59 +377,88 @@ static struct {
 
 void PlatformWindow::updateVisibility() {
     @autoreleasepool {
-        bool visible = m_window->m_visible;
-        if (visible) {
-            [m_data->window orderFront:nil];
-            focus();
+        if (m_data->window == nil) {
+            // Child window
+            [m_data->view setHidden:(m_window->m_visible ? YES : NO)];
         } else {
-            [m_data->window orderOut:nil];
+            bool visible = m_window->m_visible;
+            if (visible) {
+                [m_data->window orderFront:nil];
+                focus();
+            } else {
+                [m_data->window orderOut:nil];
+            }
         }
     }
 }
 
 void PlatformWindow::iconify() {
     @autoreleasepool {
-        [m_data->window miniaturize:nil];
+        if (m_data->window == nil) {
+            // do nothing for child windows
+        } else {
+            [m_data->window miniaturize:nil];
+        }
     } // autoreleasepool
 }
 
 void PlatformWindow::restore() {
     @autoreleasepool {
-        if ([m_data->window isMiniaturized])
-            [m_data->window deminiaturize:nil];
-        else if ([m_data->window isZoomed])
-            [m_data->window zoom:nil];
+        if (m_data->window == nil) {
+            // do nothing for child windows
+        } else {
+            if ([m_data->window isMiniaturized])
+                [m_data->window deminiaturize:nil];
+            else if ([m_data->window isZoomed])
+                [m_data->window zoom:nil];
+        }
     } // autoreleasepool
 }
 
 void PlatformWindow::maximize() {
     @autoreleasepool {
-        if (![m_data->window isZoomed])
-            [m_data->window zoom:nil];
+        if (m_data->window == nil) {
+            // do nothing for child windows
+        } else {
+            if (![m_data->window isZoomed])
+                [m_data->window zoom:nil];
+        }
     } // autoreleasepool
 }
 
 bool PlatformWindow::isFocused() const {
     @autoreleasepool {
-        return [m_data->window isKeyWindow];
+        if (m_data->window == nil)
+            return [[m_data->view window] isKeyWindow];
+        else
+            return [m_data->window isKeyWindow];
     } // autoreleasepool
 }
 
 bool PlatformWindow::isIconified() const {
     @autoreleasepool {
-        return [m_data->window isMiniaturized];
+        if (m_data->window == nil)
+            return false;
+        else
+            return [m_data->window isMiniaturized];
     } // autoreleasepool
 }
 
 bool PlatformWindow::isMaximized() const {
     @autoreleasepool {
-        return [m_data->window isZoomed];
+        if (m_data->window == nil)
+            return false;
+        else
+            return [m_data->window isZoomed];
     } // autoreleasepool
 }
 
 bool PlatformWindow::isVisible() const {
     @autoreleasepool {
-        return [m_data->window isVisible];
+        if (m_data->window == nil)
+            return [m_data->view isHidden] == NO;
+        else
+            return [m_data->window isVisible];
     } // autoreleasepool
 }
 
@@ -439,15 +469,21 @@ void PlatformWindow::focus() {
         //       being activated, but should probably not be done every time any
         //       window is shown
         [NSApp activateIgnoringOtherApps:YES];
-        [m_data->window makeKeyAndOrderFront:nil];
+        if (m_data->window == nil) {
+            [[m_data->view window] makeKeyAndOrderFront:nil];
+        } else {
+            [m_data->window makeKeyAndOrderFront:nil];
+        }
     } // autoreleasepool
 }
 
 void PlatformWindow::setOwner(Rc<Window> window) {
-    //
+    BRISK_LOG_WARN("macOS doesn't implement owner windows");
 }
 
 void PlatformWindow::setTitle(std::string_view title) {
+    if (m_data->window == nil)
+        return;
     [m_data->window setTitle:toNSString(title)];
 }
 
@@ -460,27 +496,35 @@ void PlatformWindow::setPlacement(BytesView data) {
 }
 
 NativeWindowHandle PlatformWindow::getHandle() const {
-    return NativeWindowHandle(m_data->window);
+    if (m_data->window)
+        return NativeWindowHandle(m_data->window);
+    else
+        return NativeWindowHandle(m_data->view);
 }
 
 PlatformWindow::~PlatformWindow() {
     mustBeMainThread();
 
-    [m_data->window orderOut:nil];
-    [m_data->window setDelegate:nil];
+    if (m_data->window != nil) {
+        [m_data->window orderOut:nil];
+        [m_data->window setDelegate:nil];
+    }
     m_data->delegate = nil;
 
     m_data->view     = nil;
     m_data->window   = nil;
+    m_data->parent   = nil;
 
     // HACK: Allow Cocoa to catch up before returning
     pollEvents();
 }
 
-PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style)
+PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style,
+                               NativeWindowHandle parent)
     : m_data(new PlatformWindowData{}), m_window(window), m_windowStyle(style), m_windowSize(windowSize),
       m_position(position) {
     mustBeMainThread();
+    m_data->parent = (__bridge id)parent.ptr;
     BRISK_ASSERT(m_window);
 
     bool created = createWindow();
@@ -613,6 +657,8 @@ using namespace Brisk;
 }
 
 - (BOOL)isOpaque {
+    if (window->m_data->window == nil)
+        return NO;
     return [window->m_data->window isOpaque];
 }
 
@@ -629,7 +675,7 @@ using namespace Brisk;
 }
 
 - (void)updateLayer {
-    // Repaint
+    window->requestRedraw();
 }
 
 - (void)cursorUpdate:(NSEvent*)event {
@@ -648,8 +694,8 @@ using namespace Brisk;
 }
 
 - (void)mouseDown:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Left, MouseAction::Press, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Left, MouseAction::Press, getKeyMods(event.modifierFlags),
+                                     [self eventToPos:event]);
 }
 
 - (void)mouseDragged:(NSEvent*)event {
@@ -657,17 +703,17 @@ using namespace Brisk;
 }
 
 - (void)mouseUp:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Left, MouseAction::Release, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Left, MouseAction::Release, getKeyMods(event.modifierFlags),
+                                     [self eventToPos:event]);
 }
 
 - (void)mouseMoved:(NSEvent*)event {
-    window->mouseMove([self eventToPos:event]);
+    std::ignore = window->mouseMove([self eventToPos:event]);
 }
 
 - (void)rightMouseDown:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Right, MouseAction::Press, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Right, MouseAction::Press, getKeyMods(event.modifierFlags),
+                                     [self eventToPos:event]);
 }
 
 - (void)rightMouseDragged:(NSEvent*)event {
@@ -675,13 +721,13 @@ using namespace Brisk;
 }
 
 - (void)rightMouseUp:(NSEvent*)event {
-    window->mouseEvent(MouseButton::Right, MouseAction::Release, getKeyMods(event.modifierFlags),
-                       [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton::Right, MouseAction::Release,
+                                     getKeyMods(event.modifierFlags), [self eventToPos:event]);
 }
 
 - (void)otherMouseDown:(NSEvent*)event {
-    window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Press,
-                       getKeyMods(event.modifierFlags), [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Press,
+                                     getKeyMods(event.modifierFlags), [self eventToPos:event]);
 }
 
 - (void)otherMouseDragged:(NSEvent*)event {
@@ -689,8 +735,8 @@ using namespace Brisk;
 }
 
 - (void)otherMouseUp:(NSEvent*)event {
-    window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Release,
-                       getKeyMods(event.modifierFlags), [self eventToPos:event]);
+    std::ignore = window->mouseEvent(MouseButton((int)[event buttonNumber]), MouseAction::Release,
+                                     getKeyMods(event.modifierFlags), [self eventToPos:event]);
 }
 
 - (void)mouseExited:(NSEvent*)event {
@@ -747,7 +793,7 @@ using namespace Brisk;
 - (void)keyDown:(NSEvent*)event {
     const KeyCode key = scanCodeToKeyCode(event.keyCode);
 
-    window->keyEvent(key, [event keyCode], KeyAction::Press, getKeyMods(event.modifierFlags));
+    std::ignore = window->keyEvent(key, [event keyCode], KeyAction::Press, getKeyMods(event.modifierFlags));
 
     [self interpretKeyEvents:@[ event ]];
 }
@@ -790,12 +836,12 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
         action = KeyAction::Release;
     }
 
-    window->keyEvent(key, [event keyCode], action, getKeyMods(event.modifierFlags));
+    std::ignore = window->keyEvent(key, [event keyCode], action, getKeyMods(event.modifierFlags));
 }
 
 - (void)keyUp:(NSEvent*)event {
     const KeyCode key = scanCodeToKeyCode(event.keyCode);
-    window->keyEvent(key, [event keyCode], KeyAction::Release, getKeyMods(event.modifierFlags));
+    std::ignore = window->keyEvent(key, [event keyCode], KeyAction::Release, getKeyMods(event.modifierFlags));
 }
 
 - (void)scrollWheel:(NSEvent*)event {
@@ -808,7 +854,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
     }
 
     if (fabs(deltaX) > 0.0 || fabs(deltaY) > 0.0) {
-        window->wheelEvent(deltaX, deltaY);
+        std::ignore = window->wheelEvent(deltaX, deltaY);
     }
 }
 
@@ -822,7 +868,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
     const NSRect contentRect = [window->m_data->view frame];
     // NOTE: The returned location uses base 0,1 not 0,0
     const NSPoint pos        = [sender draggingLocation];
-    window->mouseMove(PointF(pos.x, contentRect.size.height - pos.y) * window->m_scale);
+    std::ignore = window->mouseMove(PointF(pos.x, contentRect.size.height - pos.y) * window->m_scale);
 
     NSPasteboard* pasteboard = [sender draggingPasteboard];
     NSDictionary* options    = @{ NSPasteboardURLReadingFileURLsOnlyKey : @YES };
@@ -833,7 +879,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
         for (NSUInteger i = 0; i < count; i++)
             paths.push_back([urls[i] fileSystemRepresentation]);
 
-        window->filesDropped(std::move(paths));
+        std::ignore = window->filesDropped(std::move(paths));
     }
 
     return YES;
@@ -911,7 +957,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
             if (codepoint >= 0xf700 && codepoint <= 0xf7ff)
                 continue;
 
-            window->charEvent(codepoint, false);
+            std::ignore = window->charEvent(codepoint, false);
         }
     }
 }
@@ -940,7 +986,7 @@ static NSUInteger translateKeyToModifierFlag(KeyCode key) {
 
 // Transforms a y-coordinate between the CG display and NS screen spaces
 //
-static float transformYCocoa(float y) {
+static CGFloat transformYCocoa(CGFloat y) {
     return CGDisplayBounds(CGMainDisplayID()).size.height - y - 1;
 }
 
@@ -949,11 +995,7 @@ namespace Brisk {
 bool PlatformWindow::createWindow() {
     Size size        = max(m_windowSize, Size{ 1, 1 });
     Point initialPos = m_position;
-
-    m_data->delegate = [[BriskWindowDelegate alloc] initWithWindow:this];
-    if (m_data->delegate == nil) {
-        return false;
-    }
+    bool topLevel    = m_data->parent == nil;
 
     NSRect contentRect;
 
@@ -965,60 +1007,81 @@ bool PlatformWindow::createWindow() {
         contentRect    = NSMakeRect(xpos, ypos, size.width, size.height);
     }
 
-    NSUInteger styleMask = NSWindowStyleMaskMiniaturizable;
+    if (topLevel) {
+        m_data->delegate = [[BriskWindowDelegate alloc] initWithWindow:this];
+        if (m_data->delegate == nil) {
+            return false;
+        }
 
-    if (m_windowStyle && WindowStyle::Undecorated) {
-        styleMask |= NSWindowStyleMaskBorderless;
-    } else {
-        styleMask |= (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable);
+        NSUInteger styleMask = NSWindowStyleMaskMiniaturizable;
 
-        if (m_windowStyle && WindowStyle::Resizable)
-            styleMask |= NSWindowStyleMaskResizable;
+        if (m_windowStyle && WindowStyle::Undecorated) {
+            styleMask |= NSWindowStyleMaskBorderless;
+        } else {
+            styleMask |= (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable);
+
+            if (m_windowStyle && WindowStyle::Resizable)
+                styleMask |= NSWindowStyleMaskResizable;
+        }
+
+        m_data->window = [[BriskWindow alloc] initWithContentRect:contentRect
+                                                        styleMask:styleMask
+                                                          backing:NSBackingStoreBuffered
+                                                            defer:NO];
+
+        if (m_data->window == nil) {
+            BRISK_SOFT_ASSERT_MSG("Cocoa: Failed to create window", false);
+            return false;
+        }
+
+        if (initialPos.x == dontCare || initialPos.y == dontCare) {
+            [m_data->window center];
+            m_data->cascadePoint = [m_data->window cascadeTopLeftFromPoint:m_data->cascadePoint];
+        }
+
+        if (m_windowStyle && WindowStyle::Resizable) {
+            const NSWindowCollectionBehavior behavior =
+                NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorManaged;
+            [m_data->window setCollectionBehavior:behavior];
+        } else {
+            const NSWindowCollectionBehavior behavior = NSWindowCollectionBehaviorFullScreenNone;
+            [m_data->window setCollectionBehavior:behavior];
+        }
+
+        if (m_windowStyle && WindowStyle::TopMost)
+            [m_data->window setLevel:NSFloatingWindowLevel];
+
+        // if (wndconfig->maximized)
+        // [m_data->window zoom:nil];
+
+        // if (strlen(wndconfig->ns.frameName))
+        // [m_data->window setFrameAutosaveName:@(wndconfig->ns.frameName)];
     }
-
-    m_data->window = [[BriskWindow alloc] initWithContentRect:contentRect
-                                                    styleMask:styleMask
-                                                      backing:NSBackingStoreBuffered
-                                                        defer:NO];
-
-    if (m_data->window == nil) {
-        BRISK_SOFT_ASSERT_MSG("Cocoa: Failed to create window", false);
-        return false;
-    }
-
-    if (initialPos.x == dontCare || initialPos.y == dontCare) {
-        [m_data->window center];
-        m_data->cascadePoint = [m_data->window cascadeTopLeftFromPoint:m_data->cascadePoint];
-    }
-
-    if (m_windowStyle && WindowStyle::Resizable) {
-        const NSWindowCollectionBehavior behavior =
-            NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorManaged;
-        [m_data->window setCollectionBehavior:behavior];
-    } else {
-        const NSWindowCollectionBehavior behavior = NSWindowCollectionBehaviorFullScreenNone;
-        [m_data->window setCollectionBehavior:behavior];
-    }
-
-    if (m_windowStyle && WindowStyle::TopMost)
-        [m_data->window setLevel:NSFloatingWindowLevel];
-
-    // if (wndconfig->maximized)
-    // [m_data->window zoom:nil];
-
-    // if (strlen(wndconfig->ns.frameName))
-    // [m_data->window setFrameAutosaveName:@(wndconfig->ns.frameName)];
 
     m_data->view = [[BriskView alloc] initWithWindow:this];
 
-    [m_data->window setContentView:m_data->view];
-    [m_data->window makeFirstResponder:m_data->view];
-    [m_data->window setTitle:toNSString(m_window->m_title)];
-    [m_data->window setDelegate:m_data->delegate];
-    [m_data->window setAcceptsMouseMovedEvents:YES];
-    [m_data->window setRestorable:NO];
+    if (topLevel) {
+        [m_data->window setContentView:m_data->view];
+        [m_data->window makeFirstResponder:m_data->view];
+        [m_data->window setTitle:toNSString(m_window->m_title)];
+        [m_data->window setDelegate:m_data->delegate];
+        [m_data->window setAcceptsMouseMovedEvents:YES];
+        [m_data->window setRestorable:NO];
 
-    [m_data->window setTabbingMode:NSWindowTabbingModeDisallowed];
+        [m_data->window setTabbingMode:NSWindowTabbingModeDisallowed];
+    } else {
+        // Set rect for view to contentRect
+        [m_data->view setFrame:contentRect];
+        if ([m_data->parent isKindOfClass:[NSWindow class]]) {
+            NSWindow* window = (NSWindow*)m_data->parent;
+            [window setContentView:m_data->view];
+            [window makeFirstResponder:m_data->view];
+            [window setAcceptsMouseMovedEvents:YES];
+        } else { // NSView
+            NSView* view = (NSView*)m_data->parent;
+            [view addSubview:m_data->view];
+        }
+    }
 
     NSRect frame      = m_data->view.frame;
     m_windowSize      = fromNSSize(frame.size);
@@ -1032,6 +1095,8 @@ bool PlatformWindow::createWindow() {
 }
 
 void PlatformWindow::setSizeLimits(Size minSize, Size maxSize) {
+    if (m_data->window == nil)
+        return;
     @autoreleasepool {
         if (minSize.width == dontCare || minSize.height == dontCare)
             [m_data->window setContentMinSize:NSMakeSize(0, 0)];
@@ -1047,6 +1112,8 @@ void PlatformWindow::setSizeLimits(Size minSize, Size maxSize) {
 }
 
 void PlatformWindow::setStyle(WindowStyle windowStyle) {
+    if (m_data->window == nil)
+        return;
     m_windowStyle = windowStyle;
 
     @autoreleasepool {
@@ -1091,16 +1158,46 @@ void PlatformWindow::setStyle(WindowStyle windowStyle) {
 
 void PlatformWindow::setSize(Size size) {
     @autoreleasepool {
-        NSRect contentRect = [m_data->window contentRectForFrameRect:[m_data->window frame]];
-        contentRect.origin.y += contentRect.size.height - size.height;
-        contentRect.size = NSMakeSize(size.width, size.height);
-        [m_data->window setFrame:[m_data->window frameRectForContentRect:contentRect] display:YES];
+        if (m_data->window != nil) {
+            NSRect contentRect = [m_data->window contentRectForFrameRect:[m_data->window frame]];
+
+            contentRect.origin.y += contentRect.size.height - size.height;
+            contentRect.size = NSMakeSize(size.width, size.height);
+
+            [m_data->window setFrame:[m_data->window frameRectForContentRect:contentRect] display:YES];
+        } else {
+            NSView* v               = m_data->view;
+            const BOOL needsFlip    = ![v isFlipped];
+
+            NSRect frame            = [v frame];
+            const CGFloat oldHeight = frame.size.height;
+
+            frame.size              = NSMakeSize(size.width, size.height);
+
+            if (needsFlip) {
+                NSView* parent             = [v superview];
+                const CGFloat parentHeight = parent ? parent.bounds.size.height : 0;
+
+                frame.origin.y += (oldHeight - size.height);
+                if (parent)
+                    frame.origin.y = MIN(frame.origin.y, parentHeight - size.height);
+            }
+
+            [v setFrame:frame];
+        }
     }
 }
 
 bool PlatformWindow::cursorInContentArea() const {
-    const NSPoint pos = [m_data->window mouseLocationOutsideOfEventStream];
-    return [m_data->view mouse:pos inRect:[m_data->view frame]];
+    @autoreleasepool {
+        if (m_data->window != nil) {
+            const NSPoint pos = [m_data->window mouseLocationOutsideOfEventStream];
+            return [m_data->view mouse:pos inRect:[m_data->view frame]];
+        } else {
+            const NSPoint pos = [[m_data->view window] mouseLocationOutsideOfEventStream];
+            return [m_data->view mouse:pos inRect:[m_data->view frame]];
+        }
+    }
 }
 
 void PlatformWindow::updateCursorImage() {
@@ -1122,12 +1219,33 @@ void PlatformWindow::setCursor(Cursor cursor) {
 
 void PlatformWindow::setPosition(Point point) {
     @autoreleasepool {
-        const NSRect contentRect = [m_data->view frame];
-        const NSRect dummyRect =
-            NSMakeRect(point.x, transformYCocoa(point.y + contentRect.size.height - 1), 0, 0);
-        const NSRect frameRect = [m_data->window frameRectForContentRect:dummyRect];
-        [m_data->window setFrameOrigin:frameRect.origin];
-    } // autoreleasepool
+        if (m_data->window != nil) {
+            const NSRect contentRect = [m_data->view frame];
+            const CGFloat flippedY   = transformYCocoa(point.y + contentRect.size.height - 1);
+
+            const NSRect dummyRect   = NSMakeRect(point.x, flippedY, 0, 0);
+
+            const NSRect frameRect   = [m_data->window frameRectForContentRect:dummyRect];
+
+            [m_data->window setFrameOrigin:frameRect.origin];
+        } else {
+            NSView* v            = m_data->view;
+            const BOOL needsFlip = ![v isFlipped];
+
+            NSRect frame         = [v frame];
+
+            if (needsFlip) {
+                NSView* parent             = [v superview];
+                const CGFloat parentHeight = parent ? parent.bounds.size.height : 0;
+
+                frame.origin               = NSMakePoint(point.x, parentHeight - point.y - frame.size.height);
+            } else {
+                frame.origin = NSMakePoint(point.x, point.y);
+            }
+
+            [v setFrame:frame];
+        }
+    }
 }
 
 HiDPIMode hiDPIMode() {

@@ -42,7 +42,10 @@
 
 namespace Brisk {
 
-static const wchar_t* propKey = L"CC";
+constexpr UINT resizeMoveTimerId           = 0x1234;
+constexpr uint32_t resizeMoveTimerInterval = 16; // ~60 FPS
+
+static const wchar_t* propKey              = L"CC";
 
 static struct {
     ATOM helperWindowClass  = {};
@@ -61,6 +64,7 @@ static LRESULT CALLBACK helperWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 
 struct PlatformWindowData {
     HWND hWnd{};
+    HWND hParent{};
     WCHAR highSurrogate{};
     Point mousePos{ -1, -1 };
     bool cursorTracked = false;
@@ -95,7 +99,10 @@ static KeyModifiers getKeyMods() {
     return mods;
 }
 
-static DWORD getWindowStyle(WindowStyle style) {
+static DWORD getWindowStyle(WindowStyle style, bool child) {
+    if (child) {
+        return WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+    }
     DWORD result = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_SYSMENU | WS_MINIMIZEBOX;
     if (style && WindowStyle::Undecorated)
         result |= WS_POPUP;
@@ -107,7 +114,10 @@ static DWORD getWindowStyle(WindowStyle style) {
     return result;
 }
 
-static DWORD getWindowExStyle(WindowStyle style) {
+static DWORD getWindowExStyle(WindowStyle style, bool child) {
+    if (child) {
+        return 0;
+    }
     DWORD result = 0;
 
     if (style && WindowStyle::TopMost)
@@ -164,7 +174,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
             }
             m_data->highSurrogate = 0;
 
-            charEvent(static_cast<char32_t>(codepoint), uMsg == WM_SYSCHAR);
+            return charEvent(static_cast<char32_t>(codepoint), uMsg == WM_SYSCHAR) ? 0 : 1;
         }
 
         return 0;
@@ -178,8 +188,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
             return TRUE;
         }
 
-        charEvent(static_cast<char32_t>(wParam), false);
-        return 0;
+        return charEvent(static_cast<char32_t>(wParam), false) ? 0 : 1;
     }
 
     case WM_KEYDOWN:
@@ -247,17 +256,17 @@ long long PlatformWindow::windowProc(MsgParams params) {
             // HACK: Release both Shift keys on Shift up event, as when both
             //       are pressed the first release does not emit any event
             // NOTE: The other half of this is in pollEvents
-            keyEvent(KeyCode::LeftShift, scancode, action, mods);
-            keyEvent(KeyCode::RightShift, scancode, action, mods);
+            std::ignore = keyEvent(KeyCode::LeftShift, scancode, action, mods);
+            std::ignore = keyEvent(KeyCode::RightShift, scancode, action, mods);
+            return 0;
         } else if (wParam == VK_SNAPSHOT) {
             // HACK: Key down is not reported for the Print Screen key
-            keyEvent(key, scancode, KeyAction::Press, mods);
-            keyEvent(key, scancode, KeyAction::Release, mods);
+            std::ignore = keyEvent(key, scancode, KeyAction::Press, mods);
+            std::ignore = keyEvent(key, scancode, KeyAction::Release, mods);
+            return 0;
         } else {
-            keyEvent(key, scancode, action, mods);
+            return keyEvent(key, scancode, action, mods) ? 0 : 1;
         }
-
-        break;
     }
     case WM_LBUTTONDOWN:
     case WM_RBUTTONDOWN:
@@ -290,7 +299,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         if (!m_mouseState.any())
             SetCapture(m_data->hWnd);
 
-        mouseEvent(button, action, getKeyMods(), m_data->mousePos);
+        bool handled = mouseEvent(button, action, getKeyMods(), m_data->mousePos);
 
         if (!m_mouseState.any())
             ReleaseCapture();
@@ -298,7 +307,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         if (uMsg == WM_XBUTTONDOWN || uMsg == WM_XBUTTONUP)
             return TRUE;
 
-        return 0;
+        return handled ? 0 : 1;
     }
 
     case WM_MOUSEMOVE: {
@@ -317,9 +326,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
 
         m_data->mousePos = { x, y };
 
-        mouseMove(m_data->mousePos);
-
-        return 0;
+        return mouseMove(m_data->mousePos) ? 0 : 1;
     }
     case WM_MOUSELEAVE: {
         m_data->cursorTracked = false;
@@ -327,12 +334,28 @@ long long PlatformWindow::windowProc(MsgParams params) {
         return 0;
     }
     case WM_MOUSEWHEEL: {
-        wheelEvent(0.f, (SHORT)HIWORD(wParam) / (float)WHEEL_DELTA);
-        return 0;
+        return wheelEvent(0.f, (SHORT)HIWORD(wParam) / (float)WHEEL_DELTA) ? 0 : 1;
     }
     case WM_MOUSEHWHEEL: {
         // NOTE: The X-axis is inverted for consistency with macOS and X11
-        wheelEvent(-((SHORT)HIWORD(wParam) / (float)WHEEL_DELTA), 0.f);
+        return wheelEvent(-((SHORT)HIWORD(wParam) / (float)WHEEL_DELTA), 0.f) ? 0 : 1;
+    }
+
+    // Start timer when entering resize/move/menu modal loop
+    case WM_ENTERSIZEMOVE:
+    case WM_ENTERMENULOOP: {
+        SetTimer(m_data->hWnd, resizeMoveTimerId, resizeMoveTimerInterval, NULL);
+        break;
+    }
+    case WM_EXITSIZEMOVE:
+    case WM_EXITMENULOOP: {
+        KillTimer(m_data->hWnd, resizeMoveTimerId);
+        break;
+    }
+    case WM_TIMER: {
+        if (wParam == resizeMoveTimerId) {
+            requestRedraw();
+        }
         return 0;
     }
 
@@ -365,10 +388,13 @@ long long PlatformWindow::windowProc(MsgParams params) {
     }
 
     case WM_GETMINMAXINFO: {
+        if (m_data->hParent != nullptr) {
+            break;
+        }
         RECT frame               = { 0 };
         MINMAXINFO* mmi          = (MINMAXINFO*)lParam;
-        const DWORD style        = getWindowStyle(m_windowStyle);
-        const DWORD exStyle      = getWindowExStyle(m_windowStyle);
+        const DWORD style        = getWindowStyle(m_windowStyle, false);
+        const DWORD exStyle      = getWindowExStyle(m_windowStyle, false);
 
         const Size scaledMinSize = m_minSize;
         const Size scaledMaxSize = m_maxSize;
@@ -403,6 +429,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         return 0;
     }
     case WM_PAINT: {
+        requestRedraw();
         break;
     }
     case WM_ERASEBKGND: {
@@ -431,6 +458,9 @@ long long PlatformWindow::windowProc(MsgParams params) {
     }
 
     case WM_DPICHANGED: {
+        if (m_data->hParent != nullptr) {
+            break;
+        }
         const float xscale = HIWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
         const float yscale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
 
@@ -469,7 +499,7 @@ long long PlatformWindow::windowProc(MsgParams params) {
         DragQueryPoint(drop, &pt);
 
         m_data->mousePos = { pt.x, pt.y };
-        mouseMove(m_data->mousePos);
+        std::ignore      = mouseMove(m_data->mousePos);
 
         for (int i = 0; i < count; i++) {
             std::wstring ws;
@@ -479,10 +509,10 @@ long long PlatformWindow::windowProc(MsgParams params) {
             paths.push_back(wcsToUtf8(ws));
         }
 
-        filesDropped(std::move(paths));
+        bool handled = filesDropped(std::move(paths));
 
         DragFinish(drop);
-        return 0;
+        return handled ? 0 : 1;
     }
     }
     return DefWindowProcW(m_data->hWnd, uMsg, wParam, lParam);
@@ -616,13 +646,15 @@ bool PlatformWindow::createWindow() {
 
     RECT rect     = { 0, 0, size.width, size.height };
 
-    DWORD style   = getWindowStyle(m_windowStyle);
-    DWORD exStyle = getWindowExStyle(m_windowStyle);
+    DWORD style   = getWindowStyle(m_windowStyle, m_data->hParent != nullptr);
+    DWORD exStyle = getWindowExStyle(m_windowStyle, m_data->hParent != nullptr);
 
-    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
-        AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, primaryDpi.x);
-    } else {
-        AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+    if (m_data->hParent == nullptr) {
+        if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
+            AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, primaryDpi.x);
+        } else {
+            AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+        }
     }
 
     std::wstring wideTitle = utf8ToWcs(m_window->m_title);
@@ -630,8 +662,8 @@ bool PlatformWindow::createWindow() {
                                    initialPos.x == dontCare ? CW_USEDEFAULT : initialPos.x,
                                    initialPos.y == dontCare ? CW_USEDEFAULT : initialPos.y,
                                    rect.right - rect.left, rect.bottom - rect.top,
-                                   nullptr, // No parent window
-                                   nullptr, // No window menu
+                                   m_data->hParent, // No parent window
+                                   nullptr,         // No window menu
                                    winInstance, (LPVOID)this);
 
     SetPropW(m_data->hWnd, propKey, this);
@@ -651,25 +683,27 @@ bool PlatformWindow::createWindow() {
     float newScale = dpi.longestSide() / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
     if (newScale != m_scale) {
         m_scale = newScale;
-        // Adjust window rect to account for DPI scaling of the window frame and
-        // (if enabled) DPI scaling of the content area
-        // This cannot be done until we know what monitor the window was placed on
-        // Only update the restored window rect as the window may be maximized
-        rect    = { 0, 0, size.width, size.height };
+        if (m_data->hParent == nullptr) {
+            // Adjust window rect to account for DPI scaling of the window frame and
+            // (if enabled) DPI scaling of the content area
+            // This cannot be done until we know what monitor the window was placed on
+            // Only update the restored window rect as the window may be maximized
+            rect = { 0, 0, size.width, size.height };
 
-        if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
-            AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
-        } else {
-            AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+            if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
+                AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, GetDpiForWindow(m_data->hWnd));
+            } else {
+                AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+            }
+
+            WINDOWPLACEMENT wp = { .length = sizeof(wp) };
+            GetWindowPlacement(m_data->hWnd, &wp);
+            OffsetRect(&rect, wp.rcNormalPosition.left - rect.left, wp.rcNormalPosition.top - rect.top);
+
+            wp.rcNormalPosition = rect;
+            wp.showCmd          = SW_HIDE;
+            SetWindowPlacement(m_data->hWnd, &wp);
         }
-
-        WINDOWPLACEMENT wp = { .length = sizeof(wp) };
-        GetWindowPlacement(m_data->hWnd, &wp);
-        OffsetRect(&rect, wp.rcNormalPosition.left - rect.left, wp.rcNormalPosition.top - rect.top);
-
-        wp.rcNormalPosition = rect;
-        wp.showCmd          = SW_HIDE;
-        SetWindowPlacement(m_data->hWnd, &wp);
     }
 
     DragAcceptFiles(m_data->hWnd, TRUE);
@@ -689,9 +723,11 @@ PlatformWindow::~PlatformWindow() {
     DestroyWindow(m_data->hWnd);
 }
 
-PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style)
+PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style,
+                               NativeWindowHandle parent)
     : m_data(new PlatformWindowData{}), m_window(window), m_windowStyle(style), m_windowSize(windowSize),
       m_position(position) {
+    m_data->hParent = parent.hWnd();
     mustBeMainThread();
     BRISK_ASSERT(m_window);
 
@@ -710,27 +746,36 @@ void PlatformWindow::setTitle(std::string_view title) {
 }
 
 void PlatformWindow::setSize(Size size) {
-    RECT rect = { 0, 0, size.x, size.y };
-
-    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
-        AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle),
-                                 GetDpiForWindow(m_data->hWnd));
+    if (m_data->hParent == nullptr) {
+        RECT rect = { 0, 0, size.x, size.y };
+        if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
+            AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle, m_data->hParent != 0), FALSE,
+                                     getWindowExStyle(m_windowStyle, m_data->hParent != 0),
+                                     GetDpiForWindow(m_data->hWnd));
+        } else {
+            AdjustWindowRectEx(&rect, getWindowStyle(m_windowStyle, m_data->hParent != 0), FALSE,
+                               getWindowExStyle(m_windowStyle, m_data->hParent != 0));
+        }
+        SetWindowPos(m_data->hWnd, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top,
+                     SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     } else {
-        AdjustWindowRectEx(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle));
+        SetWindowPos(m_data->hWnd, HWND_TOP, m_position.x, m_position.y, size.width, size.height,
+                     SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     }
-
-    SetWindowPos(m_data->hWnd, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top,
-                 SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
 }
 
 void PlatformWindow::setPosition(Point point) {
     RECT rect = { point.x, point.y, point.x, point.y };
 
-    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
-        AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle),
-                                 GetDpiForWindow(m_data->hWnd));
-    } else {
-        AdjustWindowRectEx(&rect, getWindowStyle(m_windowStyle), FALSE, getWindowExStyle(m_windowStyle));
+    if (m_data->hParent == nullptr) {
+        if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
+            AdjustWindowRectExForDpi(&rect, getWindowStyle(m_windowStyle, m_data->hParent != 0), FALSE,
+                                     getWindowExStyle(m_windowStyle, m_data->hParent != 0),
+                                     GetDpiForWindow(m_data->hWnd));
+        } else {
+            AdjustWindowRectEx(&rect, getWindowStyle(m_windowStyle, m_data->hParent != 0), FALSE,
+                               getWindowExStyle(m_windowStyle, m_data->hParent != 0));
+        }
     }
 
     SetWindowPos(m_data->hWnd, nullptr, rect.left, rect.top, 0, 0,
@@ -760,27 +805,27 @@ void PlatformWindow::setStyle(WindowStyle windowStyle) {
     RECT rect;
     DWORD style = GetWindowLongW(m_data->hWnd, GWL_STYLE);
     style &= ~(WS_OVERLAPPEDWINDOW | WS_POPUP);
-    style |= getWindowStyle(m_windowStyle);
+    style |= getWindowStyle(m_windowStyle, m_data->hParent != 0);
 
-    GetClientRect(m_data->hWnd, &rect);
-
-    if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
-        AdjustWindowRectExForDpi(&rect, style, FALSE, getWindowExStyle(m_windowStyle),
-                                 GetDpiForWindow(m_data->hWnd));
-    } else {
-        AdjustWindowRectEx(&rect, style, FALSE, getWindowExStyle(m_windowStyle));
-    }
-
-    ClientToScreen(m_data->hWnd, (POINT*)&rect.left);
-    ClientToScreen(m_data->hWnd, (POINT*)&rect.right);
     SetWindowLongW(m_data->hWnd, GWL_STYLE, style);
-    SetWindowPos(m_data->hWnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-                 SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER);
+    if (m_data->hParent == nullptr) {
+        GetClientRect(m_data->hWnd, &rect);
 
-    // TopMost
-    const HWND after = m_windowStyle && WindowStyle::TopMost ? HWND_TOPMOST : HWND_NOTOPMOST;
-    SetWindowPos(m_data->hWnd, after, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+        if (isOsWindows10(Windows10Version::AnniversaryUpdate)) {
+            AdjustWindowRectExForDpi(&rect, style, FALSE, getWindowExStyle(m_windowStyle, false),
+                                     GetDpiForWindow(m_data->hWnd));
+        } else {
+            AdjustWindowRectEx(&rect, style, FALSE, getWindowExStyle(m_windowStyle, false));
+        }
 
+        ClientToScreen(m_data->hWnd, (POINT*)&rect.left);
+        ClientToScreen(m_data->hWnd, (POINT*)&rect.right);
+        SetWindowPos(m_data->hWnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left,
+                     rect.bottom - rect.top, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER);
+        // TopMost
+        const HWND after = m_windowStyle && WindowStyle::TopMost ? HWND_TOPMOST : HWND_NOTOPMOST;
+        SetWindowPos(m_data->hWnd, after, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+    }
     // Disabled
     EnableWindow(m_data->hWnd, m_windowStyle && WindowStyle::Disabled ? FALSE : TRUE);
 }
@@ -1028,7 +1073,7 @@ void PlatformWindow::updateVisibility() {
                 if (!window->m_keyState[+key])
                     continue;
 
-                window->keyEvent(key, scancode, KeyAction::Release, getKeyMods());
+                std::ignore = window->keyEvent(key, scancode, KeyAction::Release, getKeyMods());
             }
         }
     }

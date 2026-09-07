@@ -25,6 +25,7 @@ namespace Brisk {
 
 expected<Rc<RenderDevice>, RenderDeviceError> createRenderDeviceD3d11(RendererDeviceSelection deviceSelection,
                                                                       NativeDisplayHandle display) {
+    ensureOnRenderThread();
     Rc<RenderDeviceD3d11> device(new RenderDeviceD3d11(deviceSelection, display));
     auto status = device->init();
     if (!status)

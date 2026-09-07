@@ -27,10 +27,18 @@
 namespace Brisk {
 
 void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
+    ensureOnRenderThread();
     @autoreleasepool {
         NativeWindowHandle handle = window->getHandle();
-        NSWindow* nsWindow        = handle.nsWindow();
-        NSView* view              = [nsWindow contentView];
+        NSWindow* nsWindow;
+        NSView* view;
+        if (handle.isNsWindow()) {
+            nsWindow = handle.nsWindow();
+            view     = [nsWindow contentView];
+        } else {
+            nsWindow = handle.nsWindow();
+            view     = handle.nsView();
+        }
 
         [view setWantsLayer:YES];
         [view setLayer:[CAMetalLayer layer]];

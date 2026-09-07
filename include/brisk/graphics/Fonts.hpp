@@ -30,7 +30,6 @@
 #include "Image.hpp"
 #include <brisk/core/Io.hpp>
 #include "internal/Sprites.hpp"
-#include "I18n.hpp"
 #include <memory>
 #include <optional>
 #include <span>
@@ -39,9 +38,15 @@
 
 namespace Brisk {
 
-class EUnicode : public ELogic {
-public:
-    using ELogic::ELogic;
+enum class TextDirection : uint8_t {
+    LTR,
+    RTL,
+};
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<TextDirection>> defaultNames<TextDirection>{
+    { "LTR", TextDirection::LTR },
+    { "RTL", TextDirection::RTL },
 };
 
 class EFreeType : public ELogic {
@@ -757,24 +762,5 @@ private:
 };
 
 extern std::optional<FontManager> fonts;
-
-inline std::vector<uint32_t> textBreakPositions(std::u32string_view text, TextBreakMode mode) {
-    std::vector<uint32_t> result(1, 0);
-    Rc<Internal::TextBreakIterator> iter = Internal::textBreakIterator(text, mode);
-    while (auto p = iter->next()) {
-        result.push_back(*p);
-    }
-    return result;
-}
-
-/**
- * @brief Indicates whether the ICU library is available for full Unicode support.
- *
- * When `icuAvailable` is `true`, the font functions will have full Unicode support
- * for Bidirectional (BiDi) text processing and grapheme/line
- * breaking functionality (textBreakPositions).
- *
- */
-extern bool icuAvailable;
 
 } // namespace Brisk

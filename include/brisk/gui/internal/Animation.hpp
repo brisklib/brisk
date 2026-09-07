@@ -159,9 +159,6 @@ extern double animationSpeed;
  *
  * The PropertyAnimations class provides an interface for animating properties over time
  * using customizable transition parameters and easing functions.
- *
- * Thread Safety:
- * - This class is not thread-safe. All methods should be called from the UI thread.
  */
 class PropertyAnimations {
 public:
