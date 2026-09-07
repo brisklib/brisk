@@ -20,6 +20,7 @@
  */
 #include <brisk/core/Json.hpp>
 #include <fmt/format.h>
+#include <cmath>
 
 #define RAPIDJSON_WRITE_DEFAULT_FLAGS rapidjson::kWriteNanAndInfFlag
 #define RAPIDJSON_PARSE_DEFAULT_FLAGS                                                                        \
@@ -494,14 +495,69 @@ std::optional<Json> Json::fromMsgPack(const BytesView& s) {
     return visitor.back();
 }
 
+namespace {
+
+constexpr double int64MinAsDouble  = -9223372036854775808.0; /* -2^63, exactly representable */
+constexpr double int64MaxAsDouble  = 9223372036854775808.0;  /* 2^63 */
+constexpr double uint64MaxAsDouble = 18446744073709551616.0; /* 2^64 */
+
+/* Compares a Float value with an integer Json value by exact value.
+ * A float with a fractional part (or non-finite) never equals an integer.
+ * Out-of-range floats never equal an integer either. */
+bool floatEqualsInt(double f, const Json& i) {
+    if (std::isinf(f) || std::isnan(f) || f != std::floor(f))
+        return false; // fractional part, or not a finite number
+    if (i.is<JsonSignedInteger>()) {
+        if (f < int64MinAsDouble || f >= int64MaxAsDouble)
+            return false;
+        return static_cast<JsonSignedInteger>(f) == i.access<JsonSignedInteger>();
+    } else {
+        if (f < 0 || f >= uint64MaxAsDouble)
+            return false;
+        return static_cast<JsonUnsignedInteger>(f) == i.access<JsonUnsignedInteger>();
+    }
+}
+
+/* Compares a SignedInteger with an UnsignedInteger by exact value.
+ * Negative signed values never equal unsigned values, and positive int64
+ * values are always exactly representable as uint64. */
+bool signedEqualsUnsigned(const Json& s, const Json& u) {
+    JsonSignedInteger si = s.access<JsonSignedInteger>();
+    if (si < 0)
+        return false;
+    return static_cast<JsonUnsignedInteger>(si) == u.access<JsonUnsignedInteger>();
+}
+
+bool isJsonNumber(JsonType t) {
+    return t >= JsonType::SignedInteger && t <= JsonType::Float;
+}
+
+} // namespace
+
 bool operator==(const Json& x, const Json& y) {
     JsonType xt = x.type();
     JsonType yt = y.type();
-    if (xt >= JsonType::SignedInteger && xt <= JsonType::UnsignedInteger && yt >= JsonType::SignedInteger &&
-        yt <= JsonType::UnsignedInteger) {
-        uint64_t xval = xt == JsonType::SignedInteger ? x.access<int64_t>() : x.access<uint64_t>();
-        uint64_t yval = yt == JsonType::SignedInteger ? y.access<int64_t>() : y.access<uint64_t>();
-        return xval == yval;
+    if (isJsonNumber(xt) && isJsonNumber(yt)) {
+        if (xt == yt) {
+            // Same type: compare directly.
+            switch (xt) {
+            case JsonType::SignedInteger:
+                return x.access<JsonSignedInteger>() == y.access<JsonSignedInteger>();
+            case JsonType::UnsignedInteger:
+                return x.access<JsonUnsignedInteger>() == y.access<JsonUnsignedInteger>();
+            default:
+                return x.access<JsonFloat>() == y.access<JsonFloat>();
+            }
+        }
+        if (xt == JsonType::Float)
+            return floatEqualsInt(x.access<JsonFloat>(), y);
+        if (yt == JsonType::Float)
+            return floatEqualsInt(y.access<JsonFloat>(), x);
+        // SignedInteger vs UnsignedInteger
+        if (xt == JsonType::SignedInteger)
+            return signedEqualsUnsigned(x, y);
+        else
+            return signedEqualsUnsigned(y, x);
     } else {
         return operator==(static_cast<const JsonVariant&>(x), static_cast<const JsonVariant&>(y));
     }

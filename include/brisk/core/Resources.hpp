@@ -21,6 +21,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Compression.hpp>
 #include <brisk/core/internal/Resources.h>
@@ -67,11 +68,10 @@ public:
     /**
      * @brief Checks if a resource exists.
      * @param name The name of the resource to check.
-     * @return True if the resource exists, false otherwise.
+     * @return True if the resource is present (even if empty), false otherwise.
      */
     static bool exists(std::string_view name) {
-        const Internal::ResourceEntry* rsrc = Internal::lookupResource(name);
-        return rsrc && *rsrc->size > 0;
+        return Internal::lookupResource(name) != nullptr;
     }
 
     /**
@@ -119,13 +119,13 @@ public:
      * @throws EResources if the resource does not exist and emptyOk is false.
      */
     static const Bytes& loadCached(std::string name, bool emptyOk = false) {
-        static std::map<std::string, Bytes> cache;
+        std::lock_guard lock(cacheMutex());
+        auto& cache = byteCache();
         if (auto it = cache.find(name); it != cache.end()) {
             return it->second;
         }
-        auto data             = load(name, emptyOk);
-        auto [it, inserted]   = cache.emplace(std::move(name), std::move(data));
-        return it->second;
+        Bytes data = load(name, emptyOk);
+        return cache.emplace(std::move(name), std::move(data)).first->second;
     }
 
     /**
@@ -161,10 +161,29 @@ public:
      * @throws EResources if the resource does not exist and emptyOk is false.
      */
     static const std::string& loadTextCached(std::string name, bool emptyOk = false) {
+        std::lock_guard lock(cacheMutex());
+        auto& cache = textCache();
+        if (auto it = cache.find(name); it != cache.end()) {
+            return it->second;
+        }
+        std::string data = loadText(name, emptyOk);
+        return cache.emplace(std::move(name), std::move(data)).first->second;
+    }
+
+private:
+    static std::map<std::string, Bytes>& byteCache() {
+        static std::map<std::string, Bytes> cache;
+        return cache;
+    }
+
+    static std::map<std::string, std::string>& textCache() {
         static std::map<std::string, std::string> cache;
-        auto data = loadText(name, emptyOk);
-        auto it   = cache.insert_or_assign(std::move(name), std::move(data));
-        return it.first->second;
+        return cache;
+    }
+
+    static std::mutex& cacheMutex() {
+        static std::mutex mutex;
+        return mutex;
     }
 };
 

@@ -108,8 +108,8 @@ TEST_CASE("Convert Bytes to Base64") {
 }
 
 TEST_CASE("Convert Bytes to Base64 without padding") {
-    CHECK(toBase64(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }, false) ==
-          "ASNFZ4mrze8=");
+    CHECK(toBase64(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }, false, false) ==
+          "ASNFZ4mrze8");
 }
 
 TEST_CASE("Convert valid Base64 string to Bytes") {

@@ -49,7 +49,7 @@ spdlog::logger& applog();
  */
 #define BRISK_LOG_LOG(LEVEL, ...)                                                                            \
     do {                                                                                                     \
-        ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                      \
+        ::Brisk::Internal::applog().LEVEL(__VA_OPT__(__VA_ARGS__));                                          \
     } while (0)
 
 /**
@@ -67,7 +67,7 @@ spdlog::logger& applog();
     do {                                                                                                     \
         const bool cond = (COND);                                                                            \
         if (!cond) {                                                                                         \
-            ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                  \
+            ::Brisk::Internal::applog().LEVEL(__VA_OPT__(__VA_ARGS__));                                      \
         }                                                                                                    \
     } while (0)
 
@@ -93,9 +93,10 @@ spdlog::logger& applog();
  * Trace messages are typically used for very fine-grained logging.
  *
  * @param fmtstr The format string for the message.
- * @param ... The arguments for the format string.
+ * @param ... The arguments for the format string. In builds where this macro
+ *            is disabled (`NDEBUG` without `BRISK_TRACING`), they are not evaluated.
  */
-#define BRISK_LOG_TRACE(fmtstr, ...) BRISK_LOG_LOG(trace, fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_TRACE(fmtstr, ...) BRISK_LOG_LOG(trace, fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_DEBUG(fmtstr, ...)
@@ -105,9 +106,10 @@ spdlog::logger& applog();
  * Debug messages are typically used for development and debugging.
  *
  * @param fmtstr The format string for the message.
- * @param ... The arguments for the format string.
+ * @param ... The arguments for the format string. In builds where this macro
+ *            is disabled (`NDEBUG` without `BRISK_TRACING`), they are not evaluated.
  */
-#define BRISK_LOG_DEBUG(fmtstr, ...) BRISK_LOG_LOG(debug, fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_DEBUG(fmtstr, ...) BRISK_LOG_LOG(debug, fmtstr __VA_OPT__(, ) __VA_ARGS__)
 #else
 #define BRISK_LOG_TRACE(fmtstr, ...) BRISK_LOG_NOP()
 #define BRISK_LOG_DEBUG(fmtstr, ...) BRISK_LOG_NOP()
@@ -122,7 +124,7 @@ spdlog::logger& applog();
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define BRISK_LOG_INFO(fmtstr, ...) BRISK_LOG_LOG(info, fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_INFO(fmtstr, ...) BRISK_LOG_LOG(info, fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_WARN(fmtstr, ...)
@@ -133,7 +135,7 @@ spdlog::logger& applog();
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define BRISK_LOG_WARN(fmtstr, ...) BRISK_LOG_LOG(warn, fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_WARN(fmtstr, ...) BRISK_LOG_LOG(warn, fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_ERROR(fmtstr, ...)
@@ -144,7 +146,7 @@ spdlog::logger& applog();
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define BRISK_LOG_ERROR(fmtstr, ...) BRISK_LOG_LOG(error, fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_ERROR(fmtstr, ...) BRISK_LOG_LOG(error, fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_CRITICAL(fmtstr, ...)
@@ -155,7 +157,7 @@ spdlog::logger& applog();
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
-#define BRISK_LOG_CRITICAL(fmtstr, ...) BRISK_LOG_LOG(critical, fmtstr, ##__VA_ARGS__)
+#define BRISK_LOG_CRITICAL(fmtstr, ...) BRISK_LOG_LOG(critical, fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 #if !defined NDEBUG || defined BRISK_TRACING
 /**
@@ -163,28 +165,30 @@ spdlog::logger& applog();
  * @brief Logs a trace-level message if the condition fails.
  *
  * Logs a trace-level message if the provided condition evaluates to `false`. Only active
- * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
+ * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled. When logging is
+ * disabled, the condition is not evaluated.
  *
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
 #define BRISK_LOG_TRACE_CHECK(COND, fmtstr, ...)                                                             \
-    BRISK_LOG_LOG_CHECK(trace, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+    BRISK_LOG_LOG_CHECK(trace, COND, "FAILED: (" #COND ") " fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_DEBUG_CHECK(COND, fmtstr, ...)
  * @brief Logs a debug-level message if the condition fails.
  *
  * Logs a debug-level message if the provided condition evaluates to `false`. Only active
- * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
+ * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled. When logging is
+ * disabled, the condition is not evaluated.
  *
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
  * @param ... The arguments for the format string.
  */
 #define BRISK_LOG_DEBUG_CHECK(COND, fmtstr, ...)                                                             \
-    BRISK_LOG_LOG_CHECK(debug, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+    BRISK_LOG_LOG_CHECK(debug, COND, "FAILED: (" #COND ") " fmtstr __VA_OPT__(, ) __VA_ARGS__)
 #else
 #define BRISK_LOG_TRACE_CHECK(COND, fmtstr, ...) BRISK_LOG_NOP()
 #define BRISK_LOG_DEBUG_CHECK(COND, fmtstr, ...) BRISK_LOG_NOP()
@@ -201,7 +205,7 @@ spdlog::logger& applog();
  * @param ... The arguments for the format string.
  */
 #define BRISK_LOG_INFO_CHECK(COND, fmtstr, ...)                                                              \
-    BRISK_LOG_LOG_CHECK(info, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+    BRISK_LOG_LOG_CHECK(info, COND, "FAILED: (" #COND ") " fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_WARN_CHECK(COND, fmtstr, ...)
@@ -214,7 +218,7 @@ spdlog::logger& applog();
  * @param ... The arguments for the format string.
  */
 #define BRISK_LOG_WARN_CHECK(COND, fmtstr, ...)                                                              \
-    BRISK_LOG_LOG_CHECK(warn, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+    BRISK_LOG_LOG_CHECK(warn, COND, "FAILED: (" #COND ") " fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_ERROR_CHECK(COND, fmtstr, ...)
@@ -227,7 +231,7 @@ spdlog::logger& applog();
  * @param ... The arguments for the format string.
  */
 #define BRISK_LOG_ERROR_CHECK(COND, fmtstr, ...)                                                             \
-    BRISK_LOG_LOG_CHECK(error, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+    BRISK_LOG_LOG_CHECK(error, COND, "FAILED: (" #COND ") " fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @def BRISK_LOG_CRITICAL_CHECK(COND, fmtstr, ...)
@@ -240,7 +244,7 @@ spdlog::logger& applog();
  * @param ... The arguments for the format string.
  */
 #define BRISK_LOG_CRITICAL_CHECK(COND, fmtstr, ...)                                                          \
-    BRISK_LOG_LOG_CHECK(critical, COND, "FAILED: (" #COND ") " fmtstr, ##__VA_ARGS__)
+    BRISK_LOG_LOG_CHECK(critical, COND, "FAILED: (" #COND ") " fmtstr __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @brief Flushes the logger.

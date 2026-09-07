@@ -215,6 +215,49 @@ TEST_CASE("get long long") {
     CHECK(*bb == 12345ll);
 }
 
+TEST_CASE("to(T&) with float value") {
+    Json b = 1.5;
+    double d{};
+    CHECK(b.to(d)); // was broken: returned false even though d was assigned
+    CHECK(d == 1.5);
+
+    Json c = 42;
+    int i{};
+    CHECK(c.to(i));
+    CHECK(i == 42);
+
+    Json u = 42u;
+    CHECK(u.to(i));
+    CHECK(i == 42);
+}
+
+TEST_CASE("compound converter type mismatch") {
+    Json j = JsonArray{ JsonArray{ 1 }, 2 };
+    // element 1 is an integer, not an array: must return false, not throw
+    CHECK_FALSE(j.to<std::vector<JsonArray>>().has_value());
+
+    Json o = JsonObject{ { "a", JsonArray{ 1 } } };
+    CHECK_FALSE(o.getItem<std::string>("a").has_value());
+    std::string str;
+    CHECK_FALSE(o.getItemTo("a", str));
+
+    Json s = "hello";
+    CHECK(s.to<std::string>().has_value());
+    CHECK_FALSE(s.to<int>().has_value());
+}
+
+TEST_CASE("string_view and const char* conversion") {
+    Json j;
+    CHECK(j.setItem("key", "value"));
+    CHECK(j.toJson() == R"({"key":"value"})");
+
+    std::string_view sv;
+    CHECK(j.getItemTo("key", sv));
+    CHECK(sv == "value"sv);
+
+    CHECK(j.getItem<std::string_view>("key") == "value"sv);
+}
+
 TEST_CASE("get chrono::duration") {
     Json b  = std::chrono::milliseconds(1234);
     auto bb = b.to<std::chrono::milliseconds>();
@@ -227,6 +270,33 @@ TEST_CASE("get bool") {
     auto bb = b.to<bool>();
     REQUIRE(bb.has_value());
     CHECK(*bb == true);
+}
+
+TEST_CASE("numeric equality by value") {
+    // Same type
+    CHECK(Json(1) == Json(1));
+    CHECK(Json(-1) != Json(1));
+    CHECK(Json(1.0) == Json(1.0));
+    CHECK(Json(1.5) != Json(1.0));
+
+    // Signed vs Unsigned
+    CHECK(Json(-1) != Json(UINT64_MAX)); // was broken: compared equal via wrap-around
+    CHECK(Json(-1) != Json(1u));
+    CHECK(Json(1) == Json(1u));
+    CHECK(Json(int64_t(-1)) != Json(uint64_t(1)));
+
+    // Float vs Signed
+    CHECK(Json(1.0) == Json(1));
+    CHECK(Json(1.5) != Json(1));
+    CHECK(Json(-3.0) == Json(-3));
+    CHECK(Json(1e100) != Json(1)); // out of int64 range
+    CHECK(Json(-1e100) != Json(-1));
+
+    // Float vs Unsigned
+    CHECK(Json(1e30) != Json(uint64_t(1)));
+    CHECK(Json(1e15) == Json(uint64_t(1000000000000000ull))); // exactly representable
+    CHECK(Json(-1.0) != Json(uint64_t(1)));
+    CHECK(Json(0.0) == Json(uint64_t(0)));
 }
 
 TEST_CASE("toMsgPack") {

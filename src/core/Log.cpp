@@ -23,10 +23,13 @@
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Settings.hpp>
 #include <brisk/core/Version.hpp>
+#include <cstdint>
+#include <cstdio>
 #include <random>
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <fmt/format.h>
 #if defined(BRISK_WINDOWS)
 #include <spdlog/sinks/msvc_sink.h>
 #endif
@@ -40,8 +43,11 @@ fs::path logfolder() {
 }
 
 static std::string logFilename() {
-    static std::string filename =
-        (fmt::format("{}-{:04X}.log", time(nullptr), std::random_device{}() & 0xFFFF));
+    // Use the raw count of steady_clock (no wall-clock dependence, sub-second
+    // resolution) to reduce the chance of filename collisions between runs.
+    const auto ticks =
+        static_cast<std::uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count());
+    static std::string filename = (fmt::format("{}-{:04X}.log", ticks, std::random_device{}() & 0xFFFF));
     return filename;
 }
 
@@ -52,13 +58,26 @@ using debugsink_t = spdlog::sinks::stderr_sink_mt;
 #endif
 
 static std::vector<spdlog::sink_ptr>& sinks() {
-    static std::vector<spdlog::sink_ptr> list{
-        std::make_shared<spdlog::sinks::basic_file_sink_mt>((logfolder() / logFilename()).string())
+    static std::vector<spdlog::sink_ptr> list = [] {
+        std::vector<spdlog::sink_ptr> result;
+        std::error_code ec;
+        fs::create_directories(logfolder(), ec);
+        if (ec) {
+            std::fprintf(stderr, "*** LOG ERROR: cannot create log directory '%s': %s ***\n",
+                         logfolder().string().c_str(), ec.message().c_str());
+        } else {
+            try {
+                result.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+                    (logfolder() / logFilename()).string()));
+            } catch (const spdlog::spdlog_ex& error) {
+                std::fprintf(stderr, "*** LOG ERROR: cannot create file sink: %s ***\n", error.what());
+            }
+        }
 #ifndef NODEBUGLOGS
-            ,
-        std::make_shared<debugsink_t>()
+        result.emplace_back(std::make_shared<debugsink_t>());
 #endif
-    };
+        return result;
+    }();
     return list;
 }
 
@@ -81,13 +100,27 @@ static void printSystemInformation() {
 }
 
 void initializeLogs() {
-    fs::create_directories(logfolder());
+    std::error_code ec;
+    fs::create_directories(logfolder(), ec);
+    if (ec) {
+        std::fprintf(stderr, "*** LOG ERROR: cannot create log directory '%s': %s ***\n",
+                     logfolder().string().c_str(), ec.message().c_str());
+    }
     Brisk::Internal::applog().set_level(spdlog::level::trace);
     printSystemInformation();
 }
 
 spdlog::logger& Internal::applog() {
     static spdlog::logger instance("", sinks().begin(), sinks().end());
+    static const bool errorHandlerSet = [] {
+        // Prevent logging failures (e.g. I/O errors) from throwing out of
+        // logging macros; report them to stderr instead.
+        instance.set_error_handler([](const std::string& msg) {
+            std::fprintf(stderr, "*** LOG ERROR: %s ***\n", msg.c_str());
+        });
+        return true;
+    }();
+    (void)errorHandlerSet;
     return instance;
 }
 

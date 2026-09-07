@@ -69,7 +69,7 @@ struct Hex {
             encoded[i * 2]     = alphabet[(b >> 4) & 0x0f];
             encoded[i * 2 + 1] = alphabet[b & 0x0f];
         }
-        return encoded.size();
+        return data.size() * 2;
     }
 };
 
@@ -162,6 +162,7 @@ struct Base64 {
                 *out++ = (std::byte)((t >> 8) & 255);
                 *out++ = (std::byte)(t & 255);
                 y = t = 0;
+                z += 3;
             }
         }
 

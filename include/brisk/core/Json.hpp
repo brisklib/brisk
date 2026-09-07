@@ -480,17 +480,19 @@ struct Json : protected JsonVariant {
                 return true;
             }
         } else if constexpr (std::is_arithmetic_v<T>) {
-            if (is<JsonFloat>())
+            if (is<JsonFloat>()) {
                 val = static_cast<T>(access<JsonFloat>());
-            if (is<JsonSignedInteger>())
+                return true;
+            } else if (is<JsonSignedInteger>()) {
                 val = static_cast<T>(access<JsonSignedInteger>());
-            else if (is<JsonUnsignedInteger>())
+                return true;
+            } else if (is<JsonUnsignedInteger>()) {
                 val = static_cast<T>(access<JsonUnsignedInteger>());
-            else if (is<JsonBool>())
+                return true;
+            } else if (is<JsonBool>()) {
                 val = static_cast<T>(access<JsonBool>());
-            else
-                return false;
-            return true;
+                return true;
+            }
         } else {
             if (JsonConverter<T>::fromJson(*this, val))
                 return true;
@@ -716,15 +718,55 @@ struct Json : protected JsonVariant {
 };
 
 template <typename T>
-    requires(isJsonCompoundType<T>())
+    requires(isJsonCompoundType<T>() && !std::is_same_v<T, Json>)
 struct JsonConverter<T> {
     static bool toJson(Json& b, T v) {
-        b = v;
+        b = std::move(v);
         return true;
     }
 
     static bool fromJson(const Json& b, T& v) {
+        if (!b.is<T>())
+            return false;
         v = b.access<T>();
+        return true;
+    }
+};
+
+template <>
+struct JsonConverter<Json> {
+    static bool toJson(Json& b, const Json& v) {
+        b = v;
+        return true;
+    }
+
+    static bool fromJson(const Json& b, Json& v) {
+        v = b;
+        return true;
+    }
+};
+
+template <>
+struct JsonConverter<const char*> {
+    static bool toJson(Json& b, const char* v) {
+        b = JsonString(v != nullptr ? v : "");
+        return true;
+    }
+
+    static bool fromJson(const Json& b, const char*& v) = delete;
+};
+
+template <>
+struct JsonConverter<std::string_view> {
+    static bool toJson(Json& b, std::string_view v) {
+        b = JsonString(v);
+        return true;
+    }
+
+    static bool fromJson(const Json& b, std::string_view& v) {
+        if (!b.is<JsonString>())
+            return false;
+        v = b.access<JsonString>();
         return true;
     }
 };

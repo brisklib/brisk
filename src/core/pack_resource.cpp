@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <brisk/core/Compression.hpp>
@@ -49,7 +50,7 @@ using namespace std::string_view_literals;
 
 class CWriter final : public Writer {
 public:
-    CWriter(Rc<Stream> dataWriter, ResourceCompression compression, std::string ident)
+    CWriter(Rc<Stream> dataWriter, std::string ident)
         : dataWriter(std::move(dataWriter)), ident(std::move(ident)) {
 
         std::ignore = this->dataWriter->write(
@@ -69,21 +70,37 @@ extern "C" {
     }
 
     Transferred write(const std::byte* data, size_t size) final {
-        for (size_t i = 0; i < size; ++i) {
-            bool firstOnLine = numWritten % 16 == 0;
-            if (numWritten && firstOnLine) {
-                if (this->dataWriter->write(",\n").isError())
-                    return Transferred::Error;
+        static constexpr char digits[] = "0123456789ABCDEF";
+        // Max line: "\n," prefix + 16 entries of ",0xNN"
+        char buf[16 * 5 + 2];
+        const size_t total = size;
+        while (size > 0) {
+            const size_t inLine = numWritten % 16;
+            const size_t chunk  = std::min(size, 16 - inLine);
+            char* out           = buf;
+            if (numWritten != 0) {
+                if (inLine == 0) {
+                    *out++ = ',';
+                    *out++ = '\n';
+                }
+                *out++ = ',';
             }
-            if (this->dataWriter
-                    ->write(fmt::format(fmt::runtime(firstOnLine ? "0x{:02X}" : ",0x{:02X}"),
-                                        static_cast<uint8_t>(data[i])))
-                    .isError()) {
+            for (size_t i = 0; i < chunk; ++i) {
+                if (i > 0)
+                    *out++ = ',';
+                *out++          = '0';
+                *out++          = 'x';
+                const uint8_t b = static_cast<uint8_t>(data[i]);
+                *out++          = digits[b >> 4];
+                *out++          = digits[b & 0x0f];
+            }
+            if (this->dataWriter->write((const std::byte*)buf, out - buf).isError())
                 return Transferred::Error;
-            }
-            ++numWritten;
+            numWritten += chunk;
+            data += chunk;
+            size -= chunk;
         }
-        return size;
+        return total;
     }
 
     bool flush() final {
@@ -114,14 +131,11 @@ INCBIN_CONST unsigned int rsrc__{0}_size = {1};
 
     Rc<Stream> dataWriter;
     std::string ident;
-    ResourceCompression compression;
     size_t numWritten = 0;
 };
 
-CompressionMethod method        = CompressionMethod::None;
-CompressionLevel level          = CompressionLevel::High;
-ResourceCompression compression = ResourceCompression::None;
-std::string cIdent;
+CompressionMethod method = CompressionMethod::None;
+CompressionLevel level   = CompressionLevel::High;
 
 int pack_resource(int argc, const char** argv) {
 
@@ -131,27 +145,24 @@ int pack_resource(int argc, const char** argv) {
         fprintf(stderr, "pack_resource requires at least two arguments: <output file> <input file>\n");
         return 1;
     }
+    std::string cIdent;
     for (;;) {
         if (argv[0] == "--gz"sv) {
-            method      = CompressionMethod::GZip;
-            compression = ResourceCompression::GZip;
+            method = CompressionMethod::GZip;
             shift(argc, argv);
         } else if (argv[0] == "--br"sv) {
 #ifdef BRISK_HAVE_BROTLI
-            method      = CompressionMethod::Brotli;
-            compression = ResourceCompression::Brotli;
+            method = CompressionMethod::Brotli;
 #else
             fprintf(stderr, "Brotli support is disabled during the build\n");
             return 1;
 #endif
             shift(argc, argv);
         } else if (argv[0] == "--zlib"sv) {
-            method      = CompressionMethod::ZLib;
-            compression = ResourceCompression::ZLib;
+            method = CompressionMethod::ZLib;
             shift(argc, argv);
         } else if (argv[0] == "--lz4"sv) {
-            method      = CompressionMethod::LZ4;
-            compression = ResourceCompression::LZ4;
+            method = CompressionMethod::LZ4;
             shift(argc, argv);
         } else if (argv[0] == "--c"sv) {
             shift(argc, argv);
@@ -183,7 +194,7 @@ int pack_resource(int argc, const char** argv) {
             fmt::println("Input size: {}", (*rd)->size());
             Rc<Stream> out = std::move(*wr);
             if (!cIdent.empty()) {
-                out.reset(new CWriter(std::move(out), compression, cIdent));
+                out.reset(new CWriter(std::move(out), std::move(cIdent)));
             }
             switch (method) {
 #ifdef BRISK_HAVE_BROTLI

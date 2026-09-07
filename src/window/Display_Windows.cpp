@@ -146,7 +146,7 @@ private:
     Rectangle m_rect{};
     Rectangle m_workarea{};
     DisplayFlags m_flags{ DisplayFlags::None };
-    Fraction<uint32_t> m_frameDuration{ 1, 60 };
+    Fraction<int32_t> m_frameDuration{ 1, 60 };
     uint32_t m_counter = 0;
 
     friend BOOL CALLBACK monitorCallback(HMONITOR handle, HDC dc, LPRECT rect, LPARAM data);
@@ -298,9 +298,10 @@ void DisplayMSWin::update() {
     DWM_TIMING_INFO ti{ sizeof(DWM_TIMING_INFO) };
     HRESULT res = DwmGetCompositionTimingInfo(NULL, &ti);
     if (res == S_OK && ti.rateRefresh.uiNumerator > 0 && ti.rateRefresh.uiDenominator > 0) {
-        m_frameDuration = { ti.rateRefresh.uiDenominator, ti.rateRefresh.uiNumerator };
+        m_frameDuration = { static_cast<int32_t>(ti.rateRefresh.uiDenominator),
+                            static_cast<int32_t>(ti.rateRefresh.uiNumerator) };
     } else {
-        m_frameDuration = { 1, m_mode.dmDisplayFrequency };
+        m_frameDuration = { 1, static_cast<int32_t>(m_mode.dmDisplayFrequency) };
     }
 
     EnumDisplayMonitors(nullptr, nullptr, &monitorCallback, (LPARAM)this);
