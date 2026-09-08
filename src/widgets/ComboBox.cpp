@@ -92,8 +92,10 @@ void ComboBox::onEvent(Event& event) {
     auto menu = this->itemlist.get(this);
     Base::onEvent(event);
     if (float delta = event.wheelScrolled(m_rect, m_wheelModifiers)) {
-        int val = std::clamp(int(m_value - delta), 0, int(menu->widgets().size() - 1));
-        value   = val;
+        if (!menu->widgets().empty()) {
+            int val = std::clamp(int(m_value - delta), 0, int(menu->widgets().size() - 1));
+            value   = val;
+        }
         event.stopPropagation();
     } else if (event.pressed()) {
         focus();
@@ -108,12 +110,16 @@ void ComboBox::onEvent(Event& event) {
         menu->visible = false;
         event.stopPropagation();
     } else if (event.keyPressed(KeyCode::Up)) {
-        int val = std::clamp(int(m_value - 1), 0, int(menu->widgets().size() - 1));
-        value   = val;
+        if (!menu->widgets().empty()) {
+            int val = std::clamp(int(m_value - 1), 0, int(menu->widgets().size() - 1));
+            value   = val;
+        }
         event.stopPropagation();
     } else if (event.keyPressed(KeyCode::Down)) {
-        int val = std::clamp(int(m_value + 1), 0, int(menu->widgets().size() - 1));
-        value   = val;
+        if (!menu->widgets().empty()) {
+            int val = std::clamp(int(m_value + 1), 0, int(menu->widgets().size() - 1));
+            value   = val;
+        }
         event.stopPropagation();
     }
 }

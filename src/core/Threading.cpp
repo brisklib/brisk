@@ -66,7 +66,7 @@ void processTimers() {
         return;
     const double time = currentTime();
     while (!timers.empty()) {
-        if (time > timers.back().targetTime) {
+        if (time >= timers.back().targetTime) {
             BRISK_SUPPRESS_EXCEPTIONS(timers.back().fn());
             timers.pop_back();
         } else {

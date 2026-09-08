@@ -373,10 +373,10 @@ TEST_CASE("Encoding_utf8_out_of_range") {
     // Codepoints above U+10FFFF must be rejected.
     // Lead bytes 0xF5..0xF7 encode U+140000..U+1FFFFF; 0xF4 with continuation >= 0x90
     // encodes >= U+110000.
-    CHECK(utf8Validate("\xF4\x90\x80\x80") == UtfValidation::Invalid); // exactly U+110000
-    CHECK(utf8Validate("\xF4\x9F\xBF\xBF") == UtfValidation::Invalid); // U+13FFFF
-    CHECK(utf8Validate("\xF5\x80\x80\x80") == UtfValidation::Invalid); // U+140000
-    CHECK(utf8Validate("\xF7\xBF\xBF\xBF") == UtfValidation::Invalid); // U+1FFFFF
+    CHECK(utf8Validate("\xF4\x90\x80\x80") == UtfValidation::Invalid);     // exactly U+110000
+    CHECK(utf8Validate("\xF4\x9F\xBF\xBF") == UtfValidation::Invalid);     // U+13FFFF
+    CHECK(utf8Validate("\xF5\x80\x80\x80") == UtfValidation::Invalid);     // U+140000
+    CHECK(utf8Validate("\xF7\xBF\xBF\xBF") == UtfValidation::Invalid);     // U+1FFFFF
     CHECK(utf8Validate("\xF8\x88\x80\x80\x80") == UtfValidation::Invalid); // invalid lead byte
 
     // Conversions and cleanup must treat out-of-range sequences as invalid.
@@ -395,25 +395,25 @@ TEST_CASE("Encoding_utf16_surrogate_pairs") {
 
     // A valid pair must still decode correctly.
     CHECK(utf16Validate(u"\U0001F603") == UtfValidation::Valid);
-    CHECK(utf16ToUtf32(u16({0xD800, 0xDC00})) == U"\U00010000");
-    CHECK(utf16ToUtf32(u16({0xDBFF, 0xDFFF})) == U"\U0010FFFF");
+    CHECK(utf16ToUtf32(u16({ 0xD800, 0xDC00 })) == U"\U00010000");
+    CHECK(utf16ToUtf32(u16({ 0xDBFF, 0xDFFF })) == U"\U0010FFFF");
 
     // A high surrogate followed by a non-low-surrogate must be invalid, not silently
     // combined into a bogus codepoint.
-    CHECK(utf16Validate(u16({0xD800, 0x0041})) == UtfValidation::Invalid); // would decode as U+10041
-    CHECK(utf16Validate(u16({0xD800, 0xD800})) == UtfValidation::Invalid); // would decode as U+10000
-    CHECK(utf16Validate(u16({0xDBFF, 0x0041})) == UtfValidation::Invalid); // would decode as U+10FC41
-    CHECK(utf16Validate(u16({0xD800, 0xE000})) == UtfValidation::Invalid);
+    CHECK(utf16Validate(u16({ 0xD800, 0x0041 })) == UtfValidation::Invalid); // would decode as U+10041
+    CHECK(utf16Validate(u16({ 0xD800, 0xD800 })) == UtfValidation::Invalid); // would decode as U+10000
+    CHECK(utf16Validate(u16({ 0xDBFF, 0x0041 })) == UtfValidation::Invalid); // would decode as U+10FC41
+    CHECK(utf16Validate(u16({ 0xD800, 0xE000 })) == UtfValidation::Invalid);
 
     // Conversions must reject unpaired leading surrogates according to the policy.
-    CHECK(utf16ToUtf32(u16({0xD800, 0x0041})) == std::u32string(1, replacementChar) + U"A");
-    CHECK(utf16ToUtf32(u16({0xDBFF, 0x0041})) == std::u32string(1, replacementChar) + U"A");
-    CHECK(utf16ToUtf8(u16({0xD800, 0x0041})) == std::string(REPLACEMENT_CHAR_S) + "A");
-    CHECK(utf16Codepoints(u16({0xD800, 0x0041}), UtfPolicy::ReplaceInvalid) == 2);
-    CHECK(utf16Codepoints(u16({0xD800, 0x0041}), UtfPolicy::SkipInvalid) == 1);
+    CHECK(utf16ToUtf32(u16({ 0xD800, 0x0041 })) == std::u32string(1, replacementChar) + U"A");
+    CHECK(utf16ToUtf32(u16({ 0xDBFF, 0x0041 })) == std::u32string(1, replacementChar) + U"A");
+    CHECK(utf16ToUtf8(u16({ 0xD800, 0x0041 })) == std::string(REPLACEMENT_CHAR_S) + "A");
+    CHECK(utf16Codepoints(u16({ 0xD800, 0x0041 }), UtfPolicy::ReplaceInvalid) == 2);
+    CHECK(utf16Codepoints(u16({ 0xD800, 0x0041 }), UtfPolicy::SkipInvalid) == 1);
 
     // Lone trailing surrogate stays invalid (covered before, repeated for completeness).
-    CHECK(utf16Validate(u16({0xDC00, 0x0041})) == UtfValidation::Invalid);
+    CHECK(utf16Validate(u16({ 0xDC00, 0x0041 })) == UtfValidation::Invalid);
 }
 
 TEST_CASE("Encoding_utf_iterator") {

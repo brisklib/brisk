@@ -89,9 +89,9 @@ bool Bindings::isRegisteredRegion(BindingAddress range) const {
 
 void Bindings::registerRegion(BindingAddress range, Rc<Scheduler> queue) {
     std::lock_guard lk(m_mutex);
-    if (!m_regions.insert_or_assign(range.min(), std::make_shared<Region>(range, std::move(queue))).second) {
-        BRISK_ASSERT(false); // Assert if the region cannot be registered
-    }
+    auto [it, inserted] = m_regions.emplace(range.min(), std::make_shared<Region>(range, std::move(queue)));
+    (void)it;
+    BRISK_ASSERT(inserted); // Assert if the region cannot be registered
 }
 
 void Bindings::unregisterRegion(BindingAddress range) {
@@ -103,6 +103,7 @@ void Bindings::unregisterRegion(const uint8_t* rangeBegin) {
     auto it = m_regions.find(rangeBegin);
     if (it == m_regions.end()) {
         BRISK_ASSERT(false); // Assert if the region is not found
+        return;
     }
     removeIndirectDependencies(it->second.get());
     m_regions.erase(it);
@@ -200,7 +201,7 @@ size_t Bindings::numHandlers() const noexcept {
 
 size_t Bindings::numRegions() const noexcept {
     std::lock_guard lk(m_mutex);
-    return m_regions.size() - 1; // Exclude implicit static region
+    return m_regions.size() > 0 ? m_regions.size() - 1 : 0; // Exclude implicit static region
 }
 
 bool Bindings::inStack(uint64_t id) noexcept {

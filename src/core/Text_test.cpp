@@ -41,6 +41,7 @@ TEST_CASE("case") {
 }
 
 TEST_CASE("textWordWrap") {
+    CHECK(textWordWrap("Hello", 0) == "Hello");
     CHECK(textWordWrap("Hello, world!", 13) == "Hello, world!");
     CHECK(textWordWrap("Hello, world!", 12) == "Hello,\nworld!");
     CHECK(textWordWrap("Hello, world!", 5) == "Hello\n,\nworld\n!");
@@ -75,6 +76,8 @@ TEST_CASE("shorten") {
 
     CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 3, 0.f, U"...") == "...");
     CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 1, 0.f, U"...") == "...");
+    CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 0, 0.5f, U"...") == "...");
+    CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 1, 1.f, U"...") == "...");
 }
 
 TEST_CASE("toNumber") {

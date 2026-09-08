@@ -45,6 +45,9 @@ U32String transformCase(U32StringView str, CaseTransformation mode) {
 }
 
 std::string textWordWrap(std::string text, size_t columns) {
+    if (columns == 0)
+        return text;
+
     // p points to the first char in line
     size_t p = 0;
 
@@ -120,6 +123,8 @@ void split(std::string_view text, std::string_view delimiter, std::string_view& 
 std::u32string shorten(std::u32string s, size_t maxLength, float position, std::u32string_view ellipsis) {
     if (s.size() <= maxLength)
         return s;
+    if (maxLength <= ellipsis.size())
+        return std::u32string(ellipsis);
     size_t cutNum = s.size() - maxLength + ellipsis.size();
     size_t cutPos = (s.size() - cutNum) * std::max(std::min(position, 1.f), 0.f);
     s.replace(cutPos, cutNum, ellipsis);

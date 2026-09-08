@@ -113,7 +113,8 @@ constexpr static int maximumFPS = 180;
 void WindowApplication::renderWindows() {
     mustBeMainThread();
     using std::chrono::steady_clock;
-    steady_clock::time_point stopTime = steady_clock::now() + std::chrono::milliseconds(1000 / maximumFPS);
+    steady_clock::time_point stopTime =
+        steady_clock::now() + std::chrono::microseconds(1'000'000 / maximumFPS);
     std::vector<Rc<Window>> windows   = m_windows;
     for (Rc<Window> w : windows) {
         if (w->m_rendering) {
