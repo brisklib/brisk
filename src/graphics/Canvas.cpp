@@ -80,8 +80,9 @@ static void setRenderComposition(RenderStateEx& state, const Composition& compos
     if (composition) {
         state.mode = toBlendingCompositionMode(composition.blend, composition.compose);
         if (composition.backdrop) {
-            state.backImageHandle = composition.backdrop;
-            state.hasBackTexture  = true;
+            state.backImageHandle   = composition.backdrop;
+            state.hasBackTexture    = true;
+            state.backTextureMatrix = composition.matrix.invert().value_or(Matrix{});
         }
     } else {
         state.mode = BlendingCompositionMode::Normal;
@@ -147,6 +148,7 @@ void applier(RenderStateEx* renderState, const Internal::PaintAndTransform& pain
     case 1: { // Gradient
         const Gradient& gradient = get<Gradient>(paint.paint);
         if (gradient.colorStops().empty()) {
+            renderState->opacity = 0.f;
             break;
         }
         renderState->gradientPoint1 = paint.transform.transform(gradient.getStartPoint());
@@ -205,9 +207,15 @@ void Canvas::drawPreparedPath(const PreparedPath& path, const PaintAndTransform&
         return drawPreparedPathCmd(path, paint, scissor);
     }
 
-    int blurPad            = static_cast<int>(std::ceil(texture.blurRadius.vertical * 3));
+    const Matrix sourceToCanvas = texture.matrix * paint.transform;
+    const int padX =
+        static_cast<int>(std::ceil(3.f * std::max(texture.blurRadius.horizontal * std::abs(sourceToCanvas.a),
+                                                  texture.blurRadius.vertical * std::abs(sourceToCanvas.c))));
+    const int padY =
+        static_cast<int>(std::ceil(3.f * std::max(texture.blurRadius.horizontal * std::abs(sourceToCanvas.b),
+                                                  texture.blurRadius.vertical * std::abs(sourceToCanvas.d))));
     Rectangle bounds       = path.mask().pixelBounds();
-    Rectangle paddedBounds = bounds.withMargin(0, blurPad);
+    Rectangle paddedBounds = bounds.withMargin(padX, padY);
 
     // First step, sample horizontally, draw rectangle covering the path bounds
     // expanded by the blur radius.
@@ -215,14 +223,13 @@ void Canvas::drawPreparedPath(const PreparedPath& path, const PaintAndTransform&
     drawPreparedPathCmd(RectangleF(paddedBounds).withOffset(-paddedBounds.p1),
                         PaintAndTransform{ Texture{
                                                texture.image,
-                                               texture.matrix.translate(-paddedBounds.p1),
+                                               Matrix{}.translate(-paddedBounds.p1) * sourceToCanvas,
                                                texture.mode,
                                                BlurRadius{ texture.blurRadius.horizontal, 0.f },
                                            },
-                                           {},
-                                           1.f },
+                                           Matrix{}, 1.f },
                         scissor == noClipRect ? noClipRect
-                                              : scissor.withMargin(0, blurPad).withOffset(-paddedBounds.p1));
+                                              : scissor.withMargin(padX, padY).withOffset(-paddedBounds.p1));
 
     // Second step, draw the path, sampling from the horizontally blurred layer.
     Rc<Image> layerImage = finishLayer();
@@ -300,7 +307,8 @@ struct CopyOrRef {
 };
 
 static bool isTransparent(const Paint& paint) {
-    return paint.index() == 0 && (std::get<0>(paint).a == 0);
+    return (paint.index() == 0 && std::get<0>(paint).a == 0) ||
+           (paint.index() == 1 && std::get<1>(paint).colorStops().empty());
 }
 
 void Canvas::fillPreparedPath(const PreparedPath& path, const Paint& fillPaint, Rectangle scissor,
@@ -491,6 +499,8 @@ struct GeometryRectangle {
 };
 
 void Canvas::blurRect(RectangleF rect, float blurRadius, CornersF borderRadius, bool squircle) {
+    if (m_state.opacity < 0.04f || isTransparent(m_state.fillPaint))
+        return;
     RenderStateEx style(ShaderType::Shadow, std::tuple{ Arg::blurRadius = blurRadius * 0.36f,
                                                         Internal::PaintAndTransform{
                                                             m_state.fillPaint, Matrix{}, m_state.opacity },
@@ -631,10 +641,11 @@ void Canvas::fillPath(const Path& path) {
 }
 
 void Canvas::drawPath(const Path& path) {
-    fillPath(path, m_state.fillPaint, m_state.fillParams, m_state.transform, preparedClipPath(),
-             m_state.scissor, m_state.opacity);
-    strokePath(path, m_state.strokePaint, m_state.strokeParams, m_state.transform, preparedClipPath(),
-               m_state.scissor, m_state.opacity);
+    const PreparedPath& clipPath = preparedClipPath();
+    fillPath(path, m_state.fillPaint, m_state.fillParams, m_state.transform, clipPath, m_state.scissor,
+             m_state.opacity);
+    strokePath(path, m_state.strokePaint, m_state.strokeParams, m_state.transform, clipPath, m_state.scissor,
+               m_state.opacity);
 }
 
 void Canvas::drawImage(RectangleF rect, Rc<Image> image, Matrix matrix, SamplerMode samplerMode,
@@ -713,21 +724,21 @@ void Canvas::fillText(PointF position, const TextLayout& text) {
             Path path;
             const Paint paint = decoration.color ? Paint{ ColorW(*decoration.color) } : textPaint;
             const StrokeParams params{ .capStyle = CapStyle::Flat, .strokeWidth = decoration.thickness };
-            if (decoration.decoration && TextDecoration::Underline) {
+            if ((decoration.decoration & TextDecoration::Underline) != TextDecoration::None) {
                 const std::array<PointF, 2> points{
                     decoration.start + PointF{ 0.f, decoration.underlineOffset },
                     decoration.end + PointF{ 0.f, decoration.underlineOffset }
                 };
                 path.addPolyline(points);
             }
-            if (decoration.decoration && TextDecoration::Overline) {
+            if ((decoration.decoration & TextDecoration::Overline) != TextDecoration::None) {
                 const std::array<PointF, 2> points{
                     decoration.start + PointF{ 0.f, decoration.overlineOffset },
                     decoration.end + PointF{ 0.f, decoration.overlineOffset }
                 };
                 path.addPolyline(points);
             }
-            if (decoration.decoration && TextDecoration::LineThrough) {
+            if ((decoration.decoration & TextDecoration::LineThrough) != TextDecoration::None) {
                 const std::array<PointF, 2> points{
                     decoration.start + PointF{ 0.f, decoration.lineThroughOffset },
                     decoration.end + PointF{ 0.f, decoration.lineThroughOffset }
