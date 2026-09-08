@@ -31,8 +31,11 @@
 #include <brisk/core/Resources.hpp>
 #include <brisk/core/Text.hpp>
 #include <text_layout/Layout.hpp>
+#include <charconv>
+#include <system_error>
 
 #include "FontInternals.hpp"
+#include "brisk/graphics/Canvas.hpp"
 
 #include <lunasvg.h>
 
@@ -1134,10 +1137,15 @@ void Internal::renderPreparedDocument(Rc<Image> image, Point origin, const Shape
     }
 }
 
+namespace Internal {
+static void scaleRichTextFonts(RichText& richText);
+}
+
 ShapedText FontManager::shapeText(const Font& font, const TextWithOptions& text) const {
     const FontAndColor fontAndColor{ font, std::nullopt };
     if (!text.richText.empty()) {
         RichText richText = text.richText;
+        scaleRichTextFonts(richText);
         richText.setBaseFont(font);
         return shapeText(text, richText.fonts, richText.offsets);
     }
@@ -1461,6 +1469,20 @@ static Font overrideFont(const Font& base, Font&& font, FontFormatFlags flags) {
     return font;
 }
 
+static void scaleRichTextFonts(RichText& richText) {
+    const float ratio = pixelRatio();
+    if (ratio == 1.f) {
+        return;
+    }
+    BRISK_ASSERT(richText.fonts.size() == richText.flags.size());
+    for (size_t i = 0; i < richText.fonts.size(); ++i) {
+        const FontFormatFlags flags = richText.flags[i];
+        if (flags && FontFormatFlags::Size && !(flags && FontFormatFlags::SizeIsRelative)) {
+            richText.fonts[i].font.fontSize *= ratio;
+        }
+    }
+}
+
 void RichText::setBaseFont(const Font& font) {
     BRISK_ASSERT(fonts.size() == flags.size());
     for (size_t i = 0; i < fonts.size(); ++i) {
@@ -1551,9 +1573,15 @@ struct Visitor final : public HtmlSax {
             fontStack.back().flags |= FontFormatFlags::Family;
         }
         if (tag == "font" && attr == "size") {
-            float val = strtof(attrValue.c_str(), nullptr);
-            if (val != 0)
-                fontStack.back().font.fontSize = val;
+            int value{};
+            const char* begin = attrValue.data();
+            const char* end   = begin + attrValue.size();
+            auto [parsedEnd, error] = std::from_chars(begin, end, value, 10);
+            if (error == std::errc{} && parsedEnd == end && value >= 1 && value <= 256) {
+                fontStack.back().font.fontSize = static_cast<float>(value);
+                fontStack.back().flags |= FontFormatFlags::Size;
+                fontStack.back().flags &= ~FontFormatFlags::SizeIsRelative;
+            }
         }
         attrValue = {};
     }

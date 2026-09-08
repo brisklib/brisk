@@ -718,14 +718,6 @@ public:
      */
     [[nodiscard]] FontMetrics metrics(const Font& font) const;
 
-    /**
-     * @brief Checks if a font supports a specific Unicode codepoint.
-     * @param font The font to check.
-     * @param codepoint The Unicode codepoint to verify.
-     * @return True if the codepoint is supported, false otherwise.
-     */
-    [[nodiscard]] bool hasCodepoint(const Font& font, char32_t codepoint) const;
-
     /** @brief Shapes text with the text-layout engine. */
     [[nodiscard]] ShapedText shapeText(const Font& font, const TextWithOptions& text) const;
 

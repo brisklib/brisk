@@ -84,13 +84,13 @@ struct HtmlSax {
 /**
  * @brief Parses an HTML string and triggers HtmlSax callbacks during parsing.
  * @param html The HTML content to parse.
- * @param sax The HtmlSax implementation to handle parsing events.
+ * @param sax The HtmlSax implementation to handle parsing events. May not be null.
  * @return true if parsing succeeds, false otherwise.
  */
 bool parseHtml(std::string_view html, HtmlSax* sax);
 
 /**
- * @brief Decodes an HTML character entity (e.g., "&gt;" -> ">", "&nbsp;" -> "\xA0", non-breaking space).
+ * @brief Decodes an HTML character entity (e.g., "&gt;" -> ">", "&nbsp;" -> U+00A0).
  * @param name The entity name to decode.
  * @return The decoded character as a string view.
  */

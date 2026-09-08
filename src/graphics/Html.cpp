@@ -21,7 +21,12 @@
 #include <brisk/graphics/Html.hpp>
 #include <brisk/core/Encoding.hpp>
 #include <tao/pegtl.hpp>
+#include <algorithm>
+#include <array>
 #include <charconv>
+#include <cstdint>
+#include <system_error>
+#include <vector>
 
 namespace Brisk {
 
@@ -34,7 +39,7 @@ constinit std::array<std::pair<std::string_view, std::string_view>, 6> charNames
     { "apos", "'" },
     { "gt", ">" },
     { "lt", "<" },
-    { "nbsp", "\xA0" },
+    { "nbsp", "\xC2\xA0" },
     { "quot", "\"" },
 } };
 
@@ -95,7 +100,7 @@ struct SelfCloseTag : one<'>'> {};
 struct EndOpenTag : one<'>'> {};
 
 struct Element
-    : seq<one<'<'>, OpenTagName, opt<OptWS, list<Attribute, WS>>, //
+    : seq<one<'<'>, OpenTagName, OptWS, opt<list<Attribute, WS>>, OptWS, //
           if_then_else<one<'/'>, SelfCloseTag,
                        seq<EndOpenTag, Content, one<'<'>, one<'/'>, CloseTagName, OptWS, one<'>'>>>> {};
 
@@ -108,26 +113,32 @@ enum class SaxMode {
     Attribute,
 };
 
+struct SaxState {
+    SaxMode mode = SaxMode::Text;
+    std::vector<std::string_view> openTags;
+    bool valid = true;
+};
+
 template <typename Rule>
 struct Action : nothing<Rule> {};
 
 template <>
 struct Action<EndOpenTag> {
-    static void apply0(SaxMode& mode, HtmlSax* sax) {
-        mode = SaxMode::Text;
+    static void apply0(SaxState& state, HtmlSax* sax) {
+        state.mode = SaxMode::Text;
     }
 };
 
 template <>
 struct Action<Text> {
-    static void apply0(SaxMode& mode, HtmlSax* sax) {
+    static void apply0(SaxState& state, HtmlSax* sax) {
         sax->textFinished();
     }
 };
 
 template <>
 struct Action<Attribute> {
-    static void apply0(SaxMode& mode, HtmlSax* sax) {
+    static void apply0(SaxState& state, HtmlSax* sax) {
         sax->attrFinished();
     }
 };
@@ -135,25 +146,27 @@ struct Action<Attribute> {
 template <>
 struct Action<OpenTagName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->openTag(str);
-        mode = SaxMode::Attribute;
+        state.openTags.push_back(str);
+        state.mode = SaxMode::Attribute;
     }
 };
 
 template <>
 struct Action<SelfCloseTag> {
-    static void apply0(SaxMode& mode, HtmlSax* sax) {
+    static void apply0(SaxState& state, HtmlSax* sax) {
         sax->closeTag();
-        mode = SaxMode::Text;
+        state.openTags.pop_back();
+        state.mode = SaxMode::Text;
     }
 };
 
 template <>
 struct Action<PlainText> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->textFragment(str);
     }
@@ -162,7 +175,7 @@ struct Action<PlainText> {
 template <>
 struct Action<PlainAttrValueUnquoted> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrValueFragment(str);
     }
@@ -171,7 +184,7 @@ struct Action<PlainAttrValueUnquoted> {
 template <char q>
 struct Action<PlainAttrValueQuoted<q>> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrValueFragment(str);
     }
@@ -180,7 +193,7 @@ struct Action<PlainAttrValueQuoted<q>> {
 template <>
 struct Action<AttrName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
         std::string_view str = in.string_view();
         sax->attrName(str);
     }
@@ -189,23 +202,36 @@ struct Action<AttrName> {
 template <>
 struct Action<CharName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
-        std::string_view str = in.string_view();
-        if (mode == SaxMode::Attribute)
-            sax->attrValueFragment(htmlDecodeChar(str));
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
+        std::string_view str     = in.string_view();
+        std::string_view decoded = htmlDecodeChar(str);
+        if (decoded.empty()) {
+            state.valid = false;
+            return;
+        }
+        if (state.mode == SaxMode::Attribute)
+            sax->attrValueFragment(decoded);
         else
-            sax->textFragment(htmlDecodeChar(str));
+            sax->textFragment(decoded);
     }
 };
+
+constexpr bool isUnicodeScalar(uint32_t value) noexcept {
+    return value <= 0x10FFFFu && !(value >= 0xD800u && value <= 0xDFFFu);
+}
 
 template <>
 struct Action<CharCode> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
         std::string_view str = in.string_view();
-        uint32_t value;
-        std::from_chars(str.data(), str.data() + str.size(), value, 10);
-        if (mode == SaxMode::Attribute)
+        uint32_t value{};
+        auto [end, error] = std::from_chars(str.data(), str.data() + str.size(), value, 10);
+        if (error != std::errc{} || end != str.data() + str.size() || !isUnicodeScalar(value)) {
+            state.valid = false;
+            return;
+        }
+        if (state.mode == SaxMode::Attribute)
             sax->attrValueFragment(Utf8Character{ value });
         else
             sax->textFragment(Utf8Character{ value });
@@ -215,11 +241,15 @@ struct Action<CharCode> {
 template <>
 struct Action<CharHexCode> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
         std::string_view str = in.string_view();
-        uint32_t value;
-        std::from_chars(str.data(), str.data() + str.size(), value, 16);
-        if (mode == SaxMode::Attribute)
+        uint32_t value{};
+        auto [end, error] = std::from_chars(str.data(), str.data() + str.size(), value, 16);
+        if (error != std::errc{} || end != str.data() + str.size() || !isUnicodeScalar(value)) {
+            state.valid = false;
+            return;
+        }
+        if (state.mode == SaxMode::Attribute)
             sax->attrValueFragment(Utf8Character{ value });
         else
             sax->textFragment(Utf8Character{ value });
@@ -229,8 +259,14 @@ struct Action<CharHexCode> {
 template <>
 struct Action<CloseTagName> {
     template <typename ActionInput>
-    static void apply(const ActionInput& in, SaxMode& mode, HtmlSax* sax) {
+    static void apply(const ActionInput& in, SaxState& state, HtmlSax* sax) {
+        std::string_view str = in.string_view();
+        if (state.openTags.empty() || state.openTags.back() != str) {
+            state.valid = false;
+            return;
+        }
         sax->closeTag();
+        state.openTags.pop_back();
     }
 };
 
@@ -394,13 +430,20 @@ constinit std::array<std::pair<std::string_view, Color>, 149> colorNames{ {
 using namespace Internal;
 
 bool parseHtml(std::string_view html, HtmlSax* visitor) {
-    tao::pegtl::memory_input input(html.data(), html.size(), "");
+    if (!visitor)
+        return false;
 
-    Grammar::SaxMode mode = Grammar::SaxMode::Text;
+    Grammar::SaxState state;
     visitor->openDocument();
-    bool result = tao::pegtl::parse<Grammar::Document, Grammar::Action>(input, mode, visitor);
+    if (html.empty()) {
+        visitor->closeDocument();
+        return true;
+    }
+
+    tao::pegtl::memory_input input(html.data(), html.size(), "");
+    bool result = tao::pegtl::parse<Grammar::Document, Grammar::Action>(input, state, visitor);
     visitor->closeDocument();
-    return result;
+    return result && state.valid && state.openTags.empty();
 }
 
 std::string_view htmlDecodeChar(std::string_view name) {

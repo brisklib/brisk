@@ -23,6 +23,7 @@
 
 #include <brisk/graphics/Fonts.hpp>
 #include <brisk/graphics/Html.hpp>
+#include <brisk/graphics/Canvas.hpp>
 
 namespace Brisk {
 
@@ -34,8 +35,30 @@ TEST_CASE("HtmlParser") {
     REQUIRE(rich);
     CHECK(rich->first == U"abc");
 
+    rich = RichText::fromHtml("");
+    REQUIRE(rich);
+    CHECK(rich->first.empty());
+    CHECK(rich->second.fonts.empty());
+    CHECK(rich->second.offsets.empty());
+    CHECK(rich->second.flags.empty());
+
+    CHECK(RichText::fromHtml("   ")->first == U"   ");
+    CHECK(RichText::fromHtml("\t\n\r")->first == U"\t\n\r");
+
     rich = RichText::fromHtml("<br/>");
     REQUIRE(rich);
+
+    rich = RichText::fromHtml("<b >B</b >");
+    REQUIRE(rich);
+    CHECK(rich->first == U"B");
+    CHECK(rich->second.flags[0] == FontFormatFlags::Weight);
+
+    rich = RichText::fromHtml("<br />");
+    REQUIRE(rich);
+    CHECK(rich->first == U"\n");
+
+    CHECK_FALSE(RichText::fromHtml("< b >B< / b >"));
+    CHECK_FALSE(RichText::fromHtml("<br / >"));
 
     rich = RichText::fromHtml("<math>x&gt;y</math>");
     REQUIRE(rich);
@@ -45,12 +68,50 @@ TEST_CASE("HtmlParser") {
     REQUIRE(rich);
     CHECK(rich->first == U"abc\ndef (@");
 
+    rich = RichText::fromHtml("&nbsp;");
+    REQUIRE(rich);
+    CHECK(rich->first == U"\u00a0");
+
+    CHECK(RichText::fromHtml("&amp;&apos;&gt;&lt;&quot;")->first == U"&'><\"");
+    CHECK(RichText::fromHtml("&#0;")->first == std::u32string{ U'\0' });
+    CHECK(RichText::fromHtml("&#x10FFFF;")->first == U"\U0010FFFF");
+    CHECK_FALSE(RichText::fromHtml("&unknown;"));
+    CHECK_FALSE(RichText::fromHtml("&#x;"));
+    CHECK_FALSE(RichText::fromHtml("&#12x;"));
+
     rich = RichText::fromHtml("<em>abcdef</em>");
     REQUIRE(rich);
     CHECK(rich->first == U"abcdef");
 
     rich = RichText::fromHtml("<font color=\"brown\">abcdef</font>");
     REQUIRE(rich);
+
+    for (int value = 1; value <= 256; ++value) {
+        rich = RichText::fromHtml("<font size=\"" + std::to_string(value) + "\">x</font>");
+        REQUIRE(rich);
+        REQUIRE(rich->second.fonts.size() == 1);
+        CHECK(rich->second.fonts[0].font.fontSize == value);
+        CHECK(rich->second.flags[0] == FontFormatFlags::Size);
+
+        Font base;
+        base.fontSize = 20.f;
+        rich->second.setBaseFont(base);
+        CHECK(rich->second.fonts[0].font.fontSize == value);
+    }
+
+    rich = RichText::fromHtml("<font size=\"0\">x</font>");
+    REQUIRE(rich);
+    CHECK(rich->second.flags[0] == FontFormatFlags::None);
+    rich = RichText::fromHtml("<font size=\"257\">x</font>");
+    REQUIRE(rich);
+    CHECK(rich->second.flags[0] == FontFormatFlags::None);
+
+    const float savedPixelRatio = pixelRatio();
+    pixelRatio()               = 2.f;
+    rich                        = RichText::fromHtml("<font size=\"24\">x</font>");
+    REQUIRE(rich);
+    CHECK(rich->second.fonts[0].font.fontSize == 24.f);
+    pixelRatio() = savedPixelRatio;
 
     rich = RichText::fromHtml("<tag attr=unquoted-value></tag>");
     REQUIRE(rich);
@@ -76,6 +137,25 @@ TEST_CASE("HtmlParser") {
     CHECK(rich->second.fonts[1].font.weight == FontWeight::Bold);
     CHECK(rich->second.fonts[1].font.style == FontStyle::Italic);
     CHECK(rich->second.flags[1] == (FontFormatFlags::Style | FontFormatFlags::Weight));
+
+    CHECK_FALSE(RichText::fromHtml("<b>x</i>"));
+    CHECK_FALSE(RichText::fromHtml("<b><i>x</b></i>"));
+    CHECK_FALSE(RichText::fromHtml("<b>x"));
+    CHECK_FALSE(RichText::fromHtml("</b>"));
+    rich = RichText::fromHtml("<b></b>");
+    REQUIRE(rich);
+    CHECK(rich->first.empty());
+    CHECK_FALSE(RichText::fromHtml("&#xD800;"));
+    CHECK_FALSE(RichText::fromHtml("&#x110000;"));
+    CHECK_FALSE(RichText::fromHtml("&#4294967296;"));
+
+    std::string_view empty;
+    CHECK(parseHtml(empty, nullptr) == false);
+
+    struct EmptySax final : HtmlSax {
+    } sax;
+
+    CHECK(parseHtml(empty, &sax));
 
     rich = RichText::fromHtml("The <b>quick</b> <font color=\"brown\">brown</font> <u>fox<br/>jumps</u> over "
                               "the <small>lazy</small> dog");
