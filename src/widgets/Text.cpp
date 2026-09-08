@@ -19,6 +19,10 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/widgets/Text.hpp>
+#include <brisk/core/Text.hpp>
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/window/Clipboard.hpp>
+#include "utf8proc.h"
 
 namespace Brisk {
 
@@ -52,6 +56,7 @@ void Text::onLayoutUpdated() {
 }
 
 void Text::onChanged() {
+    normalizeSelection();
     invalidate();
     Font font = this->font();
     if (!m_wordWrap && m_textAutoSize != TextAutoSize::None && !m_text.empty()) {
@@ -65,6 +70,18 @@ void Text::onChanged() {
     } else if (m_wordWrap) {
         m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) });
     }
+}
+
+void Text::onSelectableChanged() {
+    m_tabStop       = m_selectable;
+    m_processClicks = !m_selectable;
+    if (!m_selectable) {
+        m_mouseSelection      = false;
+        m_startCursorDragging = 0;
+        m_cursor              = 0;
+        m_selectedLength      = 0;
+    }
+    invalidate();
 }
 
 float Text::calcFontSizeFor(const Font& font, const std::string& m_text) const {
@@ -105,6 +122,30 @@ static RectangleF alignInflate(RectangleF rect) {
     return rect;
 }
 
+static RectangleF textContainer(RectangleF inner, Rotation rotation) {
+    return RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
+        toOrientation(rotation) == Orientation::Vertical);
+}
+
+static Matrix textTransform(RectangleF inner, Rotation rotation) {
+    const RectangleF rotated = textContainer(inner, rotation);
+    return Matrix()
+        .translate(-rotated.center().x, -rotated.center().y)
+        .rotate90(static_cast<int>(rotation))
+        .translate(inner.center().x, inner.center().y);
+}
+
+static PointF textOrigin(RectangleF container, const TextLayout& layout, PointF alignment) {
+    const RectangleF bounds = layout.bounds();
+    const PointF anchor      = container.at(alignment.x, alignment.y);
+    return anchor - PointF{ bounds.x1, bounds.y1 } - PointF(bounds.size()) * alignment;
+}
+
+static bool isWordCharacter(char32_t character) {
+    const utf8proc_category_t category = utf8proc_category(character);
+    return category >= UTF8PROC_CATEGORY_LU && category <= UTF8PROC_CATEGORY_NO;
+}
+
 SizeF Text::measure(AvailableSize size) const {
     if (!m_wordWrap && m_textAutoSize != TextAutoSize::None) {
         return SizeF{ 1.f, 1.f };
@@ -128,29 +169,30 @@ void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
     if (m_opacity.current > 0.f) {
         m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) });
-        RectangleF inner        = m_clientRect;
-        ColorW color            = m_color.current.multiplyAlpha(m_opacity.current);
-        const TextLayout layout = m_cache2->layout;
-        const PointF alignment{ toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
-        const RectangleF bounds = layout.bounds();
-        const auto originFor    = [&](RectangleF container) {
-            const PointF anchor = container.at(alignment.x, alignment.y);
-            return anchor - PointF{ bounds.x1, bounds.y1 } - PointF(bounds.size()) * alignment;
-        };
+        const RectangleF inner   = m_clientRect;
+        const ColorW color       = m_color.current.multiplyAlpha(m_opacity.current);
+        const TextLayout layout  = m_cache2->layout;
+        const PointF alignment    = { toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
+        const RectangleF container = m_rotation == Rotation::NoRotation ? inner : textContainer(inner, m_rotation);
+        const PointF origin         = textOrigin(container, layout, alignment);
 
+        if (m_selectable && m_selectedLength != 0) {
+            canvas.setFillColor(ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
+            if (m_rotation != Rotation::NoRotation) {
+                auto&& state     = canvas.saveState();
+                state->transform = textTransform(inner, m_rotation);
+                canvas.fillTextSelection(origin, layout, selection());
+            } else {
+                canvas.fillTextSelection(origin, layout, selection());
+            }
+        }
         canvas.setFillColor(color);
         if (m_rotation != Rotation::NoRotation) {
-            RectangleF rotated = RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
-                toOrientation(m_rotation) == Orientation::Vertical);
-            Matrix m         = Matrix()
-                                   .translate(-rotated.center().x, -rotated.center().y)
-                                   .rotate90(static_cast<int>(m_rotation))
-                                   .translate(inner.center().x, inner.center().y);
             auto&& state     = canvas.saveState();
-            state->transform = m;
-            canvas.fillText(originFor(rotated), layout);
+            state->transform = textTransform(inner, m_rotation);
+            canvas.fillText(origin, layout);
         } else {
-            canvas.fillText(originFor(inner), layout);
+            canvas.fillText(origin, layout);
         }
     }
 }
@@ -178,6 +220,118 @@ Text::Cached2 Text::updateCache2(const CacheKey2& key) {
     const TextLine line     = layout.line(0);
     textSize                = max(textSize, SizeF{ 0, line.ascender - line.descender });
     return { textSize, layout };
+}
+
+Range<uint32_t> Text::selection() const {
+    const int32_t cursorPosition = static_cast<int32_t>(m_cursor);
+    const int32_t selectionEnd   = cursorPosition + m_selectedLength;
+    return { static_cast<uint32_t>(std::min(cursorPosition, selectionEnd)),
+             static_cast<uint32_t>(std::max(cursorPosition, selectionEnd)) };
+}
+
+void Text::normalizeSelection() {
+    const int32_t textLength      = static_cast<int32_t>(utf8ToUtf32(m_text).size());
+    const int32_t cursorPosition  = static_cast<int32_t>(m_cursor);
+    const int32_t selectionEnd    = cursorPosition + m_selectedLength;
+    const int32_t newCursor       = std::clamp(cursorPosition, 0, textLength);
+    const int32_t newSelectionEnd = std::clamp(selectionEnd, 0, textLength);
+    m_cursor                      = static_cast<uint32_t>(newCursor);
+    m_selectedLength              = newSelectionEnd - newCursor;
+}
+
+uint32_t Text::caretToOffset(PointF point) const {
+    m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) });
+    const TextLayout& layout = m_cache2->layout;
+    if (layout.lineCount() == 0)
+        return 0;
+
+    const RectangleF inner   = m_clientRect;
+    const RectangleF container = m_rotation == Rotation::NoRotation ? inner : textContainer(inner, m_rotation);
+    if (m_rotation != Rotation::NoRotation) {
+        if (auto inverse = textTransform(inner, m_rotation).invert())
+            point = inverse->transform(point);
+    }
+    const PointF alignment = { toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
+    const CaretIndex caret = layout.hitTest(point - textOrigin(container, layout, alignment));
+    return m_cache->shapedText.characterFromCaret(caret);
+}
+
+void Text::copyToClipboard() const {
+    const Range<uint32_t> selected = selection();
+    if (selected.min == selected.max)
+        return;
+
+    const std::u32string text = utf8ToUtf32(m_text);
+    if (selected.max > text.size())
+        return;
+    Clipboard::setText(utf32ToUtf8(text.substr(selected.min, selected.distance())));
+}
+
+void Text::selectWordAtOffset(uint32_t offset) {
+    const std::u32string text = utf8ToUtf32(m_text);
+    const int32_t textLength   = static_cast<int32_t>(text.size());
+    const int32_t cursor       = std::clamp(static_cast<int32_t>(offset), 0, textLength);
+    int32_t begin = cursor;
+    while (begin > 0 && isWordCharacter(text[static_cast<size_t>(begin - 1)]))
+        --begin;
+
+    int32_t end = cursor;
+    while (end < textLength && isWordCharacter(text[static_cast<size_t>(end)]))
+        ++end;
+
+    m_cursor         = static_cast<uint32_t>(end);
+    m_selectedLength = begin - end;
+    invalidate();
+}
+
+void Text::onEvent(Event& event) {
+    Base::onEvent(event);
+
+    if (!m_selectable || isDisabled())
+        return;
+
+    if (event.doubleClicked()) {
+        if (const auto mouse = event.as<EventMouse>())
+            selectWordAtOffset(caretToOffset(mouse->point));
+        event.stopPropagation();
+        return;
+    }
+
+    switch (const auto [flag, offset, mods] = event.dragged(m_mouseSelection); flag) {
+    case DragEvent::Started: {
+        focus();
+        const auto mouse         = event.as<EventMouse>();
+        const PointF downPoint  = mouse && mouse->downPoint ? *mouse->downPoint : PointF{};
+        m_cursor                = caretToOffset(downPoint);
+        m_startCursorDragging  = static_cast<int32_t>(m_cursor);
+        m_selectedLength       = 0;
+        normalizeSelection();
+        invalidate();
+        event.stopPropagation();
+    } break;
+    case DragEvent::Dragging: {
+        if (const auto mouse = event.as<EventMouse>()) {
+            const uint32_t endCursor = caretToOffset(mouse->point);
+            m_cursor                 = endCursor;
+            m_selectedLength         = m_startCursorDragging - static_cast<int32_t>(endCursor);
+            normalizeSelection();
+            invalidate();
+            event.stopPropagation();
+        }
+    } break;
+    case DragEvent::Dropped:
+        event.stopPropagation();
+        break;
+    default:
+        break;
+    }
+
+    if (auto key = event.as<EventKeyPressed>(); key && key->key == KeyCode::C &&
+        (key->mods & KeyModifiers::Regular) == KeyModifiers::ControlOrCommand &&
+        m_selectedLength != 0) {
+        copyToClipboard();
+        event.stopPropagation();
+    }
 }
 
 void BackStrikedText::paint(Canvas& canvas) const {

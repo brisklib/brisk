@@ -58,6 +58,9 @@ public:
 
     using Widget::apply;
 
+    Range<uint32_t> selection() const;
+    void copyToClipboard() const;
+
 protected:
     std::string m_text;
     TextAutoSize m_textAutoSize               = TextAutoSize::None;
@@ -65,6 +68,11 @@ protected:
     Rotation m_rotation                       = Rotation::NoRotation;
     bool m_wordWrap                           = false;
     TextOptions m_textOptions                 = TextOptions::Default;
+    bool m_selectable                         = false;
+    bool m_mouseSelection                     = false;
+    int32_t m_startCursorDragging             = 0;
+    uint32_t m_cursor                         = 0;
+    int32_t m_selectedLength                  = 0;
 
     struct CacheKey {
         Font font;
@@ -93,9 +101,11 @@ protected:
     CacheWithInvalidation<Cached2, CacheKey2, Text, &Text::updateCache2> m_cache2{ this };
 
     void paint(Canvas& canvas) const override;
+    void onEvent(Event& event) override;
     std::optional<std::string> textContent() const override;
     void onFontChanged() override;
     void onChanged();
+    void onSelectableChanged();
     void onLayoutUpdated() override;
     SizeF measure(AvailableSize size) const override;
     Ptr cloneThis() const override;
@@ -103,6 +113,9 @@ protected:
 
 private:
     float calcFontSizeFor(const Font& font, const std::string& m_text) const;
+    uint32_t caretToOffset(PointF point) const;
+    void selectWordAtOffset(uint32_t offset);
+    void normalizeSelection();
 
 public:
     static const auto& properties() noexcept {
@@ -114,6 +127,7 @@ public:
             /*4*/
             Internal::PropFieldNotify{ &Text::m_textAutoSizeRange, &Text::onChanged, "textAutoSizeRange" },
             /*5*/ Internal::PropFieldNotify{ &Text::m_textOptions, &Text::onChanged, "textOptions" },
+            /*6*/ Internal::PropFieldNotify{ &Text::m_selectable, &Text::onSelectableChanged, "selectable" },
         };
         return props;
     }
@@ -126,6 +140,7 @@ public:
     Property<Text, TextAutoSize, 3> textAutoSize;
     Property<Text, InclusiveRange<float>, 4> textAutoSizeRange;
     Property<Text, TextOptions, 5> textOptions;
+    Property<Text, bool, 6> selectable;
     BRISK_PROPERTIES_END
 };
 
@@ -148,6 +163,7 @@ constexpr inline PropArgument<decltype(Text::textAutoSize)> textAutoSize{};
 constexpr inline PropArgument<decltype(Text::textAutoSizeRange)> textAutoSizeRange{};
 constexpr inline PropArgument<decltype(Text::wordWrap)> wordWrap{};
 constexpr inline PropArgument<decltype(Text::textOptions)> textOptions{};
+constexpr inline PropArgument<decltype(Text::selectable)> selectable{};
 } // namespace Arg
 
 class WIDGET BackStrikedText final : public Text {

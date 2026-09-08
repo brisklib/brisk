@@ -94,10 +94,11 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications, Value<bool> gl
             contentOverflowX = ContentOverflow::Allow,
             rcnew Text{
                 loremIpsumShort,
-                wordWrap  = true,
-                textAlign = Value{ &m_textAlign },
-                marginTop = 10_apx,
-                fontSize  = Value{ &m_fontSize }.transform([](float v) {
+                wordWrap   = true,
+                selectable = true,
+                textAlign  = Value{ &m_textAlign },
+                marginTop  = 10_apx,
+                fontSize   = Value{ &m_fontSize }.transform([](float v) {
                     return v * 100_perc;
                 }),
             },
@@ -401,10 +402,10 @@ Rc<Widget> ShowcaseVisual::build(Rc<Notifications> notifications, Value<bool> gl
         },
 
         rcnew HLayout{
-            rcnew Text{ "Text rotated by 0°", rotation = Rotation::NoRotation },
-            rcnew Text{ "Text rotated by 90°", rotation = Rotation::Rotate90 },
-            rcnew Text{ "Text rotated by 180°", rotation = Rotation::Rotate180 },
-            rcnew Text{ "Text rotated by 270°", rotation = Rotation::Rotate270 },
+            rcnew Text{ "Text rotated by 0°", rotation = Rotation::NoRotation, selectable = true },
+            rcnew Text{ "Text rotated by 90°", rotation = Rotation::Rotate90, selectable = true },
+            rcnew Text{ "Text rotated by 180°", rotation = Rotation::Rotate180, selectable = true },
+            rcnew Text{ "Text rotated by 270°", rotation = Rotation::Rotate270, selectable = true },
         },
 
     };
