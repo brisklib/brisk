@@ -32,7 +32,7 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Vcpkg
       shell: bash
       env:        
@@ -41,7 +41,7 @@ jobs:
         cmake -P upload-deps.cmake
     - name: Upload buildtrees
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vcpkg-buildtrees-${{matrix.triplet}}
         retention-days: 10
@@ -69,13 +69,13 @@ jobs:
       run: |
         choco install llvm --no-progress -y
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Vcpkg
       run: |
         cmake -P upload-deps.cmake
     - name: Upload buildtrees
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vcpkg-buildtrees-${{matrix.triplet}}
         retention-days: 10
@@ -91,7 +91,7 @@ jobs:
       run: |
         brew install autoconf automake autoconf-archive tree
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Hash
       run: |        
         hash=$(cmake -DDEP_HASH_SILENT=ON -P cmake/dep-hash.cmake)
@@ -125,7 +125,7 @@ jobs:
 
     - name: Upload buildtrees
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vcpkg-buildtrees-osx
         retention-days: 10
@@ -154,7 +154,7 @@ jobs:
       run: |
         brew install autoconf automake autoconf-archive
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
@@ -167,7 +167,7 @@ jobs:
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
     - name: Binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{matrix.triplet}}
         retention-days: 90
@@ -190,7 +190,7 @@ jobs:
         sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
         wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s - 19
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
@@ -203,7 +203,7 @@ jobs:
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
     - name: Binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{matrix.triplet}}
         retention-days: 90
@@ -231,7 +231,7 @@ jobs:
       LLVM_DIR: "C:/Program Files/LLVM"
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Install prerequisites
       run: |
         choco install llvm --no-progress -y
@@ -249,7 +249,7 @@ jobs:
         cd dist
         cmake -E tar cJ "${{github.workspace}}/Brisk-Prebuilt-${{github.ref_type == 'tag' && github.ref_name || github.sha}}-${{matrix.triplet}}.tar.xz" .
     - name: Binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{matrix.triplet}}
         retention-days: 90
@@ -264,7 +264,7 @@ jobs:
       VCPKG_DEFAULT_HOST_TRIPLET: x64-linux
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Install prerequisites
       run: |
         sudo apt-get update && sudo apt-get install -y ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
@@ -283,7 +283,7 @@ jobs:
         ctest --test-dir build --output-on-failure -E "window_autotests"
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -299,7 +299,7 @@ jobs:
       VCPKG_DEFAULT_HOST_TRIPLET: x64-linux
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Install prerequisites
       run: |
         sudo apt-get update && sudo apt-get install -y gcc-14 g++-14 ninja-build mesa-vulkan-drivers vulkan-tools wget xorg-dev libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
@@ -317,7 +317,7 @@ jobs:
         ctest --test-dir build --output-on-failure -E "window_autotests"
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -334,7 +334,7 @@ jobs:
       LLVM_DIR: C:/Program Files/LLVM
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Install prerequisites
       run: |
         choco install llvm --no-progress -y
@@ -355,7 +355,7 @@ jobs:
         ctest --test-dir build --output-on-failure
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -372,7 +372,7 @@ jobs:
       BRISK_SKIP_BLUR_TESTS: 1
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
@@ -388,7 +388,7 @@ jobs:
         ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -404,7 +404,7 @@ jobs:
       VCPKG_DEFAULT_HOST_TRIPLET: arm64-windows-static-md
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
@@ -420,7 +420,7 @@ jobs:
         ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -436,7 +436,7 @@ jobs:
       VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Acquire dependencies
       run: |
         cmake -DDEP_BUILD=OFF -P acquire-deps.cmake
@@ -452,7 +452,7 @@ jobs:
         ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -468,7 +468,7 @@ jobs:
       VCPKG_DEFAULT_HOST_TRIPLET: arm64-osx
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Install prerequisites
       run: |
         brew install autoconf automake autoconf-archive
@@ -490,7 +490,7 @@ jobs:
         ctest --test-dir build --output-on-failure
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -506,7 +506,7 @@ jobs:
       VCPKG_DEFAULT_HOST_TRIPLET: x64-osx
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Install prerequisites
       run: |
         brew install automake autoconf-archive
@@ -524,7 +524,7 @@ jobs:
         ctest --test-dir build --output-on-failure
     - name: Upload test artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-artifacts-${{github.job}}
         retention-days: 10
@@ -546,7 +546,7 @@ jobs:
         libgl-dev libgl1-mesa-dev libvulkan-dev autoconf autoconf-archive libxrandr-dev
         libxinerama-dev libxcursor-dev mesa-common-dev libx11-xcb-dev libwayland-dev libxkbcommon-dev
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{matrix.triplet}}
     - name: Extract Brisk
@@ -558,7 +558,7 @@ jobs:
         mkdir vcpkg_exported && cd vcpkg_exported
         cmake -E tar xvf ../Brisk-Dependencies-*.tar.xz
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: repo
     - name: Configure
@@ -575,7 +575,7 @@ jobs:
       run: |
         cmake --build build
     - name: Upload usage artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: showcase-${{matrix.triplet}}
         retention-days: 30
@@ -597,7 +597,7 @@ jobs:
     needs: build-macos
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{matrix.triplet}}
     - name: Extract Brisk
@@ -609,7 +609,7 @@ jobs:
         mkdir vcpkg_exported && cd vcpkg_exported
         cmake -E tar xvf ../Brisk-Dependencies-*.tar.xz
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: repo
     - name: Configure
@@ -629,7 +629,7 @@ jobs:
       run: |
         ditto -c -k --sequesterRsrc --keepParent "build/RelWithDebInfo/showcase.app" "showcase.app.zip"
     - name: Upload usage artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: showcase-${{matrix.triplet}}
         retention-days: 30
@@ -651,7 +651,7 @@ jobs:
     needs: build-windows
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{matrix.triplet}}
     - name: Extract Brisk
@@ -663,7 +663,7 @@ jobs:
         mkdir vcpkg_exported && cd vcpkg_exported
         cmake -E tar xvf (Get-ChildItem ../Brisk-Dependencies-*.tar.xz).FullName
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: repo
     - name: Configure
@@ -682,7 +682,7 @@ jobs:
       run: |
         cmake --build build --config RelWithDebInfo
     - name: Upload usage artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: showcase-${{matrix.triplet}}
         retention-days: 30
@@ -697,9 +697,9 @@ jobs:
     needs: [build-windows, build-linux, build-macos]
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         merge-multiple: true
     - name: Release
