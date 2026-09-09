@@ -70,13 +70,20 @@ inline SparseMask mergeMasks(const SparseMask& a, const SparseMask& b) {
     SparseMask result;
     result.patches   = a.patches;
     result.patchData = a.patchData;
-    std::map<PatchData, uint32_t> lookup;
-    PatchMerger merger(result.patches, result.patchData, result.bounds);
+    result.patches.reserve(a.patches.size() + b.patches.size());
+    result.patchData.reserve(a.patchData.size() + b.patchData.size());
 
+    // The caller has already established that the masks are disjoint and ordered.
+    // Retain the merger so adjacent compatible runs can still be coalesced.
+    PatchMerger merger(result.patches, result.patchData, result.bounds);
     for (const Patch& patch : b.patches) {
         const PatchData& data = b.patchData[patch.offset];
         merger.add(patch.x(), patch.y(), patch.len(), data);
     }
+    result.bounds.x1 = std::min(result.bounds.x1, b.bounds.x1);
+    result.bounds.y1 = std::min(result.bounds.y1, b.bounds.y1);
+    result.bounds.x2 = std::max(result.bounds.x2, b.bounds.x2);
+    result.bounds.y2 = std::max(result.bounds.y2, b.bounds.y2);
     return result;
 }
 
@@ -89,8 +96,9 @@ SparseMask maskOp(MaskOp op, const SparseMask& left, const SparseMask& right) {
         std::optional<RectangleF> result = rectangleOp(op, left.rectangle, right.rectangle);
         if (result)
             return SparseMask(*result);
-    }
-    if (left.isRectangle() && right.isRectangle()) [[unlikely]] {
+
+        // Some rectangle operations cannot be represented as one rectangle.
+        // Convert both operands before continuing with the general sparse path.
         return maskOp(op, left.toSparse(), right.toSparse());
     }
     if (left.isRectangle() && !right.isRectangle()) [[unlikely]] {
