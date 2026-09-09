@@ -101,7 +101,7 @@ struct WebpData : WebPData {
                                                 result.mutableBytes());
             break;
         default:
-            return result;
+            throwException(EImageError("WebP codec doesn't support encoding {} format", image->format()));
         }
     } else {
         switch (image->pixelFormat()) {
@@ -122,9 +122,11 @@ struct WebpData : WebPData {
                                         quality.value_or(defaultImageQuality), result.mutableBytes());
             break;
         default:
-            return result;
+            throwException(EImageError("WebP codec doesn't support encoding {} format", image->format()));
         }
     }
+    if (result.size == 0)
+        throwException(EImageError("WebP encoding failed"));
     return result;
 }
 
@@ -136,12 +138,15 @@ struct WebpData : WebPData {
 [[nodiscard]] expected<Rc<Image>, ImageIoError> webpDecode(BytesView bytes, ImageFormat format,
                                                            bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
-        throwException(EImageError("Webp codec doesn't support decoding to {} format", format));
+        return unexpected(ImageIoError::InvalidDestFormat);
     }
 
     int width = 0, height = 0;
     std::unique_ptr<uint8_t[], webp_deleter> pixels;
-    switch (toPixelFormat(format)) {
+    PixelFormat pixelFormat = toPixelFormat(format);
+    bool extractAlpha       = pixelFormat == PixelFormat::Alpha;
+    bool extractGrayAlpha   = pixelFormat == PixelFormat::GreyscaleAlpha;
+    switch (pixelFormat) {
     case PixelFormat::RGBA:
         pixels.reset(WebPDecodeRGBA((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
         break;
@@ -154,14 +159,51 @@ struct WebpData : WebPData {
     case PixelFormat::BGR:
         pixels.reset(WebPDecodeBGR((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
         break;
+    case PixelFormat::Greyscale:
+        pixels.reset(WebPDecodeRGBA((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
+        break;
+    case PixelFormat::Alpha:
+    case PixelFormat::GreyscaleAlpha:
+        pixels.reset(WebPDecodeRGBA((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
+        break;
+    case PixelFormat::Unknown:
+        // Auto-detect: WebP always produces RGBA
+        pixels.reset(WebPDecodeRGBA((const uint8_t*)bytes.data(), bytes.size(), &width, &height));
+        pixelFormat = PixelFormat::RGBA;
+        break;
     default:
         return unexpected(ImageIoError::InvalidFormat);
     }
     if (!pixels)
         return unexpected(ImageIoError::InvalidFormat);
-    Rc<Image> img = rcnew Image(Size{ width, height }, format);
+    Rc<Image> img = rcnew Image(Size{ width, height }, imageFormat(PixelType::U8Gamma, pixelFormat));
     auto wr       = img->mapWrite();
-    wr.readFrom({ (const std::byte*)pixels.get(), size_t(width * height * 4) });
+    if (pixelFormat == PixelFormat::Greyscale) {
+        for (int y = 0; y < height; ++y) {
+            auto dst = wr.line(y);
+            for (int x = 0; x < width; ++x) {
+                const uint8_t* rgba = pixels.get() + 4 * (y * width + x);
+                dst[x] = std::byte{ uint8_t((77 * rgba[0] + 150 * rgba[1] + 29 * rgba[2] + 128) >> 8) };
+            }
+        }
+    } else if (!extractAlpha && !extractGrayAlpha) {
+        wr.readFrom({ (const std::byte*)pixels.get(),
+                      size_t(width * height * pixelComponents(pixelFormat)) });
+    } else {
+        auto src = pixels.get();
+        for (int y = 0; y < height; ++y) {
+            auto dst = wr.line(y);
+            for (int x = 0; x < width; ++x) {
+                const uint8_t* rgba = src + 4 * (y * width + x);
+                if (extractAlpha) {
+                    dst[x] = std::byte{ rgba[3] };
+                } else {
+                    dst[2 * x]     = std::byte{ uint8_t((77 * rgba[0] + 150 * rgba[1] + 29 * rgba[2] + 128) >> 8) };
+                    dst[2 * x + 1] = std::byte{ rgba[3] };
+                }
+            }
+        }
+    }
     if (premultiplyAlpha)
         wr.premultiplyAlpha();
     return img;
@@ -174,6 +216,8 @@ struct WebpAnimationEncoder::Private {
 WebpAnimationEncoder::WebpAnimationEncoder(std::optional<float> quality, bool lossless)
     : m_quality(quality), m_lossless(lossless), m_priv(new Private{}) {
     m_priv->mux = WebPMuxNew();
+    if (!m_priv->mux)
+        throwException(EImageError("Failed to create WebP animation mux"));
 }
 
 WebpAnimationEncoder::~WebpAnimationEncoder() {
@@ -181,6 +225,8 @@ WebpAnimationEncoder::~WebpAnimationEncoder() {
 }
 
 void WebpAnimationEncoder::addFrame(Rc<Image> image, std::chrono::milliseconds duration) {
+    if (duration.count() < 0 || duration.count() > std::numeric_limits<int>::max())
+        throwException(EArgument("WebP animation frame duration is out of range"));
     WebpData result = encodeToWebpData(std::move(image), m_quality, m_lossless);
     if (result.size == 0) {
         m_error = true;
@@ -192,22 +238,25 @@ void WebpAnimationEncoder::addFrame(Rc<Image> image, std::chrono::milliseconds d
     frame.duration  = duration.count();
     frame.bitstream = result;
 
-    if (WebPMuxError err = WebPMuxPushFrame(m_priv->mux, &frame, /* copy data */ 1); err != WEBP_MUX_OK) {
-        m_error = true;
-    }
+    if (WebPMuxError err = WebPMuxPushFrame(m_priv->mux, &frame, /* copy data */ 1); err != WEBP_MUX_OK)
+        throwException(EImageError("Failed to add WebP animation frame: {}", int(err)));
 }
 
 Bytes WebpAnimationEncoder::encode(Color backgroundColor, int repeats) {
     if (m_error)
         return {};
+    if (repeats < 0)
+        throwException(EArgument("WebP animation repeat count cannot be negative"));
     // Set animation parameters
     WebPMuxAnimParams anim_params = {
         std::bit_cast<uint32_t>(backgroundColor.v.shuffle(/* ARGB*/ size_constants<3, 0, 1, 2>{})),
         repeats,
     };
-    WebPMuxSetAnimationParams(m_priv->mux, &anim_params);
+    if (WebPMuxError err = WebPMuxSetAnimationParams(m_priv->mux, &anim_params); err != WEBP_MUX_OK)
+        throwException(EImageError("Failed to set WebP animation parameters: {}", int(err)));
     WebpData output;
-    WebPMuxAssemble(m_priv->mux, &output);
+    if (WebPMuxError err = WebPMuxAssemble(m_priv->mux, &output); err != WEBP_MUX_OK)
+        throwException(EImageError("Failed to assemble WebP animation: {}", int(err)));
     return output.toBytes();
 }
 

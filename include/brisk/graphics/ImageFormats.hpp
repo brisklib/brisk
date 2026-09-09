@@ -49,8 +49,9 @@ inline constexpr std::initializer_list<NameValuePair<ImageCodec>> defaultNames<I
  * @brief Enum representing potential image I/O errors.
  */
 enum class ImageIoError {
-    CodecError,    ///< Error related to codec processing
-    InvalidFormat, ///< Error due to an invalid image format
+    CodecError,        ///< Error related to codec processing
+    InvalidFormat,     ///< Error due to an invalid image format
+    InvalidDestFormat, ///< Error due to incompatible destination format for decoding
 };
 
 /**

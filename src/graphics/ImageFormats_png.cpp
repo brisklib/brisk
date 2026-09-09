@@ -79,7 +79,7 @@ Bytes pngEncode(Rc<Image> image) {
 
 expected<Rc<Image>, ImageIoError> pngDecode(BytesView bytes, ImageFormat format, bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
-        throwException(EImageError("PNG codec doesn't support decoding to {} format", format));
+        return unexpected(ImageIoError::InvalidDestFormat);
     }
     PixelFormat pixelFormat = toPixelFormat(format);
     png_image pngimage;
@@ -100,6 +100,7 @@ expected<Rc<Image>, ImageIoError> pngDecode(BytesView bytes, ImageFormat format,
         rcnew Image(Size(pngimage.width, pngimage.height), imageFormat(PixelType::U8Gamma, pixelFormat));
     auto w = image->mapWrite();
     if (!png_image_finish_read(&pngimage, nullptr, w.data(), w.byteStride(), nullptr)) {
+        png_image_free(&pngimage);
         return unexpected(ImageIoError::CodecError);
     }
     if (premultiplyAlpha)

@@ -153,11 +153,6 @@ fn lum(c: vec3<f32>) -> f32 {
     return dot(c, f);
 }
 
-fn svg_lum(c: vec3<f32>) -> f32 {
-    let f = vec3(0.2125, 0.7154, 0.0721);
-    return dot(c, f);
-}
-
 fn clip_color(c_in: vec3<f32>) -> vec3<f32> {
     var c = c_in;
     let l = lum(c);
@@ -492,14 +487,6 @@ fn to_screen(xy: vec2<f32>) -> vec2<f32> {
 
 fn map(p1: vec2<f32>, p2: vec2<f32>) -> vec2<f32> {
     return vec2<f32>(p1.x * p2.x + p1.y * p2.y, p1.x * p2.y - p1.y * p2.x);
-}
-
-// Function to check if point p is inside convex quad defined by q1, q2, q3, q4
-fn isPointInQuad(p: vec2<f32>, q1: vec2<f32>, q2: vec2<f32>, q3: vec2<f32>, q4: vec2<f32>) -> bool {
-    let xx = vec4<f32>(q1.x, q2.x, q3.x, q4.x);
-    let yy = vec4<f32>(q1.y, q2.y, q3.y, q4.y);
-    let result = (xx.yzwx - xx) * (p.y - yy) - (yy.yzwx - yy) * (p.x - xx) > vec4<f32>(0.0);
-    return all(result);
 }
 
 fn transform2D(pos: vec2<f32>) -> vec2<f32> {
@@ -856,16 +843,6 @@ fn positionAlongLine(from_: vec2<f32>, to: vec2<f32>, point: vec2<f32>) -> f32 {
     let dir = normalize(to - from_);
     let offs = point - from_;
     return dot(offs, dir) / length(to - from_);
-}
-
-fn getAngle(x: vec2<f32>) -> f32 {
-    return atan2(x.y, -x.x) / (2.0 * PI) + 0.5;
-}
-
-fn mapLine(from_: vec2<f32>, to: vec2<f32>, point: vec2<f32>) -> vec3<f32> {
-    let len = length(to - from_);
-    let dir = normalize(to - from_);
-    return vec3<f32>(map(point - from_, dir), len);
 }
 
 fn sdfInfLine(p: vec2<f32>, p1: vec2<f32>, p2: vec2<f32>) -> f32 {

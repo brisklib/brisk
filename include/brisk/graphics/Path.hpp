@@ -142,14 +142,34 @@ struct SparseMask {
     RectangleF rectangle;
     Rectangle bounds{ INT32_MAX, INT32_MAX, INT32_MIN, INT32_MIN };
 
+    /**
+     * @brief Computes the pixel-aligned bounding box.
+     * @return Rectangle The bounds in pixel coordinates.
+     */
     Rectangle pixelBounds() const;
 
+    /**
+     * @brief Default constructor creating an empty sparse mask.
+     */
     SparseMask();
 
+    /**
+     * @brief Constructs a sparse mask from a rectangle.
+     * @param rect The rectangle to represent.
+     */
     SparseMask(RectangleF rect);
 
+    /**
+     * @brief Converts to sparse representation if not already.
+     * @return SparseMask The sparse representation.
+     */
     SparseMask toSparse() const;
 
+    /**
+     * @brief Checks if two sparse masks intersect.
+     * @param other The other sparse mask.
+     * @return true if the masks intersect, false otherwise.
+     */
     bool intersects(const SparseMask& other) const;
 
     bool empty() const noexcept {
@@ -184,9 +204,35 @@ public:
     PreparedPath(const Path& path, const StrokeParams& params, Rectangle clipRect = noClipRect);
     PreparedPath(RectangleF rectangle, bool optimizeRectangle = true);
 
+    /**
+     * @brief Returns the union of two prepared paths.
+     * @param a The first prepared path.
+     * @param b The second prepared path.
+     * @return PreparedPath The union of the two paths.
+     * @note Named union_ because 'union' is a C++ keyword.
+     */
     static PreparedPath union_(const PreparedPath& a, const PreparedPath& b);
+    /**
+     * @brief Returns the intersection of two prepared paths.
+     * @param a The first prepared path.
+     * @param b The second prepared path.
+     * @return PreparedPath The intersection of the two paths.
+     */
     static PreparedPath intersection(const PreparedPath& a, const PreparedPath& b);
+    /**
+     * @brief Returns the difference of two prepared paths (a - b).
+     * @param a The first prepared path.
+     * @param b The second prepared path.
+     * @return PreparedPath The difference of the two paths.
+     */
     static PreparedPath difference(const PreparedPath& a, const PreparedPath& b);
+
+    /**
+     * @brief Returns the symmetric difference of two prepared paths.
+     * @param a The first prepared path.
+     * @param b The second prepared path.
+     * @return PreparedPath The symmetric difference of the two paths.
+     */
     static PreparedPath symmetricDifference(const PreparedPath& a, const PreparedPath& b);
 
     static PreparedPath pathOp(MaskOp op, const PreparedPath& a, const PreparedPath& b);
@@ -246,7 +292,16 @@ struct Path {
     Path& operator=(Path&&)      = default; ///< Move constructor.
     Path& operator=(const Path&) = default; ///< Copy constructor.
 
+    /**
+     * @brief Constructs a path representing a rectangle.
+     * @param rectangle The rectangle to add to the path.
+     */
     Path(RectangleF rectangle);
+
+    /**
+     * @brief Constructs a path representing a rectangle.
+     * @param rectangle The rectangle to add to the path.
+     */
     Path(Rectangle rectangle);
 
     friend class Dasher;
@@ -352,6 +407,10 @@ struct Path {
      */
     void close();
 
+    /**
+     * @brief Checks if the path is closed (all sub-paths return to their start).
+     * @return true if the path is closed, false otherwise.
+     */
     bool isClosed() const;
 
     /**
@@ -465,8 +524,18 @@ struct Path {
      * @param m The transformation matrix to apply.
      * @return Path The transformed path.
      */
+    /**
+     * @brief Returns a new path that is a transformed version of this path.
+     * @param m The transformation matrix to apply.
+     * @return Path The transformed path (lvalue reference version).
+     */
     Path transformed(const Matrix& m) const&;
 
+    /**
+     * @brief Transforms this path in place and returns it.
+     * @param m The transformation matrix to apply.
+     * @return Path The transformed path (rvalue reference version for move optimization).
+     */
     Path transformed(const Matrix& m) &&;
 
     /**
@@ -477,7 +546,7 @@ struct Path {
 
     /**
      * @brief Creates a dashed version of the path based on a pattern.
-     * @param pattern A span of floats defining the dash pattern.
+     * @param pattern A span of floats defining the dash pattern (dash, gap, dash, gap, ...).
      * @param offset The starting offset into the pattern.
      * @return Path The dashed path.
      */
@@ -503,6 +572,11 @@ struct Path {
 
     std::optional<RectangleF> asRectangle() const;
 
+    /**
+     * @brief Returns a stroked version of the path.
+     * @param params The stroke parameters to use.
+     * @return Path The path with the stroke expanded.
+     */
     Path stroke(const StrokeParams& params) const;
 
 private:

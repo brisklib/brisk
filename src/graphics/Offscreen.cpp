@@ -39,6 +39,10 @@ OffscreenCanvas::State::State(Rc<RenderDevice> device, Size size, float pixelRat
 }
 
 Rc<Image> OffscreenCanvas::State::render() && {
+    BRISK_ASSERT(canvas);
+    BRISK_ASSERT(context);
+    BRISK_ASSERT(encoder);
+    BRISK_ASSERT(target);
     canvas.reset();
     context.reset();
     encoder->wait();

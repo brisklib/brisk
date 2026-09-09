@@ -47,13 +47,18 @@ Bytes jpegEncode(Rc<Image> image, std::optional<int> quality, std::optional<Colo
     }
     // All jpeg pixel formats are supported
     tjhandle jpeg = tjInitCompress();
+    if (!jpeg)
+        throwException(EImageError("Failed to initialize JPEG encoder"));
     SCOPE_EXIT {
         tjDestroy(jpeg);
     };
 
     auto r = image->mapRead<ImageFormat::Unknown_U8Gamma>();
 
-    Bytes result(tjBufSize(r.width(), r.height(), toJPGSS(ss.value_or(defaultColorSubsampling))));
+    int bufferSize = tjBufSize(r.width(), r.height(), toJPGSS(ss.value_or(defaultColorSubsampling)));
+    if (bufferSize <= 0)
+        throwException(EImageError("Failed to determine JPEG output size"));
+    Bytes result(bufferSize);
     uint8_t* resultData      = (uint8_t*)result.data();
     unsigned long resultSize = result.size();
 
@@ -72,7 +77,7 @@ Bytes jpegEncode(Rc<Image> image, std::optional<int> quality, std::optional<Colo
 
 expected<Rc<Image>, ImageIoError> jpegDecode(BytesView bytes, ImageFormat format) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
-        throwException(EImageError("JPEG codec doesn't support decoding to {} format", format));
+        return unexpected(ImageIoError::InvalidDestFormat);
     }
     tjhandle jpeg = tjInitDecompress();
     SCOPE_EXIT {

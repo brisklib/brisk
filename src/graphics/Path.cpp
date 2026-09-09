@@ -85,6 +85,9 @@ static constexpr float K_PI                = std::numbers::pi_v<float>;
 
 static constexpr float PATH_KAPPA_SQUIRCLE = 0.915f;
 
+// Maximum number of points allowed in polygon/star operations
+static constexpr size_t MAX_POLYGON_POINTS = 5000;
+
 void findEllipseCoords(const RectangleF& r, float angle, float length, PointF* startPoint, PointF* endPoint) {
     if (r.empty()) {
         if (startPoint)
@@ -328,6 +331,7 @@ void Path::close() {
     if (empty())
         return;
 
+    BRISK_ASSERT(!m_points.empty());
     PointF lastPt = m_points.back();
     if (!fuzzyCompare(mStartPoint, lastPt)) {
         lineTo(mStartPoint.x, mStartPoint.y);
@@ -498,6 +502,14 @@ void Path::addRoundRect(RectangleF rect, CornersF rx, CornersF ry, bool squircle
 
 void Path::addPolystar(float points, float innerRadius, float outerRadius, float innerRoundness,
                        float outerRoundness, float startAngle, float cx, float cy, Direction dir) {
+    if (points <= 0.0f)
+        return;
+
+    if (innerRadius < 0.0f || outerRadius < 0.0f)
+        return;
+
+    // Limit to prevent excessive memory/computation
+    points                                       = std::min(static_cast<float>(MAX_POLYGON_POINTS), points);
 
     constexpr static float POLYSTAR_MAGIC_NUMBER = 0.47829f / 0.28f;
     float currentAngle                           = (startAngle - 90.0f) * K_PI / 180.0f;
@@ -593,6 +605,15 @@ void Path::addPolystar(float points, float innerRadius, float outerRadius, float
 
 void Path::addPolygon(float points, float radius, float roundness, float startAngle, float cx, float cy,
                       Direction dir) {
+    if (points <= 0.0f)
+        return;
+
+    if (radius < 0.0f)
+        return;
+
+    // Limit to prevent excessive memory/computation
+    points                                      = std::min(static_cast<float>(MAX_POLYGON_POINTS), points);
+
     constexpr static float POLYGON_MAGIC_NUMBER = 0.25;
     float currentAngle                          = (startAngle - 90.0f) * K_PI / 180.0f;
     float x;
@@ -742,6 +763,8 @@ RectangleF Path::boundingBoxApprox() const {
 }
 
 Path Path::dashed(std::span<const float> pattern, float offset) const {
+    if (pattern.size() < 2)
+        return *this;
     Dasher dasher(pattern.data(), pattern.size());
     Path result;
     result = dasher.dashed(*this);
@@ -764,6 +787,7 @@ PreparedPath& PreparedPath::operator=(PreparedPath&&)      = default;
 
 PreparedPath::PreparedPath(const Path& path, const FillParams& params, Rectangle clipRect,
                            bool optimizeRectangle) {
+    BRISK_ASSERT(&path != nullptr);
     if (optimizeRectangle) {
         if (std::optional<RectangleF> rect = path.asRectangle()) {
             initRect(*rect);
@@ -780,6 +804,7 @@ PreparedPath::PreparedPath(const Path& path, const FillParams& params, Rectangle
 }
 
 PreparedPath::PreparedPath(const Path& path, const StrokeParams& params, Rectangle clipRect) {
+    BRISK_ASSERT(&path != nullptr);
     Path stroke = path.stroke(params);
     if (stroke.empty())
         return;
@@ -826,6 +851,10 @@ PreparedPath PreparedPath::symmetricDifference(const PreparedPath& a, const Prep
     return pathOp(MaskOp::SymmetricDifference, a, b);
 }
 
+/**
+ * @brief Checks if the path represents a simple rectangle.
+ * @return std::optional<RectangleF> The rectangle if the path is a rectangle, std::nullopt otherwise.
+ */
 std::optional<RectangleF> Path::asRectangle() const {
     if (m_segments != 1 || m_elements.size() != 6 || m_points.size() != 5 ||
         !fuzzyCompare(m_points[4], m_points[0]))
