@@ -18,25 +18,91 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <thread>
-
 #include <catch2/catch_all.hpp>
 
+#include <brisk/core/Brisk.h>
 #include <brisk/core/DynamicLibrary.hpp>
-
-#include "Catch2Utils.hpp"
 
 using namespace Brisk;
 
-TEST_CASE("DynamicLibrary") {
-#ifdef BRISK_WINDOWS
-    auto lib = DynamicLibrary::load("kernel32.dll");
+namespace {
+
+Rc<DynamicLibrary> loadKnownSystemLibrary() {
+#if defined(BRISK_WINDOWS)
+    return DynamicLibrary::load("kernel32.dll");
+#elif defined(BRISK_MACOS)
+    return DynamicLibrary::load("/usr/lib/libSystem.B.dylib");
+#elif defined(BRISK_ANDROID)
+    return DynamicLibrary::load("libc.so");
+#elif defined(BRISK_LINUX) && defined(__GLIBC__)
+    return DynamicLibrary::load("libc.so.6");
+#else
+    return nullptr;
+#endif
+}
+
+} // namespace
+
+TEST_CASE("DynamicLibrary reports a missing symbol") {
+#if !defined(BRISK_WINDOWS) && !defined(BRISK_MACOS) && !defined(BRISK_ANDROID) && \
+    !(defined(BRISK_LINUX) && defined(__GLIBC__))
+    SKIP("No portable system library name is available for this target");
+#else
+    auto lib = loadKnownSystemLibrary();
     REQUIRE(lib);
-    auto func = lib->func<unsigned long __stdcall()>("GetTickCount");
-    fmt::println("GetTickCount#1 = {}", func());
-    std::this_thread::sleep_for(std::chrono::milliseconds(32));
-    fmt::println("GetTickCount#2 = {}", func());
-    CHECK(func() > 0);
-    lib = nullptr;
+    CHECK(lib->func<void()>("") == nullptr);
+#endif
+}
+
+TEST_CASE("DynamicLibrary resolves a known platform function") {
+#if !defined(BRISK_WINDOWS) && !defined(BRISK_MACOS) && !defined(BRISK_ANDROID) && \
+    !(defined(BRISK_LINUX) && defined(__GLIBC__))
+    SKIP("No portable system library name is available for this target");
+#else
+    auto lib = loadKnownSystemLibrary();
+    REQUIRE(lib);
+#if defined(BRISK_WINDOWS)
+    auto getCurrentProcessIdFunction = lib->func<unsigned long __stdcall()>("GetCurrentProcessId");
+    REQUIRE(getCurrentProcessIdFunction);
+    CHECK(getCurrentProcessIdFunction() != 0);
+#else
+    auto strlen = lib->func<std::size_t(const char*)>("strlen");
+    REQUIRE(strlen);
+    CHECK(strlen("brisk") == 5);
+#endif
+#endif
+}
+
+TEST_CASE("DynamicFunc reports missing functions") {
+#if !defined(BRISK_WINDOWS) && !defined(BRISK_MACOS) && !defined(BRISK_ANDROID) && \
+    !(defined(BRISK_LINUX) && defined(__GLIBC__))
+    SKIP("No portable system library name is available for this target");
+#else
+    auto lib = loadKnownSystemLibrary();
+    REQUIRE(lib);
+    bool available = true;
+    DynamicFunc<void()> missing(lib, "", available);
+    CHECK_FALSE(available);
+#endif
+}
+
+TEST_CASE("DynamicFunc wraps a resolved function") {
+#if !defined(BRISK_WINDOWS) && !defined(BRISK_MACOS) && !defined(BRISK_ANDROID) && \
+    !(defined(BRISK_LINUX) && defined(__GLIBC__))
+    SKIP("No portable system library name is available for this target");
+#else
+    auto lib = loadKnownSystemLibrary();
+    REQUIRE(lib);
+#if defined(BRISK_WINDOWS)
+    auto getCurrentProcessIdFunction = lib->func<unsigned long __stdcall()>("GetCurrentProcessId");
+    REQUIRE(getCurrentProcessIdFunction);
+    DynamicFunc<unsigned long __stdcall()> getCurrentProcessId(lib, "GetCurrentProcessId");
+    CHECK(getCurrentProcessId() != 0);
+#else
+    auto strlenFunction = lib->func<std::size_t(const char*)>("strlen");
+    REQUIRE(strlenFunction);
+    DynamicFunc<std::size_t(const char*)> strlen(lib, "strlen");
+    CHECK(strlen("brisk") == 5);
+#endif
 #endif
 }
