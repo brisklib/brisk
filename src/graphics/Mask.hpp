@@ -38,7 +38,7 @@ struct DenseMask {
     std::unique_ptr<uint8_t[]> data;
     Rectangle bounds;
 
-    DenseMask() : data(nullptr), bounds{} {}
+    DenseMask() : stride(0), rows(0), data(nullptr), bounds{} {}
 
     DenseMask(Rectangle maskBounds) {
         if (maskBounds.size().longestSide() >= 16384) {

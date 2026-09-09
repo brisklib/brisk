@@ -26,6 +26,8 @@ namespace Brisk {
 namespace Internal {
 
 Internal::SparseMask sparseMaskFromDense(const DenseMask& bitmap) {
+    if (!bitmap.data)
+        return {};
     BRISK_ASSERT(bitmap.stride >= 4);
     SparseMask result;
     Rectangle bounds = bitmap.bounds;

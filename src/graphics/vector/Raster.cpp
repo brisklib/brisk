@@ -247,7 +247,7 @@ struct Rasterizer {
     Rectangle mClip;
     FillRule mFillRule;
 
-    Rasterizer() {}
+    Rasterizer() : outline{}, mRle{}, mClip{}, mFillRule{} {}
 
     ~Rasterizer() {}
 
