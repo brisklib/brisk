@@ -47,6 +47,8 @@ void initializeCommon(InitializationFlags flags) {
 
 void finalizeCommon() {
     if (--coreInitLevel == 0) {
+        Internal::setWakeUpMainThread({});
+        Internal::clearTimers();
         if (settings) {
             settings->save();
             Settings* settings_ = settings.get();

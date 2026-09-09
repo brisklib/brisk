@@ -61,9 +61,9 @@ WindowApplication::WindowApplication() {
     mustBeMainThread();
 
     BRISK_ASSERT(mainScheduler);
-    Internal::wakeUpMainThread = []() {
+    Internal::setWakeUpMainThread([]() {
         PlatformWindow::postEmptyEvent();
-    };
+    });
 
     auto dblClickParams   = PlatformWindow::dblClickParams();
     m_doubleClickTime     = dblClickParams.time;
@@ -91,6 +91,8 @@ WindowApplication::~WindowApplication() {
 
     m_windows.clear();
 
+    Internal::setWakeUpMainThread({});
+    Internal::clearTimers();
     PlatformWindow::finalize();
 
     onApplicationClose();
@@ -101,8 +103,11 @@ WindowApplication::~WindowApplication() {
 void WindowApplication::processEvents(bool wait) {
     mustBeMainThread();
 
-    if (wait)
+    const double timerDelay = Internal::nextTimerDelay();
+    if (wait && timerDelay < 0.0)
         PlatformWindow::waitEvents();
+    else if (wait)
+        PlatformWindow::pollEvents();
     else
         PlatformWindow::pollEvents();
 }

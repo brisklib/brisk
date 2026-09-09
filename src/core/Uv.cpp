@@ -84,7 +84,7 @@ struct UVWork {
 };
 
 void uvWork(uv_work_t* req) {
-    BRISK_SUPPRESS_EXCEPTIONS(reinterpret_cast<UVTimer*>(req)->fn());
+    BRISK_SUPPRESS_EXCEPTIONS(reinterpret_cast<UVWork*>(req)->fn());
 }
 
 } // namespace

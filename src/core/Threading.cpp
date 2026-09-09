@@ -32,7 +32,22 @@ namespace Brisk {
 
 std::thread::id mainThreadId = std::this_thread::get_id();
 
-VoidFunc Internal::wakeUpMainThread;
+namespace {
+
+std::atomic<Internal::WakeUpMainThreadFn> wakeUpMainThreadFn{ nullptr };
+
+} // namespace
+
+void Internal::wakeUpMainThread() {
+    const WakeUpMainThreadFn fn = wakeUpMainThreadFn.load(std::memory_order_acquire);
+    if (fn) {
+        BRISK_SUPPRESS_EXCEPTIONS(fn());
+    }
+}
+
+void Internal::setWakeUpMainThread(WakeUpMainThreadFn fn) noexcept {
+    wakeUpMainThreadFn.store(fn, std::memory_order_release);
+}
 
 bool isMainThread() {
     return std::this_thread::get_id() == mainThreadId;
@@ -50,14 +65,14 @@ struct TimerItem {
 static std::vector<TimerItem> timers;
 
 void setTimeout(double time_s, VoidFunc fn) {
-    if (fn) {
-        TimerItem item{ currentTime() + time_s, std::move(fn) };
-        mainScheduler->dispatch([item] {
-            timers.insert(std::upper_bound(timers.begin(), timers.end(), item,
-                                           [](const TimerItem& x, const TimerItem& y) BRISK_INLINE_LAMBDA {
-                                               return x.targetTime >= y.targetTime;
-                                           }),
-                          item);
+    if (fn && mainScheduler) {
+        TimerItem item{ currentTime() + std::max(0.0, time_s), std::move(fn) };
+        mainScheduler->dispatch([item = std::move(item)] {
+            auto position = std::upper_bound(timers.begin(), timers.end(), item,
+                                             [](const TimerItem& x, const TimerItem& y) BRISK_INLINE_LAMBDA {
+                                                 return x.targetTime > y.targetTime;
+                                             });
+            timers.insert(position, item);
         });
     }
 }
@@ -68,20 +83,34 @@ void processTimers() {
     const double time = currentTime();
     while (!timers.empty()) {
         if (time >= timers.back().targetTime) {
-            BRISK_SUPPRESS_EXCEPTIONS(timers.back().fn());
+            TimerItem item = std::move(timers.back());
             timers.pop_back();
+            BRISK_SUPPRESS_EXCEPTIONS(item.fn());
         } else {
             break;
         }
     }
 }
 
+double Internal::nextTimerDelay() noexcept {
+    if (timers.empty())
+        return -1.0;
+    return std::max(0.0, timers.back().targetTime - currentTime());
+}
+
 void async(function<void()> fn) {
     Loop::main().async(std::move(fn));
 }
 
+void Internal::clearTimers() noexcept {
+    BRISK_ASSERT(isMainThread());
+    if (!isMainThread())
+        return;
+    timers.clear();
+}
+
 std::thread::id TaskQueue::getThreadId() const noexcept {
-    return m_threadId;
+    return m_threadId.load(std::memory_order_acquire);
 }
 
 void TaskQueue::process() noexcept {
@@ -103,10 +132,10 @@ bool TaskQueue::isProcessing() const noexcept {
 }
 
 bool TaskQueue::isOnThread() const noexcept {
-    return std::this_thread::get_id() == m_threadId;
+    return std::this_thread::get_id() == m_threadId.load(std::memory_order_acquire);
 }
 
-std::future<void> TaskQueue::dispatch(VoidFunc func, ExecuteImmediately mode) noexcept {
+std::future<void> TaskQueue::dispatch(VoidFunc func, ExecuteImmediately mode) {
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
     if (mode != ExecuteImmediately::Never && isOnThread()) {
@@ -130,8 +159,8 @@ struct TaskQueue::Impl {
 
 void TaskQueue::enqueue(VoidFunc func) noexcept {
     m_impl->m_q.enqueue(std::move(func));
-    if (m_threadId == mainThreadId && Internal::wakeUpMainThread) {
-        BRISK_SUPPRESS_EXCEPTIONS(Internal::wakeUpMainThread());
+    if (m_threadId.load(std::memory_order_acquire) == mainThreadId) {
+        Internal::wakeUpMainThread();
     }
 }
 
@@ -162,12 +191,10 @@ Rc<TaskQueue> mainScheduler;
 Rc<Scheduler> noScheduler; // always nullptr
 
 void TaskQueue::setThreadId(std::thread::id threadId) noexcept {
-    m_threadId = threadId;
+    m_threadId.store(threadId, std::memory_order_release);
 }
 
-Thread::Thread() {
-    m_thread = std::thread(&Thread::threadBody, this);
-}
+Thread::Thread() {}
 
 Thread::~Thread() {
     // stop thread and wait
@@ -175,6 +202,16 @@ Thread::~Thread() {
     if (m_thread.joinable()) {
         m_thread.join();
     }
+}
+
+void Thread::start() {
+    if (m_thread.joinable()) {
+        return;
+    }
+    m_terminate.store(false, std::memory_order_release);
+    m_thread = std::thread([this] {
+        BRISK_SUPPRESS_EXCEPTIONS(threadBody());
+    });
 }
 
 std::thread::id Thread::get_id() const noexcept {

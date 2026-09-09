@@ -22,8 +22,9 @@
  */
 #pragma once
 
-#include <brisk/core/Brisk.h>
 #include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Brisk.h>
+
 
 #ifdef BRISK_APPLE
 
@@ -32,39 +33,40 @@
 namespace Brisk {
 
 inline NSString* toNSString(std::string_view str) {
-    return [NSString.alloc initWithBytes:(const UInt8*)str.data()
-                                  length:str.size()
-                                encoding:NSUTF8StringEncoding];
+    return [NSString.alloc initWithBytes:str.data() length:str.size() encoding:NSUTF8StringEncoding];
 }
 
 inline NSString* toNSStringOrNil(std::string_view str) {
     if (str.empty())
-        return NULL;
+        return nil;
     return toNSString(str);
 }
 
 inline NSString* toNSStringNoCopy(std::string_view str) {
-    return [[NSString alloc] initWithBytesNoCopy:(void*)str.data()
+    return [[NSString alloc] initWithBytesNoCopy:const_cast<char*>(str.data())
                                           length:str.size()
                                         encoding:NSUTF8StringEncoding
                                     freeWhenDone:NO];
 }
 
 inline NSData* toNSDataNoCopy(BytesView bytes) {
-    return [NSData dataWithBytesNoCopy:(void*)bytes.data() length:bytes.size() freeWhenDone:NO];
+    return
+        [NSData dataWithBytesNoCopy:const_cast<std::byte*>(bytes.data()) length:bytes.size() freeWhenDone:NO];
 }
 
 inline std::string fromNSString(NSString* string) {
     if (string == nil)
         return {};
-    std::string result;
-    size_t len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    result.resize(len);
-    memcpy(result.data(), [string UTF8String], len);
-    return result;
+    const char* utf8 = [string UTF8String];
+    if (utf8 == nullptr)
+        return {};
+    const NSUInteger length = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    return std::string(utf8, length);
 }
 
 inline std::string fromCFString(CFStringRef string) {
+    if (string == nullptr)
+        return {};
     return fromNSString((__bridge NSString*)string);
 }
 } // namespace Brisk

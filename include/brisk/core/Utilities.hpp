@@ -20,10 +20,17 @@
  */
 #pragma once
 
+#include <algorithm>
 #include <atomic>
+#include <concepts>
+#include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <stdexcept>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -441,7 +448,8 @@ ScopedValue(T&, T) -> ScopedValue<T>;
  * @brief A RAII-style helper class for executing a callable object upon scope exit.
  *
  * The `ScopeExit` template class allows the user to specify a function or lambda that will be executed
- * when the `ScopeExit` object goes out of scope.
+ * when the `ScopeExit` object goes out of scope. Scope guards cannot be copied or moved, preventing
+ * accidental changes to their destruction semantics.
  *
  * @tparam Fn The type of the callable object to be executed.
  */
@@ -465,9 +473,11 @@ struct ScopeExit {
 
     Fn fn; ///< The callable object to be executed upon scope exit.
 
-    ScopeExit()                 = delete;  ///< Default constructor is deleted.
-    ScopeExit(const ScopeExit&) = delete;  ///< Copy constructor is deleted.
-    ScopeExit(ScopeExit&&)      = default; ///< Move constructor is defaulted.
+    ScopeExit()                            = delete; ///< Default constructor is deleted.
+    ScopeExit(const ScopeExit&)            = delete; ///< Copy constructor is deleted.
+    ScopeExit(ScopeExit&&)                 = delete; ///< Move constructor is deleted.
+    ScopeExit& operator=(const ScopeExit&) = delete; ///< Copy assignment is deleted.
+    ScopeExit& operator=(ScopeExit&&)      = delete; ///< Move assignment is deleted.
 };
 
 /**
@@ -806,16 +816,20 @@ struct ClonablePtr {
         swap(ptr);
     }
 
-    ClonablePtr(const ClonablePtr& ptr) noexcept : m_ptr(nullptr) {
-        ClonablePtr(*ptr).swap(*this);
-    }
+    ClonablePtr(const ClonablePtr& ptr) : m_ptr(ptr.m_ptr ? new T(*ptr.m_ptr) : nullptr) {}
 
     ClonablePtr& operator=(ClonablePtr&& ptr) noexcept {
-        swap(ptr);
+        if (this != &ptr)
+            swap(ptr);
+        return *this;
     }
 
-    ClonablePtr& operator=(const ClonablePtr& ptr) noexcept {
-        ClonablePtr(*ptr).swap(*this);
+    ClonablePtr& operator=(const ClonablePtr& ptr) {
+        if (this != &ptr) {
+            ClonablePtr copy(ptr);
+            swap(copy);
+        }
+        return *this;
     }
 
     const T& operator*() const noexcept {
@@ -963,10 +977,9 @@ public:
      * std::nullopt.
      */
     template <typename F>
-    [[nodiscard]] constexpr auto map(F&& f) const noexcept -> std::optional<std::invoke_result_t<F, T&>> {
-        if (m_ptr) {
+    [[nodiscard]] constexpr auto map(F&& f) const -> std::optional<std::invoke_result_t<F, T&>> {
+        if (m_ptr)
             return std::invoke(std::forward<F>(f), *m_ptr);
-        }
         return std::nullopt;
     }
 

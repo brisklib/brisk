@@ -20,7 +20,20 @@
  */
 #pragma once
 
+#include <atomic>
+#include <chrono>
+#include <concepts>
+#include <exception>
 #include <future>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <thread>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <variant>
+#include <vector>
 
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Log.hpp>
@@ -36,11 +49,22 @@ class Thread {
 public:
     Thread();
 
-    ~Thread();
+    virtual ~Thread();
 
     std::thread::id get_id() const noexcept;
 
 protected:
+    /**
+     * @brief Starts the thread after the derived object has been initialized.
+     *
+     * Derived constructors must call this method after initializing all members
+     * accessed by `threadBody()`. The base-class constructor intentionally does
+     * not start a virtual thread on a partially constructed object.
+     *
+     * Calling this method more than once has no effect.
+     */
+    void start();
+
     bool isTerminated() const noexcept;
 
     virtual void threadBody();
@@ -89,16 +113,33 @@ using VoidFunc = function<void()>;
 
 namespace Internal {
 
+using WakeUpMainThreadFn = void (*)();
+
 /**
  * @brief Forces the main thread to wake up and process its task queue.
  *
  * This function is particularly useful when the main thread is sleeping in the event loop.
- * The function should interrupts the event loop by posting an empty message, ensuring that the main thread
+ * The function interrupts the event loop by posting an empty message, ensuring that the main thread
  * resumes execution and processes its pending tasks.
  *
  * Set in window/WindowApplication.cpp
  */
-extern VoidFunc wakeUpMainThread;
+void wakeUpMainThread();
+
+/**
+ * @brief Installs or clears the callback used to wake the main event loop.
+ *
+ * @param fn The callback to invoke when main-thread work is queued, or an empty
+ *           function to clear the callback during application shutdown.
+ */
+void setWakeUpMainThread(WakeUpMainThreadFn fn) noexcept;
+
+/**
+ * @brief Clears timers belonging to the current application instance.
+ *
+ * @note Must be called on the main thread.
+ */
+void clearTimers() noexcept;
 } // namespace Internal
 
 bool isMainThread();
@@ -141,19 +182,31 @@ void suppressExceptions(Fn&& fn, Args&&... args) {
 } // namespace Internal
 
 /**
- * @brief Schedules the function for execution in the thread pool
+ * @brief Schedules the function for execution in the thread pool.
  *
- * @param fn function to call in the thread pool
+ * @param fn Function to call in the thread pool.
  */
 void async(function<void()> fn);
 
 void processTimers();
 
-template <typename T>
-T waitFuture(VoidFunc waitFunc, std::future<T> future, int intervalMS = 0);
+namespace Internal {
+
+/**
+ * @brief Returns the delay until the next main-thread timer.
+ *
+ * @return A non-negative delay in seconds, or a negative value when no timer is pending.
+ * @note This function must be called on the main thread.
+ */
+double nextTimerDelay() noexcept;
+
+} // namespace Internal
 
 template <typename T>
-T waitFuture(std::future<T> future, int intervalMS = 0);
+T waitFuture(VoidFunc waitFunc, std::future<T> future, int intervalMS = 1);
+
+template <typename T>
+T waitFuture(std::future<T> future, int intervalMS = 1);
 
 /**
  * @brief Abstract base class for scheduling tasks.
@@ -176,11 +229,12 @@ public:
      * @param func The function to be executed.
      * @param mode The mode that determines when the function will be executed.
      * @return A future that will be satisfied once the function has completed.
+     * @throws Any exception raised while waiting for the returned future.
      */
     virtual std::future<void> dispatch(VoidFunc func,
-                                       ExecuteImmediately mode = ExecuteImmediately::IfOnThread) noexcept = 0;
+                                       ExecuteImmediately mode = ExecuteImmediately::IfOnThread) = 0;
 
-    void dispatchAndWait(VoidFunc func, ExecuteImmediately mode = ExecuteImmediately::IfOnThread) noexcept {
+    void dispatchAndWait(VoidFunc func, ExecuteImmediately mode = ExecuteImmediately::IfOnThread) {
         return waitFuture(dispatch(std::move(func), mode));
     }
 
@@ -197,6 +251,8 @@ public:
      * @param args The arguments to pass to the callable.
      * @return A future that will contain the result of the callable when it completes.
      * @threadsafe This method is thread-safe and can be called from any thread.
+     * @note For a manually pumped `TaskQueue`, another thread must call `process()`
+     *       while a foreign thread waits for completion.
      */
     template <std::invocable<> Callable, typename ReturnType = std::invoke_result_t<Callable>>
     std::future<ReturnType> dispatch(Callable&& func,
@@ -253,10 +309,11 @@ public:
 };
 
 /**
- * @brief Class that manages a queue of tasks to be executed.
+ * @brief Class that manages a manually pumped queue of tasks.
  *
  * The TaskQueue class allows functions to be dispatched for immediate execution
  * or queued for later execution, depending on the dispatch mode and the current thread context.
+ * It does not create a worker thread; the owning thread must call `process()`.
  */
 class TaskQueue : public Scheduler {
 public:
@@ -270,9 +327,12 @@ public:
     ~TaskQueue();
 
     /**
-     * @brief Set the Thread Id object
+     * @brief Sets the thread that owns this queue.
      *
-     * @param threadId
+     * @param threadId The thread on which queued functions may be processed.
+     *
+     * @note Set the thread ID before publishing the queue to other threads. Changing
+     *       ownership while processing is in progress is not supported.
      */
     void setThreadId(std::thread::id threadId) noexcept;
 
@@ -289,7 +349,7 @@ public:
      * @threadsafe This method is thread-safe and can be called from any thread.
      */
     std::future<void> dispatch(VoidFunc func,
-                               ExecuteImmediately mode = ExecuteImmediately::IfOnThread) noexcept override;
+                               ExecuteImmediately mode = ExecuteImmediately::IfOnThread) override;
 
     /**
      * @brief Checks if the current thread is the queue's default thread.
@@ -324,6 +384,9 @@ public:
      * This method dequeues and executes tasks on the current thread. It ensures
      * that no other processing occurs during this operation.
      * The method will continue executing tasks until the queue is empty.
+     *
+     * @note The queue's owner must call this method. Calling it from another
+     *       thread triggers an assertion and returns without processing tasks.
      */
     void process() noexcept;
 
@@ -354,18 +417,22 @@ protected:
 
     struct Impl;
 
-    std::thread::id m_threadId;
-    int m_processing = 0;
+    std::atomic<std::thread::id> m_threadId;
+    std::atomic<int> m_processing = 0;
     std::unique_ptr<Impl> m_impl;
+    static_assert(std::atomic<std::thread::id>::is_always_lock_free,
+                  "std::atomic<std::thread::id> must be lock-free");
 };
 
-/// @brief Represents the task queue and scheduler for the main thread.
+/// @brief Represents the manually pumped task queue and scheduler for the main thread.
 extern Rc<TaskQueue> mainScheduler;
 
 extern Rc<Scheduler> noScheduler;
 
 template <typename T>
 T waitFuture(VoidFunc waitFunc, std::future<T> future, int intervalMS) {
+    if (intervalMS < 1)
+        intervalMS = 1;
     if (waitFunc || isMainThread()) {
         for (;;) {
             std::future_status status = future.wait_for(std::chrono::milliseconds(intervalMS));
@@ -373,7 +440,7 @@ T waitFuture(VoidFunc waitFunc, std::future<T> future, int intervalMS) {
                 return future.get();
             if (waitFunc)
                 waitFunc();
-            if (isMainThread()) {
+            if (isMainThread() && mainScheduler) {
                 mainScheduler->process();
             }
         }
@@ -428,49 +495,77 @@ namespace Internal {
 
 template <typename T>
 struct AsyncCallback {
+    static_assert(std::is_copy_constructible_v<T>, "AsyncCallback requires a copy-constructible result type");
+
     std::mutex sync;
     std::variant<std::monostate, T, std::exception_ptr> result;
-    function<void(T)> fn_ready;
-    function<void(std::exception_ptr)> fn_exception;
+    std::vector<function<void(T)>> readyCallbacks;
+    std::vector<function<void(std::exception_ptr)>> exceptionCallbacks;
 
     void ready(T value) {
-        std::lock_guard lk(sync);
-        if (fn_ready) {
-            fn_ready(value);
-            fn_ready = nullptr; // free memory
-        } else {
+        std::vector<function<void(T)>> callbacks;
+        std::optional<T> callbackValue;
+        {
+            std::lock_guard lk(sync);
+            if (result.index() != 0)
+                return;
             result = std::move(value);
+            callbackValue.emplace(std::get<1>(result));
+            callbacks = std::move(readyCallbacks);
+            exceptionCallbacks.clear();
+        }
+        for (auto& callback : callbacks) {
+            if (callback)
+                BRISK_SUPPRESS_EXCEPTIONS(callback(*callbackValue));
         }
     }
 
     void exception(std::exception_ptr exc) {
-        std::lock_guard lk(sync);
-        if (fn_exception) {
-            fn_exception(exc);
-            fn_exception = nullptr; // free memory
-        } else {
-            result = std::move(exc);
+        std::vector<function<void(std::exception_ptr)>> callbacks;
+        std::exception_ptr callbackException;
+        {
+            std::lock_guard lk(sync);
+            if (result.index() != 0)
+                return;
+            result            = std::move(exc);
+            callbackException = std::get<2>(result);
+            callbacks         = std::move(exceptionCallbacks);
+            readyCallbacks.clear();
+        }
+        for (auto& callback : callbacks) {
+            if (callback)
+                BRISK_SUPPRESS_EXCEPTIONS(callback(callbackException));
         }
     }
 
     void onReady(function<void(T)> fn) {
-        std::lock_guard lk(sync);
-        if (result.index() == 1) {
-            fn(std::get<1>(result));
-            result = std::monostate{};
-        } else {
-            fn_ready = std::move(fn);
+        std::optional<T> value;
+        {
+            std::lock_guard lk(sync);
+            if (result.index() == 0) {
+                readyCallbacks.emplace_back(std::move(fn));
+                return;
+            }
+            if (result.index() != 1)
+                return;
+            value.emplace(std::get<1>(result));
         }
+        BRISK_SUPPRESS_EXCEPTIONS(fn(std::move(*value)));
     }
 
     void onException(function<void(std::exception_ptr)> fn) {
-        std::lock_guard lk(sync);
-        if (result.index() == 2) {
-            fn(std::get<2>(result));
-            result = std::monostate{};
-        } else {
-            fn_exception = std::move(fn);
+        std::exception_ptr exception;
+        {
+            std::lock_guard lk(sync);
+            if (result.index() == 0) {
+                exceptionCallbacks.emplace_back(std::move(fn));
+                return;
+            }
+            if (result.index() != 2)
+                return;
+            exception = std::get<2>(result);
         }
+        BRISK_SUPPRESS_EXCEPTIONS(fn(std::move(exception)));
     }
 };
 } // namespace Internal
@@ -495,7 +590,7 @@ public:
         cb->onException([promise](std::exception_ptr exc) {
             promise->set_exception(std::move(exc));
         });
-        return future.get();
+        return waitFuture(std::move(future));
     }
 
     void wait() {
@@ -504,6 +599,9 @@ public:
 
     void getInCallback(Rc<Scheduler> scheduler, function<void(Result)> callback,
                        function<void(std::exception_ptr)> error = {}) {
+        BRISK_ASSERT(scheduler);
+        if (!scheduler)
+            return;
         cb->onReady([scheduler, callback = std::move(callback)](Result result) mutable {
             scheduler->dispatch([callback = std::move(callback), result = std::move(result)]() mutable {
                 callback(result);
@@ -552,7 +650,6 @@ struct AsyncOperation {
     }
 
     AsyncValue<Result> value() {
-
         return { cb };
     }
 
