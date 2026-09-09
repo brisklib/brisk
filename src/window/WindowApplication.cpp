@@ -18,17 +18,16 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/window/WindowApplication.hpp>
-#include <brisk/core/internal/Initialization.hpp>
-#include <brisk/core/internal/Lock.hpp>
+#include <brisk/core/Log.hpp>
 #include <brisk/core/Settings.hpp>
 #include <brisk/core/Utilities.hpp>
-
+#include <brisk/core/internal/Initialization.hpp>
+#include <brisk/core/internal/Lock.hpp>
+#include <brisk/graphics/Fonts.hpp>
 #include <brisk/window/Window.hpp>
-#include <brisk/core/Log.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 #include "PlatformWindow.hpp"
-#include <brisk/graphics/Fonts.hpp>
 
 namespace Brisk {
 
@@ -115,7 +114,7 @@ void WindowApplication::renderWindows() {
     using std::chrono::steady_clock;
     steady_clock::time_point stopTime =
         steady_clock::now() + std::chrono::microseconds(1'000'000 / maximumFPS);
-    std::vector<Rc<Window>> windows   = m_windows;
+    std::vector<Rc<Window>> windows = m_windows;
     for (Rc<Window> w : windows) {
         if (w->m_rendering) {
             w->doPaint();

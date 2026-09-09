@@ -20,9 +20,9 @@
  */
 #pragma once
 
-#include "ViewModel/ViewModel.hpp"
-
 #include <brisk/gui/Gui.hpp>
+
+#include "ViewModel/ViewModel.hpp"
 
 namespace App {
 

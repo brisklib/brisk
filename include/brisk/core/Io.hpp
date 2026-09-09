@@ -21,10 +21,10 @@
 #pragma once
 
 #include <brisk/core/Brisk.h>
-#include "Stream.hpp"
-#include "internal/Expected.hpp"
-#include "internal/Filesystem.hpp"
-#include "Reflection.hpp"
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/Stream.hpp>
+#include <brisk/core/internal/Expected.hpp>
+#include <brisk/core/internal/Filesystem.hpp>
 
 namespace Brisk {
 

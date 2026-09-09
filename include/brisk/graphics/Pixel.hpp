@@ -21,10 +21,10 @@
 #pragma once
 
 #include <cstdint>
+
 #include <brisk/core/Reflection.hpp>
-#include <brisk/core/Reflection.hpp>
-#include <brisk/core/Utilities.hpp>
 #include <brisk/core/Simd.hpp>
+#include <brisk/core/Utilities.hpp>
 
 namespace Brisk {
 

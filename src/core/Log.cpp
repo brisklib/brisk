@@ -18,18 +18,19 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Text.hpp>
-#include <brisk/core/System.hpp>
-#include <brisk/core/Log.hpp>
-#include <brisk/core/Settings.hpp>
-#include <brisk/core/Version.hpp>
 #include <cstdint>
 #include <cstdio>
 #include <random>
 
+#include <fmt/format.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
-#include <fmt/format.h>
+
+#include <brisk/core/Log.hpp>
+#include <brisk/core/Settings.hpp>
+#include <brisk/core/System.hpp>
+#include <brisk/core/Text.hpp>
+#include <brisk/core/Version.hpp>
 #if defined(BRISK_WINDOWS)
 #include <spdlog/sinks/msvc_sink.h>
 #endif

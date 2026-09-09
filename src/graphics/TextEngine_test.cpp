@@ -16,9 +16,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <catch2/catch_all.hpp>
-#include "TextEngine/include/text_layout/Layout.hpp"
-
 #include <algorithm>
 #include <array>
 #include <filesystem>
@@ -28,6 +25,10 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
+#include <catch2/catch_all.hpp>
+
+#include "TextEngine/include/text_layout/Layout.hpp"
 
 namespace TL = Brisk::TextEngine;
 

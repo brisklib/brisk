@@ -22,8 +22,9 @@
  */
 #pragma once
 
-#include "../Brisk.h"
 #include <cstdint>
+
+#include <brisk/core/Brisk.h>
 
 namespace Brisk {
 

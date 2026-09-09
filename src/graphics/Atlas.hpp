@@ -19,13 +19,15 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include <brisk/core/internal/Generation.hpp>
-#include <brisk/core/Rc.hpp>
-#include "FlatAllocator.hpp"
-#include <mutex>
-#include <brisk/graphics/internal/Sprites.hpp>
-#include <brisk/graphics/Gradients.hpp>
 #include <map>
+#include <mutex>
+
+#include <brisk/core/Rc.hpp>
+#include <brisk/core/internal/Generation.hpp>
+#include <brisk/graphics/Gradients.hpp>
+#include <brisk/graphics/internal/Sprites.hpp>
+
+#include "FlatAllocator.hpp"
 
 namespace Brisk {
 

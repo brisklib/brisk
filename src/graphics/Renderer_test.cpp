@@ -18,24 +18,24 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <catch2/catch_all.hpp>
+
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/Text.hpp>
+#include <brisk/core/Time.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Geometry.hpp>
+#include <brisk/graphics/Image.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/graphics/RenderState.hpp>
 #include <brisk/graphics/Renderer.hpp>
 
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Reflection.hpp>
-#include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 #include "VisualTests.hpp"
 #include "brisk/core/Log.hpp"
-#include <brisk/graphics/Color.hpp>
-#include <brisk/graphics/Geometry.hpp>
-#include <brisk/graphics/RenderState.hpp>
-#include <brisk/core/Time.hpp>
-#include <brisk/core/Text.hpp>
-#include <brisk/graphics/Image.hpp>
-#include <brisk/graphics/Canvas.hpp>
-
-#include <brisk/graphics/NativeWindowHandle.hpp>
-#include <brisk/graphics/Palette.hpp>
 #ifdef BRISK_WEBGPU
 #include <brisk/graphics/WebGpu.hpp>
 #endif

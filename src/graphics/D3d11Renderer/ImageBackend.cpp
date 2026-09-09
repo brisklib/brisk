@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "ImageBackend.hpp"
+
 #include <brisk/core/Utilities.hpp>
 
 namespace Brisk {
@@ -63,8 +64,8 @@ ImageBackendD3d11::ImageBackendD3d11(Rc<RenderDeviceD3d11> device, Image* image,
     srvDesc.ViewDimension       = D3D11_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MipLevels = 1;
 
-    hr                          = m_device->m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc,
-                                                                               m_srv.ReleaseAndGetAddressOf());
+    hr = m_device->m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc,
+                                                      m_srv.ReleaseAndGetAddressOf());
     CHECK_HRESULT(hr, return);
 }
 

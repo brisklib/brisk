@@ -20,8 +20,9 @@
  */
 #pragma once
 
-#include <brisk/window/Window.hpp>
 #include <brisk/core/Localization.hpp>
+#include <brisk/window/Window.hpp>
+
 #include "Gui.hpp"
 
 namespace Brisk {

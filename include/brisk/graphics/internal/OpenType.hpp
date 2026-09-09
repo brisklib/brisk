@@ -21,6 +21,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include <fmt/format.h>
 
 namespace Brisk {
@@ -42,28 +43,28 @@ constexpr uint32_t otTag(char c1, char c2, char c3, char c4) {
  * (as produced by otTag), so it can be passed directly to shaping APIs.
  */
 enum class OpenTypeFeature : uint32_t {
-    aalt = otTag('a', 'a', 'l', 't'),  /**< Access All Alternates */
-    abvf = otTag('a', 'b', 'v', 'f'),  /**< Above-base Forms */
-    abvm = otTag('a', 'b', 'v', 'm'),  /**< Above-base Mark Positioning */
-    abvs = otTag('a', 'b', 'v', 's'),  /**< Above-base Substitutions */
-    afrc = otTag('a', 'f', 'r', 'c'),  /**< Alternative Fractions */
-    akhn = otTag('a', 'k', 'h', 'n'),  /**< Akhand - Forms a conjunct */
-    blwf = otTag('b', 'l', 'w', 'f'),  /**< Below-base Forms */
-    blwm = otTag('b', 'l', 'w', 'm'),  /**< Below-base Mark Positioning */
-    blws = otTag('b', 'l', 'w', 's'),  /**< Below-base Substitutions */
-    calt = otTag('c', 'a', 'l', 't'),  /**< Contextual Alternates */
+    aalt  = otTag('a', 'a', 'l', 't'), /**< Access All Alternates */
+    abvf  = otTag('a', 'b', 'v', 'f'), /**< Above-base Forms */
+    abvm  = otTag('a', 'b', 'v', 'm'), /**< Above-base Mark Positioning */
+    abvs  = otTag('a', 'b', 'v', 's'), /**< Above-base Substitutions */
+    afrc  = otTag('a', 'f', 'r', 'c'), /**< Alternative Fractions */
+    akhn  = otTag('a', 'k', 'h', 'n'), /**< Akhand - Forms a conjunct */
+    blwf  = otTag('b', 'l', 'w', 'f'), /**< Below-base Forms */
+    blwm  = otTag('b', 'l', 'w', 'm'), /**< Below-base Mark Positioning */
+    blws  = otTag('b', 'l', 'w', 's'), /**< Below-base Substitutions */
+    calt  = otTag('c', 'a', 'l', 't'), /**< Contextual Alternates */
     case_ = otTag('c', 'a', 's', 'e'), /**< Case-Sensitive Forms */
-    ccmp = otTag('c', 'c', 'm', 'p'),  /**< Glyph Composition/Decomposition */
-    cfar = otTag('c', 'f', 'a', 'r'),  /**< Conjunct Form After Ro */
-    chws = otTag('c', 'h', 'w', 's'),  /**< Contextual Half-width Spacing */
-    cjct = otTag('c', 'j', 'c', 't'),  /**< Conjunct Forms */
-    clig = otTag('c', 'l', 'i', 'g'),  /**< Contextual Ligatures */
-    cpct = otTag('c', 'p', 'c', 't'),  /**< Centered CJK Punctuation */
-    cpsp = otTag('c', 'p', 's', 'p'),  /**< Capital Spacing */
-    cswh = otTag('c', 's', 'w', 'h'),  /**< Contextual Swash */
-    curs = otTag('c', 'u', 'r', 's'),  /**< Cursive Positioning */
-    cv01 = otTag('c', 'v', '0', '1'),  /**< Character Variants (1) */
-    cv02 = otTag('c', 'v', '0', '2'),  /**< Character Variants (2) */
+    ccmp  = otTag('c', 'c', 'm', 'p'), /**< Glyph Composition/Decomposition */
+    cfar  = otTag('c', 'f', 'a', 'r'), /**< Conjunct Form After Ro */
+    chws  = otTag('c', 'h', 'w', 's'), /**< Contextual Half-width Spacing */
+    cjct  = otTag('c', 'j', 'c', 't'), /**< Conjunct Forms */
+    clig  = otTag('c', 'l', 'i', 'g'), /**< Contextual Ligatures */
+    cpct  = otTag('c', 'p', 'c', 't'), /**< Centered CJK Punctuation */
+    cpsp  = otTag('c', 'p', 's', 'p'), /**< Capital Spacing */
+    cswh  = otTag('c', 's', 'w', 'h'), /**< Contextual Swash */
+    curs  = otTag('c', 'u', 'r', 's'), /**< Cursive Positioning */
+    cv01  = otTag('c', 'v', '0', '1'), /**< Character Variants (1) */
+    cv02  = otTag('c', 'v', '0', '2'), /**< Character Variants (2) */
 #ifndef DOCUMENTATION
     cv03 = otTag('c', 'v', '0', '3'),
     cv04 = otTag('c', 'v', '0', '4'),
@@ -286,7 +287,7 @@ enum class OpenTypeFeature : uint32_t {
     vpal = otTag('v', 'p', 'a', 'l'), /**< Proportional Alternate Vertical Metrics */
     vrt2 = otTag('v', 'r', 't', '2'), /**< Vertical Alternates and Rotation */
     vrtr = otTag('v', 'r', 't', 'r'), /**< Vertical Alternates for Rotation */
-    zero = otTag('z', 'e', 'r', 'o') /**< Slashed Zero */
+    zero = otTag('z', 'e', 'r', 'o')  /**< Slashed Zero */
 };
 
 std::string openTypeFeatureToString(OpenTypeFeature feat);

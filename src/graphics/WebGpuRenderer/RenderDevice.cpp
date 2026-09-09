@@ -20,18 +20,21 @@
  */
 #define BRISK_ALLOW_OS_HEADERS
 #include "RenderDevice.hpp"
-#include "WindowRenderTarget.hpp"
+
+#include <brisk/core/App.hpp>
+#include <brisk/core/Cryptography.hpp>
+#include <brisk/core/Log.hpp>
+#include <brisk/core/Resources.hpp>
+
+#include "ImageBackend.hpp"
 #include "ImageRenderTarget.hpp"
 #include "RenderEncoder.hpp"
-#include "ImageBackend.hpp"
-#include <brisk/core/Cryptography.hpp>
-#include <brisk/core/Resources.hpp>
-#include <brisk/core/App.hpp>
-#include <brisk/core/Log.hpp>
+#include "WindowRenderTarget.hpp"
 
 #ifdef BRISK_WINDOWS
-#include "../AdapterForMonitor.hpp"
 #include <dawn/native/D3DBackend.h>
+
+#include "../AdapterForMonitor.hpp"
 #endif
 
 namespace Brisk {

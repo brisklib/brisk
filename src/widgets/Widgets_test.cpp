@@ -18,13 +18,16 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/Widgets.hpp>
+#include <random>
+
 #include <catch2/catch_all.hpp>
+
+#include <brisk/graphics/Offscreen.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Widgets.hpp>
+
 #include "../graphics/VisualTests.hpp"
-#include <brisk/graphics/Offscreen.hpp>
-#include <random>
 
 namespace Brisk {
 

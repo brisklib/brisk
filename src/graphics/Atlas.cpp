@@ -19,8 +19,9 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Atlas.hpp"
-#include <brisk/core/internal/Lock.hpp>
+
 #include <brisk/core/Log.hpp>
+#include <brisk/core/internal/Lock.hpp>
 
 namespace Brisk {
 

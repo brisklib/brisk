@@ -24,6 +24,7 @@
 #include <climits>
 #include <cstring>
 #include <memory>
+
 #include "v_ft_raster.h"
 
 namespace Brisk {

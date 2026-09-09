@@ -19,9 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include "Gui.hpp"
 #include <bit>
+
 #include <brisk/core/internal/cityhash.hpp>
+
+#include "Gui.hpp"
 
 namespace Brisk {
 

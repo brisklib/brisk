@@ -21,10 +21,10 @@
 
 #pragma once
 
-#include <memory>
 #include <cstdint>
-#include <brisk/core/Memory.hpp>
+#include <memory>
 
+#include <brisk/core/Memory.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/graphics/Path.hpp>
 

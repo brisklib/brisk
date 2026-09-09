@@ -20,8 +20,8 @@
  */                                                                                                          \
 #pragma once
 
-#include "Image.hpp"
 #include "Color.hpp"
+#include "Image.hpp"
 
 namespace Brisk {
 

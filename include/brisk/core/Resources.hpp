@@ -22,11 +22,12 @@
 
 #include <map>
 #include <mutex>
+
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Compression.hpp>
-#include <brisk/core/internal/Resources.h>
-#include <brisk/core/internal/Debug.hpp>
 #include <brisk/core/Exceptions.hpp>
+#include <brisk/core/internal/Debug.hpp>
+#include <brisk/core/internal/Resources.h>
 
 namespace Brisk {
 

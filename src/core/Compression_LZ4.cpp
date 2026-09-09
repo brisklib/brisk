@@ -18,12 +18,14 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <memory>
+
+#include <lz4.h>
+#include <lz4frame.h>
+#include <lz4hc.h>
+
 #include <brisk/core/Compression.hpp>
 #include <brisk/core/Log.hpp>
-#include <lz4.h>
-#include <lz4hc.h>
-#include <lz4frame.h>
-#include <memory>
 
 namespace Brisk {
 

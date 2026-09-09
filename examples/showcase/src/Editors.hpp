@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include <brisk/widgets/Notifications.hpp>
 #include <brisk/graphics/Palette.hpp>
+#include <brisk/widgets/Notifications.hpp>
 
 namespace Brisk {
 

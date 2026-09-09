@@ -20,10 +20,12 @@
  */
 #pragma once
 
-#include "internal/Throw.hpp"
 #include <stdexcept>
 #include <type_traits>
+
 #include <fmt/format.h>
+
+#include <brisk/core/internal/Throw.hpp>
 
 namespace Brisk {
 

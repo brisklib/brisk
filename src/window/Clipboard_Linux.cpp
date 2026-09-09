@@ -18,13 +18,13 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Threading.hpp>
-#include <brisk/window/Clipboard.hpp>
-#include <brisk/core/Encoding.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Log.hpp>
-
 #include <GLFW/glfw3.h>
+
+#include <brisk/core/Encoding.hpp>
+#include <brisk/core/Log.hpp>
+#include <brisk/core/Threading.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/window/Clipboard.hpp>
 
 namespace Brisk {
 

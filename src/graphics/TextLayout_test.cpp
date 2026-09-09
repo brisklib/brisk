@@ -16,16 +16,18 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <catch2/catch_all.hpp>
+
+#include <brisk/core/Io.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Fonts.hpp>
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/core/Io.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <catch2/catch_all.hpp>
-#include "VisualTests.hpp"
-#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Palette.hpp>
+
 #include "FontInternals.hpp"
+#include "VisualTests.hpp"
 
 namespace Brisk {
 

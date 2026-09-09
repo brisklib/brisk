@@ -20,15 +20,17 @@
  */
 #pragma once
 
+#include <iostream>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
-#include <iostream>
+
 #include <fmt/format.h>
-#include <fmt/xchar.h>
 #include <fmt/ostream.h>
-#include "internal/Constants.hpp"
-#include "internal/Span.hpp"
+#include <fmt/xchar.h>
+
+#include <brisk/core/internal/Constants.hpp>
+#include <brisk/core/internal/Span.hpp>
 
 namespace Brisk {
 

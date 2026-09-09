@@ -26,34 +26,36 @@ BRISK_CLANG_PRAGMA(clang diagnostic push)
 BRISK_CLANG_PRAGMA(clang diagnostic ignored "-Wc++2a-extensions")
 
 #include <set>
-#include <fmt/ranges.h>
-#include <spdlog/spdlog.h>
+#include <type_traits>
 #include <typeindex>
 #include <typeinfo>
 #include <unordered_map>
-#include <type_traits>
 #include <utility>
-#include <brisk/core/Binding.hpp>
+
+#include <fmt/ranges.h>
+#include <spdlog/spdlog.h>
+
 #include <brisk/core/BasicTypes.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/MetaClass.hpp>
-#include <brisk/core/internal/cityhash.hpp>
-#include <brisk/window/Types.hpp>
-#include <brisk/window/Window.hpp>
+#include <brisk/core/Binding.hpp>
 #include <brisk/core/Compression.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Time.hpp>
+#include <brisk/core/MetaClass.hpp>
 #include <brisk/core/Settings.hpp>
 #include <brisk/core/Threading.hpp>
-#include <brisk/core/internal/Typename.hpp>
-#include <brisk/graphics/Canvas.hpp>
-#include <brisk/graphics/Fonts.hpp>
-#include <brisk/graphics/Color.hpp>
+#include <brisk/core/Time.hpp>
+#include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
-#include "internal/Animation.hpp"
-#include "Properties.hpp"
+#include <brisk/core/internal/Typename.hpp>
+#include <brisk/core/internal/cityhash.hpp>
+#include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/window/Types.hpp>
+#include <brisk/window/Window.hpp>
+
 #include "Event.hpp"
+#include "Properties.hpp"
 #include "WidgetTree.hpp"
+#include "internal/Animation.hpp"
 
 namespace Brisk {
 
@@ -115,7 +117,7 @@ struct Depends {
         return "depends";
     }
 
-    constexpr static PropFlags flags = PropFlags ::None;
+    constexpr static PropFlags flags = PropFlags::None;
 };
 
 } // namespace Tag
@@ -389,7 +391,7 @@ struct IsConstexprCompatible<SmallVector<T, S>> {
 
 template <typename WidgetClass, typename ValueType>
 struct GuiProp {
-    ValueType(WidgetClass::*field);
+    ValueType(WidgetClass::* field);
     std::conditional_t<IsConstexprCompatible<ValueType>::value, ValueType, ValueType (*)()> initialValue;
     PropFlags flags;
     const char* name = nullptr;
@@ -466,12 +468,12 @@ struct GuiProp {
 };
 
 template <typename WidgetClass, typename ValueType>
-GuiProp(ValueType(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags,
-        const char* = nullptr) -> GuiProp<WidgetClass, ValueType>;
+GuiProp(ValueType(WidgetClass::*), std::type_identity_t<ValueType>, PropFlags, const char* = nullptr)
+    -> GuiProp<WidgetClass, ValueType>;
 
 template <typename WidgetClass, typename ValueType, typename AnimatedType>
 struct GuiProp<WidgetClass, Animated<ValueType, AnimatedType>> {
-    Animated<ValueType, AnimatedType>(WidgetClass::*field);
+    Animated<ValueType, AnimatedType>(WidgetClass::* field);
     ValueType initialValue;
     PropFlags flags;
     const char* name = nullptr;

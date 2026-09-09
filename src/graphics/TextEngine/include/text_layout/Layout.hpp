@@ -1,16 +1,17 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
-#include <span>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <vector>
-#include <cassert>
+
+#include <brisk/core/internal/FunctionRef.hpp>
 
 #include "BreakIterator.hpp"
-#include "Types.hpp"
 #include "FontDatabase.hpp"
-#include <brisk/core/internal/FunctionRef.hpp>
+#include "Types.hpp"
 
 namespace Brisk::TextEngine {
 

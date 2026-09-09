@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include <brisk/window/WindowApplication.hpp>
 #include <brisk/gui/Component.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 namespace Brisk {
 

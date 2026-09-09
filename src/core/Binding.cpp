@@ -19,9 +19,9 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/Binding.hpp>
-#include <brisk/core/internal/Lock.hpp>
-#include <brisk/core/Utilities.hpp>
 #include <brisk/core/Memory.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/Lock.hpp>
 
 namespace Brisk {
 

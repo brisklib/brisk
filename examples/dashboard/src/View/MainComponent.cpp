@@ -19,13 +19,15 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "MainComponent.hpp"
+
 #include <brisk/widgets/Widgets.hpp>
+#include <brisk/window/OsDialogs.hpp>
+
 #include "AboutComponent.hpp"
 #include "SettingsComponent.hpp"
 #include "Style.hpp"
 #include "View.hpp"
 #include "brisk/core/Version.hpp"
-#include <brisk/window/OsDialogs.hpp>
 
 namespace App {
 

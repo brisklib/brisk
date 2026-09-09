@@ -18,8 +18,8 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/Spinner.hpp>
 #include <brisk/graphics/Palette.hpp>
+#include <brisk/widgets/Spinner.hpp>
 
 namespace Brisk {
 
@@ -40,9 +40,9 @@ void spinnerPainter(Canvas& canvas, const Widget& widget) {
     bool active            = spinner ? spinner->active.get() : true;
     const float time       = active ? frameStartTime * 0.25f : 0;
 
-    RectangleF rect        = RectangleF(widget.rect())
-                          .alignedRect(SizeF(widget.rect().shortestSide(), widget.rect().shortestSide()),
-                                       PointF{ 0.5f, 0.5f });
+    RectangleF rect   = RectangleF(widget.rect())
+                            .alignedRect(SizeF(widget.rect().shortestSide(), widget.rect().shortestSide()),
+                                         PointF{ 0.5f, 0.5f });
 
     constexpr int num = 3;
     float side        = (rect.width() / num) + 0.5_dp;

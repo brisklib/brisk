@@ -19,11 +19,13 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
+
 #include <brisk/core/Compression.hpp>
 #include <brisk/core/Reflection.hpp>
-#include "test/LoremIpsum.hpp"
 #include <brisk/core/Utilities.hpp>
+
 #include "Catch2Utils.hpp"
+#include "test/LoremIpsum.hpp"
 
 namespace Brisk {
 

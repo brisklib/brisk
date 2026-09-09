@@ -20,15 +20,16 @@
  */
 #pragma once
 
-#include <brisk/core/Binding.hpp>
+#include <mutex>
+
 #include <brisk/core/BasicTypes.hpp>
-#include <brisk/graphics/Renderer.hpp>
+#include <brisk/core/Binding.hpp>
+#include <brisk/core/Threading.hpp>
 #include <brisk/core/Time.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <brisk/core/Threading.hpp>
-#include <brisk/window/Types.hpp>
+#include <brisk/graphics/Renderer.hpp>
 #include <brisk/window/Display.hpp>
-#include <mutex>
+#include <brisk/window/Types.hpp>
 
 namespace Brisk {
 

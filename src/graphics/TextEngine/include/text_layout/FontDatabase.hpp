@@ -1,16 +1,17 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
-#include <span>
 #include <vector>
-#include <array>
+
+#include <brisk/core/internal/FunctionRef.hpp>
 
 #include "Types.hpp"
-#include <brisk/core/internal/FunctionRef.hpp>
 
 namespace Brisk::TextEngine {
 

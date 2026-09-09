@@ -18,28 +18,28 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/Html.hpp>
-#include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/graphics/Fonts.hpp>
+#include <charconv>
 #include <list>
 #include <map>
+#include <system_error>
 #include <unordered_map>
-#include <brisk/core/Log.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/internal/Lock.hpp>
+
+#include <ft2build.h>
+#include <lunasvg.h>
+#include <text_layout/Layout.hpp>
+
 #include <brisk/core/Io.hpp>
+#include <brisk/core/Log.hpp>
 #include <brisk/core/Resources.hpp>
 #include <brisk/core/Text.hpp>
-#include <text_layout/Layout.hpp>
-#include <charconv>
-#include <system_error>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/Lock.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/graphics/Html.hpp>
+#include <brisk/graphics/ImageFormats.hpp>
 
 #include "FontInternals.hpp"
 #include "brisk/graphics/Canvas.hpp"
-
-#include <lunasvg.h>
-
-#include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_STROKER_H
 #include FT_LCD_FILTER_H
@@ -1574,8 +1574,8 @@ struct Visitor final : public HtmlSax {
         }
         if (tag == "font" && attr == "size") {
             int value{};
-            const char* begin = attrValue.data();
-            const char* end   = begin + attrValue.size();
+            const char* begin       = attrValue.data();
+            const char* end         = begin + attrValue.size();
             auto [parsedEnd, error] = std::from_chars(begin, end, value, 10);
             if (error == std::errc{} && parsedEnd == end && value >= 1 && value <= 256) {
                 fontStack.back().font.fontSize = static_cast<float>(value);

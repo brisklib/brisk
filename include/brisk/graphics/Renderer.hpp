@@ -19,15 +19,17 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */                                                                                                          \
 #pragma once
-#include "Image.hpp"
-#include <brisk/core/internal/Expected.hpp>
 #include <mutex>
-#include "RenderState.hpp"
+
+#include <brisk/core/MetaClass.hpp>
+#include <brisk/core/internal/Expected.hpp>
+#include <brisk/graphics/NativeDisplayHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
+
 #include "Color.hpp"
 #include "Geometry.hpp"
-#include <brisk/graphics/NativeWindowHandle.hpp>
-#include <brisk/graphics/NativeDisplayHandle.hpp>
-#include <brisk/core/MetaClass.hpp>
+#include "Image.hpp"
+#include "RenderState.hpp"
 
 namespace Brisk {
 
@@ -434,9 +436,9 @@ public:
      * @brief Returns information about the rendering device.
      * @return RenderDeviceInfo object.
      */
-    virtual RenderDeviceInfo info() const                              = 0;
+    virtual RenderDeviceInfo info() const                                         = 0;
 
-    virtual RendererBackend backend() const noexcept                   = 0;
+    virtual RendererBackend backend() const noexcept                              = 0;
 
     /**
      * @brief Creates a render target for a window.
@@ -467,25 +469,25 @@ public:
      * @brief Creates a new render encoder.
      * @return The render encoder.
      */
-    virtual Rc<RenderEncoder> createEncoder()                          = 0;
+    virtual Rc<RenderEncoder> createEncoder()                                     = 0;
 
     /**
      * @brief Returns the resources used for rendering.
      * @return Reference to RenderResources.
      */
-    virtual RenderResources& resources()                               = 0;
+    virtual RenderResources& resources()                                          = 0;
 
     /**
      * @brief Returns the rendering limits for the device.
      * @return RenderLimits object.
      */
-    virtual RenderLimits limits() const                                = 0;
+    virtual RenderLimits limits() const                                           = 0;
 
     /**
      * @brief Creates a backend representation of an image.
      * @param image The image to create a backend for.
      */
-    virtual void createImageBackend(Rc<Image> image)                   = 0;
+    virtual void createImageBackend(Rc<Image> image)                              = 0;
 };
 
 extern RendererBackend defaultBackend;

@@ -18,12 +18,12 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/core/Utilities.hpp>
-
+#include <webp/decode.h>
 #include <webp/encode.h>
 #include <webp/mux.h>
-#include <webp/decode.h>
+
+#include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/ImageFormats.hpp>
 
 namespace Brisk {
 

@@ -22,7 +22,8 @@
 
 #include <functional>
 #include <memory>
-#include "Throw.hpp"
+
+#include <brisk/core/internal/Throw.hpp>
 
 namespace Brisk {
 

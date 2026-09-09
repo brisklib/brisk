@@ -18,18 +18,19 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/gui/Properties.hpp>
-#include <brisk/gui/Gui.hpp>
-#include <brisk/core/Hash.hpp>
-#include <brisk/gui/Styles.hpp>
-#include <brisk/gui/Icons.hpp>
-#include <brisk/graphics/Palette.hpp>
+#include <yoga/algorithm/BoundAxis.h>
+#include <yoga/algorithm/CalculateLayout.h>
 #include <yoga/node/Node.h>
 #include <yoga/style/Style.h>
-#include <yoga/algorithm/CalculateLayout.h>
-#include <yoga/algorithm/BoundAxis.h>
-#include <brisk/gui/WidgetTree.hpp>
+
+#include <brisk/core/Hash.hpp>
 #include <brisk/core/Resources.hpp>
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/gui/Gui.hpp>
+#include <brisk/gui/Icons.hpp>
+#include <brisk/gui/Properties.hpp>
+#include <brisk/gui/Styles.hpp>
+#include <brisk/gui/WidgetTree.hpp>
 
 namespace Brisk {
 

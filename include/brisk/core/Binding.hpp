@@ -19,14 +19,17 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
+
+#include <deque>
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Log.hpp>
 #include <brisk/core/Memory.hpp>
 #include <brisk/core/Rc.hpp>
-#include <brisk/core/BasicTypes.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/internal/SmallVector.hpp>
-#include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
+#include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/core/internal/tuplet/tuplet.hpp>
 
 namespace Brisk {
@@ -1701,7 +1704,7 @@ inline void operator-=(Prop& prop, Arg&& arg)
 
 template <PropertyLike Prop, typename Type = typename Prop::Type, typename Arg>
 inline void operator*=(Prop& prop, Arg&& arg)
-    requires requires(Type v, Arg a) { v* a; }
+    requires requires(Type v, Arg a) { v * a; }
 {
     prop.set(prop.get() * std::forward<Arg>(arg));
 }

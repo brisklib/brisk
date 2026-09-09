@@ -20,13 +20,15 @@
  */
 #pragma once
 
-#include "Types.hpp"
-#include <brisk/graphics/Renderer.hpp>
-#include <brisk/core/Binding.hpp>
-#include <brisk/core/Serialization.hpp>
 #include <mutex>
 #include <semaphore>
 #include <set>
+
+#include <brisk/core/Binding.hpp>
+#include <brisk/core/Serialization.hpp>
+#include <brisk/graphics/Renderer.hpp>
+
+#include "Types.hpp"
 
 namespace Brisk {
 

@@ -20,13 +20,14 @@
  */                                                                                                          \
 #pragma once
 
-#include "Renderer.hpp"
-#include "Fonts.hpp"
-#include "Path.hpp"
-#include <brisk/core/internal/Span.hpp>
-#include "Gradients.hpp"
 #include <brisk/core/internal/InlineVector.hpp>
+#include <brisk/core/internal/Span.hpp>
+
+#include "Fonts.hpp"
+#include "Gradients.hpp"
 #include "Image.hpp"
+#include "Path.hpp"
+#include "Renderer.hpp"
 
 namespace Brisk {
 

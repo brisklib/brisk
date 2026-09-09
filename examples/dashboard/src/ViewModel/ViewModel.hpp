@@ -20,9 +20,10 @@
  */
 #pragma once
 
-#include "Model/Model.hpp"
 #include <brisk/core/Rc.hpp>
 #include <brisk/window/WindowApplication.hpp>
+
+#include "Model/Model.hpp"
 
 namespace App {
 

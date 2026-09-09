@@ -19,10 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include "WindowRenderTarget.hpp"
+#include <GLFW/glfw3.h>
+
 #include <brisk/graphics/NativeWindowHandle.hpp>
 
-#include <GLFW/glfw3.h>
+#include "WindowRenderTarget.hpp"
 #define GLFW_EXPOSE_NATIVE_X11 1
 #define GLFW_EXPOSE_NATIVE_WAYLAND 1
 #include <GLFW/glfw3native.h>

@@ -24,8 +24,8 @@
 #error "Brisk was compiled without WebGPU support"
 #endif
 
-#include <brisk/gui/Gui.hpp>
 #include <brisk/graphics/WebGpu.hpp>
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 

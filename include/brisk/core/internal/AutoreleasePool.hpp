@@ -22,7 +22,7 @@
  */
 #pragma once
 
-#include "../Brisk.h"
+#include <brisk/core/Brisk.h>
 
 namespace Brisk {
 

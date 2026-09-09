@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/Renderer.hpp>
+
 #include "Atlas.hpp"
 
 namespace Brisk {

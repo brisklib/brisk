@@ -24,10 +24,11 @@
 #error "Brisk was not compiled with WebGPU support"
 #endif
 
-#include <brisk/graphics/Renderer.hpp>
+#include <dawn/webgpu_cpp.h>
+
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Image.hpp>
-#include <dawn/webgpu_cpp.h>
+#include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {
 

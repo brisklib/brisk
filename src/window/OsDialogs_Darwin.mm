@@ -25,20 +25,20 @@
 #endif
 
 #include <bit>
-#include <brisk/window/OsDialogs.hpp>
 
 #include <AppKit/AppKit.h>
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreFoundation/CFBundle.h>
 #include <CoreFoundation/CoreFoundation.h>
-
-#include <brisk/window/Window.hpp>
-#include <brisk/core/Threading.hpp>
-#include <brisk/graphics/NativeWindowHandle.hpp>
-#include <brisk/core/internal/NSTypes.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Localization.hpp>
 #include <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+
+#include <brisk/core/Localization.hpp>
+#include <brisk/core/Threading.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/NSTypes.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/window/OsDialogs.hpp>
+#include <brisk/window/Window.hpp>
 
 namespace Brisk {
 

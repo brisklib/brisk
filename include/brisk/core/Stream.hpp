@@ -20,11 +20,11 @@
  */
 #pragma once
 
-#include "Encoding.hpp"
-#include "BasicTypes.hpp"
-#include "Rc.hpp"
-#include "internal/Span.hpp"
-#include "Exceptions.hpp"
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Encoding.hpp>
+#include <brisk/core/Exceptions.hpp>
+#include <brisk/core/Rc.hpp>
+#include <brisk/core/internal/Span.hpp>
 
 namespace Brisk {
 
@@ -165,7 +165,7 @@ enum class StreamCapabilities {
     HasSize     = 32, /**< The stream has a size property. */
 
     All         = CanRead | CanWrite | CanSeek | CanFlush | CanTruncate |
-          HasSize, /**< All capabilities are supported. */
+        HasSize, /**< All capabilities are supported. */
 };
 
 /**

@@ -1,19 +1,14 @@
+#include <ft2build.h>
+#include <hb-ft.h>
+#include <hb-ot.h>
+#include <hb.h>
 #include <text_layout/Layout.hpp>
 
 #include <brisk/core/internal/InlineVector.hpp>
-
-#include <hb.h>
-#include <hb-ft.h>
-#include <hb-ot.h>
-#include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_ADVANCES_H
 #include FT_TRUETYPE_TABLES_H
 #include FT_OUTLINE_H
-
-#include <utf8proc.h>
-
-#include <linebreak.h>
 
 #include <algorithm>
 #include <array>
@@ -22,6 +17,9 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+
+#include <linebreak.h>
+#include <utf8proc.h>
 
 namespace Brisk::TextEngine {
 

@@ -21,7 +21,6 @@
 #pragma once
 
 #include <brisk/core/Brisk.h>
-#include <cstdint>
 
 #ifdef BRISK_ALLOW_OS_HEADERS
 #ifdef BRISK_WINDOWS

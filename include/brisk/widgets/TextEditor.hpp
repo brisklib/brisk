@@ -20,10 +20,12 @@
  */
 #pragma once
 
-#include "Widgets.hpp"
+#include <optional>
+
 #include <brisk/core/Binding.hpp>
 #include <brisk/graphics/Fonts.hpp>
-#include <optional>
+
+#include "Widgets.hpp"
 
 namespace Brisk {
 

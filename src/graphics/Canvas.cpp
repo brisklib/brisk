@@ -18,15 +18,17 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/Canvas.hpp>
-#include "FontInternals.hpp"
-#include <optional>
 #include <array>
+#include <optional>
+
 #include <brisk/core/Log.hpp>
+#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Color.hpp>
-#include "RenderStateArgs.hpp"
 #include <brisk/graphics/Renderer.hpp>
+
+#include "FontInternals.hpp"
 #include "Mask.hpp"
+#include "RenderStateArgs.hpp"
 
 namespace Brisk {
 

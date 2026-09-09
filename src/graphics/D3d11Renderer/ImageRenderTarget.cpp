@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "ImageRenderTarget.hpp"
+
 #include "ImageBackend.hpp"
 
 namespace Brisk {

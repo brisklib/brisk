@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Layout.hpp"
+
 #include <brisk/graphics/Palette.hpp>
 
 namespace Brisk {

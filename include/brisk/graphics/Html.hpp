@@ -22,6 +22,7 @@
 
 #include <optional>
 #include <string_view>
+
 #include "Color.hpp"
 
 namespace Brisk {

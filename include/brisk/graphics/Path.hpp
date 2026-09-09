@@ -20,14 +20,16 @@
  */                                                                                                          \
 #pragma once
 
-#include <unordered_map>
-#include "Matrix.hpp"
-#include <brisk/core/Rc.hpp>
 #include <mutex>
+#include <unordered_map>
 #include <variant>
+
+#include <brisk/core/Rc.hpp>
+#include <brisk/core/Time.hpp>
 #include <brisk/core/internal/InlineVector.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
-#include <brisk/core/Time.hpp>
+
+#include "Matrix.hpp"
 #include "internal/Sprites.hpp"
 
 namespace Brisk {

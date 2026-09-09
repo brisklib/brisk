@@ -1,11 +1,11 @@
-#include <brisk/graphics/ImageTransform.hpp>
 #include <fmt/format.h>
+#include <png.h>
+
 #include <brisk/core/Bytes.hpp>
-#include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Io.hpp>
 #include <brisk/core/internal/Filesystem.hpp>
-
-#include <png.h>
+#include <brisk/graphics/ImageFormats.hpp>
+#include <brisk/graphics/ImageTransform.hpp>
 #define NOMINMAX 1
 #define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>

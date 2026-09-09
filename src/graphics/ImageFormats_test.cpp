@@ -19,8 +19,9 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/graphics/ImageFormats.hpp>
-#include "VisualTests.hpp"
+
 #include "Catch2Utils.hpp"
+#include "VisualTests.hpp"
 
 namespace Brisk {
 

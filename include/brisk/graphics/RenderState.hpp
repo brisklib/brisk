@@ -20,16 +20,17 @@
  */
 #pragma once
 
-#include "Matrix.hpp"
-#include "Gradients.hpp"
 #include <brisk/core/Binding.hpp>
-#include <brisk/core/MetaClass.hpp>
 #include <brisk/core/Json.hpp>
+#include <brisk/core/MetaClass.hpp>
 #include <brisk/core/Threading.hpp>
+#include <brisk/core/internal/Argument.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/internal/Sprites.hpp>
-#include <brisk/core/internal/Argument.hpp>
+
+#include "Gradients.hpp"
+#include "Matrix.hpp"
 
 namespace Brisk {
 
@@ -212,8 +213,8 @@ enum class CompositionMode : uint8_t {
 };
 
 enum class BlendingCompositionMode : uint16_t {
-    Normal =
-        (static_cast<uint16_t>(BlendingMode::Normal) << 8) | static_cast<uint16_t>(CompositionMode::SrcOver),
+    Normal = (static_cast<uint16_t>(BlendingMode::Normal) << 8) |
+        static_cast<uint16_t>(CompositionMode::SrcOver),
 };
 
 constexpr BlendingCompositionMode toBlendingCompositionMode(BlendingMode blend,

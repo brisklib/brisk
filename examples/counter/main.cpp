@@ -1,7 +1,7 @@
+#include <brisk/gui/Component.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/gui/GuiWindow.hpp>
 #include <brisk/widgets/Widgets.hpp>
-#include <brisk/gui/Component.hpp>
 
 namespace Brisk {
 

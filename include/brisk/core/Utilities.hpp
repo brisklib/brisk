@@ -20,19 +20,20 @@
  */
 #pragma once
 
-#include <tuple>
 #include <atomic>
-#include <utility>
-#include <memory>
-#include <vector>
-#include <type_traits>
 #include <functional>
-#include "Brisk.h"
-#include <brisk/core/Exceptions.hpp>
-#include "internal/Optional.hpp"
-#include "internal/Typename.hpp"
+#include <memory>
 #include <mutex>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include <brisk/core/Brisk.h>
+#include <brisk/core/Exceptions.hpp>
 #include <brisk/core/internal/Debug.hpp>
+#include <brisk/core/internal/Optional.hpp>
+#include <brisk/core/internal/Typename.hpp>
 
 namespace Brisk {
 
@@ -723,7 +724,7 @@ inline void removeValueByKey(KeyValueOrderedList<K, V>& list, const K& key) {
  * @return std::optional<V> The found value, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::*field), const K& fieldValue) {
+inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return list[i];
@@ -745,7 +746,7 @@ inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::*field), con
  * @return std::optional<size_t> The index of the found key, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline std::optional<size_t> findKey(const std::vector<V>& list, K(V::*field), const K& fieldValue) {
+inline std::optional<size_t> findKey(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return i;

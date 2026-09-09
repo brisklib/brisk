@@ -5,9 +5,10 @@
  *
  * This file is part of the Brisk library.
  */
-#include <brisk/graphics/Fonts.hpp>
-#include <brisk/core/Io.hpp>
 #include <catch2/catch_all.hpp>
+
+#include <brisk/core/Io.hpp>
+#include <brisk/graphics/Fonts.hpp>
 
 namespace Brisk {
 

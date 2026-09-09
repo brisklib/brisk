@@ -20,10 +20,11 @@
  */
 #pragma once
 #include <catch2/catch_all.hpp>
+
 #include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/Color.hpp>
 #include <brisk/graphics/Image.hpp>
 #include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/graphics/Color.hpp>
 #include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {

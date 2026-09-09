@@ -19,19 +19,18 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include <brisk/window/Types.hpp>
-#include "PlatformWindow.hpp"
+#include <GLFW/glfw3.h>
 
-#include <brisk/core/Log.hpp>
-
-#include <brisk/core/Utilities.hpp>
 #include <brisk/core/App.hpp>
+#include <brisk/core/Log.hpp>
 #include <brisk/core/Text.hpp>
-#include <brisk/window/Display.hpp>
+#include <brisk/core/Utilities.hpp>
 #include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/window/Display.hpp>
+#include <brisk/window/Types.hpp>
 #include <brisk/window/Window.hpp>
 
-#include <GLFW/glfw3.h>
+#include "PlatformWindow.hpp"
 #define GLFW_EXPOSE_NATIVE_X11 1
 #define GLFW_EXPOSE_NATIVE_WAYLAND 1
 #include <GLFW/glfw3native.h>

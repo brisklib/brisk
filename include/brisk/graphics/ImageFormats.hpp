@@ -20,10 +20,10 @@
  */                                                                                                          \
 #pragma once
 
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Io.hpp>
-#include <brisk/graphics/Image.hpp>
 #include <brisk/core/Exceptions.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/Image.hpp>
 
 namespace Brisk {
 

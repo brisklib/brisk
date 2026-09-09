@@ -18,15 +18,17 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/Html.hpp>
-#include <brisk/core/Encoding.hpp>
-#include <tao/pegtl.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
 #include <cstdint>
 #include <system_error>
 #include <vector>
+
+#include <tao/pegtl.hpp>
+
+#include <brisk/core/Encoding.hpp>
+#include <brisk/graphics/Html.hpp>
 
 namespace Brisk {
 

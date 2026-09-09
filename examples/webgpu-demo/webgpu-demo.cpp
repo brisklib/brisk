@@ -19,16 +19,16 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/internal/Initialization.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/gui/Component.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/gui/GuiWindow.hpp>
-#include <brisk/widgets/Layouts.hpp>
-#include <brisk/widgets/Text.hpp>
+#include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/Graphene.hpp>
+#include <brisk/widgets/Layouts.hpp>
+#include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/WebGpu.hpp>
-#include <brisk/gui/Component.hpp>
-#include <brisk/graphics/Fonts.hpp>
-#include <brisk/gui/Icons.hpp>
 
 namespace Brisk {
 

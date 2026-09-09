@@ -51,7 +51,7 @@ void LineBlockAllocator::NewArena() {
     p->Links.NextFree = nullptr;
 
     mCurrent          = p->Memory + sizeof(Arena::Links);
-    mEnd              = p->Memory + Arena::Size -
+    mEnd = p->Memory + Arena::Size -
            Max3(sizeof(LineArrayX32Y16Block), sizeof(LineArrayX16Y16Block), sizeof(LineArrayTiledBlock));
 }
 

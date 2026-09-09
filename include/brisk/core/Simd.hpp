@@ -20,17 +20,19 @@
  */
 #pragma once
 
-#include <bit>
-#include <array>
-#include <stdint.h>
-#include <stdlib.h>
-#include <type_traits>
 #include <algorithm>
+#include <array>
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <limits>
-#include "Math.hpp"
-#include "BasicTypes.hpp"
+#include <type_traits>
+
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Math.hpp>
 
 #if 0
 #if defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__x86_64__) || defined(__wasm)
@@ -1431,9 +1433,8 @@ template <SimdCompatible Tout, int Mout, int Min, SimdCompatible Tin, size_t N>
 constexpr Simd<Tout, N> rescale(Simd<Tin, N> value)
     requires(Mout != Min && !(std::is_floating_point<Tin>::value || std::is_floating_point<Tout>::value))
 {
-    using Tcommon =
-        findIntegralType<int64_t(std::numeric_limits<Tin>::min()) * int64_t(Mout),
-                         int64_t(std::numeric_limits<Tin>::max()) * int64_t(Mout)>;
+    using Tcommon      = findIntegralType<int64_t(std::numeric_limits<Tin>::min()) * int64_t(Mout),
+                                          int64_t(std::numeric_limits<Tin>::max()) * int64_t(Mout)>;
     Simd<Tcommon, N> x = static_cast<Simd<Tcommon, N>>(value);
     if constexpr (Tcommon(std::max(Mout, Min)) % Tcommon(std::min(Mout, Min)) == 0) {
         constexpr Tcommon scale = std::max(Mout, Min) / std::min(Mout, Min);

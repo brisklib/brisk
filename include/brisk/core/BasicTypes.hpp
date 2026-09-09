@@ -19,20 +19,17 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include "Brisk.h"
-#include <string>
-#include <string_view>
-#include <vector>
-#include <cstdint>
-#include <type_traits>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
-#include "Rc.hpp"
-#include "internal/Span.hpp"
-#include "internal/Constants.hpp"
-#include <bit>
-#include "Reflection.hpp"
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <vector>
+
 #include <fmt/ranges.h>
+
+#include <brisk/core/Reflection.hpp>
 
 namespace Brisk {
 

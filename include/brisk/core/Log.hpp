@@ -49,7 +49,7 @@ spdlog::logger& applog();
  */
 #define BRISK_LOG_LOG(LEVEL, ...)                                                                            \
     do {                                                                                                     \
-        ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                       \
+        ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                      \
     } while (0)
 
 /**
@@ -67,7 +67,7 @@ spdlog::logger& applog();
     do {                                                                                                     \
         const bool cond = (COND);                                                                            \
         if (!cond) {                                                                                         \
-            ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                   \
+            ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                  \
         }                                                                                                    \
     } while (0)
 

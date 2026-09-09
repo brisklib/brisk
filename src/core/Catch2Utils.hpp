@@ -19,12 +19,13 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
-#include <brisk/core/internal/Expected.hpp>
 #include <fmt/format.h>
-#include <brisk/core/Bytes.hpp>
+
 #include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Bytes.hpp>
 #include <brisk/core/Io.hpp>
 #include <brisk/core/Simd.hpp>
+#include <brisk/core/internal/Expected.hpp>
 
 inline std::string unicodeChar(char32_t value) {
     if (static_cast<int32_t>(value) < 0x1'0000)

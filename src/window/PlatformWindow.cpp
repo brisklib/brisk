@@ -19,10 +19,12 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "PlatformWindow.hpp"
+
 #include <brisk/graphics/Svg.hpp>
-#include <brisk/window/Window.hpp>
-#include "Cursors.hpp"
 #include <brisk/window/Types.hpp>
+#include <brisk/window/Window.hpp>
+
+#include "Cursors.hpp"
 
 namespace Brisk {
 

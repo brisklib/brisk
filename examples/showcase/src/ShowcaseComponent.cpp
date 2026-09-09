@@ -19,33 +19,34 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "ShowcaseComponent.hpp"
-#include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/widgets/ListBox.hpp>
-#include <brisk/widgets/SpinBox.hpp>
-#include <brisk/core/Utilities.hpp>
+
 #include <brisk/core/App.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/Initialization.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/graphics/ImageFormats.hpp>
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/ComboBox.hpp>
+#include <brisk/widgets/Graphene.hpp>
 #include <brisk/widgets/ImageView.hpp>
+#include <brisk/widgets/Layouts.hpp>
+#include <brisk/widgets/ListBox.hpp>
+#include <brisk/widgets/Menu.hpp>
+#include <brisk/widgets/Pages.hpp>
+#include <brisk/widgets/PopupDialog.hpp>
+#include <brisk/widgets/Progress.hpp>
+#include <brisk/widgets/ScrollBox.hpp>
+#include <brisk/widgets/Spacer.hpp>
+#include <brisk/widgets/SpinBox.hpp>
+#include <brisk/widgets/Spinner.hpp>
 #include <brisk/widgets/Table.hpp>
 #include <brisk/widgets/TextEditor.hpp>
 #include <brisk/widgets/Viewport.hpp>
-#include <brisk/widgets/Pages.hpp>
-#include <brisk/widgets/Menu.hpp>
-#include <brisk/widgets/ScrollBox.hpp>
-#include <brisk/widgets/PopupDialog.hpp>
-#include <brisk/window/OsDialogs.hpp>
-#include <brisk/graphics/Palette.hpp>
-#include <brisk/core/internal/Initialization.hpp>
-#include <brisk/widgets/Graphene.hpp>
-#include <brisk/gui/Icons.hpp>
-#include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Widgets.hpp>
-#include <brisk/graphics/Fonts.hpp>
 #include <brisk/window/Clipboard.hpp>
+#include <brisk/window/OsDialogs.hpp>
 #include <brisk/window/WindowApplication.hpp>
-#include <brisk/widgets/Spinner.hpp>
-#include <brisk/widgets/Progress.hpp>
-#include <brisk/widgets/Spacer.hpp>
 
 namespace Brisk {
 
@@ -107,7 +108,7 @@ Rc<Widget> ShowcaseComponent::build() {
                 rcnew Text{ ICON_zoom_in },
                 borderWidth = 1_dpx,
                 onClick     = lifetime() |
-                          []() {
+                              []() {
                               windowApplication->uiScale =
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 + 1) * 0.5);
                           },
@@ -117,7 +118,7 @@ Rc<Widget> ShowcaseComponent::build() {
                 rcnew Text{ ICON_zoom_out },
                 borderWidth = 1_dpx,
                 onClick     = lifetime() |
-                          []() {
+                              []() {
                               windowApplication->uiScale =
                                   std::exp2(std::round(std::log2(windowApplication->uiScale) * 2 - 1) * 0.5);
                           },
@@ -127,7 +128,7 @@ Rc<Widget> ShowcaseComponent::build() {
                 rcnew Text{ ICON_camera },
                 borderWidth = 1_dpx,
                 onClick     = lifetime() |
-                          [this]() {
+                              [this]() {
                               captureScreenshot();
                           },
             },
@@ -136,7 +137,7 @@ Rc<Widget> ShowcaseComponent::build() {
                 rcnew Text{ ICON_sun_moon },
                 borderWidth = 1_dpx,
                 onClick     = lifetime() |
-                          [this]() {
+                              [this]() {
                               m_lightTheme = !m_lightTheme;
                               this->tree().disableTransitions();
                               if (m_lightTheme)

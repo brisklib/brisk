@@ -18,15 +18,14 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Io.hpp>
+#include <array>
 
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <brisk/core/Io.hpp>
 #include <brisk/core/Utilities.hpp>
-
-#include <array>
 
 namespace Brisk {
 
@@ -156,7 +155,7 @@ StreamCapabilities fileCapabilities(std::FILE* file) {
         throwException(EArgument("openFile cannot inspect the FILE* access mode"));
 
     StreamCapabilities caps = StreamCapabilities{};
-    const int access         = flags & O_ACCMODE;
+    const int access        = flags & O_ACCMODE;
     if (access == O_RDONLY || access == O_RDWR)
         caps |= StreamCapabilities::CanRead;
     if (access == O_WRONLY || access == O_RDWR)

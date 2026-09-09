@@ -20,14 +20,15 @@
  */
 #define BRISK_ALLOW_OS_HEADERS 1
 #include "RenderDevice.hpp"
-#include "WindowRenderTarget.hpp"
+
+#include <brisk/core/Encoding.hpp>
+#include <brisk/core/Resources.hpp>
+#include <brisk/core/Threading.hpp>
+
+#include "ImageBackend.hpp"
 #include "ImageRenderTarget.hpp"
 #include "RenderEncoder.hpp"
-#include "ImageBackend.hpp"
-#include <brisk/core/Threading.hpp>
-#include <brisk/core/Encoding.hpp>
-
-#include <brisk/core/Resources.hpp>
+#include "WindowRenderTarget.hpp"
 
 namespace Brisk {
 

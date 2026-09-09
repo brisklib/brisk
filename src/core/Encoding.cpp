@@ -18,11 +18,13 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Encoding.hpp>
 #include <bit>
 #include <cstdlib>
 #include <functional>
 #include <string_view>
+
+#include <brisk/core/Encoding.hpp>
+
 #include "utf8proc.h"
 
 namespace Brisk {
@@ -576,9 +578,8 @@ std::basic_string<Char> utfNormalize(std::basic_string_view<Char> text, UtfNorma
         opt |= UTF8PROC_COMPAT;
     std::string u8        = toUtf8(text);
     utf8proc_uint8_t* dst = nullptr;
-    if (utf8proc_ssize_t sz =
-            utf8proc_map(reinterpret_cast<utf8proc_uint8_t*>(u8.data()), u8.size(), &dst,
-                         static_cast<utf8proc_option_t>(opt));
+    if (utf8proc_ssize_t sz = utf8proc_map(reinterpret_cast<utf8proc_uint8_t*>(u8.data()), u8.size(), &dst,
+                                           static_cast<utf8proc_option_t>(opt));
         sz >= 0) {
         std::string result(dst, dst + sz);
         std::free(dst);
@@ -632,22 +633,22 @@ bool toJson(Json& j, const std::wstring& s) {
 
 bool fromJson(const Json& j, std::u32string& s) {
     return j.to<std::string>(RefAdapter{ [](const std::string& s) {
-                                              return utf8ToUtf32(s);
-                                          },
-                                           s });
+                                            return utf8ToUtf32(s);
+                                        },
+                                         s });
 }
 
 bool fromJson(const Json& j, std::u16string& s) {
     return j.to<std::string>(RefAdapter{ [](const std::string& s) {
-                                              return utf8ToUtf16(s);
-                                          },
-                                           s });
+                                            return utf8ToUtf16(s);
+                                        },
+                                         s });
 }
 
 bool fromJson(const Json& j, std::wstring& s) {
     return j.to<std::string>(RefAdapter{ [](const std::string& s) {
-                                              return utf8ToWcs(s);
-                                          },
-                                           s });
+                                            return utf8ToWcs(s);
+                                        },
+                                         s });
 }
 } // namespace Brisk

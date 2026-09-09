@@ -20,14 +20,14 @@
  */
 #pragma once
 
-#include "Brisk.h"
-#include <cstdint>
 #include <cmath>
-#include <brisk/core/Reflection.hpp>
-#include "internal/Optional.hpp"
-#include <brisk/core/Exceptions.hpp>
-#include <numbers>
 #include <concepts>
+#include <numbers>
+
+#include <brisk/core/Brisk.h>
+#include <brisk/core/Exceptions.hpp>
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/internal/Optional.hpp>
 
 namespace Brisk {
 
@@ -60,8 +60,7 @@ inline T withCurvatureReverse(T x, std::type_identity_t<T> curvature) {
  */
 template <typename T>
 struct Fraction {
-    static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
-                  "Fraction requires a signed integer type");
+    static_assert(std::is_signed_v<T> && std::is_integral_v<T>, "Fraction requires a signed integer type");
 
     /**
      * @brief Constructs a Fraction with the given numerator and denominator.
@@ -416,14 +415,14 @@ private:
     }                                                                                                        \
     template <typename T1, typename T2>                                                                      \
     inline std::optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(                    \
-        const T1 & x, const std::optional<T2>& y) {                                                          \
+        const T1& x, const std::optional<T2>& y) {                                                           \
         if (y)                                                                                               \
             return x op * y;                                                                                 \
         return std::nullopt;                                                                                 \
     }                                                                                                        \
     template <typename T1, typename T2>                                                                      \
     inline std::optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(                    \
-        const std::optional<T1>& x, const T2 & y) {                                                          \
+        const std::optional<T1>& x, const T2& y) {                                                           \
         if (x)                                                                                               \
             return *x op y;                                                                                  \
         return std::nullopt;                                                                                 \

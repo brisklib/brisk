@@ -18,13 +18,13 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/DialogComponent.hpp>
 #include <brisk/widgets/Button.hpp>
+#include <brisk/widgets/DialogComponent.hpp>
+#include <brisk/widgets/Graphene.hpp>
+#include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Spacer.hpp>
 #include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/TextEditor.hpp>
-#include <brisk/widgets/Layouts.hpp>
-#include <brisk/widgets/Graphene.hpp>
 
 namespace Brisk {
 

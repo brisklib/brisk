@@ -20,11 +20,11 @@
  */
 #pragma once
 
-#include <brisk/core/Brisk.h>
-#include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Brisk.h>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/Optional.hpp>
+#include <brisk/graphics/Geometry.hpp>
 
 namespace Brisk {
 

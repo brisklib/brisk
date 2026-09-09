@@ -18,8 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include "ShowcaseComponent.hpp"
 #include <brisk/gui/GuiApplication.hpp>
+
+#include "ShowcaseComponent.hpp"
 
 int briskMain() {
     using namespace Brisk;

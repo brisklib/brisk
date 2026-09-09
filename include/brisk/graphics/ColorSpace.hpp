@@ -20,12 +20,14 @@
  */                                                                                                          \
 #pragma once
 
-#include <brisk/core/BasicTypes.hpp>
-#include <fmt/format.h>
-#include <brisk/core/Reflection.hpp>
-#include <type_traits>
-#include <brisk/core/Simd.hpp>
 #include <array>
+#include <type_traits>
+
+#include <fmt/format.h>
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/Simd.hpp>
 
 namespace Brisk {
 
@@ -241,8 +243,8 @@ constexpr BRISK_INLINE Simd<T, N> srgbGammaToLinear(Simd<T, N> x) noexcept {
         v = v * (v * (v * T(0.305306011) + T(0.682171111)) + T(0.012522878));
     } else {
         SimdMask<N> m = le(v, Simd<T, N>(0.04045));
-        v             = select(m, v * Simd<T, N>(0.07739938080495356),
-                               pow((v + T(0.055)) * std::nexttoward(T(0.947867298578199), T(1)), Simd<T, N>(2.4)));
+        v = select(m, v * Simd<T, N>(0.07739938080495356),
+                   pow((v + T(0.055)) * std::nexttoward(T(0.947867298578199), T(1)), Simd<T, N>(2.4)));
     }
     return copysign(v, x);
 }
@@ -258,8 +260,8 @@ constexpr BRISK_INLINE Simd<T, N> srgbLinearToGamma(Simd<T, N> x) noexcept {
         v             = T(0.585122381) * S1 + T(0.783140355) * S2 - T(0.368262736) * S3;
     } else {
         SimdMask<N> m = le(v, Simd<T, N>(T(0.0031308)));
-        v             = select(m, v * T(12.92),
-                               T(1.055) * pow(v, Simd<T, N>(std::nexttoward(T(0.416666666666667), T(0)))) - T(0.055));
+        v = select(m, v * T(12.92),
+                   T(1.055) * pow(v, Simd<T, N>(std::nexttoward(T(0.416666666666667), T(0)))) - T(0.055));
     }
     return copysign(v, x);
 }

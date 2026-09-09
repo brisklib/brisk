@@ -21,6 +21,7 @@
 #pragma once
 
 #include <optional>
+
 #include <fmt/format.h>
 
 namespace Brisk {

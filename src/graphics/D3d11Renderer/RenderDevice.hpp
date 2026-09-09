@@ -20,10 +20,10 @@
  */
 #pragma once
 
-#include "Common.hpp"
-
 #include <brisk/graphics/Renderer.hpp>
+
 #include "../Atlas.hpp"
+#include "Common.hpp"
 
 namespace Brisk {
 

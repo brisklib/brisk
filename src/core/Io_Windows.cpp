@@ -22,14 +22,14 @@
 #include <shlobj.h>
 #define NOMINMAX 1
 #define WIN32_LEAN_AND_MEAN 1
+#include <array>
+
+#include <sys/stat.h>
 #include <windows.h>
 
 #include <brisk/core/Io.hpp>
-#include <brisk/core/Utilities.hpp>
 #include <brisk/core/Text.hpp>
-#include <sys/stat.h>
-
-#include <array>
+#include <brisk/core/Utilities.hpp>
 
 namespace Brisk {
 
@@ -67,7 +67,9 @@ IoError nativeToResult(int code) {
 
 class FileStream final : public Stream {
 public:
-    StreamCapabilities caps() const noexcept final { return m_caps; }
+    StreamCapabilities caps() const noexcept final {
+        return m_caps;
+    }
 
     uint64_t size() const final {
         if (!m_file)
@@ -134,7 +136,9 @@ public:
         return fwrite(data, 1, size, m_file);
     }
 
-    bool flush() final { return m_file && fflush(m_file) == 0; }
+    bool flush() final {
+        return m_file && fflush(m_file) == 0;
+    }
 
 private:
     std::FILE* m_file;
@@ -148,7 +152,7 @@ StreamCapabilities fileCapabilities(std::FILE* file) {
         throwException(EArgument("openFile requires a valid FILE*"));
 
     struct _stat64 info;
-    const bool regular = _fstat64(descriptor, &info) == 0 && (info.st_mode & _S_IFREG) != 0;
+    const bool regular    = _fstat64(descriptor, &info) == 0 && (info.st_mode & _S_IFREG) != 0;
     const intptr_t native = _get_osfhandle(descriptor);
     if (native == -1)
         throwException(EArgument("openFile cannot inspect the FILE* handle"));
@@ -173,7 +177,7 @@ expected<std::FILE*, IoError> fopen_native(const fs::path& file_name, OpenFileMo
     const size_t index = static_cast<size_t>(mode);
     if (index >= file_modes.size())
         throwException(EArgument("invalid OpenFileMode"));
-    std::FILE* f = nullptr;
+    std::FILE* f        = nullptr;
     const errno_t error = _wfopen_s(&f, file_name.wstring().c_str(), file_modes[index]);
     if (f)
         return f;

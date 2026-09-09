@@ -18,12 +18,14 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/System.hpp>
 #include <fmt/format.h>
+
+#include <brisk/core/System.hpp>
 #include <brisk/core/internal/Debug.hpp>
 #define NOMINMAX 1
 #define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
+
 #include "winnt.h"
 
 namespace Brisk {

@@ -21,8 +21,9 @@
 #pragma once
 
 #include <string>
-#include <brisk/graphics/Renderer.hpp>
+
 #include <brisk/graphics/D3d11.hpp>
+#include <brisk/graphics/Renderer.hpp>
 
 #include "../AdapterForMonitor.hpp"
 

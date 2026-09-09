@@ -19,9 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
-#include "Catch2Utils.hpp"
-#include <brisk/graphics/Color.hpp>
+
 #include <brisk/core/Reflection.hpp>
+#include <brisk/graphics/Color.hpp>
+
+#include "Catch2Utils.hpp"
 
 namespace Brisk {
 

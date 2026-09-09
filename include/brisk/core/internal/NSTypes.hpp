@@ -22,6 +22,7 @@
  */
 #pragma once
 
+#include <brisk/core/Brisk.h>
 #include <brisk/core/BasicTypes.hpp>
 
 #ifdef BRISK_APPLE

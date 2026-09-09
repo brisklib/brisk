@@ -20,11 +20,11 @@
  */
 #pragma once
 
-#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/core/Binding.hpp>
-#include <brisk/graphics/Geometry.hpp>
 #include <brisk/core/Rc.hpp>
+#include <brisk/graphics/Geometry.hpp>
 #include <brisk/graphics/NativeDisplayHandle.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
 
 namespace Brisk {
 

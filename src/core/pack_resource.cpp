@@ -18,15 +18,16 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <algorithm>
 #include <string>
 #include <string_view>
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <brisk/core/Compression.hpp>
 #include <brisk/core/Text.hpp>
-
 #include <brisk/core/internal/Resources.h>
 
 // pack_resource --c output.c input.bin

@@ -18,12 +18,12 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/Spacer.hpp>
+#include <brisk/core/Localization.hpp>
+#include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Item.hpp>
 #include <brisk/widgets/Menu.hpp>
+#include <brisk/widgets/Spacer.hpp>
 #include <brisk/widgets/Text.hpp>
-#include <brisk/gui/Icons.hpp>
-#include <brisk/core/Localization.hpp>
 
 namespace Brisk {
 

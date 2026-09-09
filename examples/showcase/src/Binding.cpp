@@ -19,8 +19,9 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Binding.hpp"
-#include <brisk/gui/Icons.hpp>
+
 #include <brisk/graphics/Palette.hpp>
+#include <brisk/gui/Icons.hpp>
 
 namespace Brisk {
 

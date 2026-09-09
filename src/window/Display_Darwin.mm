@@ -19,14 +19,14 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include <AppKit/AppKit.h>
-#include <brisk/window/Display.hpp>
-
 #include <shared_mutex>
-#include <brisk/graphics/internal/NSTypes.hpp>
 
-#include <IOKit/graphics/IOGraphicsLib.h>
+#include <AppKit/AppKit.h>
 #include <ApplicationServices/ApplicationServices.h>
+#include <IOKit/graphics/IOGraphicsLib.h>
+
+#include <brisk/graphics/internal/NSTypes.hpp>
+#include <brisk/window/Display.hpp>
 
 namespace Brisk {
 

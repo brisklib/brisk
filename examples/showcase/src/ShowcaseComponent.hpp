@@ -20,22 +20,23 @@
  */
 #pragma once
 
-#include <brisk/gui/Icons.hpp>
 #include <brisk/core/Binding.hpp>
-#include <brisk/gui/GuiWindow.hpp>
-#include <brisk/gui/Component.hpp>
 #include <brisk/core/Reflection.hpp>
-#include <brisk/widgets/Notifications.hpp>
 #include <brisk/graphics/Palette.hpp>
-#include "Buttons.hpp"
-#include "Editors.hpp"
-#include "Dropdowns.hpp"
-#include "Layout.hpp"
-#include "Dialogs.hpp"
-#include "Messenger.hpp"
-#include "Visual.hpp"
-#include "Typography.hpp"
+#include <brisk/gui/Component.hpp>
+#include <brisk/gui/GuiWindow.hpp>
+#include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Notifications.hpp>
+
 #include "Binding.hpp"
+#include "Buttons.hpp"
+#include "Dialogs.hpp"
+#include "Dropdowns.hpp"
+#include "Editors.hpp"
+#include "Layout.hpp"
+#include "Messenger.hpp"
+#include "Typography.hpp"
+#include "Visual.hpp"
 
 namespace Brisk {
 

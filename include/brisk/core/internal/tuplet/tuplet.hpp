@@ -961,8 +961,7 @@ struct tuple<> : tuple_base_t<> {
 
     template <TUPLET_OTHER_THAN(tuple, U)> // Preserves default assignments
     TUPLET_WEAK_REQUIRES(stateless<U>)     // Check that U is similarly stateless
-        constexpr auto&
-        operator=(U&&) noexcept {
+        constexpr auto& operator=(U&&) noexcept {
         return *this;
     }
 
@@ -1131,7 +1130,7 @@ struct pair {
     TUPLET_INLINE constexpr bool operator<=(pair const& other) const {
         bool result = false;
         bool is_eq  = detail::_partial_cmp(first, other.first, result) &&
-                     detail::_partial_cmp(second, other.second, result);
+                      detail::_partial_cmp(second, other.second, result);
         return result || is_eq;
     }
 
@@ -1145,7 +1144,7 @@ struct pair {
     TUPLET_INLINE constexpr bool operator>=(pair const& other) const {
         bool result = false;
         bool is_eq  = detail::_partial_cmp(other.first, first, result) &&
-                     detail::_partial_cmp(other.second, second, result);
+                      detail::_partial_cmp(other.second, second, result);
         return result || is_eq;
     }
 #endif

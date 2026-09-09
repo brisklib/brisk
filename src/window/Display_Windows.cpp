@@ -19,17 +19,18 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include <brisk/graphics/NativeWindowHandle.hpp>
-#include <brisk/window/Display.hpp>
-#include <brisk/core/Reflection.hpp>
-#include <brisk/core/Encoding.hpp>
 #include <shared_mutex>
 
 #include <dwmapi.h>
+
+#include <brisk/core/Encoding.hpp>
+#include <brisk/core/Reflection.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/window/Display.hpp>
 #define NOMINMAX 1
 #define WIN32_LEAN_AND_MEAN 1
-#include <windows.h>
 #include <ShellScalingApi.h>
+#include <windows.h>
 
 namespace Brisk {
 

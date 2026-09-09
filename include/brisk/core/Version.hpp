@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include "Brisk.h"
+#include <brisk/core/Brisk.h>
 
 #define BRISK_VERSION_MAJOR 0
 #define BRISK_VERSION_MINOR 10

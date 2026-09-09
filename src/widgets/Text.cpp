@@ -18,10 +18,11 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/Text.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/graphics/Palette.hpp>
+#include <brisk/widgets/Text.hpp>
 #include <brisk/window/Clipboard.hpp>
+
 #include "utf8proc.h"
 
 namespace Brisk {
@@ -123,8 +124,8 @@ static RectangleF alignInflate(RectangleF rect) {
 }
 
 static RectangleF textContainer(RectangleF inner, Rotation rotation) {
-    return RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(
-        toOrientation(rotation) == Orientation::Vertical);
+    return RectangleF{ 0, 0, inner.width(), inner.height() }.flippedIf(toOrientation(rotation) ==
+                                                                       Orientation::Vertical);
 }
 
 static Matrix textTransform(RectangleF inner, Rotation rotation) {
@@ -137,7 +138,7 @@ static Matrix textTransform(RectangleF inner, Rotation rotation) {
 
 static PointF textOrigin(RectangleF container, const TextLayout& layout, PointF alignment) {
     const RectangleF bounds = layout.bounds();
-    const PointF anchor      = container.at(alignment.x, alignment.y);
+    const PointF anchor     = container.at(alignment.x, alignment.y);
     return anchor - PointF{ bounds.x1, bounds.y1 } - PointF(bounds.size()) * alignment;
 }
 
@@ -169,12 +170,13 @@ void Text::paint(Canvas& canvas) const {
     Widget::paint(canvas);
     if (m_opacity.current > 0.f) {
         m_cache2.invalidate({ m_clientRect.width(), toTextLayoutAlignment(m_textAlign) });
-        const RectangleF inner   = m_clientRect;
-        const ColorW color       = m_color.current.multiplyAlpha(m_opacity.current);
-        const TextLayout layout  = m_cache2->layout;
-        const PointF alignment    = { toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
-        const RectangleF container = m_rotation == Rotation::NoRotation ? inner : textContainer(inner, m_rotation);
-        const PointF origin         = textOrigin(container, layout, alignment);
+        const RectangleF inner  = m_clientRect;
+        const ColorW color      = m_color.current.multiplyAlpha(m_opacity.current);
+        const TextLayout layout = m_cache2->layout;
+        const PointF alignment  = { toFloatAlign(m_textAlign), toFloatAlign(m_textVerticalAlign) };
+        const RectangleF container =
+            m_rotation == Rotation::NoRotation ? inner : textContainer(inner, m_rotation);
+        const PointF origin = textOrigin(container, layout, alignment);
 
         if (m_selectable && m_selectedLength != 0) {
             canvas.setFillColor(ColorW(Palette::Standard::indigo).multiplyAlpha(isFocused() ? 0.85f : 0.5f));
@@ -245,8 +247,9 @@ uint32_t Text::caretToOffset(PointF point) const {
     if (layout.lineCount() == 0)
         return 0;
 
-    const RectangleF inner   = m_clientRect;
-    const RectangleF container = m_rotation == Rotation::NoRotation ? inner : textContainer(inner, m_rotation);
+    const RectangleF inner = m_clientRect;
+    const RectangleF container =
+        m_rotation == Rotation::NoRotation ? inner : textContainer(inner, m_rotation);
     if (m_rotation != Rotation::NoRotation) {
         if (auto inverse = textTransform(inner, m_rotation).invert())
             point = inverse->transform(point);
@@ -269,9 +272,9 @@ void Text::copyToClipboard() const {
 
 void Text::selectWordAtOffset(uint32_t offset) {
     const std::u32string text = utf8ToUtf32(m_text);
-    const int32_t textLength   = static_cast<int32_t>(text.size());
-    const int32_t cursor       = std::clamp(static_cast<int32_t>(offset), 0, textLength);
-    int32_t begin = cursor;
+    const int32_t textLength  = static_cast<int32_t>(text.size());
+    const int32_t cursor      = std::clamp(static_cast<int32_t>(offset), 0, textLength);
+    int32_t begin             = cursor;
     while (begin > 0 && isWordCharacter(text[static_cast<size_t>(begin - 1)]))
         --begin;
 
@@ -300,9 +303,9 @@ void Text::onEvent(Event& event) {
     switch (const auto [flag, offset, mods] = event.dragged(m_mouseSelection); flag) {
     case DragEvent::Started: {
         focus();
-        const auto mouse         = event.as<EventMouse>();
-        const PointF downPoint  = mouse && mouse->downPoint ? *mouse->downPoint : PointF{};
-        m_cursor                = caretToOffset(downPoint);
+        const auto mouse       = event.as<EventMouse>();
+        const PointF downPoint = mouse && mouse->downPoint ? *mouse->downPoint : PointF{};
+        m_cursor               = caretToOffset(downPoint);
         m_startCursorDragging  = static_cast<int32_t>(m_cursor);
         m_selectedLength       = 0;
         normalizeSelection();
@@ -326,9 +329,9 @@ void Text::onEvent(Event& event) {
         break;
     }
 
-    if (auto key = event.as<EventKeyPressed>(); key && key->key == KeyCode::C &&
-        (key->mods & KeyModifiers::Regular) == KeyModifiers::ControlOrCommand &&
-        m_selectedLength != 0) {
+    if (auto key = event.as<EventKeyPressed>();
+        key && key->key == KeyCode::C &&
+        (key->mods & KeyModifiers::Regular) == KeyModifiers::ControlOrCommand && m_selectedLength != 0) {
         copyToClipboard();
         event.stopPropagation();
     }

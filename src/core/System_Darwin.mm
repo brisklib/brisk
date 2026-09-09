@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <Foundation/Foundation.h>
+
 #include <brisk/core/System.hpp>
 
 namespace Brisk {

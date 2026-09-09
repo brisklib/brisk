@@ -20,12 +20,14 @@
  */                                                                                                          \
 #pragma once
 
-#include "Pixel.hpp"
-#include "ColorSpace.hpp"
-#include <brisk/core/internal/Optional.hpp>
-#include <brisk/core/Reflection.hpp>
 #include <fmt/format.h>
+
+#include <brisk/core/Reflection.hpp>
 #include <brisk/core/Simd.hpp>
+#include <brisk/core/internal/Optional.hpp>
+
+#include "ColorSpace.hpp"
+#include "Pixel.hpp"
 
 namespace Brisk {
 

@@ -18,8 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Compression.hpp>
 #include <zlib.h>
+
+#include <brisk/core/Compression.hpp>
 
 namespace Brisk {
 
@@ -120,7 +121,7 @@ public:
         }
         size_t flushSize = strm.next_out - (Bytef*)buffer.get();
         if (flushSize && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize))) {
-                return Transferred::Error;
+            return Transferred::Error;
         }
 
         if (e == Z_STREAM_END) {

@@ -24,6 +24,7 @@
 
 #include <cmath>
 #include <numbers>
+
 #include <brisk/graphics/Geometry.hpp>
 
 namespace Brisk {

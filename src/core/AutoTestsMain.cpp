@@ -19,8 +19,8 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/System.hpp>
-#include <brisk/core/Version.hpp>
 #include <brisk/core/Text.hpp>
+#include <brisk/core/Version.hpp>
 #include <brisk/core/internal/Initialization.hpp>
 
 #define CATCH_CONFIG_RUNNER

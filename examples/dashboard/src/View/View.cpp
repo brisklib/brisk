@@ -19,9 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "View.hpp"
-#include <brisk/widgets/Widgets.hpp>
-#include <brisk/graphics/Palette.hpp>
+
 #include <deque>
+
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/widgets/Widgets.hpp>
 
 namespace App {
 

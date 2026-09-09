@@ -19,11 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include <brisk/window/OsDialogs.hpp>
-#include <brisk/window/WindowApplication.hpp>
-#include <brisk/core/internal/Expected.hpp>
 #include <brisk/core/Localization.hpp>
 #include <brisk/core/Text.hpp>
+#include <brisk/core/internal/Expected.hpp>
+#include <brisk/window/OsDialogs.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 namespace Brisk {
 

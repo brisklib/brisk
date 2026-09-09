@@ -18,12 +18,13 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/WebGpu.hpp>
 #include <brisk/core/Log.hpp>
+#include <brisk/graphics/WebGpu.hpp>
+
+#include "ImageBackend.hpp"
+#include "ImageRenderTarget.hpp"
 #include "RenderEncoder.hpp"
 #include "WindowRenderTarget.hpp"
-#include "ImageRenderTarget.hpp"
-#include "ImageBackend.hpp"
 
 namespace Brisk {
 wgpu::TextureFormat wgFormat(PixelType type, PixelFormat format) {

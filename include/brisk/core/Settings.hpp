@@ -20,12 +20,12 @@
  */
 #pragma once
 
-#include "Io.hpp"
-#include "BasicTypes.hpp"
-#include "internal/Generation.hpp"
-#include "Binding.hpp"
-#include <set>
 #include <shared_mutex>
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Binding.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/internal/Generation.hpp>
 
 namespace Brisk {
 

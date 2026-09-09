@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Typography.hpp"
+
 #include <brisk/gui/Icons.hpp>
 #include <brisk/window/Clipboard.hpp>
 

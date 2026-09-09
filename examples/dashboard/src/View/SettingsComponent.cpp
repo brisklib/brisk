@@ -19,14 +19,16 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "SettingsComponent.hpp"
-#include "Style.hpp"
-#include <brisk/gui/Icons.hpp>
-#include <brisk/core/Resources.hpp>
-#include <brisk/widgets/Widgets.hpp>
-#include <brisk/core/Text.hpp>
+
 #include <brisk/core/App.hpp>
+#include <brisk/core/Resources.hpp>
+#include <brisk/core/Text.hpp>
 #include <brisk/core/Version.hpp>
+#include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Widgets.hpp>
 #include <brisk/window/Clipboard.hpp>
+
+#include "Style.hpp"
 
 namespace App {
 

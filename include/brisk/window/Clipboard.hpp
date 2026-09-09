@@ -20,10 +20,11 @@
  */
 #pragma once
 
+#include <optional>
+#include <unordered_map>
+
 #include <brisk/core/Brisk.h>
 #include <brisk/core/Bytes.hpp>
-#include <unordered_map>
-#include <optional>
 
 namespace Brisk {
 

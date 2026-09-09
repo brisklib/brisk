@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include "ValueWidget.hpp"
 #include "Item.hpp"
+#include "ValueWidget.hpp"
 
 namespace Brisk {
 

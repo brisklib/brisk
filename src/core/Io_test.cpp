@@ -19,9 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
-#include <brisk/core/Rc.hpp>
+
 #include <brisk/core/Io.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/core/Stream.hpp>
+
 #include "Catch2Utils.hpp"
 
 namespace Brisk {
@@ -221,15 +223,17 @@ TEST_CASE("fileStreamZeroLengthOperations") {
 TEST_CASE("partialWritesAreRetried") {
     Rc<Stream> writer = rcnew PartialWriter(2);
     CHECK(writer->writeAll(toBytesView("abcdef")));
-    CHECK(std::string(reinterpret_cast<const char*>(std::static_pointer_cast<PartialWriter>(writer)->data().data()),
-                      6) == "abcdef");
+    CHECK(std::string(
+              reinterpret_cast<const char*>(std::static_pointer_cast<PartialWriter>(writer)->data().data()),
+              6) == "abcdef");
 
     Rc<Stream> source = rcnew MemoryStream(toBytes("abcdef"));
-    auto partial = rcnew PartialWriter(2);
-    auto result = writeFromReader(partial, source, 3);
+    auto partial      = rcnew PartialWriter(2);
+    auto result       = writeFromReader(partial, source, 3);
     REQUIRE(result.has_value());
     CHECK(*result == 6);
-    CHECK(std::string(reinterpret_cast<const char*>(partial->data().data()), partial->data().size()) == "abcdef");
+    CHECK(std::string(reinterpret_cast<const char*>(partial->data().data()), partial->data().size()) ==
+          "abcdef");
 }
 
 TEST_CASE("transferFailuresAreReported") {
@@ -238,13 +242,13 @@ TEST_CASE("transferFailuresAreReported") {
     auto writeFailure = rcnew PartialWriter(0);
     CHECK(!writeFromReader(writeFailure, source, 3).has_value());
 
-    source = rcnew MemoryStream(toBytes("abcdef"));
+    source            = rcnew MemoryStream(toBytes("abcdef"));
     auto flushFailure = rcnew PartialWriter(8, false);
     CHECK(!writeFromReader(flushFailure, source, 3).has_value());
 }
 
 TEST_CASE("tempFilePathGeneratesCandidates") {
-    const fs::path question = tempFilePath("io-temp-????.tmp");
+    const fs::path question      = tempFilePath("io-temp-????.tmp");
     const fs::path tempDirectory = fs::temp_directory_path();
     CHECK(question.string().starts_with(tempDirectory.string()));
     CHECK(question.filename().string().size() == std::string("io-temp-????.tmp").size());

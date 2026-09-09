@@ -19,11 +19,12 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
-#include "Catch2Utils.hpp"
 
+#include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Fonts.hpp>
 #include <brisk/graphics/Html.hpp>
-#include <brisk/graphics/Canvas.hpp>
+
+#include "Catch2Utils.hpp"
 
 namespace Brisk {
 
@@ -107,13 +108,13 @@ TEST_CASE("HtmlParser") {
     CHECK(rich->second.flags[0] == FontFormatFlags::None);
 
     const float savedPixelRatio = pixelRatio();
-    pixelRatio()               = 2.f;
+    pixelRatio()                = 2.f;
     rich                        = RichText::fromHtml("<font size=\"24\">x</font>");
     REQUIRE(rich);
     CHECK(rich->second.fonts[0].font.fontSize == 24.f);
     pixelRatio() = savedPixelRatio;
 
-    rich = RichText::fromHtml("<tag attr=unquoted-value></tag>");
+    rich         = RichText::fromHtml("<tag attr=unquoted-value></tag>");
     REQUIRE(rich);
     rich = RichText::fromHtml("<tag attr='quoted-value'></tag>");
     REQUIRE(rich);

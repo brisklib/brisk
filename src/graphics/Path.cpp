@@ -19,15 +19,14 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 
-#include "vector/Line.hpp"
-#include "vector/Bezier.hpp"
-#include "vector/Dasher.hpp"
-#include "vector/freetype/v_ft_stroker.h"
+#include <brisk/graphics/Image.hpp>
+#include <brisk/graphics/Path.hpp>
 
 #include "Mask.hpp"
-
-#include <brisk/graphics/Path.hpp>
-#include <brisk/graphics/Image.hpp>
+#include "vector/Bezier.hpp"
+#include "vector/Dasher.hpp"
+#include "vector/Line.hpp"
+#include "vector/freetype/v_ft_stroker.h"
 
 namespace Brisk {
 
@@ -906,8 +905,8 @@ struct Stroker {
     }
 
     void setPath(const Path& path) {
-        const auto& elements = path.elements();
-        const auto& points   = path.points();
+        const auto& elements     = path.elements();
+        const auto& points       = path.points();
 
         // SW_FT_Stroker_ParseOutline expects closed contours to contain an
         // explicit copy of their first point.  Path::close() does not always
@@ -919,7 +918,7 @@ struct Stroker {
         numContours              = path.segments();
         grow(numPoints, numContours);
 
-        size_t index         = 0;
+        size_t index = 0;
         for (Path::Element element : elements) {
             switch (element) {
             case Path::Element::MoveTo:

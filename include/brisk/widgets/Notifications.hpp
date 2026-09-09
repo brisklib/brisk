@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include "Widgets.hpp"
 #include "AutoScrollable.hpp"
+#include "Widgets.hpp"
 
 namespace Brisk {
 

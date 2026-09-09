@@ -21,17 +21,19 @@
 #pragma once
 
 #include <array>
-#include <optional>
-#include <brisk/core/Binding.hpp>
-#include <brisk/core/internal/Debug.hpp>
-#include <variant>
-#include <string_view>
-#include <vector>
-#include <fmt/format.h>
 #include <memory>
+#include <optional>
+#include <string_view>
+#include <variant>
+#include <vector>
+
+#include <fmt/format.h>
+
+#include <brisk/core/Binding.hpp>
 #include <brisk/core/Log.hpp>
-#include <brisk/window/WindowApplication.hpp>
 #include <brisk/core/Reflection.hpp>
+#include <brisk/core/internal/Debug.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 extern "C" {
 #include <decimal128.h>

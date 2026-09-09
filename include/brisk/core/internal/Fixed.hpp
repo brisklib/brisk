@@ -20,10 +20,11 @@
  */
 #pragma once
 
-#include <cstdint>
-#include <type_traits>
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <type_traits>
+
 #include <fmt/format.h>
 
 namespace Brisk {

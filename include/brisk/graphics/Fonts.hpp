@@ -20,21 +20,23 @@
  */
 #pragma once
 
-#include <brisk/core/internal/InlineVector.hpp>
-#include <brisk/core/Stream.hpp>
-#include <brisk/core/Hash.hpp>
-#include <mutex>
-#include "Color.hpp"
-#include <brisk/core/internal/SmallVector.hpp>
-#include "internal/OpenType.hpp"
-#include "Image.hpp"
-#include <brisk/core/Io.hpp>
-#include "internal/Sprites.hpp"
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
+
+#include <brisk/core/Hash.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/Stream.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/InlineVector.hpp>
 #include <brisk/core/internal/Lock.hpp>
+#include <brisk/core/internal/SmallVector.hpp>
+
+#include "Color.hpp"
+#include "Image.hpp"
+#include "internal/OpenType.hpp"
+#include "internal/Sprites.hpp"
 
 namespace Brisk {
 

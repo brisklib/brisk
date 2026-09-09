@@ -19,15 +19,16 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/internal/Initialization.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/gui/Component.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/gui/GuiWindow.hpp>
-#include <brisk/widgets/Layouts.hpp>
-#include <brisk/widgets/Text.hpp>
+#include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/Graphene.hpp>
-#include <brisk/gui/Component.hpp>
-#include <brisk/graphics/Fonts.hpp>
-#include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Layouts.hpp>
+#include <brisk/widgets/Text.hpp>
+
 #include "math.hpp"
 
 namespace Brisk {
@@ -144,7 +145,7 @@ public:
                     "CE",
                     Graphene::mainColor = 0x9A202A_rgb,
                     onClick             = lifetime() |
-                              [this] {
+                                          [this] {
                                   calc.clear();
                               },
                 },
@@ -196,7 +197,7 @@ public:
                     ICON_divide, // "÷",
                     Graphene::mainColor = 0x6B7183_rgb,
                     onClick             = lifetime() |
-                              [this] {
+                                          [this] {
                                   calc.operation(MultiplicativeOperator::Divide);
                               },
                 },
@@ -227,7 +228,7 @@ public:
                     ICON_x, // "×",
                     Graphene::mainColor = 0x6B7183_rgb,
                     onClick             = lifetime() |
-                              [this] {
+                                          [this] {
                                   calc.operation(MultiplicativeOperator::Multiply);
                               },
                 },
@@ -258,7 +259,7 @@ public:
                     ICON_minus, //  "−",
                     Graphene::mainColor = 0x6B7183_rgb,
                     onClick             = lifetime() |
-                              [this] {
+                                          [this] {
                                   calc.operation(AdditiveOperator::Subtract);
                               },
                 },
@@ -289,7 +290,7 @@ public:
                     ICON_plus, //    "+",
                     Graphene::mainColor = 0x6B7183_rgb,
                     onClick             = lifetime() |
-                              [this] {
+                                          [this] {
                                   calc.operation(AdditiveOperator::Add);
                               },
                 },
@@ -320,7 +321,7 @@ public:
                     ICON_equal, //  "=",
                     Graphene::mainColor = 0x297227_rgb,
                     onClick             = lifetime() |
-                              [this] {
+                                          [this] {
                                   calc.solve();
                               },
                 },

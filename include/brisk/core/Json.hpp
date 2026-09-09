@@ -19,18 +19,19 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include <type_traits>
 #include <atomic>
-#include <vector>
+#include <cstdint>
+#include <map>
+#include <set>
 #include <string>
 #include <string_view>
-#include <set>
-#include <map>
+#include <type_traits>
 #include <variant>
-#include <cstdint>
-#include "internal/Optional.hpp"
+#include <vector>
+
 #include <brisk/core/Bytes.hpp>
-#include "Reflection.hpp"
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/internal/Optional.hpp>
 
 namespace Brisk {
 

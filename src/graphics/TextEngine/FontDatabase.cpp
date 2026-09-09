@@ -1,10 +1,10 @@
 #include "text_layout/FontDatabase.hpp"
 
-#include <brisk/core/internal/InlineVector.hpp>
-
+#include <ft2build.h>
 #include <hb-ft.h>
 #include <hb-ot.h>
-#include <ft2build.h>
+
+#include <brisk/core/internal/InlineVector.hpp>
 #include FT_FREETYPE_H
 #include FT_MODULE_H
 #include FT_MULTIPLE_MASTERS_H

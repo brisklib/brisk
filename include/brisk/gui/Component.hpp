@@ -20,9 +20,9 @@
  */
 #pragma once
 
+#include <brisk/gui/Action.hpp>
 #include <brisk/gui/Gui.hpp>
 #include <brisk/gui/GuiWindow.hpp>
-#include <brisk/gui/Action.hpp>
 
 namespace Brisk {
 

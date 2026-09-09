@@ -18,10 +18,10 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/ComboBox.hpp>
-#include <brisk/widgets/Text.hpp>
 #include <brisk/gui/Icons.hpp>
 #include <brisk/gui/Styles.hpp>
+#include <brisk/widgets/ComboBox.hpp>
+#include <brisk/widgets/Text.hpp>
 
 namespace Brisk {
 

@@ -20,14 +20,15 @@
  */
 #pragma once
 
-#include "Time.hpp"
-#include "BasicTypes.hpp"
-#include <brisk/core/Utilities.hpp>
-#include "internal/Function.hpp"
-#include <functional>
 #include <future>
-#include <brisk/core/internal/Debug.hpp>
+
+#include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Log.hpp>
+#include <brisk/core/Rc.hpp>
+#include <brisk/core/Time.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/Debug.hpp>
+#include <brisk/core/internal/Function.hpp>
 
 namespace Brisk {
 

@@ -18,22 +18,23 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Json.hpp>
-#include <fmt/format.h>
 #include <cmath>
+
+#include <fmt/format.h>
+
+#include <brisk/core/Json.hpp>
 
 #define RAPIDJSON_WRITE_DEFAULT_FLAGS rapidjson::kWriteNanAndInfFlag
 #define RAPIDJSON_PARSE_DEFAULT_FLAGS                                                                        \
     rapidjson::kParseNanAndInfFlag | rapidjson::kParseFullPrecisionFlag | rapidjson::kParseCommentsFlag |    \
         rapidjson::kParseTrailingCommasFlag
 
-#include <rapidjson/writer.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/reader.h>
-
 #include <msgpack/pack.hpp>
 #include <msgpack/parse.hpp>
 #include <msgpack/unpack.hpp>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/reader.h>
+#include <rapidjson/writer.h>
 
 namespace Brisk {
 
