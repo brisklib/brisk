@@ -20,7 +20,7 @@ if (NOT TARGET SheenBidi::SheenBidi)
 endif ()
 find_package(unofficial-utf8proc CONFIG REQUIRED)
 
-add_library(brisk-text-engine STATIC
+add_library(brisk-text-engine OBJECT
     ${BRISK_TEXT_ENGINE_SOURCE_DIR}/BreakIterator.cpp
     ${BRISK_TEXT_ENGINE_SOURCE_DIR}/FontDatabase.cpp
     ${BRISK_TEXT_ENGINE_SOURCE_DIR}/Layout.cpp
