@@ -243,6 +243,7 @@ Bytes lz4Encode(BytesView data, CompressionLevel level) {
     }
 
     result.resize(compressed_size);
+    result.shrink_to_fit();
     return result;
 }
 
@@ -265,6 +266,7 @@ Bytes lz4Decode(BytesView data) {
     }
 
     result.resize(decoded_size);
+    result.shrink_to_fit();
     LZ4F_freeDecompressionContext(dctx);
     return result;
 }

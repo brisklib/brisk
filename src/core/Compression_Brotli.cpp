@@ -175,38 +175,98 @@ Rc<Stream> brotliEncoder(Rc<Stream> writer, CompressionLevel level) {
     return Rc<Stream>(new BrotliEncoder(std::move(writer), level));
 }
 
-Bytes brotliEncode(BytesView data, CompressionLevel level) {
-    Bytes result;
-    int q     = brotliQuality(level);
-    size_t sz = BrotliEncoderMaxCompressedSize(data.size());
-    if (sz == 0)
-        sz = data.size() / 2;
-    result.resize(sz);
-    size_t encoded_size = result.size();
-    while (!BrotliEncoderCompress(q, brotliLgWin, BrotliEncoderMode::BROTLI_MODE_GENERIC, data.size(),
-                                  (const uint8_t*)data.data(), &encoded_size, (uint8_t*)result.data())) {
-        if (encoded_size == 0)
-            return {};
-        result.resize(result.size() * 2);
-        encoded_size = result.size();
+Bytes brotliEncodeStream(BytesView data, int quality) {
+    std::unique_ptr<BrotliEncoderState, BrotliEncoderDeleter> state(
+        BrotliEncoderCreateInstance(nullptr, nullptr, nullptr));
+    if (!state || !BrotliEncoderSetParameter(state.get(), BROTLI_PARAM_QUALITY, quality) ||
+        !BrotliEncoderSetParameter(state.get(), BROTLI_PARAM_LGWIN, brotliLgWin)) {
+        return {};
     }
+
+    Bytes result;
+    Bytes buffer(compressionBatchSize);
+
+    const uint8_t* next_in = reinterpret_cast<const uint8_t*>(data.data());
+    size_t available_in    = data.size();
+    while (available_in > 0) {
+        size_t available_out = buffer.size();
+        uint8_t* next_out    = reinterpret_cast<uint8_t*>(buffer.data());
+        if (!BrotliEncoderCompressStream(state.get(), BROTLI_OPERATION_PROCESS, &available_in, &next_in,
+                                         &available_out, &next_out, nullptr)) {
+            return {};
+        }
+        result.insert(result.end(), buffer.begin(), buffer.begin() + (buffer.size() - available_out));
+    }
+
+    do {
+        size_t available_out = buffer.size();
+        uint8_t* next_out    = reinterpret_cast<uint8_t*>(buffer.data());
+        if (!BrotliEncoderCompressStream(state.get(), BROTLI_OPERATION_FINISH, &available_in, &next_in,
+                                         &available_out, &next_out, nullptr)) {
+            return {};
+        }
+        result.insert(result.end(), buffer.begin(), buffer.begin() + (buffer.size() - available_out));
+    } while (!BrotliEncoderIsFinished(state.get()));
+
+    result.shrink_to_fit();
+    return result;
+}
+
+Bytes brotliEncode(BytesView data, CompressionLevel level) {
+    const int quality  = brotliQuality(level);
+    const size_t bound = BrotliEncoderMaxCompressedSize(data.size());
+
+    // Brotli documents the bound as valid for quality >= 2. Use the streaming
+    // API for the lowest quality and when the bound overflows size_t.
+    if (quality < 2 || bound == 0) {
+        return brotliEncodeStream(data, quality);
+    }
+
+    Bytes result(bound);
+    size_t encoded_size = result.size();
+    if (!BrotliEncoderCompress(quality, brotliLgWin, BrotliEncoderMode::BROTLI_MODE_GENERIC, data.size(),
+                               reinterpret_cast<const uint8_t*>(data.data()), &encoded_size,
+                               reinterpret_cast<uint8_t*>(result.data()))) {
+        return {};
+    }
+
     result.resize(encoded_size);
+    result.shrink_to_fit();
     return result;
 }
 
 Bytes brotliDecode(BytesView data) {
+    std::unique_ptr<BrotliDecoderState, BrotliDecoderDeleter> state(
+        BrotliDecoderCreateInstance(nullptr, nullptr, nullptr));
+    if (!state)
+        return {};
+
     Bytes result;
-    result.resize(data.size() * 3);
-    size_t decoded_size = result.size();
-    while (!BrotliDecoderDecompress(data.size(), (const uint8_t*)data.data(), &decoded_size,
-                                    (uint8_t*)result.data())) {
-        if (decoded_size == 0)
+    result.reserve(data.size());
+    Bytes buffer(compressionBatchSize);
+
+    size_t available_in    = data.size();
+    const uint8_t* next_in = reinterpret_cast<const uint8_t*>(data.data());
+    for (;;) {
+        size_t available_out       = buffer.size();
+        uint8_t* next_out          = reinterpret_cast<uint8_t*>(buffer.data());
+        BrotliDecoderResult status = BrotliDecoderDecompressStream(state.get(), &available_in, &next_in,
+                                                                   &available_out, &next_out, nullptr);
+        result.insert(result.end(), buffer.begin(), buffer.begin() + (buffer.size() - available_out));
+
+        if (status == BROTLI_DECODER_RESULT_SUCCESS) {
+            result.shrink_to_fit();
+            return result;
+        }
+        if (status == BROTLI_DECODER_RESULT_ERROR)
             return {};
-        result.resize(result.size() * 2);
-        decoded_size = result.size();
+
+        // NEEDS_MORE_OUTPUT is handled by the next iteration. If all input
+        // has been consumed while the decoder still needs input, the stream
+        // is truncated or invalid.
+        if (status == BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT && available_in == 0)
+            return {};
     }
-    result.resize(decoded_size);
-    return result;
 }
 
 } // namespace Brisk

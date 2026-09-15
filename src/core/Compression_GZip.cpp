@@ -282,6 +282,7 @@ Bytes zlibEncode2(BytesView data, CompressionLevel level, bool gzip) {
         destLen = result.size();
     }
     result.resize(destLen);
+    result.shrink_to_fit();
     return result;
 }
 
@@ -306,6 +307,7 @@ Bytes zlibDecode(BytesView data) {
         destLen = result.size();
     }
     result.resize(destLen);
+    result.shrink_to_fit();
     return result;
 }
 
