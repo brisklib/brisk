@@ -957,7 +957,7 @@ void Internal::forEachTextLayoutGlyph(const TextLayout& layout, PointF origin,
                 const TextEngine::Glyph& glyph = document.prepared.glyphs[glyphIndex];
                 onGlyph(Internal::TextLayoutGlyph{
                     .position = origin + PointF{ TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset),
-                                                 TextEngine::toFloat(layoutRun.yOffset + glyph.yOffset) },
+                                                 TextEngine::toFloat(layoutRun.yOffset - glyph.yOffset) },
                     .bitmap   = bitmap,
                     .color = style && style->hasColor ? std::optional<Color>{ style->color } : std::nullopt,
                 });
@@ -1077,7 +1077,7 @@ static void renderGlyphs(Pixels& pixels, Rc<Image> image, Point origin, const Sh
                 }
                 const TextEngine::Glyph& glyph = pdocument->prepared.glyphs[glyphIndex];
                 const PointF glyphOrigin{ TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset) + origin.x,
-                                          TextEngine::toFloat(layoutRun.yOffset + glyph.yOffset) + origin.y };
+                                          TextEngine::toFloat(layoutRun.yOffset - glyph.yOffset) + origin.y };
                 const PointF topLeft  = glyphOrigin + PointF{ float(bitmap.offsetX) / bitmap.horizontalScale,
                                                               -float(bitmap.offsetY) };
                 const int x0          = static_cast<int>(std::floor(topLeft.x));
