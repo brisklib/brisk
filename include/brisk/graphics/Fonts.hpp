@@ -35,6 +35,7 @@
 
 #include "Color.hpp"
 #include "Image.hpp"
+#include "Path.hpp"
 #include "internal/OpenType.hpp"
 #include "internal/Sprites.hpp"
 
@@ -405,6 +406,12 @@ public:
     [[nodiscard]] RectangleF bounds() const noexcept;
     /// @return Bounds excluding trailing whitespace while retaining line extents.
     [[nodiscard]] RectangleF trimmedBounds() const noexcept;
+
+    /// Exports outline-capable glyphs as a collection of Bézier contours.
+    /// @param origin Translation applied to the intrinsic layout coordinates.
+    /// @return A path containing the outlines of all visible outline glyphs. Bitmap, SVG, color,
+    /// and whitespace glyphs do not contribute geometry.
+    [[nodiscard]] Path toPath(PointF origin = {}) const;
 
     /// @param index Grapheme boundary and affinity to locate.
     /// @return Caret position in layout coordinates.

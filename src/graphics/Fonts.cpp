@@ -41,6 +41,7 @@
 #include "FontInternals.hpp"
 #include "brisk/graphics/Canvas.hpp"
 #include FT_FREETYPE_H
+#include FT_OUTLINE_H
 #include FT_STROKER_H
 #include FT_LCD_FILTER_H
 #include FT_SIZES_H
@@ -518,6 +519,107 @@ RectangleF TextLayout::bounds() const noexcept {
 
 RectangleF TextLayout::trimmedBounds() const noexcept {
     return m_impl ? m_impl->trimmedBounds : RectangleF{};
+}
+
+namespace {
+
+struct TextLayoutPathDecomposer {
+    Path* path;
+    PointF origin;
+
+    static PointF convert(const FT_Vector& point, PointF origin) {
+        constexpr float scale = 1.f / 64.f;
+        return origin + PointF{ static_cast<float>(point.x) * scale, -static_cast<float>(point.y) * scale };
+    }
+
+    static int moveTo(const FT_Vector* point, void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        if (!decomposer.path->empty() && decomposer.path->elements().back() != Path::Element::Close) {
+            decomposer.path->close();
+        }
+        decomposer.path->moveTo(convert(*point, decomposer.origin));
+        return 0;
+    }
+
+    static int lineTo(const FT_Vector* point, void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        decomposer.path->lineTo(convert(*point, decomposer.origin));
+        return 0;
+    }
+
+    static int conicTo(const FT_Vector* control, const FT_Vector* point, void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        decomposer.path->quadraticTo(convert(*control, decomposer.origin),
+                                     convert(*point, decomposer.origin));
+        return 0;
+    }
+
+    static int cubicTo(const FT_Vector* control1, const FT_Vector* control2, const FT_Vector* point,
+                       void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        decomposer.path->cubicTo(convert(*control1, decomposer.origin), convert(*control2, decomposer.origin),
+                                 convert(*point, decomposer.origin));
+        return 0;
+    }
+};
+
+} // namespace
+
+Path TextLayout::toPath(PointF origin) const {
+    Path result;
+    if (!m_impl || !m_impl->document || !m_impl->document->state || !m_impl->document->state->database) {
+        return result;
+    }
+
+    const ShapedText::Impl& document = *m_impl->document;
+    for (const TextEngine::LayoutGlyphRun& layoutRun : m_impl->layout.glyphRuns) {
+        if (layoutRun.glyphRange.empty() ||
+            layoutRun.preparedRunIndex >= document.prepared.glyphRuns.size()) {
+            continue;
+        }
+
+        const TextEngine::GlyphRun& preparedRun = document.prepared.glyphRuns[layoutRun.preparedRunIndex];
+        TextEngine::ActiveFont activeFont       = document.state->database->activate(preparedRun.fontHandle);
+        FT_Face face                            = static_cast<FT_Face>(activeFont.ftFace);
+        if (face == nullptr) {
+            continue;
+        }
+
+        TextLayoutPathDecomposer decomposer{ &result, origin + PointF{
+                                                                   TextEngine::toFloat(layoutRun.xOffset),
+                                                                   TextEngine::toFloat(layoutRun.yOffset),
+                                                               } };
+        FT_Outline_Funcs funcs{
+            .move_to  = &TextLayoutPathDecomposer::moveTo,
+            .line_to  = &TextLayoutPathDecomposer::lineTo,
+            .conic_to = &TextLayoutPathDecomposer::conicTo,
+            .cubic_to = &TextLayoutPathDecomposer::cubicTo,
+            .shift    = 0,
+            .delta    = 0,
+        };
+
+        const uint32_t glyphMin = layoutRun.glyphRange.min;
+        const uint32_t glyphMax =
+            std::min<uint32_t>(layoutRun.glyphRange.max, document.prepared.glyphs.size());
+        for (uint32_t glyphIndex = glyphMin; glyphIndex < glyphMax; ++glyphIndex) {
+            const TextEngine::Glyph& glyph = document.prepared.glyphs[glyphIndex];
+            if (FT_Load_Glyph(face, glyph.glyphId, activeFont.loadFlags | FT_LOAD_NO_BITMAP) != 0 ||
+                face->glyph->format != FT_GLYPH_FORMAT_OUTLINE) {
+                continue;
+            }
+
+            decomposer.origin = origin + PointF{
+                TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset),
+                TextEngine::toFloat(layoutRun.yOffset - glyph.yOffset),
+            };
+            std::ignore = FT_Outline_Decompose(&face->glyph->outline, &funcs, &decomposer);
+            if (!result.empty() && result.elements().back() != Path::Element::Close) {
+                result.close();
+            }
+        }
+    }
+
+    return result;
 }
 
 CaretPosition TextLayout::caretPosition(CaretIndex index) const noexcept {

@@ -363,12 +363,79 @@ TEST_CASE("TextEngine Canvas renderer", "[text-layout][visual]") {
         "text-layout-canvas", Size{ 360, 180 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(245, 247, 250));
-            canvas.fillRect({ 0, 0, 360, 180 });
             canvas.setFillColor(Palette::black);
             canvas.fillText({ 32, 24 }, layout);
         },
-        ColorF{ 1.f, 1.f });
+        Color(245, 247, 250));
+}
+
+TEST_CASE("TextEngine renders text outlines as paths", "[text-layout][visual]") {
+    registerTextLayoutVisualFonts();
+
+    const Font font{ "TextLayoutTest", 90.f };
+    const ShapedText prepared = fonts->shapeText(font, TextWithOptions{ U"Bézier text\nfilled and stroked" });
+    TextLayoutOptions options;
+    options.maxLineWidth    = 500.f;
+    const TextLayout layout = prepared.layout(options);
+
+    renderTest(
+        "text-layout-path", Size{ 620, 400 },
+        [&](RenderContext& context) {
+            Canvas canvas(context);
+
+            const Path path = layout.toPath({ 56.f, 20.f });
+            canvas.setFillColor(0xFFF0E8_rgb);
+            canvas.fillPath(path);
+            canvas.setStrokeColor(0xFF2300_rgb);
+            canvas.setStrokeWidth(2.5f);
+            canvas.strokePath(path);
+        },
+        Color(248, 249, 252));
+}
+
+TEST_CASE("TextEngine renders complex arabic text", "[text-layout][visual]") {
+    registerTextLayoutVisualFonts();
+
+    const Font notoFont{ "TextLayoutNoto", 90.f };
+    const ShapedText multilingual = fonts->shapeText(notoFont, TextWithOptions{ U"اَلْعَرَبِيَّةُ" });
+    TextLayoutOptions options;
+    options.maxLineWidth                = 250.f;
+    const TextLayout multilingualLayout = multilingual.layout(options);
+
+    renderTest(
+        "text-layout-complex-arabic", Size{ 420, 200 },
+        [&](RenderContext& context) {
+            Canvas canvas(context);
+
+            canvas.setFillColor(0x006080_rgb);
+            canvas.fillText({ 32.f, 15.f }, multilingualLayout);
+        },
+        Color(248, 249, 252));
+}
+
+TEST_CASE("TextEngine renders multilingual text outlines as paths", "[text-layout][visual]") {
+    registerTextLayoutVisualFonts();
+
+    const Font notoFont{ "TextLayoutNoto", 90.f };
+    const ShapedText multilingual =
+        fonts->shapeText(notoFont, TextWithOptions{ U"ABC 文字 اَلْعَرَبِيَّةُ עברית Кириллица Ελληνικά" });
+    TextLayoutOptions multilingualOptions;
+    multilingualOptions.maxLineWidth    = 560.f;
+    const TextLayout multilingualLayout = multilingual.layout(multilingualOptions);
+
+    renderTest(
+        "text-layout-path-multilingual", Size{ 620, 550 },
+        [&](RenderContext& context) {
+            Canvas canvas(context);
+
+            const Path multilingualPath = multilingualLayout.toPath({ 32.f, 15.f });
+            canvas.setFillColor(0xD8F0FF_rgb);
+            canvas.fillPath(multilingualPath);
+            canvas.setStrokeColor(0x006080_rgb);
+            canvas.setStrokeWidth(1.5f);
+            canvas.strokePath(multilingualPath);
+        },
+        Color(248, 249, 252));
 }
 
 TEST_CASE("TextEngine Canvas renderer line-height bounding rectangles", "[text-layout][visual]") {
@@ -393,8 +460,6 @@ TEST_CASE("TextEngine Canvas renderer line-height bounding rectangles", "[text-l
         "text-layout-line-height-bounds", Size{ 360, 340 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(248, 249, 252));
-            canvas.fillRect({ 0, 0, 360, 340 });
 
             for (size_t index = 0; index < layouts.size(); ++index) {
                 const PointF origin{ 32.f, 24.f + static_cast<float>(index) * 78.f };
@@ -412,7 +477,7 @@ TEST_CASE("TextEngine Canvas renderer line-height bounding rectangles", "[text-l
                 canvas.fillText(origin, layouts[index]);
             }
         },
-        ColorF{ 1.f, 1.f });
+        Color(248, 249, 252));
 }
 
 TEST_CASE("TextEngine Canvas renderer styles and selection", "[text-layout][visual]") {
@@ -435,8 +500,6 @@ TEST_CASE("TextEngine Canvas renderer styles and selection", "[text-layout][visu
         "text-layout-canvas-styles", Size{ 400, 140 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(255, 255, 255));
-            canvas.fillRect({ 0, 0, 400, 140 });
             canvas.setFillColor(Color(225, 230, 240));
             canvas.fillTextSelection({ 32, 24 }, layout, { 5, 24 });
             canvas.fillText({ 32, 24 }, layout);
@@ -458,12 +521,10 @@ TEST_CASE("TextEngine Canvas renderer bidirectional text", "[text-layout][visual
         "text-layout-bidi", Size{ 600, 150 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(248, 249, 252));
-            canvas.fillRect({ 0, 0, 600, 150 });
             canvas.setFillColor(Palette::black);
             canvas.fillText({ 28, 26 }, layout);
         },
-        ColorF{ 1.f, 1.f });
+        Color(248, 249, 252));
 }
 
 TEST_CASE("TextEngine Canvas renderer wraps bidirectional text", "[text-layout][visual][bidi]") {
@@ -480,8 +541,6 @@ TEST_CASE("TextEngine Canvas renderer wraps bidirectional text", "[text-layout][
         "text-layout-bidi-wrap", Size{ 340, 260 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(255, 255, 255));
-            canvas.fillRect({ 0, 0, 340, 260 });
             canvas.setFillColor(Palette::black);
             canvas.fillText({ 24, 24 }, layout);
         },
@@ -506,11 +565,9 @@ TEST_CASE("TextEngine Canvas renderer supports monospace", "[text-layout][visual
         "text-layout-monospace", Size{ 600, 120 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(250, 250, 250));
-            canvas.fillRect({ 0, 0, 600, 120 });
             canvas.fillText({ 24, 4 }, layout);
         },
-        ColorF{ 1.f, 1.f });
+        Color(250, 250, 250));
 }
 
 TEST_CASE("TextEngine Canvas renderer supports multiple fonts", "[text-layout][visual][fonts]") {
@@ -534,11 +591,9 @@ TEST_CASE("TextEngine Canvas renderer supports multiple fonts", "[text-layout][v
         "text-layout-multiple-fonts", Size{ 720, 120 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(250, 250, 250));
-            canvas.fillRect({ 0, 0, 720, 120 });
             canvas.fillText({ 24, 28 }, layout);
         },
-        ColorF{ 1.f, 1.f });
+        Color(250, 250, 250));
 }
 
 TEST_CASE("TextEngine Canvas renderer draws multiline selection", "[text-layout][visual][selection]") {
@@ -555,8 +610,6 @@ TEST_CASE("TextEngine Canvas renderer draws multiline selection", "[text-layout]
         "text-layout-selection-multiline", Size{ 380, 180 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(255, 255, 255));
-            canvas.fillRect({ 0, 0, 380, 180 });
             canvas.setFillColor(Color(180, 210, 255));
             canvas.fillTextSelection({ 24, 24 }, layout, { 6, 56 });
             canvas.setFillColor(Palette::black);
@@ -578,12 +631,10 @@ TEST_CASE("TextEngine Canvas renderer draws ligatures", "[text-layout][visual][l
         "text-layout-ligatures", Size{ 620, 100 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(245, 247, 250));
-            canvas.fillRect({ 0, 0, 620, 100 });
             canvas.setFillColor(Palette::black);
             canvas.fillText({ 20, 28 }, layout);
         },
-        ColorF{ 1.f, 1.f });
+        Color(245, 247, 250));
 }
 
 TEST_CASE("TextEngine Canvas centered text", "[text-layout][visual]") {
@@ -601,12 +652,10 @@ TEST_CASE("TextEngine Canvas centered text", "[text-layout][visual]") {
         "text-layout-centered", Size{ 620, 100 },
         [&](RenderContext& context) {
             Canvas canvas(context);
-            canvas.setFillColor(Color(245, 247, 250));
-            canvas.fillRect({ 0, 0, 620, 100 });
             canvas.setFillColor(Palette::black);
             canvas.fillText({ 310, 50 }, { 0.5f, 0.5f }, layout);
         },
-        ColorF{ 1.f, 1.f });
+        Color(245, 247, 250));
 }
 
 } // namespace Brisk
