@@ -82,6 +82,20 @@ enum class FontStyle : uint8_t {
     Italic = 1,
 };
 
+/** @brief Glyph hinting policy used when loading font glyphs. */
+enum class Hinting : uint8_t {
+    Auto,    ///< Use the backend's default hinting behavior.
+    Enable,  ///< Force hinting on.
+    Disable, ///< Load glyphs unhinted.
+};
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<Hinting>> defaultNames<Hinting>{
+    { "Auto", Hinting::Auto },
+    { "Enable", Hinting::Enable },
+    { "Disable", Hinting::Disable },
+};
+
 template <>
 inline constexpr std::initializer_list<NameValuePair<FontStyle>> defaultNames<FontStyle>{
     { "Normal", FontStyle::Normal },
@@ -512,6 +526,7 @@ struct Font {
     float wordSpacing             = 0.f;   ///< Additional space between words.
     float verticalAlign           = 0.f;   ///< Vertical alignment offset.
     OpenTypeFeatureFlags features{};       ///< OpenType features for advanced text styling.
+    Hinting hinting                           = Hinting::Auto; ///< Glyph hinting policy.
 
     inline static const std::tuple reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
@@ -525,6 +540,7 @@ struct Font {
         ReflectionField{ "wordSpacing", &Font::wordSpacing },
         ReflectionField{ "verticalAlign", &Font::verticalAlign },
         ReflectionField{ "features", &Font::features },
+        ReflectionField{ "hinting", &Font::hinting },
     };
 
     /**

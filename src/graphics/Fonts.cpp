@@ -113,7 +113,7 @@ ConvertedFont convertFont(const Font& source, const std::shared_ptr<TextEngine::
         .verticalAlign = TextEngine::fromFloat(source.verticalAlign),
         .features      = converted.features,
         .variations    = {},
-        .hinting       = TextEngine::Hinting::Auto,
+        .hinting       = static_cast<TextEngine::Hinting>(source.hinting),
     };
 
     if (source.lineHeight > 0.f) {
