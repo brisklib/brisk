@@ -142,7 +142,8 @@ uint32_t SpriteAtlas::sizeIncrement() const {
 }
 
 GradientAtlas::GradientAtlas(uint32_t slots, std::recursive_mutex* mutex)
-    : m_slots(slots, 0), m_data(slots), m_lock(mutex) {}
+        : m_slots(std::min(slots, initialSlots), 0), m_data(std::min(slots, initialSlots)), m_maxSlots(slots),
+            m_lock(mutex) {}
 
 bool GradientAtlas::removeOutdated(uint64_t generation) {
     for (auto it = m_gradients.begin(); it != m_gradients.end(); ++it) {
@@ -162,13 +163,27 @@ bool GradientAtlas::canAdd() {
 
 GradientIndex GradientAtlas::add(const GradientData& data) {
     auto it = std::find(m_slots.begin(), m_slots.end(), 0);
-    if (it == m_slots.end())
-        return gradientNull;
+    if (it == m_slots.end()) {
+        if (!grow())
+            return gradientNull;
+        it = std::find(m_slots.begin(), m_slots.end(), 0);
+    }
     GradientIndex index = it - m_slots.begin();
     m_slots[index]      = 1;
     m_data[index]       = data;
     ++changed;
     return index;
+}
+
+bool GradientAtlas::grow() {
+    if (m_slots.size() >= m_maxSlots)
+        return false;
+
+    const size_t newSize = std::min(m_slots.size() * 2, static_cast<size_t>(m_maxSlots));
+    m_slots.resize(newSize, 0);
+    m_data.resize(newSize);
+    ++changed;
+    return true;
 }
 
 void GradientAtlas::remove(GradientIndex index) {

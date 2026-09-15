@@ -39,15 +39,15 @@ constexpr inline GradientIndex gradientNull = static_cast<GradientIndex>(-1);
  * @brief Represents an atlas for managing gradients.
  *
  * The GradientAtlas class provides functionalities to add, remove, and manage gradients
- * within a fixed number of slots. It tracks the allocation and deallocation of slots
- * to store gradient data.
+ * within a dynamically growing number of slots. It tracks the allocation and deallocation
+ * of slots to store gradient data.
  */
 class GradientAtlas final {
 public:
     /**
      * @brief Constructs a GradientAtlas with the specified number of slots.
      *
-     * @param slots The total number of slots available in the atlas for storing gradients.
+    * @param slots The maximum number of slots available in the atlas for storing gradients.
      * @param mutex A pointer to a mutex for thread-safe operations (may be nullptr).
      */
     explicit GradientAtlas(uint32_t slots, std::recursive_mutex* mutex);
@@ -71,7 +71,7 @@ public:
                            uint64_t currentGeneration);
 
     /**
-     * @brief Gets the size of the gradient atlas specified in constructor.
+    * @brief Gets the current size of the gradient atlas.
      *
      * @return The number of slots.
      */
@@ -90,8 +90,11 @@ public:
     Generation changed; ///< Represents whether the atlas has changed.
 
 private:
+    static constexpr uint32_t initialSlots = 4;
+
     std::vector<uint8_t> m_slots;     ///< Vector tracking the status of each slot (0 - free, 1 - used).
     std::vector<GradientData> m_data; ///< Vector holding the gradient data for each occupied slot.
+    uint32_t m_maxSlots;              ///< Maximum number of slots in the atlas.
     std::recursive_mutex* m_lock;
 
     struct GradientNode {
@@ -115,6 +118,13 @@ private:
      * @return True if a slot is available, false otherwise.
      */
     bool canAdd();
+
+    /**
+     * @brief Doubles the number of slots up to the atlas maximum.
+     *
+     * @return True if the atlas was grown, false if it is already at its maximum size.
+     */
+    bool grow();
 
     /**
      * @brief Allocates a slot for a gradient and stores its data.
