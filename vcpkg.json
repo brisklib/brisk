@@ -105,24 +105,7 @@
             "name": "tl-function-ref"
         }
     ],
-    "builtin-baseline": "f176b58f35a75f9f8f54099cd9df97d2e2793a2e",
-    "overrides": [
-        {
-            "name": "vcpkg-tool-meson",
-            "version-string": "1.3.2",
-            "port-version": 8
-        },
-        {
-            "name": "msgpack",
-            "version-string": "6.1.1",
-            "port-version": 0
-        },
-        {
-            "name": "spdlog",
-            "version-string": "1.15.1",
-            "port-version": 1
-        }
-    ],
+    "builtin-baseline": "9e593bb18ea69cc5095e012465dcd675a822ed0d",
     "default-features": [
         "webgpu"
     ],
@@ -131,7 +114,31 @@
             "description": "WebGPU backend",
             "dependencies": [
                 {
-                    "name": "dawn"
+                    "name": "dawn",
+                    "default-features": false,
+                    "features": [
+                        "tint-tools",
+                        {
+                            "name": "d3d12",
+                            "platform": "windows"
+                        },
+                        {
+                            "name": "vulkan",
+                            "platform": "linux | android"
+                        },
+                        {
+                            "name": "x11",
+                            "platform": "linux"
+                        },
+                        {
+                            "name": "wayland",
+                            "platform": "linux"
+                        },
+                        {
+                            "name": "metal",
+                            "platform": "osx | ios"
+                        }
+                    ]
                 }
             ]
         },

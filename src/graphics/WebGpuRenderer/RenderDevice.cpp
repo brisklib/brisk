@@ -46,23 +46,19 @@ static fs::path gpuCacheFolder() {
     return folder;
 }
 
-static size_t loadCached(const void* key, size_t keySize, void* value, size_t valueSize, void* userdata) {
-    BytesView keyBytes(reinterpret_cast<const std::byte*>(key), keySize);
-    auto hash       = sha256(keyBytes);
-    auto valueBytes = readBytes(gpuCacheFolder() / toHex(hash));
-    if (!valueBytes) {
+static size_t loadCached(std::span<const std::byte> keyBytes, std::span<std::byte> valueBytes) {
+    auto hash   = sha256(keyBytes);
+    auto cached = readBytes(gpuCacheFolder() / toHex(hash));
+    if (!cached) {
         return 0;
     }
-    if (valueBytes->size() <= valueSize && value != nullptr) {
-        memcpy(value, valueBytes->data(), valueBytes->size());
+    if (cached->size() <= valueBytes.size() && !valueBytes.empty()) {
+        memcpy(valueBytes.data(), cached->data(), cached->size());
     }
-    return valueBytes->size();
+    return cached->size();
 }
 
-static void storeCached(const void* key, size_t keySize, const void* value, size_t valueSize,
-                        void* userdata) {
-    BytesView keyBytes(reinterpret_cast<const std::byte*>(key), keySize);
-    BytesView valueBytes(reinterpret_cast<const std::byte*>(value), valueSize);
+static void storeCached(std::span<const std::byte> keyBytes, std::span<const std::byte> valueBytes) {
     auto hash   = sha256(keyBytes);
     std::ignore = writeBytes(gpuCacheFolder() / toHex(hash), valueBytes);
 }
@@ -77,9 +73,13 @@ bool RenderDeviceWebGpu::createDevice() {
     instanceToggleDesc.enabledToggles     = instanceToggles;
     instanceToggleDesc.enabledToggleCount = std::size(instanceToggles);
     wgpu::InstanceDescriptor instanceDesc{};
-    instanceDesc.capabilities.timedWaitAnyEnable   = true;
-    instanceDesc.capabilities.timedWaitAnyMaxCount = 1;
-    instanceDesc.nextInChain                       = &instanceToggleDesc;
+    wgpu::InstanceFeatureName instanceFeatures[] = { wgpu::InstanceFeatureName::TimedWaitAny };
+    wgpu::InstanceLimits instanceLimits{};
+    instanceLimits.timedWaitAnyMaxCount = 1;
+    instanceDesc.requiredFeatureCount = std::size(instanceFeatures);
+    instanceDesc.requiredFeatures     = instanceFeatures;
+    instanceDesc.requiredLimits       = &instanceLimits;
+    instanceDesc.nextInChain          = &instanceToggleDesc;
 
     m_nativeInstance =
         std::make_unique<dawn::native::Instance>(reinterpret_cast<WGPUInstanceDescriptor*>(&instanceDesc));
@@ -161,10 +161,9 @@ bool RenderDeviceWebGpu::createDevice() {
     }
 
     wgpu::DawnCacheDeviceDescriptor deviceCache{};
-    deviceCache.loadDataFunction  = &loadCached;
-    deviceCache.storeDataFunction = &storeCached;
-    deviceCache.functionUserdata  = nullptr;
-    deviceDesc.nextInChain        = &deviceCache;
+    deviceCache.SetDawnLoadCacheDataCallback(&loadCached);
+    deviceCache.SetDawnStoreCacheDataCallback(&storeCached);
+    deviceDesc.nextInChain = &deviceCache;
 
     wgpu::DawnTogglesDescriptor deviceToggleDesc;
 #ifdef BRISK_DEBUG_GPU
@@ -223,8 +222,8 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
 
     auto wgslShader = Resources::loadText("webgpu/webgpu.wgsl");
 
-    wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
-    wgslDesc.code = wgslShader.c_str();
+    wgpu::ShaderSourceWGSL wgslDesc{};
+    wgslDesc.code = std::string_view(wgslShader);
 
     wgpu::ShaderModuleDescriptor shaderModuleDescriptor{ .nextInChain = &wgslDesc };
     m_shader                                          = m_device.CreateShaderModule(&shaderModuleDescriptor);
@@ -486,7 +485,8 @@ void RenderDeviceWebGpu::wait() {
     ensureOnRenderThread();
     wgpu::FutureWaitInfo future;
     future.future = m_device.GetQueue().OnSubmittedWorkDone(wgpu::CallbackMode::AllowProcessEvents,
-                                                            [](wgpu::QueueWorkDoneStatus status) {});
+                                                                                [](wgpu::QueueWorkDoneStatus status,
+                                                                                    wgpu::StringView message) {});
     m_instance.ProcessEvents();
     m_instance.WaitAny(1, &future, 1'000'000'000); // 1 second
     m_instance.ProcessEvents();

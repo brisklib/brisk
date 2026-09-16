@@ -45,7 +45,7 @@ void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
         [[view layer] setContentsScale:[nsWindow backingScaleFactor]];
 
         wgpu::SurfaceDescriptor surfaceDesc;
-        wgpu::SurfaceDescriptorFromMetalLayer surfaceDescMac{};
+        wgpu::SurfaceSourceMetalLayer surfaceDescMac{};
         surfaceDescMac.layer    = (__bridge_retained void*)([view layer]);
         surfaceDesc.nextInChain = &surfaceDescMac;
         m_surface               = m_device->m_instance.CreateSurface(&surfaceDesc);

@@ -30,8 +30,8 @@ void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
     NativeWindowHandle handle = window->getHandle();
 
     wgpu::SurfaceDescriptor surfaceDesc;
-    wgpu::SurfaceDescriptorFromWindowsHWND surfaceDescWin{};
-    surfaceDescWin.hwnd     = handle.hWnd();
+    wgpu::SurfaceSourceWindowsHWND surfaceDescWin{};
+    surfaceDescWin.hwnd     = reinterpret_cast<void*>(handle.hWnd());
     surfaceDesc.nextInChain = &surfaceDescWin;
     m_surface               = m_device->m_instance.CreateSurface(&surfaceDesc);
 }

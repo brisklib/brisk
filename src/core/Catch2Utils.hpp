@@ -45,7 +45,7 @@ struct StringMaker<Brisk::expected<T, E>> {
                 return fmt::to_string(value.error());
         } else {
             if (value)
-                return fmt::to_string(value.value());
+                return Catch::Detail::stringify(value.value());
             else
                 return fmt::to_string(value.error());
         }
@@ -61,7 +61,7 @@ struct StringMaker<Brisk::Range<T, inclusive>> {
 
 template <typename T>
     requires(!std::is_array_v<T> &&
-             !(::Catch::is_range<T>::value && !::Catch::Detail::IsStreamInsertable<T>::value) &&
+             !(::Catch::is_range<T>::value && !::Catch::Detail::IsStreamInsertable_v<T>) &&
              fmt::is_formattable<T>::value)
 struct StringMaker<T> {
     static std::string convert(const T& value) {

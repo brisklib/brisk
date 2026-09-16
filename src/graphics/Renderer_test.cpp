@@ -927,7 +927,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 
 )Wgsl";
 
-    wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
+    wgpu::ShaderSourceWGSL wgslDesc{};
     wgslDesc.code = shaderSource;
     wgpu::ShaderModuleDescriptor shaderDesc{ .nextInChain = &wgslDesc };
     wgpu::ShaderModule shaderModule = device.CreateShaderModule(&shaderDesc);

@@ -792,6 +792,7 @@ namespace {
 struct SvgGlyphState {
     std::unique_ptr<lunasvg::Document> doc;
     lunasvg::Box bbox;
+    lunasvg::Matrix matrix;
 };
 
 FT_Error svg_port_init(FT_Pointer* state) {
@@ -809,8 +810,7 @@ FT_Error svg_port_render(FT_GlyphSlot slot, FT_Pointer* state) {
     bmp.clear(0x00000000u);
 
     auto& svgState = *reinterpret_cast<SvgGlyphState*>(*state);
-    lunasvg::Matrix mat;
-    mat.translate(-svgState.bbox.x, -svgState.bbox.y);
+    lunasvg::Matrix mat = lunasvg::Matrix::translated(-svgState.bbox.x, -svgState.bbox.y) * svgState.matrix;
     svgState.doc->render(bmp, mat);
 
     uint8_t* pixels = slot->bitmap.buffer;
@@ -831,24 +831,6 @@ FT_Error svg_port_render(FT_GlyphSlot slot, FT_Pointer* state) {
     return FT_Err_Ok;
 }
 
-static RectangleF viewBoxToRect(const std::string& str) {
-    std::array<float, 4> values;
-    int num       = 0;
-    const char* p = str.c_str();
-    char* end     = nullptr;
-    for (float f = std::strtof(p, &end); p != end; f = std::strtof(p, &end)) {
-        values[num++] = f;
-        if (num == 4)
-            break;
-        p = end;
-        while (*p && std::isspace(*p))
-            ++p;
-        if (*p && *p == ',')
-            ++p;
-    }
-    return RectangleF(values[0], values[1], values[0] + values[2], values[1] + values[3]);
-}
-
 FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* state) {
     FT_SVG_Document document = (FT_SVG_Document)slot->other;
     FT_Size_Metrics metrics  = document->metrics;
@@ -861,45 +843,29 @@ FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* stat
 
     std::unique_ptr<lunasvg::Document> doc = lunasvg::Document::loadFromData(svg);
 
-    auto root                              = doc->rootElement();
-    std::string attr_viewBox               = root.getAttribute("viewBox");
-    std::string attr_width                 = root.getAttribute("width");
-    std::string attr_height                = root.getAttribute("height");
-
-    Size dimensions;
-    PointF offset{ 0, 0 };
-
-    if (!attr_viewBox.empty()) {
-        RectangleF vbox = viewBoxToRect(attr_viewBox);
-        dimensions      = vbox.size();
-        offset          = vbox.p1;
-    } else if (!attr_width.empty() && !attr_height.empty()) {
-        dimensions.width  = atoi(attr_width.c_str());
-        dimensions.height = atoi(attr_height.c_str());
-
-        if (dimensions == Size{ 1, 1 }) {
-            dimensions.width  = units_per_EM;
-            dimensions.height = units_per_EM;
-        }
-    } else {
+    // Unlike lunasvg 2.4.1, boundingBox()/render() in 3.5+ already apply the root
+    // element's own localTransform() (viewBox-to-viewport mapping) internally, so the
+    // viewBox offset must not be re-applied here; only the viewport-to-pixel scale remains.
+    Size dimensions{ (int)doc->width(), (int)doc->height() };
+    if (dimensions.width <= 0 || dimensions.height <= 0) {
         dimensions.width  = units_per_EM;
         dimensions.height = units_per_EM;
     }
 
-    lunasvg::Matrix mat;
     SizeF svgScale = SizeF(metrics.x_ppem, metrics.y_ppem) / SizeF(dimensions);
-    mat.scale(svgScale.x, svgScale.y);
-    mat.transform(+(double)document->transform.xx / (1 << 16),                         //
-                  -(double)document->transform.xy / (1 << 16),                         //
-                  -(double)document->transform.yx / (1 << 16),                         //
-                  +(double)document->transform.yy / (1 << 16),                         //
-                  +(double)document->delta.x / 64 * dimensions.width / metrics.x_ppem, //
-                  -(double)document->delta.y / 64 * dimensions.height / metrics.y_ppem //
-    );
-    mat.translate(-offset.x, -offset.y);
-    doc->setMatrix(mat);
+    // lunasvg::Matrix mutators pre-multiply (m = op * m), so building this via
+    // scale().transform() applies scale first, then the FT transform.
+    lunasvg::Matrix mat = lunasvg::Matrix::scaled(svgScale.x, svgScale.y);
+    mat = lunasvg::Matrix{ +(float)document->transform.xx / (1 << 16),                         //
+                            -(float)document->transform.xy / (1 << 16),                         //
+                            -(float)document->transform.yx / (1 << 16),                         //
+                            +(float)document->transform.yy / (1 << 16),                         //
+                            +(float)document->delta.x / 64 * dimensions.width / metrics.x_ppem, //
+                            -(float)document->delta.y / 64 * dimensions.height / metrics.y_ppem  //
+                          }
+            * mat;
 
-    auto box                = doc->box();
+    auto box                = doc->boundingBox().transformed(mat);
     slot->bitmap_left       = std::floor(box.x);
     slot->bitmap_top        = -std::floor(box.y);
     slot->bitmap.rows       = std::ceil(box.y + box.h) - -slot->bitmap_top;
@@ -908,8 +874,9 @@ FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* stat
     slot->bitmap.pixel_mode = FT_PIXEL_MODE_BGRA;
 
     if (cache) {
-        svgState.doc  = std::move(doc);
-        svgState.bbox = box;
+        svgState.doc    = std::move(doc);
+        svgState.bbox   = box;
+        svgState.matrix = mat;
     }
 
     return FT_Err_Ok;

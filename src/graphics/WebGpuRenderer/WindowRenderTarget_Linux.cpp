@@ -36,8 +36,8 @@ void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
     NativeWindowHandle handle = window->getHandle();
 
     wgpu::SurfaceDescriptor surfaceDesc;
-    wgpu::SurfaceDescriptorFromXlibWindow surfaceDescX11{};
-    wgpu::SurfaceDescriptorFromWaylandSurface surfaceDescWL{};
+    wgpu::SurfaceSourceXlibWindow surfaceDescX11{};
+    wgpu::SurfaceSourceWaylandSurface surfaceDescWL{};
 
     if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) {
         surfaceDescWL.display   = glfwGetWaylandDisplay();
