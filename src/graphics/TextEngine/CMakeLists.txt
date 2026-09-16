@@ -44,7 +44,7 @@ target_link_libraries(brisk-text-engine
     PRIVATE
         freetype
         harfbuzz
-        utf8proc
+        utf8proc::utf8proc
         libunibreak::libunibreak
         SheenBidi::SheenBidi
 )
