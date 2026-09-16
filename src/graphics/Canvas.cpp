@@ -65,6 +65,16 @@ static PointF quantize(PointF pt, unsigned value) {
     };
 }
 
+static bool isTextShaderCompatible(const Matrix& matrix) noexcept {
+    const auto near = [](float value, float expected) {
+        return std::abs(value - expected) < Matrix::epsilon;
+    };
+    return (near(matrix.a, 1.f) && near(matrix.b, 0.f) && near(matrix.c, 0.f) && near(matrix.d, 1.f)) ||
+           (near(matrix.a, -1.f) && near(matrix.b, 0.f) && near(matrix.c, 0.f) && near(matrix.d, -1.f)) ||
+           (near(matrix.a, 0.f) && near(matrix.b, 1.f) && near(matrix.c, -1.f) && near(matrix.d, 0.f)) ||
+           (near(matrix.a, 0.f) && near(matrix.b, -1.f) && near(matrix.c, 1.f) && near(matrix.d, 0.f));
+}
+
 GeometryGlyphs Internal::pathLayout(SpriteResources& sprites, const RasterizedPath& path) {
     GeometryGlyphs result;
     if (path.sprite) {
@@ -663,63 +673,77 @@ void Canvas::drawImage(RectangleF rect, Rc<Image> image, Matrix matrix, SamplerM
 
 void Canvas::fillText(PointF position, const TextLayout& text) {
     const Paint textPaint = m_state.fillPaint;
-    SpriteResources sprites;
-    GeometryGlyphs glyphs;
-    std::optional<Color> runColor;
-    bool multicolor = false;
 
-    auto flush      = [&] {
-        if (glyphs.empty()) {
-            sprites.clear();
-            return;
-        }
-        if (multicolor) {
-            drawColorSprites(std::move(sprites), glyphs,
-                             std::tuple{ Arg::coordMatrix  = m_state.transform,
-                                         Arg::subpixelMode = SubpixelMode::Off,
-                                         Internal::PaintAndTransform{ Palette::white, m_state.transform,
-                                                                      m_state.opacity } });
-        } else {
-            Paint paint = textPaint;
-            if (runColor) {
-                paint = ColorW(*runColor);
+    // The text shader expects glyphs to remain axis-aligned in canvas space. A
+    // non-translation transform breaks that assumption, so use the same path
+    // rendering path as other filled geometry. Keeping the layout in its
+    // original coordinate system lets fillPath apply the canvas transform to
+    // both the glyph outlines and the paint (including gradients and textures).
+    if (!isTextShaderCompatible(m_state.transform)) {
+        const Path path = text.toPath(position);
+        fillPath(path, textPaint, m_state.fillParams, m_state.transform, preparedClipPath(), m_state.scissor,
+                 m_state.opacity);
+    } else {
+        SpriteResources sprites;
+        GeometryGlyphs glyphs;
+        std::optional<Color> runColor;
+        bool multicolor = false;
+
+        auto flush      = [&] {
+            if (glyphs.empty()) {
+                sprites.clear();
+                return;
             }
-            drawTextSprites(
-                std::move(sprites), glyphs,
-                std::tuple{ Arg::coordMatrix  = m_state.transform,
-                            Arg::subpixelMode = m_state.subpixelText ? SubpixelMode::RGB : SubpixelMode::Off,
-                            Internal::PaintAndTransform{ paint, m_state.transform, m_state.opacity } });
-        }
-        glyphs.clear();
-        sprites.clear();
-    };
+            if (multicolor) {
+                drawColorSprites(std::move(sprites), glyphs,
+                                 std::tuple{ Arg::coordMatrix  = m_state.transform,
+                                             Arg::subpixelMode = SubpixelMode::Off,
+                                             Internal::PaintAndTransform{ Palette::white, m_state.transform,
+                                                                          m_state.opacity } });
+            } else {
+                Paint paint = textPaint;
+                if (runColor) {
+                    paint = ColorW(*runColor);
+                }
+                drawTextSprites(
+                    std::move(sprites), glyphs,
+                    std::tuple{ Arg::coordMatrix = m_state.transform,
+                                Arg::subpixelMode =
+                                    m_state.subpixelText ? SubpixelMode::RGB : SubpixelMode::Off,
+                                Internal::PaintAndTransform{ paint, m_state.transform, m_state.opacity } });
+            }
+            glyphs.clear();
+            sprites.clear();
+        };
 
-    std::lock_guard<FontManager> lock(*fonts);
-    Internal::forEachTextLayoutGlyph(text, position, [&](const Internal::TextLayoutGlyph& glyph) {
-        const bool glyphMulticolor = glyph.bitmap.color;
-        if (!glyphs.empty() && (glyphMulticolor != multicolor || glyph.color != runColor)) {
-            flush();
-        }
-        if (glyphs.empty()) {
-            multicolor = glyphMulticolor;
-            runColor   = glyph.color;
-        }
-        if (!glyph.bitmap.sprite) {
-            return;
-        }
-        GeometryGlyph desc;
-        desc.rect.p1 =
-            quantize(glyph.position + PointF{ float(glyph.bitmap.offsetX) / glyph.bitmap.horizontalScale,
-                                              -float(glyph.bitmap.offsetY) },
-                     glyph.bitmap.horizontalScale);
-        desc.rect.p2 = desc.rect.p1 + PointF(float(glyph.bitmap.size.width) / glyph.bitmap.horizontalScale,
-                                             glyph.bitmap.size.height);
-        desc.sprite  = static_cast<float>(findOrAdd(sprites, glyph.bitmap.sprite));
-        desc.stride  = glyph.bitmap.size.width;
-        desc.size    = glyph.bitmap.size;
-        glyphs.push_back(std::move(desc));
-    });
-    flush();
+        std::lock_guard<FontManager> lock(*fonts);
+        Internal::forEachTextLayoutGlyph(text, position, [&](const Internal::TextLayoutGlyph& glyph) {
+            const bool glyphMulticolor = glyph.bitmap.color;
+            if (!glyphs.empty() && (glyphMulticolor != multicolor || glyph.color != runColor)) {
+                flush();
+            }
+            if (glyphs.empty()) {
+                multicolor = glyphMulticolor;
+                runColor   = glyph.color;
+            }
+            if (!glyph.bitmap.sprite) {
+                return;
+            }
+            GeometryGlyph desc;
+            desc.rect.p1 =
+                quantize(glyph.position + PointF{ float(glyph.bitmap.offsetX) / glyph.bitmap.horizontalScale,
+                                                  -float(glyph.bitmap.offsetY) },
+                         glyph.bitmap.horizontalScale);
+            desc.rect.p2 =
+                desc.rect.p1 + PointF(float(glyph.bitmap.size.width) / glyph.bitmap.horizontalScale,
+                                      glyph.bitmap.size.height);
+            desc.sprite = static_cast<float>(findOrAdd(sprites, glyph.bitmap.sprite));
+            desc.stride = glyph.bitmap.size.width;
+            desc.size   = glyph.bitmap.size;
+            glyphs.push_back(std::move(desc));
+        });
+        flush();
+    }
 
     Internal::forEachTextLayoutDecoration(
         text, position, [&](const Internal::TextLayoutDecoration& decoration) {

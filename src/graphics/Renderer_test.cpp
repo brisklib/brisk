@@ -1288,9 +1288,9 @@ TEST_CASE("Matrix invariants") {
     REQUIRE(ttf.has_value());
     fonts->addFont(*ttf, "Lato");
 
-    renderTest("matrix-invariants-text", Size{ 256, 128 },
+    renderTest("matrix-invariants-text", Size{ 256, 256 },
                [](RenderContext& context) {
-                   testInvariants<false>(context, [&](Canvas& canvas) {
+                   testInvariants(context, [&](Canvas& canvas) {
                        canvas.setFont(Font{ "Lato", 24.f });
                        canvas.setFillColor(Palette::black);
                        canvas.setStrokeColor(Palette::white);
@@ -1305,9 +1305,9 @@ TEST_CASE("Matrix invariants") {
     REQUIRE(ttf2.has_value());
     fonts->addFont(*ttf2, "Noto Emoji");
 
-    renderTest("matrix-invariants-emoji", Size{ 256, 128 },
+    renderTest("matrix-invariants-emoji", Size{ 256, 256 },
                [](RenderContext& context) {
-                   testInvariants<false>(context, [&](Canvas& canvas) {
+                   testInvariants(context, [&](Canvas& canvas) {
                        canvas.setFont(Font{ "Noto Emoji", 48.f });
                        canvas.setFillColor(Palette::black);
                        canvas.setStrokeColor(Palette::white);
@@ -1336,6 +1336,34 @@ TEST_CASE("Text subpixel alignment") {
             canvas.setSubpixelTextRendering(false);
             canvas.fillText(".+|abc", { i * 0.05f + 128.f, i * 20.f }, { 0.f, 0.f });
         }
+    });
+}
+
+TEST_CASE("Text rendering under transforms", "[gpu][visual]") {
+    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
+    REQUIRE(ttf.has_value());
+    fonts->addFont(*ttf, "Lato");
+
+    renderTest("text-transforms", Size{ 520, 360 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Color(245, 247, 250));
+        canvas.fillRect({ 0, 0, 520, 360 });
+        canvas.setFont(Font{ "Lato", 32.f });
+
+        canvas.setFillColor(Palette::black);
+        canvas.fillText("translation", { 24, 40 });
+
+        canvas.setTransform(Matrix{}.scale(1.35f, 0.85f).translate(32.f, 112.f));
+        canvas.setFillPaint(LinearGradient{ { 0, 0 }, { 150, 0 }, Palette::blue, Palette::red });
+        canvas.fillText("scale + gradient", { 0, 0 });
+
+        canvas.setTransform(Matrix{}.rotate(-18.f, 330.f, 205.f));
+        canvas.setFillColor(Palette::Standard::indigo);
+        canvas.fillText("rotated text", { 260, 205 });
+
+        canvas.setTransform(Matrix{}.skew(0.28f, -0.12f).translate(58.f, 300.f));
+        canvas.setFillColor(Palette::Standard::green);
+        canvas.fillText("sheared text", { 0, 0 });
     });
 }
 
