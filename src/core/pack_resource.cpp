@@ -72,23 +72,19 @@ extern "C" {
 
     Transferred write(const std::byte* data, size_t size) final {
         static constexpr char digits[] = "0123456789ABCDEF";
-        // Max line: "\n," prefix + 16 entries of ",0xNN"
+        // Max line: 16 entries of ",0xNN" + a leading newline for the first entry of the line
         char buf[16 * 5 + 2];
         const size_t total = size;
         while (size > 0) {
             const size_t inLine = numWritten % 16;
             const size_t chunk  = std::min(size, 16 - inLine);
             char* out           = buf;
-            if (numWritten != 0) {
-                if (inLine == 0) {
-                    *out++ = ',';
-                    *out++ = '\n';
-                }
-                *out++ = ',';
-            }
             for (size_t i = 0; i < chunk; ++i) {
-                if (i > 0)
+                if (numWritten + i != 0) {
                     *out++ = ',';
+                    if (inLine == 0 && i == 0)
+                        *out++ = '\n';
+                }
                 *out++          = '0';
                 *out++          = 'x';
                 const uint8_t b = static_cast<uint8_t>(data[i]);

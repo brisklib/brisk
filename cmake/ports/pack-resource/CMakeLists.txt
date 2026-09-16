@@ -38,6 +38,10 @@ add_executable(
     ${BRISK_ROOT}/src/core/llvm/SmallVector.cpp
     ${BRISK_ROOT}/src/core/Version.cpp)
 
+if (NOT WIN32)
+    target_sources(pack_resource PRIVATE ${BRISK_ROOT}/src/core/Io_Posix.cpp)
+endif ()
+
 target_include_directories(pack_resource PUBLIC ${BRISK_ROOT}/include)
 
 target_compile_definitions(pack_resource PUBLIC BRISK_HAVE_BROTLI=1)
@@ -64,8 +68,8 @@ target_link_libraries(pack_resource PUBLIC lz4::lz4)
 find_package(unofficial-brotli CONFIG REQUIRED)
 target_link_libraries(pack_resource PUBLIC unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
 
-find_package(unofficial-utf8proc CONFIG REQUIRED)
-target_link_libraries(pack_resource PUBLIC utf8proc)
+find_package(utf8proc CONFIG REQUIRED)
+target_link_libraries(pack_resource PUBLIC utf8proc::utf8proc)
 
 find_package(ZLIB REQUIRED)
 target_link_libraries(pack_resource PUBLIC ZLIB::ZLIB)

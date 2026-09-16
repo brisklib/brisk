@@ -18,7 +18,7 @@ endif ()
 if (NOT TARGET SheenBidi::SheenBidi)
     find_package(SheenBidi CONFIG REQUIRED)
 endif ()
-find_package(unofficial-utf8proc CONFIG REQUIRED)
+find_package(utf8proc CONFIG REQUIRED)
 
 add_library(brisk-text-engine OBJECT
     ${BRISK_TEXT_ENGINE_SOURCE_DIR}/BreakIterator.cpp

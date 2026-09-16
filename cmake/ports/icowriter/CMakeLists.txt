@@ -36,6 +36,10 @@ add_executable(
     ${BRISK_ROOT}/src/graphics/ImageFormats_png.cpp
     ${BRISK_ROOT}/src/graphics/ImageTransform.cpp)
 
+if (NOT WIN32)
+    target_sources(icowriter PRIVATE ${BRISK_ROOT}/src/core/Io_Posix.cpp)
+endif ()
+
 target_include_directories(icowriter PUBLIC ${BRISK_ROOT}/include)
 
 target_compile_definitions(icowriter PUBLIC BRISK_HAVE_BROTLI=1)
@@ -62,8 +66,8 @@ target_link_libraries(icowriter PUBLIC lz4::lz4)
 find_package(unofficial-brotli CONFIG REQUIRED)
 target_link_libraries(icowriter PUBLIC unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
 
-find_package(unofficial-utf8proc CONFIG REQUIRED)
-target_link_libraries(icowriter PUBLIC utf8proc)
+find_package(utf8proc CONFIG REQUIRED)
+target_link_libraries(icowriter PUBLIC utf8proc::utf8proc)
 
 find_package(ZLIB REQUIRED)
 target_link_libraries(icowriter PUBLIC ZLIB::ZLIB)
