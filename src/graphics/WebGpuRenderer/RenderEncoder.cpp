@@ -57,8 +57,6 @@ void RenderEncoderWebGpu::begin(Rc<RenderTarget> target, std::optional<ColorF> c
                        1.f / m_frameSize.height),
         m_visualSettings.blueLightFilter,
         m_visualSettings.gamma,
-        Internal::textRectPadding,
-        Internal::textRectOffset,
         Internal::max2DTextureSize,
     };
 

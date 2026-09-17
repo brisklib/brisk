@@ -60,8 +60,6 @@ void RenderEncoderD3d11::begin(Rc<RenderTarget> target, std::optional<ColorF> cl
                        1.f / m_frameSize.height),
         m_visualSettings.blueLightFilter,
         m_visualSettings.gamma,
-        Internal::textRectPadding,
-        Internal::textRectOffset,
         Internal::max2DTextureSize,
     };
 

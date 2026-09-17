@@ -411,9 +411,6 @@ struct UniformBlockPerFrame {
 
     blue_light_filter: f32,
     global_gamma: f32,
-    text_rect_padding: f32,
-
-    text_rect_offset: f32,
     atlas_width: u32,
 }
 
@@ -540,16 +537,21 @@ fn alignRectangle(rect: vec4<f32>) -> vec4<f32> {
         var rect = norm_rect(get_data(inst * 2u));
         let glyph_data = get_data(inst * 2u + 1u);
 
+        // `base` may now carry arbitrary sub-pixel precision: the fragment shader
+        // reconstructs the atlas at fractional offsets, so no 1/oversampling
+        // snapping is required. The quad itself still has to be pixel-aligned.
+        // One pixel of padding on each side leaves room for the filter tails.
         let base = rect.x;
-
-        rect.x += perFrame.text_rect_offset;
-        rect.z += perFrame.text_rect_offset;
-
-        rect.x -= perFrame.text_rect_padding;
-        rect.z += perFrame.text_rect_padding;
+        let left = floor(base) - 1.0;
+        let right = ceil(rect.z) + 1.0;
+        let oversampling = f32(constant_sprite_oversampling());
+        let uv_left = (left - base) * oversampling;
+        let uv_right = (right - base) * oversampling;
+        rect.x = left;
+        rect.z = right; 
 
         outPosition = vec4<f32>(mix(rect.xy, rect.zw, uv_coord), 0., 1.);
-        output.uv = (outPosition.xy - vec2<f32>(base, rect.y) + vec2<f32>(-perFrame.text_rect_padding, 0.)) * vec2<f32>(f32(constant_sprite_oversampling()), 1.);
+        output.uv = vec2<f32>(mix(uv_left, uv_right, uv_coord.x), outPosition.y - rect.y);
         output.data0 = glyph_data;
     } else if constant_shader() == shader_color_mask {
         let rect = norm_rect(get_data(inst * 2u));
@@ -910,16 +912,16 @@ fn atlasRGBA(sprite: i32, pos: vec2<i32>, stride: u32) -> vec4<f32> {
     );
 }
 
-fn atlasAccum(sprite: i32, pos: vec2<i32>, stride: u32) -> f32 {
-    var alpha: f32 = 0.;
-    if constant_sprite_oversampling() == 1 {
-        alpha = atlas(sprite, pos, stride);
-        return alpha;
-    }
-    for (var i = 0; i < constant_sprite_oversampling(); i++) {
-        alpha += atlas(sprite, pos + vec2<i32>(i, 0), stride);
-    }
-    return alpha / f32(constant_sprite_oversampling());
+// The font texture has no sampler, so hardware filtering is unavailable.
+// Reconstruct the pre-filtered atlas at a fractional x offset by interpolating
+// two neighbouring texels manually. This allows the glyph origin to carry
+// arbitrary sub-sample precision instead of being snapped to 1/oversampling px.
+fn atlasAccum(sprite: i32, uv: vec2<f32>, stride: u32) -> f32 {
+    let i = i32(floor(uv.x));
+    let y = i32(floor(uv.y));
+    let t = uv.x - floor(uv.x);
+    return mix(atlas(sprite, vec2<i32>(i, y), stride),
+               atlas(sprite, vec2<i32>(i + 1, y), stride), t);
 }
 
 fn processSubpixelOutput(rgb: vec3<f32>) -> vec3<f32> {
@@ -932,32 +934,43 @@ fn processSubpixelOutput(rgb: vec3<f32>) -> vec3<f32> {
     }
 }
 
-fn atlasSubpixel(sprite: i32, pos: vec2<i32>, stride: u32) -> vec3<f32> {
-    if constant_sprite_oversampling() == 6 {
-        let x0 = atlas(sprite, pos + vec2<i32>(-2, 0), stride) + atlas(sprite, pos + vec2<i32>(-1, 0), stride);
-        let x1 = atlas(sprite, pos + vec2<i32>(0, 0), stride) + atlas(sprite, pos + vec2<i32>(1, 0), stride);
-        let x2 = atlas(sprite, pos + vec2<i32>(2, 0), stride) + atlas(sprite, pos + vec2<i32>(3, 0), stride);
-        let x3 = atlas(sprite, pos + vec2<i32>(4, 0), stride) + atlas(sprite, pos + vec2<i32>(5, 0), stride);
-        let x4 = atlas(sprite, pos + vec2<i32>(6, 0), stride) + atlas(sprite, pos + vec2<i32>(7, 0), stride);
-        let filt = vec3<f32>(0.25, 0.5, 0.25) * 0.5;
-        return vec3<f32>(dot(vec3<f32>(x0, x1, x2), filt), dot(vec3<f32>(x1, x2, x3), filt), dot(vec3<f32>(x2, x3, x4), filt));
-    } else if constant_sprite_oversampling() == 3 {
-        let x0 = atlas(sprite, pos + vec2<i32>(-2, 0), stride);
-        let x1 = atlas(sprite, pos + vec2<i32>(-1, 0), stride);
-        let x2 = atlas(sprite, pos + vec2<i32>(0, 0), stride);
-        let x3 = atlas(sprite, pos + vec2<i32>(1, 0), stride);
-        let x4 = atlas(sprite, pos + vec2<i32>(2, 0), stride);
-        let x5 = atlas(sprite, pos + vec2<i32>(3, 0), stride);
-        let x6 = atlas(sprite, pos + vec2<i32>(4, 0), stride);
-        const filt = array<f32, 3>(0x08 / 256.0, 0x4D / 256.0, 0x56 / 256.0);
-        return vec3<f32>(
-            x0 * filt[0] + x1 * filt[1] + x2 * filt[2] + x3 * filt[1] + x4 * filt[0],
-            x1 * filt[0] + x2 * filt[1] + x3 * filt[2] + x4 * filt[1] + x5 * filt[0],
-            x2 * filt[0] + x3 * filt[1] + x4 * filt[2] + x5 * filt[1] + x6 * filt[0]
-        );
-    } else {
-        return vec3<f32>(1.);
-    }
+// Secondary LCD filter applied on top of the box-filtered (pre-filtered) atlas.
+// The atlas already carries a 1-sample box, so this 3-tap kernel is the *second*
+// stage; the effective kernel is the convolution of the two.
+const lcdFilterCenter = 0.819;
+const lcdFilterSide   = 0.087;
+
+fn atlasSubpixel(sprite: i32, uv: vec2<f32>, stride: u32) -> vec3<f32> {
+    // R/G/B subpixel centers sit at uv.x-1, uv.x, uv.x+1. Applying a 3-tap filter
+    // around each center needs the atlas evaluated at uv.x-2 .. uv.x+2.
+    //
+    // No sampler is available, so each of those five values is reconstructed by
+    // manually lerping two adjacent texels. All five share the same fractional
+    // part `t`, so six texel fetches (i-2 .. i+3) cover the entire footprint.
+    let i = i32(floor(uv.x));
+    let y = i32(floor(uv.y));
+    let t = uv.x - floor(uv.x);
+
+    let t0 = atlas(sprite, vec2<i32>(i - 2, y), stride);
+    let t1 = atlas(sprite, vec2<i32>(i - 1, y), stride);
+    let t2 = atlas(sprite, vec2<i32>(i, y), stride);
+    let t3 = atlas(sprite, vec2<i32>(i + 1, y), stride);
+    let t4 = atlas(sprite, vec2<i32>(i + 2, y), stride);
+    let t5 = atlas(sprite, vec2<i32>(i + 3, y), stride);
+
+    // f[m] = atlas resampled at uv.x + (m - 2), for m = 0..4
+    let f0 = mix(t0, t1, t);
+    let f1 = mix(t1, t2, t);
+    let f2 = mix(t2, t3, t);
+    let f3 = mix(t3, t4, t);
+    let f4 = mix(t4, t5, t);
+
+    let w = vec3<f32>(lcdFilterSide, lcdFilterCenter, lcdFilterSide);
+    return vec3<f32>(
+        dot(vec3<f32>(f0, f1, f2), w),
+        dot(vec3<f32>(f1, f2, f3), w),
+        dot(vec3<f32>(f2, f3, f4), w)
+    );
 }
 
 // Code by Evan Wallace, CC0 license 
@@ -1089,17 +1102,19 @@ fn rectangleCoverage(pt: vec2<f32>, rect: vec4<f32>) -> f32 {
     } else if constant_shader() == shader_color_mask || constant_shader() == shader_text {
         let sprite = i32(in.data0.z);
         let stride = u32(in.data0.w);
-        let tuv = vec2<i32>(in.uv);
+        // floor, not truncate: f32->i32 rounds toward zero, which would map
+        // uv in (-1, 0) onto column 0 instead of out of range.
+        let tuv = vec2<i32>(floor(in.uv));
         let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
 
         if useBlending() {
-            let rgb = processSubpixelOutput(atlasSubpixel(sprite, tuv, stride));
+            let rgb = processSubpixelOutput(atlasSubpixel(sprite, in.uv, stride));
             outColor = shadeColor * vec4<f32>(rgb, 1.);
             outBlend = vec4<f32>(shadeColor.a * rgb, 1.);
         } else if constant_shader() == shader_color_mask {
             outColor = shadeColor * atlasRGBA(sprite, tuv, stride);
         } else {
-            var alpha = atlasAccum(sprite, tuv, stride);
+            var alpha = atlasAccum(sprite, in.uv, stride);
             outColor = shadeColor * vec4<f32>(alpha);
         }
     } else if constant_shader() == shader_mask {

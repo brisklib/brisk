@@ -809,7 +809,7 @@ FT_Error svg_port_render(FT_GlyphSlot slot, FT_Pointer* state) {
 
     bmp.clear(0x00000000u);
 
-    auto& svgState = *reinterpret_cast<SvgGlyphState*>(*state);
+    auto& svgState      = *reinterpret_cast<SvgGlyphState*>(*state);
     lunasvg::Matrix mat = lunasvg::Matrix::translated(-svgState.bbox.x, -svgState.bbox.y) * svgState.matrix;
     svgState.doc->render(bmp, mat);
 
@@ -852,18 +852,18 @@ FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* stat
         dimensions.height = units_per_EM;
     }
 
-    SizeF svgScale = SizeF(metrics.x_ppem, metrics.y_ppem) / SizeF(dimensions);
+    SizeF svgScale      = SizeF(metrics.x_ppem, metrics.y_ppem) / SizeF(dimensions);
     // lunasvg::Matrix mutators pre-multiply (m = op * m), so building this via
     // scale().transform() applies scale first, then the FT transform.
     lunasvg::Matrix mat = lunasvg::Matrix::scaled(svgScale.x, svgScale.y);
-    mat = lunasvg::Matrix{ +(float)document->transform.xx / (1 << 16),                         //
-                            -(float)document->transform.xy / (1 << 16),                         //
-                            -(float)document->transform.yx / (1 << 16),                         //
-                            +(float)document->transform.yy / (1 << 16),                         //
-                            +(float)document->delta.x / 64 * dimensions.width / metrics.x_ppem, //
-                            -(float)document->delta.y / 64 * dimensions.height / metrics.y_ppem  //
-                          }
-            * mat;
+    mat                 = lunasvg::Matrix{
+                        +(float)document->transform.xx / (1 << 16),                         //
+                        -(float)document->transform.xy / (1 << 16),                         //
+                        -(float)document->transform.yx / (1 << 16),                         //
+                        +(float)document->transform.yy / (1 << 16),                         //
+                        +(float)document->delta.x / 64 * dimensions.width / metrics.x_ppem, //
+                        -(float)document->delta.y / 64 * dimensions.height / metrics.y_ppem //
+    } * mat;
 
     auto box                = doc->boundingBox().transformed(mat);
     slot->bitmap_left       = std::floor(box.x);
@@ -901,6 +901,16 @@ FontManager::FontManager(std::recursive_mutex* mutex, int hscale)
       m_textEngine(std::make_shared<Internal::TextEngineState>(
           std::make_shared<Internal::SharedLibraryOwner>(m_ft_library), hscale)),
       m_hscale(hscale) {
+    bool validHscale = false;
+    switch (hscale) {
+    case 1:
+    case 3:
+        validHscale = true;
+        break;
+    default:
+        break;
+    }
+    BRISK_ASSERT(validHscale);
 
     FT_Module mod = FT_Get_Module(reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg");
     if (!mod) {
@@ -944,8 +954,11 @@ static void loadTextLayoutGlyphRun(
                 activeFont, run.fontHandle, glyphId, options,
                 [&](const TextEngine::RasterizedGlyph& glyph, const uint8_t* pixels) {
                     const uint32_t components = glyph.bytesPerPixel;
-                    const Size spriteSize{ static_cast<int32_t>(glyph.width * components),
-                                           static_cast<int32_t>(glyph.height) };
+                    const bool prefilter      = glyph.format == TextEngine::RasterizedGlyph::Format::Mask8 &&
+                                                glyph.horizontalScale == 3;
+                    const uint32_t padding    = prefilter ? 1u : 0u;
+                    const uint32_t width      = glyph.width * components + padding * 2u;
+                    const Size spriteSize{ static_cast<int32_t>(width), static_cast<int32_t>(glyph.height) };
                     Rc<SpriteResource> sprite = makeSprite(spriteSize);
                     const size_t rowBytes     = static_cast<size_t>(glyph.width) * components;
                     const int pitch           = glyph.pitch;
@@ -955,13 +968,26 @@ static void loadTextLayoutGlyphRun(
                     }
                     for (uint32_t row = 0; row < glyph.height; ++row) {
                         const uint8_t* source = firstRow + static_cast<ptrdiff_t>(row) * pitch;
-                        std::memcpy(sprite->data() + row * rowBytes, source, rowBytes);
+                        uint8_t* destination  = reinterpret_cast<uint8_t*>(sprite->data()) + row * width;
+                        if (prefilter) {
+                            const auto paddedSource = [&](int x) -> uint32_t {
+                                return x >= 1 && x <= static_cast<int>(glyph.width) ? source[x - 1] : 0u;
+                            };
+                            for (uint32_t x = 0; x < glyph.width + 2u; ++x) {
+                                const uint32_t sum = paddedSource(static_cast<int>(x) - 1) +
+                                                     paddedSource(static_cast<int>(x)) +
+                                                     paddedSource(static_cast<int>(x) + 1);
+                                destination[x]     = static_cast<uint8_t>((sum + 1u) / 3u);
+                            }
+                        } else {
+                            std::memcpy(destination, source, rowBytes);
+                        }
                     }
                     result = CachedGlyph{
                         .size            = spriteSize,
                         .height          = glyph.height,
                         .sprite          = std::move(sprite),
-                        .offsetX         = glyph.left,
+                        .offsetX         = glyph.left - static_cast<int>(padding),
                         .offsetY         = glyph.top,
                         .renderMode      = glyph.format == TextEngine::RasterizedGlyph::Format::BGRA8
                                                ? GlyphRenderMode::Color

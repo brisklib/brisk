@@ -65,6 +65,17 @@ static PointF quantize(PointF pt, unsigned value) {
     };
 }
 
+/// Snaps the vertical position to the pixel grid while preserving full
+/// horizontal precision. The text shader reconstructs the pre-filtered sprite
+/// atlas at fractional x offsets, so glyphs no longer need to be quantized to
+/// 1/spriteOversampling of a pixel.
+static PointF snapY(PointF pt) {
+    return PointF{
+        pt.x,
+        std::round(pt.y),
+    };
+}
+
 static bool isTextShaderCompatible(const Matrix& matrix) noexcept {
     const auto near = [](float value, float expected) {
         return std::abs(value - expected) < Matrix::epsilon;
@@ -731,9 +742,8 @@ void Canvas::fillText(PointF position, const TextLayout& text) {
             }
             GeometryGlyph desc;
             desc.rect.p1 =
-                quantize(glyph.position + PointF{ float(glyph.bitmap.offsetX) / glyph.bitmap.horizontalScale,
-                                                  -float(glyph.bitmap.offsetY) },
-                         glyph.bitmap.horizontalScale);
+                snapY(glyph.position + PointF{ float(glyph.bitmap.offsetX) / glyph.bitmap.horizontalScale,
+                                               -float(glyph.bitmap.offsetY) });
             desc.rect.p2 =
                 desc.rect.p1 + PointF(float(glyph.bitmap.size.width) / glyph.bitmap.horizontalScale,
                                       glyph.bitmap.size.height);

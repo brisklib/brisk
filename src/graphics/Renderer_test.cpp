@@ -90,25 +90,29 @@ TEST_CASE("Renderer - fonts") {
     REQUIRE(ttf2.has_value());
     fonts->addFont(*ttf2, "Lato");
 
+    constexpr int S = 2;
+    Font font{ "Lato", 27.f * S };
+    font.hinting = Hinting::Disable;
+
     for (bool subpixel : { false, true }) {
         renderTest(
-            "rr-fonts{}"_fmt(subpixel ? "-subpixel" : ""), { 1200, 600 },
+            "rr-fonts{}"_fmt(subpixel ? "-subpixel" : ""), { 1200 * S, 600 * S },
             [&](RenderContext& context) {
                 Canvas canvas(context);
                 canvas.setSubpixelTextRendering(subpixel);
 
                 Rectangle rect;
                 ColorF c;
-                canvas.setFont(Font{ "Lato", 27.f });
+                canvas.setFont(font);
                 for (int i = 0; i < 10; ++i) {
                     c    = ColorOf<float, ColorGamma::sRGB>(i / 9.f);
-                    rect = Rectangle{ 0, i * 60, 600, (i + 1) * 60 };
+                    rect = Rectangle{ 0, i * 60 * S, 600 * S, (i + 1) * 60 * S };
                     canvas.setFillColor(c);
                     canvas.fillRect(rect);
                     canvas.setFillColor(Palette::white);
                     canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
                     c    = ColorOf<float, ColorGamma::sRGB>(1.f - i / 9.f);
-                    rect = Rectangle{ 600, i * 60, 1200, (i + 1) * 60 };
+                    rect = Rectangle{ 600 * S, i * 60 * S, 1200 * S, (i + 1) * 60 * S };
                     canvas.setFillColor(c);
                     canvas.fillRect(rect);
                     canvas.setFillColor(Palette::black);

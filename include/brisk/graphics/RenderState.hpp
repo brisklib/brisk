@@ -42,8 +42,6 @@ void ensureOnRenderThread();
 
 namespace Internal {
 constexpr inline uint32_t max2DTextureSize = 8192;
-constexpr inline float textRectPadding     = 4 / 6.f; // 0.667f;
-constexpr inline float textRectOffset      = 2 / 6.f; // 0.333f;
 } // namespace Internal
 
 struct GradientColors {
@@ -165,8 +163,6 @@ struct ConstantPerFrame {
     Simd<float, 4> viewport;
     float blueLightFilter;
     float gamma;
-    float textRectPadding;
-    float textRectOffset;
     int atlasWidth;
 };
 
