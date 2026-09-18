@@ -4,9 +4,10 @@
 #include <hb-ft.h>
 #include <hb-ot.h>
 
+#include <brisk/core/Hash.hpp>
 #include <brisk/core/Io.hpp>
 #include <brisk/core/internal/InlineVector.hpp>
-#include <brisk/core/internal/cityhash.hpp>
+
 #include FT_FREETYPE_H
 #include FT_MODULE_H
 #include FT_MULTIPLE_MASTERS_H
@@ -226,7 +227,7 @@ struct FontFileRecord {
     size_t dataSize{};
     FT_Long faceIndex{};
     std::string familyName;
-    uint64_t dataHash{};
+    uint32_t dataHash{};
     bool italic{};
     uint16_t weight{};
     bool asciiFastShapingSafe{};
@@ -242,13 +243,13 @@ struct FontFileRecord {
     inline_vector<VariationAxis, kMaxVariationAxes> variationAxes;
 };
 
-[[nodiscard]] uint64_t cityHashFileData(const std::filesystem::path& path) {
+[[nodiscard]] uint32_t crc32FileData(const std::filesystem::path& path) {
     const expected<Bytes, IoError> bytes = readBytes(path);
     if (!bytes) {
         return 0;
     }
     const Bytes& data = *bytes;
-    return CityHash::CityHash64(reinterpret_cast<const char*>(data.data()), data.size());
+    return crc32(BytesView{ data.data(), data.size() });
 }
 
 [[nodiscard]] bool less_font_record(const FontFileRecord& a, const FontFileRecord& b) noexcept {
@@ -489,7 +490,7 @@ public:
             record.data      = data.data();
             record.dataSize  = data.size();
             record.faceIndex = faceIndex;
-            record.dataHash  = CityHash::CityHash64(reinterpret_cast<const char*>(data.data()), data.size());
+            record.dataHash  = crc32(BytesView{ data.data(), data.size() });
             if (face->family_name != nullptr) {
                 record.familyName = face->family_name;
                 families.push_back(record.familyName);
@@ -764,7 +765,7 @@ public:
             ec.clear();
             const std::filesystem::path canonical = std::filesystem::weakly_canonical(entry.path(), ec);
             const std::filesystem::path path      = ec ? entry.path() : canonical;
-            const uint64_t dataHash               = cityHashFileData(path);
+            const uint32_t dataHash               = crc32FileData(path);
             FT_Face first                         = nullptr;
             ++m_ftNewFaceCalls;
             if (FT_New_Face(m_libraryOwner->library, path.string().c_str(), 0, &first) != 0) {
