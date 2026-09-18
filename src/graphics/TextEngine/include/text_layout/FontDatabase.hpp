@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -100,12 +101,12 @@ struct FontCacheStats {
 class FontDatabase {
 public:
     /// Destroys the database. All outstanding FontHandles keep their resources alive.
-    virtual ~FontDatabase()                                                                      = default;
+    virtual ~FontDatabase()                                                             = default;
 
     /// Resolves a font from a structured font definition.
     /// @param fontDef The family, style, weight, size, and variations to match.
     /// @return A handle to the resolved font instance, or a null handle if no match.
-    [[nodiscard]] virtual FontHandle resolveFont(const FontDef& fontDef) const                   = 0;
+    [[nodiscard]] virtual FontHandle resolveFont(const FontDef& fontDef) const          = 0;
 
     /// Resolves a font by its individual attributes.
     /// @param familyName Case-insensitive family name (aliases are honored).
@@ -119,15 +120,15 @@ public:
     [[nodiscard]] virtual FontHandle resolveFont(std::string_view familyName, FontStyle style,
                                                  FontWeight weight, LayoutUnit fontSize,
                                                  std::span<const FontVariation> variations = {},
-                                                 Hinting hinting = Hinting::Auto) const          = 0;
+                                                 Hinting hinting = Hinting::Auto) const = 0;
 
     /// Makes the font's pixel size current for shaping and rasterization.
     /// @param fontHandle A handle previously returned by resolveFont().
     /// @return Opaque FreeType/HarfBuzz pointers valid until the next activate() call.
-    [[nodiscard]] virtual ActiveFont activate(const FontHandle& fontHandle) const                = 0;
+    [[nodiscard]] virtual ActiveFont activate(const FontHandle& fontHandle) const       = 0;
 
     /// Returns a snapshot of the cache counters for this database.
-    [[nodiscard]] virtual FontCacheStats cacheStats() const noexcept                             = 0;
+    [[nodiscard]] virtual FontCacheStats cacheStats() const noexcept                    = 0;
 
     /// Registers every face of a font file (TTF/OTF/TTC) directly from borrowed memory.
     /// The buffer is NOT copied: faces reference it in place, so the caller must keep
@@ -135,10 +136,13 @@ public:
     /// FontHandle resolved from it).
     /// @param data Borrowed font file bytes; must remain alive and unmodified for the
     ///             lifetime of the database and any FontHandle resolved from it.
+    /// @param faceIndex Optional zero-based face index to register; when omitted, every face is
+    ///                  registered.
     /// @return The family names of the registered faces, in face order (a collection
     ///         file yields one entry per face); empty if the data is not a readable
     ///         font file.
-    [[nodiscard]] virtual std::vector<std::string> registerFont(std::span<const std::byte> data) = 0;
+    [[nodiscard]] virtual std::vector<std::string> registerFont(std::span<const std::byte> data,
+                                                                std::optional<size_t> faceIndex = {}) = 0;
 
     /// Registers an alias that resolves to an existing family name. Family matching
     /// is case-insensitive. A later alias may rebind the same name.
@@ -146,13 +150,13 @@ public:
     /// @param alias The alias name to register.
     /// @return False if existingFamily is not registered (the alias is then not
     ///         stored); true otherwise.
-    [[nodiscard]] virtual bool addAlias(std::string_view existingFamily, std::string_view alias) = 0;
+    [[nodiscard]] virtual bool addAlias(std::string_view existingFamily, std::string_view alias)      = 0;
 
     /// Scans a directory for font files (TTF/OTF/TTC) and registers every face found.
     /// Non-recursive: only regular files directly inside the directory are considered.
     /// Files that cannot be opened as fonts are silently skipped. Previously registered
     /// fonts remain registered; the combined set is re-sorted by family name afterwards.
     /// @param directory The directory to scan; a non-directory path is ignored.
-    virtual void scanDirectory(const std::filesystem::path& directory)                           = 0;
+    virtual void scanDirectory(const std::filesystem::path& directory)                                = 0;
 };
 } // namespace Brisk::TextEngine

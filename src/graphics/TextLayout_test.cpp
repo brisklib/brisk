@@ -372,7 +372,7 @@ TEST_CASE("TextEngine Canvas renderer", "[text-layout][visual]") {
 TEST_CASE("TextEngine renders text outlines as paths", "[text-layout][visual]") {
     registerTextLayoutVisualFonts();
 
-    const Font font{ .fontFamily = "TextLayoutTest", .fontSize = 90.f, .hinting = Hinting::Disable };
+    const Font font{ .fontFamily = "TextLayoutTest", .fontSize = 90.f, .hinting = FontHinting::Disable };
     const ShapedText prepared = fonts->shapeText(font, TextWithOptions{ U"Bézier text\nfilled and stroked" });
     TextLayoutOptions options;
     options.maxLineWidth    = 500.f;
@@ -416,7 +416,7 @@ TEST_CASE("TextEngine renders complex arabic text", "[text-layout][visual]") {
 TEST_CASE("TextEngine renders multilingual text outlines as paths", "[text-layout][visual]") {
     registerTextLayoutVisualFonts();
 
-    const Font notoFont{ .fontFamily = "TextLayoutNoto", .fontSize = 90.f, .hinting = Hinting::Disable };
+    const Font notoFont{ .fontFamily = "TextLayoutNoto", .fontSize = 90.f, .hinting = FontHinting::Disable };
     const ShapedText multilingual =
         fonts->shapeText(notoFont, TextWithOptions{ U"ABC 文字 اَلْعَرَبِيَّةُ עברית Кириллица Ελληνικά" });
     TextLayoutOptions multilingualOptions;

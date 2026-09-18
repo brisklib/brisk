@@ -479,8 +479,9 @@ TEST_CASE("Button states animation") {
 TEST_CASE("Text wordWrap animation") {
     WidgetAnimation animation({ 288, 192 }, true);
 
-    std::ignore =
+    const auto registered =
         fonts->addFontFromFile(PROJECT_SOURCE_DIR "/resources/fonts/GoNotoKurrent-Regular.ttf", "Noto");
+    REQUIRE(registered.has_value());
 
     float val;
     BindingRegistration val_r(&val, nullptr);

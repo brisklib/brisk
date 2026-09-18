@@ -1268,23 +1268,28 @@ std::vector<std::string_view> FontManager::fontList(std::string_view ff) const {
     return list;
 }
 
-void FontManager::addFont(BytesView data, std::string alias) {
-    addFontImpl(data, std::move(alias), true);
+expected<std::vector<std::string>, IoError> FontManager::addFont(BytesView data, std::string alias,
+                                                                 std::optional<size_t> faceIndex) {
+    return addFontImpl(data, std::move(alias), true, faceIndex);
 }
 
-bool FontManager::addFontFromResource(std::string resourceName, std::string alias, bool emptyOk) {
+expected<std::vector<std::string>, IoError> FontManager::addFontFromResource(std::string resourceName,
+                                                                             std::string alias,
+                                                                             bool emptyOk) {
     const Bytes& data = Resources::loadCached(std::move(resourceName), emptyOk);
     if (data.empty()) {
-        return false;
+        return emptyOk ? expected<std::vector<std::string>, IoError>{ std::vector<std::string>{} }
+                       : unexpected(IoError::UnsupportedFormat);
     }
-    addFontImpl(data, std::move(alias), false);
-    return true;
+    return addFontImpl(data, std::move(alias), false, {});
 }
 
-void FontManager::addFontImpl(BytesView data, std::string alias, bool makeCopy) {
+expected<std::vector<std::string>, IoError> FontManager::addFontImpl(BytesView data, std::string alias,
+                                                                     bool makeCopy,
+                                                                     std::optional<size_t> faceIndex) {
     lock_quard_cond lk(m_lock);
     if (data.empty()) {
-        return;
+        return unexpected(IoError::UnsupportedFormat);
     }
 
     if (makeCopy) {
@@ -1292,20 +1297,22 @@ void FontManager::addFontImpl(BytesView data, std::string alias, bool makeCopy) 
         data = *m_textEngine->fontBlobs.back();
     }
 
-    const std::vector<std::string> registeredFamilies = m_textEngine->database->registerFont(data);
+    std::vector<std::string> registeredFamilies = m_textEngine->database->registerFont(data, faceIndex);
     for (const std::string& family : registeredFamilies) {
         if (!alias.empty() && alias != family) {
             std::ignore = m_textEngine->database->addAlias(family, alias);
         }
     }
+    return registeredFamilies;
 }
 
-status<IoError> FontManager::addFontFromFile(const fs::path& path, std::string alias) {
+expected<std::vector<std::string>, IoError> FontManager::addFontFromFile(const fs::path& path,
+                                                                         std::string alias,
+                                                                         std::optional<size_t> faceIndex) {
     lock_quard_cond lk(m_lock);
     expected<Bytes, IoError> b = readBytes(path);
     if (b) {
-        addFont(*b, std::move(alias));
-        return {};
+        return addFontImpl(*b, std::move(alias), true, faceIndex);
     }
     return unexpected(b.error());
 }
@@ -1394,10 +1401,13 @@ bool FontManager::addSystemFont(std::string alias) {
     lock_quard_cond lk(m_lock);
     fs::path path = fontFolders().front();
 #ifdef BRISK_WINDOWS
-    return addFontFromFile(path / "segoeui.ttf", alias) && addFontFromFile(path / "segoeuii.ttf", alias) &&
-           addFontFromFile(path / "segoeuib.ttf", alias) && addFontFromFile(path / "segoeuiz.ttf", alias);
+    return addFontFromFile(path / "segoeui.ttf", alias).has_value() &&
+           addFontFromFile(path / "segoeuii.ttf", alias).has_value() &&
+           addFontFromFile(path / "segoeuib.ttf", alias).has_value() &&
+           addFontFromFile(path / "segoeuiz.ttf", alias).has_value();
 #elif defined BRISK_MACOS
-    return addFontFromFile(path / "SFNS.ttf", alias) && addFontFromFile(path / "SFNSItalic.ttf", alias);
+    return addFontFromFile(path / "SFNS.ttf", alias).has_value() &&
+           addFontFromFile(path / "SFNSItalic.ttf", alias).has_value();
 #else
     return false;
 #endif
@@ -1409,7 +1419,7 @@ bool FontManager::addFontByName(std::string_view fontName, std::string alias) {
     int num     = 0;
     for (const auto& f : m_osFonts) {
         if (f.family == fontName && f.styleName.empty()) {
-            if (!addFontFromFile(f.path, alias))
+            if (!addFontFromFile(f.path, alias).has_value())
                 return false;
             ++num;
         }

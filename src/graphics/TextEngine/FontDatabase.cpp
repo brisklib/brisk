@@ -454,7 +454,8 @@ public:
     }
 
     /// Registers all faces of an in-memory font file without copying the bytes.
-    std::vector<std::string> registerFont(std::span<const std::byte> data) override {
+    std::vector<std::string> registerFont(std::span<const std::byte> data,
+                                          std::optional<size_t> requestedFaceIndex = {}) override {
         std::vector<std::string> families;
         if (m_libraryOwner == nullptr || m_libraryOwner->library == nullptr || data.empty()) {
             return families;
@@ -470,7 +471,13 @@ public:
         FT_Done_Face(first);
         ++m_ftDoneFaceCalls;
 
-        for (FT_Long faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
+        if (requestedFaceIndex && *requestedFaceIndex >= static_cast<size_t>(faceCount)) {
+            return families;
+        }
+
+        const FT_Long firstFaceIndex = requestedFaceIndex ? static_cast<FT_Long>(*requestedFaceIndex) : 0;
+        const FT_Long lastFaceIndex  = requestedFaceIndex ? firstFaceIndex + 1 : faceCount;
+        for (FT_Long faceIndex = firstFaceIndex; faceIndex < lastFaceIndex; ++faceIndex) {
             FT_Face face = nullptr;
             ++m_ftNewFaceCalls;
             if (FT_New_Memory_Face(m_libraryOwner->library, reinterpret_cast<const FT_Byte*>(data.data()),

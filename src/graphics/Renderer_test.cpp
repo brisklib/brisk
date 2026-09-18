@@ -83,16 +83,18 @@ TEST_CASE("Renderer devices", "[gpu]") {
 }
 
 TEST_CASE("Renderer - fonts") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Lato");
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf", "Lato")
+            .has_value());
 
     constexpr int S = 2;
     Font font{ "Lato", 27.f * S };
-    font.hinting = Hinting::Disable;
+    font.hinting = FontHinting::Disable;
 
     for (bool subpixel : { false, true }) {
         renderTest(
@@ -124,12 +126,14 @@ TEST_CASE("Renderer - fonts") {
 }
 
 TEST_CASE("Html text") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Lato");
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf", "Lato")
+            .has_value());
 
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -306,12 +310,15 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
 }
 
 TEST_CASE("Emoji") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Noto Emoji");
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Lato");
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
+                              "Noto Emoji")
+            .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
 
     const Size size{ 1200, 200 };
     renderTest("emoji-only", size, [&](RenderContext& context) {
@@ -1082,9 +1089,10 @@ TEST_CASE("Backlayer") {
         return;
     }
 #endif
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
 
     bool linearColorSaved = linearColor;
     linearColor           = true;
@@ -1147,9 +1155,10 @@ constexpr std::array compModes = {
 };
 
 TEST_CASE("Composition", "[.performance]") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
 
     Size cellSize{ 100, 100 };
     Size imageSize(25 + cellSize.width * blendModes.size(), 25 + cellSize.height * compModes.size());
@@ -1288,9 +1297,10 @@ TEST_CASE("Matrix invariants") {
                },
                { 0.5f, 0.5f, 0.5f, 1.0f });
 
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
 
     renderTest("matrix-invariants-text", Size{ 256, 256 },
                [](RenderContext& context) {
@@ -1305,9 +1315,11 @@ TEST_CASE("Matrix invariants") {
                },
                { 0.5f, 0.5f, 0.5f, 1.0f });
 
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Noto Emoji");
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
+                              "Noto Emoji")
+            .has_value());
 
     renderTest("matrix-invariants-emoji", Size{ 256, 256 },
                [](RenderContext& context) {
@@ -1324,9 +1336,10 @@ TEST_CASE("Matrix invariants") {
 }
 
 TEST_CASE("Text subpixel alignment") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf", "Lato")
+            .has_value());
 
     renderTest("text-subpixel-alignment", Size{ 256, 440 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -1344,9 +1357,10 @@ TEST_CASE("Text subpixel alignment") {
 }
 
 TEST_CASE("Text rendering under transforms", "[gpu][visual]") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
 
     renderTest("text-transforms", Size{ 520, 360 }, [](RenderContext& context) {
         Canvas canvas(context);

@@ -25,7 +25,7 @@
 int briskMain() {
     using namespace Brisk;
 
-    if (!fonts->addFontFromResource("GoNotoKurrent-Regular.ttf", "GoNoto"))
+    if (!fonts->addFontFromResource("GoNotoKurrent-Regular.ttf", "GoNoto").has_value())
         return 1;
 
     GuiApplication application;
