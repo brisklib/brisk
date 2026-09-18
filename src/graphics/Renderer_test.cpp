@@ -1033,7 +1033,7 @@ TEST_CASE("WebGPU") {
 }
 #endif
 
-TEST_CASE("Canvas-Performance", "[.performance]") {
+TEST_CASE("Canvas-Performance", "[performance]") {
     for (int i = 128; i <= 2048; i *= 2) {
         renderTest<true>("canvas-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
             Canvas canvas(context);
@@ -1054,7 +1054,7 @@ TEST_CASE("Canvas-Performance", "[.performance]") {
     }
 }
 
-TEST_CASE("Layers", "[.performance]") {
+TEST_CASE("Layers", "[performance]") {
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
@@ -1154,10 +1154,10 @@ constexpr std::array compModes = {
     CompositionMode::Plus,    CompositionMode::PlusLighter,
 };
 
-TEST_CASE("Composition", "[.performance]") {
+TEST_CASE("Composition") {
     REQUIRE(fonts
                 ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "Lato")
+                                  "LatoMedium")
                 .has_value());
 
     Size cellSize{ 100, 100 };
@@ -1196,7 +1196,7 @@ TEST_CASE("Composition", "[.performance]") {
         }
         canvas.resetComposition();
 
-        canvas.setFont(Font{ "Lato", 14.f });
+        canvas.setFont(Font{ "LatoMedium", 14.f });
         canvas.setFillColor(Palette::white);
         canvas.fillRect(Rectangle{ 0, 0, imageSize.width, 25 });
         canvas.fillRect(Rectangle{ 0, 0, 25, imageSize.height });
