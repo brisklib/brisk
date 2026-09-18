@@ -27,6 +27,7 @@ The following examples implement tasks from the 7GUIs benchmark, showcasing Bris
 - `temperature_converter`: A bidirectional temperature converter between Celsius and Fahrenheit, illustrating two-way data binding and input validation.
 - `flight_booker`: A flight booking interface for selecting one-way or return flights with date validation, demonstrating conditional UI logic and form handling.
 - `crud`: A Create-Read-Update-Delete application for managing a list of items, implemented using the Model-View-ViewModel (MVVM) pattern to separate data logic from the UI.
+- `font-specimen`: A command-line utility that renders a font specimen to a PNG image.
 
 ## Other Licenses
 
