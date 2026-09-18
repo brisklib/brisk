@@ -554,8 +554,14 @@ fn alignRectangle(rect: vec4<f32>) -> vec4<f32> {
         output.uv = vec2<f32>(mix(uv_left, uv_right, uv_coord.x), outPosition.y - rect.y);
         output.data0 = glyph_data;
     } else if constant_shader() == shader_color_mask {
-        let rect = norm_rect(get_data(inst * 2u));
+        var rect = norm_rect(get_data(inst * 2u));
         let glyph_data = get_data(inst * 2u + 1u);
+        // Color glyphs are sampled with a direct nearest-texel lookup (atlasRGBA),
+        // unlike shader_text which reconstructs fractional offsets. The CPU no
+        // longer quantizes glyph x positions (see snapY), so snap it here instead.
+        let w = rect.z - rect.x;
+        rect.x = round(rect.x);
+        rect.z = rect.x + w;
         outPosition = vec4<f32>(mix(rect.xy, rect.zw, uv_coord), 0., 1.);
         output.uv = outPosition.xy - rect.xy;
         output.data0 = glyph_data;
