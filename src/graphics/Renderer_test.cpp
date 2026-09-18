@@ -42,6 +42,29 @@
 
 namespace Brisk {
 
+static void registerTestFonts() {
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf",
+                                  "Lato")
+                .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf",
+                                  "Lato")
+                .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "LatoMedium")
+                .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
+                                  "Noto Emoji")
+                .has_value());
+}
+
 TEST_CASE("Renderer Info", "[gpu]") {
     expected<Rc<RenderDevice>, RenderDeviceError> device_ = getRenderDevice();
     REQUIRE(device_.has_value());
@@ -83,14 +106,7 @@ TEST_CASE("Renderer devices", "[gpu]") {
 }
 
 TEST_CASE("Renderer - fonts") {
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "Lato")
-                .has_value());
-    REQUIRE(
-        fonts
-            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf", "Lato")
-            .has_value());
+    registerTestFonts();
 
     constexpr int S = 2;
     Font font{ "Lato", 27.f * S };
@@ -126,14 +142,7 @@ TEST_CASE("Renderer - fonts") {
 }
 
 TEST_CASE("Html text") {
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "Lato")
-                .has_value());
-    REQUIRE(
-        fonts
-            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf", "Lato")
-            .has_value());
+    registerTestFonts();
 
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -310,15 +319,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
 }
 
 TEST_CASE("Emoji") {
-    REQUIRE(
-        fonts
-            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
-                              "Noto Emoji")
-            .has_value());
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "Lato")
-                .has_value());
+    registerTestFonts();
 
     const Size size{ 1200, 200 };
     renderTest("emoji-only", size, [&](RenderContext& context) {
@@ -1055,6 +1056,7 @@ TEST_CASE("Canvas-Performance", "[performance]") {
 }
 
 TEST_CASE("Layers", "[performance]") {
+    registerTestFonts();
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
@@ -1083,17 +1085,13 @@ TEST_CASE("Layers", "[performance]") {
 }
 
 TEST_CASE("Backlayer") {
+    registerTestFonts();
 #if defined BRISK_WINDOWS
     if (std::getenv("BRISK_SKIP_BLUR_TESTS")) {
         BRISK_LOG_WARN("Skip Backlayer test due to Microsoft WARP bug.");
         return;
     }
 #endif
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "Lato")
-                .has_value());
-
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
@@ -1155,10 +1153,7 @@ constexpr std::array compModes = {
 };
 
 TEST_CASE("Composition") {
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "LatoMedium")
-                .has_value());
+    registerTestFonts();
 
     Size cellSize{ 100, 100 };
     Size imageSize(25 + cellSize.width * blendModes.size(), 25 + cellSize.height * compModes.size());
@@ -1244,6 +1239,7 @@ static void testInvariants(RenderContext& context, function_ref<void(Canvas&)> f
 }
 
 TEST_CASE("Matrix invariants") {
+    registerTestFonts();
     renderTest("matrix-invariants-image", Size{ 256, 256 },
                [](RenderContext& context) {
                    Canvas canvas(context);
@@ -1297,11 +1293,6 @@ TEST_CASE("Matrix invariants") {
                },
                { 0.5f, 0.5f, 0.5f, 1.0f });
 
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "Lato")
-                .has_value());
-
     renderTest("matrix-invariants-text", Size{ 256, 256 },
                [](RenderContext& context) {
                    testInvariants(context, [&](Canvas& canvas) {
@@ -1314,12 +1305,6 @@ TEST_CASE("Matrix invariants") {
                    });
                },
                { 0.5f, 0.5f, 0.5f, 1.0f });
-
-    REQUIRE(
-        fonts
-            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
-                              "Noto Emoji")
-            .has_value());
 
     renderTest("matrix-invariants-emoji", Size{ 256, 256 },
                [](RenderContext& context) {
@@ -1336,10 +1321,7 @@ TEST_CASE("Matrix invariants") {
 }
 
 TEST_CASE("Text subpixel alignment") {
-    REQUIRE(
-        fonts
-            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf", "Lato")
-            .has_value());
+    registerTestFonts();
 
     renderTest("text-subpixel-alignment", Size{ 256, 440 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -1357,10 +1339,7 @@ TEST_CASE("Text subpixel alignment") {
 }
 
 TEST_CASE("Text rendering under transforms", "[gpu][visual]") {
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
-                                  "Lato")
-                .has_value());
+    registerTestFonts();
 
     renderTest("text-transforms", Size{ 520, 360 }, [](RenderContext& context) {
         Canvas canvas(context);
