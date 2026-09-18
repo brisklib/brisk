@@ -103,12 +103,10 @@ private:
     wgpu::Adapter m_adapter;
     wgpu::Device m_device;
     wgpu::ShaderModule m_shader;
-    wgpu::PipelineLayoutDescriptor m_pipelineLayout;
+    wgpu::PipelineLayout m_pipelineLayout;
 
-    wgpu::Sampler m_atlasSampler;
     wgpu::Sampler m_gradientSampler;
     wgpu::Sampler m_sampler;
-    wgpu::Buffer m_perFrameConstantBuffer;
     wgpu::BindGroupLayout m_bindGroupLayout;
     wgpu::Texture m_dummyTexture;
     wgpu::TextureView m_dummyTextureView;

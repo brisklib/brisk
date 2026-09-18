@@ -1128,6 +1128,7 @@ fn rectangleCoverage(pt: vec2<f32>, rect: vec4<f32>) -> f32 {
         let cov: f32 = unpack4x8unorm(in.coverage[xy.y & 3u])[xy.x & 3u];
         let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
         outColor = shadeColor * vec4<f32>(cov);
+        outBlend = vec4<f32>(cov);
     } else if constant_shader() == shader_rectangle {
         let shadeColor: vec4<f32> = computeShadeColor(in.canvas_coord);
         let rect = in.data0;

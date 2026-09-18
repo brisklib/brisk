@@ -1009,6 +1009,7 @@ FragOut fragmentMain_inner(VertexOutput tint_symbol_3) {
         float cov = tint_unpack4x8unorm(tint_symbol_3.coverage[(xy.y & 3u)])[(xy.x & 3u)];
         float4 shadeColor = computeShadeColor(tint_symbol_3.canvas_coord);
         outColor = (shadeColor * float4((cov).xxxx));
+        outBlend = float4((cov).xxxx);
       } else {
         uint tint_symbol_103 = constant_shader();
         if ((tint_symbol_103 == 0u)) {

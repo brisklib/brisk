@@ -322,8 +322,11 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
     bindGroupLayoutDesc.entries           = entries.data();
     m_bindGroupLayout                     = m_device.CreateBindGroupLayout(&bindGroupLayoutDesc);
 
-    m_pipelineLayout.bindGroupLayoutCount = 1;
-    m_pipelineLayout.bindGroupLayouts     = &m_bindGroupLayout;
+    wgpu::PipelineLayoutDescriptor pipelineLayoutDesc{
+        .bindGroupLayoutCount = 1,
+        .bindGroupLayouts     = &m_bindGroupLayout,
+    };
+    m_pipelineLayout = m_device.CreatePipelineLayout(&pipelineLayoutDesc);
 
     createSamplers();
 
@@ -352,7 +355,18 @@ wgpu::RenderPipeline RenderDeviceWebGpu::createPipeline(wgpu::TextureFormat rend
         it != m_pipelineCache.end()) {
         return it->second;
     }
-    wgpu::BlendState blendState{};
+    wgpu::BlendState blendState{
+        .color =
+            {
+                .operation = wgpu::BlendOperation::Add,
+                .srcFactor = wgpu::BlendFactor::One,
+            },
+        .alpha =
+            {
+                .operation = wgpu::BlendOperation::Add,
+                .srcFactor = wgpu::BlendFactor::One,
+            },
+    };
     if (dualSourceBlending) {
         blendState.color.dstFactor = wgpu::BlendFactor::OneMinusSrc1;
         blendState.alpha.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
@@ -373,7 +387,7 @@ wgpu::RenderPipeline RenderDeviceWebGpu::createPipeline(wgpu::TextureFormat rend
     };
 
     wgpu::RenderPipelineDescriptor descriptor{};
-    descriptor.layout             = m_device.CreatePipelineLayout(&m_pipelineLayout);
+    descriptor.layout             = m_pipelineLayout;
     descriptor.vertex.module      = m_shader;
     descriptor.primitive.topology = wgpu::PrimitiveTopology::TriangleStrip;
     descriptor.fragment           = &fragmentState;
@@ -456,10 +470,9 @@ RenderDeviceWebGpu::~RenderDeviceWebGpu() {
     m_pipelineCache          = {};
     m_device                 = nullptr;
     m_shader                 = nullptr;
-    m_atlasSampler           = nullptr;
+    m_pipelineLayout         = nullptr;
     m_gradientSampler        = nullptr;
     m_sampler                = nullptr;
-    m_perFrameConstantBuffer = nullptr;
     m_bindGroupLayout        = nullptr;
     m_dummyTexture           = nullptr;
     m_dummyTextureView       = nullptr;
