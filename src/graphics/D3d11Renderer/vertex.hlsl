@@ -126,6 +126,9 @@ VertexOutput vertexMain_inner(uint vidx, uint inst) {
           float4 tint_symbol_8 = get_data((inst * 2u));
           float4 rect = norm_rect(tint_symbol_8);
           float4 glyph_data = get_data(((inst * 2u) + 1u));
+          float w = (rect.z - rect.x);
+          rect.x = round(rect.x);
+          rect.z = (rect.x + w);
           outPosition = float4(lerp(rect.xy, rect.zw, uv_coord), 0.0f, 1.0f);
           output.uv = (outPosition.xy - rect.xy);
           output.data0 = glyph_data;
