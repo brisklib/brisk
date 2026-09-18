@@ -47,22 +47,23 @@ static void registerTestFonts() {
                 ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
                                   "Lato")
                 .has_value());
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf",
-                                  "Lato")
-                .has_value());
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf",
-                                  "Lato")
-                .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf", "Lato")
+            .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf", "Lato")
+            .has_value());
     REQUIRE(fonts
                 ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
                                   "LatoMedium")
                 .has_value());
-    REQUIRE(fonts
-                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
-                                  "Noto Emoji")
-                .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
+                              "Noto Emoji")
+            .has_value());
 }
 
 TEST_CASE("Renderer Info", "[gpu]") {
@@ -1060,27 +1061,34 @@ TEST_CASE("Layers", "[performance]") {
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
-    renderTest<true>("layers", canvasSize, [](RenderContext& context) {
-        Rectangle bounds{ {}, canvasSize };
-        Canvas canvas(context);
-        canvas.setFillColor(Palette::white);
-        canvas.fillRect(bounds);
-        canvas.setFillColor(Palette::blue);
-        canvas.fillRect({ 50, 20, 500, 300 });
-        canvas.setFont(Font{ "Lato", 48.f });
-        canvas.beginLayer(canvasSize);
-        canvas.setFillColor(Palette::red);
-        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
-        canvas.setFillColor(Palette::yellow);
-        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.5f, 0.5f }).withPadding(50));
-        canvas.setFillColor(Palette::green);
-        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 1.0f, 0.5f }).withPadding(50));
-        auto layer = canvas.finishLayer();
-        CHECK(canvas.getFont() == Font{ "Lato", 48.f });
-        canvas.drawImage(bounds, layer, {}, SamplerMode::Clamp, 14.f);
-        canvas.setFillColor(Palette::magenta);
-        canvas.fillRect({ 300, 140, 640, 180 });
-    });
+    renderTest<true>(
+        "layers", canvasSize,
+        [](RenderContext& context) {
+            Rectangle bounds{ {}, canvasSize };
+            Canvas canvas(context);
+            canvas.setFillColor(Palette::white);
+            canvas.fillRect(bounds);
+            canvas.setFillColor(Palette::blue);
+            canvas.fillRect({ 50, 20, 500, 300 });
+            canvas.setFont(Font{ "Lato", 48.f });
+            canvas.beginLayer(canvasSize);
+            canvas.setFillColor(Palette::red);
+            canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
+            canvas.setFillColor(Palette::yellow);
+            canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.5f, 0.5f }).withPadding(50));
+            canvas.setFillColor(Palette::green);
+            canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 1.0f, 0.5f }).withPadding(50));
+            auto layer = canvas.finishLayer();
+            CHECK(canvas.getFont() == Font{ "Lato", 48.f });
+            canvas.drawImage(bounds, layer, {}, SamplerMode::Clamp, 14.f);
+            canvas.setFillColor(Palette::magenta);
+            canvas.fillRect({ 300, 140, 640, 180 });
+        }
+#if defined BRISK_WINDOWS && defined BRISK_X32
+        ,
+        defaultBackColor, 0.099f // x86 WARP
+#endif
+    );
     linearColor = linearColorSaved;
 }
 
