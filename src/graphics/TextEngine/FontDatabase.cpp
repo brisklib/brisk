@@ -6,6 +6,8 @@
 
 #include <brisk/core/Hash.hpp>
 #include <brisk/core/Io.hpp>
+#include <brisk/core/Log.hpp>
+#include <brisk/core/internal/Debug.hpp>
 #include <brisk/core/internal/InlineVector.hpp>
 
 #include FT_FREETYPE_H
@@ -30,6 +32,25 @@
 namespace Brisk::TextEngine {
 
 namespace {
+
+static std::string_view freeTypeError(FT_Error err) {
+#undef FTERRORS_H_
+#define FT_ERRORDEF(e, v, s)                                                                                 \
+    case e:                                                                                                  \
+        return s;
+#define FT_ERROR_START_LIST switch (err) {
+#define FT_ERROR_END_LIST }
+#include FT_ERRORS_H
+    return "(unknown)";
+}
+
+static bool checkFreeType(std::string_view operation, FT_Error error) {
+    if (error == FT_Err_Ok) {
+        return true;
+    }
+    BRISK_LOG_ERROR("FreeType {} failed: {} ({})", operation, freeTypeError(error), static_cast<int>(error));
+    return false;
+}
 
 // OpenType features that HarfBuzz enables by default (or that a font
 // commonly ships) and that are capable of changing glyph selection
@@ -99,7 +120,10 @@ inline bool hasLegacyKernTable(FT_Face ftFace) {
     // Passing a null buffer makes FreeType just report the table
     // length without copying data.
     FT_Error err = FT_Load_Sfnt_Table(ftFace, FT_MAKE_TAG('k', 'e', 'r', 'n'), 0, nullptr, &len);
-    return err == FT_Err_Ok && len > 0;
+    if (!checkFreeType("FT_Load_Sfnt_Table", err)) {
+        return false;
+    }
+    return len > 0;
 }
 
 // Returns true if it is safe to render ASCII text (0x20-0x7E) for
@@ -290,7 +314,7 @@ struct LibraryOwner {
         // is the reference-counting mechanism for the external FT_Library;
         // only independently-created libraries are destroyed here.
         if (sharedLibrary == nullptr && library != nullptr) {
-            FT_Done_FreeType(library);
+            checkFreeType("FT_Done_FreeType", FT_Done_FreeType(library));
         }
     }
 
@@ -307,7 +331,7 @@ struct FaceEntry {
 
     ~FaceEntry() {
         if (ftFace != nullptr) {
-            FT_Done_Face(ftFace);
+            checkFreeType("FT_Done_Face", FT_Done_Face(ftFace));
             ++s_ftDoneFaceCalls;
         }
     }
@@ -341,7 +365,7 @@ public:
             hb_font_destroy(hbFont);
         }
         if (ftSize != nullptr) {
-            FT_Done_Size(ftSize);
+            checkFreeType("FT_Done_Size", FT_Done_Size(ftSize));
         }
     }
 };
@@ -356,7 +380,8 @@ public:
             return;
         }
         m_libraryOwner = std::make_shared<LibraryOwner>();
-        FT_Init_FreeType(&m_libraryOwner->library);
+        const FT_Error error = FT_Init_FreeType(&m_libraryOwner->library);
+        BRISK_ASSERT(error == FT_Err_Ok);
     }
 
     ~DefaultFontDatabase() override {
@@ -428,7 +453,8 @@ public:
         }
         FaceEntry& face = *handle->face;
         if (face.activeSize != handle->ftSize) {
-            if (FT_Activate_Size(handle->ftSize) != 0) {
+            const FT_Error error = FT_Activate_Size(handle->ftSize);
+            if (!checkFreeType("FT_Activate_Size", error)) {
                 return {};
             }
             face.activeSize = handle->ftSize;
@@ -464,12 +490,14 @@ public:
 
         FT_Face first = nullptr;
         ++m_ftNewFaceCalls;
-        if (FT_New_Memory_Face(m_libraryOwner->library, reinterpret_cast<const FT_Byte*>(data.data()),
-                               static_cast<FT_Long>(data.size()), 0, &first) != 0) {
+        const FT_Error firstFaceError = FT_New_Memory_Face(
+            m_libraryOwner->library, reinterpret_cast<const FT_Byte*>(data.data()),
+            static_cast<FT_Long>(data.size()), 0, &first);
+        if (!checkFreeType("FT_New_Memory_Face", firstFaceError)) {
             return families;
         }
         const FT_Long faceCount = first->num_faces;
-        FT_Done_Face(first);
+        checkFreeType("FT_Done_Face", FT_Done_Face(first));
         ++m_ftDoneFaceCalls;
 
         if (requestedFaceIndex && *requestedFaceIndex >= static_cast<size_t>(faceCount)) {
@@ -481,8 +509,10 @@ public:
         for (FT_Long faceIndex = firstFaceIndex; faceIndex < lastFaceIndex; ++faceIndex) {
             FT_Face face = nullptr;
             ++m_ftNewFaceCalls;
-            if (FT_New_Memory_Face(m_libraryOwner->library, reinterpret_cast<const FT_Byte*>(data.data()),
-                                   static_cast<FT_Long>(data.size()), faceIndex, &face) != 0) {
+            const FT_Error faceError = FT_New_Memory_Face(
+                m_libraryOwner->library, reinterpret_cast<const FT_Byte*>(data.data()),
+                static_cast<FT_Long>(data.size()), faceIndex, &face);
+            if (!checkFreeType("FT_New_Memory_Face", faceError)) {
                 continue;
             }
             FontFileRecord record;
@@ -503,17 +533,18 @@ public:
                                        ? static_cast<uint16_t>(FontWeight::Bold)
                                        : static_cast<uint16_t>(FontWeight::Regular));
             FT_MM_Var* mm = nullptr;
-            if (FT_Get_MM_Var(face, &mm) == 0 && mm != nullptr) {
+            const FT_Error variationError = FT_Get_MM_Var(face, &mm);
+            if (checkFreeType("FT_Get_MM_Var", variationError) && mm != nullptr) {
                 const FT_UInt axisCount = std::min(mm->num_axis, static_cast<FT_UInt>(kMaxVariationAxes));
                 for (FT_UInt i = 0; i < axisCount; ++i) {
                     record.variationAxes.push_back(
                         { mm->axis[i].tag, mm->axis[i].minimum, mm->axis[i].def, mm->axis[i].maximum });
                 }
-                FT_Done_MM_Var(m_libraryOwner->library, mm);
+                checkFreeType("FT_Done_MM_Var", FT_Done_MM_Var(m_libraryOwner->library, mm));
             }
             record.asciiFastShapingSafe = isAsciiFastShapingSafe(face);
             record.asciiRangePresent    = fontHasGlyphs(face, kAsciiRange);
-            FT_Done_Face(face);
+            checkFreeType("FT_Done_Face", FT_Done_Face(face));
             ++m_ftDoneFaceCalls;
             m_fontFiles.push_back(std::move(record));
         }
@@ -670,14 +701,15 @@ public:
                                      static_cast<FT_Long>(record.dataSize), key.faceIndex, &entry->ftFace)
                 : FT_New_Face(m_libraryOwner->library, record.path.string().c_str(), key.faceIndex,
                               &entry->ftFace);
-        if (openError != 0) {
+        if (!checkFreeType("FT_New_Face", openError)) {
             return {};
         }
         FT_Matrix matrix{ static_cast<FT_Fixed>(0x10000 / kHorizontalOversampling), 0, 0, 0x10000 };
         FT_Set_Transform(entry->ftFace, &matrix, nullptr);
         if (!key.variations.empty()) {
             FT_MM_Var* mm = nullptr;
-            if (FT_Get_MM_Var(entry->ftFace, &mm) != 0 || mm == nullptr) {
+            const FT_Error variationError = FT_Get_MM_Var(entry->ftFace, &mm);
+            if (!checkFreeType("FT_Get_MM_Var", variationError) || mm == nullptr) {
                 return {};
             }
             std::vector<FT_Fixed> coordinates(mm->num_axis);
@@ -693,10 +725,12 @@ public:
                 }
                 coordinates[i] = coordinate->value;
             }
-            FT_Done_MM_Var(m_libraryOwner->library, mm);
-            if (!valid ||
-                FT_Set_Var_Design_Coordinates(entry->ftFace, static_cast<FT_UInt>(coordinates.size()),
-                                              coordinates.data()) != 0) {
+            checkFreeType("FT_Done_MM_Var", FT_Done_MM_Var(m_libraryOwner->library, mm));
+            const FT_Error coordinatesError =
+                valid ? FT_Set_Var_Design_Coordinates(entry->ftFace, static_cast<FT_UInt>(coordinates.size()),
+                                                       coordinates.data())
+                      : FT_Err_Invalid_Argument;
+            if (!valid || !checkFreeType("FT_Set_Var_Design_Coordinates", coordinatesError)) {
                 return {};
             }
         }
@@ -713,9 +747,12 @@ public:
         instance->loadFlags          = key.loadFlags;
         instance->asciiRangePresent  = asciiRangePresent;
         instance->instanceId         = detail::nextFontInstanceId();
-        const FT_Error newError      = FT_New_Size(instance->face->ftFace, &instance->ftSize);
-        const FT_Error activateError = newError == 0 ? FT_Activate_Size(instance->ftSize) : newError;
-        if (newError != 0 || activateError != 0) {
+        const FT_Error newError = FT_New_Size(instance->face->ftFace, &instance->ftSize);
+        if (!checkFreeType("FT_New_Size", newError)) {
+            return {};
+        }
+        const FT_Error activateError = FT_Activate_Size(instance->ftSize);
+        if (!checkFreeType("FT_Activate_Size", activateError)) {
             return {};
         }
         instance->face->activeSize = instance->ftSize;
@@ -723,12 +760,13 @@ public:
                                     static_cast<FT_Long>(key.pixels * kHorizontalOversampling), key.pixels, 0,
                                     0 };
         const FT_Error requestError = FT_Request_Size(instance->face->ftFace, &request);
-        if (requestError != 0) {
+        if (!checkFreeType("FT_Request_Size", requestError)) {
             instance->face->activeSize = nullptr;
             return {};
         }
         instance->hbFont = hb_ft_font_create_referenced(instance->face->ftFace);
         if (instance->hbFont == nullptr) {
+            BRISK_LOG_ERROR("HarfBuzz hb_ft_font_create_referenced failed");
             instance->face->activeSize = nullptr;
             return {};
         }
@@ -768,17 +806,21 @@ public:
             const uint32_t dataHash               = crc32FileData(path);
             FT_Face first                         = nullptr;
             ++m_ftNewFaceCalls;
-            if (FT_New_Face(m_libraryOwner->library, path.string().c_str(), 0, &first) != 0) {
+            const FT_Error firstFaceError =
+                FT_New_Face(m_libraryOwner->library, path.string().c_str(), 0, &first);
+            if (!checkFreeType("FT_New_Face", firstFaceError)) {
                 continue;
             }
             const FT_Long faceCount = first->num_faces;
-            FT_Done_Face(first);
+            checkFreeType("FT_Done_Face", FT_Done_Face(first));
             ++m_ftDoneFaceCalls;
 
             for (FT_Long faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
                 FT_Face face = nullptr;
                 ++m_ftNewFaceCalls;
-                if (FT_New_Face(m_libraryOwner->library, path.string().c_str(), faceIndex, &face) != 0) {
+                const FT_Error faceError =
+                    FT_New_Face(m_libraryOwner->library, path.string().c_str(), faceIndex, &face);
+                if (!checkFreeType("FT_New_Face", faceError)) {
                     continue;
                 }
                 FontFileRecord record;
@@ -797,17 +839,18 @@ public:
                                            ? static_cast<uint16_t>(FontWeight::Bold)
                                            : static_cast<uint16_t>(FontWeight::Regular));
                 FT_MM_Var* mm = nullptr;
-                if (FT_Get_MM_Var(face, &mm) == 0 && mm != nullptr) {
+                const FT_Error variationError = FT_Get_MM_Var(face, &mm);
+                if (checkFreeType("FT_Get_MM_Var", variationError) && mm != nullptr) {
                     const FT_UInt axisCount = std::min(mm->num_axis, static_cast<FT_UInt>(kMaxVariationAxes));
                     for (FT_UInt i = 0; i < axisCount; ++i) {
                         record.variationAxes.push_back(
                             { mm->axis[i].tag, mm->axis[i].minimum, mm->axis[i].def, mm->axis[i].maximum });
                     }
-                    FT_Done_MM_Var(m_libraryOwner->library, mm);
+                    checkFreeType("FT_Done_MM_Var", FT_Done_MM_Var(m_libraryOwner->library, mm));
                 }
                 record.asciiFastShapingSafe = isAsciiFastShapingSafe(face);
                 record.asciiRangePresent    = fontHasGlyphs(face, kAsciiRange);
-                FT_Done_Face(face);
+                checkFreeType("FT_Done_Face", FT_Done_Face(face));
                 ++m_ftDoneFaceCalls;
                 m_fontFiles.push_back(std::move(record));
             }

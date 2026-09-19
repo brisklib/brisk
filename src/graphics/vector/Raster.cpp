@@ -305,7 +305,7 @@ struct Rasterizer {
 namespace Internal {
 
 DenseMask rleToMask(const Rle& rle, Rectangle rectangle) {
-    if (rle.empty())
+    if (rle.empty() || rectangle.empty() || rectangle.size().longestSide() >= 16'384)
         return {};
     DenseMask bitmap(rectangle);
 

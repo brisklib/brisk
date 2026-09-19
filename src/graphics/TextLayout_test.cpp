@@ -222,25 +222,6 @@ TEST_CASE("TextEngine interaction APIs expose character and line queries", "[tex
     CHECK(characterRectangles > 0);
 }
 
-TEST_CASE("TextEngine preparation validates font input", "[text-layout]") {
-    registerTextLayoutTestFont();
-
-    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, {}, {}), EArgument);
-
-    const FontAndColor styles[2]{ { Font{ "TextLayoutTest", 20.f } }, { Font{ "TextLayoutTest", 20.f } } };
-    const uint32_t invalidOffsets[1]{ 0 };
-    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, styles, invalidOffsets), EArgument);
-
-    const uint32_t outOfRangeOffsets[1]{ 4 };
-    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, styles, outOfRangeOffsets), EArgument);
-
-    const uint32_t duplicateOffsets[2]{ 1, 1 };
-    const FontAndColor threeStyles[3]{ { Font{ "TextLayoutTest", 20.f } },
-                                       { Font{ "TextLayoutTest", 20.f } },
-                                       { Font{ "TextLayoutTest", 20.f } } };
-    REQUIRE_THROWS_AS(fonts->shapeText(TextWithOptions{ U"text" }, threeStyles, duplicateOffsets), EArgument);
-}
-
 TEST_CASE("TextEngine honors text layout options", "[text-layout]") {
     registerTextLayoutTestFont();
 

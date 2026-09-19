@@ -52,7 +52,7 @@ DenseMask rasterizePath(const Path& path, FillRule fillRule, Rectangle clip) {
         rasterBounds = rasterBounds.intersection(clip);
     }
     rasterBounds = rasterBounds.intersection({ 0, 0, 16'384, 16'384 });
-    if (rasterBounds.empty())
+    if (rasterBounds.empty() || rasterBounds.size().longestSide() >= 16'384)
         return DenseMask{};
     DenseMask result(rasterBounds);
 

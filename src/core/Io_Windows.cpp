@@ -148,14 +148,12 @@ private:
 
 StreamCapabilities fileCapabilities(std::FILE* file) {
     const int descriptor = _fileno(file);
-    if (descriptor < 0)
-        throwException(EArgument("openFile requires a valid FILE*"));
+    BRISK_ASSERT(descriptor >= 0);
 
     struct _stat64 info;
     const bool regular    = _fstat64(descriptor, &info) == 0 && (info.st_mode & _S_IFREG) != 0;
     const intptr_t native = _get_osfhandle(descriptor);
-    if (native == -1)
-        throwException(EArgument("openFile cannot inspect the FILE* handle"));
+    BRISK_ASSERT(native != -1);
 
     StreamCapabilities caps = StreamCapabilities{};
     HANDLE handle           = reinterpret_cast<HANDLE>(native);
@@ -175,8 +173,7 @@ StreamCapabilities fileCapabilities(std::FILE* file) {
 
 expected<std::FILE*, IoError> fopen_native(const fs::path& file_name, OpenFileMode mode) {
     const size_t index = static_cast<size_t>(mode);
-    if (index >= file_modes.size())
-        throwException(EArgument("invalid OpenFileMode"));
+    BRISK_ASSERT(index < file_modes.size());
     std::FILE* f        = nullptr;
     const errno_t error = _wfopen_s(&f, file_name.wstring().c_str(), file_modes[index]);
     if (f)
@@ -185,8 +182,7 @@ expected<std::FILE*, IoError> fopen_native(const fs::path& file_name, OpenFileMo
 }
 
 Rc<Stream> openFile(std::FILE* file, bool owns) {
-    if (!file)
-        throwException(EArgument("openFile requires a non-null FILE*"));
+    BRISK_ASSERT(file);
     return rcnew FileStream(file, owns, fileCapabilities(file));
 }
 
@@ -204,8 +200,7 @@ Rc<Stream> stdinStream() {
 
 expected<Rc<Stream>, IoError> openFile(const fs::path& filePath, OpenFileMode mode) {
     const size_t index = static_cast<size_t>(mode);
-    if (index >= file_caps.size())
-        throwException(EArgument("invalid OpenFileMode"));
+    BRISK_ASSERT(index < file_caps.size());
     return fopen_native(filePath, mode).map([index](std::FILE* f) {
         return rcnew FileStream(f, true, file_caps[index]);
     });

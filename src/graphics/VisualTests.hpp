@@ -80,7 +80,9 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
                 auto rw = testImage->mapReadWrite();
                 rw.unpremultiplyAlpha();
             }
-            REQUIRE(writeBytes(savePath, pngEncode(testImage)));
+            auto png = pngEncode(testImage);
+            REQUIRE(png.has_value());
+            REQUIRE(writeBytes(savePath, *png));
         }
     };
 

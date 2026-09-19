@@ -121,17 +121,15 @@ template <typename... Args>
 static int mainFun(Args... args) {
     startup(args...);
     int ret = 0;
-#ifdef BRISK_EXCEPTIONS
-    try {
-#endif
+    BRISK_TRY {
         ret = briskMain();
-#ifdef BRISK_EXCEPTIONS
-    } catch (std::exception& exc) {
+    }
+    BRISK_CATCH(const std::exception& exc) {
         BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
-    } catch (...) {
+    }
+    BRISK_CATCH_ALL {
         BRISK_LOG_DEBUG("Unknown exception occurred");
     }
-#endif
     shutdown();
     return ret;
 }

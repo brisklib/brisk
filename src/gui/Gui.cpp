@@ -551,20 +551,26 @@ void Widget::requestStateRestyle() {
 
 static bool fontsRegistered = false;
 
+static void registerBuiltinFont(std::string_view resourceName, std::string_view alias) {
+    if (Resources::exists(resourceName)) {
+        std::ignore = fonts->addFontFromResource(std::string(resourceName), std::string(alias), true);
+    }
+}
+
 void registerBuiltinFonts() {
     if (fontsRegistered)
         return;
 
-    std::ignore     = fonts->addFontFromResource("fonts/default/regular.ttf", Font::Default, true);
-    std::ignore     = fonts->addFontFromResource("fonts/default/light.ttf", Font::Default, true);
-    std::ignore     = fonts->addFontFromResource("fonts/default/bold.ttf", Font::Default, true);
-    std::ignore     = fonts->addFontFromResource("fonts/default/regular-italic.ttf", Font::Default, true);
-    std::ignore     = fonts->addFontFromResource("fonts/default/light-italic.ttf", Font::Default, true);
-    std::ignore     = fonts->addFontFromResource("fonts/default/bold-italic.ttf", Font::Default, true);
+    registerBuiltinFont("fonts/default/regular.ttf", Font::Default);
+    registerBuiltinFont("fonts/default/light.ttf", Font::Default);
+    registerBuiltinFont("fonts/default/bold.ttf", Font::Default);
+    registerBuiltinFont("fonts/default/regular-italic.ttf", Font::Default);
+    registerBuiltinFont("fonts/default/light-italic.ttf", Font::Default);
+    registerBuiltinFont("fonts/default/bold-italic.ttf", Font::Default);
 
-    std::ignore     = fonts->addFontFromResource("fonts/icons.ttf", Font::Icons, true);
-    std::ignore     = fonts->addFontFromResource("fonts/emoji.ttf", Font::Emoji, true);
-    std::ignore     = fonts->addFontFromResource("fonts/mono/regular.ttf", Font::Monospace, true);
+    registerBuiltinFont("fonts/icons.ttf", Font::Icons);
+    registerBuiltinFont("fonts/emoji.ttf", Font::Emoji);
+    registerBuiltinFont("fonts/mono/regular.ttf", Font::Monospace);
 
     fontsRegistered = true;
 }

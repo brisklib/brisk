@@ -18,7 +18,6 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Exceptions.hpp>
 #include <brisk/graphics/Offscreen.hpp>
 #include <brisk/graphics/Pixel.hpp>
 #include <brisk/graphics/Renderer.hpp>
@@ -38,7 +37,7 @@ OffscreenCanvas::State::State(Rc<RenderDevice> device, Size size, float pixelRat
     canvas.reset(new Canvas(*context));
 }
 
-Rc<Image> OffscreenCanvas::State::render() && {
+Rc<Image> OffscreenCanvas::State::endPaint() && {
     BRISK_ASSERT(canvas);
     BRISK_ASSERT(context);
     BRISK_ASSERT(encoder);
@@ -59,20 +58,26 @@ Rectangle OffscreenCanvas::rect() const {
 }
 
 Canvas& OffscreenCanvas::canvas() {
-    if (!m_state) {
-        auto renderDevice = getRenderDevice();
-        if (!renderDevice.has_value()) {
-            throwException(ERuntime("Render device is null"));
-        }
-        m_state.emplace(renderDevice.value(), m_size, m_pixelRatio, m_settings);
-    }
+    BRISK_ASSERT_MSG("OffscreenCanvas::beginPaint() failed", m_state.has_value());
     return *m_state->canvas;
 }
 
-Rc<Image> OffscreenCanvas::render() {
+bool OffscreenCanvas::beginPaint() {
+    if (m_state)
+        return true;
+
+    auto renderDevice = getRenderDevice();
+    if (!renderDevice)
+        return false;
+
+    m_state.emplace(*renderDevice, m_size, m_pixelRatio, m_settings);
+    return true;
+}
+
+Rc<Image> OffscreenCanvas::endPaint() {
     if (!m_state)
         return nullptr;
-    Rc<Image> result = std::move(*m_state).render();
+    Rc<Image> result = std::move(*m_state).endPaint();
     m_state.reset();
     return result;
 }

@@ -31,7 +31,6 @@ Settings::Settings() {}
 
 fs::path Settings::path() {
     const fs::path configfolder = defaultFolder(DefaultFolder::AppUserData) / "config";
-    fs::create_directories(configfolder);
     return configfolder / "config.json";
 }
 
@@ -45,7 +44,9 @@ void Settings::setData(std::string_view path, Json json, bool notify, bool save)
         std::unique_lock lk(m_mutex);
         m_data.setItemByPath(path, std::move(json));
         if (save) {
-            internalSave();
+            if (auto result = internalSave(); !result) {
+                BRISK_LOG_ERROR("Can't write settings, code = {}", result.error());
+            }
         }
     }
     if (notify) {
@@ -53,30 +54,36 @@ void Settings::setData(std::string_view path, Json json, bool notify, bool save)
     }
 }
 
-void Settings::internalSave() {
+status<IoError> Settings::internalSave() {
     if (m_mocked)
-        return;
+        return {};
     const fs::path p = path();
+    std::error_code ec;
+    fs::create_directories(p.parent_path(), ec);
+    if (ec)
+        return unexpected(IoError::CantWrite);
     if (auto e = writeJson(p, m_data, 4); !e.has_value()) {
-        BRISK_LOG_ERROR("Can't write settings, code = {}", e.error());
+        return unexpected(e.error());
     }
+    return {};
 }
 
-void Settings::save() {
+status<IoError> Settings::save() {
     std::shared_lock lk(m_mutex);
-    internalSave();
+    return internalSave();
 }
 
-void Settings::load() {
+status<IoError> Settings::load() {
     std::unique_lock lk(m_mutex);
     if (auto e = readJson(path())) {
         m_data = *e;
     } else {
-        BRISK_LOG_ERROR("Can't read settings, e = {}", e.error());
+        return unexpected(e.error());
     }
     if (m_data.type() != JsonType::Object)
         m_data = JsonObject();
     bindings->notify(&m_changed);
+    return {};
 }
 
 bool Settings::isMocked() const noexcept {

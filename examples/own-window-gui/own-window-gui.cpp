@@ -219,17 +219,15 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
     // Initialize Brisk with Windows-specific parameters (HINSTANCE and LPWSTR)
     Brisk::startup(hInstance, lpCmdLine);
     int exitCode = 1;
-#ifdef BRISK_EXCEPTIONS
-    try {
-#endif
+    BRISK_TRY {
         exitCode = Example::main();
-#ifdef BRISK_EXCEPTIONS
-    } catch (std::exception& exc) {
+    }
+    BRISK_CATCH(const std::exception& exc) {
         BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
-    } catch (...) {
+    }
+    BRISK_CATCH_ALL {
         BRISK_LOG_DEBUG("Unknown exception occurred");
     }
-#endif
     // Clean up Brisk resources
     Brisk::shutdown();
     return exitCode;
@@ -242,17 +240,15 @@ int main(int argc, char** argv) {
     // Initialize Brisk with command-line arguments (int and char**)
     Brisk::startup(argc, argv);
     int exitCode = 1;
-#ifdef BRISK_EXCEPTIONS
-    try {
-#endif
+    BRISK_TRY {
         exitCode = Example::main();
-#ifdef BRISK_EXCEPTIONS
-    } catch (std::exception& exc) {
+    }
+    BRISK_CATCH(const std::exception& exc) {
         BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
-    } catch (...) {
+    }
+    BRISK_CATCH_ALL {
         BRISK_LOG_DEBUG("Unknown exception occurred");
     }
-#endif
     // Clean up Brisk resources
     Brisk::shutdown();
     return exitCode;

@@ -31,6 +31,7 @@
 #include <brisk/core/System.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/core/Version.hpp>
+#include <brisk/core/internal/Throw.hpp>
 #if defined(BRISK_WINDOWS)
 #include <spdlog/sinks/msvc_sink.h>
 #endif
@@ -67,10 +68,10 @@ static std::vector<spdlog::sink_ptr>& sinks() {
             std::fprintf(stderr, "*** LOG ERROR: cannot create log directory '%s': %s ***\n",
                          logfolder().string().c_str(), ec.message().c_str());
         } else {
-            try {
+            BRISK_TRY {
                 result.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
                     (logfolder() / logFilename()).string()));
-            } catch (const spdlog::spdlog_ex& error) {
+            } BRISK_CATCH(const spdlog::spdlog_ex& error) {
                 std::fprintf(stderr, "*** LOG ERROR: cannot create file sink: %s ***\n", error.what());
             }
         }

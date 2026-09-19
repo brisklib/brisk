@@ -18,6 +18,8 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <limits>
+
 #include <catch2/catch_all.hpp>
 
 #include <brisk/core/Io.hpp>
@@ -65,8 +67,7 @@ TEST_CASE("Image") {
         }
     }
 
-#ifdef BRISK_EXCEPTIONS
-    CHECK_THROWS_AS(rcnew Image(Size{ 65536, 65536 }), EArgument);
-#endif
+    CHECK(Image::create(Size{ std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max() }) ==
+          nullptr);
 }
 } // namespace Brisk

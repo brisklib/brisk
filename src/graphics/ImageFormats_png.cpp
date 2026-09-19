@@ -50,9 +50,9 @@ static png_uint_32 toPNGFormat(PixelFormat fmt) {
                      PNG_FORMAT_GRAY);
 }
 
-Bytes pngEncode(Rc<Image> image) {
+expected<Bytes, ImageIoError> pngEncode(Rc<Image> image) {
     if (image->pixelType() != PixelType::U8Gamma) {
-        throwException(EImageError("PNG codec doesn't support encoding {} format", image->format()));
+        return unexpected(ImageIoError::InvalidFormat);
     }
     // All png pixel formats are supported except PNG_FORMAT_AG
     png_image pngimage;
@@ -73,7 +73,7 @@ Bytes pngEncode(Rc<Image> image) {
         b.resize(pngbytes);
         return b;
     } else {
-        return {};
+        return unexpected(ImageIoError::CodecError);
     }
 }
 

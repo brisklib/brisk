@@ -48,7 +48,7 @@ struct WebpData : WebPData {
     WebpData(const WebpData&)            = delete;
     WebpData& operator=(const WebpData&) = delete;
 
-    WebpData(WebpData&& other) noexcept {
+    WebpData(WebpData&& other) noexcept : WebPData{} {
         swap(other);
     }
 
@@ -74,9 +74,11 @@ struct WebpData : WebPData {
 
 } // namespace
 
-[[nodiscard]] static WebpData encodeToWebpData(Rc<Image> image, std::optional<float> quality, bool lossless) {
+[[nodiscard]] static expected<WebpData, ImageIoError> encodeToWebpData(Rc<Image> image,
+                                                                       std::optional<float> quality,
+                                                                       bool lossless) {
     if (image->pixelType() != PixelType::U8Gamma) {
-        throwException(EImageError("Webp codec doesn't support encoding {} format", image->format()));
+        return unexpected(ImageIoError::InvalidFormat);
     }
 
     auto rd = image->mapRead<ImageFormat::Unknown_U8Gamma>();
@@ -101,7 +103,7 @@ struct WebpData : WebPData {
                                                 result.mutableBytes());
             break;
         default:
-            throwException(EImageError("WebP codec doesn't support encoding {} format", image->format()));
+            return unexpected(ImageIoError::InvalidFormat);
         }
     } else {
         switch (image->pixelFormat()) {
@@ -122,17 +124,20 @@ struct WebpData : WebPData {
                                         quality.value_or(defaultImageQuality), result.mutableBytes());
             break;
         default:
-            throwException(EImageError("WebP codec doesn't support encoding {} format", image->format()));
+            return unexpected(ImageIoError::InvalidFormat);
         }
     }
     if (result.size == 0)
-        throwException(EImageError("WebP encoding failed"));
+        return unexpected(ImageIoError::CodecError);
     return result;
 }
 
-[[nodiscard]] Bytes webpEncode(Rc<Image> image, std::optional<float> quality, bool lossless) {
-    WebpData result = encodeToWebpData(std::move(image), quality, lossless);
-    return result.toBytes();
+[[nodiscard]] expected<Bytes, ImageIoError> webpEncode(Rc<Image> image, std::optional<float> quality,
+                                                       bool lossless) {
+    auto result = encodeToWebpData(std::move(image), quality, lossless);
+    if (!result)
+        return unexpected(result.error());
+    return result->toBytes();
 }
 
 [[nodiscard]] expected<Rc<Image>, ImageIoError> webpDecode(BytesView bytes, ImageFormat format,
@@ -187,8 +192,8 @@ struct WebpData : WebPData {
             }
         }
     } else if (!extractAlpha && !extractGrayAlpha) {
-        wr.readFrom({ (const std::byte*)pixels.get(),
-                      size_t(width * height * pixelComponents(pixelFormat)) });
+        wr.readFrom(
+            { (const std::byte*)pixels.get(), size_t(width * height * pixelComponents(pixelFormat)) });
     } else {
         auto src = pixels.get();
         for (int y = 0; y < height; ++y) {
@@ -198,7 +203,8 @@ struct WebpData : WebPData {
                 if (extractAlpha) {
                     dst[x] = std::byte{ rgba[3] };
                 } else {
-                    dst[2 * x]     = std::byte{ uint8_t((77 * rgba[0] + 150 * rgba[1] + 29 * rgba[2] + 128) >> 8) };
+                    dst[2 * x] =
+                        std::byte{ uint8_t((77 * rgba[0] + 150 * rgba[1] + 29 * rgba[2] + 128) >> 8) };
                     dst[2 * x + 1] = std::byte{ rgba[3] };
                 }
             }
@@ -216,47 +222,59 @@ struct WebpAnimationEncoder::Private {
 WebpAnimationEncoder::WebpAnimationEncoder(std::optional<float> quality, bool lossless)
     : m_quality(quality), m_lossless(lossless), m_priv(new Private{}) {
     m_priv->mux = WebPMuxNew();
-    if (!m_priv->mux)
-        throwException(EImageError("Failed to create WebP animation mux"));
+}
+
+expected<Rc<WebpAnimationEncoder>, ImageIoError> WebpAnimationEncoder::create(std::optional<float> quality,
+                                                                              bool lossless) {
+    Rc<WebpAnimationEncoder> result = rcnew WebpAnimationEncoder(quality, lossless);
+    if (!result->m_priv->mux)
+        return unexpected(ImageIoError::CodecError);
+    return result;
 }
 
 WebpAnimationEncoder::~WebpAnimationEncoder() {
-    WebPMuxDelete(m_priv->mux);
+    if (m_priv)
+        WebPMuxDelete(m_priv->mux);
 }
 
-void WebpAnimationEncoder::addFrame(Rc<Image> image, std::chrono::milliseconds duration) {
+status<ImageIoError> WebpAnimationEncoder::addFrame(Rc<Image> image, std::chrono::milliseconds duration) {
+    if (!m_priv->mux)
+        return unexpected(ImageIoError::CodecError);
     if (duration.count() < 0 || duration.count() > std::numeric_limits<int>::max())
-        throwException(EArgument("WebP animation frame duration is out of range"));
-    WebpData result = encodeToWebpData(std::move(image), m_quality, m_lossless);
-    if (result.size == 0) {
+        return unexpected(ImageIoError::InvalidFormat);
+    auto result = encodeToWebpData(std::move(image), m_quality, m_lossless);
+    if (!result) {
         m_error = true;
-        return;
+        return unexpected(result.error());
     }
 
     WebPMuxFrameInfo frame{};
     frame.id        = WEBP_CHUNK_ANMF;
     frame.duration  = duration.count();
-    frame.bitstream = result;
+    frame.bitstream = *result;
 
-    if (WebPMuxError err = WebPMuxPushFrame(m_priv->mux, &frame, /* copy data */ 1); err != WEBP_MUX_OK)
-        throwException(EImageError("Failed to add WebP animation frame: {}", int(err)));
+    if (WebPMuxError err = WebPMuxPushFrame(m_priv->mux, &frame, /* copy data */ 1); err != WEBP_MUX_OK) {
+        m_error = true;
+        return unexpected(ImageIoError::CodecError);
+    }
+    return {};
 }
 
-Bytes WebpAnimationEncoder::encode(Color backgroundColor, int repeats) {
+expected<Bytes, ImageIoError> WebpAnimationEncoder::encode(Color backgroundColor, int repeats) {
     if (m_error)
-        return {};
+        return unexpected(ImageIoError::CodecError);
     if (repeats < 0)
-        throwException(EArgument("WebP animation repeat count cannot be negative"));
+        return unexpected(ImageIoError::InvalidFormat);
     // Set animation parameters
     WebPMuxAnimParams anim_params = {
         std::bit_cast<uint32_t>(backgroundColor.v.shuffle(/* ARGB*/ size_constants<3, 0, 1, 2>{})),
         repeats,
     };
     if (WebPMuxError err = WebPMuxSetAnimationParams(m_priv->mux, &anim_params); err != WEBP_MUX_OK)
-        throwException(EImageError("Failed to set WebP animation parameters: {}", int(err)));
+        return unexpected(ImageIoError::CodecError);
     WebpData output;
     if (WebPMuxError err = WebPMuxAssemble(m_priv->mux, &output); err != WEBP_MUX_OK)
-        throwException(EImageError("Failed to assemble WebP animation: {}", int(err)));
+        return unexpected(ImageIoError::CodecError);
     return output.toBytes();
 }
 

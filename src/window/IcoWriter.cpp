@@ -108,7 +108,12 @@ int wmain(int argc, wchar_t** argv) {
                                                        (((size + 31u) & ~31u) >> 3) * size);
         } else {
             // PNG
-            data[i]            = pngEncode(resized);
+            auto png = pngEncode(resized);
+            if (!png) {
+                fmt::println("Cannot encode ICO PNG image");
+                return 6;
+            }
+            data[i]            = std::move(*png);
             entry.dwBytesInRes = static_cast<uint32_t>(data[i].size());
         }
         entry.dwImageOffset = offset;

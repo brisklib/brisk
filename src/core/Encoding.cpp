@@ -255,10 +255,12 @@ static fn_produce utf8WriteTable[] = {
 };
 
 char32_t utfRead(const char*& text, const char* end) {
+    BRISK_ASSERT(text < end);
     return utf8ReadTable[static_cast<uint8_t>(*text) >> 4](text, end);
 }
 
 char32_t utfRead(const char16_t*& text, const char16_t* end) {
+    BRISK_ASSERT(text < end);
     uint16_t ch = static_cast<uint16_t>(*text);
     if ((ch & 0b11111000'00000000) != 0b11011000'00000000)
         return *text++;
@@ -283,6 +285,7 @@ char32_t utfRead(const char16_t*& text, const char16_t* end) {
 }
 
 char32_t utfRead(const char32_t*& text, const char32_t* end) {
+    BRISK_ASSERT(text < end);
     if (static_cast<uint32_t>(*text) > 0x0010FFFF) {
         ++text;
         return UtfInvalid;
@@ -295,6 +298,7 @@ char32_t utfRead(const char32_t*& text, const char32_t* end) {
 }
 
 char32_t utfRead(const wchar_t*& text, const wchar_t* end) {
+    BRISK_ASSERT(text < end);
     if constexpr (sizeof(wchar_t) == sizeof(char16_t)) {
         const char16_t* p = reinterpret_cast<const char16_t*>(text);
         char32_t result   = utfRead(p, reinterpret_cast<const char16_t*>(end));
@@ -314,20 +318,31 @@ BRISK_INLINE static uint32_t leadingZeros(uint32_t value) {
 
 void utfWrite(char*& text, char* end, char32_t ch) {
     uint32_t code = static_cast<uint32_t>(ch);
+    if (code <= 0x7F)
+        BRISK_ASSERT(text < end);
+    else if (code <= 0x7FF)
+        BRISK_ASSERT(text + 2 <= end);
+    else if (code <= 0xFFFF)
+        BRISK_ASSERT(text + 3 <= end);
+    else if (code <= 0x10FFFF)
+        BRISK_ASSERT(text + 4 <= end);
     uint32_t bits = 32 - leadingZeros(code | 0x7F); // ensures code != 0; bits in [7, 32]
     return utf8WriteTable[bits](text, end, ch);
 }
 
 void utfWrite(char16_t*& text, char16_t* end, char32_t ch) {
     uint32_t code = static_cast<uint32_t>(ch);
+    BRISK_ASSERT((code & 0xF800u) != 0xD800u);
     if (code > 0x10FFFFu) {
         // skip
         return;
     }
     if (code <= 0xFFFF) {
+        BRISK_ASSERT(text < end);
         *text++ = static_cast<char16_t>(ch);
         return;
     }
+    BRISK_ASSERT(text + 2 <= end);
     if (text + 2 > end) {
         // overflow
         return;
@@ -338,6 +353,7 @@ void utfWrite(char16_t*& text, char16_t* end, char32_t ch) {
 }
 
 void utfWrite(char32_t*& text, char32_t* end, char32_t ch) {
+    BRISK_ASSERT(text < end);
     *text++ = ch;
 }
 

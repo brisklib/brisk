@@ -151,13 +151,6 @@ TEST_CASE("fileModesAndStreamOperations") {
     fs::remove(path, ec);
 }
 
-TEST_CASE("fileArgumentValidation") {
-    CHECK_THROWS_AS(openFile(static_cast<std::FILE*>(nullptr)), EArgument);
-    CHECK_THROWS_AS(writeFromReader({}, rcnew MemoryStream()), EArgument);
-    CHECK_THROWS_AS(writeFromReader(rcnew MemoryStream(), {}, 1), EArgument);
-    CHECK_THROWS_AS(writeFromReader(rcnew MemoryStream(), rcnew MemoryStream(), 0), EArgument);
-}
-
 TEST_CASE("fileModeCapabilities") {
     const fs::path path = tempFilePath("io-modes-????????.bin");
     REQUIRE(writeBytes(path, toBytesView("abc")));
@@ -197,8 +190,6 @@ TEST_CASE("fileModeCapabilities") {
     CHECK((*append)->canWrite());
     CHECK((*append)->canTruncate());
     append->reset();
-
-    CHECK_THROWS_AS(openFile(path, static_cast<OpenFileMode>(99)), EArgument);
 
     std::error_code ec;
     fs::remove(path, ec);

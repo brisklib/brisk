@@ -40,8 +40,9 @@ static void testImageCodec(std::string sample, Rc<Image> reference, ImageCodec c
     CHECK(imagePSNR(*img, reference) > 40);
 
     auto bytes2 = imageEncode(codec, reference, 99, ColorSubsampling::S444);
+    REQUIRE(bytes2.has_value());
 
-    auto img2   = imageDecode(codec, bytes2, reference->format());
+    auto img2   = imageDecode(codec, *bytes2, reference->format());
     REQUIRE(img2.has_value());
     CHECK(imagePSNR(*img2, reference) > 40);
 }

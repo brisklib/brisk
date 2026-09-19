@@ -36,6 +36,10 @@ IncludeCategories:
     - Regex: '.*'
       Priority: 4
 SeparateDefinitionBlocks : Always
+Macros:
+    - BRISK_TRY=try
+    - BRISK_CATCH(x)=catch(x)
+    - BRISK_CATCH_ALL=catch(...)
 ---
 Language : Cpp
 ---

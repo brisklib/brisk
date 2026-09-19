@@ -934,7 +934,8 @@ public:
      * @throws ENullDeref if the pointer is null.
      */
     [[nodiscard]] constexpr T* operator->() const {
-        ensureNonNull();
+        BRISK_ASSERT_MSG(std::string("Dereferencing null pointer of type ").append(Internal::typeName<T>()),
+                         m_ptr != nullptr);
         return m_ptr;
     }
 
@@ -944,13 +945,10 @@ public:
      * @throws ENullDeref if the pointer is null.
      */
     [[nodiscard]] constexpr T& operator*() const {
-        ensureNonNull();
+        BRISK_ASSERT_MSG(std::string("Dereferencing null pointer of type ") +
+                             std::string(Internal::typeName<T>()),
+                         m_ptr != nullptr);
         return *m_ptr;
-    }
-
-    void ensureNonNull() const {
-        if (!m_ptr)
-            throwException(ENullDeref("Dereferencing null pointer of type {}", Internal::typeName<T>()));
     }
 
     /**

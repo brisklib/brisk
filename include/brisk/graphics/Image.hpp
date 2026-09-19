@@ -20,6 +20,7 @@
  */                                                                                                          \
 #pragma once
 
+#include <limits>
 #include <memory>
 
 #include <fmt/format.h>
@@ -34,7 +35,10 @@
 #include "Geometry.hpp"
 #include "Pixel.hpp"
 
+
 namespace Brisk {
+
+inline constexpr size_t maxAllocation = static_cast<size_t>(std::numeric_limits<std::ptrdiff_t>::max());
 
 /**
  * @brief Custom exception class for image-related errors.
@@ -277,7 +281,8 @@ struct ImageData {
     int32_t byteStride; ///< Stride in bytes between consecutive rows. Can be negative.
     int32_t components; ///< Number of color components per pixel.
 
-    ImageData() noexcept                 = default;
+    ImageData() noexcept : data(nullptr), size{}, byteStride(0), components(0) {}
+
     ImageData(const ImageData&) noexcept = default;
 
     /**
@@ -316,9 +321,7 @@ struct ImageData {
      */
     template <typename U>
     ImageData<U> to() const {
-        if (components * sizeof(T) % sizeof(U) != 0) {
-            throwException(EArgument("ImageData: invalid conversion"));
-        }
+        BRISK_ASSERT(components * sizeof(T) % sizeof(U) == 0);
         return { reinterpret_cast<U*>(data), size, byteStride,
                  static_cast<int32_t>(components * sizeof(T) / sizeof(U)) };
     }
@@ -344,9 +347,7 @@ struct ImageData {
      * @return A new ImageData object representing the subregion.
      */
     ImageData subrect(Rectangle rect) const {
-        if (rect.intersection(Rectangle{ Point{ 0, 0 }, size }) != rect) {
-            throwException(EArgument("ImageData: invalid rectangle passed to subrect"));
-        }
+        BRISK_ASSERT(rect.intersection(Rectangle{ Point{ 0, 0 }, size }) == rect);
         return ImageData{
             pixel(rect.x1, rect.y1),
             rect.size(),
@@ -547,14 +548,6 @@ struct ImageAccess {
     using LineIterator = typename ImageData<value_type>::LineIterator; ///< Line iterator for image traversal.
 
     /**
-     * @brief Throws a range error exception.
-     * @param str The error message.
-     */
-    [[noreturn]] static void throwRangeError(const std::string& str) {
-        throwException(ERange(str.c_str()));
-    }
-
-    /**
      * @brief Accesses pixel data at the specified coordinates.
      * @param x The x-coordinate.
      * @param y The y-coordinate.
@@ -564,9 +557,10 @@ struct ImageAccess {
         requires(FmtPixelType != PixelType::Unknown)
     {
 #ifndef NDEBUG
-        if (x < 0 || x >= width())
-            throwRangeError(
-                fmt::format("operator(): invalid coordinate {}x{} (size={}x{})", x, y, width(), height()));
+        BRISK_ASSERT(x >= 0);
+        BRISK_ASSERT(x < width());
+        BRISK_ASSERT(y >= 0);
+        BRISK_ASSERT(y < height());
 #endif
         return line(y)[x];
     }
@@ -706,8 +700,8 @@ struct ImageAccess {
      */
     pointer line(int32_t y) const {
 #ifndef NDEBUG
-        if (y < 0 || y >= height())
-            throwRangeError(fmt::format("line(): invalid line index {} (height={})", y, height()));
+        BRISK_ASSERT(y >= 0);
+        BRISK_ASSERT(y < height());
 #endif
         return m_data.line(y);
     }
@@ -719,9 +713,7 @@ struct ImageAccess {
      */
     void writeTo(BytesMutableView data, bool flipY = false) const {
 #ifndef NDEBUG
-        if (data.size() != sizeof(StorageType) * m_data.memorySize())
-            throwRangeError(fmt::format("writeTo(): invalid size {} (required={})", data.size(),
-                                        sizeof(StorageType) * m_data.memorySize()));
+        BRISK_ASSERT(data.size() == sizeof(StorageType) * m_data.memorySize());
 #endif
         LineIterator l   = lineIterator();
         StorageType* dst = reinterpret_cast<StorageType*>(data.data());
@@ -745,9 +737,7 @@ struct ImageAccess {
         requires(Mode != AccessMode::R)
     {
 #ifndef NDEBUG
-        if (data.size() != sizeof(StorageType) * m_data.memorySize())
-            throwRangeError(fmt::format("readFrom(): invalid size {} (required={})", data.size(),
-                                        sizeof(StorageType) * m_data.memorySize()));
+        BRISK_ASSERT(data.size() == sizeof(StorageType) * m_data.memorySize());
 #endif
         LineIterator l         = lineIterator();
         const StorageType* src = reinterpret_cast<const StorageType*>(data.data());
@@ -940,14 +930,8 @@ struct ImageAccess {
         requires(Mode != AccessMode::R)
     {
 #ifndef NDEBUG
-        if (src.size != m_data.size) {
-            throwRangeError(fmt::format("copyFrom: source size = {}x{}, target size = {}x{}", src.size.x,
-                                        src.size.y, m_data.size.x, m_data.size.y));
-        }
-        if (src.components != m_data.components) {
-            throwRangeError(fmt::format("copyFrom: source components = {}, target components = {}",
-                                        src.components, m_data.components));
-        }
+        BRISK_ASSERT(src.size == m_data.size);
+        BRISK_ASSERT(src.components == m_data.components);
 #endif
         if constexpr (SrcImageFmt == ImageFmt) {
             m_data.copyFrom(src);
@@ -1007,33 +991,56 @@ void setBackend(Rc<Image> image, ImageBackend* backend);
  *
  * This function allocates memory for an image with the given width, height, and number of components
  * per pixel. The memory is aligned based on the specified `strideAlignment`. It ensures that the image
- * size is valid, with a maximum width or height less than 65536. It also computes the necessary byte stride
- * and allocates memory accordingly.
+ * size is valid for allocation and the requested byte count is below `maxAllocation`. It also computes the
+ * necessary byte stride and allocates memory accordingly.
  *
  * @tparam T The color component type (e.g., `uint8_t`, `float`).
  * @param size The size of the image (width and height).
  * @param components The number of components per pixel (1-4, default is 1).
  * @param strideAlignment The alignment of the stride in bytes (default is 1).
  * @return The allocated `ImageData<T>` structure containing the image data.
- * @throws EArgument If the image size is too large (width or height >= 65536).
+ * @throws std::length_error If the requested allocation is too large.
  */
 template <typename T>
-inline ImageData<T> allocateImageData(Size size, int32_t components = 1, int32_t strideAlignment = 1) {
-    // Check if the image size is valid
-    if (std::max(size.width, size.height) >= 65536) {
-        throwException(EArgument("Invalid size for image data: {}x{}", size.x, size.y));
-    }
+inline ImageData<T> tryAllocateImageData(Size size, int32_t components = 1, int32_t strideAlignment = 1) {
+    BRISK_ASSERT(size.width > 0);
+    BRISK_ASSERT(size.height > 0);
+    BRISK_ASSERT(components > 0);
+    BRISK_ASSERT(strideAlignment > 0);
+
+    const auto width          = static_cast<size_t>(size.width);
+    const auto height         = static_cast<size_t>(size.height);
+    const auto componentCount = static_cast<size_t>(components);
+    const auto elementSize    = sizeof(T);
+    if (width > maxAllocation / elementSize)
+        return {};
+    const auto rowBytes = width * elementSize;
+    if (rowBytes > maxAllocation / componentCount || rowBytes * componentCount > maxAllocation / height ||
+        rowBytes * componentCount * height >= maxAllocation)
+        return {};
 
     // Compute the byte stride with alignment
+    if (rowBytes > maxAllocation - (static_cast<size_t>(strideAlignment) - 1))
+        return {};
     size_t byteStride = alignUp(size.width * sizeof(T) * components, strideAlignment);
 
+    if (byteStride < rowBytes || byteStride > maxAllocation || byteStride > maxAllocation / height ||
+        byteStride * height >= maxAllocation || byteStride > std::numeric_limits<int32_t>::max())
+        return {};
+
     // Allocate and return the image data structure
-    return ImageData<T>{
-        alignedAlloc<T>(size.height * byteStride),
-        size,
-        int32_t(byteStride),
-        components,
-    };
+    ImageData<T> result{ alignedAlloc<T>(size.height * byteStride), size, int32_t(byteStride), components };
+    if (!result.data)
+        return {};
+    return result;
+}
+
+template <typename T>
+inline ImageData<T> allocateImageData(Size size, int32_t components = 1, int32_t strideAlignment = 1) {
+    ImageData<T> result = tryAllocateImageData<T>(size, components, strideAlignment);
+    if (!result.data)
+        throwException(std::length_error("allocateImageData: requested allocation is too large"));
+    return result;
 }
 
 /**
@@ -1056,6 +1063,23 @@ public:
     Image(Image&&)                 = delete;
     Image& operator=(const Image&) = delete;
     Image& operator=(Image&&)      = delete;
+
+    /**
+     * @brief Creates an image, returning null if its pixel buffer cannot be allocated.
+     */
+    static Rc<Image> create(Size size, ImageFormat format = ImageFormat::RGBA) {
+        auto data =
+            tryAllocateImageData<UntypedPixel>(size, pixelSize(toPixelType(format), toPixelFormat(format)));
+        if (!data.data)
+            return nullptr;
+        SCOPE_EXIT {
+            if (data.data)
+                deallocateImageData(data);
+        };
+        Rc<Image> result = rcnew Image(std::move(data), format, &deallocateImageData<UntypedPixel>);
+        data.data        = nullptr;
+        return result;
+    }
 
     /**
      * @brief Returns the width of the image.
@@ -1414,11 +1438,9 @@ protected:
                                                   Internal::ImageBackend* backend, ImageFormat actualFormat) {
         using ImgAcc = ImageAccess<requestedFormat, Mode>;
         using T      = typename ImgAcc::value_type;
+        BRISK_ASSERT(imageFormatCompatible(requestedFormat, actualFormat));
         if (backend)
             backend->begin(Mode, rect);
-        if (!imageFormatCompatible(requestedFormat, actualFormat)) {
-            throwException(EImageError("Cannot map {} image to {} data", actualFormat, requestedFormat));
-        }
         return ImgAcc(data.template to<T>().subrect(rect), MappedRegion{ rect.p1 },
                       typename ImgAcc::UnmapFn{ &unmap<Mode, T>, backend }, actualFormat);
     }
