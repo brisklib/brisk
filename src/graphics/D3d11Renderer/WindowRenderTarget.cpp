@@ -35,9 +35,8 @@ WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, c
 
     NativeWindowHandle handle = window->getHandle();
     Size framebufferSize      = window->framebufferSize();
-    if (framebufferSize.longestSide() >= 16384) {
-        throwException(EImageError("Requested window framebuffer size is too large: {}", framebufferSize));
-    }
+    if (framebufferSize.width <= 0 || framebufferSize.height <= 0 || framebufferSize.longestSide() >= 16384)
+        return;
 
     // D3D11 doesn't use sRGB format for buffer itself, so we should specify sRGB for view
     DXGI_FORMAT colorFormat = dxFormatNoSrgb(m_type, PixelFormat::BGRA);
@@ -64,7 +63,11 @@ WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, c
             hr = m_device->m_factory2->CreateSwapChainForHwnd(m_device->m_device.Get(), handle.hWnd(),
                                                               &swapChainDesc1, nullptr, nullptr,
                                                               m_swapChain1.ReleaseAndGetAddressOf());
-            CHECK_HRESULT(hr, return);
+            if (FAILED(hr)) {
+                if (auto error = gpuError(hr); error && *error == GpuError::DeviceLost)
+                    m_device->markDeviceLost();
+                return;
+            }
         } else {
             m_swapChain1->QueryInterface(m_swapChain.ReleaseAndGetAddressOf());
         }
@@ -83,10 +86,14 @@ WindowRenderTargetD3d11::WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, c
         hr = m_device->m_factory->CreateSwapChain(m_device->m_device.Get(), &swapChainDesc,
                                                   m_swapChain.ReleaseAndGetAddressOf());
 
-        CHECK_HRESULT(hr, return);
+        if (FAILED(hr)) {
+            if (auto error = gpuError(hr); error && *error == GpuError::DeviceLost)
+                m_device->markDeviceLost();
+            return;
+        }
     }
 
-    createBackBuffer(framebufferSize);
+    std::ignore = createBackBuffer(framebufferSize);
 }
 
 WindowRenderTargetD3d11::~WindowRenderTargetD3d11() {
@@ -101,25 +108,46 @@ void WindowRenderTargetD3d11::setVSyncInterval(int interval) {
     }
 }
 
-void WindowRenderTargetD3d11::present() {
+expected<PresentStatus, GpuError> WindowRenderTargetD3d11::present() {
     ensureOnRenderThread();
-    m_swapChain->Present(m_vsyncInterval, 0);
+    HRESULT hr = m_swapChain->Present(m_vsyncInterval, 0);
+    if (FAILED(hr)) {
+        if (auto error = gpuError(hr)) {
+            if (*error == GpuError::DeviceLost)
+                m_device->markDeviceLost();
+            return unexpected(*error);
+        }
+        BRISK_ASSERT_MSG("Direct3D11 Present failed", SUCCEEDED(hr));
+        return unexpected(GpuError::DeviceLost);
+    }
+    return PresentStatus::Presented;
 }
 
-void WindowRenderTargetD3d11::createBackBuffer(Size size) {
+status<GpuError> WindowRenderTargetD3d11::createBackBuffer(Size size) {
     ensureOnRenderThread();
-    if (size.longestSide() >= 16384) {
-        throwException(EImageError("Requested window framebuffer size is too large: {}", size));
-    }
+    if (size.width <= 0 || size.height <= 0 || size.longestSide() >= 16384)
+        return unexpected(GpuError::SizeExceedsLimit);
     HRESULT hr;
 
     hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(m_backBuffer.colorBuffer.ReleaseAndGetAddressOf()));
-    CHECK_HRESULT(hr, return);
+    if (FAILED(hr)) {
+        if (auto error = gpuError(hr)) {
+            if (*error == GpuError::DeviceLost)
+                m_device->markDeviceLost();
+            return unexpected(*error);
+        }
+        BRISK_ASSERT_MSG("Direct3D11 back-buffer acquisition failed", SUCCEEDED(hr));
+        return unexpected(GpuError::UnsupportedFormat);
+    }
 
-    m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilFmt, m_samples);
+    auto result = m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilFmt, m_samples);
+    if (!result)
+        return unexpected(result.error());
+    m_size = size;
+    return {};
 }
 
-void WindowRenderTargetD3d11::resizeBackbuffer(Size size) {
+status<GpuError> WindowRenderTargetD3d11::resizeBackbuffer(Size size) {
     ensureOnRenderThread();
     if (size != m_size) {
         m_device->m_context->OMSetRenderTargets(0, nullptr, nullptr);
@@ -127,12 +155,20 @@ void WindowRenderTargetD3d11::resizeBackbuffer(Size size) {
         m_backBuffer = {};
 
         auto hr      = m_swapChain->ResizeBuffers(0, size.width, size.height, DXGI_FORMAT_UNKNOWN, 0);
-        CHECK_HRESULT(hr, return);
+        if (FAILED(hr)) {
+            if (auto error = gpuError(hr)) {
+                if (*error == GpuError::DeviceLost)
+                    m_device->markDeviceLost();
+                return unexpected(*error);
+            }
+            BRISK_ASSERT_MSG("Direct3D11 swap-chain resize failed", SUCCEEDED(hr));
+            return unexpected(GpuError::UnsupportedFormat);
+        }
 
         /* Recreate back buffer and reset default render target */
-        createBackBuffer(size);
-        m_size = size;
+        return createBackBuffer(size);
     }
+    return {};
 }
 
 Size WindowRenderTargetD3d11::size() const {

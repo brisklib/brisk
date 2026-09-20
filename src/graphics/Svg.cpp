@@ -48,24 +48,28 @@ ImageFormat SvgImage::nativeFormat() {
     return lunaFormat;
 }
 
-void SvgImage::renderTo(const Rc<Image>& destination) const {
+bool SvgImage::renderTo(const Rc<Image>& destination) const {
     BRISK_ASSERT(destination);
-    BRISK_ASSERT(m_impl);
+    if (!destination || !m_impl) {
+        return false;
+    }
     if (destination->format() != lunaFormat) {
-        throwException(EImageError("Image format must match SvgImage::nativeFormat()"));
+        BRISK_ASSERT_MSG("Image format must match SvgImage::nativeFormat()",
+                         destination->format() == lunaFormat);
+        return false;
     }
     auto wr = destination->mapWrite<lunaFormat>();
     lunasvg::Bitmap bmp((std::uint8_t*)wr.data(), wr.width(), wr.height(), wr.byteStride());
     m_impl->render(bmp);
+    return true;
 }
 
 Rc<Image> SvgImage::render(Size size, Color background, ImageFormat format) const {
-    BRISK_ASSERT(m_impl);
-    if (size.width <= 0 || size.height <= 0) {
-        throwException(EImageError("Image size must be positive"));
+    if (!m_impl || size.width <= 0 || size.height <= 0) {
+        return nullptr;
     }
     if (toPixelType(format) != PixelType::U8Gamma) {
-        throwException(EImageError("Image format must be 8-bit gamma-corrected"));
+        return nullptr;
     }
     lunasvg::Bitmap bmp =
         m_impl->renderToBitmap(size.width, size.height, std::bit_cast<uint32_t>(background));

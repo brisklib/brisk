@@ -39,12 +39,19 @@ void RenderEncoderD3d11::setVisualSettings(const VisualSettings& visualSettings)
     m_visualSettings = visualSettings;
 }
 
-void RenderEncoderD3d11::begin(Rc<RenderTarget> target, std::optional<ColorF> clear) {
+status<GpuError> RenderEncoderD3d11::begin(Rc<RenderTarget> target, std::optional<ColorF> clear) {
+    BRISK_ASSERT(target);
+    if (!target || !target->valid())
+        return unexpected(m_device->valid() ? GpuError::DeviceLost : GpuError::DeviceLost);
     m_currentTarget                     = std::move(target);
     ComPtr<ID3D11DeviceContext> context = m_device->m_context;
     m_frameSize                         = m_currentTarget->size();
     if (m_currentTarget->type() == RenderTargetType::Window) {
-        static_cast<WindowRenderTarget*>(m_currentTarget.get())->resizeBackbuffer(m_frameSize);
+        auto result = static_cast<WindowRenderTarget*>(m_currentTarget.get())->resizeBackbuffer(m_frameSize);
+        if (!result) {
+            m_currentTarget = nullptr;
+            return unexpected(result.error());
+        }
     }
     D3D11_VIEWPORT viewport{}; // zero-initialize
     viewport.TopLeftX = 0;
@@ -90,6 +97,7 @@ void RenderEncoderD3d11::begin(Rc<RenderTarget> target, std::optional<ColorF> cl
     ID3D11SamplerState* const samplers[2] = { m_device->m_sampler.Get(), m_device->m_gradientSampler.Get() };
     context->VSSetSamplers(6, 1, samplers);
     context->PSSetSamplers(6, 2, samplers);
+    return {};
 }
 
 void RenderEncoderD3d11::end() {

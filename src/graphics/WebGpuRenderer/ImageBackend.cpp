@@ -25,11 +25,11 @@
 
 namespace Brisk {
 
-ImageBackendWebGpu* getOrCreateBackend(Rc<RenderDeviceWebGpu> device, Rc<Image> image, bool uploadImage,
-                                       bool renderTarget) {
+expected<ImageBackendWebGpu*, GpuError> getOrCreateBackend(Rc<RenderDeviceWebGpu> device, Rc<Image> image,
+                                                           bool uploadImage, bool renderTarget) {
     ensureOnRenderThread();
     if (!image)
-        return nullptr;
+        return unexpected(GpuError::UnsupportedFormat);
     Internal::ImageBackend* imageBackend = Internal::getBackend(image);
 
     ImageBackendWebGpu* backend          = static_cast<ImageBackendWebGpu*>(imageBackend);
@@ -37,6 +37,8 @@ ImageBackendWebGpu* getOrCreateBackend(Rc<RenderDeviceWebGpu> device, Rc<Image> 
         return backend;
     ImageBackendWebGpu* newBackend = new ImageBackendWebGpu(device, image.get(), uploadImage, renderTarget);
     Internal::setBackend(image, newBackend);
+    if (!newBackend->valid())
+        return unexpected(device->valid() ? GpuError::OutOfMemory : GpuError::DeviceLost);
     return newBackend;
 }
 

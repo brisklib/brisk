@@ -47,6 +47,10 @@ public:
         return m_texture;
     }
 
+    bool valid() const noexcept {
+        return m_texture && m_textureView;
+    }
+
 private:
     friend class ImageRenderTargetWebGpu;
     friend class RenderEncoderWebGpu;
@@ -59,6 +63,6 @@ private:
     wgpu::TextureFormat m_wgformat;
 };
 
-ImageBackendWebGpu* getOrCreateBackend(Rc<RenderDeviceWebGpu> device, Rc<Image> image, bool uploadImage,
-                                       bool renderTarget);
+expected<ImageBackendWebGpu*, GpuError> getOrCreateBackend(Rc<RenderDeviceWebGpu> device, Rc<Image> image,
+                                                           bool uploadImage, bool renderTarget);
 } // namespace Brisk

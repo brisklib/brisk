@@ -65,15 +65,21 @@ public:
         return RendererBackend::WebGpu;
     }
 
+    bool valid() const noexcept final {
+        return !m_gpuState->lost.load(std::memory_order_acquire);
+    }
+
+    void onDeviceLost(DeviceLostCallback callback) final;
+
     RenderDeviceInfo info() const final;
 
-    Rc<WindowRenderTarget> createWindowTarget(const NativeWindow* window, PixelType type = PixelType::U8Gamma,
-                                              DepthStencilType depthStencil = DepthStencilType::None,
-                                              int samples                   = 1) final;
+    expected<Rc<WindowRenderTarget>, GpuError> createWindowTarget(
+        const NativeWindow* window, PixelType type = PixelType::U8Gamma,
+        DepthStencilType depthStencil = DepthStencilType::None, int samples = 1) final;
 
-    Rc<ImageRenderTarget> createImageTarget(Size frameSize, PixelType type = PixelType::U8Gamma,
-                                            DepthStencilType depthStencil = DepthStencilType::None,
-                                            int samples                   = 1) final;
+    expected<Rc<ImageRenderTarget>, GpuError> createImageTarget(
+        Size frameSize, PixelType type = PixelType::U8Gamma,
+        DepthStencilType depthStencil = DepthStencilType::None, int samples = 1) final;
 
     Rc<RenderEncoder> createEncoder() final;
 
@@ -83,7 +89,7 @@ public:
 
     RenderLimits limits() const final;
 
-    void createImageBackend(Rc<Image> image) final;
+    expected<void, GpuError> createImageBackend(Rc<Image> image) final;
 
     RenderDeviceWebGpu(RendererDeviceSelection deviceSelection, NativeDisplayHandle display);
     ~RenderDeviceWebGpu();
@@ -120,7 +126,8 @@ private:
     void createSamplers();
     void wait();
     wgpu::RenderPipeline createPipeline(wgpu::TextureFormat renderFormat, bool dualSourceBlending);
-    bool updateBackBuffer(BackBufferWebGpu& buffer, PixelType type, DepthStencilType depthType, int samples);
+    expected<void, GpuError> updateBackBuffer(BackBufferWebGpu& buffer, PixelType type,
+                                              DepthStencilType depthType, int samples);
 };
 
 } // namespace Brisk

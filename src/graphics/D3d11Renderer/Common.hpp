@@ -20,6 +20,7 @@
  */
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include <brisk/graphics/D3d11.hpp>
@@ -47,14 +48,23 @@ public:
     using ELogic::ELogic;
 };
 
-inline void handleD3d11Err(HRESULT hr) {
-    throwException(EDirect3D("Direct3D11 Error: {}", hrDescription(hr)));
+inline std::optional<GpuError> gpuError(HRESULT hr) noexcept {
+    switch (hr) {
+    case DXGI_ERROR_DEVICE_REMOVED:
+    case DXGI_ERROR_DEVICE_RESET:
+    case DXGI_ERROR_DEVICE_HUNG:
+        return GpuError::DeviceLost;
+    case E_OUTOFMEMORY:
+        return GpuError::OutOfMemory;
+    default:
+        return std::nullopt;
+    }
 }
 
 #define CHECK_HRESULT(hr, fail)                                                                              \
     do {                                                                                                     \
         if (FAILED(hr)) {                                                                                    \
-            handleD3d11Err(hr);                                                                              \
+            BRISK_ASSERT_MSG("Direct3D11 call failed", SUCCEEDED(hr));                                       \
             fail;                                                                                            \
         }                                                                                                    \
     } while (0)

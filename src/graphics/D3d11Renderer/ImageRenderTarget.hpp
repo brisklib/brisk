@@ -27,7 +27,11 @@ namespace Brisk {
 class ImageRenderTargetD3d11 final : public ImageRenderTarget {
 public:
     Size size() const final;
-    void setSize(Size newSize) final;
+    status<GpuError> setSize(Size newSize) final;
+
+    bool valid() const noexcept final {
+        return m_device && m_device->valid() && m_image && static_cast<bool>(m_backBuffer.rtv);
+    }
 
     Rc<Image> image(bool reset = false) const final;
 
@@ -47,6 +51,6 @@ private:
     int m_samples;
     Rc<Image> m_image;
     BackBufferD3d11 m_backBuffer;
-    bool updateImage();
+    expected<void, GpuError> updateImage();
 };
 } // namespace Brisk

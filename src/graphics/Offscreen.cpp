@@ -29,7 +29,12 @@ OffscreenCanvas::OffscreenCanvas(Size size, float pixelRatio, const VisualSettin
 
 OffscreenCanvas::State::State(Rc<RenderDevice> device, Size size, float pixelRatio,
                               const VisualSettings& settings) {
-    target  = device->createImageTarget(size);
+    auto targetResult = device->createImageTarget(size);
+    if (!targetResult)
+        return;
+    target = *targetResult;
+    if (!target)
+        return;
     encoder = device->createEncoder();
     encoder->setVisualSettings(settings);
     Brisk::pixelRatio() = pixelRatio;

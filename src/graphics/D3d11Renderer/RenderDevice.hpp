@@ -40,15 +40,21 @@ public:
         return RendererBackend::D3d11;
     }
 
+    bool valid() const noexcept final {
+        return !m_gpuState->lost.load(std::memory_order_acquire);
+    }
+
+    void onDeviceLost(DeviceLostCallback callback) final;
+
     RenderDeviceInfo info() const final;
 
-    Rc<WindowRenderTarget> createWindowTarget(const NativeWindow* window, PixelType type = PixelType::U8Gamma,
-                                              DepthStencilType depthStencil = DepthStencilType::None,
-                                              int samples                   = 1) final;
+    expected<Rc<WindowRenderTarget>, GpuError> createWindowTarget(
+        const NativeWindow* window, PixelType type = PixelType::U8Gamma,
+        DepthStencilType depthStencil = DepthStencilType::None, int samples = 1) final;
 
-    Rc<ImageRenderTarget> createImageTarget(Size frameSize, PixelType type = PixelType::U8Gamma,
-                                            DepthStencilType depthStencil = DepthStencilType::None,
-                                            int samples                   = 1) final;
+    expected<Rc<ImageRenderTarget>, GpuError> createImageTarget(
+        Size frameSize, PixelType type = PixelType::U8Gamma,
+        DepthStencilType depthStencil = DepthStencilType::None, int samples = 1) final;
 
     Rc<RenderEncoder> createEncoder() final;
 
@@ -58,7 +64,7 @@ public:
 
     RenderLimits limits() const final;
 
-    void createImageBackend(Rc<Image> image) final;
+    expected<void, GpuError> createImageBackend(Rc<Image> image) final;
 
     RenderDeviceD3d11(RendererDeviceSelection deviceSelection, NativeDisplayHandle display);
     ~RenderDeviceD3d11();
@@ -101,7 +107,8 @@ private:
     void createSamplers();
     void createPerFrameConstantBuffer();
 
-    bool updateBackBuffer(BackBufferD3d11& buffer, PixelType type, DepthStencilType depthType, int samples);
+    expected<void, GpuError> updateBackBuffer(BackBufferD3d11& buffer, PixelType type,
+                                              DepthStencilType depthType, int samples);
 };
 
 } // namespace Brisk

@@ -130,7 +130,10 @@ int main() {
 
         windows[i].osWin  = NativeWindowGLFW(windows[i].win);
         // Create render target for the window
-        windows[i].target = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
+        auto targetResult = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
+        if (!targetResult)
+            return 1;
+        windows[i].target = *targetResult;
         windows[i].target->setVSyncInterval(1); // Enable vertical sync
         // Create a render encoder for drawing
         windows[i].encoder = (*device)->createEncoder();
@@ -196,7 +199,8 @@ int main() {
             }
 
             // Present the rendered frame
-            windows[i].target->present();
+            if (!windows[i].target->present())
+                return 1;
 
             // Check if the window should close
             if (glfwWindowShouldClose(windows[i].win)) {

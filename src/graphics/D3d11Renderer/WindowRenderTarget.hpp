@@ -26,11 +26,15 @@ namespace Brisk {
 
 class WindowRenderTargetD3d11 final : public WindowRenderTarget {
 public:
-    void resizeBackbuffer(Size size) final;
+    status<GpuError> resizeBackbuffer(Size size) final;
     Size size() const final;
-    void present() final;
+    expected<PresentStatus, GpuError> present() final;
     int vsyncInterval() const final;
     void setVSyncInterval(int interval) final;
+
+    bool valid() const noexcept final {
+        return m_device && m_device->valid() && static_cast<bool>(m_swapChain);
+    }
 
     WindowRenderTargetD3d11(Rc<RenderDeviceD3d11> device, const NativeWindow* window,
                             PixelType type                = PixelType::U8Gamma,
@@ -57,6 +61,6 @@ private:
 
     Size m_size;
 
-    void createBackBuffer(Size size);
+    status<GpuError> createBackBuffer(Size size);
 };
 } // namespace Brisk

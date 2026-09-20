@@ -124,6 +124,15 @@ bool RenderDeviceD3d11::createDevice(UINT flags) {
     return false;
 }
 
+void RenderDeviceD3d11::onDeviceLost(DeviceLostCallback callback) {
+    std::lock_guard lock(m_gpuState->mutex);
+    if (!valid()) {
+        callback();
+        return;
+    }
+    m_gpuState->callbacks.push_back(std::move(callback));
+}
+
 RenderDeviceD3d11::RenderDeviceD3d11(RendererDeviceSelection deviceSelection, NativeDisplayHandle display)
     : m_deviceSelection(deviceSelection), m_display(display) {
     ensureOnRenderThread();
@@ -291,19 +300,27 @@ RenderDeviceInfo RenderDeviceD3d11::info() const {
     return info;
 }
 
-Rc<WindowRenderTarget> RenderDeviceD3d11::createWindowTarget(const NativeWindow* window, PixelType type,
-                                                             DepthStencilType depthStencil, int samples) {
+expected<Rc<WindowRenderTarget>, GpuError> RenderDeviceD3d11::createWindowTarget(
+    const NativeWindow* window, PixelType type, DepthStencilType depthStencil, int samples) {
     ensureOnRenderThread();
-    return rcnew WindowRenderTargetD3d11(shared_from_this(), window, type, depthStencil, samples);
+    BRISK_ASSERT(window);
+    auto target = rcnew WindowRenderTargetD3d11(shared_from_this(), window, type, depthStencil, samples);
+    if (!target->valid())
+        return unexpected(valid() ? GpuError::UnsupportedFormat : GpuError::DeviceLost);
+    return target;
 }
 
-Rc<ImageRenderTarget> RenderDeviceD3d11::createImageTarget(Size frameSize, PixelType type,
-                                                           DepthStencilType depthStencil, int samples) {
+expected<Rc<ImageRenderTarget>, GpuError> RenderDeviceD3d11::createImageTarget(Size frameSize, PixelType type,
+                                                                               DepthStencilType depthStencil,
+                                                                               int samples) {
     ensureOnRenderThread();
-    if (frameSize.longestSide() >= 16384) {
-        throwException(EImageError("Requested image render target size is too large: {}", frameSize));
+    if (frameSize.width <= 0 || frameSize.height <= 0 || frameSize.longestSide() >= 16384) {
+        return unexpected(GpuError::SizeExceedsLimit);
     }
-    return rcnew ImageRenderTargetD3d11(shared_from_this(), frameSize, type, depthStencil, samples);
+    auto target = rcnew ImageRenderTargetD3d11(shared_from_this(), frameSize, type, depthStencil, samples);
+    if (!target->valid())
+        return unexpected(valid() ? GpuError::UnsupportedFormat : GpuError::DeviceLost);
+    return target;
 }
 
 Rc<RenderEncoder> RenderDeviceD3d11::createEncoder() {
@@ -313,8 +330,8 @@ Rc<RenderEncoder> RenderDeviceD3d11::createEncoder() {
 
 RenderDeviceD3d11::~RenderDeviceD3d11() = default;
 
-bool RenderDeviceD3d11::updateBackBuffer(BackBufferD3d11& buffer, PixelType type, DepthStencilType depthType,
-                                         int samples) {
+expected<void, GpuError> RenderDeviceD3d11::updateBackBuffer(BackBufferD3d11& buffer, PixelType type,
+                                                             DepthStencilType depthType, int samples) {
     ensureOnRenderThread();
     D3D11_RENDER_TARGET_VIEW_DESC rtvDesc{}; // zero-initialize
     rtvDesc.ViewDimension = samples > 1 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
@@ -326,7 +343,15 @@ bool RenderDeviceD3d11::updateBackBuffer(BackBufferD3d11& buffer, PixelType type
 
     hr = m_device->CreateRenderTargetView(buffer.colorBuffer.Get(), &rtvDesc,
                                           buffer.rtv.ReleaseAndGetAddressOf());
-    CHECK_HRESULT(hr, return false);
+    if (FAILED(hr)) {
+        if (auto error = gpuError(hr)) {
+            if (*error == GpuError::DeviceLost)
+                markDeviceLost();
+            return unexpected(*error);
+        }
+        BRISK_ASSERT_MSG("Direct3D11 render-target creation failed", SUCCEEDED(hr));
+        return unexpected(GpuError::UnsupportedFormat);
+    }
 
     if (depthType != DepthStencilType::None) {
         DXGI_FORMAT depthFmt =
@@ -335,15 +360,31 @@ bool RenderDeviceD3d11::updateBackBuffer(BackBufferD3d11& buffer, PixelType type
             texDesc(depthFmt, Size(colorDesc.Width, colorDesc.Height), samples, D3D11_USAGE_DEFAULT,
                     D3D11_BIND_DEPTH_STENCIL, 0);
         hr = m_device->CreateTexture2D(&depthBufDesc, nullptr, buffer.depthStencil.ReleaseAndGetAddressOf());
-        CHECK_HRESULT(hr, return false);
+        if (FAILED(hr)) {
+            if (auto error = gpuError(hr)) {
+                if (*error == GpuError::DeviceLost)
+                    markDeviceLost();
+                return unexpected(*error);
+            }
+            BRISK_ASSERT_MSG("Direct3D11 depth-buffer creation failed", SUCCEEDED(hr));
+            return unexpected(GpuError::UnsupportedFormat);
+        }
         hr = m_device->CreateDepthStencilView(buffer.depthStencil.Get(), nullptr,
                                               buffer.dsv.ReleaseAndGetAddressOf());
-        CHECK_HRESULT(hr, return false);
+        if (FAILED(hr)) {
+            if (auto error = gpuError(hr)) {
+                if (*error == GpuError::DeviceLost)
+                    markDeviceLost();
+                return unexpected(*error);
+            }
+            BRISK_ASSERT_MSG("Direct3D11 depth-stencil view creation failed", SUCCEEDED(hr));
+            return unexpected(GpuError::UnsupportedFormat);
+        }
     } else {
         buffer.depthStencil.Reset();
         buffer.dsv.Reset();
     }
-    return true;
+    return {};
 }
 
 void RenderDeviceD3d11::incrementWindowTargets() {
@@ -360,15 +401,18 @@ void RenderDeviceD3d11::decrementWindowTargets() {
         m_dxgiDevice1->SetMaximumFrameLatency(m_windowTargets);
 }
 
-void RenderDeviceD3d11::createImageBackend(Rc<Image> image) {
+expected<void, GpuError> RenderDeviceD3d11::createImageBackend(Rc<Image> image) {
     ensureOnRenderThread();
     BRISK_ASSERT(image);
+    if (!image)
+        return unexpected(GpuError::UnsupportedFormat);
     if (dxFormat(image->pixelType(), image->pixelFormat()) == DXGI_FORMAT_UNKNOWN) {
-        throwException(EImageError("Direct3D11 backend does not support the image type or format: {}, {}. "
-                                   "Consider converting the image before sending it to the GPU.",
-                                   image->pixelType(), image->pixelFormat()));
+        return unexpected(GpuError::UnsupportedFormat);
     }
-    std::ignore = getOrCreateBackend(shared_from_this(), std::move(image), true, false);
+    auto result = getOrCreateBackend(shared_from_this(), std::move(image), true, false);
+    if (!result)
+        return unexpected(result.error());
+    return {};
 }
 
 RenderLimits RenderDeviceD3d11::limits() const {

@@ -915,10 +915,14 @@ Canvas::Layer::Layer(RenderContext* context, Size layerSize) {
     if (!device) {
         return;
     }
-    layerTarget = device->createImageTarget(layerSize);
-    if (!layerTarget) {
+    auto targetResult = device->createImageTarget(layerSize);
+    if (!targetResult) {
+        BRISK_LOG_ERROR("Unable to create layer target: {}", targetResult.error());
         return;
     }
+    layerTarget = *targetResult;
+    if (!layerTarget)
+        return;
     encoder->end(); // End the current encoder to switch to the new target.
     layerPipeline = std::make_shared<RenderPipeline>(
         encoder, layerTarget,
@@ -948,7 +952,10 @@ Rc<Image> Canvas::contentsAsImage() {
 
     ImageRenderTarget* imageTarget = static_cast<ImageRenderTarget*>(target.get());
     Rc<Image> image                = imageTarget->image(true);
-    encoder->begin(target, Palette::transparent); // Reopen the encoder for further drawing.
+    auto beginResult =
+        encoder->begin(target, Palette::transparent); // Reopen the encoder for further drawing.
+    if (!beginResult)
+        return nullptr;
     return image;
 }
 
@@ -963,7 +970,9 @@ Rc<Image> Canvas::finishLayer() {
     Rc<RenderEncoder> encoder = layer.layerPipeline->encoder();
     // Switch back to the parent context.
     layer.layerPipeline       = nullptr; // This flushes commands and ends encoding.
-    encoder->begin(layer.parentTarget, std::nullopt);
+    auto beginResult          = encoder->begin(layer.parentTarget, std::nullopt);
+    if (!beginResult)
+        return nullptr;
     // Restore the previous state of the Canvas.
     restore();
     m_context = layer.parentPipeline;

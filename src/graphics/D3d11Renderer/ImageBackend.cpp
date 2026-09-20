@@ -24,11 +24,11 @@
 
 namespace Brisk {
 
-ImageBackendD3d11* getOrCreateBackend(Rc<RenderDeviceD3d11> device, Rc<Image> image, bool uploadImage,
-                                      bool renderTarget) {
+expected<ImageBackendD3d11*, GpuError> getOrCreateBackend(Rc<RenderDeviceD3d11> device, Rc<Image> image,
+                                                          bool uploadImage, bool renderTarget) {
     ensureOnRenderThread();
     if (!image)
-        return nullptr;
+        return unexpected(GpuError::UnsupportedFormat);
     Internal::ImageBackend* imageBackend = Internal::getBackend(image);
 
     ImageBackendD3d11* backend           = static_cast<ImageBackendD3d11*>(imageBackend);
@@ -38,6 +38,8 @@ ImageBackendD3d11* getOrCreateBackend(Rc<RenderDeviceD3d11> device, Rc<Image> im
     ImageBackendD3d11* newBackend =
         new ImageBackendD3d11(std::move(device), image.get(), uploadImage, renderTarget);
     Internal::setBackend(image, newBackend);
+    if (!newBackend->valid())
+        return unexpected(device->valid() ? GpuError::OutOfMemory : GpuError::DeviceLost);
     return newBackend;
 }
 
