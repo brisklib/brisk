@@ -162,8 +162,10 @@
 
 #ifdef BRISK_GNU_ATTR
 #define BRISK_ALWAYS_INLINE __attribute__((__always_inline__))
+#define BRISK_NOINLINE __attribute__((__noinline__))
 #else
 #define BRISK_ALWAYS_INLINE __forceinline
+#define BRISK_NOINLINE __declspec(noinline)
 #endif
 
 #ifdef NDEBUG

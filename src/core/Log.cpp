@@ -19,9 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <cstdint>
+#include <cstdlib>
 #include <cstdio>
 #include <random>
 
+#include <cpptrace/formatting.hpp>
 #include <fmt/format.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
@@ -39,6 +41,8 @@
 #include <brisk/core/App.hpp>
 
 namespace Brisk {
+
+std::atomic_bool Internal::logStackTrace{ false };
 
 fs::path logfolder() {
     return defaultFolder(DefaultFolder::AppUserData) / "logs";
@@ -102,6 +106,9 @@ static void printSystemInformation() {
 }
 
 void initializeLogs() {
+    const char* stackTrace = std::getenv("BRISK_LOG_STACK_TRACE");
+    Internal::logStackTrace.store(stackTrace && *stackTrace, std::memory_order_relaxed);
+
     std::error_code ec;
     fs::create_directories(logfolder(), ec);
     if (ec) {
@@ -124,6 +131,10 @@ spdlog::logger& Internal::applog() {
     }();
     (void)errorHandlerSet;
     return instance;
+}
+
+BRISK_NOINLINE std::string Internal::logTrace(std::size_t maxDepth) {
+    return cpptrace::generate_trace(1, maxDepth).to_string();
 }
 
 } // namespace Brisk

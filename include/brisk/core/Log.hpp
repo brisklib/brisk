@@ -20,11 +20,17 @@
  */
 #pragma once
 
+#include <atomic>
+#include <cstddef>
+#include <string>
+
 #include <spdlog/spdlog.h>
 
 namespace Brisk {
 
 namespace Internal {
+extern std::atomic_bool logStackTrace;
+
 /**
  * @brief Retrieves the application logger instance.
  *
@@ -34,7 +40,24 @@ namespace Internal {
  * @return A reference to the application logger (an instance of spdlog::logger).
  */
 spdlog::logger& applog();
+
+/**
+ * @brief Captures a short stack trace for the current log entry.
+ *
+ * The returned trace skips the logging implementation frames so that the first
+ * useful frame is the caller of a Brisk logging macro.
+ */
+std::string logTrace(std::size_t maxDepth = 8);
 } // namespace Internal
+
+#define BRISK_LOG_LEVEL_(LEVEL) BRISK_LOG_LEVEL_##LEVEL
+#define BRISK_LOG_LEVEL(LEVEL) BRISK_LOG_LEVEL_(LEVEL)
+#define BRISK_LOG_LEVEL_trace ::spdlog::level::trace
+#define BRISK_LOG_LEVEL_debug ::spdlog::level::debug
+#define BRISK_LOG_LEVEL_info ::spdlog::level::info
+#define BRISK_LOG_LEVEL_warn ::spdlog::level::warn
+#define BRISK_LOG_LEVEL_error ::spdlog::level::err
+#define BRISK_LOG_LEVEL_critical ::spdlog::level::critical
 
 /**
  * @def BRISK_LOG_LOG(LEVEL, ...)
@@ -49,7 +72,13 @@ spdlog::logger& applog();
  */
 #define BRISK_LOG_LOG(LEVEL, ...)                                                                            \
     do {                                                                                                     \
-        ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                      \
+        auto& briskLog = ::Brisk::Internal::applog();                                                        \
+        if (briskLog.should_log(BRISK_LOG_LEVEL(LEVEL))) {                                                    \
+            briskLog.LEVEL(__VA_ARGS__);                                                                     \
+            if (::Brisk::Internal::logStackTrace.load(std::memory_order_relaxed)) {                          \
+                briskLog.log(BRISK_LOG_LEVEL(LEVEL), "{}", ::Brisk::Internal::logTrace());                 \
+            }                                                                                                \
+        }                                                                                                    \
     } while (0)
 
 /**
@@ -67,7 +96,7 @@ spdlog::logger& applog();
     do {                                                                                                     \
         const bool cond = (COND);                                                                            \
         if (!cond) {                                                                                         \
-            ::Brisk::Internal::applog().LEVEL(__VA_ARGS__);                                                  \
+            BRISK_LOG_LOG(LEVEL, __VA_ARGS__);                                                               \
         }                                                                                                    \
     } while (0)
 
