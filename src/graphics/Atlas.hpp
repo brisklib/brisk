@@ -47,7 +47,7 @@ public:
     /**
      * @brief Constructs a GradientAtlas with the specified number of slots.
      *
-    * @param slots The maximum number of slots available in the atlas for storing gradients.
+     * @param slots The maximum number of slots available in the atlas for storing gradients.
      * @param mutex A pointer to a mutex for thread-safe operations (may be nullptr).
      */
     explicit GradientAtlas(uint32_t slots, std::recursive_mutex* mutex);
@@ -65,13 +65,13 @@ public:
      * @return A `GradientIndex` representing the index of the added gradient. Returns `gradientNull`
      *         if no space is available while preserving resources with generation >= `firstGeneration`.
      *
-     * @note If `gradientNull` is returned, no changed are made to the atlas.
+     * @note The atlas may grow or remove outdated resources before returning `gradientNull`.
      */
     GradientIndex addEntry(Rc<GradientResource> gradient, uint64_t firstGeneration,
                            uint64_t currentGeneration);
 
     /**
-    * @brief Gets the current size of the gradient atlas.
+     * @brief Gets the current size of the gradient atlas.
      *
      * @return The number of slots.
      */
@@ -160,7 +160,8 @@ public:
      *
      * @param size Initial size of the atlas.
      * @param maxSize Maximum allowed size of the atlas.
-     * @param sizeIncrement The amount by which the atlas size increases when needed.
+     * @param sizeIncrement The amount by which the atlas size increases when needed. Must be greater than
+     * zero, and `maxSize` must be a multiple of this value.
      * @param mutex A pointer to a mutex for thread-safe operations (may be nullptr).
      */
     explicit SpriteAtlas(uint32_t size, uint32_t maxSize, uint32_t sizeIncrement,
@@ -179,7 +180,7 @@ public:
      * @return A `SpriteOffset` representing the offset of the added sprite. Returns `spriteNull`
      *         if no space is available while preserving resources with generation >= `firstGeneration`.
      *
-     * @note If `spriteNull` is returned, no changed are made to the atlas.
+     * @note The atlas may grow or remove outdated resources before returning `spriteNull`.
      */
     SpriteOffset addEntry(Rc<SpriteResource> sprite, uint64_t firstGeneration, uint64_t currentGeneration);
 

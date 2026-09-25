@@ -27,7 +27,11 @@ namespace Brisk {
 
 SpriteAtlas::SpriteAtlas(uint32_t size, uint32_t maxSize, uint32_t sizeIncrement, std::recursive_mutex* mutex)
     : m_size(size), m_maxSize(maxSize), m_sizeIncrement(sizeIncrement), m_lock(mutex), m_data(size, 0),
-      m_alloc(new Allocator(size)) {}
+      m_alloc(new Allocator(size)) {
+    BRISK_ASSERT(size <= maxSize);
+    BRISK_ASSERT(sizeIncrement > 0);
+    BRISK_ASSERT(maxSize % sizeIncrement == 0);
+}
 
 FlatAllocatorStat SpriteAtlas::stat() const {
     lock_quard_cond lk(m_lock);
@@ -75,10 +79,10 @@ void SpriteAtlas::remove(SpriteOffset sprite, size_t size) {
 }
 
 bool SpriteAtlas::grow() {
-    if (m_size == m_maxSize) {
+    if (m_size >= m_maxSize) {
         return false;
     }
-    m_size += m_sizeIncrement;
+    m_size += std::min(m_sizeIncrement, m_maxSize - m_size);
     m_alloc->grow(m_size);
     m_data.resize(m_size, 0);
     ++changed;
@@ -142,8 +146,8 @@ uint32_t SpriteAtlas::sizeIncrement() const {
 }
 
 GradientAtlas::GradientAtlas(uint32_t slots, std::recursive_mutex* mutex)
-        : m_slots(std::min(slots, initialSlots), 0), m_data(std::min(slots, initialSlots)), m_maxSlots(slots),
-            m_lock(mutex) {}
+    : m_slots(std::min(slots, initialSlots), 0), m_data(std::min(slots, initialSlots)), m_maxSlots(slots),
+      m_lock(mutex) {}
 
 bool GradientAtlas::removeOutdated(uint64_t generation) {
     for (auto it = m_gradients.begin(); it != m_gradients.end(); ++it) {
@@ -207,7 +211,7 @@ GradientIndex GradientAtlas::addEntry(Rc<GradientResource> gradient, uint64_t fi
         return it->second.index;
     }
 
-    SpriteOffset offset = add(gradient->data);
+    GradientIndex offset = add(gradient->data);
     while (offset == gradientNull) {
         if (!removeOutdated(firstGeneration)) {
             // Cannot remove any more gradients, but there is still no space for a new gradient

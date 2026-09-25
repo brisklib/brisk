@@ -74,7 +74,7 @@ struct GradientData {
     std::array<float, gradientMaxStops> positions;
     std::array<ColorF, gradientMaxStops> colors;
 
-    GradientData() noexcept                               = default; ///< Default constructor.
+    GradientData() noexcept; ///< Constructs transparent gradient data.
     GradientData(const GradientData&) noexcept            = default; ///< Copy constructor.
     GradientData(GradientData&&) noexcept                 = default; ///< Move constructor.
     GradientData& operator=(const GradientData&) noexcept = default; ///< Copy assignment operator.
@@ -90,6 +90,7 @@ struct GradientData {
      * @brief Gets the color at a specified position.
      * @param x The position (between 0.0 and 1.0) to query.
      * @return The color at the specified position in the gradient with premultiplied alpha.
+     *         An empty gradient returns fully transparent black.
      */
     ColorF operator()(float x) const;
 };
@@ -202,6 +203,7 @@ public:
     /**
      * @brief Rasterizes the gradient into a GradientResource.
      * @return A reference-counted pointer to the rasterized gradient resource.
+     *         An empty gradient rasterizes as fully transparent.
      */
     Rc<GradientResource> rasterize() const {
         return makeGradient(GradientData{ *this });
