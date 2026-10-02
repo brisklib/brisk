@@ -18,26 +18,30 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/Html.hpp>
-#include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/graphics/Fonts.hpp>
+#include <charconv>
 #include <list>
 #include <map>
+#include <system_error>
 #include <unordered_map>
-#include <brisk/core/Log.hpp>
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/internal/Lock.hpp>
-#include <brisk/core/Io.hpp>
-#include <brisk/core/Resources.hpp>
-#include <brisk/core/Text.hpp>
-#include <text_layout/Layout.hpp>
-
-#include "FontInternals.hpp"
-
-#include <lunasvg.h>
 
 #include <ft2build.h>
+#include <lunasvg.h>
+#include <text_layout/Layout.hpp>
+
+#include <brisk/core/Io.hpp>
+#include <brisk/core/Log.hpp>
+#include <brisk/core/Resources.hpp>
+#include <brisk/core/Text.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/Lock.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/graphics/Html.hpp>
+#include <brisk/graphics/ImageFormats.hpp>
+
+#include "FontInternals.hpp"
+#include "brisk/graphics/Canvas.hpp"
 #include FT_FREETYPE_H
+#include FT_OUTLINE_H
 #include FT_STROKER_H
 #include FT_LCD_FILTER_H
 #include FT_SIZES_H
@@ -109,7 +113,7 @@ ConvertedFont convertFont(const Font& source, const std::shared_ptr<TextEngine::
         .verticalAlign = TextEngine::fromFloat(source.verticalAlign),
         .features      = converted.features,
         .variations    = {},
-        .hinting       = TextEngine::Hinting::Auto,
+        .hinting       = static_cast<TextEngine::Hinting>(source.hinting),
     };
 
     if (source.lineHeight > 0.f) {
@@ -517,6 +521,107 @@ RectangleF TextLayout::trimmedBounds() const noexcept {
     return m_impl ? m_impl->trimmedBounds : RectangleF{};
 }
 
+namespace {
+
+struct TextLayoutPathDecomposer {
+    Path* path;
+    PointF origin;
+
+    static PointF convert(const FT_Vector& point, PointF origin) {
+        constexpr float scale = 1.f / 64.f;
+        return origin + PointF{ static_cast<float>(point.x) * scale, -static_cast<float>(point.y) * scale };
+    }
+
+    static int moveTo(const FT_Vector* point, void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        if (!decomposer.path->empty() && decomposer.path->elements().back() != Path::Element::Close) {
+            decomposer.path->close();
+        }
+        decomposer.path->moveTo(convert(*point, decomposer.origin));
+        return 0;
+    }
+
+    static int lineTo(const FT_Vector* point, void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        decomposer.path->lineTo(convert(*point, decomposer.origin));
+        return 0;
+    }
+
+    static int conicTo(const FT_Vector* control, const FT_Vector* point, void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        decomposer.path->quadraticTo(convert(*control, decomposer.origin),
+                                     convert(*point, decomposer.origin));
+        return 0;
+    }
+
+    static int cubicTo(const FT_Vector* control1, const FT_Vector* control2, const FT_Vector* point,
+                       void* user) {
+        auto& decomposer = *static_cast<TextLayoutPathDecomposer*>(user);
+        decomposer.path->cubicTo(convert(*control1, decomposer.origin), convert(*control2, decomposer.origin),
+                                 convert(*point, decomposer.origin));
+        return 0;
+    }
+};
+
+} // namespace
+
+Path TextLayout::toPath(PointF origin) const {
+    Path result;
+    if (!m_impl || !m_impl->document || !m_impl->document->state || !m_impl->document->state->database) {
+        return result;
+    }
+
+    const ShapedText::Impl& document = *m_impl->document;
+    for (const TextEngine::LayoutGlyphRun& layoutRun : m_impl->layout.glyphRuns) {
+        if (layoutRun.glyphRange.empty() ||
+            layoutRun.preparedRunIndex >= document.prepared.glyphRuns.size()) {
+            continue;
+        }
+
+        const TextEngine::GlyphRun& preparedRun = document.prepared.glyphRuns[layoutRun.preparedRunIndex];
+        TextEngine::ActiveFont activeFont       = document.state->database->activate(preparedRun.fontHandle);
+        FT_Face face                            = static_cast<FT_Face>(activeFont.ftFace);
+        if (face == nullptr) {
+            continue;
+        }
+
+        TextLayoutPathDecomposer decomposer{ &result, origin + PointF{
+                                                                   TextEngine::toFloat(layoutRun.xOffset),
+                                                                   TextEngine::toFloat(layoutRun.yOffset),
+                                                               } };
+        FT_Outline_Funcs funcs{
+            .move_to  = &TextLayoutPathDecomposer::moveTo,
+            .line_to  = &TextLayoutPathDecomposer::lineTo,
+            .conic_to = &TextLayoutPathDecomposer::conicTo,
+            .cubic_to = &TextLayoutPathDecomposer::cubicTo,
+            .shift    = 0,
+            .delta    = 0,
+        };
+
+        const uint32_t glyphMin = layoutRun.glyphRange.min;
+        const uint32_t glyphMax =
+            std::min<uint32_t>(layoutRun.glyphRange.max, document.prepared.glyphs.size());
+        for (uint32_t glyphIndex = glyphMin; glyphIndex < glyphMax; ++glyphIndex) {
+            const TextEngine::Glyph& glyph = document.prepared.glyphs[glyphIndex];
+            if (FT_Load_Glyph(face, glyph.glyphId, activeFont.loadFlags | FT_LOAD_NO_BITMAP) != 0 ||
+                face->glyph->format != FT_GLYPH_FORMAT_OUTLINE) {
+                continue;
+            }
+
+            decomposer.origin = origin + PointF{
+                TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset),
+                TextEngine::toFloat(layoutRun.yOffset - glyph.yOffset),
+            };
+            std::ignore = FT_Outline_Decompose(&face->glyph->outline, &funcs, &decomposer);
+            if (!result.empty() && result.elements().back() != Path::Element::Close) {
+                result.close();
+            }
+        }
+    }
+
+    return result;
+}
+
 CaretPosition TextLayout::caretPosition(CaretIndex index) const noexcept {
     if (!m_impl || !m_impl->document) {
         return {};
@@ -687,6 +792,7 @@ namespace {
 struct SvgGlyphState {
     std::unique_ptr<lunasvg::Document> doc;
     lunasvg::Box bbox;
+    lunasvg::Matrix matrix;
 };
 
 FT_Error svg_port_init(FT_Pointer* state) {
@@ -703,9 +809,8 @@ FT_Error svg_port_render(FT_GlyphSlot slot, FT_Pointer* state) {
 
     bmp.clear(0x00000000u);
 
-    auto& svgState = *reinterpret_cast<SvgGlyphState*>(*state);
-    lunasvg::Matrix mat;
-    mat.translate(-svgState.bbox.x, -svgState.bbox.y);
+    auto& svgState      = *reinterpret_cast<SvgGlyphState*>(*state);
+    lunasvg::Matrix mat = lunasvg::Matrix::translated(-svgState.bbox.x, -svgState.bbox.y) * svgState.matrix;
     svgState.doc->render(bmp, mat);
 
     uint8_t* pixels = slot->bitmap.buffer;
@@ -726,24 +831,6 @@ FT_Error svg_port_render(FT_GlyphSlot slot, FT_Pointer* state) {
     return FT_Err_Ok;
 }
 
-static RectangleF viewBoxToRect(const std::string& str) {
-    std::array<float, 4> values;
-    int num       = 0;
-    const char* p = str.c_str();
-    char* end     = nullptr;
-    for (float f = std::strtof(p, &end); p != end; f = std::strtof(p, &end)) {
-        values[num++] = f;
-        if (num == 4)
-            break;
-        p = end;
-        while (*p && std::isspace(*p))
-            ++p;
-        if (*p && *p == ',')
-            ++p;
-    }
-    return RectangleF(values[0], values[1], values[0] + values[2], values[1] + values[3]);
-}
-
 FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* state) {
     FT_SVG_Document document = (FT_SVG_Document)slot->other;
     FT_Size_Metrics metrics  = document->metrics;
@@ -756,45 +843,29 @@ FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* stat
 
     std::unique_ptr<lunasvg::Document> doc = lunasvg::Document::loadFromData(svg);
 
-    auto root                              = doc->rootElement();
-    std::string attr_viewBox               = root.getAttribute("viewBox");
-    std::string attr_width                 = root.getAttribute("width");
-    std::string attr_height                = root.getAttribute("height");
-
-    Size dimensions;
-    PointF offset{ 0, 0 };
-
-    if (!attr_viewBox.empty()) {
-        RectangleF vbox = viewBoxToRect(attr_viewBox);
-        dimensions      = vbox.size();
-        offset          = vbox.p1;
-    } else if (!attr_width.empty() && !attr_height.empty()) {
-        dimensions.width  = atoi(attr_width.c_str());
-        dimensions.height = atoi(attr_height.c_str());
-
-        if (dimensions == Size{ 1, 1 }) {
-            dimensions.width  = units_per_EM;
-            dimensions.height = units_per_EM;
-        }
-    } else {
+    // Unlike lunasvg 2.4.1, boundingBox()/render() in 3.5+ already apply the root
+    // element's own localTransform() (viewBox-to-viewport mapping) internally, so the
+    // viewBox offset must not be re-applied here; only the viewport-to-pixel scale remains.
+    Size dimensions{ (int)doc->width(), (int)doc->height() };
+    if (dimensions.width <= 0 || dimensions.height <= 0) {
         dimensions.width  = units_per_EM;
         dimensions.height = units_per_EM;
     }
 
-    lunasvg::Matrix mat;
-    SizeF svgScale = SizeF(metrics.x_ppem, metrics.y_ppem) / SizeF(dimensions);
-    mat.scale(svgScale.x, svgScale.y);
-    mat.transform(+(double)document->transform.xx / (1 << 16),                         //
-                  -(double)document->transform.xy / (1 << 16),                         //
-                  -(double)document->transform.yx / (1 << 16),                         //
-                  +(double)document->transform.yy / (1 << 16),                         //
-                  +(double)document->delta.x / 64 * dimensions.width / metrics.x_ppem, //
-                  -(double)document->delta.y / 64 * dimensions.height / metrics.y_ppem //
-    );
-    mat.translate(-offset.x, -offset.y);
-    doc->setMatrix(mat);
+    SizeF svgScale      = SizeF(metrics.x_ppem, metrics.y_ppem) / SizeF(dimensions);
+    // lunasvg::Matrix mutators pre-multiply (m = op * m), so building this via
+    // scale().transform() applies scale first, then the FT transform.
+    lunasvg::Matrix mat = lunasvg::Matrix::scaled(svgScale.x, svgScale.y);
+    mat                 = lunasvg::Matrix{
+                        +(float)document->transform.xx / (1 << 16),                         //
+                        -(float)document->transform.xy / (1 << 16),                         //
+                        -(float)document->transform.yx / (1 << 16),                         //
+                        +(float)document->transform.yy / (1 << 16),                         //
+                        +(float)document->delta.x / 64 * dimensions.width / metrics.x_ppem, //
+                        -(float)document->delta.y / 64 * dimensions.height / metrics.y_ppem //
+    } * mat;
 
-    auto box                = doc->box();
+    auto box                = doc->boundingBox().transformed(mat);
     slot->bitmap_left       = std::floor(box.x);
     slot->bitmap_top        = -std::floor(box.y);
     slot->bitmap.rows       = std::ceil(box.y + box.h) - -slot->bitmap_top;
@@ -803,8 +874,9 @@ FT_Error svg_port_preset_slot(FT_GlyphSlot slot, FT_Bool cache, FT_Pointer* stat
     slot->bitmap.pixel_mode = FT_PIXEL_MODE_BGRA;
 
     if (cache) {
-        svgState.doc  = std::move(doc);
-        svgState.bbox = box;
+        svgState.doc    = std::move(doc);
+        svgState.bbox   = box;
+        svgState.matrix = mat;
     }
 
     return FT_Err_Ok;
@@ -829,6 +901,16 @@ FontManager::FontManager(std::recursive_mutex* mutex, int hscale)
       m_textEngine(std::make_shared<Internal::TextEngineState>(
           std::make_shared<Internal::SharedLibraryOwner>(m_ft_library), hscale)),
       m_hscale(hscale) {
+    bool validHscale = false;
+    switch (hscale) {
+    case 1:
+    case 3:
+        validHscale = true;
+        break;
+    default:
+        break;
+    }
+    BRISK_ASSERT(validHscale);
 
     FT_Module mod = FT_Get_Module(reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg");
     if (!mod) {
@@ -872,8 +954,11 @@ static void loadTextLayoutGlyphRun(
                 activeFont, run.fontHandle, glyphId, options,
                 [&](const TextEngine::RasterizedGlyph& glyph, const uint8_t* pixels) {
                     const uint32_t components = glyph.bytesPerPixel;
-                    const Size spriteSize{ static_cast<int32_t>(glyph.width * components),
-                                           static_cast<int32_t>(glyph.height) };
+                    const bool prefilter      = glyph.format == TextEngine::RasterizedGlyph::Format::Mask8 &&
+                                                glyph.horizontalScale == 3;
+                    const uint32_t padding    = prefilter ? 1u : 0u;
+                    const uint32_t width      = glyph.width * components + padding * 2u;
+                    const Size spriteSize{ static_cast<int32_t>(width), static_cast<int32_t>(glyph.height) };
                     Rc<SpriteResource> sprite = makeSprite(spriteSize);
                     const size_t rowBytes     = static_cast<size_t>(glyph.width) * components;
                     const int pitch           = glyph.pitch;
@@ -883,13 +968,26 @@ static void loadTextLayoutGlyphRun(
                     }
                     for (uint32_t row = 0; row < glyph.height; ++row) {
                         const uint8_t* source = firstRow + static_cast<ptrdiff_t>(row) * pitch;
-                        std::memcpy(sprite->data() + row * rowBytes, source, rowBytes);
+                        uint8_t* destination  = reinterpret_cast<uint8_t*>(sprite->data()) + row * width;
+                        if (prefilter) {
+                            const auto paddedSource = [&](int x) -> uint32_t {
+                                return x >= 1 && x <= static_cast<int>(glyph.width) ? source[x - 1] : 0u;
+                            };
+                            for (uint32_t x = 0; x < glyph.width + 2u; ++x) {
+                                const uint32_t sum = paddedSource(static_cast<int>(x) - 1) +
+                                                     paddedSource(static_cast<int>(x)) +
+                                                     paddedSource(static_cast<int>(x) + 1);
+                                destination[x]     = static_cast<uint8_t>((sum + 1u) / 3u);
+                            }
+                        } else {
+                            std::memcpy(destination, source, rowBytes);
+                        }
                     }
                     result = CachedGlyph{
                         .size            = spriteSize,
                         .height          = glyph.height,
                         .sprite          = std::move(sprite),
-                        .offsetX         = glyph.left,
+                        .offsetX         = glyph.left - static_cast<int>(padding),
                         .offsetY         = glyph.top,
                         .renderMode      = glyph.format == TextEngine::RasterizedGlyph::Format::BGRA8
                                                ? GlyphRenderMode::Color
@@ -954,7 +1052,7 @@ void Internal::forEachTextLayoutGlyph(const TextLayout& layout, PointF origin,
                 const TextEngine::Glyph& glyph = document.prepared.glyphs[glyphIndex];
                 onGlyph(Internal::TextLayoutGlyph{
                     .position = origin + PointF{ TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset),
-                                                 TextEngine::toFloat(layoutRun.yOffset + glyph.yOffset) },
+                                                 TextEngine::toFloat(layoutRun.yOffset - glyph.yOffset) },
                     .bitmap   = bitmap,
                     .color = style && style->hasColor ? std::optional<Color>{ style->color } : std::nullopt,
                 });
@@ -1074,7 +1172,7 @@ static void renderGlyphs(Pixels& pixels, Rc<Image> image, Point origin, const Sh
                 }
                 const TextEngine::Glyph& glyph = pdocument->prepared.glyphs[glyphIndex];
                 const PointF glyphOrigin{ TextEngine::toFloat(layoutRun.xOffset + glyph.xOffset) + origin.x,
-                                          TextEngine::toFloat(layoutRun.yOffset + glyph.yOffset) + origin.y };
+                                          TextEngine::toFloat(layoutRun.yOffset - glyph.yOffset) + origin.y };
                 const PointF topLeft  = glyphOrigin + PointF{ float(bitmap.offsetX) / bitmap.horizontalScale,
                                                               -float(bitmap.offsetY) };
                 const int x0          = static_cast<int>(std::floor(topLeft.x));
@@ -1134,10 +1232,15 @@ void Internal::renderPreparedDocument(Rc<Image> image, Point origin, const Shape
     }
 }
 
+namespace Internal {
+static void scaleRichTextFonts(RichText& richText);
+}
+
 ShapedText FontManager::shapeText(const Font& font, const TextWithOptions& text) const {
     const FontAndColor fontAndColor{ font, std::nullopt };
     if (!text.richText.empty()) {
         RichText richText = text.richText;
+        scaleRichTextFonts(richText);
         richText.setBaseFont(font);
         return shapeText(text, richText.fonts, richText.offsets);
     }
@@ -1165,23 +1268,28 @@ std::vector<std::string_view> FontManager::fontList(std::string_view ff) const {
     return list;
 }
 
-void FontManager::addFont(BytesView data, std::string alias) {
-    addFontImpl(data, std::move(alias), true);
+expected<std::vector<std::string>, IoError> FontManager::addFont(BytesView data, std::string alias,
+                                                                 std::optional<size_t> faceIndex) {
+    return addFontImpl(data, std::move(alias), true, faceIndex);
 }
 
-bool FontManager::addFontFromResource(std::string resourceName, std::string alias, bool emptyOk) {
+expected<std::vector<std::string>, IoError> FontManager::addFontFromResource(std::string resourceName,
+                                                                             std::string alias,
+                                                                             bool emptyOk) {
     const Bytes& data = Resources::loadCached(std::move(resourceName), emptyOk);
     if (data.empty()) {
-        return false;
+        return emptyOk ? expected<std::vector<std::string>, IoError>{ std::vector<std::string>{} }
+                       : unexpected(IoError::UnsupportedFormat);
     }
-    addFontImpl(data, std::move(alias), false);
-    return true;
+    return addFontImpl(data, std::move(alias), false, {});
 }
 
-void FontManager::addFontImpl(BytesView data, std::string alias, bool makeCopy) {
+expected<std::vector<std::string>, IoError> FontManager::addFontImpl(BytesView data, std::string alias,
+                                                                     bool makeCopy,
+                                                                     std::optional<size_t> faceIndex) {
     lock_quard_cond lk(m_lock);
     if (data.empty()) {
-        return;
+        return unexpected(IoError::UnsupportedFormat);
     }
 
     if (makeCopy) {
@@ -1189,20 +1297,22 @@ void FontManager::addFontImpl(BytesView data, std::string alias, bool makeCopy) 
         data = *m_textEngine->fontBlobs.back();
     }
 
-    const std::vector<std::string> registeredFamilies = m_textEngine->database->registerFont(data);
+    std::vector<std::string> registeredFamilies = m_textEngine->database->registerFont(data, faceIndex);
     for (const std::string& family : registeredFamilies) {
         if (!alias.empty() && alias != family) {
             std::ignore = m_textEngine->database->addAlias(family, alias);
         }
     }
+    return registeredFamilies;
 }
 
-status<IoError> FontManager::addFontFromFile(const fs::path& path, std::string alias) {
+expected<std::vector<std::string>, IoError> FontManager::addFontFromFile(const fs::path& path,
+                                                                         std::string alias,
+                                                                         std::optional<size_t> faceIndex) {
     lock_quard_cond lk(m_lock);
     expected<Bytes, IoError> b = readBytes(path);
     if (b) {
-        addFont(*b, std::move(alias));
-        return {};
+        return addFontImpl(*b, std::move(alias), true, faceIndex);
     }
     return unexpected(b.error());
 }
@@ -1291,10 +1401,13 @@ bool FontManager::addSystemFont(std::string alias) {
     lock_quard_cond lk(m_lock);
     fs::path path = fontFolders().front();
 #ifdef BRISK_WINDOWS
-    return addFontFromFile(path / "segoeui.ttf", alias) && addFontFromFile(path / "segoeuii.ttf", alias) &&
-           addFontFromFile(path / "segoeuib.ttf", alias) && addFontFromFile(path / "segoeuiz.ttf", alias);
+    return addFontFromFile(path / "segoeui.ttf", alias).has_value() &&
+           addFontFromFile(path / "segoeuii.ttf", alias).has_value() &&
+           addFontFromFile(path / "segoeuib.ttf", alias).has_value() &&
+           addFontFromFile(path / "segoeuiz.ttf", alias).has_value();
 #elif defined BRISK_MACOS
-    return addFontFromFile(path / "SFNS.ttf", alias) && addFontFromFile(path / "SFNSItalic.ttf", alias);
+    return addFontFromFile(path / "SFNS.ttf", alias).has_value() &&
+           addFontFromFile(path / "SFNSItalic.ttf", alias).has_value();
 #else
     return false;
 #endif
@@ -1306,7 +1419,7 @@ bool FontManager::addFontByName(std::string_view fontName, std::string alias) {
     int num     = 0;
     for (const auto& f : m_osFonts) {
         if (f.family == fontName && f.styleName.empty()) {
-            if (!addFontFromFile(f.path, alias))
+            if (!addFontFromFile(f.path, alias).has_value())
                 return false;
             ++num;
         }
@@ -1461,6 +1574,20 @@ static Font overrideFont(const Font& base, Font&& font, FontFormatFlags flags) {
     return font;
 }
 
+static void scaleRichTextFonts(RichText& richText) {
+    const float ratio = pixelRatio();
+    if (ratio == 1.f) {
+        return;
+    }
+    BRISK_ASSERT(richText.fonts.size() == richText.flags.size());
+    for (size_t i = 0; i < richText.fonts.size(); ++i) {
+        const FontFormatFlags flags = richText.flags[i];
+        if (flags && FontFormatFlags::Size && !(flags && FontFormatFlags::SizeIsRelative)) {
+            richText.fonts[i].font.fontSize *= ratio;
+        }
+    }
+}
+
 void RichText::setBaseFont(const Font& font) {
     BRISK_ASSERT(fonts.size() == flags.size());
     for (size_t i = 0; i < fonts.size(); ++i) {
@@ -1551,9 +1678,15 @@ struct Visitor final : public HtmlSax {
             fontStack.back().flags |= FontFormatFlags::Family;
         }
         if (tag == "font" && attr == "size") {
-            float val = strtof(attrValue.c_str(), nullptr);
-            if (val != 0)
-                fontStack.back().font.fontSize = val;
+            int value{};
+            const char* begin       = attrValue.data();
+            const char* end         = begin + attrValue.size();
+            auto [parsedEnd, error] = std::from_chars(begin, end, value, 10);
+            if (error == std::errc{} && parsedEnd == end && value >= 1 && value <= 256) {
+                fontStack.back().font.fontSize = static_cast<float>(value);
+                fontStack.back().flags |= FontFormatFlags::Size;
+                fontStack.back().flags &= ~FontFormatFlags::SizeIsRelative;
+            }
         }
         attrValue = {};
     }

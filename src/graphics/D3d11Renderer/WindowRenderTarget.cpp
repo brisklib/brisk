@@ -20,6 +20,7 @@
  */
 #define BRISK_ALLOW_OS_HEADERS 1
 #include "WindowRenderTarget.hpp"
+
 #include <brisk/graphics/NativeWindowHandle.hpp>
 
 namespace Brisk {

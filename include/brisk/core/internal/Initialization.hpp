@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include "../BasicTypes.hpp"
+#include <brisk/core/BasicTypes.hpp>
 
 namespace Brisk {
 

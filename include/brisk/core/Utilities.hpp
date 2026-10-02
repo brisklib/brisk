@@ -20,19 +20,27 @@
  */
 #pragma once
 
-#include <tuple>
+#include <algorithm>
 #include <atomic>
-#include <utility>
-#include <memory>
-#include <vector>
-#include <type_traits>
+#include <concepts>
+#include <cstdint>
 #include <functional>
-#include "Brisk.h"
-#include <brisk/core/Exceptions.hpp>
-#include "internal/Optional.hpp"
-#include "internal/Typename.hpp"
+#include <limits>
+#include <memory>
 #include <mutex>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include <brisk/core/Brisk.h>
+#include <brisk/core/Exceptions.hpp>
 #include <brisk/core/internal/Debug.hpp>
+#include <brisk/core/internal/Optional.hpp>
+#include <brisk/core/internal/Typename.hpp>
 
 namespace Brisk {
 
@@ -440,7 +448,8 @@ ScopedValue(T&, T) -> ScopedValue<T>;
  * @brief A RAII-style helper class for executing a callable object upon scope exit.
  *
  * The `ScopeExit` template class allows the user to specify a function or lambda that will be executed
- * when the `ScopeExit` object goes out of scope.
+ * when the `ScopeExit` object goes out of scope. Scope guards cannot be copied or moved, preventing
+ * accidental changes to their destruction semantics.
  *
  * @tparam Fn The type of the callable object to be executed.
  */
@@ -464,9 +473,11 @@ struct ScopeExit {
 
     Fn fn; ///< The callable object to be executed upon scope exit.
 
-    ScopeExit()                 = delete;  ///< Default constructor is deleted.
-    ScopeExit(const ScopeExit&) = delete;  ///< Copy constructor is deleted.
-    ScopeExit(ScopeExit&&)      = default; ///< Move constructor is defaulted.
+    ScopeExit()                            = delete; ///< Default constructor is deleted.
+    ScopeExit(const ScopeExit&)            = delete; ///< Copy constructor is deleted.
+    ScopeExit(ScopeExit&&)                 = delete; ///< Move constructor is deleted.
+    ScopeExit& operator=(const ScopeExit&) = delete; ///< Copy assignment is deleted.
+    ScopeExit& operator=(ScopeExit&&)      = delete; ///< Move assignment is deleted.
 };
 
 /**
@@ -723,7 +734,7 @@ inline void removeValueByKey(KeyValueOrderedList<K, V>& list, const K& key) {
  * @return std::optional<V> The found value, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::*field), const K& fieldValue) {
+inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return list[i];
@@ -745,7 +756,7 @@ inline std::optional<V> keyToValue(const std::vector<V>& list, K(V::*field), con
  * @return std::optional<size_t> The index of the found key, or std::nullopt if not found.
  */
 template <typename V, typename K>
-inline std::optional<size_t> findKey(const std::vector<V>& list, K(V::*field), const K& fieldValue) {
+inline std::optional<size_t> findKey(const std::vector<V>& list, K(V::* field), const K& fieldValue) {
     for (size_t i = 0; i < list.size(); ++i) {
         if (list[i].*field == fieldValue)
             return i;
@@ -805,16 +816,20 @@ struct ClonablePtr {
         swap(ptr);
     }
 
-    ClonablePtr(const ClonablePtr& ptr) noexcept : m_ptr(nullptr) {
-        ClonablePtr(*ptr).swap(*this);
-    }
+    ClonablePtr(const ClonablePtr& ptr) : m_ptr(ptr.m_ptr ? new T(*ptr.m_ptr) : nullptr) {}
 
     ClonablePtr& operator=(ClonablePtr&& ptr) noexcept {
-        swap(ptr);
+        if (this != &ptr)
+            swap(ptr);
+        return *this;
     }
 
-    ClonablePtr& operator=(const ClonablePtr& ptr) noexcept {
-        ClonablePtr(*ptr).swap(*this);
+    ClonablePtr& operator=(const ClonablePtr& ptr) {
+        if (this != &ptr) {
+            ClonablePtr copy(ptr);
+            swap(copy);
+        }
+        return *this;
     }
 
     const T& operator*() const noexcept {
@@ -962,10 +977,9 @@ public:
      * std::nullopt.
      */
     template <typename F>
-    [[nodiscard]] constexpr auto map(F&& f) const noexcept -> std::optional<std::invoke_result_t<F, T&>> {
-        if (m_ptr) {
+    [[nodiscard]] constexpr auto map(F&& f) const -> std::optional<std::invoke_result_t<F, T&>> {
+        if (m_ptr)
             return std::invoke(std::forward<F>(f), *m_ptr);
-        }
         return std::nullopt;
     }
 

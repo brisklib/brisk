@@ -18,8 +18,8 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/ImageFormats.hpp>
 #include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/ImageFormats.hpp>
 #define STBI_WRITE_NO_STDIO 1
 #define STB_IMAGE_WRITE_STATIC 1
 #define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -52,13 +52,16 @@ Bytes bmpEncode(Rc<Image> image) {
     auto r   = image->mapRead();
     int comp = pixelComponents(image->pixelFormat());
     MemoryStream strm;
-    if (r.byteStride() == r.width() * comp) {
-        stbi_write_bmp_to_func(&stbi_write, &strm, image->width(), image->height(), comp, r.data());
+    int result;
+    if (r.byteStride() == r.width() * comp * int(sizeof(stbi_uc))) {
+        result = stbi_write_bmp_to_func(&stbi_write, &strm, image->width(), image->height(), comp, r.data());
     } else {
         Bytes tmp(r.memorySize());
         r.writeTo(tmp);
-        stbi_write_bmp_to_func(&stbi_write, &strm, image->width(), image->height(), comp, tmp.data());
+        result = stbi_write_bmp_to_func(&stbi_write, &strm, image->width(), image->height(), comp, tmp.data());
     }
+    if (!result)
+        throwException(EImageError("BMP encoding failed"));
     return std::move(strm.data());
 }
 
@@ -71,7 +74,7 @@ struct stbi_delete {
 static expected<Rc<Image>, ImageIoError> stbiDecode(BytesView bytes, ImageFormat format,
                                                     bool premultiplyAlpha) {
     if (toPixelType(format) != PixelType::U8Gamma && toPixelType(format) != PixelType::Unknown) {
-        throwException(EImageError("BMP codec doesn't support decoding to {} format", format));
+        return unexpected(ImageIoError::InvalidDestFormat);
     }
     PixelFormat pixelFormat = toPixelFormat(format);
     int width, height, comp;

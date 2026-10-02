@@ -1,6 +1,8 @@
 #include "Mask.h"
-#include "Blaze.h"
+
 #include <optional>
+
+#include "Blaze.h"
 
 namespace Blaze {
 

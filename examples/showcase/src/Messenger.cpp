@@ -19,9 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Messenger.hpp"
+
+#include <fmt/chrono.h>
+
 #include <brisk/core/Resources.hpp>
 #include <brisk/gui/Icons.hpp>
-#include <fmt/chrono.h>
 
 namespace Brisk {
 
@@ -126,7 +128,7 @@ Rc<Widget> ShowcaseMessenger::build(Rc<Notifications> notifications, Value<bool>
                     backgroundColor = Palette::transparent,
                     borderWidth     = 0,
                     onEnter         = lifetime() |
-                              [this]() {
+                                      [this]() {
                                   send();
                               },
                 },

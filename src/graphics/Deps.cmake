@@ -44,8 +44,8 @@ target_link_libraries(
 # /libjpeg-turbo
 
 # >lunasvg
-find_package(unofficial-lunasvg CONFIG REQUIRED)
-target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} unofficial::lunasvg::lunasvg)
+find_package(lunasvg CONFIG REQUIRED)
+target_link_libraries(${_BRISK_GRAPHICS} ${_DEP_PRIVATE} lunasvg::lunasvg)
 # /lunasvg
 
 # >harfbuzz

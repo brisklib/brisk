@@ -18,8 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Compression.hpp>
 #include <zlib.h>
+
+#include <brisk/core/Compression.hpp>
 
 namespace Brisk {
 
@@ -119,11 +120,8 @@ public:
             return Transferred::Error;
         }
         size_t flushSize = strm.next_out - (Bytef*)buffer.get();
-        if (flushSize) {
-            Transferred wr = writer->write(buffer.get(), flushSize);
-            if (wr.bytes() != flushSize) {
-                return Transferred::Error;
-            }
+        if (flushSize && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize))) {
+            return Transferred::Error;
         }
 
         if (e == Z_STREAM_END) {
@@ -284,6 +282,7 @@ Bytes zlibEncode2(BytesView data, CompressionLevel level, bool gzip) {
         destLen = result.size();
     }
     result.resize(destLen);
+    result.shrink_to_fit();
     return result;
 }
 
@@ -308,6 +307,7 @@ Bytes zlibDecode(BytesView data) {
         destLen = result.size();
     }
     result.resize(destLen);
+    result.shrink_to_fit();
     return result;
 }
 

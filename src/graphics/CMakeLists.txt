@@ -71,6 +71,7 @@ add_library(Brisk::Graphics ALIAS brisk-graphics)
 # phase, so the existing Fonts.cpp remains the only active implementation.
 add_subdirectory(TextEngine)
 
+target_sources(brisk-graphics PRIVATE $<TARGET_OBJECTS:brisk-text-engine>)
 target_link_libraries(brisk-graphics PUBLIC brisk-core)
 target_link_libraries(brisk-graphics PRIVATE brisk-text-engine)
 target_include_directories(brisk-graphics PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/TextEngine/include)

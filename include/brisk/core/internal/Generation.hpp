@@ -19,10 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include <utility>
 #include <atomic>
+#include <utility>
 #include <variant>
-#include "Optional.hpp"
+
+#include <brisk/core/internal/Optional.hpp>
 
 namespace Brisk {
 

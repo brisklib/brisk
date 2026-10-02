@@ -18,10 +18,10 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/internal/Initialization.hpp>
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Settings.hpp>
 #include <brisk/core/Threading.hpp>
+#include <brisk/core/internal/Initialization.hpp>
 
 namespace Brisk {
 
@@ -47,6 +47,8 @@ void initializeCommon(InitializationFlags flags) {
 
 void finalizeCommon() {
     if (--coreInitLevel == 0) {
+        Internal::setWakeUpMainThread({});
+        Internal::clearTimers();
         if (settings) {
             settings->save();
             Settings* settings_ = settings.get();

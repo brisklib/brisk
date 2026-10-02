@@ -22,156 +22,194 @@
 #include <shlobj.h>
 #define NOMINMAX 1
 #define WIN32_LEAN_AND_MEAN 1
+#include <array>
+
+#include <sys/stat.h>
 #include <windows.h>
-#include "io.h"
 
 #include <brisk/core/Io.hpp>
-#include <brisk/core/Utilities.hpp>
 #include <brisk/core/Text.hpp>
-#include <sys/stat.h>
+#include <brisk/core/Utilities.hpp>
 
 namespace Brisk {
 
-struct Win32Handle {
-    Win32Handle() noexcept : handle(INVALID_HANDLE_VALUE) {}
+namespace {
 
-    Win32Handle(HANDLE handle) noexcept : handle(handle) {}
+using StrmCap = StreamCapabilities;
 
-    Win32Handle(const Win32Handle& copy)            = delete;
-    Win32Handle& operator=(const Win32Handle& copy) = delete;
-
-    Win32Handle(Win32Handle&& move) noexcept : handle(move.handle) {
-        move.handle = INVALID_HANDLE_VALUE;
-    }
-
-    Win32Handle& operator=(Win32Handle&& move) noexcept {
-        if (this != &move) {
-            CloseHandle(handle);
-            handle      = move.handle;
-            move.handle = INVALID_HANDLE_VALUE;
-        }
-        return *this;
-    }
-
-    ~Win32Handle() {
-        CloseHandle(handle); // closing an INVALID_HANDLE_VALUE is no-op
-    }
-
-    HANDLE get() const noexcept {
-        return handle;
-    }
-
-    operator bool() const noexcept {
-        return handle != INVALID_HANDLE_VALUE;
-    }
-
-    HANDLE handle;
+constexpr std::array<StreamCapabilities, 5> file_caps{
+    StrmCap::CanRead | StrmCap::CanSeek | StrmCap::HasSize,
+    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate |
+        StrmCap::HasSize,
+    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate | StrmCap::HasSize,
+    StrmCap::CanRead | StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate |
+        StrmCap::HasSize,
+    StrmCap::CanWrite | StrmCap::CanFlush | StrmCap::CanSeek | StrmCap::CanTruncate | StrmCap::HasSize,
 };
 
-static LARGE_INTEGER toLarge(int64_t value) {
-    LARGE_INTEGER result;
-    result.QuadPart = value;
-    return result;
+constexpr std::array<const wchar_t*, 5> file_modes{ L"rb", L"r+b", L"wb", L"w+b", L"ab" };
+
+IoError nativeToResult(int code) {
+    switch (code) {
+    case ENODEV:
+    case ENOENT:
+    case ENXIO:
+        return IoError::NotFound;
+    case EPERM:
+    case EACCES:
+        return IoError::AccessDenied;
+    case ENOSPC:
+        return IoError::NoSpace;
+    default:
+        return IoError::UnknownError;
+    }
 }
 
-constexpr static size_t batchSize = 1 << 30; // 1GiB
-
-class Win32HandleStream final : public Stream {
+class FileStream final : public Stream {
 public:
-    [[nodiscard]] StreamCapabilities caps() const noexcept {
-        return StreamCapabilities::CanRead | StreamCapabilities::CanWrite | StreamCapabilities::CanSeek |
-               StreamCapabilities::CanFlush | StreamCapabilities::CanTruncate | StreamCapabilities::HasSize;
+    StreamCapabilities caps() const noexcept final {
+        return m_caps;
     }
 
-    [[nodiscard]] uint64_t size() const final {
-        LARGE_INTEGER fs;
-        if (!GetFileSizeEx(m_handle.get(), &fs))
+    uint64_t size() const final {
+        if (!m_file)
             return invalidSize;
-        return fs.QuadPart;
-    }
-
-    [[nodiscard]] bool truncate() final {
-        return SetEndOfFile(m_handle.get());
-    }
-
-    explicit Win32HandleStream(Win32Handle handle) noexcept : m_handle(std::move(handle)) {}
-
-    [[nodiscard]] bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
-        if (!m_handle)
-            return false;
-        if (!SetFilePointerEx(m_handle.get(), toLarge(position), nullptr,
-                              staticMap(origin, SeekOrigin::Beginning, FILE_BEGIN, SeekOrigin::Current,
-                                        FILE_CURRENT, SeekOrigin::End, FILE_END, FILE_BEGIN))) {
-            return false;
+        const auto saved = _ftelli64(m_file);
+        if (saved < 0 || _fseeki64(m_file, 0, SEEK_END) != 0) {
+            clearerr(m_file);
+            return invalidSize;
         }
-        return true;
+        const auto result   = _ftelli64(m_file);
+        const bool restored = _fseeki64(m_file, saved, SEEK_SET) == 0;
+        if (result < 0 || !restored) {
+            clearerr(m_file);
+            return invalidSize;
+        }
+        return static_cast<uint64_t>(result);
     }
 
-    [[nodiscard]] uint64_t tell() const final {
-        if (!m_handle)
+    bool truncate() final {
+        if (!m_file)
+            return false;
+        const auto position = _ftelli64(m_file);
+        return position >= 0 && _chsize_s(_fileno(m_file), static_cast<__int64>(position)) == 0;
+    }
+
+    ~FileStream() {
+        if (m_owns)
+            std::fclose(m_file);
+    }
+
+    explicit FileStream(std::FILE* file, bool owns, StreamCapabilities caps)
+        : m_file(file), m_owns(owns), m_caps(caps) {}
+
+    bool seek(int64_t position, SeekOrigin origin = SeekOrigin::Beginning) final {
+        if (!m_file)
+            return false;
+        return _fseeki64(m_file, position,
+                         staticMap(origin, SeekOrigin::Beginning, SEEK_SET, SeekOrigin::Current, SEEK_CUR,
+                                   SeekOrigin::End, SEEK_END, SEEK_SET)) == 0;
+    }
+
+    uint64_t tell() const final {
+        if (!m_file)
             return invalidPosition;
-        LARGE_INTEGER result;
-        if (!SetFilePointerEx(m_handle.get(), toLarge(0), &result, FILE_CURRENT)) {
-            return invalidPosition;
-        }
-        return result.QuadPart;
+        const auto position = _ftelli64(m_file);
+        return position < 0 ? invalidPosition : static_cast<uint64_t>(position);
     }
 
-    [[nodiscard]] Transferred read(std::byte* data, size_t size) final {
-        if (!m_handle)
+    Transferred read(std::byte* data, size_t size) final {
+        if (size == 0)
+            return 0;
+        if (!m_file || ferror(m_file))
             return Transferred::Error;
-
-        size_t remaining = size;
-
-        while (remaining > 0) {
-            // Ensure we don't try to read more than 1 GiB in one call to ReadFile
-            DWORD currentSize = (DWORD)std::min(batchSize, (size_t)remaining);
-            DWORD bytesRead   = 0;
-            if (!ReadFile(m_handle.get(), data, currentSize, &bytesRead, nullptr)) {
-                return Transferred::Error; // If ReadFile fails
-            }
-            if (bytesRead == 0) {
-                // End of file reached, return the total bytes read so far
-                return remaining < size ? size - remaining : Transferred::Eof;
-            }
-
-            remaining -= bytesRead;
-            data += bytesRead;
-        }
-        // If we reached here, all chunks were read, return full size
-        return size;
+        if (feof(m_file))
+            return Transferred::Eof;
+        return fread(data, 1, size, m_file);
     }
 
-    [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
-        if (!m_handle)
+    Transferred write(const std::byte* data, size_t size) final {
+        if (size == 0)
+            return 0;
+        if (!m_file || ferror(m_file))
             return Transferred::Error;
-
-        size_t remaining = size;
-
-        while (remaining > 0) {
-            // Ensure we don't try to write more than 1 GiB in one call to WriteFile
-            DWORD currentSize  = (DWORD)std::min(batchSize, (size_t)remaining);
-            DWORD bytesWritten = 0;
-
-            if (!WriteFile(m_handle.get(), data, currentSize, &bytesWritten, nullptr) || bytesWritten == 0) {
-                return Transferred::Error; // If WriteFile fails or no bytes written
-            }
-
-            remaining -= bytesWritten;
-            data += bytesWritten;
-        }
-        return size - remaining;
+        return fwrite(data, 1, size, m_file);
     }
 
-    [[nodiscard]] bool flush() final {
-        if (!m_handle)
-            return false;
-        return FlushFileBuffers(m_handle.get());
+    bool flush() final {
+        return m_file && fflush(m_file) == 0;
     }
 
 private:
-    Win32Handle m_handle;
+    std::FILE* m_file;
+    bool m_owns;
+    StreamCapabilities m_caps;
 };
+
+StreamCapabilities fileCapabilities(std::FILE* file) {
+    const int descriptor = _fileno(file);
+    if (descriptor < 0)
+        throwException(EArgument("openFile requires a valid FILE*"));
+
+    struct _stat64 info;
+    const bool regular    = _fstat64(descriptor, &info) == 0 && (info.st_mode & _S_IFREG) != 0;
+    const intptr_t native = _get_osfhandle(descriptor);
+    if (native == -1)
+        throwException(EArgument("openFile cannot inspect the FILE* handle"));
+
+    StreamCapabilities caps = StreamCapabilities{};
+    HANDLE handle           = reinterpret_cast<HANDLE>(native);
+    DWORD bytes             = 0;
+    if (ReadFile(handle, nullptr, 0, &bytes, nullptr))
+        caps |= StreamCapabilities::CanRead;
+    if (WriteFile(handle, nullptr, 0, &bytes, nullptr))
+        caps |= StreamCapabilities::CanWrite | StreamCapabilities::CanFlush;
+    if (regular)
+        caps |= StreamCapabilities::CanSeek | StreamCapabilities::HasSize;
+    if (regular && (caps && StreamCapabilities::CanWrite))
+        caps |= StreamCapabilities::CanTruncate;
+    return caps;
+}
+
+} // namespace
+
+expected<std::FILE*, IoError> fopen_native(const fs::path& file_name, OpenFileMode mode) {
+    const size_t index = static_cast<size_t>(mode);
+    if (index >= file_modes.size())
+        throwException(EArgument("invalid OpenFileMode"));
+    std::FILE* f        = nullptr;
+    const errno_t error = _wfopen_s(&f, file_name.wstring().c_str(), file_modes[index]);
+    if (f)
+        return f;
+    return unexpected(nativeToResult(error));
+}
+
+Rc<Stream> openFile(std::FILE* file, bool owns) {
+    if (!file)
+        throwException(EArgument("openFile requires a non-null FILE*"));
+    return rcnew FileStream(file, owns, fileCapabilities(file));
+}
+
+Rc<Stream> stdoutStream() {
+    return rcnew FileStream(stdout, false, StreamCapabilities::CanWrite | StreamCapabilities::CanFlush);
+}
+
+Rc<Stream> stderrStream() {
+    return rcnew FileStream(stderr, false, StreamCapabilities::CanWrite | StreamCapabilities::CanFlush);
+}
+
+Rc<Stream> stdinStream() {
+    return rcnew FileStream(stdin, false, StreamCapabilities::CanRead);
+}
+
+expected<Rc<Stream>, IoError> openFile(const fs::path& filePath, OpenFileMode mode) {
+    const size_t index = static_cast<size_t>(mode);
+    if (index >= file_caps.size())
+        throwException(EArgument("invalid OpenFileMode"));
+    return fopen_native(filePath, mode).map([index](std::FILE* f) {
+        return rcnew FileStream(f, true, file_caps[index]);
+    });
+}
 
 static REFKNOWNFOLDERID folderId(DefaultFolder folder) {
     switch (folder) {

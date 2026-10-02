@@ -19,11 +19,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "Bezier.hpp"
+#include "Dasher.hpp"
 
 #include <cmath>
 
-#include "Dasher.hpp"
+#include "Bezier.hpp"
 #include "Line.hpp"
 
 namespace Brisk {

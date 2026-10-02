@@ -13,8 +13,8 @@ target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE}
 # /libuv
 
 # >concurrentqueue
-find_package(unofficial-concurrentqueue CONFIG REQUIRED)
-target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE} unofficial::concurrentqueue::concurrentqueue)
+find_package(concurrentqueue CONFIG REQUIRED)
+target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE} concurrentqueue::concurrentqueue)
 # /concurrentqueue
 
 # >stb
@@ -55,8 +55,8 @@ target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE} msgpack-cxx)
 # /msgpack-cxx
 
 # >utf8proc
-find_package(unofficial-utf8proc CONFIG REQUIRED)
-target_link_libraries(${_BRISK_CORE} ${_DEP_PUBLIC} utf8proc)
+find_package(utf8proc CONFIG REQUIRED)
+target_link_libraries(${_BRISK_CORE} ${_DEP_PUBLIC} utf8proc::utf8proc)
 # /utf8proc
 
 # >zlib

@@ -1,8 +1,8 @@
-#include "brisk/graphics/Path.hpp"
-#include "Catch2Utils.hpp"
 #include <random>
 
+#include "Catch2Utils.hpp"
 #include "Mask.hpp"
+#include "brisk/graphics/Path.hpp"
 
 template <>
 struct fmt::formatter<Brisk::Internal::Patch> : fmt::formatter<std::string> {

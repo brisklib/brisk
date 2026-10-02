@@ -19,8 +19,10 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
+
 #include <brisk/core/Cryptography.hpp>
 #include <brisk/core/internal/Span.hpp>
+
 #include "Catch2Utils.hpp"
 
 namespace Brisk {

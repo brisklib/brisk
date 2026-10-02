@@ -20,12 +20,12 @@
  */
 #pragma once
 
-#include "BasicTypes.hpp"
-#include <string_view>
-#include "Encoding.hpp"
-#include <brisk/core/internal/FixedString.hpp>
-#include <brisk/core/Encoding.hpp>
 #include <charconv>
+#include <string_view>
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Encoding.hpp>
+#include <brisk/core/internal/FixedString.hpp>
 
 namespace Brisk {
 

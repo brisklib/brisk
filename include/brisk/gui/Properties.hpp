@@ -20,17 +20,20 @@
  */
 #pragma once
 
+#include <bitset>
+
+#include <stdint.h>
+
 #include <brisk/core/Reflection.hpp>
 #include <brisk/core/internal/Argument.hpp>
-#include <brisk/graphics/Color.hpp>
-#include <brisk/graphics/Geometry.hpp>
-#include <brisk/graphics/Fonts.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
-#include "internal/Animation.hpp"
+#include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/graphics/Geometry.hpp>
 #include <brisk/window/Types.hpp>
-#include <stdint.h>
+
 #include "Layout.hpp"
-#include <bitset>
+#include "internal/Animation.hpp"
 
 namespace Brisk {
 

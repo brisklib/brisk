@@ -20,9 +20,9 @@
  */
 #pragma once
 
-#include <brisk/gui/Gui.hpp>
-#include <brisk/graphics/Svg.hpp>
 #include <brisk/graphics/ImageFormats.hpp>
+#include <brisk/graphics/Svg.hpp>
+#include <brisk/gui/Gui.hpp>
 
 namespace Brisk {
 

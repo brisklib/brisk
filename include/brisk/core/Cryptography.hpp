@@ -19,11 +19,12 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include "Bytes.hpp"
-#include "BasicTypes.hpp"
-#include "internal/Span.hpp"
-#include "Io.hpp"
-#include "Exceptions.hpp"
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Bytes.hpp>
+#include <brisk/core/Exceptions.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/internal/Span.hpp>
 
 namespace Brisk {
 

@@ -20,14 +20,15 @@
  */
 #pragma once
 
-#include <brisk/graphics/WebGpu.hpp>
+#include <sstream>
+
+#include <dawn/native/DawnNative.h>
+#include <dawn/webgpu_cpp_print.h>
 
 #include <brisk/graphics/Renderer.hpp>
-#include <dawn/native/DawnNative.h>
-#include <sstream>
-#include "../Atlas.hpp"
+#include <brisk/graphics/WebGpu.hpp>
 
-#include <dawn/webgpu_cpp_print.h>
+#include "../Atlas.hpp"
 
 namespace Brisk {
 

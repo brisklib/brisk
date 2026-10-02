@@ -18,17 +18,16 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/window/WindowApplication.hpp>
-#include <brisk/core/internal/Initialization.hpp>
-#include <brisk/core/internal/Lock.hpp>
+#include <brisk/core/Log.hpp>
 #include <brisk/core/Settings.hpp>
 #include <brisk/core/Utilities.hpp>
-
+#include <brisk/core/internal/Initialization.hpp>
+#include <brisk/core/internal/Lock.hpp>
+#include <brisk/graphics/Fonts.hpp>
 #include <brisk/window/Window.hpp>
-#include <brisk/core/Log.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 #include "PlatformWindow.hpp"
-#include <brisk/graphics/Fonts.hpp>
 
 namespace Brisk {
 
@@ -62,9 +61,9 @@ WindowApplication::WindowApplication() {
     mustBeMainThread();
 
     BRISK_ASSERT(mainScheduler);
-    Internal::wakeUpMainThread = []() {
+    Internal::setWakeUpMainThread([]() {
         PlatformWindow::postEmptyEvent();
-    };
+    });
 
     auto dblClickParams   = PlatformWindow::dblClickParams();
     m_doubleClickTime     = dblClickParams.time;
@@ -92,6 +91,8 @@ WindowApplication::~WindowApplication() {
 
     m_windows.clear();
 
+    Internal::setWakeUpMainThread({});
+    Internal::clearTimers();
     PlatformWindow::finalize();
 
     onApplicationClose();
@@ -102,8 +103,11 @@ WindowApplication::~WindowApplication() {
 void WindowApplication::processEvents(bool wait) {
     mustBeMainThread();
 
-    if (wait)
+    const double timerDelay = Internal::nextTimerDelay();
+    if (wait && timerDelay < 0.0)
         PlatformWindow::waitEvents();
+    else if (wait)
+        PlatformWindow::pollEvents();
     else
         PlatformWindow::pollEvents();
 }
@@ -113,8 +117,9 @@ constexpr static int maximumFPS = 180;
 void WindowApplication::renderWindows() {
     mustBeMainThread();
     using std::chrono::steady_clock;
-    steady_clock::time_point stopTime = steady_clock::now() + std::chrono::milliseconds(1000 / maximumFPS);
-    std::vector<Rc<Window>> windows   = m_windows;
+    steady_clock::time_point stopTime =
+        steady_clock::now() + std::chrono::microseconds(1'000'000 / maximumFPS);
+    std::vector<Rc<Window>> windows = m_windows;
     for (Rc<Window> w : windows) {
         if (w->m_rendering) {
             w->doPaint();

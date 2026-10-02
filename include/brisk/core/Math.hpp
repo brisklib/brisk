@@ -20,15 +20,24 @@
  */
 #pragma once
 
-#include "Brisk.h"
-#include <cstdint>
 #include <cmath>
-#include <brisk/core/Reflection.hpp>
-#include "internal/Optional.hpp"
-#include <numbers>
 #include <concepts>
+#include <numbers>
+
+#include <brisk/core/Brisk.h>
+#include <brisk/core/Exceptions.hpp>
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/internal/Optional.hpp>
 
 namespace Brisk {
+
+/**
+ * @brief Exception thrown when a Fraction is constructed with a zero denominator.
+ */
+class EFraction : public Exception<std::runtime_error> {
+public:
+    using Exception<std::runtime_error>::Exception;
+};
 
 template <typename T>
 inline T withCurvature(T x, std::type_identity_t<T> curvature) {
@@ -36,7 +45,7 @@ inline T withCurvature(T x, std::type_identity_t<T> curvature) {
 }
 
 template <typename T>
-inline T withCurvatureInv(T x, std::type_identity_t<T> curvature) {
+inline T withCurvatureReverse(T x, std::type_identity_t<T> curvature) {
     return std::sqrt(x) * curvature + x * (T(1) - curvature);
 }
 
@@ -47,11 +56,12 @@ inline T withCurvatureInv(T x, std::type_identity_t<T> curvature) {
  * and conversions between fractions and other numeric types. The fraction is represented as a numerator
  * and a denominator, with the denominator being non-negative and the fraction in its reduced form.
  *
- * @tparam T The type used for the numerator and denominator. It must support basic arithmetic operations
- *           and the `std::abs` function.
+ * @tparam T The type used for the numerator and denominator. It must be a signed integer type.
  */
 template <typename T>
 struct Fraction {
+    static_assert(std::is_signed_v<T> && std::is_integral_v<T>, "Fraction requires a signed integer type");
+
     /**
      * @brief Constructs a Fraction with the given numerator and denominator.
      *
@@ -60,8 +70,11 @@ struct Fraction {
      *
      * @param num The numerator of the fraction. Default is 0.
      * @param den The denominator of the fraction. Default is 1.
+     * @throws EFraction If `den` is zero.
      */
     Fraction(T num = 0, T den = 1) : numerator(num), denominator(den) {
+        if (!denominator)
+            throw EFraction("Fraction: zero denominator");
         normalize();
     }
 
@@ -71,7 +84,6 @@ struct Fraction {
      * This constructor is disabled to prevent the creation of a Fraction with a float type.
      */
     Fraction(float)  = delete;
-
     /**
      * @brief Deleted constructor for double types.
      *
@@ -403,14 +415,14 @@ private:
     }                                                                                                        \
     template <typename T1, typename T2>                                                                      \
     inline std::optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(                    \
-        const T1 & x, const std::optional<T2>& y) {                                                          \
+        const T1& x, const std::optional<T2>& y) {                                                           \
         if (y)                                                                                               \
             return x op * y;                                                                                 \
         return std::nullopt;                                                                                 \
     }                                                                                                        \
     template <typename T1, typename T2>                                                                      \
     inline std::optional<decltype(std::declval<T1>() op std::declval<T2>())> operator op(                    \
-        const std::optional<T1>& x, const T2 & y) {                                                          \
+        const std::optional<T1>& x, const T2& y) {                                                           \
         if (x)                                                                                               \
             return *x op y;                                                                                  \
         return std::nullopt;                                                                                 \

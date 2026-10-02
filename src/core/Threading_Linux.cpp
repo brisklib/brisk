@@ -18,11 +18,11 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Threading.hpp>
-
-#include <pthread.h>
 #include <linux/prctl.h>
+#include <pthread.h>
 #include <sys/prctl.h>
+
+#include <brisk/core/Threading.hpp>
 
 namespace Brisk {
 

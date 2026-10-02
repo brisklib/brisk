@@ -19,10 +19,13 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Model.hpp"
-#include "brisk/core/Time.hpp"
-#include <brisk/core/System.hpp>
+
 #include <fmt/core.h>
+
 #include <brisk/core/Log.hpp>
+#include <brisk/core/System.hpp>
+
+#include "brisk/core/Time.hpp"
 
 namespace App {
 using namespace Brisk;

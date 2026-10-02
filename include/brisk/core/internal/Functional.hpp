@@ -20,9 +20,9 @@
  */
 #pragma once
 
-#include <vector>
 #include <algorithm>
 #include <iterator>
+#include <vector>
 
 namespace Brisk {
 

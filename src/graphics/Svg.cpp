@@ -18,8 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/Svg.hpp>
 #include <lunasvg.h>
+
+#include <brisk/graphics/Svg.hpp>
 
 namespace Brisk {
 
@@ -48,6 +49,8 @@ ImageFormat SvgImage::nativeFormat() {
 }
 
 void SvgImage::renderTo(const Rc<Image>& destination) const {
+    BRISK_ASSERT(destination);
+    BRISK_ASSERT(m_impl);
     if (destination->format() != lunaFormat) {
         throwException(EImageError("Image format must match SvgImage::nativeFormat()"));
     }
@@ -57,6 +60,10 @@ void SvgImage::renderTo(const Rc<Image>& destination) const {
 }
 
 Rc<Image> SvgImage::render(Size size, Color background, ImageFormat format) const {
+    BRISK_ASSERT(m_impl);
+    if (size.width <= 0 || size.height <= 0) {
+        throwException(EImageError("Image size must be positive"));
+    }
     if (toPixelType(format) != PixelType::U8Gamma) {
         throwException(EImageError("Image format must be 8-bit gamma-corrected"));
     }

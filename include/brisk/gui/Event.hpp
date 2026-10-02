@@ -20,19 +20,20 @@
  */
 #pragma once
 
-#include <brisk/window/WindowApplication.hpp>
-#include <brisk/core/Memory.hpp>
-#include <brisk/core/Binding.hpp>
-#include <memory>
-#include <deque>
-#include <brisk/core/internal/Function.hpp>
-#include <brisk/core/internal/Generation.hpp>
 #include <atomic>
+#include <deque>
+#include <memory>
 #include <variant>
-#include <brisk/window/Types.hpp>
-#include <brisk/graphics/Geometry.hpp>
+
+#include <brisk/core/Binding.hpp>
+#include <brisk/core/Memory.hpp>
 #include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/Function.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/Generation.hpp>
+#include <brisk/graphics/Geometry.hpp>
+#include <brisk/window/Types.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 namespace Brisk {
 

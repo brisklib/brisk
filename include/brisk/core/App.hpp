@@ -20,9 +20,9 @@
  */
 #pragma once
 
-#include <string>
 #include <array>
 #include <cstdint>
+#include <string>
 
 namespace Brisk {
 

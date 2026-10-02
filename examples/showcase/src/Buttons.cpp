@@ -19,15 +19,16 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Buttons.hpp"
+
+#include <brisk/graphics/Palette.hpp>
 #include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Button.hpp>
+#include <brisk/widgets/Graphene.hpp>
+#include <brisk/widgets/ImageView.hpp>
 #include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Text.hpp>
-#include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/ToggleButton.hpp>
-#include <brisk/widgets/ImageView.hpp>
 #include <brisk/widgets/Viewport.hpp>
-#include <brisk/widgets/Graphene.hpp>
-#include <brisk/graphics/Palette.hpp>
 
 namespace Brisk {
 

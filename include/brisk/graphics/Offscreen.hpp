@@ -20,9 +20,9 @@
  */                                                                                                          \
 #pragma once
 
-#include <brisk/graphics/Renderer.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/RenderState.hpp>
+#include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {
 

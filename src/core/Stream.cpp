@@ -50,7 +50,14 @@ Transferred Stream::write(std::string_view data) {
 }
 
 bool Stream::writeAll(std::span<const std::byte> data) {
-    return write(data.data(), data.size()) == data.size();
+    size_t written = 0;
+    while (written < data.size()) {
+        const Transferred result = write(data.data() + written, data.size() - written);
+        if (result.isError() || result.bytes() == 0 || result.bytes() > data.size() - written)
+            return false;
+        written += result.bytes();
+    }
+    return true;
 }
 
 bool SequentialReader::truncate() {

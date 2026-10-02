@@ -65,7 +65,7 @@ struct NativeWindowHandle {
     NSWindow* nsWindow() const noexcept {
         if (ptr == nullptr)
             return nullptr;
-        if (isNsWindow())            
+        if (isNsWindow())
             return (__bridge NSWindow*)ptr;
         return [(__bridge NSView*)ptr window];
     }

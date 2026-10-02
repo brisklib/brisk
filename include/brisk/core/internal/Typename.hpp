@@ -23,10 +23,10 @@
 #pragma once
 
 #include <cstdlib>
-#include "FixedString.hpp"
-#include "../internal/Constants.hpp"
 
-#include "../Brisk.h"
+#include <brisk/core/Brisk.h>
+#include <brisk/core/internal/Constants.hpp>
+#include <brisk/core/internal/FixedString.hpp>
 
 namespace Brisk {
 

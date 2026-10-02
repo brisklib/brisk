@@ -21,10 +21,10 @@
 
 #pragma once
 
-#include <memory>
 #include <cstdint>
-#include <brisk/core/Memory.hpp>
+#include <memory>
 
+#include <brisk/core/Memory.hpp>
 #include <brisk/graphics/Geometry.hpp>
 #include <brisk/graphics/Path.hpp>
 
@@ -38,7 +38,7 @@ struct DenseMask {
     std::unique_ptr<uint8_t[]> data;
     Rectangle bounds;
 
-    DenseMask() : data(nullptr), bounds{} {}
+    DenseMask() : stride(0), rows(0), data(nullptr), bounds{} {}
 
     DenseMask(Rectangle maskBounds) {
         if (maskBounds.size().longestSide() >= 16384) {

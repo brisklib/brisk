@@ -18,8 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/RenderState.hpp>
 #include <cstring>
+
+#include <brisk/graphics/RenderState.hpp>
 
 namespace Brisk {
 

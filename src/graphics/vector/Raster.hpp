@@ -22,9 +22,10 @@
 
 #pragma once
 
-#include "Common.hpp"
 #include <brisk/graphics/Path.hpp>
+
 #include "../Mask.hpp"
+#include "Common.hpp"
 #include "Rle.hpp"
 
 namespace Brisk {} // namespace Brisk

@@ -19,14 +19,15 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Dropdowns.hpp"
-#include <brisk/widgets/ListBox.hpp>
+
+#include <brisk/graphics/Palette.hpp>
 #include <brisk/gui/Icons.hpp>
-#include <brisk/widgets/Layouts.hpp>
-#include <brisk/widgets/Text.hpp>
 #include <brisk/widgets/Item.hpp>
+#include <brisk/widgets/Layouts.hpp>
+#include <brisk/widgets/ListBox.hpp>
 #include <brisk/widgets/PopupBox.hpp>
 #include <brisk/widgets/PopupButton.hpp>
-#include <brisk/graphics/Palette.hpp>
+#include <brisk/widgets/Text.hpp>
 
 namespace Brisk {
 

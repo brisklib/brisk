@@ -19,12 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include "BasicTypes.hpp"
+#include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Binding.hpp>
-#include "internal/Function.hpp"
-#include "Reflection.hpp"
-#include <atomic>
-#include "Json.hpp"
+#include <brisk/core/Json.hpp>
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/internal/Function.hpp>
 
 namespace Brisk {
 

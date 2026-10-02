@@ -18,30 +18,29 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/window/Window.hpp>
-
 #include <atomic>
-
 #include <chrono>
 #include <future>
 #include <memory>
 #include <numeric>
+
 #include <spdlog/fmt/fmt.h>
 
+#include <brisk/core/Compression.hpp>
 #include <brisk/core/Encoding.hpp>
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Threading.hpp>
 #include <brisk/core/Utilities.hpp>
-#include <brisk/graphics/Canvas.hpp>
-#include <brisk/graphics/Svg.hpp>
-#include <brisk/window/WindowApplication.hpp>
-#include <brisk/graphics/Palette.hpp>
-#include <brisk/core/Compression.hpp>
+#include <brisk/core/Version.hpp>
 #include <brisk/core/internal/AutoreleasePool.hpp>
+#include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/graphics/Svg.hpp>
+#include <brisk/window/Window.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 #include "FrameTimePredictor.hpp"
 #include "PlatformWindow.hpp"
-#include <brisk/core/Version.hpp>
 
 namespace Brisk {
 
@@ -248,7 +247,7 @@ Rc<RenderDevice> Window::renderDevice() {
     if (!m_renderDevice) {
         Rc<Display> display = this->display();
         auto result         = createRenderDevice(defaultBackend, deviceSelection,
-                                         display ? display->getHandle() : NativeDisplayHandle{});
+                                                 display ? display->getHandle() : NativeDisplayHandle{});
         BRISK_ASSERT(result.has_value());
         m_renderDevice = *result;
     }

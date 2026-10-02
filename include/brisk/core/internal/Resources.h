@@ -20,7 +20,7 @@
  */
 #pragma once
 
-#include "incbin.h"
+#include <brisk/core/internal/incbin.h>
 
 #ifdef __cplusplus
 

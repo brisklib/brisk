@@ -20,8 +20,8 @@
  */
 #pragma once
 
-#include <mutex>
 #include <atomic>
+#include <mutex>
 
 namespace Brisk {
 

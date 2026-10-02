@@ -10,12 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <brisk/core/internal/llvm/SmallVector.h>
-#include <string>
-#include <brisk/core/internal/llvm/MemAlloc.h>
-#include <brisk/core/internal/Throw.hpp>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
+
+#include <brisk/core/internal/Throw.hpp>
+#include <brisk/core/internal/llvm/MemAlloc.h>
+#include <brisk/core/internal/llvm/SmallVector.h>
 using namespace llvm;
 
 // Check that no bytes are wasted and everything is well-aligned.

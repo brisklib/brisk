@@ -74,7 +74,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/src/core/System.cpp
     ${PROJECT_SOURCE_DIR}/src/core/Threading${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/System${PLATFORM_SPECIFIC_CPP}
-    ${PROJECT_SOURCE_DIR}/src/core/Io${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/DynamicLibrary${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/Cryptography${PLATFORM_SPECIFIC_CPP}
     ${PROJECT_SOURCE_DIR}/src/core/hash/md5.c
@@ -91,6 +90,13 @@ if (WIN32)
 endif ()
 if (APPLE)
     target_sources(brisk-core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/AutoreleasePool.mm)
+endif ()
+
+if (WIN32)
+    target_sources(brisk-core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Io_Windows.cpp)
+else ()
+    target_sources(brisk-core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Io_Posix.cpp
+                                     ${CMAKE_CURRENT_SOURCE_DIR}/Io${PLATFORM_SPECIFIC_CPP})
 endif ()
 
 target_include_directories(brisk-core PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>

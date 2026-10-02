@@ -18,29 +18,53 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <catch2/catch_all.hpp>
+
+#include <brisk/core/Reflection.hpp>
+#include <brisk/core/Text.hpp>
+#include <brisk/core/Time.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Color.hpp>
+#include <brisk/graphics/Geometry.hpp>
+#include <brisk/graphics/Image.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/graphics/RenderState.hpp>
 #include <brisk/graphics/Renderer.hpp>
 
-#include <brisk/core/Utilities.hpp>
-#include <brisk/core/Reflection.hpp>
-#include <catch2/catch_all.hpp>
 #include "Catch2Utils.hpp"
 #include "VisualTests.hpp"
 #include "brisk/core/Log.hpp"
-#include <brisk/graphics/Color.hpp>
-#include <brisk/graphics/Geometry.hpp>
-#include <brisk/graphics/RenderState.hpp>
-#include <brisk/core/Time.hpp>
-#include <brisk/core/Text.hpp>
-#include <brisk/graphics/Image.hpp>
-#include <brisk/graphics/Canvas.hpp>
-
-#include <brisk/graphics/NativeWindowHandle.hpp>
-#include <brisk/graphics/Palette.hpp>
 #ifdef BRISK_WEBGPU
 #include <brisk/graphics/WebGpu.hpp>
 #endif
 
 namespace Brisk {
+
+static void registerTestFonts() {
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "Lato")
+                .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf", "Lato")
+            .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf", "Lato")
+            .has_value());
+    REQUIRE(fonts
+                ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf",
+                                  "LatoMedium")
+                .has_value());
+    REQUIRE(
+        fonts
+            ->addFontFromFile(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf",
+                              "Noto Emoji")
+            .has_value());
+}
 
 TEST_CASE("Renderer Info", "[gpu]") {
     expected<Rc<RenderDevice>, RenderDeviceError> device_ = getRenderDevice();
@@ -83,32 +107,31 @@ TEST_CASE("Renderer devices", "[gpu]") {
 }
 
 TEST_CASE("Renderer - fonts") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Lato");
+    registerTestFonts();
+
+    constexpr int S = 2;
+    Font font{ "Lato", 27.f * S };
+    font.hinting = FontHinting::Disable;
 
     for (bool subpixel : { false, true }) {
         renderTest(
-            "rr-fonts{}"_fmt(subpixel ? "-subpixel" : ""), { 1200, 600 },
+            "rr-fonts{}"_fmt(subpixel ? "-subpixel" : ""), { 1200 * S, 600 * S },
             [&](RenderContext& context) {
                 Canvas canvas(context);
                 canvas.setSubpixelTextRendering(subpixel);
 
                 Rectangle rect;
                 ColorF c;
-                canvas.setFont(Font{ "Lato", 27.f });
+                canvas.setFont(font);
                 for (int i = 0; i < 10; ++i) {
                     c    = ColorOf<float, ColorGamma::sRGB>(i / 9.f);
-                    rect = Rectangle{ 0, i * 60, 600, (i + 1) * 60 };
+                    rect = Rectangle{ 0, i * 60 * S, 600 * S, (i + 1) * 60 * S };
                     canvas.setFillColor(c);
                     canvas.fillRect(rect);
                     canvas.setFillColor(Palette::white);
                     canvas.fillText("The quick brown fox jumps over the lazy dog", rect, PointF(0.5f, 0.5f));
                     c    = ColorOf<float, ColorGamma::sRGB>(1.f - i / 9.f);
-                    rect = Rectangle{ 600, i * 60, 1200, (i + 1) * 60 };
+                    rect = Rectangle{ 600 * S, i * 60 * S, 1200 * S, (i + 1) * 60 * S };
                     canvas.setFillColor(c);
                     canvas.fillRect(rect);
                     canvas.setFillColor(Palette::black);
@@ -120,12 +143,7 @@ TEST_CASE("Renderer - fonts") {
 }
 
 TEST_CASE("Html text") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Heavy.ttf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Lato");
+    registerTestFonts();
 
     renderTest("html-text", Size{ 300, 150 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -302,12 +320,7 @@ TEST_CASE("Canvas::drawImage", "[gpu]") {
 }
 
 TEST_CASE("Emoji") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Noto Emoji");
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Lato");
+    registerTestFonts();
 
     const Size size{ 1200, 200 };
     renderTest("emoji-only", size, [&](RenderContext& context) {
@@ -927,7 +940,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 
 )Wgsl";
 
-    wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
+    wgpu::ShaderSourceWGSL wgslDesc{};
     wgslDesc.code = shaderSource;
     wgpu::ShaderModuleDescriptor shaderDesc{ .nextInChain = &wgslDesc };
     wgpu::ShaderModule shaderModule = device.CreateShaderModule(&shaderDesc);
@@ -1022,7 +1035,7 @@ TEST_CASE("WebGPU") {
 }
 #endif
 
-TEST_CASE("Canvas-Performance", "[.performance]") {
+TEST_CASE("Canvas-Performance", "[performance]") {
     for (int i = 128; i <= 2048; i *= 2) {
         renderTest<true>("canvas-border-" + std::to_string(i), Size{ i, i }, [i](RenderContext& context) {
             Canvas canvas(context);
@@ -1043,45 +1056,50 @@ TEST_CASE("Canvas-Performance", "[.performance]") {
     }
 }
 
-TEST_CASE("Layers", "[.performance]") {
+TEST_CASE("Layers", "[performance]") {
+    registerTestFonts();
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
-    renderTest<true>("layers", canvasSize, [](RenderContext& context) {
-        Rectangle bounds{ {}, canvasSize };
-        Canvas canvas(context);
-        canvas.setFillColor(Palette::white);
-        canvas.fillRect(bounds);
-        canvas.setFillColor(Palette::blue);
-        canvas.fillRect({ 50, 20, 500, 300 });
-        canvas.setFont(Font{ "Lato", 48.f });
-        canvas.beginLayer(canvasSize);
-        canvas.setFillColor(Palette::red);
-        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
-        canvas.setFillColor(Palette::yellow);
-        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.5f, 0.5f }).withPadding(50));
-        canvas.setFillColor(Palette::green);
-        canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 1.0f, 0.5f }).withPadding(50));
-        auto layer = canvas.finishLayer();
-        CHECK(canvas.getFont() == Font{ "Lato", 48.f });
-        canvas.drawImage(bounds, layer, {}, SamplerMode::Clamp, 14.f);
-        canvas.setFillColor(Palette::magenta);
-        canvas.fillRect({ 300, 140, 640, 180 });
-    });
+    renderTest<true>(
+        "layers", canvasSize,
+        [](RenderContext& context) {
+            Rectangle bounds{ {}, canvasSize };
+            Canvas canvas(context);
+            canvas.setFillColor(Palette::white);
+            canvas.fillRect(bounds);
+            canvas.setFillColor(Palette::blue);
+            canvas.fillRect({ 50, 20, 500, 300 });
+            canvas.setFont(Font{ "Lato", 48.f });
+            canvas.beginLayer(canvasSize);
+            canvas.setFillColor(Palette::red);
+            canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.f, 0.5f }).withPadding(50));
+            canvas.setFillColor(Palette::yellow);
+            canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 0.5f, 0.5f }).withPadding(50));
+            canvas.setFillColor(Palette::green);
+            canvas.fillEllipse(bounds.alignedRect({ 320, 320 }, { 1.0f, 0.5f }).withPadding(50));
+            auto layer = canvas.finishLayer();
+            CHECK(canvas.getFont() == Font{ "Lato", 48.f });
+            canvas.drawImage(bounds, layer, {}, SamplerMode::Clamp, 14.f);
+            canvas.setFillColor(Palette::magenta);
+            canvas.fillRect({ 300, 140, 640, 180 });
+        }
+#if defined BRISK_WINDOWS && defined BRISK_X32
+        ,
+        defaultBackColor, 0.099f // x86 WARP
+#endif
+    );
     linearColor = linearColorSaved;
 }
 
 TEST_CASE("Backlayer") {
+    registerTestFonts();
 #if defined BRISK_WINDOWS
     if (std::getenv("BRISK_SKIP_BLUR_TESTS")) {
         BRISK_LOG_WARN("Skip Backlayer test due to Microsoft WARP bug.");
         return;
     }
 #endif
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
-
     bool linearColorSaved = linearColor;
     linearColor           = true;
     static Size canvasSize{ 640, 320 };
@@ -1142,10 +1160,8 @@ constexpr std::array compModes = {
     CompositionMode::Plus,    CompositionMode::PlusLighter,
 };
 
-TEST_CASE("Composition", "[.performance]") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
+TEST_CASE("Composition") {
+    registerTestFonts();
 
     Size cellSize{ 100, 100 };
     Size imageSize(25 + cellSize.width * blendModes.size(), 25 + cellSize.height * compModes.size());
@@ -1183,7 +1199,7 @@ TEST_CASE("Composition", "[.performance]") {
         }
         canvas.resetComposition();
 
-        canvas.setFont(Font{ "Lato", 14.f });
+        canvas.setFont(Font{ "LatoMedium", 14.f });
         canvas.setFillColor(Palette::white);
         canvas.fillRect(Rectangle{ 0, 0, imageSize.width, 25 });
         canvas.fillRect(Rectangle{ 0, 0, 25, imageSize.height });
@@ -1231,6 +1247,7 @@ static void testInvariants(RenderContext& context, function_ref<void(Canvas&)> f
 }
 
 TEST_CASE("Matrix invariants") {
+    registerTestFonts();
     renderTest("matrix-invariants-image", Size{ 256, 256 },
                [](RenderContext& context) {
                    Canvas canvas(context);
@@ -1284,13 +1301,9 @@ TEST_CASE("Matrix invariants") {
                },
                { 0.5f, 0.5f, 0.5f, 1.0f });
 
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Medium.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
-
-    renderTest("matrix-invariants-text", Size{ 256, 128 },
+    renderTest("matrix-invariants-text", Size{ 256, 256 },
                [](RenderContext& context) {
-                   testInvariants<false>(context, [&](Canvas& canvas) {
+                   testInvariants(context, [&](Canvas& canvas) {
                        canvas.setFont(Font{ "Lato", 24.f });
                        canvas.setFillColor(Palette::black);
                        canvas.setStrokeColor(Palette::white);
@@ -1301,13 +1314,9 @@ TEST_CASE("Matrix invariants") {
                },
                { 0.5f, 0.5f, 0.5f, 1.0f });
 
-    auto ttf2 = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "NotoColorEmoji-SVG.otf");
-    REQUIRE(ttf2.has_value());
-    fonts->addFont(*ttf2, "Noto Emoji");
-
-    renderTest("matrix-invariants-emoji", Size{ 256, 128 },
+    renderTest("matrix-invariants-emoji", Size{ 256, 256 },
                [](RenderContext& context) {
-                   testInvariants<false>(context, [&](Canvas& canvas) {
+                   testInvariants(context, [&](Canvas& canvas) {
                        canvas.setFont(Font{ "Noto Emoji", 48.f });
                        canvas.setFillColor(Palette::black);
                        canvas.setStrokeColor(Palette::white);
@@ -1320,9 +1329,7 @@ TEST_CASE("Matrix invariants") {
 }
 
 TEST_CASE("Text subpixel alignment") {
-    auto ttf = readBytes(fs::path(PROJECT_SOURCE_DIR) / "resources" / "fonts" / "Lato-Light.ttf");
-    REQUIRE(ttf.has_value());
-    fonts->addFont(*ttf, "Lato");
+    registerTestFonts();
 
     renderTest("text-subpixel-alignment", Size{ 256, 440 }, [](RenderContext& context) {
         Canvas canvas(context);
@@ -1336,6 +1343,32 @@ TEST_CASE("Text subpixel alignment") {
             canvas.setSubpixelTextRendering(false);
             canvas.fillText(".+|abc", { i * 0.05f + 128.f, i * 20.f }, { 0.f, 0.f });
         }
+    });
+}
+
+TEST_CASE("Text rendering under transforms", "[gpu][visual]") {
+    registerTestFonts();
+
+    renderTest("text-transforms", Size{ 520, 360 }, [](RenderContext& context) {
+        Canvas canvas(context);
+        canvas.setFillColor(Color(245, 247, 250));
+        canvas.fillRect({ 0, 0, 520, 360 });
+        canvas.setFont(Font{ "Lato", 32.f });
+
+        canvas.setFillColor(Palette::black);
+        canvas.fillText("translation", { 24, 40 });
+
+        canvas.setTransform(Matrix{}.scale(1.35f, 0.85f).translate(32.f, 112.f));
+        canvas.setFillPaint(LinearGradient{ { 0, 0 }, { 150, 0 }, Palette::blue, Palette::red });
+        canvas.fillText("scale + gradient", { 0, 0 });
+
+        canvas.setTransform(Matrix{}.rotate(-18.f, 330.f, 205.f));
+        canvas.setFillColor(Palette::Standard::indigo);
+        canvas.fillText("rotated text", { 260, 205 });
+
+        canvas.setTransform(Matrix{}.skew(0.28f, -0.12f).translate(58.f, 300.f));
+        canvas.setFillColor(Palette::Standard::green);
+        canvas.fillText("sheared text", { 0, 0 });
     });
 }
 

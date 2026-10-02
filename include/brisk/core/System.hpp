@@ -20,11 +20,12 @@
  */
 #pragma once
 
-#include <brisk/core/internal/SmallVector.hpp>
-#include <string>
 #include <cstdint>
+#include <string>
+
 #include <brisk/core/Brisk.h>
 #include <brisk/core/Reflection.hpp>
+#include <brisk/core/internal/SmallVector.hpp>
 
 namespace Brisk {
 

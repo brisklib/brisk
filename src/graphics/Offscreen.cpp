@@ -18,10 +18,10 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/Offscreen.hpp>
-#include <brisk/graphics/Renderer.hpp>
-#include <brisk/graphics/Pixel.hpp>
 #include <brisk/core/Exceptions.hpp>
+#include <brisk/graphics/Offscreen.hpp>
+#include <brisk/graphics/Pixel.hpp>
+#include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {
 
@@ -39,6 +39,10 @@ OffscreenCanvas::State::State(Rc<RenderDevice> device, Size size, float pixelRat
 }
 
 Rc<Image> OffscreenCanvas::State::render() && {
+    BRISK_ASSERT(canvas);
+    BRISK_ASSERT(context);
+    BRISK_ASSERT(encoder);
+    BRISK_ASSERT(target);
     canvas.reset();
     context.reset();
     encoder->wait();

@@ -19,11 +19,13 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include <cstdint>
-#include <type_traits>
-#include <stdexcept>
 #include <algorithm>
-#include "Throw.hpp"
+#include <cstdint>
+#include <stdexcept>
+#include <type_traits>
+
+#include <brisk/core/internal/Throw.hpp>
+
 #include "lexicographical_compare_three_way.hpp"
 
 namespace Brisk {

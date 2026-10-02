@@ -18,23 +18,25 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+
 #define BRISK_ALLOW_OS_HEADERS 1
+
+// clang-format off
 #define NOMINMAX 1
 #include <windows.h>
 #include <shellapi.h>
 #include <shlobj.h>
 #include <wrl.h>
+// clang-format on
 
-#include <brisk/window/OsDialogs.hpp>
-#include <brisk/window/WindowApplication.hpp>
-
-#include <brisk/core/internal/COMInit.hpp>
 #include <brisk/core/Log.hpp>
-
-#include <brisk/window/Window.hpp>
-#include <brisk/core/Threading.hpp>
 #include <brisk/core/Text.hpp>
+#include <brisk/core/Threading.hpp>
+#include <brisk/core/internal/COMInit.hpp>
 #include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/window/OsDialogs.hpp>
+#include <brisk/window/Window.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 template <typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;

@@ -20,15 +20,15 @@
  */                                                                                                          \
 #pragma once
 
-#include <brisk/core/Utilities.hpp>
 #include <brisk/core/Rc.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/core/internal/Function.hpp>
+#include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/Generation.hpp>
+#include <brisk/core/internal/InlineVector.hpp>
+#include <brisk/core/internal/SmallVector.hpp>
 #include <brisk/graphics/Color.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <brisk/core/internal/InlineVector.hpp>
-#include <brisk/core/internal/Function.hpp>
-#include <brisk/core/internal/SmallVector.hpp>
-#include <brisk/core/internal/Generation.hpp>
-#include <brisk/core/internal/FunctionRef.hpp>
 
 namespace Brisk {
 

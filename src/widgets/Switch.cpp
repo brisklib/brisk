@@ -57,9 +57,12 @@ void switchPainter(Canvas& canvas, const Widget& widget_) {
     RectangleF innerRect            = outerRectWithPadding.alignedRect(
         outerRectWithPadding.height(), outerRectWithPadding.height(), interpolatedValue, 0.5f);
     canvas.setFillColor(mix(interpolatedValue, ColorW(0.f, 0.f), widget.backgroundColor.current()));
-    canvas.setStrokeWidth(1._dp);
+    const float strokeWidth = 1._dp;
+    canvas.setStrokeWidth(strokeWidth);
     canvas.setStrokeColor(widget.color.current().multiplyAlpha(0.35f));
-    canvas.drawRect(outerRect, outerRect.shortestSide() * 0.5f);
+    canvas.fillRect(outerRect.withPadding(-strokeWidth * 0.5f),
+                    (outerRect.shortestSide() + strokeWidth) * 0.5f);
+    canvas.strokeRect(outerRect, outerRect.shortestSide() * 0.5f);
     canvas.setFillColor(widget.color.current().multiplyAlpha(0.75f));
     canvas.fillRect(innerRect, innerRect.shortestSide() * 0.5f);
 }

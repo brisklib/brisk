@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <limits>
+
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Memory.hpp>
 #include <brisk/core/internal/Debug.hpp>

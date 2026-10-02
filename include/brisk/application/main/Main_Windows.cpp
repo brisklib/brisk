@@ -21,17 +21,20 @@
  * For commercial licensing, please visit: https://brisklib.com/
  */
 #define NOMINMAX 1
-#include <windows.h>
-#include <vector>
 #include <string>
-#include <brisk/core/Encoding.hpp>
+#include <vector>
+
+#include <windows.h>
+
 #include <brisk/core/App.hpp>
+#include <brisk/core/Encoding.hpp>
 #include <brisk/core/Log.hpp>
-#include "Metadata.Defines.hpp"
 #include <brisk/core/Text.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/core/platform/SystemWindows.hpp>
+
+#include "Metadata.Defines.hpp"
 
 LPWSTR winCmdLine = nullptr;
 

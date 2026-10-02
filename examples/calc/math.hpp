@@ -20,18 +20,20 @@
  */
 #pragma once
 
-#include <array>
+#include <cstdint>
+#include <initializer_list>
 #include <optional>
-#include <brisk/core/Binding.hpp>
-#include <brisk/core/internal/Debug.hpp>
-#include <variant>
-#include <string_view>
-#include <vector>
+#include <string>
+#include <tuple>
+#include <utility>
+
 #include <fmt/format.h>
-#include <memory>
+
+#include <brisk/core/Binding.hpp>
 #include <brisk/core/Log.hpp>
-#include <brisk/window/WindowApplication.hpp>
 #include <brisk/core/Reflection.hpp>
+#include <brisk/core/internal/Debug.hpp>
+#include <brisk/window/WindowApplication.hpp>
 
 extern "C" {
 #include <decimal128.h>
@@ -61,7 +63,7 @@ template <>
 inline constexpr std::initializer_list<NameValuePair<MultiplicativeOperator>>
     defaultNames<MultiplicativeOperator>{
         { "*", MultiplicativeOperator::Multiply },
-        { "-", MultiplicativeOperator::Divide },
+        { "/", MultiplicativeOperator::Divide },
     };
 template <>
 inline constexpr std::initializer_list<NameValuePair<ExponentiationOperator>>
@@ -116,6 +118,10 @@ struct Number {
 
     bool isNan() const {
         return decNumberIsQNaN(&num);
+    }
+
+    bool isInfinite() const {
+        return decNumberIsInfinite(&num);
     }
 
     Number operator+(Number rh) const {
@@ -218,6 +224,11 @@ struct Number {
     }
 
     std::string string() const {
+        if (isNan())
+            return "Error";
+        if (isInfinite())
+            return decNumberIsNegative(&num) ? "-∞" : "∞";
+
         char buf[DECIMAL128_String];
         decNumberToString(&num, buf);
         return buf;
@@ -294,6 +305,7 @@ struct Calculator {
     std::optional<std::tuple<Number, MultiplicativeOperator>> multiplicativeOperation;
     std::optional<std::tuple<Number, ExponentiationOperator>> exponentiationOperation;
     Number currentOperand;
+    bool awaitingOperand = false;
 
     BindingRegistration registration{ this, mainScheduler };
 
@@ -387,6 +399,8 @@ struct Calculator {
     }
 
     Number calculate() const {
+        if (awaitingOperand)
+            return currentOperand;
         return additiveSolve();
     }
 
@@ -408,31 +422,47 @@ struct Calculator {
     }
 
     void operation(AdditiveOperator op) {
-        currentOperand          = multiplicativeSolve();
+        currentOperand = multiplicativeSolve();
+        if (additiveOperation) {
+            auto [left, previousOp] = *additiveOperation;
+            currentOperand          = binary(left, previousOp, currentOperand);
+        }
         additiveOperation       = std::make_tuple(currentOperand, op);
         multiplicativeOperation = std::nullopt;
         exponentiationOperation = std::nullopt;
         editable                = std::nullopt;
+        awaitingOperand         = true;
         notify();
     }
 
     void operation(MultiplicativeOperator op) {
-        currentOperand          = exponentiationSolve();
+        currentOperand = exponentiationSolve();
+        if (multiplicativeOperation) {
+            auto [left, previousOp] = *multiplicativeOperation;
+            currentOperand          = binary(left, previousOp, currentOperand);
+        }
         multiplicativeOperation = std::make_tuple(currentOperand, op);
         exponentiationOperation = std::nullopt;
         editable                = std::nullopt;
+        awaitingOperand         = true;
         notify();
     }
 
     void operation(ExponentiationOperator op) {
+        if (exponentiationOperation) {
+            auto [left, previousOp] = *exponentiationOperation;
+            currentOperand          = binary(left, previousOp, currentOperand);
+        }
         exponentiationOperation = std::make_tuple(currentOperand, op);
         editable                = std::nullopt;
+        awaitingOperand         = true;
         notify();
     }
 
     void operation(UnaryOperator op) {
-        currentOperand = unary(op, currentOperand);
-        editable       = std::nullopt;
+        currentOperand  = unary(op, currentOperand);
+        editable        = std::nullopt;
+        awaitingOperand = false;
         notify();
     }
 
@@ -442,6 +472,7 @@ struct Calculator {
         additiveOperation       = std::nullopt;
         multiplicativeOperation = std::nullopt;
         exponentiationOperation = std::nullopt;
+        awaitingOperand         = false;
         notify();
     }
 
@@ -451,20 +482,23 @@ struct Calculator {
         additiveOperation       = std::nullopt;
         multiplicativeOperation = std::nullopt;
         exponentiationOperation = std::nullopt;
+        awaitingOperand         = false;
         notify();
     }
 
     void constant(Number x) {
-        currentOperand = x;
-        editable       = std::nullopt;
+        currentOperand  = x;
+        editable        = std::nullopt;
+        awaitingOperand = false;
         notify();
     }
 
     void edit(std::string s) {
         Number tmp = Number::parse(s);
         if (!tmp.isNan()) {
-            editable       = std::move(s);
-            currentOperand = tmp;
+            editable        = std::move(s);
+            currentOperand  = tmp;
+            awaitingOperand = false;
         }
         notify();
     }
@@ -479,7 +513,7 @@ struct Calculator {
     void digit(uint8_t digit) {
         if (!editable)
             editable = "";
-        if (editable->empty() || editable->front() != '0')
+        if (editable->empty() || editable->front() != '0' || editable->find('.') != std::string::npos)
             edit(*editable + char('0' + digit));
     }
 

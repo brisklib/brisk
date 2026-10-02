@@ -20,9 +20,10 @@
  */
 #pragma once
 
-#include <cstdint>
 #include <algorithm>
-#include "../Simd.hpp" // For constexpr byteswap
+#include <cstdint>
+
+#include <brisk/core/Simd.hpp> // For constexpr byteswap
 
 // Constexpr implementation of Cityhash64 algorithm
 // Based on CityHash, by Geoff Pike and Jyrki Alakuijala

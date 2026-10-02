@@ -19,6 +19,25 @@
 #
 include(${CMAKE_CURRENT_LIST_DIR}/${CMAKE_SYSTEM_NAME}/setup_executable.cmake)
 
+function (brisk_deploy_webgpu_runtime TARGET)
+    if (WIN32 AND BRISK_WEBGPU)
+        set(DXIL_DLL ${DEPS_DIR}/bin/dxil.dll)
+        set(DXCOMPILER_DLL ${DEPS_DIR}/bin/dxcompiler.dll)
+
+        if (EXISTS ${DXIL_DLL} AND EXISTS ${DXCOMPILER_DLL})
+            add_custom_command(
+                TARGET ${TARGET}
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${DXIL_DLL}"
+                        "$<TARGET_FILE_DIR:${TARGET}>/dxil.dll"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${DXCOMPILER_DLL}"
+                        "$<TARGET_FILE_DIR:${TARGET}>/dxcompiler.dll"
+                DEPENDS ${DXIL_DLL} ${DXCOMPILER_DLL}
+                COMMENT "Copying Dawn DXC runtime libraries for ${TARGET}")
+        endif ()
+    endif ()
+endfunction ()
+
 function (brisk_setup_executable TARGET)
 
     if (NOT APP_VERSION_MAJOR)
@@ -49,4 +68,5 @@ function (brisk_setup_executable TARGET)
     setup_executable_platform(${TARGET})
 
     brisk_bundle_resources(${TARGET})
+    brisk_deploy_webgpu_runtime(${TARGET})
 endfunction ()

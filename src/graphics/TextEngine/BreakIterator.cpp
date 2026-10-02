@@ -5,11 +5,11 @@
 extern "C" {
 #include <SheenBidi/SheenBidi.h>
 }
-#include <utf8proc.h>
-
 #include <algorithm>
 #include <utility>
 #include <vector>
+
+#include <utf8proc.h>
 
 namespace Brisk::TextEngine {
 

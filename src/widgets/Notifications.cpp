@@ -18,9 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/Notifications.hpp>
-#include <brisk/widgets/Button.hpp>
 #include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Button.hpp>
+#include <brisk/widgets/Notifications.hpp>
 
 namespace Brisk {
 
@@ -40,7 +40,7 @@ Rc<Widget> NotificationView::makeCloseButton() {
         Arg::absolutePosition = { 100_perc, 50_perc },
         Arg::anchor           = { 100_perc, 50_perc },
         Arg::onClick          = lifetime() |
-                       [this]() {
+                                [this]() {
                            expireNow();
                        },
     };

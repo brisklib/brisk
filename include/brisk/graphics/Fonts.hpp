@@ -20,21 +20,24 @@
  */
 #pragma once
 
-#include <brisk/core/internal/InlineVector.hpp>
-#include <brisk/core/Stream.hpp>
-#include <brisk/core/Hash.hpp>
-#include <mutex>
-#include "Color.hpp"
-#include <brisk/core/internal/SmallVector.hpp>
-#include "internal/OpenType.hpp"
-#include "Image.hpp"
-#include <brisk/core/Io.hpp>
-#include "internal/Sprites.hpp"
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
+
+#include <brisk/core/Hash.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/Stream.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
+#include <brisk/core/internal/InlineVector.hpp>
 #include <brisk/core/internal/Lock.hpp>
+#include <brisk/core/internal/SmallVector.hpp>
+
+#include "Color.hpp"
+#include "Image.hpp"
+#include "Path.hpp"
+#include "internal/OpenType.hpp"
+#include "internal/Sprites.hpp"
 
 namespace Brisk {
 
@@ -77,6 +80,20 @@ inline std::string format_as(const OpenTypeFeatureFlag& val) {
 enum class FontStyle : uint8_t {
     Normal = 0,
     Italic = 1,
+};
+
+/** @brief Glyph hinting policy used when loading font glyphs. */
+enum class FontHinting : uint8_t {
+    Auto,    ///< Use the backend's default hinting behavior.
+    Enable,  ///< Force hinting on.
+    Disable, ///< Load glyphs unhinted.
+};
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<FontHinting>> defaultNames<FontHinting>{
+    { "Auto", FontHinting::Auto },
+    { "Enable", FontHinting::Enable },
+    { "Disable", FontHinting::Disable },
 };
 
 template <>
@@ -404,6 +421,12 @@ public:
     /// @return Bounds excluding trailing whitespace while retaining line extents.
     [[nodiscard]] RectangleF trimmedBounds() const noexcept;
 
+    /// Exports outline-capable glyphs as a collection of Bézier contours.
+    /// @param origin Translation applied to the intrinsic layout coordinates.
+    /// @return A path containing the outlines of all visible outline glyphs. Bitmap, SVG, color,
+    /// and whitespace glyphs do not contribute geometry.
+    [[nodiscard]] Path toPath(PointF origin = {}) const;
+
     /// @param index Grapheme boundary and affinity to locate.
     /// @return Caret position in layout coordinates.
     [[nodiscard]] CaretPosition caretPosition(CaretIndex index) const noexcept;
@@ -492,17 +515,41 @@ struct Font {
     constexpr static char DefaultPlusIcons[]      = "@default,@icons";
     constexpr static char DefaultPlusIconsEmoji[] = "@default,@icons,@emoji";
 
-    std::string fontFamily                        = DefaultPlusIconsEmoji; ///< The font family.
-    float fontSize                                = 12.f; ///< The size of the font in points.
-    FontStyle style               = FontStyle::Normal;    ///< The style of the font (e.g., normal, italic).
-    FontWeight weight             = FontWeight::Regular;  ///< The weight of the font (e.g., regular, bold).
-    TextDecoration textDecoration = TextDecoration::None; ///< Text decoration (e.g., underline, none).
-    float lineHeight              = 0.f;   ///< Line height as a multiplier, 0 means natural line height.
-    float tabWidth                = 100.f; ///< Absolute tab interval.
-    float letterSpacing           = 0.f;   ///< Additional space between letters.
-    float wordSpacing             = 0.f;   ///< Additional space between words.
-    float verticalAlign           = 0.f;   ///< Vertical alignment offset.
-    OpenTypeFeatureFlags features{};       ///< OpenType features for advanced text styling.
+    /// The font family.
+    std::string fontFamily                        = DefaultPlusIconsEmoji;
+
+    /// The size of the font in points.
+    float fontSize                                = 12.f;
+
+    /// The style of the font (e.g., normal, italic).
+    FontStyle style                               = FontStyle::Normal;
+
+    /// The weight of the font (e.g., regular, bold).
+    FontWeight weight                             = FontWeight::Regular;
+
+    /// Text decoration (e.g., underline, none).
+    TextDecoration textDecoration                 = TextDecoration::None;
+
+    /// Line height as a multiplier, 0 means natural line height.
+    float lineHeight                              = 0.f;
+
+    /// Absolute tab interval.
+    float tabWidth                                = 100.f;
+
+    /// Additional space between letters.
+    float letterSpacing                           = 0.f;
+
+    /// Additional space between words.
+    float wordSpacing                             = 0.f;
+
+    /// Vertical alignment offset.
+    float verticalAlign                           = 0.f;
+
+    /// OpenType features for advanced text styling.
+    OpenTypeFeatureFlags features{};
+
+    /// Glyph hinting policy.
+    FontHinting hinting                       = FontHinting::Auto;
 
     inline static const std::tuple reflection = {
         ReflectionField{ "fontFamily", &Font::fontFamily },
@@ -516,6 +563,7 @@ struct Font {
         ReflectionField{ "wordSpacing", &Font::wordSpacing },
         ReflectionField{ "verticalAlign", &Font::verticalAlign },
         ReflectionField{ "features", &Font::features },
+        ReflectionField{ "hinting", &Font::hinting },
     };
 
     /**
@@ -662,8 +710,9 @@ public:
      */
     void addFontAlias(std::string_view newFontFamily, std::string_view existingFontFamily);
 
-    /** Registers every face in a font file held in memory. */
-    void addFont(BytesView data, std::string alias = {});
+    /** Registers one face, or every face when no face index is specified, in a font file held in memory. */
+    [[nodiscard]] expected<std::vector<std::string>, IoError> addFont(BytesView data, std::string alias = {},
+                                                                      std::optional<size_t> faceIndex = {});
 
     /**
      * @brief Registers every face in a cached embedded resource.
@@ -676,8 +725,9 @@ public:
      * @param emptyOk Allow a missing resource to be ignored.
      * @return True if a non-empty resource was registered.
      */
-    [[nodiscard]] bool addFontFromResource(std::string resourceName, std::string alias = {},
-                                           bool emptyOk = false);
+    [[nodiscard]] expected<std::vector<std::string>, IoError> addFontFromResource(std::string resourceName,
+                                                                                  std::string alias = {},
+                                                                                  bool emptyOk      = false);
 
     /**
      * @brief Adds a font installed on the system.
@@ -700,9 +750,11 @@ public:
      * @param style The font style.
      * @param weight The font weight.
      * @param path Filesystem path to the font file.
+     * @param faceIndex Optional zero-based face index for a TrueType Collection.
      * @return Status indicating success or an IoError on failure.
      */
-    [[nodiscard]] status<IoError> addFontFromFile(const fs::path& path, std::string alias = {});
+    [[nodiscard]] expected<std::vector<std::string>, IoError> addFontFromFile(
+        const fs::path& path, std::string alias = {}, std::optional<size_t> faceIndex = {});
 
     /**
      * @brief Retrieves a list of installed system fonts.
@@ -717,14 +769,6 @@ public:
      * @return FontMetrics containing size and spacing information.
      */
     [[nodiscard]] FontMetrics metrics(const Font& font) const;
-
-    /**
-     * @brief Checks if a font supports a specific Unicode codepoint.
-     * @param font The font to check.
-     * @param codepoint The Unicode codepoint to verify.
-     * @return True if the codepoint is supported, false otherwise.
-     */
-    [[nodiscard]] bool hasCodepoint(const Font& font, char32_t codepoint) const;
 
     /** @brief Shapes text with the text-layout engine. */
     [[nodiscard]] ShapedText shapeText(const Font& font, const TextWithOptions& text) const;
@@ -757,7 +801,8 @@ private:
     const int m_hscale;
     std::vector<std::string_view> fontList(std::string_view ff) const;
     mutable std::vector<OsFont> m_osFonts;
-    void addFontImpl(BytesView data, std::string alias, bool makeCopy);
+    expected<std::vector<std::string>, IoError> addFontImpl(BytesView data, std::string alias, bool makeCopy,
+                                                            std::optional<size_t> faceIndex);
     FontMetrics getMetrics(const Font& font) const;
 };
 

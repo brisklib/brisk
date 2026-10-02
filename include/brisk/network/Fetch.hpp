@@ -21,9 +21,9 @@
 #pragma once
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Bytes.hpp>
+#include <brisk/core/Cryptography.hpp>
 #include <brisk/core/Io.hpp>
 #include <brisk/core/internal/Function.hpp>
-#include <brisk/core/Cryptography.hpp>
 
 namespace Brisk {
 

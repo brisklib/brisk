@@ -93,7 +93,8 @@ spdlog::logger& applog();
  * Trace messages are typically used for very fine-grained logging.
  *
  * @param fmtstr The format string for the message.
- * @param ... The arguments for the format string.
+ * @param ... The arguments for the format string. In builds where this macro
+ *            is disabled (`NDEBUG` without `BRISK_TRACING`), they are not evaluated.
  */
 #define BRISK_LOG_TRACE(fmtstr, ...) BRISK_LOG_LOG(trace, fmtstr, ##__VA_ARGS__)
 
@@ -105,7 +106,8 @@ spdlog::logger& applog();
  * Debug messages are typically used for development and debugging.
  *
  * @param fmtstr The format string for the message.
- * @param ... The arguments for the format string.
+ * @param ... The arguments for the format string. In builds where this macro
+ *            is disabled (`NDEBUG` without `BRISK_TRACING`), they are not evaluated.
  */
 #define BRISK_LOG_DEBUG(fmtstr, ...) BRISK_LOG_LOG(debug, fmtstr, ##__VA_ARGS__)
 #else
@@ -163,7 +165,8 @@ spdlog::logger& applog();
  * @brief Logs a trace-level message if the condition fails.
  *
  * Logs a trace-level message if the provided condition evaluates to `false`. Only active
- * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
+ * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled. When logging is
+ * disabled, the condition is not evaluated.
  *
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.
@@ -177,7 +180,8 @@ spdlog::logger& applog();
  * @brief Logs a debug-level message if the condition fails.
  *
  * Logs a debug-level message if the provided condition evaluates to `false`. Only active
- * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled.
+ * if the `NDEBUG` flag is not defined or `BRISK_TRACING` is enabled. When logging is
+ * disabled, the condition is not evaluated.
  *
  * @param COND The condition to check.
  * @param fmtstr The format string for the message.

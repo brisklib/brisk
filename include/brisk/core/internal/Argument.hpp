@@ -20,12 +20,12 @@
  */
 #pragma once
 
-#include "../Brisk.h"
-#include <brisk/core/internal/FixedString.hpp>
-#include <brisk/core/internal/Debug.hpp>
-#include <utility>
 #include <cstdint>
-#include <variant>
+#include <utility>
+
+#include <brisk/core/Brisk.h>
+#include <brisk/core/internal/Debug.hpp>
+#include <brisk/core/internal/FixedString.hpp>
 
 namespace Brisk {
 

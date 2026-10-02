@@ -20,9 +20,9 @@
  */
 #pragma once
 
-#include <brisk/core/internal/Optional.hpp>
-#include <brisk/core/Io.hpp>
 #include <brisk/core/App.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/internal/Optional.hpp>
 
 namespace Brisk {
 

@@ -18,11 +18,13 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Bytes.hpp>
 #include <catch2/catch_all.hpp>
-#include "Catch2Utils.hpp"
+
+#include <brisk/core/Bytes.hpp>
 #include <brisk/core/Hash.hpp>
 #include <brisk/core/internal/cityhash.hpp>
+
+#include "Catch2Utils.hpp"
 
 namespace Brisk {
 
@@ -108,8 +110,8 @@ TEST_CASE("Convert Bytes to Base64") {
 }
 
 TEST_CASE("Convert Bytes to Base64 without padding") {
-    CHECK(toBase64(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }, false) ==
-          "ASNFZ4mrze8=");
+    CHECK(toBase64(Bytes{ 0x01_b, 0x23_b, 0x45_b, 0x67_b, 0x89_b, 0xAB_b, 0xCD_b, 0xEF_b }, false, false) ==
+          "ASNFZ4mrze8");
 }
 
 TEST_CASE("Convert valid Base64 string to Bytes") {

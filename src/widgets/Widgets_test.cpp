@@ -18,13 +18,16 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/Widgets.hpp>
+#include <random>
+
 #include <catch2/catch_all.hpp>
+
+#include <brisk/graphics/Offscreen.hpp>
 #include <brisk/graphics/Palette.hpp>
 #include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Widgets.hpp>
+
 #include "../graphics/VisualTests.hpp"
-#include <brisk/graphics/Offscreen.hpp>
-#include <random>
 
 namespace Brisk {
 
@@ -476,8 +479,9 @@ TEST_CASE("Button states animation") {
 TEST_CASE("Text wordWrap animation") {
     WidgetAnimation animation({ 288, 192 }, true);
 
-    std::ignore =
+    const auto registered =
         fonts->addFontFromFile(PROJECT_SOURCE_DIR "/resources/fonts/GoNotoKurrent-Regular.ttf", "Noto");
+    REQUIRE(registered.has_value());
 
     float val;
     BindingRegistration val_r(&val, nullptr);

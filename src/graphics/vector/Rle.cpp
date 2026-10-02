@@ -21,16 +21,17 @@
  * SOFTWARE.
  */
 
+#include "Rle.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <fmt/base.h>
 #include <limits>
 #include <vector>
 
-#include "Rle.hpp"
+#include <fmt/base.h>
 
 namespace Brisk {
 

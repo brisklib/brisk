@@ -19,6 +19,7 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <brisk/core/Hash.hpp>
+
 #include "cityhash/city.h"
 
 namespace Brisk {

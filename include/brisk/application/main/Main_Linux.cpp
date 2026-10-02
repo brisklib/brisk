@@ -21,15 +21,17 @@
  * For commercial licensing, please visit: https://brisklib.com/
  */
 
-#include <vector>
-#include <string>
 #include <map>
-#include <brisk/core/Encoding.hpp>
+#include <string>
+#include <vector>
+
 #include <brisk/core/App.hpp>
+#include <brisk/core/Encoding.hpp>
 #include <brisk/core/Log.hpp>
-#include "Metadata.Defines.hpp"
 #include <brisk/core/Text.hpp>
 #include <brisk/core/internal/Initialization.hpp>
+
+#include "Metadata.Defines.hpp"
 
 extern "C" char** environ;
 

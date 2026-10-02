@@ -20,9 +20,10 @@
  */
 #include <brisk/core/internal/Initialization.hpp>
 #include <brisk/graphics/Geometry.hpp>
+#include <brisk/graphics/Palette.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/gui/GuiWindow.hpp>
-#include <brisk/graphics/Palette.hpp>
+
 #include "WindowGlfw.hpp"
 
 namespace Example {

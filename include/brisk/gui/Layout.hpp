@@ -21,12 +21,14 @@
 #pragma once
 
 #include <bit>
-#include <limits>
 #include <functional>
+#include <limits>
+
+#include <fmt/format.h>
+
+#include <brisk/core/BasicTypes.hpp>
 #include <brisk/graphics/Canvas.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <brisk/core/BasicTypes.hpp>
-#include <fmt/format.h>
 
 namespace Brisk {
 

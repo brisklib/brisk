@@ -19,7 +19,9 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
+
 #include <brisk/core/Stream.hpp>
+
 #include "Catch2Utils.hpp"
 
 namespace Brisk {

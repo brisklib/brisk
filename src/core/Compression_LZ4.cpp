@@ -18,12 +18,14 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <memory>
+
+#include <lz4.h>
+#include <lz4frame.h>
+#include <lz4hc.h>
+
 #include <brisk/core/Compression.hpp>
 #include <brisk/core/Log.hpp>
-#include <lz4.h>
-#include <lz4hc.h>
-#include <lz4frame.h>
-#include <memory>
 
 namespace Brisk {
 
@@ -143,7 +145,7 @@ public:
             BRISK_LOG_ERROR("LZ4F_compressBegin failed: {}", LZ4F_getErrorName(headerSize));
             return false;
         }
-        return this->writer->write(headerData, headerSize) == headerSize;
+        return this->writer->writeAll(std::span<const std::byte>(headerData, headerSize));
     }
 
     [[nodiscard]] Transferred write(const std::byte* data, size_t size) final {
@@ -172,12 +174,8 @@ public:
             }
 
             size_t flushSize = result;
-            if (flushSize > 0) {
-                Transferred wr = writer->write(buffer.get(), flushSize);
-                if (wr.bytes() != flushSize) {
-                    return wr;
-                }
-            }
+            if (flushSize > 0 && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize)))
+                return Transferred::Error;
             available_in -= std::min(available_in, compressionBatchSize);
         }
         return size;
@@ -203,12 +201,8 @@ public:
         }
 
         size_t flushSize = result;
-        if (flushSize > 0) {
-            Transferred wr = writer->write(buffer.get(), flushSize);
-            if (wr.bytes() != flushSize) {
-                return false;
-            }
-        }
+        if (flushSize > 0 && !writer->writeAll(std::span<const std::byte>(buffer.get(), flushSize)))
+            return false;
 
         return writer->flush();
     }
@@ -249,6 +243,7 @@ Bytes lz4Encode(BytesView data, CompressionLevel level) {
     }
 
     result.resize(compressed_size);
+    result.shrink_to_fit();
     return result;
 }
 
@@ -271,6 +266,7 @@ Bytes lz4Decode(BytesView data) {
     }
 
     result.resize(decoded_size);
+    result.shrink_to_fit();
     LZ4F_freeDecompressionContext(dctx);
     return result;
 }

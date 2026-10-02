@@ -20,15 +20,12 @@
  */
 #pragma once
 
-#include "BasicTypes.hpp"
 #include <chrono>
-#include <cstdint>
-#include <cstdlib>
-#include <functional>
-#include <queue>
 #include <thread>
-#include "Math.hpp"
-#include "Json.hpp"
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Json.hpp>
+#include <brisk/core/Math.hpp>
 
 namespace Brisk {
 

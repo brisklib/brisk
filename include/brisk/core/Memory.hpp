@@ -20,10 +20,11 @@
  */
 #pragma once
 
-#include "Brisk.h"
+#include <algorithm>
 #include <cstdlib>
 #include <new>
-#include <algorithm>
+
+#include <brisk/core/Brisk.h>
 #ifdef _MSC_VER
 #include <malloc.h>
 #endif

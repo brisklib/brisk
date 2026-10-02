@@ -20,16 +20,19 @@
  */                                                                                                          \
 #pragma once
 
-#include "Pixel.hpp"
-#include "Geometry.hpp"
-#include "Color.hpp"
 #include <memory>
-#include <brisk/core/Rc.hpp>
-#include <brisk/core/internal/Optional.hpp>
+
 #include <fmt/format.h>
+
 #include <brisk/core/Exceptions.hpp>
 #include <brisk/core/Memory.hpp>
 #include <brisk/core/MetaClass.hpp>
+#include <brisk/core/Rc.hpp>
+#include <brisk/core/internal/Optional.hpp>
+
+#include "Color.hpp"
+#include "Geometry.hpp"
+#include "Pixel.hpp"
 
 namespace Brisk {
 

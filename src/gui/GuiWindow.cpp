@@ -18,12 +18,12 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <brisk/core/Log.hpp>
+#include <brisk/core/Text.hpp>
+#include <brisk/core/internal/Functional.hpp>
+#include <brisk/gui/Component.hpp>
 #include <brisk/gui/GuiWindow.hpp>
 #include <brisk/gui/Styles.hpp>
-#include <brisk/core/internal/Functional.hpp>
-#include <brisk/core/Text.hpp>
-#include <brisk/core/Log.hpp>
-#include <brisk/gui/Component.hpp>
 
 namespace Brisk {
 

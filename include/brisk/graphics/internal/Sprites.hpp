@@ -20,11 +20,12 @@
  */                                                                                                          \
 #pragma once
 
+#include <cstdint>
+
+#include <brisk/core/Rc.hpp>
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/Debug.hpp>
-#include <brisk/core/Rc.hpp>
 #include <brisk/graphics/Geometry.hpp>
-#include <cstdint>
 
 namespace Brisk {
 

@@ -19,19 +19,22 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #define BRISK_ALLOW_OS_HEADERS 1
-#include <brisk/window/Types.hpp>
-#include <brisk/window/Window.hpp>
-#include <brisk/graphics/internal/NSTypes.hpp>
 #include <algorithm>
+
 #import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>
-#include <brisk/core/BasicTypes.hpp>
-#include <brisk/core/Time.hpp>
-#include "PlatformWindow.hpp"
-#include <brisk/graphics/NativeWindowHandle.hpp>
-#include <brisk/window/Display.hpp>
-#include <brisk/core/Localization.hpp>
+
 #include <brisk/core/App.hpp>
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Localization.hpp>
+#include <brisk/core/Time.hpp>
+#include <brisk/graphics/NativeWindowHandle.hpp>
+#include <brisk/graphics/internal/NSTypes.hpp>
+#include <brisk/window/Display.hpp>
+#include <brisk/window/Types.hpp>
+#include <brisk/window/Window.hpp>
+
+#include "PlatformWindow.hpp"
 
 // Set up the menu bar (manually)
 // This is nasty, nasty stuff -- calls to undocumented semi-private APIs that
@@ -781,10 +784,10 @@ using namespace Brisk;
                                           NSTrackingEnabledDuringMouseDrag | NSTrackingCursorUpdate |
                                           NSTrackingInVisibleRect | NSTrackingAssumeInside;
 
-    trackingArea = [[NSTrackingArea alloc] initWithRect:[self bounds]
-                                                options:options
-                                                  owner:self
-                                               userInfo:nil];
+    trackingArea                        = [[NSTrackingArea alloc] initWithRect:[self bounds]
+                                                                       options:options
+                                                                         owner:self
+                                                                      userInfo:nil];
 
     [self addTrackingArea:trackingArea];
     [super updateTrackingAreas];
@@ -1088,8 +1091,8 @@ bool PlatformWindow::createWindow() {
     m_framebufferSize = fromNSSize([m_data->view convertRectToBacking:frame].size);
 
     m_scale           = SizeF{ 1.f * m_framebufferSize.width / m_windowSize.width,
-                     1.f * m_framebufferSize.height / m_windowSize.height }
-                  .longestSide();
+                               1.f * m_framebufferSize.height / m_windowSize.height }
+                            .longestSide();
 
     return true;
 }

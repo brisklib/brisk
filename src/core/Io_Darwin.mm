@@ -20,10 +20,11 @@
  */
 #include <mach-o/dyld.h>
 #include <pwd.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <brisk/core/Io.hpp>
-#include <sys/stat.h>
 #include <brisk/core/Text.hpp>
 
 namespace Brisk {

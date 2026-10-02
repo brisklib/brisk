@@ -105,16 +105,18 @@ static void computeFlexBasisForChild(
     const FloatOptional paddingAndBorder = FloatOptional(
         paddingAndBorderForAxis(child, FlexDirection::Row, ownerWidth));
 
-    child->setLayoutComputedFlexBasis(yoga::maxOrDefined(
-        child->getResolvedDimension(Dimension::Width).resolve(ownerWidth),
-        paddingAndBorder)); // content-box: replace maxOrDefined by +
+    child->setLayoutComputedFlexBasis(
+        yoga::maxOrDefined(
+            child->getResolvedDimension(Dimension::Width).resolve(ownerWidth),
+            paddingAndBorder)); // content-box: replace maxOrDefined by +
   } else if (!isMainAxisRow && isColumnStyleDimDefined) {
     // The height is definite, so use that as the flex basis.
     const FloatOptional paddingAndBorder = FloatOptional(
         paddingAndBorderForAxis(child, FlexDirection::Column, ownerWidth));
-    child->setLayoutComputedFlexBasis(yoga::maxOrDefined(
-        child->getResolvedDimension(Dimension::Height).resolve(ownerHeight),
-        paddingAndBorder)); // content-box: replace maxOrDefined by +
+    child->setLayoutComputedFlexBasis(
+        yoga::maxOrDefined(
+            child->getResolvedDimension(Dimension::Height).resolve(ownerHeight),
+            paddingAndBorder)); // content-box: replace maxOrDefined by +
   } else {
     // Compute the flex basis and hypothetical main size (i.e. the clamped flex
     // basis).
@@ -240,9 +242,10 @@ static void computeFlexBasisForChild(
         depth,
         generationCount);
 
-    child->setLayoutComputedFlexBasis(FloatOptional(yoga::maxOrDefined(
-        child->getLayout().measuredDimension(dimension(mainAxis)),
-        paddingAndBorderForAxis(child, mainAxis, ownerWidth))));
+    child->setLayoutComputedFlexBasis(FloatOptional(
+        yoga::maxOrDefined(
+            child->getLayout().measuredDimension(dimension(mainAxis)),
+            paddingAndBorderForAxis(child, mainAxis, ownerWidth))));
   }
   child->setLayoutComputedFlexBasisGeneration(generationCount);
 }
@@ -1669,11 +1672,11 @@ static void calculateLayoutImpl(
                 child->style().flexEndMarginIsAuto(crossAxis, direction)) {
               leadingCrossDim +=
                   yoga::maxOrDefined(0.0f, remainingCrossDim / 2);
-            } else if (child->style().flexEndMarginIsAuto(
-                           crossAxis, direction)) {
+            } else if (
+                child->style().flexEndMarginIsAuto(crossAxis, direction)) {
               // No-Op
-            } else if (child->style().flexStartMarginIsAuto(
-                           crossAxis, direction)) {
+            } else if (
+                child->style().flexStartMarginIsAuto(crossAxis, direction)) {
               leadingCrossDim += yoga::maxOrDefined(0.0f, remainingCrossDim);
             } else if (alignItem == Align::FlexStart) {
               // No-Op
@@ -2276,9 +2279,8 @@ bool calculateLayout(
              FlexDirection::Row,
              ownerWidth)); // content-box: add paddingAndBorder for axis
     widthSizingMode = SizingMode::StretchFit;
-  } else if (style.maxDimension(Dimension::Width)
-                 .resolve(ownerWidth)
-                 .isDefined()) {
+  } else if (
+      style.maxDimension(Dimension::Width).resolve(ownerWidth).isDefined()) {
     width = style.maxDimension(Dimension::Width)
                 .resolve(ownerWidth)
                 .unwrap(); // content-box: add paddingAndBorder for axis
@@ -2300,9 +2302,8 @@ bool calculateLayout(
              FlexDirection::Column,
              ownerWidth)); // content-box: add paddingAndBorder for axis
     heightSizingMode = SizingMode::StretchFit;
-  } else if (style.maxDimension(Dimension::Height)
-                 .resolve(ownerHeight)
-                 .isDefined()) {
+  } else if (
+      style.maxDimension(Dimension::Height).resolve(ownerHeight).isDefined()) {
     height = style.maxDimension(Dimension::Height)
                  .resolve(ownerHeight)
                  .unwrap(); // content-box: add paddingAndBorder for axis

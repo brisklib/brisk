@@ -18,11 +18,11 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/widgets/PopupDialog.hpp>
 #include <brisk/widgets/Button.hpp>
+#include <brisk/widgets/Layouts.hpp>
+#include <brisk/widgets/PopupDialog.hpp>
 #include <brisk/widgets/Spacer.hpp>
 #include <brisk/widgets/Text.hpp>
-#include <brisk/widgets/Layouts.hpp>
 
 namespace Brisk {
 
@@ -70,7 +70,7 @@ PopupOKDialog::PopupOKDialog(Construction construction, std::string title, Value
                       Arg::classes   = { "dialog-button" },
                       Arg::alignSelf = AlignSelf::Center,
                       Arg::onClick   = lifetime() |
-                                     [accepted = std::move(accepted), visibleProp]() {
+                                       [accepted = std::move(accepted), visibleProp]() {
                                          visibleProp.set(false);
                                          accepted();
                                      },

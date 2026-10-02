@@ -18,9 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <brisk/graphics/Palette.hpp>
 #include <brisk/widgets/Color.hpp>
 #include <brisk/widgets/Slider.hpp>
-#include <brisk/graphics/Palette.hpp>
 
 namespace Brisk {
 
@@ -216,7 +216,7 @@ Rc<Widget> ColorPalette::addColor(ColorW swatch, float brightness, float chroma)
         Arg::padding      = 0,
         Arg::margin       = 2,
         Arg::onClick      = lifetime() |
-                       [this, c]() BRISK_INLINE_LAMBDA {
+                            [this, c]() BRISK_INLINE_LAMBDA {
                            value = c;
                        },
         Arg::enabled = Value{ &this->enabled },

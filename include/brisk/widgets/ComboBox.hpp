@@ -20,11 +20,11 @@
  */
 #pragma once
 
-#include "ValueWidget.hpp"
 #include "Item.hpp"
-#include "ToggleButton.hpp"
 #include "Menu.hpp"
 #include "Text.hpp"
+#include "ToggleButton.hpp"
+#include "ValueWidget.hpp"
 
 namespace Brisk {
 

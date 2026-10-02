@@ -18,11 +18,14 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <catch2/catch_all.hpp>
-#include "Catch2Utils.hpp"
-#include <fmt/format.h>
 #include <string_view>
+
+#include <catch2/catch_all.hpp>
+#include <fmt/format.h>
+
 #include <brisk/core/Text.hpp>
+
+#include "Catch2Utils.hpp"
 #include "test/HelloWorld.hpp"
 
 using namespace Brisk;
@@ -41,6 +44,7 @@ TEST_CASE("case") {
 }
 
 TEST_CASE("textWordWrap") {
+    CHECK(textWordWrap("Hello", 0) == "Hello");
     CHECK(textWordWrap("Hello, world!", 13) == "Hello, world!");
     CHECK(textWordWrap("Hello, world!", 12) == "Hello,\nworld!");
     CHECK(textWordWrap("Hello, world!", 5) == "Hello\n,\nworld\n!");
@@ -75,6 +79,8 @@ TEST_CASE("shorten") {
 
     CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 3, 0.f, U"...") == "...");
     CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 1, 0.f, U"...") == "...");
+    CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 0, 0.5f, U"...") == "...");
+    CHECK(shorten("abcdefghijklmnopqrstuvwxyz", 1, 1.f, U"...") == "...");
 }
 
 TEST_CASE("toNumber") {

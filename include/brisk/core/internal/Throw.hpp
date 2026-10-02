@@ -20,12 +20,11 @@
  */
 #pragma once
 
-#include "../Brisk.h"
-
-#include <brisk/core/internal/Typename.hpp>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
+
+#include <brisk/core/Brisk.h>
+#include <brisk/core/internal/Typename.hpp>
 
 namespace Brisk {
 

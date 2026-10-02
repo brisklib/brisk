@@ -19,10 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Dialogs.hpp"
+
 #include <brisk/gui/Component.hpp>
 #include <brisk/widgets/DialogComponent.hpp>
-#include <brisk/window/OsDialogs.hpp>
 #include <brisk/widgets/Graphene.hpp>
+#include <brisk/window/OsDialogs.hpp>
 
 namespace Brisk {
 

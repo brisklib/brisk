@@ -19,11 +19,13 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "RenderEncoder.hpp"
-#include "ImageBackend.hpp"
-#include <brisk/core/Utilities.hpp>
-#include "../Atlas.hpp"
+
 #include <brisk/core/Log.hpp>
 #include <brisk/core/Time.hpp>
+#include <brisk/core/Utilities.hpp>
+
+#include "../Atlas.hpp"
+#include "ImageBackend.hpp"
 #include "ImageRenderTarget.hpp"
 #include "WindowRenderTarget.hpp"
 
@@ -58,8 +60,6 @@ void RenderEncoderD3d11::begin(Rc<RenderTarget> target, std::optional<ColorF> cl
                        1.f / m_frameSize.height),
         m_visualSettings.blueLightFilter,
         m_visualSettings.gamma,
-        Internal::textRectPadding,
-        Internal::textRectOffset,
         Internal::max2DTextureSize,
     };
 

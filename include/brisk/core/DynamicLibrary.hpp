@@ -81,7 +81,7 @@ struct DynamicFunc {
      * @param name The name of the function in the library.
      */
     DynamicFunc(const Rc<DynamicLibrary>& library, const std::string& name) {
-        m_func = library->func<Func*>(name);
+        m_func = library->func<Func>(name);
     }
 
     /**
@@ -92,7 +92,6 @@ struct DynamicFunc {
      */
     DynamicFunc(const Rc<DynamicLibrary>& library, const std::string& name, bool& flag)
         : DynamicFunc(library, name) {
-        m_func = library->func<Func*>(name);
         if (!m_func) {
             flag = false;
         }

@@ -24,7 +24,17 @@ BinPackParameters : true
 BinPackArguments : true
 AlwaysBreakTemplateDeclarations : true
 AlignConsecutiveAssignments : AcrossEmptyLinesAndComments
-SortIncludes : false
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+    - Regex: '<[a-z_0-9]+>'
+      Priority: 1
+    - Regex: '<brisk/'
+      Priority: 3
+    - Regex: '<.*>'
+      Priority: 2
+    - Regex: '.*'
+      Priority: 4
 SeparateDefinitionBlocks : Always
 ---
 Language : Cpp

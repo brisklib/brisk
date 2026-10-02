@@ -24,6 +24,7 @@
 #include <climits>
 #include <cstring>
 #include <memory>
+
 #include "v_ft_raster.h"
 
 namespace Brisk {
@@ -246,7 +247,7 @@ struct Rasterizer {
     Rectangle mClip;
     FillRule mFillRule;
 
-    Rasterizer() {}
+    Rasterizer() : outline{}, mRle{}, mClip{}, mFillRule{} {}
 
     ~Rasterizer() {}
 

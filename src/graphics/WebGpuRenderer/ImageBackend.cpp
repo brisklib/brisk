@@ -19,8 +19,9 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "ImageBackend.hpp"
-#include <brisk/core/Utilities.hpp>
+
 #include <brisk/core/Log.hpp>
+#include <brisk/core/Utilities.hpp>
 
 namespace Brisk {
 

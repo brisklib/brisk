@@ -18,8 +18,10 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/Binding.hpp>
 #include <catch2/catch_all.hpp>
+
+#include <brisk/core/Binding.hpp>
+
 #include "Catch2Utils.hpp"
 
 namespace Brisk {
@@ -133,11 +135,11 @@ TEST_CASE("Binding: reentrancy1") {
     int listenerCalled = 0;
 
     h1                 = bindings->connect(Value<int>::listener(
-                               [&]() {
+                                               [&]() {
                                    ++listenerCalled; // Increment the counter when the listener is called
                                    bindings->disconnect(h1); // Disconnect the listener after it's called
-                               },
-                               toBindingAddress(&source)),
+                                               },
+                                               toBindingAddress(&source)),
                                            Value{ &source }, BindType::Deferred, false);
 
     mainScheduler->process();

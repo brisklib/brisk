@@ -20,11 +20,14 @@
  */
 #pragma once
 
+#include <unordered_map>
+
+#include <fmt/format.h>
+
 #include <brisk/core/Hash.hpp>
+#include <brisk/core/Rc.hpp>
 #include <brisk/core/internal/Constants.hpp>
 #include <brisk/core/internal/FixedString.hpp>
-#include <fmt/format.h>
-#include <unordered_map>
 
 namespace Brisk {
 

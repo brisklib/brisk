@@ -21,6 +21,7 @@
 #pragma once
 
 #include <array>
+
 #include "Color.hpp"
 
 namespace Brisk {

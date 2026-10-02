@@ -622,7 +622,7 @@ struct MatrixOf {
     std::optional<MatrixOf> invert() const {
         T det = a * d - b * c; // determinant
 
-        if (det < std::numeric_limits<T>::epsilon()) {
+        if (std::abs(det) < std::numeric_limits<T>::epsilon()) {
             return std::nullopt; // Matrix is not invertible
         }
 

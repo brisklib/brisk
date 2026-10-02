@@ -22,9 +22,9 @@
  */
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 namespace Brisk {
 extern std::vector<std::string> args;

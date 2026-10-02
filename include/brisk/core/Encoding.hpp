@@ -20,11 +20,11 @@
  */
 #pragma once
 
-#include "BasicTypes.hpp"
 #include <string_view>
-#include <vector>
-#include "Json.hpp"
-#include "internal/FunctionRef.hpp"
+
+#include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Json.hpp>
+#include <brisk/core/internal/FunctionRef.hpp>
 
 namespace Brisk {
 
@@ -599,7 +599,7 @@ struct Utf8Character {
     explicit Utf8Character(char32_t codepoint) {
         char* data = buf;
         utfWrite(data, buf + 4, codepoint);
-        len  = static_cast<uint32_t>(data - buf);
+        len   = static_cast<uint32_t>(data - buf);
         *data = '\0';
     }
 

@@ -18,8 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/ColorSpace.hpp>
 #include <cfloat>
+
+#include <brisk/graphics/ColorSpace.hpp>
 
 namespace Brisk {
 
@@ -194,9 +195,9 @@ static Simd<double, 3> convertColorSpace(const ColorSpace dest, const Simd<doubl
                 value  = srgbLinearToGamma(value);
                 source = ColorSpace::sRGBGamma;
             } else {
-                value = value[0] * Simd<double, 3>{ (41.24), (21.26), (01.93) } +
-                        value[1] * Simd<double, 3>{ (35.76), (71.52), (11.92) } +
-                        value[2] * Simd<double, 3>{ (18.05), (07.22), (95.05) };
+                value  = value[0] * Simd<double, 3>{ (41.24), (21.26), (01.93) } +
+                         value[1] * Simd<double, 3>{ (35.76), (71.52), (11.92) } +
+                         value[2] * Simd<double, 3>{ (18.05), (07.22), (95.05) };
                 source = ColorSpace::CIEXYZ;
             }
             break;
@@ -205,9 +206,9 @@ static Simd<double, 3> convertColorSpace(const ColorSpace dest, const Simd<doubl
                 value  = srgbLinearToGamma(value);
                 source = ColorSpace::DisplayP3Gamma;
             } else {
-                value = value[0] * Simd<double, 3>{ 48.6571, 22.8975, 0.0000 } +
-                        value[1] * Simd<double, 3>{ 26.5668, 69.1739, 4.5113 } +
-                        value[2] * Simd<double, 3>{ 19.8217, 7.9287, 104.3944 };
+                value  = value[0] * Simd<double, 3>{ 48.6571, 22.8975, 0.0000 } +
+                         value[1] * Simd<double, 3>{ 26.5668, 69.1739, 4.5113 } +
+                         value[2] * Simd<double, 3>{ 19.8217, 7.9287, 104.3944 };
                 source = ColorSpace::CIEXYZ;
             }
             break;
@@ -233,7 +234,7 @@ static Simd<double, 3> convertColorSpace(const ColorSpace dest, const Simd<doubl
                 value = value[0] * (0.01) +
                         value[1] * Simd<double, 3>{ (0.003963377774), (-0.001055613458), (-0.000894841775) } +
                         value[2] * Simd<double, 3>{ (0.002158037573), (-0.000638541728), (-0.012914855480) };
-                value  = value * value * value;
+                value = value * value * value;
                 source = ColorSpace::LMS;
             }
             break;
@@ -241,17 +242,17 @@ static Simd<double, 3> convertColorSpace(const ColorSpace dest, const Simd<doubl
             switch (dest) {
             case ColorSpace::sRGBLinear:
             case ColorSpace::sRGBGamma:
-                value = value[0] * Simd<double, 3>{ (+0.032406), (-0.009689), (+0.000557) } +
-                        value[1] * Simd<double, 3>{ (-0.015372), (+0.018758), (-0.002040) } +
-                        value[2] * Simd<double, 3>{ (-0.004986), (+0.000415), (+0.010570) };
+                value  = value[0] * Simd<double, 3>{ (+0.032406), (-0.009689), (+0.000557) } +
+                         value[1] * Simd<double, 3>{ (-0.015372), (+0.018758), (-0.002040) } +
+                         value[2] * Simd<double, 3>{ (-0.004986), (+0.000415), (+0.010570) };
                 source = ColorSpace::sRGBLinear;
                 break;
 
             case ColorSpace::DisplayP3Linear:
             case ColorSpace::DisplayP3Gamma:
-                value = value[0] * Simd<double, 3>{ 0.02493498, -0.0082949, 0.00035846 } +
-                        value[1] * Simd<double, 3>{ -0.00931385, 0.01762664, -0.00076172 } +
-                        value[2] * Simd<double, 3>{ -0.0040271, 0.00023625, 0.00956885 };
+                value  = value[0] * Simd<double, 3>{ 0.02493498, -0.0082949, 0.00035846 } +
+                         value[1] * Simd<double, 3>{ -0.00931385, 0.01762664, -0.00076172 } +
+                         value[2] * Simd<double, 3>{ -0.0040271, 0.00023625, 0.00956885 };
                 source = ColorSpace::DisplayP3Linear;
                 break;
 
@@ -281,15 +282,15 @@ static Simd<double, 3> convertColorSpace(const ColorSpace dest, const Simd<doubl
             break;
         case ColorSpace::LMS:
             if (dest == ColorSpace::OKLCH || dest == ColorSpace::OKLAB) {
-                value = cbrt(value);
-                value = value[0] * Simd<double, 3>{ (21.04542553), (197.79984951), (2.59040371) } +
-                        value[1] * Simd<double, 3>{ (79.36177850), (-242.85922050), (78.27717662) } +
-                        value[2] * Simd<double, 3>{ (-0.40720468), (45.05937099), (-80.86757660) };
+                value  = cbrt(value);
+                value  = value[0] * Simd<double, 3>{ (21.04542553), (197.79984951), (2.59040371) } +
+                         value[1] * Simd<double, 3>{ (79.36177850), (-242.85922050), (78.27717662) } +
+                         value[2] * Simd<double, 3>{ (-0.40720468), (45.05937099), (-80.86757660) };
                 source = ColorSpace::OKLAB;
             } else {
-                value = value[0] * Simd<double, 3>{ (+122.70138511), (-4.05801784), (-7.63812845) } +
-                        value[1] * Simd<double, 3>{ (-55.77999806), (+111.22568696), (-42.14819784) } +
-                        value[2] * Simd<double, 3>{ (+28.12561490), (-7.16766787), (+158.61632204) };
+                value  = value[0] * Simd<double, 3>{ (+122.70138511), (-4.05801784), (-7.63812845) } +
+                         value[1] * Simd<double, 3>{ (-55.77999806), (+111.22568696), (-42.14819784) } +
+                         value[2] * Simd<double, 3>{ (+28.12561490), (-7.16766787), (+158.61632204) };
                 source = ColorSpace::CIEXYZ;
             }
             break;

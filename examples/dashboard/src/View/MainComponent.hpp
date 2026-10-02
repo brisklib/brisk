@@ -21,19 +21,20 @@
 #pragma once
 
 #include <brisk/core/internal/Initialization.hpp>
+#include <brisk/graphics/Fonts.hpp>
+#include <brisk/gui/Action.hpp>
+#include <brisk/gui/Component.hpp>
+#include <brisk/gui/Groups.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/gui/GuiWindow.hpp>
-#include <brisk/widgets/Layouts.hpp>
-#include <brisk/widgets/Text.hpp>
+#include <brisk/gui/Icons.hpp>
 #include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/Graphene.hpp>
-#include <brisk/gui/Component.hpp>
-#include <brisk/graphics/Fonts.hpp>
-#include <brisk/gui/Icons.hpp>
-#include "ViewModel/ViewModel.hpp"
-#include <brisk/gui/Action.hpp>
-#include <brisk/gui/Groups.hpp>
+#include <brisk/widgets/Layouts.hpp>
 #include <brisk/widgets/Notifications.hpp>
+#include <brisk/widgets/Text.hpp>
+
+#include "ViewModel/ViewModel.hpp"
 
 namespace App {
 using namespace Brisk;

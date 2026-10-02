@@ -1,9 +1,10 @@
+#include <sstream>
+
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/gui/Component.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/widgets/Widgets.hpp>
 #include <brisk/window/OsDialogs.hpp>
-#include <brisk/gui/Component.hpp>
-#include <brisk/graphics/Palette.hpp>
-#include <sstream>
 
 namespace Brisk {
 

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdint>
-#include <string_view>
-#include <span>
-#include <memory>
 #include <cassert>
+#include <cstdint>
+#include <memory>
+#include <span>
+#include <string_view>
 
 #include <brisk/core/BasicTypes.hpp>
 

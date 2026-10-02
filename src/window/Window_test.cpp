@@ -19,8 +19,10 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
-#include "../core/Catch2Utils.hpp"
+
 #include <brisk/window/Window.hpp>
+
+#include "../core/Catch2Utils.hpp"
 #include "PlatformWindow.hpp"
 
 using namespace Brisk;

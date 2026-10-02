@@ -19,9 +19,10 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <catch2/catch_all.hpp>
-#include "Catch2Utils.hpp"
 
 #include <brisk/graphics/Geometry.hpp>
+
+#include "Catch2Utils.hpp"
 
 namespace Brisk {
 TEST_CASE("Rectangle") {

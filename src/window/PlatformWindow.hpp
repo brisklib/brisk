@@ -21,10 +21,11 @@
 #pragma once
 
 #include <bitset>
+
+#include <brisk/graphics/Geometry.hpp>
 #include <brisk/window/Types.hpp>
 #include <brisk/window/Window.hpp>
 #include <brisk/window/WindowApplication.hpp>
-#include <brisk/graphics/Geometry.hpp>
 
 namespace Brisk {
 
@@ -108,7 +109,8 @@ public:
 
     Bytes placement() const;
     void setPlacement(BytesView data);
-    explicit PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style, NativeWindowHandle parent);
+    explicit PlatformWindow(Window* window, Size windowSize, Point position, WindowStyle style,
+                            NativeWindowHandle parent);
     bool createWindow();
 
     void setTitle(std::string_view title);

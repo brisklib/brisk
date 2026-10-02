@@ -1,10 +1,13 @@
 #include "text_layout/FontDatabase.hpp"
 
-#include <brisk/core/internal/InlineVector.hpp>
-
+#include <ft2build.h>
 #include <hb-ft.h>
 #include <hb-ot.h>
-#include <ft2build.h>
+
+#include <brisk/core/Hash.hpp>
+#include <brisk/core/Io.hpp>
+#include <brisk/core/internal/InlineVector.hpp>
+
 #include FT_FREETYPE_H
 #include FT_MODULE_H
 #include FT_MULTIPLE_MASTERS_H
@@ -224,6 +227,7 @@ struct FontFileRecord {
     size_t dataSize{};
     FT_Long faceIndex{};
     std::string familyName;
+    uint32_t dataHash{};
     bool italic{};
     uint16_t weight{};
     bool asciiFastShapingSafe{};
@@ -238,6 +242,31 @@ struct FontFileRecord {
 
     inline_vector<VariationAxis, kMaxVariationAxes> variationAxes;
 };
+
+[[nodiscard]] uint32_t crc32FileData(const std::filesystem::path& path) {
+    const expected<Bytes, IoError> bytes = readBytes(path);
+    if (!bytes) {
+        return 0;
+    }
+    const Bytes& data = *bytes;
+    return crc32(BytesView{ data.data(), data.size() });
+}
+
+[[nodiscard]] bool less_font_record(const FontFileRecord& a, const FontFileRecord& b) noexcept {
+    if (const int familyOrder = compare_ci(a.familyName, b.familyName); familyOrder != 0) {
+        return familyOrder < 0;
+    }
+    if (a.italic != b.italic) {
+        return a.italic < b.italic;
+    }
+    if (a.weight != b.weight) {
+        return a.weight > b.weight;
+    }
+    if (a.dataHash != b.dataHash) {
+        return a.dataHash < b.dataHash;
+    }
+    return a.faceIndex < b.faceIndex;
+}
 
 struct FaceKey {
     uint32_t fileId{};
@@ -426,7 +455,8 @@ public:
     }
 
     /// Registers all faces of an in-memory font file without copying the bytes.
-    std::vector<std::string> registerFont(std::span<const std::byte> data) override {
+    std::vector<std::string> registerFont(std::span<const std::byte> data,
+                                          std::optional<size_t> requestedFaceIndex = {}) override {
         std::vector<std::string> families;
         if (m_libraryOwner == nullptr || m_libraryOwner->library == nullptr || data.empty()) {
             return families;
@@ -442,7 +472,13 @@ public:
         FT_Done_Face(first);
         ++m_ftDoneFaceCalls;
 
-        for (FT_Long faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
+        if (requestedFaceIndex && *requestedFaceIndex >= static_cast<size_t>(faceCount)) {
+            return families;
+        }
+
+        const FT_Long firstFaceIndex = requestedFaceIndex ? static_cast<FT_Long>(*requestedFaceIndex) : 0;
+        const FT_Long lastFaceIndex  = requestedFaceIndex ? firstFaceIndex + 1 : faceCount;
+        for (FT_Long faceIndex = firstFaceIndex; faceIndex < lastFaceIndex; ++faceIndex) {
             FT_Face face = nullptr;
             ++m_ftNewFaceCalls;
             if (FT_New_Memory_Face(m_libraryOwner->library, reinterpret_cast<const FT_Byte*>(data.data()),
@@ -454,6 +490,7 @@ public:
             record.data      = data.data();
             record.dataSize  = data.size();
             record.faceIndex = faceIndex;
+            record.dataHash  = crc32(BytesView{ data.data(), data.size() });
             if (face->family_name != nullptr) {
                 record.familyName = face->family_name;
                 families.push_back(record.familyName);
@@ -482,10 +519,7 @@ public:
         }
 
         if (faceCount > 0) {
-            std::sort(m_fontFiles.begin(), m_fontFiles.end(),
-                      [](const FontFileRecord& a, const FontFileRecord& b) {
-                          return less_ci(a.familyName, b.familyName);
-                      });
+            std::sort(m_fontFiles.begin(), m_fontFiles.end(), less_font_record);
         }
         return families;
     }
@@ -731,6 +765,7 @@ public:
             ec.clear();
             const std::filesystem::path canonical = std::filesystem::weakly_canonical(entry.path(), ec);
             const std::filesystem::path path      = ec ? entry.path() : canonical;
+            const uint32_t dataHash               = crc32FileData(path);
             FT_Face first                         = nullptr;
             ++m_ftNewFaceCalls;
             if (FT_New_Face(m_libraryOwner->library, path.string().c_str(), 0, &first) != 0) {
@@ -750,6 +785,7 @@ public:
                 record.id        = ++m_uniqueFontFileId;
                 record.path      = path;
                 record.faceIndex = faceIndex;
+                record.dataHash  = dataHash;
                 if (face->family_name != nullptr) {
                     record.familyName = face->family_name;
                 }
@@ -777,10 +813,7 @@ public:
             }
         }
 
-        std::sort(m_fontFiles.begin(), m_fontFiles.end(),
-                  [](const FontFileRecord& a, const FontFileRecord& b) {
-                      return less_ci(a.familyName, b.familyName);
-                  });
+        std::sort(m_fontFiles.begin(), m_fontFiles.end(), less_font_record);
     }
 
     static constexpr size_t kRecentInstanceCount = 8;

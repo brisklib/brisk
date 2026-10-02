@@ -24,12 +24,12 @@
 #error "Brisk was not compiled with D3D11 support"
 #endif
 
-#include <brisk/graphics/Renderer.hpp>
-#include <brisk/graphics/Canvas.hpp>
-#include <brisk/graphics/Image.hpp>
-
 #include <d3d11.h>
 #include <wrl/client.h>
+
+#include <brisk/graphics/Canvas.hpp>
+#include <brisk/graphics/Image.hpp>
+#include <brisk/graphics/Renderer.hpp>
 
 namespace Brisk {
 

@@ -22,11 +22,12 @@
  */
 #pragma once
 
-#include "../Brisk.h"
-
 #include <string_view>
+
 #include <fmt/format.h>
-#include "../internal/Throw.hpp"
+
+#include <brisk/core/Brisk.h>
+#include <brisk/core/internal/Throw.hpp>
 
 #if defined BRISK_MSVC
 #include <intrin.h>

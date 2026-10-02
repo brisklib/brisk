@@ -19,7 +19,8 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #pragma once
-#include "llvm/SmallVector.h"
+#include <brisk/core/internal/llvm/SmallVector.h>
+
 #include "lexicographical_compare_three_way.hpp"
 
 namespace llvm {

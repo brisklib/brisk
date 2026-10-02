@@ -22,23 +22,22 @@
 #define OEMRESOURCE
 
 #define NOMINMAX 1
+#include <dwmapi.h>
 #include <windows.h>
 #include <windowsx.h>
-#include "ShellScalingApi.h"
-#include <dwmapi.h>
 
 #include <brisk/core/Encoding.hpp>
-#include "PlatformWindow.hpp"
-#include <brisk/window/Window.hpp>
 #include <brisk/core/Log.hpp>
-#include <brisk/core/Time.hpp>
-#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/core/System.hpp>
-
+#include <brisk/core/Time.hpp>
 #include <brisk/core/platform/SystemWindows.hpp>
-
+#include <brisk/graphics/NativeWindowHandle.hpp>
 #include <brisk/window/Display.hpp>
 #include <brisk/window/Types.hpp>
+#include <brisk/window/Window.hpp>
+
+#include "PlatformWindow.hpp"
+#include "ShellScalingApi.h"
 
 namespace Brisk {
 

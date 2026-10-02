@@ -18,9 +18,9 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/graphics/ImageFormats.hpp>
-#include <brisk/core/Utilities.hpp>
 #include <brisk/core/Stream.hpp>
+#include <brisk/core/Utilities.hpp>
+#include <brisk/graphics/ImageFormats.hpp>
 
 namespace Brisk {
 
@@ -31,13 +31,15 @@ std::optional<ImageCodec> guessImageCodec(BytesView bytes) {
     if (cc.matches("\x42\x4D??")) {
         return ImageCodec::BMP;
     }
-    if (cc.matches("\xFF\xD8??") || cc.matches("\xFF\xD9??")) {
+    if (cc.matches("\xFF\xD8??")) {
         return ImageCodec::JPEG;
     }
     if (cc.matches("\x89\x50\x4E\x47")) {
         return ImageCodec::PNG;
     }
-    if (cc.matches("RIFF")) {
+    // WebP files use the RIFF container with a WEBP form type at offset 8.
+    if (bytes.size() >= 12 && cc.matches("RIFF") &&
+        readFromBytes<FourCC>(BytesView{ bytes.data() + 8, 4 }).matches("WEBP")) {
         return ImageCodec::WEBP;
     }
     return std::nullopt;

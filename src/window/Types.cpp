@@ -169,6 +169,8 @@ std::string keyModifiersToString(KeyModifiers mods, const std::string& joiner, b
 #endif
     if (finalJoiner)
         return result;
+    if (result.empty())
+        return result;
     return result.substr(0, result.size() - joiner.size());
 }
 

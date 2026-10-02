@@ -18,16 +18,16 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
-#include <brisk/core/internal/Initialization.hpp>
 #include <brisk/core/Text.hpp>
+#include <brisk/core/internal/Initialization.hpp>
 #include <brisk/graphics/Geometry.hpp>
+#include <brisk/graphics/Palette.hpp>
+#include <brisk/gui/Gui.hpp>
 #include <brisk/gui/GuiApplication.hpp>
 #include <brisk/gui/GuiWindow.hpp>
-#include <brisk/gui/Gui.hpp>
+#include <brisk/widgets/Button.hpp>
 #include <brisk/widgets/Graphene.hpp>
 #include <brisk/widgets/Text.hpp>
-#include <brisk/widgets/Button.hpp>
-#include <brisk/graphics/Palette.hpp>
 
 #include "../own-window/WindowGlfw.hpp"
 

@@ -19,15 +19,16 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include "Editors.hpp"
-#include <brisk/gui/Icons.hpp>
-#include <brisk/widgets/Layouts.hpp>
-#include <brisk/widgets/Text.hpp>
-#include <brisk/widgets/Slider.hpp>
-#include <brisk/widgets/Knob.hpp>
-#include <brisk/widgets/TextEditor.hpp>
-#include <brisk/widgets/SpinBox.hpp>
-#include <brisk/widgets/Color.hpp>
+
 #include <brisk/graphics/Palette.hpp>
+#include <brisk/gui/Icons.hpp>
+#include <brisk/widgets/Color.hpp>
+#include <brisk/widgets/Knob.hpp>
+#include <brisk/widgets/Layouts.hpp>
+#include <brisk/widgets/Slider.hpp>
+#include <brisk/widgets/SpinBox.hpp>
+#include <brisk/widgets/Text.hpp>
+#include <brisk/widgets/TextEditor.hpp>
 
 namespace Brisk {
 
