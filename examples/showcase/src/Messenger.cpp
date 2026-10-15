@@ -45,7 +45,7 @@ void ShowcaseMessenger::messagesBuilder(Widget* target) {
         Rc<Widget> content;
         std::visit(Overload{
                        [&](std::string textContent) {
-                           content = rcnew Text{ std::move(textContent), wordWrap = true };
+                           content = rcnew Text{ std::move(textContent), wordWrap = true, selectable = true };
                        },
                        [&](Rc<Image> imageContent) {
                            float imageAspect =
