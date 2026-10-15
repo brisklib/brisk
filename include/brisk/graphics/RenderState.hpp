@@ -129,16 +129,6 @@ struct GeometryGlyph {
     float stride;
 };
 
-struct GeometryArc {
-    PointF center;
-    float outerRadius;
-    float innerRadius;
-    float startAngle;
-    float stopAngle;
-    float reserved1;
-    float reserved2;
-};
-
 inline bool toJson(Json& b, const GradientColors& v) {
     return packArray(b, v.color1, v.color2);
 }
