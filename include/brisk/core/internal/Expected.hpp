@@ -21,7 +21,12 @@
  * For commercial licensing, please visit: https://brisklib.com/
  */
 #pragma once
+
+#include <stdexcept>
+
 #include <tl/expected.hpp>
+
+#include <brisk/core/Brisk.h>
 
 namespace Brisk {
 using tl::expected;
@@ -36,5 +41,37 @@ constexpr status<E> unexpected_if(bool condition, E error) {
         return {};
     return unexpected<E>(error);
 }
+
+#ifdef BRISK_EXCEPTIONS
+
+template <typename E>
+class EUnexpected : public std::runtime_error {
+public:
+    using ErrorType = E;
+
+    explicit EUnexpected(E value) : std::runtime_error(formatError(value)), m_value(std::move(value)) {}
+
+    const E& error() const noexcept {
+        return m_value;
+    }
+
+private:
+    static std::string formatError(const E& value) {
+        if constexpr (requires { toString(value); }) // ADL customization point
+            return std::string(toString(value));
+        else
+            return "Unexpected error";
+    }
+
+    E m_value;
+};
+
+template <typename T, typename E>
+T unwrapOrThrow(expected<T, E> result) {
+    if (!result)
+        throw EUnexpected<E>(std::move(result.error()));
+    return std::move(*result);
+}
+#endif
 
 } // namespace Brisk

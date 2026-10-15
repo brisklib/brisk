@@ -204,9 +204,10 @@ PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, 
     BRISK_ASSERT(m_window);
 
     bool created = createWindow();
-    BRISK_SOFT_ASSERT(created);
-    if (!created)
+    if (!created) {
+        BRISK_LOG_ERROR("Linux: Failed to create window");
         return;
+    }
 
     setWindowIcon();
     updateSize();

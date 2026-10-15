@@ -412,7 +412,7 @@ jobs:
     - name: Configure
       shell: cmd
       run: |
-        cmake -G"Visual Studio 17 2022" -A ARM64 -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON -DBRISK_OVERRIDE_D3D_WARP=ON
+        cmake -G"Visual Studio 18 2026" -A ARM64 -S . -B build -DCMAKE_INSTALL_PREFIX=dist -DVCPKG_MANIFEST_MODE=OFF -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -DVCPKG_INSTALLED_DIR=vcpkg_installed -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake -DBRISK_WEBGPU=ON -DBRISK_LOG_TO_STDERR=ON -DBRISK_OVERRIDE_D3D_WARP=ON
     - name: Build
       run: |
         cmake --build build --config RelWithDebInfo

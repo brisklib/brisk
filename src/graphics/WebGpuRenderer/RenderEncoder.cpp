@@ -40,8 +40,11 @@ void RenderEncoderWebGpu::setVisualSettings(const VisualSettings& visualSettings
     m_visualSettings = visualSettings;
 }
 
-void RenderEncoderWebGpu::begin(Rc<RenderTarget> target, std::optional<ColorF> clear) {
+status<GpuError> RenderEncoderWebGpu::begin(Rc<RenderTarget> target, std::optional<ColorF> clear) {
     ensureOnRenderThread();
+    BRISK_ASSERT(target);
+    if (!target || !target->valid())
+        return unexpected(GpuError::DeviceLost);
     BRISK_ASSERT(static_cast<bool>(m_currentTarget == nullptr));
     BRISK_ASSERT(static_cast<bool>(!m_queue.Get()));
     m_currentTarget = std::move(target);
@@ -49,7 +52,12 @@ void RenderEncoderWebGpu::begin(Rc<RenderTarget> target, std::optional<ColorF> c
     BRISK_ASSERT(static_cast<bool>(m_queue.Get()));
     m_frameSize = m_currentTarget->size();
     if (m_currentTarget->type() == RenderTargetType::Window) {
-        static_cast<WindowRenderTarget*>(m_currentTarget.get())->resizeBackbuffer(m_frameSize);
+        auto result = static_cast<WindowRenderTarget*>(m_currentTarget.get())->resizeBackbuffer(m_frameSize);
+        if (!result) {
+            m_currentTarget = nullptr;
+            m_queue         = nullptr;
+            return unexpected(result.error());
+        }
     }
 
     [[maybe_unused]] ConstantPerFrame constantPerFrame{
@@ -74,6 +82,7 @@ void RenderEncoderWebGpu::begin(Rc<RenderTarget> target, std::optional<ColorF> c
 
     m_colorAttachment                    = renderPassColorAttachment;
     m_renderFormat                       = backBuf.color.GetFormat();
+    return {};
 }
 
 void RenderEncoderWebGpu::end() {

@@ -38,7 +38,9 @@ void initializeCommon(InitializationFlags flags) {
         }
         if (flags && InitializationFlags::Settings) {
             settings = new Settings{};
-            settings->load();
+            if (auto result = settings->load(); !result && result.error() != IoError::NotFound) {
+                BRISK_LOG_ERROR("Can't read settings, e = {}", result.error());
+            }
         } else {
             settings = nullptr;
         }
@@ -50,7 +52,9 @@ void finalizeCommon() {
         Internal::setWakeUpMainThread({});
         Internal::clearTimers();
         if (settings) {
-            settings->save();
+            if (auto result = settings->save(); !result) {
+                BRISK_LOG_ERROR("Can't write settings, code = {}", result.error());
+            }
             Settings* settings_ = settings.get();
             settings            = nullptr;
             delete settings_;

@@ -76,10 +76,10 @@ bool RenderDeviceWebGpu::createDevice() {
     wgpu::InstanceFeatureName instanceFeatures[] = { wgpu::InstanceFeatureName::TimedWaitAny };
     wgpu::InstanceLimits instanceLimits{};
     instanceLimits.timedWaitAnyMaxCount = 1;
-    instanceDesc.requiredFeatureCount = std::size(instanceFeatures);
-    instanceDesc.requiredFeatures     = instanceFeatures;
-    instanceDesc.requiredLimits       = &instanceLimits;
-    instanceDesc.nextInChain          = &instanceToggleDesc;
+    instanceDesc.requiredFeatureCount   = std::size(instanceFeatures);
+    instanceDesc.requiredFeatures       = instanceFeatures;
+    instanceDesc.requiredLimits         = &instanceLimits;
+    instanceDesc.nextInChain            = &instanceToggleDesc;
 
     m_nativeInstance =
         std::make_unique<dawn::native::Instance>(reinterpret_cast<WGPUInstanceDescriptor*>(&instanceDesc));
@@ -179,10 +179,30 @@ bool RenderDeviceWebGpu::createDevice() {
     deviceToggleDesc.disabledToggleCount = std::size(deviceTogglesDisable);
 
     deviceCache.nextInChain              = &deviceToggleDesc;
+    deviceDesc.SetDeviceLostCallback(
+        wgpu::CallbackMode::AllowProcessEvents,
+        [state = m_gpuState](const wgpu::Device&, wgpu::DeviceLostReason, wgpu::StringView) {
+            if (state->lost.exchange(true, std::memory_order_acq_rel))
+                return;
+            state->generation.fetch_add(1, std::memory_order_acq_rel);
+            std::vector<DeviceLostCallback> callbacks;
+            {
+                std::lock_guard lock(state->mutex);
+                callbacks = state->callbacks;
+            }
+            for (auto& callback : callbacks) {
+                if (callback)
+                    callback();
+            }
+        });
     deviceDesc.SetUncapturedErrorCallback(
         [](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView message) {
             BRISK_LOG_ERROR("WGPU Error: {} {}", str(type), std::string_view(message));
-            BRISK_ASSERT(false);
+            if (type != wgpu::ErrorType::OutOfMemory) {
+                bool validationOrInternal =
+                    type == wgpu::ErrorType::Validation || type == wgpu::ErrorType::Internal;
+                BRISK_ASSERT_FALSE(validationOrInternal);
+            }
         });
     m_device = m_adapter.CreateDevice(&deviceDesc);
     if (!m_device)
@@ -212,6 +232,15 @@ bool RenderDeviceWebGpu::createDevice() {
 RenderDeviceWebGpu::RenderDeviceWebGpu(RendererDeviceSelection deviceSelection, NativeDisplayHandle display)
     : m_deviceSelection(deviceSelection), m_display(display) {
     ensureOnRenderThread();
+}
+
+void RenderDeviceWebGpu::onDeviceLost(DeviceLostCallback callback) {
+    std::lock_guard lock(m_gpuState->mutex);
+    if (!valid()) {
+        callback();
+        return;
+    }
+    m_gpuState->callbacks.push_back(std::move(callback));
 }
 
 status<RenderDeviceError> RenderDeviceWebGpu::init() {
@@ -318,12 +347,15 @@ status<RenderDeviceError> RenderDeviceWebGpu::init() {
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc;
-    bindGroupLayoutDesc.entryCount        = entries.size();
-    bindGroupLayoutDesc.entries           = entries.data();
-    m_bindGroupLayout                     = m_device.CreateBindGroupLayout(&bindGroupLayoutDesc);
+    bindGroupLayoutDesc.entryCount = entries.size();
+    bindGroupLayoutDesc.entries    = entries.data();
+    m_bindGroupLayout              = m_device.CreateBindGroupLayout(&bindGroupLayoutDesc);
 
-    m_pipelineLayout.bindGroupLayoutCount = 1;
-    m_pipelineLayout.bindGroupLayouts     = &m_bindGroupLayout;
+    wgpu::PipelineLayoutDescriptor pipelineLayoutDesc{
+        .bindGroupLayoutCount = 1,
+        .bindGroupLayouts     = &m_bindGroupLayout,
+    };
+    m_pipelineLayout = m_device.CreatePipelineLayout(&pipelineLayoutDesc);
 
     createSamplers();
 
@@ -352,7 +384,18 @@ wgpu::RenderPipeline RenderDeviceWebGpu::createPipeline(wgpu::TextureFormat rend
         it != m_pipelineCache.end()) {
         return it->second;
     }
-    wgpu::BlendState blendState{};
+    wgpu::BlendState blendState{
+        .color =
+            {
+                .operation = wgpu::BlendOperation::Add,
+                .srcFactor = wgpu::BlendFactor::One,
+            },
+        .alpha =
+            {
+                .operation = wgpu::BlendOperation::Add,
+                .srcFactor = wgpu::BlendFactor::One,
+            },
+    };
     if (dualSourceBlending) {
         blendState.color.dstFactor = wgpu::BlendFactor::OneMinusSrc1;
         blendState.alpha.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
@@ -373,7 +416,7 @@ wgpu::RenderPipeline RenderDeviceWebGpu::createPipeline(wgpu::TextureFormat rend
     };
 
     wgpu::RenderPipelineDescriptor descriptor{};
-    descriptor.layout             = m_device.CreatePipelineLayout(&m_pipelineLayout);
+    descriptor.layout             = m_pipelineLayout;
     descriptor.vertex.module      = m_shader;
     descriptor.primitive.topology = wgpu::PrimitiveTopology::TriangleStrip;
     descriptor.fragment           = &fragmentState;
@@ -430,19 +473,27 @@ RenderDeviceInfo RenderDeviceWebGpu::info() const {
     return info;
 }
 
-Rc<WindowRenderTarget> RenderDeviceWebGpu::createWindowTarget(const NativeWindow* window, PixelType type,
-                                                              DepthStencilType depthStencil, int samples) {
+expected<Rc<WindowRenderTarget>, GpuError> RenderDeviceWebGpu::createWindowTarget(
+    const NativeWindow* window, PixelType type, DepthStencilType depthStencil, int samples) {
     ensureOnRenderThread();
-    return rcnew WindowRenderTargetWebGpu(shared_from_this(), window, type, depthStencil, samples);
+    BRISK_ASSERT(window);
+    auto target = rcnew WindowRenderTargetWebGpu(shared_from_this(), window, type, depthStencil, samples);
+    if (!target->valid())
+        return unexpected(valid() ? GpuError::UnsupportedFormat : GpuError::DeviceLost);
+    return target;
 }
 
-Rc<ImageRenderTarget> RenderDeviceWebGpu::createImageTarget(Size frameSize, PixelType type,
-                                                            DepthStencilType depthStencil, int samples) {
+expected<Rc<ImageRenderTarget>, GpuError> RenderDeviceWebGpu::createImageTarget(Size frameSize,
+                                                                                PixelType type,
+                                                                                DepthStencilType depthStencil,
+                                                                                int samples) {
     ensureOnRenderThread();
-    if (frameSize.longestSide() >= 16384) {
-        throwException(EImageError("Requested image render target size is too large: {}", frameSize));
-    }
-    return rcnew ImageRenderTargetWebGpu(shared_from_this(), frameSize, type, depthStencil, samples);
+    if (frameSize.width <= 0 || frameSize.height <= 0 || frameSize.longestSide() >= 16384)
+        return unexpected(GpuError::SizeExceedsLimit);
+    auto target = rcnew ImageRenderTargetWebGpu(shared_from_this(), frameSize, type, depthStencil, samples);
+    if (!target->valid())
+        return unexpected(valid() ? GpuError::UnsupportedFormat : GpuError::DeviceLost);
+    return target;
 }
 
 Rc<RenderEncoder> RenderDeviceWebGpu::createEncoder() {
@@ -453,16 +504,15 @@ Rc<RenderEncoder> RenderDeviceWebGpu::createEncoder() {
 RenderDeviceWebGpu::~RenderDeviceWebGpu() {
     ensureOnRenderThread();
     m_resources.reset();
-    m_pipelineCache          = {};
-    m_device                 = nullptr;
-    m_shader                 = nullptr;
-    m_atlasSampler           = nullptr;
-    m_gradientSampler        = nullptr;
-    m_sampler                = nullptr;
-    m_perFrameConstantBuffer = nullptr;
-    m_bindGroupLayout        = nullptr;
-    m_dummyTexture           = nullptr;
-    m_dummyTextureView       = nullptr;
+    m_pipelineCache    = {};
+    m_device           = nullptr;
+    m_shader           = nullptr;
+    m_pipelineLayout   = nullptr;
+    m_gradientSampler  = nullptr;
+    m_sampler          = nullptr;
+    m_bindGroupLayout  = nullptr;
+    m_dummyTexture     = nullptr;
+    m_dummyTextureView = nullptr;
 
     if (m_instance)
         m_instance.ProcessEvents();
@@ -474,33 +524,38 @@ RenderDeviceWebGpu::~RenderDeviceWebGpu() {
     m_nativeInstance.reset();
 }
 
-bool RenderDeviceWebGpu::updateBackBuffer(BackBufferWebGpu& buffer, PixelType type,
-                                          DepthStencilType depthType, int samples) {
+expected<void, GpuError> RenderDeviceWebGpu::updateBackBuffer(BackBufferWebGpu& buffer, PixelType type,
+                                                              DepthStencilType depthType, int samples) {
     ensureOnRenderThread();
     buffer.colorView = buffer.color.CreateView();
-    return true;
+    if (!buffer.colorView)
+        return unexpected(valid() ? GpuError::OutOfMemory : GpuError::DeviceLost);
+    return {};
 }
 
 void RenderDeviceWebGpu::wait() {
     ensureOnRenderThread();
     wgpu::FutureWaitInfo future;
-    future.future = m_device.GetQueue().OnSubmittedWorkDone(wgpu::CallbackMode::AllowProcessEvents,
-                                                                                [](wgpu::QueueWorkDoneStatus status,
-                                                                                    wgpu::StringView message) {});
+    future.future = m_device.GetQueue().OnSubmittedWorkDone(
+        wgpu::CallbackMode::AllowProcessEvents,
+        [](wgpu::QueueWorkDoneStatus status, wgpu::StringView message) {});
     m_instance.ProcessEvents();
     m_instance.WaitAny(1, &future, 1'000'000'000); // 1 second
     m_instance.ProcessEvents();
 }
 
-void RenderDeviceWebGpu::createImageBackend(Rc<Image> image) {
+expected<void, GpuError> RenderDeviceWebGpu::createImageBackend(Rc<Image> image) {
     ensureOnRenderThread();
     BRISK_ASSERT(image);
+    if (!image)
+        return unexpected(GpuError::UnsupportedFormat);
     if (wgFormat(image->pixelType(), image->pixelFormat()) == wgpu::TextureFormat::Undefined) {
-        throwException(EImageError("WebGPU backend does not support the image type or format: {}, {}. "
-                                   "Consider converting the image before sending it to the GPU.",
-                                   image->pixelType(), image->pixelFormat()));
+        return unexpected(GpuError::UnsupportedFormat);
     }
-    std::ignore = getOrCreateBackend(shared_from_this(), std::move(image), true, false);
+    auto result = getOrCreateBackend(shared_from_this(), std::move(image), true, false);
+    if (!result)
+        return unexpected(result.error());
+    return {};
 }
 
 RenderLimits RenderDeviceWebGpu::limits() const {

@@ -21,6 +21,7 @@
 #include <catch2/catch_all.hpp>
 #include <fmt/ranges.h>
 
+#include <brisk/core/App.hpp>
 #include <brisk/network/Fetch.hpp>
 #include <brisk/network/UserAgent.hpp>
 
@@ -30,9 +31,13 @@ using namespace Brisk;
 
 TEST_CASE("Network tests") {
     using namespace std::literals;
+    appMetadata.vendor     = "Brisk";
+    appMetadata.name       = "NetworkTest";
+    appMetadata.version    = { 1, 2, 3, 4 };
+
     auto [response, bytes] = httpFetchBytes(HttpRequest{
-        .url     = "https://example.com",
-        .method  = HttpMethod::Head,
+        .url     = "https://httpbin.org/get",
+        .method  = HttpMethod::Get,
         .timeout = 10000ms,
     });
     fmt::println("error = {}", response.error);

@@ -88,17 +88,17 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @brief Encodes an image to PNG format.
  *
  * @param image A reference-counted pointer to the image to be encoded.
- * @return A byte vector containing the encoded PNG image data.
+ * @return An expected result containing the encoded PNG image data or an ImageIoError.
  */
-[[nodiscard]] Bytes pngEncode(Rc<Image> image);
+[[nodiscard]] expected<Bytes, ImageIoError> pngEncode(Rc<Image> image);
 
 /**
  * @brief Encodes an image to BMP format.
  *
  * @param image A reference-counted pointer to the image to be encoded.
- * @return A byte vector containing the encoded BMP image data.
+ * @return An expected result containing the encoded BMP image data or an ImageIoError.
  */
-[[nodiscard]] Bytes bmpEncode(Rc<Image> image);
+[[nodiscard]] expected<Bytes, ImageIoError> bmpEncode(Rc<Image> image);
 
 /**
  * @brief Encodes an image to JPEG format.
@@ -107,10 +107,11 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param quality Optional quality parameter for encoding (default is std::nullopt, which uses default
  * quality).
  * @param ss Optional color subsampling parameter (default is std::nullopt).
- * @return A byte vector containing the encoded JPEG image data.
+ * @return An expected result containing the encoded JPEG image data or an ImageIoError.
  */
-[[nodiscard]] Bytes jpegEncode(Rc<Image> image, std::optional<int> quality = std::nullopt,
-                               std::optional<ColorSubsampling> ss = std::nullopt);
+[[nodiscard]] expected<Bytes, ImageIoError> jpegEncode(Rc<Image> image,
+                                                       std::optional<int> quality         = std::nullopt,
+                                                       std::optional<ColorSubsampling> ss = std::nullopt);
 
 /**
  * @brief Encodes an image to WEBP format.
@@ -118,20 +119,41 @@ inline ColorSubsampling defaultColorSubsampling = ColorSubsampling::S420;
  * @param image A reference-counted pointer to the image to be encoded.
  * @param quality Optional quality parameter for encoding (default is std::nullopt).
  * @param lossless Flag indicating whether to use lossless encoding (default is false).
- * @return A byte vector containing the encoded WEBP image data.
+ * @return An expected result containing the encoded WEBP image data or an ImageIoError.
  */
-[[nodiscard]] Bytes webpEncode(Rc<Image> image, std::optional<float> quality = std::nullopt,
-                               bool lossless = false);
+[[nodiscard]] expected<Bytes, ImageIoError> webpEncode(Rc<Image> image,
+                                                       std::optional<float> quality = std::nullopt,
+                                                       bool lossless                = false);
 
 class WebpAnimationEncoder {
 public:
-    explicit WebpAnimationEncoder(std::optional<float> quality = std::nullopt, bool lossless = false);
+    [[nodiscard]] static expected<Rc<WebpAnimationEncoder>, ImageIoError> create(
+        std::optional<float> quality = std::nullopt, bool lossless = false);
     ~WebpAnimationEncoder();
-    void addFrame(Rc<Image> image, std::chrono::milliseconds duration);
 
-    Bytes encode(Color backgroundColor = Palette::transparent, int repeats = 0);
+    /**
+     * @brief Adds a frame to the WebP animation.
+     *
+     * Encoding failures are reported by the subsequent call to encode().
+     *
+     * @param image The image to add as an animation frame.
+     * @param duration The frame duration.
+     */
+    [[nodiscard]] status<ImageIoError> addFrame(Rc<Image> image, std::chrono::milliseconds duration);
+
+    /**
+     * @brief Encodes the accumulated frames as a WebP animation.
+     *
+     * @param backgroundColor The animation background color.
+     * @param repeats The number of animation repetitions; zero means infinite repetition.
+     * @return An expected result containing the encoded WebP animation or an ImageIoError.
+     */
+    [[nodiscard]] expected<Bytes, ImageIoError> encode(Color backgroundColor = Palette::transparent,
+                                                       int repeats           = 0);
 
 private:
+    explicit WebpAnimationEncoder(std::optional<float> quality, bool lossless);
+
     std::optional<float> m_quality;
     bool m_lossless;
     struct Private;
@@ -146,10 +168,11 @@ private:
  * @param image A reference-counted pointer to the image to be encoded.
  * @param quality Optional quality parameter for encoding (default is std::nullopt).
  * @param ss Optional color subsampling parameter (default is std::nullopt).
- * @return A byte vector containing the encoded image data.
+ * @return An expected result containing the encoded image data or an ImageIoError.
  */
-[[nodiscard]] Bytes imageEncode(ImageCodec codec, Rc<Image> image, std::optional<int> quality = std::nullopt,
-                                std::optional<ColorSubsampling> ss = std::nullopt);
+[[nodiscard]] expected<Bytes, ImageIoError> imageEncode(ImageCodec codec, Rc<Image> image,
+                                                        std::optional<int> quality         = std::nullopt,
+                                                        std::optional<ColorSubsampling> ss = std::nullopt);
 
 /**
  * @brief Decodes a PNG image from the provided byte data.

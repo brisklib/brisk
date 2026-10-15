@@ -58,6 +58,8 @@ TEST_CASE("Hashing algorithm validations") {
 }
 
 TEST_CASE("Random number generation") {
-    fmt::print("{}\n", toHex(cryptoRandom(32)));
+    auto random = cryptoRandom(32);
+    REQUIRE(random);
+    fmt::print("{}\n", toHex(*random));
 }
 } // namespace Brisk

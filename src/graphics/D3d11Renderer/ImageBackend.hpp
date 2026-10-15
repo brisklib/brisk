@@ -47,6 +47,10 @@ public:
         return m_texture;
     }
 
+    bool valid() const noexcept {
+        return m_texture && m_srv;
+    }
+
 private:
     friend class ImageRenderTargetD3d11;
     friend class RenderEncoderD3d11;
@@ -59,6 +63,6 @@ private:
     DXGI_FORMAT m_dxformat;
 };
 
-ImageBackendD3d11* getOrCreateBackend(Rc<RenderDeviceD3d11> device, Rc<Image> image, bool uploadImage,
-                                      bool renderTarget);
+expected<ImageBackendD3d11*, GpuError> getOrCreateBackend(Rc<RenderDeviceD3d11> device, Rc<Image> image,
+                                                          bool uploadImage, bool renderTarget);
 } // namespace Brisk

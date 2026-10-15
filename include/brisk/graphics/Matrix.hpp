@@ -255,7 +255,6 @@ struct MatrixOf {
         MatrixOf result = *this;
         switch (unsigned(angle) % 4) {
         case 0:
-        default:
             break;
         case 1:
             result = { -b, a, -d, c, -f, e };
@@ -266,6 +265,8 @@ struct MatrixOf {
         case 3:
             result = { b, -a, d, -c, f, -e };
             break;
+        default:
+            BRISK_UNREACHABLE();
         }
         return result;
     }
@@ -307,6 +308,8 @@ struct MatrixOf {
             return scale(1, -1);
         case FlipAxis::Both:
             return scale(-1, -1);
+        default:
+            BRISK_UNREACHABLE();
         }
     }
 
@@ -389,7 +392,7 @@ struct MatrixOf {
             { -1, 0, 0, -1, 0, 0 },
             { 0, -1, 1, 0, 0, 0 },
         };
-        return m[angle % 4];
+        return m[static_cast<unsigned>(angle) % 4];
     }
 
     /**
@@ -406,6 +409,8 @@ struct MatrixOf {
             return scaling(1, -1);
         case FlipAxis::Both:
             return scaling(-1, -1);
+        default:
+            BRISK_UNREACHABLE();
         }
     }
 
@@ -517,10 +522,14 @@ struct MatrixOf {
     /**
      * @brief Estimates the average scaling factor of the matrix.
      *
+     * Computed as the geometric mean of the directional scale factors
+     * (\f$ \sqrt{|ad - bc|} \f$), making the estimate invariant to rotation and
+     * skew. Returns 0 for singular (non-invertible) matrices.
+     *
      * @return T The estimated scaling factor.
      */
     constexpr T estimateScale() const {
-        return std::sqrt(a * a + c * c);
+        return std::sqrt(std::abs(a * d - b * c));
     }
 
     constexpr static T epsilon = std::is_same_v<T, float> ? 1e-4f : 1e-10f;
@@ -637,12 +646,12 @@ struct MatrixOf {
         return result;
     }
 
-    static MatrixOf mapRect(RectangleF src, RectangleF dst) {
-        float scaleX     = (dst.x2 - dst.x1) / (src.x2 - src.x1);
-        float scaleY     = (dst.y2 - dst.y1) / (src.y2 - src.y1);
+    static constexpr MatrixOf mapRect(RectangleOf<T> src, RectangleOf<T> dst) {
+        T scaleX     = (dst.x2 - dst.x1) / (src.x2 - src.x1);
+        T scaleY     = (dst.y2 - dst.y1) / (src.y2 - src.y1);
 
-        float translateX = dst.x1 - src.x1 * scaleX;
-        float translateY = dst.y1 - src.y1 * scaleY;
+        T translateX = dst.x1 - src.x1 * scaleX;
+        T translateY = dst.y1 - src.y1 * scaleY;
 
         return { scaleX, 0, 0, scaleY, translateX, translateY };
     }

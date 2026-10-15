@@ -18,11 +18,31 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <brisk/core/Log.hpp>
 #include <brisk/graphics/Renderer.hpp>
 
 #include "Atlas.hpp"
 
+
 namespace Brisk {
+
+void RenderDevice::markDeviceLost() noexcept {
+    if (m_gpuState->lost.exchange(true, std::memory_order_acq_rel)) {
+        return;
+    }
+    m_gpuState->generation.fetch_add(1, std::memory_order_acq_rel);
+
+    std::vector<DeviceLostCallback> callbacks;
+    {
+        std::lock_guard lock(m_gpuState->mutex);
+        callbacks = m_gpuState->callbacks;
+    }
+    for (auto& callback : callbacks) {
+        if (callback) {
+            callback();
+        }
+    }
+}
 
 RenderResources::RenderResources()  = default;
 RenderResources::~RenderResources() = default;
@@ -91,8 +111,11 @@ RenderPipeline::RenderPipeline(Rc<RenderEncoder> encoder, Rc<RenderTarget> targe
                                std::optional<ColorF> clear, Rectangle clipRect)
     : m_encoder(std::move(encoder)), m_resources(m_encoder->device()->resources()) {
     ensureOnRenderThread();
-    m_limits = m_encoder->device()->limits();
-    m_encoder->begin(std::move(target), clear);
+    m_limits         = m_encoder->device()->limits();
+    auto beginResult = m_encoder->begin(std::move(target), clear);
+    if (!beginResult) {
+        BRISK_LOG_ERROR("Unable to begin render pipeline: {}", beginResult.error());
+    }
     m_globalScissor = clipRect;
 }
 
@@ -123,14 +146,22 @@ void RenderPipeline::command(RenderStateEx&& cmd, std::span<const uint32_t> data
         return;
 
     if (cmd.sourceImageHandle) {
-        m_encoder->device()->createImageBackend(cmd.sourceImageHandle);
+        auto result = m_encoder->device()->createImageBackend(cmd.sourceImageHandle);
+        if (!result) {
+            BRISK_LOG_ERROR("Unable to create GPU image backend: {}", result.error());
+            return;
+        }
         cmd.sourceImage = Internal::getBackend(cmd.sourceImageHandle);
         BRISK_ASSERT(cmd.sourceImage);
         cmd.hasTexture = true; // Tell shader that texture is set (-1 if is not)
         m_textures.push_back(cmd.sourceImageHandle);
     }
     if (cmd.backImageHandle) {
-        m_encoder->device()->createImageBackend(cmd.backImageHandle);
+        auto result = m_encoder->device()->createImageBackend(cmd.backImageHandle);
+        if (!result) {
+            BRISK_LOG_ERROR("Unable to create GPU image backend: {}", result.error());
+            return;
+        }
         cmd.backImage = Internal::getBackend(cmd.backImageHandle);
         BRISK_ASSERT(cmd.backImage);
         m_textures.push_back(cmd.backImageHandle);

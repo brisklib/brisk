@@ -67,8 +67,8 @@ public:
         };
     }
 
-    void save();
-    void load();
+    [[nodiscard]] status<IoError> save();
+    [[nodiscard]] status<IoError> load();
 
     void mock(Json json);
 
@@ -82,7 +82,7 @@ public:
     }
 
 private:
-    void internalSave();
+    [[nodiscard]] status<IoError> internalSave();
     Json m_data = JsonObject();
     mutable std::shared_mutex m_mutex;
     bool m_mocked = false;

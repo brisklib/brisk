@@ -385,11 +385,20 @@ void Window::doPaint() {
 
     if (bufferedRendering) {
         if (!m_bufferedFrameTarget) {
-            m_bufferedFrameTarget = renderDevice()->createImageTarget(targetSize);
+            auto result = renderDevice()->createImageTarget(targetSize);
+            if (!result) {
+                BRISK_LOG_ERROR("Unable to create buffered render target: {}", result.error());
+                return;
+            }
+            m_bufferedFrameTarget = *result;
             textureReset          = true;
         } else {
             if (targetSize != m_bufferedFrameTarget->size()) {
-                m_bufferedFrameTarget->setSize(targetSize);
+                auto result = m_bufferedFrameTarget->setSize(targetSize);
+                if (!result) {
+                    BRISK_LOG_ERROR("Unable to resize buffered render target: {}", result.error());
+                    return;
+                }
                 textureReset = true;
             }
         }
@@ -434,7 +443,9 @@ void Window::doPaint() {
         std::chrono::duration_cast<std::chrono::microseconds>(high_res_clock::now() - renderStart);
 
     if (renderFrame) {
-        m_target->present();
+        auto presentResult = m_target->present();
+        if (!presentResult)
+            BRISK_LOG_ERROR("Unable to present frame: {}", presentResult.error());
     }
     m_renderStat.back().fullFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(
         FractionalSeconds{ m_frameTimePredictor->markFrameTime() });
@@ -534,8 +545,14 @@ NativeWindowHandle Window::getHandle() const {
 void Window::initializeRenderer() {
     if (m_target)
         return;
-    m_encoder = renderDevice()->createEncoder();
-    m_target  = renderDevice()->createWindowTarget(this);
+    m_encoder         = renderDevice()->createEncoder();
+    auto targetResult = renderDevice()->createWindowTarget(this);
+    if (!targetResult) {
+        BRISK_LOG_ERROR("Unable to create window render target: {}", targetResult.error());
+        m_encoder.reset();
+        return;
+    }
+    m_target = *targetResult;
     m_target->setVSyncInterval(m_vSync ? m_syncInterval : 0);
 }
 

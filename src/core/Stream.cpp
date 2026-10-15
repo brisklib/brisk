@@ -61,27 +61,33 @@ bool Stream::writeAll(std::span<const std::byte> data) {
 }
 
 bool SequentialReader::truncate() {
-    throwException(ENotImplemented("truncate called for SequentialReader"));
+    BRISK_ASSERT_FALSE_MSG("truncate called for SequentialReader", true);
+    BRISK_UNREACHABLE();
 }
 
 bool SequentialReader::flush() {
-    throwException(ENotImplemented("flush called for SequentialReader"));
+    BRISK_ASSERT_FALSE_MSG("flush called for SequentialReader", true);
+    BRISK_UNREACHABLE();
 }
 
 uint64_t SequentialReader::size() const {
-    throwException(ENotImplemented("size called for SequentialReader"));
+    BRISK_ASSERT_FALSE_MSG("size called for SequentialReader", true);
+    BRISK_UNREACHABLE();
 }
 
 uint64_t SequentialReader::tell() const {
-    throwException(ENotImplemented("tell called for SequentialReader"));
+    BRISK_ASSERT_FALSE_MSG("tell called for SequentialReader", true);
+    BRISK_UNREACHABLE();
 }
 
 bool SequentialReader::seek(int64_t position, SeekOrigin origin) {
-    throwException(ENotImplemented("seek called for SequentialReader"));
+    BRISK_ASSERT_FALSE_MSG("seek called for SequentialReader", true);
+    BRISK_UNREACHABLE();
 }
 
 Transferred SequentialReader::write(const std::byte* data, size_t size) {
-    throwException(ENotImplemented("write called for SequentialReader"));
+    BRISK_ASSERT_FALSE_MSG("write called for SequentialReader", true);
+    BRISK_UNREACHABLE();
 }
 
 StreamCapabilities SequentialReader::caps() const noexcept {
@@ -161,23 +167,28 @@ bool MemoryStream::seek(int64_t position, SeekOrigin origin) {
 }
 
 bool SequentialWriter::truncate() {
-    throwException(ENotImplemented("truncate called for SequentialWriter"));
+    BRISK_ASSERT_FALSE_MSG("truncate called for SequentialWriter", true);
+    BRISK_UNREACHABLE();
 }
 
 uint64_t SequentialWriter::size() const {
-    throwException(ENotImplemented("size called for SequentialWriter"));
+    BRISK_ASSERT_FALSE_MSG("size called for SequentialWriter", true);
+    BRISK_UNREACHABLE();
 }
 
 uint64_t SequentialWriter::tell() const {
-    throwException(ENotImplemented("tell called for SequentialWriter"));
+    BRISK_ASSERT_FALSE_MSG("tell called for SequentialWriter", true);
+    BRISK_UNREACHABLE();
 }
 
 bool SequentialWriter::seek(int64_t position, SeekOrigin origin) {
-    throwException(ENotImplemented("seek called for SequentialWriter"));
+    BRISK_ASSERT_FALSE_MSG("seek called for SequentialWriter", true);
+    BRISK_UNREACHABLE();
 }
 
 Transferred SequentialWriter::read(std::byte* data, size_t size) {
-    throwException(ENotImplemented("read called for SequentialWriter"));
+    BRISK_ASSERT_FALSE_MSG("read called for SequentialWriter", true);
+    BRISK_UNREACHABLE();
 }
 
 StreamCapabilities SequentialWriter::caps() const noexcept {

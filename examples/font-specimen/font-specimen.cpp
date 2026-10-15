@@ -313,20 +313,24 @@ int briskMain() {
 
     OffscreenCanvas offscreen{ Size{ width, height }, static_cast<float>(options.scale),
                                VisualSettings{ .gamma = options.gamma, .subPixelText = options.lcd } };
+    if (!offscreen.beginPaint()) {
+        std::fprintf(stderr, "Could not begin offscreen painting\n");
+        return 1;
+    }
     drawSpecimen(offscreen.canvas(), options, width, height, paragraphs);
 
-    Rc<Image> image = offscreen.render();
+    Rc<Image> image = offscreen.endPaint();
     if (!image) {
         std::fprintf(stderr, "Could not render font specimen\n");
         return 1;
     }
 
-    const Bytes png = pngEncode(std::move(image));
-    if (png.empty()) {
+    auto png = pngEncode(std::move(image));
+    if (!png) {
         std::fprintf(stderr, "Could not encode PNG\n");
         return 1;
     }
-    if (auto status = writeBytes(options.outputPath, png); !status) {
+    if (auto status = writeBytes(options.outputPath, *png); !status) {
         std::fprintf(stderr, "Cannot write '%s': %s\n", options.outputPath.string().c_str(),
                      fmt::format("{}", status.error()).c_str());
         return 1;

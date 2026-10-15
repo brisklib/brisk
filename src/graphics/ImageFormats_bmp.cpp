@@ -44,9 +44,9 @@ static void stbi_write(void* context, void* data, int size) {
     std::ignore          = result.write((const std::byte*)data, size);
 }
 
-Bytes bmpEncode(Rc<Image> image) {
+expected<Bytes, ImageIoError> bmpEncode(Rc<Image> image) {
     if (image->pixelType() != PixelType::U8Gamma) {
-        throwException(EImageError("BMP codec doesn't support encoding {} format", image->format()));
+        return unexpected(ImageIoError::InvalidFormat);
     }
     // All pixel formats are supported
     auto r   = image->mapRead();
@@ -61,7 +61,7 @@ Bytes bmpEncode(Rc<Image> image) {
         result = stbi_write_bmp_to_func(&stbi_write, &strm, image->width(), image->height(), comp, tmp.data());
     }
     if (!result)
-        throwException(EImageError("BMP encoding failed"));
+        return unexpected(ImageIoError::CodecError);
     return std::move(strm.data());
 }
 

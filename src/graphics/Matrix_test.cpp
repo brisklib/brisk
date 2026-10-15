@@ -147,6 +147,50 @@ TEST_CASE("matrix") {
     CHECK(!Matrix::scaling(0.7f, 0.71f).rotate(-22.5f).isUniformScale());
     CHECK(Matrix::scaling(0.7f, -0.7f).rotate(-22.5f).isUniformScale());
 
+    // estimateScale: geometric mean of scale factors, invariant to rotation
+    CHECK(Matrix{}.estimateScale() == Catch::Approx(1.f));
+    CHECK(Matrix::translation(5.f, -2.f).estimateScale() == Catch::Approx(1.f));
+    CHECK(Matrix::rotation(33.f).estimateScale() == Catch::Approx(1.f));
+    CHECK(Matrix::scaling(0.7f, 0.7f).rotate(-22.5f).estimateScale() == Catch::Approx(0.7f));
+    CHECK(Matrix::scaling(2.f, 3.f).estimateScale() == Catch::Approx(std::sqrt(6.f)));
+    CHECK(Matrix::scaling(2.f, 3.f).rotate(73.f).estimateScale() == Catch::Approx(std::sqrt(6.f)));
+    CHECK(Matrix::scaling(2.f, 3.f).rotate90(1).estimateScale() == Catch::Approx(std::sqrt(6.f)));
+    CHECK(Matrix::skewness(0.5f, 0.f).estimateScale() == Catch::Approx(1.f));
+    CHECK(Matrix::scaling(0.f, 1.f).estimateScale() == Catch::Approx(0.f));
+
+    // rotation90/rotate90: negative angles must wrap like positive ones (no OOB access)
+    CHECK(Matrix::rotation90(-1) == Matrix::rotation90(3));
+    CHECK(Matrix::rotation90(-2) == Matrix::rotation90(2));
+    CHECK(Matrix::rotation90(-4) == Matrix::rotation90(0));
+    CHECK(Matrix::rotation90(5) == Matrix::rotation90(1));
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate90(-1) == Matrix{ 1, 2, 3, 4, 5, 6 }.rotate90(3));
+    CHECK(Matrix{ 1, 2, 3, 4, 5, 6 }.rotate90(-1) == Matrix{ 2, -1, 4, -3, 6, -5 });
+
+    // mapRect maps the source rectangle onto the destination rectangle
+    CHECK(Matrix::mapRect(RectangleF{ 0.f, 0.f, 100.f, 50.f }, RectangleF{ 10.f, 20.f, 210.f, 120.f }) ==
+          Matrix{ 2, 0, 0, 2, 10, 20 });
+    CHECK(PointF{ 0.f, 0.f } * Matrix::mapRect(RectangleF{ 0.f, 0.f, 100.f, 50.f },
+                                               RectangleF{ 10.f, 20.f, 210.f, 120.f }) ==
+          PointF{ 10.f, 20.f });
+    CHECK(PointF{ 100.f, 50.f } * Matrix::mapRect(RectangleF{ 0.f, 0.f, 100.f, 50.f },
+                                                  RectangleF{ 10.f, 20.f, 210.f, 120.f }) ==
+          PointF{ 210.f, 120.f });
+
+    // mapRect must compute coefficients in T, not float (float would collapse the width here)
+    CHECK(MatrixOf<double>::mapRect(RectangleOf<double>{ 123456789.25, 0.0, 123456789.75, 1.0 },
+                                    RectangleOf<double>{ 0.0, 0.0, 10.0, 10.0 }) ==
+          MatrixOf<double>{ 20.0, 0.0, 0.0, 10.0, -2469135785.0, 0.0 });
+
+    CHECK(Matrix::scaling(2.f, 3.f).transform(RectangleF{ 1.f, 1.f, 2.f, 2.f }) ==
+          RectangleF{ 2.f, 3.f, 4.f, 6.f });
+
+    Matrix invSrc{ 1, 2, 3, 4, 5, 6 };
+    auto inv = invSrc.invert();
+    REQUIRE(inv.has_value());
+    CHECK(invSrc * *inv == Matrix{});
+    CHECK(*inv * invSrc == Matrix{});
+    CHECK(!Matrix::scaling(0.f, 1.f).invert().has_value());
+
     std::array<PointF, 31> pts;
     std::mt19937 rnd(123456);
     std::uniform_real_distribution<float> u{ -10.f, +10.f };

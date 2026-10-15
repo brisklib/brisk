@@ -41,23 +41,30 @@ static int toJPGFormat(PixelFormat fmt) {
                      TJPF_GRAY);
 }
 
-Bytes jpegEncode(Rc<Image> image, std::optional<int> quality, std::optional<ColorSubsampling> ss) {
+expected<Bytes, ImageIoError> jpegEncode(Rc<Image> image, std::optional<int> quality,
+                                         std::optional<ColorSubsampling> ss) {
     if (image->pixelType() != PixelType::U8Gamma) {
-        throwException(EImageError("JPEG codec doesn't support encoding {} format", image->format()));
+        return unexpected(ImageIoError::InvalidFormat);
+    }
+    if (image->pixelFormat() == PixelFormat::GreyscaleAlpha) {
+        return unexpected(ImageIoError::InvalidFormat);
     }
     // All jpeg pixel formats are supported
     tjhandle jpeg = tjInitCompress();
     if (!jpeg)
-        throwException(EImageError("Failed to initialize JPEG encoder"));
+        return unexpected(ImageIoError::CodecError);
     SCOPE_EXIT {
         tjDestroy(jpeg);
     };
 
     auto r = image->mapRead<ImageFormat::Unknown_U8Gamma>();
 
+    if (r.byteStride() < 0)
+        return unexpected(ImageIoError::InvalidFormat);
+
     int bufferSize = tjBufSize(r.width(), r.height(), toJPGSS(ss.value_or(defaultColorSubsampling)));
     if (bufferSize <= 0)
-        throwException(EImageError("Failed to determine JPEG output size"));
+        return unexpected(ImageIoError::CodecError);
     Bytes result(bufferSize);
     uint8_t* resultData      = (uint8_t*)result.data();
     unsigned long resultSize = result.size();
@@ -69,9 +76,10 @@ Bytes jpegEncode(Rc<Image> image, std::optional<int> quality, std::optional<Colo
                         : toJPGSS(ss.value_or(defaultColorSubsampling)),
                     quality.value_or(defaultImageQuality),
                     TJFLAG_FASTDCT | TJFLAG_NOREALLOC | TJFLAG_PROGRESSIVE) != 0) {
-        return {};
+        return unexpected(ImageIoError::CodecError);
     }
     result.resize(resultSize);
+    result.shrink_to_fit();
     return result;
 }
 
@@ -80,10 +88,16 @@ expected<Rc<Image>, ImageIoError> jpegDecode(BytesView bytes, ImageFormat format
         return unexpected(ImageIoError::InvalidDestFormat);
     }
     tjhandle jpeg = tjInitDecompress();
+    if (!jpeg)
+        return unexpected(ImageIoError::CodecError);
     SCOPE_EXIT {
         tjDestroy(jpeg);
     };
     PixelFormat pixelFormat = toPixelFormat(format);
+
+    if (pixelFormat == PixelFormat::GreyscaleAlpha || pixelFormat == PixelFormat::Alpha) {
+        return unexpected(ImageIoError::InvalidDestFormat);
+    }
 
     Size size;
     int jpegSS;
@@ -99,6 +113,9 @@ expected<Rc<Image>, ImageIoError> jpegDecode(BytesView bytes, ImageFormat format
     Rc<Image> image = rcnew Image(size, imageFormat(PixelType::U8Gamma, pixelFormat));
 
     auto w          = image->mapWrite<ImageFormat::Unknown_U8Gamma>();
+
+    if (w.byteStride() < 0)
+        return unexpected(ImageIoError::InvalidDestFormat);
 
     if (tjDecompress2(jpeg, reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())), bytes.size(),
                       w.data(), w.width(), w.byteStride(), w.height(), toJPGFormat(pixelFormat),

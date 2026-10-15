@@ -207,10 +207,14 @@ void ShowcaseComponent::configureWindow(Rc<GuiWindow> window) {
 }
 
 void ShowcaseComponent::saveScreenshot(Rc<Image> image) {
-    Bytes bytes = pngEncode(image);
+    auto bytes = pngEncode(image);
+    if (!bytes) {
+        Shell::showMessage("Unable to encode screenshot"_tr, MessageBoxType::Warning);
+        return;
+    }
     if (auto file = Shell::showSaveDialog({ Shell::FileDialogFilter{ "*.png", "PNG image"_tr } },
                                           defaultFolder(DefaultFolder::Pictures))) {
-        if (auto s = writeBytes(*file, bytes)) {
+        if (auto s = writeBytes(*file, *bytes)) {
             m_notifications.show(rcnew Text{ "Screenshot saved successfully"_tr });
         } else {
             Shell::showMessage(fmt::format(fmt::runtime("Unable to save screenshot to {0}: {1}"_tr),

@@ -32,22 +32,20 @@ ImageRenderTargetWebGpu::ImageRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, 
       m_samples(samples) {
     ensureOnRenderThread();
 
-    if (!updateImage()) {
-        return;
-    }
+    std::ignore = updateImage();
 }
 
 ImageRenderTargetWebGpu::~ImageRenderTargetWebGpu() = default;
 
-bool ImageRenderTargetWebGpu::updateImage() {
+expected<void, GpuError> ImageRenderTargetWebGpu::updateImage() {
     ensureOnRenderThread();
-    m_image                     = rcnew Image(m_frameSize, imageFormat(m_type, format));
-    ImageBackendWebGpu* backend = getOrCreateBackend(m_device, m_image, false, true);
+    m_image            = rcnew Image(m_frameSize, imageFormat(m_type, format));
+    auto backendResult = getOrCreateBackend(m_device, m_image, false, true);
+    if (!backendResult)
+        return unexpected(backendResult.error());
+    ImageBackendWebGpu* backend = *backendResult;
     m_backBuffer.color          = backend->m_texture;
-    if (!m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilType, m_samples)) {
-        return false;
-    }
-    return true;
+    return m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilType, m_samples);
 }
 
 Size ImageRenderTargetWebGpu::size() const {
@@ -55,19 +53,19 @@ Size ImageRenderTargetWebGpu::size() const {
     return m_frameSize;
 }
 
-void ImageRenderTargetWebGpu::setSize(Size newSize) {
+status<GpuError> ImageRenderTargetWebGpu::setSize(Size newSize) {
     ensureOnRenderThread();
+    if (newSize.width <= 0 || newSize.height <= 0 || newSize.longestSide() >= 16384)
+        return unexpected(GpuError::SizeExceedsLimit);
     m_frameSize = newSize;
-    if (!updateImage()) {
-        return;
-    }
+    return updateImage();
 }
 
 Rc<Image> ImageRenderTargetWebGpu::image(bool reset) const {
     ensureOnRenderThread();
     Rc<Image> image = m_image;
     if (reset) {
-        const_cast<ImageRenderTargetWebGpu*>(this)->updateImage();
+        std::ignore = const_cast<ImageRenderTargetWebGpu*>(this)->updateImage();
     }
     return image;
 }

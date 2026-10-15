@@ -45,8 +45,8 @@ std::optional<ImageCodec> guessImageCodec(BytesView bytes) {
     return std::nullopt;
 }
 
-Bytes imageEncode(ImageCodec codec, Rc<Image> image, std::optional<int> quality,
-                  std::optional<ColorSubsampling> ss) {
+expected<Bytes, ImageIoError> imageEncode(ImageCodec codec, Rc<Image> image, std::optional<int> quality,
+                                          std::optional<ColorSubsampling> ss) {
     switch (codec) {
     case ImageCodec::BMP:
         return bmpEncode(std::move(image));
@@ -57,7 +57,7 @@ Bytes imageEncode(ImageCodec codec, Rc<Image> image, std::optional<int> quality,
     case ImageCodec::WEBP:
         return webpEncode(std::move(image), static_cast<std::optional<float>>(quality));
     default:
-        return {};
+        return unexpected(ImageIoError::InvalidFormat);
     }
 }
 

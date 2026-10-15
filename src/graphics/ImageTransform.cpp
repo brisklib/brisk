@@ -51,9 +51,7 @@ static stbir_pixel_layout pixelLayout(PixelFormat fmt) {
 }
 
 void imageResizeTo(Rc<Image> destination, Rc<Image> source, ResizingFilter filter) {
-    if (source->format() != destination->format())
-        throwException(EArgument("imageResizeTo: incompatible type or format: destination={} source={}",
-                                 destination->format(), source->format()));
+    BRISK_ASSERT(destination->format() == source->format());
     auto r = source->mapRead();
     auto w = destination->mapWrite();
 
@@ -97,9 +95,7 @@ static int alphaChannelIndex(PixelFormat fmt) {
 }
 
 void imageResizeTo(Rc<Image> destination, Rc<Image> source, ResizingFilter filter) {
-    if (source->format() != destination->format())
-        throwException(EArgument("imageResizeTo: incompatible type or format: destination={} source={}",
-                                 destination->format(), source->format()));
+    BRISK_ASSERT(destination->format() == source->format());
     auto r = source->mapRead();
     auto w = destination->mapWrite();
 

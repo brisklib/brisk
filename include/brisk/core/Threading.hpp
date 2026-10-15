@@ -42,6 +42,7 @@
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/Debug.hpp>
 #include <brisk/core/internal/Function.hpp>
+#include <brisk/core/internal/Throw.hpp>
 
 namespace Brisk {
 
@@ -149,35 +150,28 @@ void setTimeout(double time_s, VoidFunc fn);
 
 namespace Internal {
 
-#ifdef BRISK_EXCEPTIONS
 #define BRISK_SUPPRESS_EXCEPTIONS(...)                                                                       \
-    try {                                                                                                    \
+    BRISK_TRY {                                                                                              \
         __VA_ARGS__;                                                                                         \
-    } catch (const std::exception& e) {                                                                      \
+    }                                                                                                        \
+    BRISK_CATCH(const std::exception& e) {                                                                   \
         BRISK_LOG_WARN("Exception suppressed: {}", e.what());                                                \
-    } catch (...) {                                                                                          \
+    }                                                                                                        \
+    BRISK_CATCH_ALL {                                                                                        \
         BRISK_LOG_WARN("Unknown exception suppressed");                                                      \
     }
-#else
-#define BRISK_SUPPRESS_EXCEPTIONS(...)                                                                       \
-    do {                                                                                                     \
-        __VA_ARGS__;                                                                                         \
-    } while (0)
-#endif
 
 template <typename Fn, typename... Args>
 void suppressExceptions(Fn&& fn, Args&&... args) {
-#ifdef BRISK_EXCEPTIONS
-    try {
-#endif
+    BRISK_TRY {
         std::forward<Fn>(fn)(std::forward<Args>(args)...);
-#ifdef BRISK_EXCEPTIONS
-    } catch (const std::exception& e) {
+    }
+    BRISK_CATCH(const std::exception& e) {
         BRISK_LOG_WARN("Exception suppressed: {}", e.what());
-    } catch (...) {
+    }
+    BRISK_CATCH_ALL {
         BRISK_LOG_WARN("Unknown exception suppressed");
     }
-#endif
 }
 } // namespace Internal
 
@@ -264,15 +258,12 @@ public:
 
         dispatch(
             [promise = std::move(promise), func = std::forward<Callable>(func)]() mutable {
-#ifdef BRISK_EXCEPTIONS
-                try {
-#endif
+                BRISK_TRY {
                     promise.set_value(func());
-#ifdef BRISK_EXCEPTIONS
-                } catch (...) {
+                }
+                BRISK_CATCH_ALL {
                     promise.set_exception(std::current_exception());
                 }
-#endif
             },
             mode);
         return result;
@@ -638,15 +629,12 @@ struct AsyncOperation {
 
     template <typename Fn>
     void execute(Fn&& fn) {
-#ifdef BRISK_EXCEPTIONS
-        try {
-#endif
+        BRISK_TRY {
             ready(fn());
-#ifdef BRISK_EXCEPTIONS
-        } catch (...) {
+        }
+        BRISK_CATCH_ALL {
             exception(std::current_exception());
         }
-#endif
     }
 
     AsyncValue<Result> value() {

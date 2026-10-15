@@ -80,7 +80,9 @@ static void visualTest(const std::string& referenceImageName, Size size, Fn&& fn
                 auto rw = testImage->mapReadWrite();
                 rw.unpremultiplyAlpha();
             }
-            REQUIRE(writeBytes(savePath, pngEncode(testImage)));
+            auto png = pngEncode(testImage);
+            REQUIRE(png.has_value());
+            REQUIRE(writeBytes(savePath, *png));
         }
     };
 
@@ -130,7 +132,9 @@ static void renderTest(const std::string& referenceImageName, Size size, Fn&& fn
         REQUIRE(!info.device.empty());
         INFO(info.vendor);
 
-        Rc<ImageRenderTarget> target = device->createImageTarget(size, PixelType::U8Gamma);
+        auto targetResult = device->createImageTarget(size, PixelType::U8Gamma);
+        REQUIRE(targetResult.has_value());
+        Rc<ImageRenderTarget> target = *targetResult;
 
         REQUIRE(!!target.get());
         REQUIRE(target->size() == size);

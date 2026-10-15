@@ -28,28 +28,35 @@ WindowRenderTargetWebGpu::WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device
       m_samples(samples) {
     ensureOnRenderThread();
 
-    createSurface(window);
+    std::ignore = createSurface(window);
 
     Size framebufferSize = window->framebufferSize();
-    resizeBackbuffer(framebufferSize);
+    std::ignore = resizeBackbuffer(framebufferSize);
 }
 
 void WindowRenderTargetWebGpu::setVSyncInterval(int interval) {
     ensureOnRenderThread();
     if (interval != m_vsyncInterval) {
         m_vsyncInterval = interval;
-        recreateSwapChain();
+        std::ignore = recreateSwapChain();
     }
 }
 
-void WindowRenderTargetWebGpu::present() {
+expected<PresentStatus, GpuError> WindowRenderTargetWebGpu::present() {
     ensureOnRenderThread();
+    if (!valid())
+        return unexpected(GpuError::DeviceLost);
     m_surface.Present();
     m_device->m_instance.ProcessEvents();
+    if (!m_device->valid())
+        return unexpected(GpuError::DeviceLost);
+    return PresentStatus::Presented;
 }
 
-void WindowRenderTargetWebGpu::recreateSwapChain() {
+status<GpuError> WindowRenderTargetWebGpu::recreateSwapChain() {
     ensureOnRenderThread();
+    if (!m_surface || !m_device->valid())
+        return unexpected(GpuError::DeviceLost);
     m_backBuffer = {};
     wgpu::SurfaceConfiguration swapChainDesc{
         .device      = m_device->m_device,
@@ -61,17 +68,18 @@ void WindowRenderTargetWebGpu::recreateSwapChain() {
         .presentMode = m_vsyncInterval == 0 ? wgpu::PresentMode::Mailbox : wgpu::PresentMode::Fifo,
     };
     m_surface.Configure(&swapChainDesc);
+    return {};
 }
 
-void WindowRenderTargetWebGpu::resizeBackbuffer(Size size) {
+status<GpuError> WindowRenderTargetWebGpu::resizeBackbuffer(Size size) {
     ensureOnRenderThread();
-    if (size.longestSide() >= 16384) {
-        throwException(EImageError("Requested window framebuffer size is too large: {}", size));
-    }
+    if (size.width <= 0 || size.height <= 0 || size.longestSide() >= 16384)
+        return unexpected(GpuError::SizeExceedsLimit);
     if (size != m_size) {
         m_size = size;
-        recreateSwapChain();
+        return recreateSwapChain();
     }
+    return {};
 }
 
 Size WindowRenderTargetWebGpu::size() const {
@@ -89,7 +97,7 @@ const BackBufferWebGpu& WindowRenderTargetWebGpu::getBackBuffer() const {
     wgpu::SurfaceTexture surfaceTexture;
     m_surface.GetCurrentTexture(&surfaceTexture);
     m_backBuffer.color = surfaceTexture.texture;
-    m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilFmt, m_samples);
+    std::ignore = m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilFmt, m_samples);
     return m_backBuffer;
 }
 } // namespace Brisk

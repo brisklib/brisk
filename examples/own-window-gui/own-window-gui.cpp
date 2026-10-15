@@ -130,7 +130,10 @@ int main() {
 
         windows[i].osWin  = NativeWindowGLFW(windows[i].win);
         // Create render target for the window
-        windows[i].target = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
+        auto targetResult = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
+        if (!targetResult)
+            return 1;
+        windows[i].target = *targetResult;
         windows[i].target->setVSyncInterval(1); // Enable vertical sync
         // Create a render encoder for drawing
         windows[i].encoder = (*device)->createEncoder();
@@ -196,7 +199,8 @@ int main() {
             }
 
             // Present the rendered frame
-            windows[i].target->present();
+            if (!windows[i].target->present())
+                return 1;
 
             // Check if the window should close
             if (glfwWindowShouldClose(windows[i].win)) {
@@ -219,17 +223,15 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
     // Initialize Brisk with Windows-specific parameters (HINSTANCE and LPWSTR)
     Brisk::startup(hInstance, lpCmdLine);
     int exitCode = 1;
-#ifdef BRISK_EXCEPTIONS
-    try {
-#endif
+    BRISK_TRY {
         exitCode = Example::main();
-#ifdef BRISK_EXCEPTIONS
-    } catch (std::exception& exc) {
+    }
+    BRISK_CATCH(const std::exception& exc) {
         BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
-    } catch (...) {
+    }
+    BRISK_CATCH_ALL {
         BRISK_LOG_DEBUG("Unknown exception occurred");
     }
-#endif
     // Clean up Brisk resources
     Brisk::shutdown();
     return exitCode;
@@ -242,17 +244,15 @@ int main(int argc, char** argv) {
     // Initialize Brisk with command-line arguments (int and char**)
     Brisk::startup(argc, argv);
     int exitCode = 1;
-#ifdef BRISK_EXCEPTIONS
-    try {
-#endif
+    BRISK_TRY {
         exitCode = Example::main();
-#ifdef BRISK_EXCEPTIONS
-    } catch (std::exception& exc) {
+    }
+    BRISK_CATCH(const std::exception& exc) {
         BRISK_LOG_DEBUG("Exception occurred: {}", exc.what());
-    } catch (...) {
+    }
+    BRISK_CATCH_ALL {
         BRISK_LOG_DEBUG("Unknown exception occurred");
     }
-#endif
     // Clean up Brisk resources
     Brisk::shutdown();
     return exitCode;

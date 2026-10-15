@@ -310,24 +310,17 @@ RectangleF convertBounds(const TextEngine::DocumentLayout& layout) {
 static std::shared_ptr<const ShapedText::Impl> createPreparedDocument(
     const std::shared_ptr<Internal::TextEngineState>& state, const TextWithOptions& text,
     const std::vector<FontAndColor>& sourceFonts, std::span<const uint32_t> sourceOffsets) {
-    if (sourceFonts.empty()) {
-        throwException(EArgument("At least one font is required to prepare a document"));
-    }
-    if (sourceOffsets.size() + 1 != sourceFonts.size()) {
-        throwException(EArgument("The number of font offsets must be one less than the number of fonts"));
-    }
+    BRISK_ASSERT_FALSE(sourceFonts.empty());
+    BRISK_ASSERT(sourceOffsets.size() + 1 == sourceFonts.size());
 
     // TODO: Also validate finite/representable numeric Font and layout values
     // before converting them to fixed-point engine units.
     for (uint32_t offset : sourceOffsets) {
-        if (offset == 0 || offset >= text.text.size()) {
-            throwException(EArgument("Font offsets must be strictly inside the document"));
-        }
+        BRISK_ASSERT(offset != 0);
+        BRISK_ASSERT(offset < text.text.size());
     }
-    if (!std::is_sorted(sourceOffsets.begin(), sourceOffsets.end()) ||
-        std::adjacent_find(sourceOffsets.begin(), sourceOffsets.end()) != sourceOffsets.end()) {
-        throwException(EArgument("Font offsets must be sorted and unique"));
-    }
+    BRISK_ASSERT(std::is_sorted(sourceOffsets.begin(), sourceOffsets.end()));
+    BRISK_ASSERT(std::adjacent_find(sourceOffsets.begin(), sourceOffsets.end()) == sourceOffsets.end());
 
     auto document                = std::make_shared<ShapedText::Impl>();
     document->state              = state;
@@ -760,30 +753,9 @@ static std::string_view freeTypeError(FT_Error err) {
     return "(unknown)";
 }
 
-[[noreturn]] static void handleFTErr(FT_Error err) {
-    throwException(EFreeType("FreeType Error: {}", freeTypeError(err)));
-}
-
-static void handleFTErrSoft(FT_Error err) {
+static void logFTErr(FT_Error err) {
     BRISK_LOG_ERROR("FreeType Error: {}", freeTypeError(err));
 }
-
-#define HANDLE_FT_ERROR(expression)                                                                          \
-    do {                                                                                                     \
-        FT_Error error_ = expression;                                                                        \
-        if (error_) {                                                                                        \
-            handleFTErr(error_);                                                                             \
-        }                                                                                                    \
-    } while (0)
-
-#define HANDLE_FT_ERROR_SOFT(expression, ...)                                                                \
-    do {                                                                                                     \
-        FT_Error error_ = expression;                                                                        \
-        if (error_) {                                                                                        \
-            handleFTErrSoft(error_);                                                                         \
-            __VA_ARGS__;                                                                                     \
-        }                                                                                                    \
-    } while (0)
 
 using namespace Internal;
 
@@ -892,7 +864,8 @@ SVG_RendererHooks svgHooks = {
 
 static void* createFreeTypeLibrary() {
     FT_Library library = nullptr;
-    HANDLE_FT_ERROR(FT_Init_FreeType(&library));
+    const FT_Error error = FT_Init_FreeType(&library);
+    BRISK_ASSERT(error == 0);
     return library;
 }
 
@@ -915,10 +888,11 @@ FontManager::FontManager(std::recursive_mutex* mutex, int hscale)
     FT_Module mod = FT_Get_Module(reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg");
     if (!mod) {
         BRISK_LOG_ERROR("ot-svg module is not found");
+    } else if (const FT_Error error = FT_Property_Set(
+                   reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg", "svg-hooks", &svgHooks);
+               error) {
+        logFTErr(error);
     }
-
-    HANDLE_FT_ERROR(
-        FT_Property_Set(reinterpret_cast<FT_Library&>(m_ft_library), "ot-svg", "svg-hooks", &svgHooks));
 }
 
 FontManager::~FontManager() {
@@ -1249,9 +1223,7 @@ ShapedText FontManager::shapeText(const Font& font, const TextWithOptions& text)
 
 ShapedText FontManager::shapeText(const TextWithOptions& text, std::span<const FontAndColor> sourceFonts,
                                   std::span<const uint32_t> offsets) const {
-    if (sourceFonts.empty()) {
-        throwException(EArgument("At least one font is required to prepare a document"));
-    }
+    BRISK_ASSERT_FALSE(sourceFonts.empty());
 
     lock_quard_cond lk(m_lock);
     std::vector<FontAndColor> fontsCopy(sourceFonts.begin(), sourceFonts.end());
@@ -1298,6 +1270,12 @@ expected<std::vector<std::string>, IoError> FontManager::addFontImpl(BytesView d
     }
 
     std::vector<std::string> registeredFamilies = m_textEngine->database->registerFont(data, faceIndex);
+    if (registeredFamilies.empty()) {
+        if (makeCopy) {
+            m_textEngine->fontBlobs.pop_back();
+        }
+        return unexpected(IoError::UnsupportedFormat);
+    }
     for (const std::string& family : registeredFamilies) {
         if (!alias.empty() && alias != family) {
             std::ignore = m_textEngine->database->addAlias(family, alias);

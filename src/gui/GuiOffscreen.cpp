@@ -26,6 +26,8 @@ OffscreenGuiCanvas::OffscreenGuiCanvas(int width, int height, float pixelRatio)
     : OffscreenCanvas({ width, height }, pixelRatio) {}
 
 void OffscreenGuiCanvas::updateAndPaint(WidgetTree& tree) {
+    if (!beginPaint())
+        return;
     tree.setViewportRectangle(rect());
     tree.update();
     tree.paint(this->canvas(), {}, true);

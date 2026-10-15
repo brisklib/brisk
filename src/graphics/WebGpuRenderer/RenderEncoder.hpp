@@ -31,6 +31,10 @@ const BackBufferWebGpu& getBackBuffer(RenderTarget* target);
 
 class RenderEncoderWebGpu final : public RenderEncoder {
 public:
+    bool valid() const noexcept final {
+        return m_device && m_device->valid();
+    }
+
     RenderDevice* device() const final {
         return m_device.get();
     }
@@ -38,7 +42,7 @@ public:
     VisualSettings visualSettings() const final;
     void setVisualSettings(const VisualSettings& visualSettings) final;
 
-    void begin(Rc<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) final;
+    status<GpuError> begin(Rc<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) final;
     void batch(std::span<const RenderState> commands, std::span<const uint32_t> data) final;
     void end() final;
     void wait() final;

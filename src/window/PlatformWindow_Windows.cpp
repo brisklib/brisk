@@ -630,7 +630,7 @@ bool PlatformWindow::createWindow() {
 
         staticData.mainWindowClass = RegisterClassExW(&wc);
         if (!staticData.mainWindowClass) {
-            BRISK_SOFT_ASSERT_MSG("Win32: Failed to register window class", false);
+            BRISK_LOG_ERROR("Win32: Failed to register window class");
             return false;
         }
     }
@@ -731,9 +731,10 @@ PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, 
     BRISK_ASSERT(m_window);
 
     bool created = createWindow();
-    BRISK_SOFT_ASSERT(created);
-    if (!created)
+    if (!created) {
+        BRISK_LOG_ERROR("Win32: Failed to create window");
         return;
+    }
 
     setWindowIcon();
     updateSize();
@@ -878,13 +879,13 @@ static HICON createIcon(const ImageAccess<ImageFormat::RGBA, AccessMode::R>& ima
     ReleaseDC(NULL, dc);
 
     if (!color) {
-        BRISK_SOFT_ASSERT_MSG("Win32: Failed to create RGBA bitmap", false);
+        BRISK_LOG_ERROR("Win32: Failed to create RGBA bitmap");
         return NULL;
     }
 
     mask = CreateBitmap(image.width(), image.height(), 1, 1, NULL);
     if (!mask) {
-        BRISK_SOFT_ASSERT_MSG("Win32: Failed to create mask bitmap", false);
+        BRISK_LOG_ERROR("Win32: Failed to create mask bitmap");
         DeleteObject(color);
         return NULL;
     }
@@ -912,9 +913,9 @@ static HICON createIcon(const ImageAccess<ImageFormat::RGBA, AccessMode::R>& ima
 
     if (!handle) {
         if (icon) {
-            BRISK_SOFT_ASSERT_MSG("Win32: Failed to create icon", false);
+            BRISK_LOG_ERROR("Win32: Failed to create icon");
         } else {
-            BRISK_SOFT_ASSERT_MSG("Win32: Failed to create cursor", false);
+            BRISK_LOG_ERROR("Win32: Failed to create cursor");
         }
     }
 

@@ -18,13 +18,24 @@
  * If you do not wish to be bound by the GPL-2.0+ license, you must purchase a commercial
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
+#include <algorithm>
+
 #include <brisk/graphics/Gradients.hpp>
 
 namespace Brisk {
 
-GradientData::GradientData(const Gradient& gradient) {
+GradientData::GradientData() noexcept : positions{}, colors{} {
+    positions.fill(1.f);
+}
+
+GradientData::GradientData(const Gradient& gradient) : GradientData() {
     ColorStopArray colorStops = gradient.colorStops();
-    BRISK_ASSERT_MSG("Gradient must have at least one color stop", !colorStops.empty());
+    if (colorStops.empty())
+        return;
+
+    std::stable_sort(colorStops.begin(), colorStops.end(), [](const ColorStop& lhs, const ColorStop& rhs) {
+        return lhs.position < rhs.position;
+    });
 
     size_t stopCount = std::min(colorStops.size(), gradientMaxStops);
     for (size_t i = 0; i < stopCount; i++) {
@@ -43,6 +54,9 @@ GradientData::GradientData(const Gradient& gradient) {
 }
 
 ColorF GradientData::operator()(float x) const {
+    if (positions[0] == 1.f && positions[gradientMaxStops - 1] == 1.f && colors[0].a == 0.f &&
+        colors[gradientMaxStops - 1].a == 0.f)
+        return {};
     if (x <= positions[0])
         return colors[0];
     if (x >= positions[gradientMaxStops - 1])

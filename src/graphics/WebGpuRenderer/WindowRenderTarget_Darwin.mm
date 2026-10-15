@@ -26,7 +26,7 @@
 
 namespace Brisk {
 
-void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
+status<GpuError> WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
     ensureOnRenderThread();
     @autoreleasepool {
         NativeWindowHandle handle = window->getHandle();
@@ -49,7 +49,10 @@ void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
         surfaceDescMac.layer    = (__bridge_retained void*)([view layer]);
         surfaceDesc.nextInChain = &surfaceDescMac;
         m_surface               = m_device->m_instance.CreateSurface(&surfaceDesc);
+        if (!m_surface)
+            return unexpected(GpuError::UnsupportedFormat);
     }
+    return {};
 }
 
 } // namespace Brisk

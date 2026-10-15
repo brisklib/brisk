@@ -25,7 +25,6 @@
 
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Compression.hpp>
-#include <brisk/core/Exceptions.hpp>
 #include <brisk/core/internal/Debug.hpp>
 #include <brisk/core/internal/Resources.h>
 
@@ -51,11 +50,6 @@ inline const ResourceEntry* lookupResource(std::string_view name) {
 }
 
 } // namespace Internal
-
-class EResources : public Exception<std::runtime_error> {
-public:
-    using Exception<std::runtime_error>::Exception;
-};
 
 /**
  * @class Resources
@@ -94,15 +88,14 @@ public:
      * @param emptyOk If true, allows returning an empty byte vector if the resource is missing.
      * @return A byte vector containing the resource data.
      *
-     * @throws EResources if the resource does not exist and emptyOk is false.
+     * @assert The resource exists unless emptyOk is true.
      */
     static Bytes load(std::string_view name, bool emptyOk = false) {
         const Internal::ResourceEntry* rsrc = Internal::lookupResource(name);
-        if ((!rsrc || *rsrc->size == 0) && emptyOk) {
+        BRISK_ASSERT_MSG(fmt::format("Resource not found: {}", name), rsrc != nullptr);
+        if (*rsrc->size == 0 && emptyOk) {
             return {};
         }
-        if (!rsrc)
-            throwException(EResources("Resource '{}' not found", name));
         if (rsrc->compression == Internal::ResourceCompression::None) {
             return Bytes((const std::byte*)rsrc->data, (const std::byte*)rsrc->data + *rsrc->size);
         }
@@ -117,7 +110,7 @@ public:
      * @param emptyOk If true, allows returning an empty byte vector if the resource is missing.
      * @return A reference to a cached byte vector containing the resource data.
      *
-     * @throws EResources if the resource does not exist and emptyOk is false.
+     * @assert The resource exists unless emptyOk is true.
      */
     static const Bytes& loadCached(std::string name, bool emptyOk = false) {
         std::lock_guard lock(cacheMutex());
@@ -135,15 +128,14 @@ public:
      * @param emptyOk If true, allows returning an empty string if the resource is missing.
      * @return A string containing the resource data.
      *
-     * @throws EResources if the resource does not exist and emptyOk is false.
+     * @assert The resource exists unless emptyOk is true.
      */
     static std::string loadText(std::string_view name, bool emptyOk = false) {
         const Internal::ResourceEntry* rsrc = Internal::lookupResource(name);
-        if ((!rsrc || *rsrc->size == 0) && emptyOk) {
+        BRISK_ASSERT_MSG(fmt::format("Resource not found: {}", name), rsrc != nullptr);
+        if (*rsrc->size == 0 && emptyOk) {
             return {};
         }
-        if (!rsrc)
-            throwException(EResources("Resource '{}' not found", name));
         if (rsrc->compression == Internal::ResourceCompression::None) {
             return std::string((const char*)rsrc->data, (const char*)rsrc->data + *rsrc->size);
         }
@@ -159,7 +151,7 @@ public:
      * @param emptyOk If true, allows returning an empty string if the resource is missing.
      * @return A reference to a cached string containing the resource data.
      *
-     * @throws EResources if the resource does not exist and emptyOk is false.
+     * @assert The resource exists unless emptyOk is true.
      */
     static const std::string& loadTextCached(std::string name, bool emptyOk = false) {
         std::lock_guard lock(cacheMutex());

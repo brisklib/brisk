@@ -45,11 +45,11 @@ void setupCURLE(void* c) {
     curl_easy_setopt(curl, CURLOPT_USERAGENT, httpUserAgent.value_or(defaultHttpUserAgent()).c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 #ifdef ALLOW_LOCAL_SERVERS
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 #else
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
 #endif
 }
 
@@ -68,8 +68,8 @@ static size_t curlHeaderWriter(char* ptr, size_t size, size_t nmemb, std::string
     return nmemb * size;
 }
 
-static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t dltotal, curl_off_t dlnow,
-                        curl_off_t ultotal, curl_off_t ulnow) {
+static int curlProgress(const function<void(int64_t, int64_t)>* progress, curl_off_t dltotal,
+                        curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) {
     (*progress)(static_cast<int64_t>(dlnow), static_cast<int64_t>(dltotal));
     return 0;
 }
@@ -119,29 +119,56 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
     };
     if (!request.headers.empty()) {
         for (const std::string& h : request.headers) {
-            headerList = curl_slist_append(headerList, h.c_str());
+            curl_slist* appended = curl_slist_append(headerList, h.c_str());
+            if (!appended) {
+                // headerList (possibly non-null) is freed by the SCOPE_EXIT above
+                return HttpResponse{ FetchErrorCode::outOfMemory };
+            }
+            headerList = appended;
         }
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
     }
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, long(request.timeout.count()));
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, long(request.timeout.count()));
     switch (request.method) {
     case HttpMethod::Auto:
+        if (requestBody) {
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        }
+        break;
     case HttpMethod::Get:
         break;
     case HttpMethod::Post:
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        if (!requestBody) {
+            // Send an empty body instead of letting curl read one from stdin
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, curl_off_t(0));
+        }
         break;
     case HttpMethod::Put:
         curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+        if (!requestBody) {
+            // Send an empty body instead of letting curl read one from stdin
+            curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, curl_off_t(0));
+        }
         break;
     case HttpMethod::Head:
         curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
         break;
     case HttpMethod::Delete:
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+        if (requestBody) {
+            // CURLOPT_CUSTOMREQUEST alone does not transfer a body
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        }
         break;
     case HttpMethod::Patch:
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+        if (requestBody) {
+            // CURLOPT_CUSTOMREQUEST alone does not transfer a body
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        }
         break;
     default:
         BRISK_UNREACHABLE();
@@ -171,8 +198,6 @@ static int curlProgress(function<void(int64_t, int64_t)>* progress, curl_off_t d
     if (res != CURLcode::CURLE_OK) {
         response.error = static_cast<FetchErrorCode>(res);
     }
-    long verifyresult;
-    curl_easy_getinfo(curl, CURLINFO_SSL_VERIFYRESULT, &verifyresult);
 
     const char* effUrl = NULL;
     if (curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effUrl) == CURLcode::CURLE_OK) {

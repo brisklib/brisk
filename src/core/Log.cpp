@@ -19,9 +19,11 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */
 #include <cstdint>
+#include <cstdlib>
 #include <cstdio>
 #include <random>
 
+#include <cpptrace/formatting.hpp>
 #include <fmt/format.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
@@ -31,6 +33,7 @@
 #include <brisk/core/System.hpp>
 #include <brisk/core/Text.hpp>
 #include <brisk/core/Version.hpp>
+#include <brisk/core/internal/Throw.hpp>
 #if defined(BRISK_WINDOWS)
 #include <spdlog/sinks/msvc_sink.h>
 #endif
@@ -38,6 +41,8 @@
 #include <brisk/core/App.hpp>
 
 namespace Brisk {
+
+std::atomic_bool Internal::logStackTrace{ false };
 
 fs::path logfolder() {
     return defaultFolder(DefaultFolder::AppUserData) / "logs";
@@ -67,10 +72,10 @@ static std::vector<spdlog::sink_ptr>& sinks() {
             std::fprintf(stderr, "*** LOG ERROR: cannot create log directory '%s': %s ***\n",
                          logfolder().string().c_str(), ec.message().c_str());
         } else {
-            try {
+            BRISK_TRY {
                 result.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
                     (logfolder() / logFilename()).string()));
-            } catch (const spdlog::spdlog_ex& error) {
+            } BRISK_CATCH(const spdlog::spdlog_ex& error) {
                 std::fprintf(stderr, "*** LOG ERROR: cannot create file sink: %s ***\n", error.what());
             }
         }
@@ -101,6 +106,9 @@ static void printSystemInformation() {
 }
 
 void initializeLogs() {
+    const char* stackTrace = std::getenv("BRISK_LOG_STACK_TRACE");
+    Internal::logStackTrace.store(stackTrace && *stackTrace, std::memory_order_relaxed);
+
     std::error_code ec;
     fs::create_directories(logfolder(), ec);
     if (ec) {
@@ -123,6 +131,10 @@ spdlog::logger& Internal::applog() {
     }();
     (void)errorHandlerSet;
     return instance;
+}
+
+BRISK_NOINLINE std::string Internal::logTrace(std::size_t maxDepth) {
+    return cpptrace::generate_trace(1, maxDepth).to_string();
 }
 
 } // namespace Brisk

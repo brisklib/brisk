@@ -22,18 +22,21 @@
 
 #include <brisk/core/BasicTypes.hpp>
 #include <brisk/core/Bytes.hpp>
-#include <brisk/core/Exceptions.hpp>
 #include <brisk/core/Io.hpp>
 #include <brisk/core/internal/Span.hpp>
 
 namespace Brisk {
 
 /**
- * @brief Exception class for cryptographic errors.
+ * @brief Errors reported by cryptographic operations.
  */
-class ECrypto : public Exception<std::runtime_error> {
-public:
-    using Exception<std::runtime_error>::Exception;
+enum class CryptoError {
+    RandomUnavailable,
+};
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<CryptoError>> defaultNames<CryptoError>{
+    { "RandomUnavailable", CryptoError::RandomUnavailable },
 };
 
 /**
@@ -48,17 +51,17 @@ public:
  * @brief Retrieves cryptographically secure random bytes.
  *
  * @param data The buffer to store the random bytes.
- * @exception CryptoException Thrown if there are not enough random bytes.
+ * @return An empty status on success, or an error if there are not enough random bytes.
  */
-void cryptoRandomInplace(BytesMutableView data);
+[[nodiscard]] status<CryptoError> cryptoRandomInplace(BytesMutableView data);
 
 /**
  * @brief Retrieves cryptographically secure random bytes.
  *
  * @param size The number of bytes to return.
- * @return The random bytes as a `Bytes` object.
+ * @return The random bytes as a `Bytes` object, or an error if they cannot be generated.
  */
-[[nodiscard]] Bytes cryptoRandom(size_t size);
+[[nodiscard]] expected<Bytes, CryptoError> cryptoRandom(size_t size);
 
 /**
  * @brief Retrieves cryptographically secure random bytes as a fixed-size array.
@@ -68,10 +71,11 @@ void cryptoRandomInplace(BytesMutableView data);
  * @return The random bytes as a `FixedBytes<Size>` object.
  */
 template <size_t Size>
-[[nodiscard]] inline FixedBytes<Size> cryptoRandomFixed(size_constant<Size> = {}) {
+[[nodiscard]] inline expected<FixedBytes<Size>, CryptoError> cryptoRandomFixed(size_constant<Size> = {}) {
     FixedBytes<Size> result;
-    cryptoRandomInplace(result);
-    return result;
+    if (auto status = cryptoRandomInplace(result); !status)
+        return unexpected(status.error());
+    return expected<FixedBytes<Size>, CryptoError>(std::move(result));
 }
 
 /**

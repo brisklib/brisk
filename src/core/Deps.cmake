@@ -32,6 +32,11 @@ find_package(spdlog CONFIG REQUIRED)
 target_link_libraries(${_BRISK_CORE} ${_DEP_PUBLIC} spdlog::spdlog)
 # /spdlog
 
+# >cpptrace
+find_package(cpptrace CONFIG REQUIRED)
+target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE} cpptrace::cpptrace)
+# /cpptrace
+
 # >brotli
 find_package(unofficial-brotli CONFIG REQUIRED)
 target_link_libraries(${_BRISK_CORE} ${_DEP_PRIVATE} unofficial::brotli::brotlidec unofficial::brotli::brotlienc)

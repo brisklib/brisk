@@ -165,7 +165,7 @@ enum class StreamCapabilities {
     HasSize     = 32, /**< The stream has a size property. */
 
     All         = CanRead | CanWrite | CanSeek | CanFlush | CanTruncate |
-        HasSize, /**< All capabilities are supported. */
+                  HasSize, /**< All capabilities are supported. */
 };
 
 /**
@@ -554,7 +554,8 @@ public:
 
     [[nodiscard]] Transferred write(const std::byte* data, size_t size) override {
         if constexpr (readOnly) {
-            throwException(ENotImplemented("write called for read-only SpanStream"));
+            BRISK_ASSERT_FALSE_MSG("write called for read-only SpanStream", true);
+            BRISK_UNREACHABLE();
         } else {
             if (size == 0 || m_bytePosition >= m_data.size_bytes())
                 return Transferred::Error;
@@ -569,7 +570,8 @@ public:
 
     [[nodiscard]] bool flush() override {
         if constexpr (readOnly) {
-            throwException(ENotImplemented("flush called for read-only SpanStream"));
+            BRISK_ASSERT_FALSE_MSG("flush called for read-only SpanStream", true);
+            BRISK_UNREACHABLE();
         } else {
             return true;
         }
@@ -605,7 +607,8 @@ public:
 
     [[nodiscard]] bool truncate() override {
         if constexpr (readOnly) {
-            throwException(ENotImplemented("truncate called for read-only SpanStream"));
+            BRISK_ASSERT_FALSE_MSG("truncate called for read-only SpanStream", true);
+            BRISK_UNREACHABLE();
         } else {
             return false;
         }

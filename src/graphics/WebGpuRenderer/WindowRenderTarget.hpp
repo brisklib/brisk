@@ -26,11 +26,15 @@ namespace Brisk {
 
 class WindowRenderTargetWebGpu final : public WindowRenderTarget {
 public:
-    void resizeBackbuffer(Size size) final;
+    status<GpuError> resizeBackbuffer(Size size) final;
     Size size() const final;
-    void present() final;
+    expected<PresentStatus, GpuError> present() final;
     int vsyncInterval() const final;
     void setVSyncInterval(int interval) final;
+
+    bool valid() const noexcept final {
+        return m_device && m_device->valid() && static_cast<bool>(m_surface);
+    }
 
     WindowRenderTargetWebGpu(Rc<RenderDeviceWebGpu> device, const NativeWindow* window,
                              PixelType type                = PixelType::U8Gamma,
@@ -50,7 +54,7 @@ private:
     mutable BackBufferWebGpu m_backBuffer;
     int m_vsyncInterval = 1;
     Size m_size{ -1, -1 };
-    void recreateSwapChain();
-    void createSurface(const NativeWindow* window);
+    status<GpuError> recreateSwapChain();
+    status<GpuError> createSurface(const NativeWindow* window);
 };
 } // namespace Brisk

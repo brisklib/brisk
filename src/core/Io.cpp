@@ -39,12 +39,12 @@ expected<Rc<Stream>, IoError> openFileForWriting(const fs::path& filePath, bool 
 }
 
 std::optional<uint64_t> writeFromReader(Rc<Stream> dest, Rc<Stream> src, size_t bufSize) {
-    if (!dest || !src)
-        throwException(EArgument("writeFromReader requires non-null streams"));
-    if (bufSize == 0)
-        throwException(EArgument("writeFromReader requires a non-zero buffer size"));
-    if (!src->canRead() || !dest->canWrite() || !dest->canFlush())
-        throwException(EArgument("writeFromReader streams lack required capabilities"));
+    BRISK_ASSERT(dest);
+    BRISK_ASSERT(src);
+    BRISK_ASSERT(bufSize != 0);
+    BRISK_ASSERT(src->canRead());
+    BRISK_ASSERT(dest->canWrite());
+    BRISK_ASSERT(dest->canFlush());
 
     uint64_t transferred = 0;
     auto buf             = std::unique_ptr<std::byte[]>(new std::byte[bufSize]);
@@ -86,14 +86,20 @@ expected<std::string, IoError> readUtf8(const fs::path& file_name, bool removeBO
 }
 
 expected<Json, IoError> readJson(const fs::path& file_name) {
-    return readUtf8(file_name).map([](const std::string& b) {
-        return Json::fromJson(b).value_or(JsonNull{});
+    return readUtf8(file_name).and_then([](const std::string& b) -> expected<Json, IoError> {
+        auto json = Json::fromJson(b);
+        if (json)
+            return std::move(*json);
+        return unexpected(IoError::UnsupportedFormat);
     });
 }
 
 expected<Json, IoError> readMsgpack(const fs::path& file_name) {
-    return readBytes(file_name).map([](const Bytes& b) {
-        return Json::fromMsgPack(b).value_or(JsonNull{});
+    return readBytes(file_name).and_then([](const Bytes& b) -> expected<Json, IoError> {
+        auto json = Json::fromMsgPack(b);
+        if (json)
+            return std::move(*json);
+        return unexpected(IoError::UnsupportedFormat);
     });
 }
 

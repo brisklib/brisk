@@ -26,16 +26,18 @@ namespace Brisk {
 
 static_assert(sizeof(decltype(Hasher::state)) == sizeof(hash_state));
 
-void cryptoRandomInplace(BytesMutableView data) {
+status<CryptoError> cryptoRandomInplace(BytesMutableView data) {
     size_t result = cryptoRandomInplaceSafe(data);
     if (result != data.size()) {
-        throwException(ECrypto("Not enough randomness for cryptoRandomInplace"));
+        return unexpected(CryptoError::RandomUnavailable);
     }
+    return {};
 }
 
-Bytes cryptoRandom(size_t size) {
+expected<Bytes, CryptoError> cryptoRandom(size_t size) {
     Bytes result(size);
-    cryptoRandomInplace(result);
+    if (auto status = cryptoRandomInplace(result); !status)
+        return unexpected(status.error());
     return result;
 }
 

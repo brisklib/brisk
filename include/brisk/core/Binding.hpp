@@ -30,6 +30,7 @@
 #include <brisk/core/Utilities.hpp>
 #include <brisk/core/internal/FunctionRef.hpp>
 #include <brisk/core/internal/SmallVector.hpp>
+#include <brisk/core/internal/Throw.hpp>
 #include <brisk/core/internal/tuplet/tuplet.hpp>
 
 namespace Brisk {
@@ -2171,7 +2172,7 @@ public:
      */
     [[nodiscard]] pointer allocate(size_type n) {
         if (n > std::numeric_limits<size_type>::max() / sizeof(T)) {
-            throw std::length_error("BindableAllocator::allocate: size overflow");
+            throwException(std::length_error("BindableAllocator::allocate: size overflow"));
         }
 
         size_type bytes_to_allocate = n * sizeof(T);
@@ -2183,23 +2184,23 @@ public:
         // Using the sized delete version requires C++14 or later support for ::operator new
         void* p = ::operator new(bytes_to_allocate);
         if (!p) {
-            throw std::bad_alloc(); // Should theoretically not happen as ::operator new throws
+            throwException(std::bad_alloc()); // Should theoretically not happen as ::operator new throws
         }
 
         // --- Call the custom registration function ---
-        try {
-            Rc<Scheduler> sched;
-            BRISK_CLANG_PRAGMA(GCC diagnostic push)
-            BRISK_CLANG_PRAGMA(GCC diagnostic ignored "-Wpointer-bool-conversion")
-            if constexpr (SchedulerPtr::scheduler) {
-                sched = *SchedulerPtr::scheduler;
-            }
+        Rc<Scheduler> sched;
+        BRISK_CLANG_PRAGMA(GCC diagnostic push)
+        BRISK_CLANG_PRAGMA(GCC diagnostic ignored "-Wpointer-bool-conversion")
+        if constexpr (SchedulerPtr::scheduler) {
+            sched = *SchedulerPtr::scheduler;
+        }
+        BRISK_TRY {
             bindings->registerRegion(BindingAddress{ p, bytes_to_allocate }, std::move(sched));
-        } catch (...) {
-            // If bindingRegister throws, we must free the allocated memory
-            // before propagating the exception.
-            ::operator delete(p, bytes_to_allocate); // Use sized delete if available/appropriate
-            throw;                                   // Re-throw the exception from bindingRegister
+        }
+        BRISK_CATCH_ALL {
+            // Registration failed; release the storage before propagating the failure.
+            ::operator delete(p, bytes_to_allocate);
+            throw;
         }
 
         return static_cast<pointer>(p);
@@ -2218,13 +2219,13 @@ public:
 
         size_type bytes_to_deallocate = n * sizeof(T);
 
-        try {
+        BRISK_TRY {
             bindings->unregisterRegion(BindingAddress{ static_cast<void*>(p), bytes_to_deallocate });
-        } catch (...) {
+        }
+        BRISK_CATCH_ALL {
             BRISK_ASSERT_MSG("WARNING: unregisterRegion threw an exception during deallocate! Memory might "
                              "leak if not handled",
                              false);
-            std::terminate();
         }
 
         ::operator delete(static_cast<void*>(p), bytes_to_deallocate);

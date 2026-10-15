@@ -71,7 +71,10 @@ int main() {
         glfwTerminate();
     };
     for (int i = 0; i < numWindows; ++i) {
-        windows[i].target = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
+        auto targetResult = (*device)->createWindowTarget(&windows[i].osWin, PixelType::U8);
+        if (!targetResult)
+            return 1;
+        windows[i].target = *targetResult;
         windows[i].target->setVSyncInterval(1);
     }
 
@@ -122,7 +125,8 @@ int main() {
         }
         for (int i = 0; i < numWindows; ++i) {
             double beforeFrameTime = currentTime();
-            windows[i].target->present();
+            if (!windows[i].target->present())
+                return 1;
             double frameTime             = currentTime();
             double previousFrameTime     = windows[i].previousFrameTime;
             windows[i].previousFrameTime = frameTime;

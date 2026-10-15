@@ -26,6 +26,7 @@
 
 #include <brisk/core/App.hpp>
 #include <brisk/core/BasicTypes.hpp>
+#include <brisk/core/Log.hpp>
 #include <brisk/core/Localization.hpp>
 #include <brisk/core/Time.hpp>
 #include <brisk/graphics/NativeWindowHandle.hpp>
@@ -248,7 +249,7 @@ Rc<SystemCursor> PlatformCursors::getSystemCursor(Cursor shape) {
         }
 
         if (!result->cursor) {
-            BRISK_SOFT_ASSERT_MSG("Cocoa: Standard cursor shape unavailable", false);
+            BRISK_LOG_ERROR("Cocoa: Standard cursor shape unavailable");
             return nullptr;
         }
         return result;
@@ -531,9 +532,10 @@ PlatformWindow::PlatformWindow(Window* window, Size windowSize, Point position, 
     BRISK_ASSERT(m_window);
 
     bool created = createWindow();
-    BRISK_SOFT_ASSERT(created);
-    if (!created)
+    if (!created) {
+        BRISK_LOG_ERROR("Cocoa: Failed to create window");
         return;
+    }
 
     updateSize();
     contentScaleChanged(m_scale, m_scale);
@@ -1033,7 +1035,7 @@ bool PlatformWindow::createWindow() {
                                                             defer:NO];
 
         if (m_data->window == nil) {
-            BRISK_SOFT_ASSERT_MSG("Cocoa: Failed to create window", false);
+            BRISK_LOG_ERROR("Cocoa: Failed to create window");
             return false;
         }
 

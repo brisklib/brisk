@@ -306,7 +306,7 @@ TEST_CASE("Widget Shadow") {
 using namespace std::literals::chrono_literals;
 
 struct WidgetAnimation {
-    WebpAnimationEncoder anim{ std::nullopt, true };
+    Rc<WebpAnimationEncoder> anim;
     InputQueue input;
     WidgetTree tree{ &input };
     OffscreenCanvas offscreen;
@@ -317,6 +317,9 @@ struct WidgetAnimation {
 
     WidgetAnimation(Size size, bool transitions = true, int pixelScale = 3, int fps = 30)
         : pixelScale(pixelScale), fps(fps) {
+        auto animation = WebpAnimationEncoder::create(std::nullopt, true);
+        REQUIRE(animation.has_value());
+        anim      = *animation;
         offscreen = OffscreenCanvas(size * pixelScale, pixelScale, { .subPixelText = false });
 
         if (!transitions)
@@ -336,8 +339,9 @@ struct WidgetAnimation {
             tree.update();
             if (!pendingFrame || !tree.paintRect().empty()) {
                 flush();
+                REQUIRE(offscreen.beginPaint());
                 tree.paint(offscreen.canvas(), Palette::transparent, true);
-                pendingFrame = offscreen.render();
+                pendingFrame = offscreen.endPaint();
             }
             pendingFrameDuration += dur;
             *bindings->modify(frameStartTime) += 1.0 / fps;
@@ -346,7 +350,7 @@ struct WidgetAnimation {
 
     void flush() {
         if (pendingFrame) {
-            anim.addFrame(std::move(pendingFrame), pendingFrameDuration);
+            REQUIRE(anim->addFrame(std::move(pendingFrame), pendingFrameDuration));
             pendingFrame         = {};
             pendingFrameDuration = {};
         }
@@ -356,7 +360,9 @@ struct WidgetAnimation {
         flush();
         fs::path targetPath = fs::path(PROJECT_BINARY_DIR "/visualTest/") / name;
         fs::create_directories(targetPath.parent_path());
-        REQUIRE(writeBytes(targetPath, anim.encode()).has_value());
+        auto encoded = anim->encode();
+        REQUIRE(encoded.has_value());
+        REQUIRE(writeBytes(targetPath, *encoded).has_value());
     }
 };
 

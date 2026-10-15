@@ -25,7 +25,7 @@
 
 namespace Brisk {
 
-void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
+status<GpuError> WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
     ensureOnRenderThread();
     NativeWindowHandle handle = window->getHandle();
 
@@ -34,6 +34,9 @@ void WindowRenderTargetWebGpu::createSurface(const NativeWindow* window) {
     surfaceDescWin.hwnd     = reinterpret_cast<void*>(handle.hWnd());
     surfaceDesc.nextInChain = &surfaceDescWin;
     m_surface               = m_device->m_instance.CreateSurface(&surfaceDesc);
+    if (!m_surface)
+        return unexpected(GpuError::UnsupportedFormat);
+    return {};
 }
 
 } // namespace Brisk

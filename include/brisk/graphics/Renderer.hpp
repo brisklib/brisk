@@ -19,6 +19,9 @@
  * license. For commercial licensing options, please visit: https://brisklib.com
  */                                                                                                          \
 #pragma once
+
+#include <atomic>
+#include <functional>
 #include <mutex>
 
 #include <brisk/core/MetaClass.hpp>
@@ -106,6 +109,27 @@ enum class RendererDeviceSelection {
     Default,         ///< Selects the default device.
 };
 
+enum class GpuError {
+    DeviceLost,
+    OutOfMemory,
+    UnsupportedFormat,
+    SizeExceedsLimit,
+    ShaderCompileFailed,
+};
+
+template <>
+inline constexpr std::initializer_list<NameValuePair<GpuError>> defaultNames<GpuError>{
+    { "DeviceLost", GpuError::DeviceLost },
+    { "OutOfMemory", GpuError::OutOfMemory },
+    { "UnsupportedFormat", GpuError::UnsupportedFormat },
+    { "SizeExceedsLimit", GpuError::SizeExceedsLimit },
+    { "ShaderCompileFailed", GpuError::ShaderCompileFailed },
+};
+
+enum class PresentStatus {
+    Presented,
+};
+
 /**
  * @struct RenderDeviceInfo
  * @brief Holds information about the rendering device being used.
@@ -142,6 +166,7 @@ public:
     virtual Size size() const                      = 0;
 
     virtual RenderTargetType type() const noexcept = 0;
+    virtual bool valid() const noexcept            = 0;
 };
 
 class SpriteAtlas;
@@ -186,52 +211,54 @@ public:
      * @brief Returns the rendering device associated with this encoder.
      * @return Pointer to the RenderDevice.
      */
-    virtual RenderDevice* device() const                                                            = 0;
+    virtual RenderDevice* device() const                                                      = 0;
+    virtual bool valid() const noexcept                                                       = 0;
 
     /**
      * @brief Gets the visual settings for the encoder.
      * @return The visual settings.
      */
-    virtual VisualSettings visualSettings() const                                                   = 0;
+    virtual VisualSettings visualSettings() const                                             = 0;
 
     /**
      * @brief Sets the visual settings for the encoder.
      * @param visualSettings The visual settings to apply.
      */
-    virtual void setVisualSettings(const VisualSettings& visualSettings)                            = 0;
+    virtual void setVisualSettings(const VisualSettings& visualSettings)                      = 0;
 
     /**
      * @brief Begins the rendering operation.
      * @param target The render target.
      * @param clear The clear color. std::nullopt means no clear command is issued.
      */
-    virtual void begin(Rc<RenderTarget> target, std::optional<ColorF> clear = Palette::transparent) = 0;
+    virtual status<GpuError> begin(Rc<RenderTarget> target,
+                                   std::optional<ColorF> clear = Palette::transparent)        = 0;
 
     /**
      * @brief Batches rendering commands.
      * @param commands The rendering commands.
      * @param data Associated data.
      */
-    virtual void batch(std::span<const RenderState> commands, std::span<const uint32_t> data)       = 0;
+    virtual void batch(std::span<const RenderState> commands, std::span<const uint32_t> data) = 0;
 
     /**
      * @brief Ends the rendering operation.
      */
-    virtual void end()                                                                              = 0;
+    virtual void end()                                                                        = 0;
 
     /**
      * @brief Waits for the rendering to finish.
      */
-    virtual void wait()                                                                             = 0;
+    virtual void wait()                                                                       = 0;
 
     /**
      * @brief Gets current bound target (the target passed to `begin` function).
      * @return Pointer to the current RenderTarget, or nullptr if `begin` has not been called or `end` has
      * been called.
      */
-    virtual Rc<RenderTarget> currentTarget() const                                                  = 0;
+    virtual Rc<RenderTarget> currentTarget() const                                            = 0;
 
-    constexpr static uint32_t maxDurations                                                          = 256;
+    constexpr static uint32_t maxDurations                                                    = 256;
 
     using DurationCallback = std::function<void(uint64_t, std::span<const std::chrono::nanoseconds>)>;
 
@@ -334,24 +361,24 @@ public:
      * @brief Resizes the backbuffer.
      * @param size The new size of the backbuffer.
      */
-    virtual void resizeBackbuffer(Size size)    = 0;
+    virtual status<GpuError> resizeBackbuffer(Size size) = 0;
 
     /**
      * @brief Presents the rendered frame to the window.
      */
-    virtual void present()                      = 0;
+    virtual expected<PresentStatus, GpuError> present()  = 0;
 
     /**
      * @brief Gets the VSync interval.
      * @return The VSync interval (0 means no VSync).
      */
-    virtual int vsyncInterval() const           = 0;
+    virtual int vsyncInterval() const                    = 0;
 
     /**
      * @brief Sets the VSync interval.
      * @param interval The VSync interval to set (0 means no VSync).
      */
-    virtual void setVSyncInterval(int interval) = 0;
+    virtual void setVSyncInterval(int interval)          = 0;
 };
 
 /**
@@ -368,7 +395,7 @@ public:
      * @brief Sets the size of the render target.
      * @param newSize The new size.
      */
-    virtual void setSize(Size newSize)                = 0;
+    virtual status<GpuError> setSize(Size newSize)    = 0;
 
     /**
      * @brief Returns the rendered image.
@@ -436,9 +463,12 @@ public:
      * @brief Returns information about the rendering device.
      * @return RenderDeviceInfo object.
      */
-    virtual RenderDeviceInfo info() const                                         = 0;
+    virtual RenderDeviceInfo info() const                  = 0;
 
-    virtual RendererBackend backend() const noexcept                              = 0;
+    virtual RendererBackend backend() const noexcept       = 0;
+    virtual bool valid() const noexcept                    = 0;
+    using DeviceLostCallback                               = std::function<void()>;
+    virtual void onDeviceLost(DeviceLostCallback callback) = 0;
 
     /**
      * @brief Creates a render target for a window.
@@ -448,10 +478,9 @@ public:
      * @param samples Number of samples for multisampling.
      * @return The window render target.
      */
-    virtual Rc<WindowRenderTarget> createWindowTarget(const NativeWindow* window,
-                                                      PixelType type         = PixelType::U8Gamma,
-                                                      DepthStencilType depth = DepthStencilType::None,
-                                                      int samples            = 1) = 0;
+    virtual expected<Rc<WindowRenderTarget>, GpuError> createWindowTarget(
+        const NativeWindow* window, PixelType type = PixelType::U8Gamma,
+        DepthStencilType depth = DepthStencilType::None, int samples = 1) = 0;
 
     /**
      * @brief Creates a render target for off-screen image rendering.
@@ -461,33 +490,45 @@ public:
      * @param samples Number of samples for multisampling.
      * @return The image render target.
      */
-    virtual Rc<ImageRenderTarget> createImageTarget(Size frameSize, PixelType type = PixelType::U8Gamma,
-                                                    DepthStencilType depth = DepthStencilType::None,
-                                                    int samples            = 1)   = 0;
+    virtual expected<Rc<ImageRenderTarget>, GpuError> createImageTarget(
+        Size frameSize, PixelType type = PixelType::U8Gamma, DepthStencilType depth = DepthStencilType::None,
+        int samples = 1)                                                 = 0;
 
     /**
      * @brief Creates a new render encoder.
      * @return The render encoder.
      */
-    virtual Rc<RenderEncoder> createEncoder()                                     = 0;
+    virtual Rc<RenderEncoder> createEncoder()                            = 0;
 
     /**
      * @brief Returns the resources used for rendering.
      * @return Reference to RenderResources.
      */
-    virtual RenderResources& resources()                                          = 0;
+    virtual RenderResources& resources()                                 = 0;
 
     /**
      * @brief Returns the rendering limits for the device.
      * @return RenderLimits object.
      */
-    virtual RenderLimits limits() const                                           = 0;
+    virtual RenderLimits limits() const                                  = 0;
 
     /**
      * @brief Creates a backend representation of an image.
      * @param image The image to create a backend for.
      */
-    virtual void createImageBackend(Rc<Image> image)                              = 0;
+    virtual expected<void, GpuError> createImageBackend(Rc<Image> image) = 0;
+
+    void markDeviceLost() noexcept;
+
+protected:
+    struct GpuState {
+        std::atomic<uint64_t> generation{ 1 };
+        std::atomic<bool> lost{ false };
+        std::mutex mutex;
+        std::vector<DeviceLostCallback> callbacks;
+    };
+
+    Rc<GpuState> m_gpuState = std::make_shared<GpuState>();
 };
 
 extern RendererBackend defaultBackend;

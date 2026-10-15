@@ -30,42 +30,43 @@ ImageRenderTargetD3d11::ImageRenderTargetD3d11(Rc<RenderDeviceD3d11> device, Siz
       m_samples(samples) {
     ensureOnRenderThread();
 
-    if (!updateImage()) {
-        return;
-    }
+    std::ignore = updateImage();
 }
 
 ImageRenderTargetD3d11::~ImageRenderTargetD3d11() = default;
 
-bool ImageRenderTargetD3d11::updateImage() {
+expected<void, GpuError> ImageRenderTargetD3d11::updateImage() {
     ensureOnRenderThread();
-    m_image                    = rcnew Image(m_frameSize, imageFormat(m_type, backBufferFormat));
-    ImageBackendD3d11* backend = getOrCreateBackend(m_device, m_image, false, true);
-    m_backBuffer.colorBuffer   = backend->m_texture;
-    if (!m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilType, m_samples)) {
-        return false;
-    }
-    return true;
+    m_image            = rcnew Image(m_frameSize, imageFormat(m_type, backBufferFormat));
+    auto backendResult = getOrCreateBackend(m_device, m_image, false, true);
+    if (!backendResult)
+        return unexpected(backendResult.error());
+    ImageBackendD3d11* backend = *backendResult;
+    if (!backend)
+        return unexpected(m_device->valid() ? GpuError::OutOfMemory : GpuError::DeviceLost);
+    m_backBuffer.colorBuffer = backend->m_texture;
+    return m_device->updateBackBuffer(m_backBuffer, m_type, m_depthStencilType, m_samples);
 }
 
 Size ImageRenderTargetD3d11::size() const {
     return m_frameSize;
 }
 
-void ImageRenderTargetD3d11::setSize(Size newSize) {
+status<GpuError> ImageRenderTargetD3d11::setSize(Size newSize) {
     ensureOnRenderThread();
     if (newSize != m_frameSize) {
+        if (newSize.width <= 0 || newSize.height <= 0 || newSize.longestSide() >= 16384)
+            return unexpected(GpuError::SizeExceedsLimit);
         m_frameSize = newSize;
-        if (!updateImage()) {
-            return;
-        }
+        return updateImage();
     }
+    return {};
 }
 
 Rc<Image> ImageRenderTargetD3d11::image(bool reset) const {
     auto image = m_image;
     if (reset) {
-        const_cast<ImageRenderTargetD3d11*>(this)->updateImage();
+        std::ignore = const_cast<ImageRenderTargetD3d11*>(this)->updateImage();
     }
     return image;
 }

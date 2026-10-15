@@ -22,11 +22,40 @@
 
 #include <type_traits>
 #include <utility>
+#include <exception>
 
 #include <brisk/core/Brisk.h>
 #include <brisk/core/internal/Typename.hpp>
 
 namespace Brisk {
+
+/**
+ * @brief Exception-handling macros that remain syntactically valid when exceptions are disabled.
+ *
+ * Use these macros in the form:
+ * @code
+ * BRISK_TRY {
+ *     operation();
+ * } BRISK_CATCH(const std::exception& error) {
+ *     handle(error);
+ * } BRISK_CATCH_ALL {
+ *     handleUnknownError();
+ * }
+ * @endcode
+ *
+ * In a build without exception support, the try body is executed and catch bodies
+ * are discarded at compile time. Catch handlers should therefore not be required
+ * for the no-exception code path.
+ */
+#ifdef BRISK_EXCEPTIONS
+#define BRISK_TRY try
+#define BRISK_CATCH(...) catch (__VA_ARGS__)
+#define BRISK_CATCH_ALL catch (...)
+#else
+#define BRISK_TRY if constexpr (true)
+#define BRISK_CATCH(...) else if constexpr (false)
+#define BRISK_CATCH_ALL else if constexpr (false)
+#endif
 
 void logException(std::string_view className, std::string_view message);
 

@@ -55,6 +55,14 @@ public:
      */
     ~SvgImage();
 
+    bool valid() const noexcept {
+        return static_cast<bool>(m_impl);
+    }
+
+    explicit operator bool() const noexcept {
+        return valid();
+    }
+
     /**
      * @brief Renders the SVG image to an RGBA format.
      *
@@ -77,7 +85,7 @@ public:
      *
      * @exception EImageError if the format does not match.
      */
-    void renderTo(const Rc<Image>& destination) const;
+    bool renderTo(const Rc<Image>& destination) const;
 
     /**
      * @brief Gets the native image format used by the SVG renderer.

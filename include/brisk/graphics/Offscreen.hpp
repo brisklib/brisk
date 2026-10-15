@@ -52,10 +52,16 @@ public:
     ~OffscreenCanvas();
 
     /**
-     * @brief Renders the offscreen image and returns the resulting image.
+     * @brief Begins painting to the offscreen image.
+     * @return True if the rendering state was created; false if no render device is available.
+     */
+    [[nodiscard]] bool beginPaint();
+
+    /**
+     * @brief Finishes rendering and returns the resulting image.
      * @return A reference-counted pointer to the rendered image in RGBA format.
      */
-    [[nodiscard]] Rc<Image> render();
+    [[nodiscard]] Rc<Image> endPaint();
 
     /**
      * @brief Gets the rectangle representing the size of the rendering target.
@@ -77,7 +83,7 @@ private:
         std::unique_ptr<Canvas> canvas;          ///< The canvas used for drawing.
 
         State(Rc<RenderDevice> device, Size size, float pixelRatio, const VisualSettings& settings);
-        Rc<Image> render() &&;
+        Rc<Image> endPaint() &&;
     };
 
     Size m_size{};
