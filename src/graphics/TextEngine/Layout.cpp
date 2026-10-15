@@ -703,9 +703,9 @@ void shapeRun(const DocumentSource& document, CodepointRange textContextRange, C
     const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer.get(), nullptr);
 
     for (unsigned int i = 0; i < glyphCount; ++i) {
-        int32_t xAdvance = positions[i].x_advance / kHorizontalOversampling;
+        int32_t xAdvance = positions[i].x_advance / static_cast<int32_t>(kHorizontalOversampling);
         assert(positions[i].y_advance == 0);
-        int32_t xOffset = positions[i].x_offset / kHorizontalOversampling;
+        int32_t xOffset = positions[i].x_offset / static_cast<int32_t>(kHorizontalOversampling);
         int32_t yOffset = positions[i].y_offset;
 
         const GraphemeIndex graphemeIndex =
